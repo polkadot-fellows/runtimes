@@ -124,10 +124,17 @@ pub enum AccountState<Balance> {
 		///
 		/// Includes ED.
 		free: Balance,
-		/// The reserved balance that must be preserved on RC.
+		/// The reserved balance that should be preserved on RC.
 		///
 		/// In practice reserved by old `Currency` api and has no associated reason.
-		reserved: Balance,
+		reserved_amount: Balance,
+		/// The reserved balance that is actually preserved on RC.
+		///
+		/// If the account has not enough free balance for the relay chain existential deposit and
+		/// asset hub existential deposit, some of the `reserved_amount` balance needs to be
+		/// unreserved to cover for the existential deposits. As a consequence, this is always
+		/// smaller than or equal to the `reserved_amount` balance.
+		actual_reserved: Balance,
 		/// The number of consumers that must be preserved on RC.
 		///
 		/// Generally one consumer reference of reserved balance or/and consumer reference of the
@@ -154,10 +161,21 @@ impl<Balance: BalanceT> AccountState<Balance> {
 			},
 		}
 	}
-	/// Get the reserved balance on RC.
-	pub fn get_rc_reserved(&self) -> Balance {
+	/// Get the reserved balance amount on RC.
+	pub fn get_rc_reserved_amount(&self) -> Balance {
 		match self {
-			AccountState::Part { reserved, .. } => *reserved,
+			AccountState::Part { reserved_amount, .. } => *reserved_amount,
+			AccountState::Migrate => Balance::zero(),
+			AccountState::Preserve => {
+				defensive!("Account must be preserved on RC");
+				Balance::zero()
+			},
+		}
+	}
+	/// Get the actual reserved balance on RC.
+	pub fn get_rc_actual_reserved(&self) -> Balance {
+		match self {
+			AccountState::Part { actual_reserved, .. } => *actual_reserved,
 			AccountState::Migrate => Balance::zero(),
 			AccountState::Preserve => {
 				defensive!("Account must be preserved on RC");
@@ -366,7 +384,8 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 		}
 
-		let ed = <T as Config>::Currency::minimum_balance();
+		let rc_ed = <T as Config>::Currency::minimum_balance();
+		let ah_ed = T::AhExistentialDeposit::get();
 		let holds: Vec<IdAmount<<T as Config>::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
@@ -381,12 +400,12 @@ impl<T: Config> AccountsMigrator<T> {
 			// prevents the free balance from being burned.
 			// This scenario causes a panic in the test environment - see:
 			// https://github.com/paritytech/polkadot-sdk/blob/35e6befc5dd61deb154ff0eb7c180a038e626d66/substrate/frame/balances/src/impl_fungible.rs#L285
-			let mut amount = if free < ed && amount.saturating_sub(ed - free) > 0 {
+			let mut amount = if free < rc_ed && amount.saturating_sub(rc_ed - free) > 0 {
 				log::debug!(
 					target: LOG_TARGET,
 					"Partially releasing hold to prevent the free balance from being burned"
 				);
-				let partial_amount = ed - free;
+				let partial_amount = rc_ed - free;
 				if let Err(e) =
 					<T as Config>::Currency::release(&id, &who, partial_amount, Precision::Exact)
 				{
@@ -447,7 +466,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 		// unreserve the unnamed reserve but keep some reserve on RC if needed.
 		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who)
-			.checked_sub(account_state.get_rc_reserved())
+			.checked_sub(account_state.get_rc_reserved_amount())
 			.defensive_unwrap_or_default();
 		let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
 
@@ -465,34 +484,43 @@ impl<T: Config> AccountsMigrator<T> {
 			a.providers = 1;
 		});
 
+		// Checking if we need to unreserve some of the RC reserved balance to cover for the
+		// existential deposits on the relay chain and asset hub.
+		let rc_reserved_mismatch = account_state
+			.get_rc_reserved_amount()
+			.saturating_sub(account_state.get_rc_actual_reserved());
+		if rc_reserved_mismatch > 0 {
+			<T as Config>::Currency::unreserve(&who, rc_reserved_mismatch);
+			log::warn!(
+				target: LOG_TARGET,
+				"Account {:?}, unreserved {} from the reserved balance kept on the relay chain to free the required balance for existential deposits.",
+				who.to_ss58check(),
+				rc_reserved_mismatch
+			);
+		}
+
 		let total_balance = <T as Config>::Currency::total_balance(&who);
 		let teleport_total = <T as Config>::Currency::reducible_balance(
 			&who,
 			Preservation::Expendable,
 			Fortitude::Polite,
 		);
-
-		let teleport_free = account_data
-			.free
-			.checked_sub(account_state.get_rc_free())
-			.defensive_unwrap_or_default();
-		// This must always be less than or equal to the total teleported balance minus the
-		// teleported free balance. While this should always be the case, there is a partially
-		// migrated account with less free balance than the existential deposit.
-		// Account: 5CfWkGnSnG89mGm3HjSUYHfJrNKmeyWgix5NKAMqePu4csgP
-		// This fix avoids minting new balance as a consequence of this account's inconsistent
-		// state.
 		let teleport_reserved = account_data
 			.reserved
-			.checked_sub(account_state.get_rc_reserved())
-			.defensive_unwrap_or_default()
-			.min(teleport_total - teleport_free);
+			.checked_sub(account_state.get_rc_reserved_amount())
+			.defensive_unwrap_or_default();
+		let teleport_free = (account_data.free + rc_reserved_mismatch)
+			.checked_sub(account_state.get_rc_free())
+			.defensive_unwrap_or_default();
 
+		debug_assert!(teleport_free >= ah_ed);
 		defensive_assert!(
 			teleport_total ==
-				total_balance - account_state.get_rc_free() - account_state.get_rc_reserved()
+				total_balance -
+					account_state.get_rc_free() -
+					account_state.get_rc_actual_reserved()
 		);
-		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
+		defensive_assert!(teleport_free + teleport_reserved == teleport_total);
 
 		let burned = match <T as Config>::Currency::burn_from(
 			&who,
@@ -752,19 +780,40 @@ impl<T: Config> AccountsMigrator<T> {
 					id.to_ss58check(),
 					rc_reserved
 				);
-				if rc_ed > free {
+				let mut unreserve_amount = 0;
+				// We need to keep rc_ed free balance on the relay chain and migrate at least ah_ed
+				// free balance to the asset hub.
+				if free < rc_ed + ah_ed {
 					log::warn!(
 						target: LOG_TARGET,
-						"Account {:?} has less free balance {} than the existential deposit {}",
+						"Account {:?} has less free balance {} than the existential deposits {} + {} (RC ed + AH ed)",
 						id.to_ss58check(),
 						free,
-						rc_ed
+						rc_ed,
+						ah_ed
 					);
+					// We will need to unreserve some of the reserved balance on the RC to free the
+					// required balance for existential deposits. The following calculation is to
+					// ensure that we end up with enough free balance for the existential deposits.
+					unreserve_amount = (rc_ed + ah_ed - free).min(rc_reserved);
+					debug_assert!(unreserve_amount > 0);
+					if unreserve_amount < rc_ed + ah_ed - free {
+						log::error!(
+							target: LOG_TARGET,
+							"We cannot unreserve enough balance on the RC for RC and AH existential deposits for partially migrated account {:?}",
+							id.to_ss58check()
+						)
+					}
 				}
 				RcAccounts::<T>::insert(
 					&id,
 					// one consumer reference of reserved balance.
-					AccountState::Part { free: rc_ed, reserved: rc_reserved, consumers: 1 },
+					AccountState::Part {
+						free: rc_ed,
+						reserved_amount: rc_reserved,
+						actual_reserved: rc_reserved.saturating_sub(unreserve_amount),
+						consumers: 1,
+					},
 				);
 			}
 		}
@@ -948,14 +997,16 @@ pub mod tests {
 					continue;
 				}
 
-				// We need to keep some reserved balance (reserved_kept) on the relay chain,
-				// together with the Relay Chain existential deposit. Notice that this cannot be
-				// greater than the total balance of the account.
-				let ed = <T as Config>::Currency::minimum_balance();
-				let total_balance = <T as Config>::Currency::total_balance(&who);
-				let free_kept = ed.min(total_balance.saturating_sub(reserved_kept));
+				let rc_ed = <T as Config>::Currency::minimum_balance();
+				let ah_ed = T::AhExistentialDeposit::get();
+				let free = <T as Config>::Currency::balance(&who);
+				// We always need rc_ed free balance on the relay chain and migrate at least ah_ed
+				// free balance to the asset hub.
+				if free < rc_ed + ah_ed {
+					reserved_kept = reserved_kept.saturating_sub(rc_ed + ah_ed - free);
+				}
 				rc_reserved_kept.insert(who.clone(), reserved_kept);
-				rc_free_kept.insert(who.clone(), free_kept);
+				rc_free_kept.insert(who.clone(), rc_ed);
 			}
 			Self { rc_reserved_kept, rc_free_kept }
 		}
@@ -1067,9 +1118,22 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrationChecker<T> {
 				continue;
 			}
 			let total_reserved = <T as Config>::Currency::reserved_balance(&who);
-			let migrated_reserved = total_reserved.saturating_sub(*rc_kept_reserved_balance);
 			let free = <T as Config>::Currency::balance(&who);
-			let migrated_free = free.saturating_sub(*rc_kept_free_balance);
+			// Extra balance that needs to be freed for migration for existential deposits.
+			let mut freed_for_migration = 0;
+			let rc_ed = <T as Config>::Currency::minimum_balance();
+			let ah_ed = T::AhExistentialDeposit::get();
+			let tot_kept_balance = rc_kept_reserved_balance.saturating_add(*rc_kept_free_balance);
+			if tot_kept_balance > 0 && tot_kept_balance < total_balance && free < rc_ed + ah_ed {
+				freed_for_migration = rc_ed + ah_ed - free;
+			}
+
+			let migrated_free =
+				free.saturating_add(freed_for_migration).saturating_sub(*rc_kept_free_balance);
+			let migrated_reserved = total_reserved
+				.saturating_sub(freed_for_migration)
+				.saturating_sub(*rc_kept_reserved_balance);
+
 			let frozen = account_info.data.frozen;
 
 			let mut locks_enc = Vec::new();
@@ -1124,12 +1188,11 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrationChecker<T> {
 				}
 			}
 			match acc_state_maybe {
-				Some(AccountState::Part { free, reserved, consumers }) => {
-					log::info!("free: {}, reserved: {}, consumers: {}", free, reserved, consumers);
+				Some(AccountState::Part { free, actual_reserved, consumers, .. }) => {
 					assert_eq!(
-						<T as Config>::Currency::reserved_balance(&who), reserved,
+						<T as Config>::Currency::reserved_balance(&who), actual_reserved,
 						"Incorrect reserve balance on the Relay Chain after the migration for account: {:?}, {:?}",
-						who.to_ss58check(), reserved
+						who.to_ss58check(), actual_reserved
 					);
 					assert_eq!(
 						<T as Config>::Currency::balance(&who), free,
