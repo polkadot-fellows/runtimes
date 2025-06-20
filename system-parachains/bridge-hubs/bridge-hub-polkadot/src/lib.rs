@@ -798,7 +798,7 @@ mod benches {
 		fn export_message_origin_and_destination(
 		) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
 			// save XCM version for remote bridge hub
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(bridge_to_kusama_config::BridgeHubKusamaLocation::get()),
 				XCM_VERSION,
@@ -970,7 +970,7 @@ mod benches {
 			use cumulus_primitives_core::XcmpMessageSource;
 			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(Location::new(1, Parachain(42))),
 				XCM_VERSION,
