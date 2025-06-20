@@ -28,6 +28,7 @@ extern crate alloc;
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod governance;
 mod impls;
 mod weights;
 pub mod xcm_config;
@@ -41,6 +42,9 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use governance::{
+	pallet_custom_origins
+};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
 use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
@@ -1113,6 +1117,15 @@ construct_runtime!(
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
+
+		// OpenGov stuff.
+		Treasury: pallet_treasury = 71,
+		ConvictionVoting: pallet_conviction_voting = 72,
+		Referenda: pallet_referenda = 73,
+		Origins: pallet_custom_origins = 74,
+		Whitelist: pallet_whitelist = 75,
+		// TODO: do we need?
+		// Parameters: pallet_parameters = 46,
 	}
 );
 
