@@ -14,6 +14,7 @@ frame-support = { workspace = true }
 xcm = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+polkadot-runtime-parachains = { workspace = true }
 
 [features]
 default = ["std"]
@@ -21,6 +22,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-parachains/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
@@ -29,6 +31,7 @@ std = [
 	"frame-support/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
+	"polkadot-runtime-parachains/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",

@@ -15454,6 +15454,7 @@ dependencies = [
  "frame-support",
  "polkadot-primitives",
  "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
