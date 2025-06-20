@@ -4,6 +4,14 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Use `pallet-assets` instead of `pallet-balances` for XCM benchmarks on asset hubs ([polkadot-fellows/runtimes/pull/758](https://github.com/polkadot-fellows/runtimes/pull/758))
+  - This means XCM benchmarks will have a higher weight.
+- All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub ([polkadot-fellows/runtimes/pull/709](https://github.com/polkadot-fellows/runtimes/pull/709))
+
 ## [1.6.0] 19.06.2025
 
 ### Added
@@ -44,9 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: minor fix for compatibility with V4 ([SDK stable2503 #6503](https://github.com/paritytech/polkadot-sdk/pull/6503)).
 - Allow `Utility` and `Multisig` calls from `CancelProxy` proxy types in Polkadot/Kusama relaychain runtimes ([polkadot-fellows/runtimes#740](https://github.com/polkadot-fellows/runtimes/pull/740))
-- Use `pallet-assets` instead of `pallet-balances` for XCM benchmarks on asset hubs ([polkadot-fellows/runtimes/pull/758](https://github.com/polkadot-fellows/runtimes/pull/758))
-  - This means XCM benchmarks will have a higher weight.
-- All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub ([polkadot-fellows/runtimes/pull/709](https://github.com/polkadot-fellows/runtimes/pull/709))
 
 ## [1.5.1] 22.05.2025
 
