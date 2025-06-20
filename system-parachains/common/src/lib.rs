@@ -34,7 +34,7 @@ pub mod xcm_sender {
 	use frame_support::traits::Get;
 	use polkadot_primitives::Id as ParaId;
 	use polkadot_runtime_common::xcm_sender::PriceForMessageDelivery;
-	use polkadot_runtime_parachains::EnsureForParachain;
+	use runtime_parachains::EnsureForParachain;
 	use xcm::{latest::MAX_ITEMS_IN_ASSETS, prelude::*};
 
 	pub const MAX_INSTRUCTIONS_TO_DECODE: usize = 100;

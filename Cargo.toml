@@ -187,7 +187,6 @@ polkadot-parachain-primitives = { version = "16.1.0", default-features = false }
 polkadot-primitives = { version = "18.1.0", default-features = false }
 polkadot-runtime = { path = "relay/polkadot" }
 polkadot-runtime-common = { version = "19.1.0", default-features = false }
-polkadot-runtime-parachains = { version = "19.1.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
 primitive-types = { version = "0.12.2", default-features = false }
