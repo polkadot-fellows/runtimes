@@ -346,6 +346,7 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Storage: `XcmPallet::Queries` (r:1 w:1)
 	/// Proof: `XcmPallet::Queries` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	fn take_response() -> Weight {
+		// TODO: will be regenerated
 		// Proof Size summary in bytes:
 		//  Measured:  `7576`
 		//  Estimated: `11041`
