@@ -1594,7 +1594,7 @@ pub mod pallet {
 					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
 						destination: Location::parent(),
 						query_id,
-						max_weight: Weight::from_all(1), // TODO: weight
+						max_weight: T::RcWeightInfo::receive_query_response(),
 					})])),
 				]);
 

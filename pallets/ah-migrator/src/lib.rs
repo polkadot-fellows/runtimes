@@ -569,6 +569,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
+			ensure!(values.len() == 1, Error::<T>::InvalidParameters);
+
 			let (referendum_count, deciding_count, track_queue) =
 				values.pop().ok_or(Error::<T>::InvalidParameters)?;
 
