@@ -64,13 +64,6 @@ fn test_bench_receive_multisigs() {
 }
 
 #[test]
-fn test_bench_on_finalize() {
-	new_test_ext().execute_with(|| {
-		test_on_finalize::<AssetHub>();
-	});
-}
-
-#[test]
 fn test_bench_receive_proxy_proxies() {
 	new_test_ext().execute_with(|| {
 		test_receive_proxy_proxies::<AssetHub>(BENCHMARK_N);

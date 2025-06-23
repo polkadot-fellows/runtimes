@@ -68,9 +68,14 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
-		referendum_count: u32,
-		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
-		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		values: Vec<(
+			// referendum_count
+			u32,
+			// deciding_count (track_id, count)
+			Vec<(TrackIdOf<T, ()>, u32)>,
+			// track_queue (referendum_id, votes)
+			Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		)>,
 	},
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
