@@ -43,7 +43,7 @@ use assets_common::{
 use core::cmp::Ordering;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use governance::{pallet_custom_origins, AuctionAdmin, Treasurer};
+use governance::{pallet_custom_origins, AuctionAdmin, GeneralAdmin, Treasurer};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
 use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
@@ -67,13 +67,15 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::{DispatchClass, DispatchInfo, RawOrigin},
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible, fungible::HoldConsideration, fungibles, tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
-		EitherOf, EitherOfDiverse, Equals, EverythingBut, InstanceFilter, LinearStoragePrice,
-		Nothing, PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, EverythingBut,
+		InstanceFilter, LinearStoragePrice, Nothing, PrivilegeCmp, TransformOrigin,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	BoundedVec, PalletId,
@@ -572,90 +574,90 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })
+					| RuntimeCall::Utility { .. }
+					| RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Assets => {
 				matches!(
 					c,
-					RuntimeCall::Assets { .. } |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. } |
-						RuntimeCall::NftFractionalization { .. } |
-						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
+					RuntimeCall::Assets { .. }
+						| RuntimeCall::Utility { .. }
+						| RuntimeCall::Multisig { .. }
+						| RuntimeCall::NftFractionalization { .. }
+						| RuntimeCall::Nfts { .. }
+						| RuntimeCall::Uniques { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
 				c,
-				RuntimeCall::Assets(TrustBackedAssetsCall::create { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::start_destroy { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::destroy_accounts { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::destroy_approvals { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::finish_destroy { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::transfer_ownership { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::set_team { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::set_metadata { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::clear_metadata { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::set_min_balance { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::create { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::transfer_ownership { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_team { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_max_supply { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::lock_collection { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::create { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::destroy { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::transfer_ownership { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::set_team { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::set_metadata { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::set_attribute { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::set_collection_metadata { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::clear_metadata { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::clear_attribute { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::clear_collection_metadata { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::set_collection_max_supply { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Assets(TrustBackedAssetsCall::create { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::start_destroy { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::destroy_accounts { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::destroy_approvals { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::finish_destroy { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::transfer_ownership { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::set_team { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::set_metadata { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::clear_metadata { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::set_min_balance { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::create { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::transfer_ownership { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::set_team { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::set_collection_max_supply { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::lock_collection { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::create { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::destroy { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::transfer_ownership { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::set_team { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::set_metadata { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::set_attribute { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::set_collection_metadata { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::clear_metadata { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::clear_attribute { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::clear_collection_metadata { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::set_collection_max_supply { .. })
+					| RuntimeCall::Utility { .. }
+					| RuntimeCall::Multisig { .. }
 			),
 			ProxyType::AssetManager => matches!(
 				c,
-				RuntimeCall::Assets(TrustBackedAssetsCall::mint { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::burn { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::freeze { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::block { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::thaw { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::freeze_asset { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::thaw_asset { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::touch_other { .. }) |
-					RuntimeCall::Assets(TrustBackedAssetsCall::refund_other { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::update_mint_settings { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::mint_pre_signed { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_attributes_pre_signed { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_properties { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_metadata { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::clear_collection_metadata { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::mint { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::burn { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::freeze { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::thaw { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::freeze_collection { .. }) |
-					RuntimeCall::Uniques(pallet_uniques::Call::thaw_collection { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Assets(TrustBackedAssetsCall::mint { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::burn { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::freeze { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::block { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::thaw { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::freeze_asset { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::thaw_asset { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::touch_other { .. })
+					| RuntimeCall::Assets(TrustBackedAssetsCall::refund_other { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::update_mint_settings { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::mint_pre_signed { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::set_attributes_pre_signed { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::lock_item_properties { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::set_collection_metadata { .. })
+					| RuntimeCall::Nfts(pallet_nfts::Call::clear_collection_metadata { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::mint { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::burn { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::freeze { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::thaw { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::freeze_collection { .. })
+					| RuntimeCall::Uniques(pallet_uniques::Call::thaw_collection { .. })
+					| RuntimeCall::Utility { .. }
+					| RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. } |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection { .. }
+					| RuntimeCall::Utility { .. }
+					| RuntimeCall::Multisig { .. }
 			),
 		}
 	}
@@ -1004,13 +1006,13 @@ impl
 			kusama_runtime_constants::proxy::ProxyType::NonTransfer => ProxyType::NonTransfer,
 			kusama_runtime_constants::proxy::ProxyType::CancelProxy => ProxyType::CancelProxy,
 			// Proxy types that are not supported on AH.
-			kusama_runtime_constants::proxy::ProxyType::Governance |
-			kusama_runtime_constants::proxy::ProxyType::Staking |
-			kusama_runtime_constants::proxy::ProxyType::Auction |
-			kusama_runtime_constants::proxy::ProxyType::Spokesperson |
-			kusama_runtime_constants::proxy::ProxyType::NominationPools |
-			kusama_runtime_constants::proxy::ProxyType::Society |
-			kusama_runtime_constants::proxy::ProxyType::ParaRegistration => return None,
+			kusama_runtime_constants::proxy::ProxyType::Governance
+			| kusama_runtime_constants::proxy::ProxyType::Staking
+			| kusama_runtime_constants::proxy::ProxyType::Auction
+			| kusama_runtime_constants::proxy::ProxyType::Spokesperson
+			| kusama_runtime_constants::proxy::ProxyType::NominationPools
+			| kusama_runtime_constants::proxy::ProxyType::Society
+			| kusama_runtime_constants::proxy::ProxyType::ParaRegistration => return None,
 		};
 
 		Some(ProxyDefinition {
@@ -1127,6 +1129,55 @@ impl pallet_preimage::Config for Runtime {
 	>;
 }
 
+/// Defines what origin can modify which dynamic parameters.
+pub struct DynamicParameterOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<polkadot_core_primitives::AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+		}
+			.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used by `pallet-treasury` to handle the burn process.
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod treasury {
+		#[codec(index = 0)]
+		pub static BurnPortion: Permill = Permill::from_percent(0);
+
+		#[codec(index = 1)]
+		pub static BurnDestination: crate::treasury::BurnDestinationAccount = Default::default();
+	}
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1139,6 +1190,7 @@ construct_runtime!(
 		ParachainInfo: parachain_info = 4,
 		Preimage: pallet_preimage = 5,
 		Scheduler: pallet_scheduler = 6,
+		Parameters: pallet_parameters = 7,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,

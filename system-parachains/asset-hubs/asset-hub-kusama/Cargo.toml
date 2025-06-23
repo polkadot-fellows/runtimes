@@ -46,6 +46,7 @@ pallet-multisig = { workspace = true }
 pallet-nft-fractionalization = { workspace = true }
 pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
+pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
@@ -150,6 +151,7 @@ runtime-benchmarks = [
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nft-fractionalization/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
@@ -200,6 +202,7 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-nft-fractionalization/try-runtime",
 	"pallet-nfts/try-runtime",
+	"pallet-parameters/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-referenda/try-runtime",
@@ -261,6 +264,7 @@ std = [
 	"pallet-nft-fractionalization/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
+	"pallet-parameters/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-referenda/std",
