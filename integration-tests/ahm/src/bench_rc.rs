@@ -78,3 +78,10 @@ fn test_bench_receive_query_response() {
 		test_receive_query_response::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_resend_xcm() {
+	new_test_ext().execute_with(|| {
+		test_resend_xcm::<RelayChain>();
+	});
+}

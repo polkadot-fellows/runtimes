@@ -496,6 +496,10 @@ pub mod pallet {
 		BalanceUnderflow,
 		/// The query response is invalid.
 		InvalidQueryResponse,
+		/// The xcm query was not found.
+		QueryNotFound,
+		/// Failed to send XCM message.
+		XcmSendError,
 	}
 
 	#[pallet::event]
@@ -527,6 +531,13 @@ pub mod pallet {
 			query_id: u64,
 			/// The response.
 			response: MaybeErrorCode,
+		},
+		/// A XCM message has been resent.
+		XcmResendAttempt {
+			/// The query ID.
+			query_id: u64,
+			/// The error message.
+			send_error: Option<SendError>,
 		},
 	}
 
@@ -656,6 +667,27 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::QueryResponseReceived { query_id, response });
 
 			Ok(())
+		}
+
+		/// Resend a previously sent and unconfirmed XCM message.
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::RcWeightInfo::resend_xcm())]
+		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+
+			let xcm = PendingXcmMessages::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+
+			if let Err(err) = send_xcm::<T::SendXcm>(Location::new(0, Parachain(1000)), xcm) {
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				Self::deposit_event(Event::<T>::XcmResendAttempt {
+					query_id,
+					send_error: Some(err),
+				});
+			} else {
+				Self::deposit_event(Event::<T>::XcmResendAttempt { query_id, send_error: None });
+			}
+
+			Ok(Pays::No.into())
 		}
 	}
 
