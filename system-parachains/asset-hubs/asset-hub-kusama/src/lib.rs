@@ -40,11 +40,10 @@ use assets_common::{
 	matching::FromSiblingParachain,
 	AssetIdForTrustBackedAssetsConvert,
 };
+use core::cmp::Ordering;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use governance::{
-	pallet_custom_origins
-};
+use governance::{pallet_custom_origins, AuctionAdmin, Treasurer};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
 use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
@@ -67,14 +66,14 @@ use sp_version::RuntimeVersion;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
-	dispatch::{DispatchClass, DispatchInfo},
+	dispatch::{DispatchClass, DispatchInfo, RawOrigin},
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible, fungible::HoldConsideration, fungibles, tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
-		EitherOfDiverse, Equals, EverythingBut, InstanceFilter, LinearStoragePrice, Nothing,
-		TransformOrigin, WithdrawReasons,
+		EitherOf, EitherOfDiverse, Equals, EverythingBut, InstanceFilter, LinearStoragePrice,
+		Nothing, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	BoundedVec, PalletId,
@@ -1067,6 +1066,47 @@ impl pallet_revive::Config for Runtime {
 }
 
 parameter_types! {
+	// TODO: check params?
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+	pub const MaxScheduledPerBlock: u32 = 50;
+}
+
+/// Used the compare the privilege of an origin inside the scheduler.
+pub struct OriginPrivilegeCmp;
+impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
+	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
+		if left == right {
+			return Some(Ordering::Equal);
+		}
+
+		match (left, right) {
+			// Root is greater than anything.
+			(OriginCaller::system(RawOrigin::Root), _) => Some(Ordering::Greater),
+			// For every other origin we don't care, as they are not used for `ScheduleOrigin`.
+			_ => None,
+		}
+	}
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletsOrigin = OriginCaller;
+	type RuntimeCall = RuntimeCall;
+	type MaximumWeight = MaximumSchedulerWeight;
+	// The goal of having ScheduleOrigin include AuctionAdmin is to allow the auctions track of
+	// OpenGov to schedule periodic auctions.
+	// Also allow Treasurer to schedule recurring payments.
+	type ScheduleOrigin = EitherOf<EitherOf<EnsureRoot<AccountId>, AuctionAdmin>, Treasurer>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
+	type OriginPrivilegeCmp = OriginPrivilegeCmp;
+	type Preimages = Preimage;
+	// TODO: check RC or AH?
+	type BlockNumberProvider = System;
+}
+
+parameter_types! {
 	// TODO: check deposits?
 	pub const PreimageBaseDeposit: Balance = system_para_deposit(2, 64);
 	pub const PreimageByteDeposit: Balance = system_para_deposit(0, 1);
@@ -1098,6 +1138,7 @@ construct_runtime!(
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
 		Preimage: pallet_preimage = 5,
+		Scheduler: pallet_scheduler = 6,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
