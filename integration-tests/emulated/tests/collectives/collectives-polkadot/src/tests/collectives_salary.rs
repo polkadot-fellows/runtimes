@@ -15,8 +15,9 @@
 
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::LocationToAccountId;
-use collectives_polkadot_runtime::fellowship::FellowshipSalaryPaymaster;
-use collectives_polkadot_runtime::secretary::SecretarySalaryPaymaster;
+use collectives_polkadot_runtime::{
+	fellowship::FellowshipSalaryPaymaster, secretary::SecretarySalaryPaymaster,
+};
 use frame_support::{
 	assert_ok,
 	traits::{fungibles::Mutate, tokens::Pay},
@@ -26,7 +27,8 @@ use xcm_executor::traits::ConvertLocation;
 const FELLOWSHIP_SALARY_PALLET_ID: u8 =
 	collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX;
 
-const SECRETARY_SALARY_PALLET_ID: u8 = collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX;
+const SECRETARY_SALARY_PALLET_ID: u8 =
+	collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX;
 
 #[test]
 fn pay_salary_technical_fellowship() {
