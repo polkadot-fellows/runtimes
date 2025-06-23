@@ -43,7 +43,7 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     env:
       PROD_FEATURES: "--features on-chain-release-build"
-      DEBUG_FEATURES: "--features try-runtime"
+      DEBUG_FEATURES: "--features try-runtime,metadata-hash"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
