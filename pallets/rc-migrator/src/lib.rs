@@ -97,7 +97,7 @@ use preimage::{
 use proxy::*;
 use referenda::ReferendaStage;
 use sp_core::{crypto::Ss58Codec, H256};
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::BadOrigin, AccountId32};
 use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
@@ -419,9 +419,16 @@ pub mod pallet {
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
 		+ pallet_treasury::Config // Not on westend
+		+ pallet_xcm::Config
 		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
 		//+ pallet_staking_async_ah_client::Config // Only on westend
 	{
+		/// The overall runtime origin type.
+		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>
+			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>;
+		/// The overall runtime call type.
+		type RuntimeCall: From<Call<Self>> + IsType<<Self as pallet_xcm::Config>::RuntimeCall>;
+		/// The runtime hold reasons.
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -469,6 +476,8 @@ pub mod pallet {
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
 		type UnprocessedMsgBuffer: Get<u32>;
+		/// The timeout for the XCM response.
+		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
 	}
 
 	#[pallet::error]
@@ -485,6 +494,8 @@ pub mod pallet {
 		BalanceOverflow,
 		/// Balance accounting underflow.
 		BalanceUnderflow,
+		/// The query response is invalid.
+		InvalidQueryResponse,
 	}
 
 	#[pallet::event]
@@ -510,6 +521,13 @@ pub mod pallet {
 		/// to understand. The finishing is immediate and affects all events happening
 		/// afterwards.
 		AssetHubMigrationFinished,
+		/// A query response has been received.
+		QueryResponseReceived {
+			/// The query ID.
+			query_id: u64,
+			/// The response.
+			response: MaybeErrorCode,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -527,13 +545,11 @@ pub mod pallet {
 	pub type RcMigratedBalance<T: Config> =
 		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
-	/// The total number of XCM data messages sent to the Asset Hub and the number of XCM messages
-	/// the Asset Hub has confirmed as processed.
-	///
-	/// The difference between these two numbers are the messages that are "in-flight". We aim to
-	/// keep this number low to not accidentally overload the asset hub.
+	/// The pending XCM messages.
 	#[pallet::storage]
-	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+	#[pallet::unbounded]
+	pub type PendingXcmMessages<T: Config> =
+		CountedStorageMap<_, Twox64Concat, u64, Xcm<()>, OptionQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -597,12 +613,48 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Update the total number of XCM messages processed by the Asset Hub.
+		/// Receive a query response from the Asset Hub for a previously sent xcm message.
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::RcWeightInfo::update_ah_msg_processed_count())]
-		pub fn update_ah_msg_processed_count(origin: OriginFor<T>, count: u32) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::update_msg_processed_count(count);
+		#[pallet::weight({1})] // TODO: weight
+		pub fn receive_query_response(
+			origin: OriginFor<T>,
+			query_id: u64,
+			response: Response,
+		) -> DispatchResult {
+			match <T as Config>::ManagerOrigin::ensure_origin(origin.clone()) {
+				Ok(_) => {
+					// Origin is valid [`Config::ManagerOrigin`].
+				},
+				Err(_) => {
+					match <T as Config>::RuntimeOrigin::from(origin.clone()).into() {
+						Ok(pallet_xcm::Origin::Response(response_origin))
+							if response_origin == Location::new(0, Parachain(1000)) =>
+						{
+							// Origin is valid - this is a response from Asset Hub
+						},
+						_ => {
+							return Err(BadOrigin.into());
+						},
+					}
+				},
+			}
+
+			let response = match response {
+				Response::DispatchResult(maybe_error) => maybe_error,
+				_ => return Err(Error::<T>::InvalidQueryResponse.into()),
+			};
+
+			if matches!(response, MaybeErrorCode::Success) {
+				log::info!(
+					target: LOG_TARGET,
+					"Received success response for query id: {}",
+					query_id
+				);
+				PendingXcmMessages::<T>::remove(query_id);
+			}
+
+			Self::deposit_event(Event::<T>::QueryResponseReceived { query_id, response });
+
 			Ok(())
 		}
 	}
@@ -1429,51 +1481,24 @@ pub mod pallet {
 				return false;
 			}
 			let unprocessed_buffer = T::UnprocessedMsgBuffer::get();
-			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			if sent > (processed + unprocessed_buffer) {
+			let unconfirmed = PendingXcmMessages::<T>::count();
+			if unconfirmed > unprocessed_buffer {
 				log::info!(
 					target: LOG_TARGET,
-					"Excess unconfirmed XCM messages: sent = {}, processed = {}",
-					sent,
-					processed
+					"Excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
+					unconfirmed,
+					unprocessed_buffer
 				);
 				// TODO: make it possible to reset the counts with an extrinsic.
 				return true;
 			}
-			false
-		}
-
-		/// Increases the number of XCM messages sent to the Asset Hub.
-		fn increase_msg_sent_count(count: u32) {
-			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			let new_sent = sent + count;
-			DmpDataMessageCounts::<T>::put((new_sent, processed));
 			log::debug!(
 				target: LOG_TARGET,
-				"Increased XCM message sent count by {}; sent: {}, processed: {}",
-				count,
-				new_sent,
-				processed
+				"No excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
+				unconfirmed,
+				unprocessed_buffer
 			);
-		}
-
-		/// Updates the number of XCM messages processed by the Asset Hub.
-		fn update_msg_processed_count(new_processed: u32) {
-			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			if processed > new_processed {
-				defensive!(
-					"Processed XCM message count is less than the new processed count: {}",
-					(processed, new_processed),
-				);
-				return;
-			}
-			DmpDataMessageCounts::<T>::put((sent, new_processed));
-			log::info!(
-				target: LOG_TARGET,
-				"Updated XCM message processed count to {}; sent: {}",
-				new_processed,
-				sent,
-			);
+			false
 		}
 
 		/// Execute a stage transition and log it.
@@ -1504,6 +1529,10 @@ pub mod pallet {
 		/// Split up the items into chunks of `MAX_XCM_SIZE` and send them as separate XCM
 		/// transacts.
 		///
+		/// Sent messages are tracked and require confirmation from the Asset Hub before being
+		/// removed. If the number of unconfirmed messages exceeds the buffer limit, the migration
+		/// is paused.
+		///
 		/// ### Parameters:
 		/// - items - data items to batch and send with the `create_call`
 		/// - create_call - function to create the call from the items
@@ -1512,7 +1541,7 @@ pub mod pallet {
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
-		fn send_chunked_xcm<E: Encode>(
+		pub fn send_chunked_xcm_and_track<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
@@ -1525,8 +1554,20 @@ pub mod pallet {
 			while let Some(batch) = items.pop_front() {
 				let batch_len = batch.len() as u32;
 				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
-				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 
+				let asset_hub_location = Location::new(0, Parachain(1000));
+
+				let receive_notification_call =
+					Call::<T>::receive_query_response { query_id: 0, response: Default::default() };
+
+				let query_id = pallet_xcm::Pallet::<T>::new_notify_query(
+					asset_hub_location.clone(),
+					<T as Config>::RuntimeCall::from(receive_notification_call),
+					frame_system::Pallet::<T>::block_number() + T::XcmResponseTimeout::get(),
+					Location::here(),
+				);
+
+				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 				let message = Xcm(vec![
 					Instruction::UnpaidExecution {
 						weight_limit: WeightLimit::Unlimited,
@@ -1550,15 +1591,18 @@ pub mod pallet {
 						fallback_max_weight: Some(weight_at_most(batch_len)),
 						call: call.encode().into(),
 					},
+					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
+						destination: Location::parent(),
+						query_id,
+						max_weight: Weight::from_all(1), // TODO: weight
+					})])),
 				]);
 
-				if let Err(err) = send_xcm::<T::SendXcm>(
-					Location::new(0, [Junction::Parachain(1000)]),
-					message.clone(),
-				) {
+				if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, message.clone()) {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 					return Err(Error::XcmError);
 				} else {
+					PendingXcmMessages::<T>::insert(query_id, message);
 					batch_count += 1;
 				}
 			}
@@ -1614,41 +1658,6 @@ pub mod pallet {
 			};
 
 			Ok(())
-		}
-
-		/// Decorates the `send_chunked_xcm` function by calling the `increase_msg_sent_count`
-		/// function with the number of XCM messages sent.
-		///
-		/// Check the `send_chunked_xcm` function for the documentation.
-		pub fn send_chunked_xcm_and_track<E: Encode>(
-			items: impl Into<XcmBatch<E>>,
-			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
-			weight_at_most: impl Fn(u32) -> Weight,
-		) -> Result<u32, Error<T>> {
-			match Self::send_chunked_xcm(items, create_call, weight_at_most) {
-				Ok(count) => {
-					Self::increase_msg_sent_count(count);
-					Ok(count)
-				},
-				Err(e) => Err(e),
-			}
-		}
-
-		/// Decorates the `send_xcm` function by calling the `increase_msg_sent_count` function
-		/// with the number of XCM messages sent.
-		///
-		/// Check the `send_xcm` function for the documentation.
-		pub fn send_xcm_and_track(
-			call: types::AhMigratorCall<T>,
-			weight_at_most: Weight,
-		) -> Result<u32, Error<T>> {
-			match Self::send_xcm(call, weight_at_most) {
-				Ok(_) => {
-					Self::increase_msg_sent_count(1);
-					Ok(1)
-				},
-				Err(e) => Err(e),
-			}
 		}
 
 		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {

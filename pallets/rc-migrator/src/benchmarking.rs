@@ -89,12 +89,14 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn start_data_migration() {
+		RcMigrationStage::<T>::put(&MigrationStage::WaitingForAh);
+
 		#[extrinsic_call]
 		_(RawOrigin::Root);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
-				old: MigrationStageOf::<T>::Pending,
+				old: MigrationStageOf::<T>::WaitingForAh,
 				new: MigrationStageOf::<T>::Starting,
 			}
 			.into(),
@@ -117,18 +119,6 @@ pub mod benchmarks {
 		}
 	}
 
-	#[benchmark]
-	fn update_ah_msg_processed_count() {
-		let new_processed = 100;
-
-		#[extrinsic_call]
-		_(RawOrigin::Root, new_processed);
-
-		let (sent, processed) = DmpDataMessageCounts::<T>::get();
-		assert_eq!(processed, new_processed);
-		assert_eq!(sent, 0);
-	}
-
 	#[cfg(feature = "std")]
 	pub fn test_withdraw_account<T: Config>() {
 		_withdraw_account::<T>(true /* enable checks */)
@@ -147,11 +137,6 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_start_data_migration<T: Config>() {
 		_start_data_migration::<T>(true /* enable checks */);
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_update_ah_msg_processed_count<T: Config>() {
-		_update_ah_msg_processed_count::<T>(true /* enable checks */);
 	}
 
 	#[cfg(feature = "std")]
