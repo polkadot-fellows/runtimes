@@ -4,6 +4,17 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Polkadot: Make inflation rate adjustable by governance ([polkadot-fellows/runtimes#732](https://github.com/polkadot-fellows/runtimes/pull/732))
+- [[#755](https://github.com/polkadot-fellows/runtimes/pull/755)] Added `pallet_revive` to Kusama AssetHub.
+
+### Changed
+
+### Fixed
+
 ## [1.6.0] 19.06.2025
 
 ### Added
@@ -17,9 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove a lease ([SDK stable2503 #7026](https://github.com/paritytech/polkadot-sdk/pull/7026)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove an assignment ([SDK stable2503 #7080](https://github.com/paritytech/polkadot-sdk/pull/7080)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to reserve a system core without having to wait two sale boundaries ([SDK stable2503 #4273](https://github.com/paritytech/polkadot-sdk/pull/4273)).
-
-- Polkadot: Make inflation rate adjustable by governance ([polkadot-fellows/runtimes#732](https://github.com/polkadot-fellows/runtimes/pull/732))
-- [[#755](https://github.com/polkadot-fellows/runtimes/pull/755)] Added `pallet_revive` to Kusama AssetHub.
 
 ### Changed
 
