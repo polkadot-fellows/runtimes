@@ -94,6 +94,9 @@ pub mod xcm_sender {
 				return (None, None)
 			}
 
+			// allow more initialization for target parachain
+			ToParachainHelper::ensure(Parachain::get());
+
 			let mut fees_mode = None;
 			if !XcmConfig::FeeManager::is_waived(Some(origin_ref), fee_reason) {
 				// if not waived, we need to set up accounts for paying and receiving fees
@@ -117,9 +120,6 @@ pub mod xcm_sender {
 				for fee in overestimated_fees.inner() {
 					XcmConfig::AssetTransactor::deposit_asset(fee, origin_ref, None).unwrap();
 				}
-
-				// allow more initialization for target parachain
-				ToParachainHelper::ensure(Parachain::get());
 
 				// expected worst case - direct withdraw
 				fees_mode = Some(FeesMode { jit_withdraw: true });
