@@ -475,6 +475,8 @@ pub mod pallet {
 		/// RC migrator.
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
+		///
+		/// This configuration can be overridden by a storage item [`UnprocessedMsgBuffer`].
 		type UnprocessedMsgBuffer: Get<u32>;
 		/// The timeout for the XCM response.
 		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
@@ -539,6 +541,13 @@ pub mod pallet {
 			/// The error message.
 			send_error: Option<SendError>,
 		},
+		/// The unprocessed message buffer size has been set.
+		UnprocessedMsgBufferSet {
+			/// The new size.
+			new: u32,
+			/// The old size.
+			old: u32,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -561,6 +570,10 @@ pub mod pallet {
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
 		CountedStorageMap<_, Twox64Concat, u64, Xcm<()>, OptionQuery>;
+
+	/// The DMP queue priority.
+	#[pallet::storage]
+	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -688,6 +701,23 @@ pub mod pallet {
 			}
 
 			Ok(Pays::No.into())
+		}
+
+		/// Set the unprocessed message buffer size.
+		///
+		/// `None` means to use the configuration value.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::RcWeightInfo::set_unprocessed_msg_buffer())]
+		pub fn set_unprocessed_msg_buffer(
+			origin: OriginFor<T>,
+			new: Option<u32>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let old = Self::get_unprocessed_msg_buffer_size();
+			UnprocessedMsgBuffer::<T>::set(new);
+			let new = Self::get_unprocessed_msg_buffer_size();
+			Self::deposit_event(Event::UnprocessedMsgBufferSet { new, old });
+			Ok(())
 		}
 	}
 
@@ -1512,7 +1542,7 @@ pub mod pallet {
 			if !current.is_ongoing() {
 				return false;
 			}
-			let unprocessed_buffer = T::UnprocessedMsgBuffer::get();
+			let unprocessed_buffer = Self::get_unprocessed_msg_buffer_size();
 			let unconfirmed = PendingXcmMessages::<T>::count();
 			if unconfirmed > unprocessed_buffer {
 				log::info!(
@@ -1531,6 +1561,14 @@ pub mod pallet {
 				unprocessed_buffer
 			);
 			false
+		}
+
+		/// Get the unprocessed message buffer size.
+		pub fn get_unprocessed_msg_buffer_size() -> u32 {
+			match UnprocessedMsgBuffer::<T>::get() {
+				Some(size) => size,
+				None => T::UnprocessedMsgBuffer::get(),
+			}
 		}
 
 		/// Execute a stage transition and log it.

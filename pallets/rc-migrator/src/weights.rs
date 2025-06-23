@@ -60,6 +60,7 @@ pub trait WeightInfo {
 	fn update_ah_msg_processed_count() -> Weight;
 	fn receive_query_response() -> Weight;
 	fn resend_xcm() -> Weight;
+	fn set_unprocessed_msg_buffer() -> Weight;
 }
 
 /// Weights for `pallet_rc_migrator` using the Substrate node and recommended hardware.
@@ -153,6 +154,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(10_000_000, 1000)
 	}
 	fn resend_xcm() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_unprocessed_msg_buffer() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
 	}
 }
@@ -249,6 +253,10 @@ impl WeightInfo for () {
 	}
 
 	fn resend_xcm() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+
+	fn set_unprocessed_msg_buffer() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
 	}
 }

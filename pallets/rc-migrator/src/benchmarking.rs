@@ -156,6 +156,18 @@ pub mod benchmarks {
 		assert_last_event::<T>(Event::XcmResendAttempt { query_id, send_error: None }.into());
 	}
 
+	#[benchmark]
+	fn set_unprocessed_msg_buffer() {
+		let old = Pallet::<T>::get_unprocessed_msg_buffer_size();
+		let size = 111u32;
+		#[extrinsic_call]
+		_(RawOrigin::Root, Some(size));
+
+		let new = Pallet::<T>::get_unprocessed_msg_buffer_size();
+		assert_eq!(new, size);
+		assert_last_event::<T>(Event::UnprocessedMsgBufferSet { new: size, old }.into());
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_withdraw_account<T: Config>() {
 		_withdraw_account::<T>(true /* enable checks */)
@@ -189,5 +201,10 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_resend_xcm<T: Config>() {
 		_resend_xcm::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_unprocessed_msg_buffer<T: Config>() {
+		_set_unprocessed_msg_buffer::<T>(true /* enable checks */);
 	}
 }

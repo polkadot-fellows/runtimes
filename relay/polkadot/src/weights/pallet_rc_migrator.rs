@@ -144,4 +144,7 @@ impl<T: frame_system::Config> pallet_rc_migrator::WeightInfo for WeightInfo<T> {
 	fn resend_xcm() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
 	}
+	fn set_unprocessed_msg_buffer() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
 }

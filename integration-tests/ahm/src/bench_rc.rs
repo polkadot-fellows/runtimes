@@ -85,3 +85,10 @@ fn test_bench_resend_xcm() {
 		test_resend_xcm::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_set_unprocessed_msg_buffer() {
+	new_test_ext().execute_with(|| {
+		test_set_unprocessed_msg_buffer::<RelayChain>();
+	});
+}
