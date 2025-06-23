@@ -18,6 +18,9 @@
 
 use super::*;
 
+// TODO: verify (MINUTES, HOURS, DAYS) from RC or SP/AH constants to use
+use kusama_runtime_constants::time::{MINUTES, HOURS, DAYS};
+
 use alloc::borrow::Cow;
 use sp_runtime::str_array as s;
 

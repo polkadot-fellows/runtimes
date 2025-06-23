@@ -30,6 +30,7 @@ extern crate alloc;
 pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
+mod treasury;
 mod weights;
 pub mod xcm_config;
 
@@ -1235,11 +1236,16 @@ construct_runtime!(
 		StateTrieMigration: pallet_state_trie_migration = 70,
 
 		// OpenGov stuff.
-		Treasury: pallet_treasury = 71,
-		ConvictionVoting: pallet_conviction_voting = 72,
-		Referenda: pallet_referenda = 73,
-		Origins: pallet_custom_origins = 74,
-		Whitelist: pallet_whitelist = 75,
+		ConvictionVoting: pallet_conviction_voting = 71,
+		Referenda: pallet_referenda = 72,
+		Origins: pallet_custom_origins = 73,
+		Whitelist: pallet_whitelist = 74,
+
+		// Treasury and Bounties modules.
+		Treasury: pallet_treasury = 75,
+		Bounties: pallet_bounties = 76,
+		ChildBounties: pallet_child_bounties = 77,
+
 		// TODO: do we need?
 		// Parameters: pallet_parameters = 46,
 	}
