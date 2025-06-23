@@ -169,7 +169,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_005_001,
+	spec_version: 1_006_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -846,7 +846,8 @@ impl pallet_treasury::Config for Runtime {
 parameter_types! {
 	pub const BountyDepositBase: Balance = DOLLARS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
-	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
+	// Bounties expire after 10 years.
+	pub const BountyUpdatePeriod: BlockNumber = 10 * 12 * 30 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
 	pub const CuratorDepositMin: Balance = 10 * DOLLARS;
@@ -3446,7 +3447,7 @@ mod remote_tests {
 			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
 				total_staked,
 				total_issuance,
-				average_era_duration_millis.into(),
+				average_era_duration_millis,
 			);
 			use ss58_registry::TokenRegistry;
 			let token: ss58_registry::Token = TokenRegistry::Dot.into();
