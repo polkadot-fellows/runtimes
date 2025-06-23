@@ -615,7 +615,7 @@ pub mod pallet {
 
 		/// Receive a query response from the Asset Hub for a previously sent xcm message.
 		#[pallet::call_index(3)]
-		#[pallet::weight({1})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::receive_query_response())]
 		pub fn receive_query_response(
 			origin: OriginFor<T>,
 			query_id: u64,

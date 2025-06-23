@@ -119,6 +119,27 @@ pub mod benchmarks {
 		}
 	}
 
+	#[benchmark]
+	fn receive_query_response() {
+		let query_id = 1;
+		let xcm = Xcm(vec![Instruction::UnpaidExecution {
+			weight_limit: WeightLimit::Unlimited,
+			check_origin: None,
+		}]);
+		PendingXcmMessages::<T>::insert(query_id, xcm);
+
+		let maybe_error = MaybeErrorCode::Success;
+		let response = Response::DispatchResult(maybe_error.clone());
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, query_id, response);
+
+		assert!(PendingXcmMessages::<T>::get(query_id).is_none());
+		assert_last_event::<T>(
+			Event::QueryResponseReceived { query_id, response: maybe_error }.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_withdraw_account<T: Config>() {
 		_withdraw_account::<T>(true /* enable checks */)
@@ -142,5 +163,10 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_send_chunked_xcm_and_track<T: Config>() {
 		_send_chunked_xcm_and_track::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_query_response<T: Config>() {
+		_receive_query_response::<T>(true /* enable checks */);
 	}
 }

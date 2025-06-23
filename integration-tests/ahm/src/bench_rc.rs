@@ -71,3 +71,10 @@ fn test_bench_send_chunked_xcm_and_track() {
 		test_send_chunked_xcm_and_track::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_receive_query_response() {
+	new_test_ext().execute_with(|| {
+		test_receive_query_response::<RelayChain>();
+	});
+}
