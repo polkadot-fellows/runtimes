@@ -2921,6 +2921,7 @@ dependencies = [
 name = "coretime-kusama-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -3028,6 +3029,7 @@ dependencies = [
 name = "coretime-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
