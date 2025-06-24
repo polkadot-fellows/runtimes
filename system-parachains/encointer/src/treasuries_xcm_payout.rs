@@ -107,10 +107,10 @@ impl<
 		asset_kind: Self::AssetKind,
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
-		let (message, destination, query_id) =
+		let (message, asset_location, query_id) =
 			Self::get_remote_transfer_xcm(from, to, asset_kind, amount)?;
 
-		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
+		let (ticket, _) = Router::validate(&mut Some(asset_location), &mut Some(message))?;
 		Router::deliver(ticket)?;
 		Ok(query_id)
 	}
@@ -204,7 +204,7 @@ impl<
 			query_id,
 		)?;
 
-		Ok((message, destination, query_id))
+		Ok((message, asset_location, query_id))
 	}
 
 	pub fn sender_on_remote(
