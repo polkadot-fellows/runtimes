@@ -489,7 +489,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
-	type DisablingStrategy = pallet_session::disabling::UpToLimitDisablingStrategy;
+	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 }
 
 impl pallet_session::historical::Config for Runtime {
