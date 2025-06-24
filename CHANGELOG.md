@@ -8,8 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Slash and disable lazy and spammy validators as part of validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827),
-- Switch to UpToLimitWithReEnablingDisablingStrategy which always prioritises highest offenders for disabling instead of stopping when limit is reached
+- Slash and disable lazy and spammy validators as part of the new validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827),
+- Switch to UpToLimitWithReEnablingDisablingStrategy (Polkadot & Kusama) which always prioritises highest offenders for disabling instead of stopping when limit is reached
 - [polkadot-fellows/runtimes/pull/782](https://github.com/polkadot-fellows/runtimes/pull/782))
 
 ## [1.6.0] 19.06.2025
