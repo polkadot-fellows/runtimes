@@ -989,6 +989,8 @@ pub mod pallet {
 		}
 
 		/// Set the DMP queue priority configuration.
+		///
+		/// Can only be called by the `ManagerOrigin`.
 		#[pallet::call_index(102)]
 		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
 		pub fn set_dmp_queue_priority(
