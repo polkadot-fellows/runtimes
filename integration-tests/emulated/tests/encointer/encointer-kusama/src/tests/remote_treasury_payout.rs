@@ -72,7 +72,7 @@ fn treasury_location_on_ah_works() {
 		treasury_location_on_ah(),
 		Location::new(
 			1,
-			X2([Parachain(1001), AccountId32 { network: None, id: treasury.into() }].into(),),
+			X2([Parachain(1001), Junction::AccountId32 { network: None, id: treasury.into() }].into(),),
 		)
 	);
 }
@@ -233,7 +233,7 @@ fn account_from_log_matches() {
 		parents: 1,
 		interior: X2([
 			Parachain(1001),
-			AccountId32 {
+			Junction::AccountId32 {
 				network: None,
 				id: [
 					150, 141, 187, 98, 102, 33, 87, 174, 108, 105, 38, 201, 33, 252, 99, 215, 105,

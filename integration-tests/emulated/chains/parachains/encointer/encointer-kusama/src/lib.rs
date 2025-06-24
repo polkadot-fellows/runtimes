@@ -24,7 +24,7 @@ use emulated_integration_tests_common::{
 	impl_xcm_helpers_for_parachain, impls::Parachain, xcm_emulator::decl_test_parachains,
 };
 
-// AssetHubKusama Parachain declaration
+// EncointerKusama Parachain declaration
 decl_test_parachains! {
 	pub struct EncointerKusama {
 		genesis = genesis::genesis(),
@@ -45,7 +45,7 @@ decl_test_parachains! {
 	},
 }
 
-// AssetHubKusama implementation
+// EncointerKusama implementation
 impl_accounts_helpers_for_parachain!(EncointerKusama);
 impl_assert_events_helpers_for_parachain!(EncointerKusama);
 impl_xcm_helpers_for_parachain!(EncointerKusama);

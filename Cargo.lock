@@ -4211,6 +4211,7 @@ dependencies = [
  "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
+ "pallet-assets",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",

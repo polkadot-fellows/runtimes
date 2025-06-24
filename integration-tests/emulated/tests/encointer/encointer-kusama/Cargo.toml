@@ -19,6 +19,7 @@ pallet-identity = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
+pallet-assets = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
 xcm-builder = { workspace = true }
