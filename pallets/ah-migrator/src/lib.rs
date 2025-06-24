@@ -1056,6 +1056,11 @@ pub mod pallet {
 				"Failed to send XCM message to update XCM data message processed count"
 			);
 		}
+
+		fn integrity_test() {
+			let (dmp_priority_blocks, _) = T::DmpQueuePriorityPattern::get();
+			assert!(!dmp_priority_blocks.is_zero(), "the `dmp_priority_blocks` should be non-zero");
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
