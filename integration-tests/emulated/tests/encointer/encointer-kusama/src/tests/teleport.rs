@@ -14,9 +14,7 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::{XcmConfig as AssetHubKusamaXcmConfig};
-use encointer_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as EncointerKusamaXcmConfig};
-use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
+use encointer_kusama_runtime::xcm_config::{XcmConfig as EncointerKusamaXcmConfig};
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	traits::fungible::Mutate,
