@@ -36,7 +36,7 @@ use asset_test_utils::{
 };
 use codec::{Decode, Encode};
 use core::ops::Mul;
-use frame_support::{assert_ok, assert_err, traits::fungibles::InspectEnumerable};
+use frame_support::{assert_err, assert_ok, traits::fungibles::InspectEnumerable};
 use parachains_common::{
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance,
 };
