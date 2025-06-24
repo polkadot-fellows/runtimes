@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.1] 24.06.2025
+
+### Changed
+
+- Slash for more offence types as part of validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827), [polkadot-fellows/runtimes/pull/TODO](https://github.com/polkadot-fellows/runtimes/pull/TODO))
+
 ## [1.6.0] 19.06.2025
 
 ### Added
