@@ -941,14 +941,15 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn set_dmp_queue_priority() {
-		let priority = DmpQueuePriority::OverrideConfig(
+		let old = DmpQueuePriorityConfig::<T>::get();
+		let new = DmpQueuePriority::OverrideConfig(
 			BlockNumberFor::<T>::from(10u32),
 			BlockNumberFor::<T>::from(1u32),
 		);
 		#[extrinsic_call]
-		_(RawOrigin::Root, priority.clone());
+		_(RawOrigin::Root, new.clone());
 
-		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { priority }.into());
+		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
 	}
 
 	#[cfg(feature = "std")]

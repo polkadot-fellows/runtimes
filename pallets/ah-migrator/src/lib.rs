@@ -488,8 +488,10 @@ pub mod pallet {
 		},
 		/// The DMP queue priority config was set.
 		DmpQueuePriorityConfigSet {
+			/// The old priority pattern.
+			old: DmpQueuePriority<BlockNumberFor<T>>,
 			/// The new priority pattern.
-			priority: DmpQueuePriority<BlockNumberFor<T>>,
+			new: DmpQueuePriority<BlockNumberFor<T>>,
 		},
 	}
 
@@ -977,11 +979,12 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
 		pub fn set_dmp_queue_priority(
 			origin: OriginFor<T>,
-			priority: DmpQueuePriority<BlockNumberFor<T>>,
+			new: DmpQueuePriority<BlockNumberFor<T>>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			DmpQueuePriorityConfig::<T>::put(priority.clone());
-			Self::deposit_event(Event::DmpQueuePriorityConfigSet { priority });
+			let old = DmpQueuePriorityConfig::<T>::get();
+			DmpQueuePriorityConfig::<T>::put(new.clone());
+			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
 			Ok(())
 		}
 
