@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Slash for more offence types as part of validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827), [polkadot-fellows/runtimes/pull/TODO](https://github.com/polkadot-fellows/runtimes/pull/TODO))
+- Slash for more offence types as part of validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827), [polkadot-fellows/runtimes/pull/782](https://github.com/polkadot-fellows/runtimes/pull/782))
 
 ## [1.6.0] 19.06.2025
 
