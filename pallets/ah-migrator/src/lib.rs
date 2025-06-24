@@ -231,7 +231,7 @@ impl ForceSetHead<AggregateMessageOrigin> for () {
 /// by a storage value of this type.
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
-pub enum DmpQueuePriority<BlockNumber> {
+pub enum DmpQueuePriority<BlockNumber: Copy> {
 	/// Use the default priority pattern from the pallet configuration.
 	#[default]
 	Config,
@@ -241,6 +241,16 @@ pub enum DmpQueuePriority<BlockNumber> {
 	OverrideConfig(BlockNumber, BlockNumber),
 	/// Disable DMP queue priority processing entirely.
 	Disabled,
+}
+
+impl<BlockNumber: Copy> DmpQueuePriority<BlockNumber> {
+	pub fn get_dmp_priority_blocks(&self) -> Option<BlockNumber> {
+		match self {
+			DmpQueuePriority::Config => None,
+			DmpQueuePriority::OverrideConfig(dmp_priority_blocks, _) => Some(*dmp_priority_blocks),
+			DmpQueuePriority::Disabled => None,
+		}
+	}
 }
 
 #[frame_support::pallet]
@@ -446,6 +456,10 @@ pub mod pallet {
 		/// Vector did not fit into its compile-time bound.
 		FailedToBoundVector,
 		Unreachable,
+		/// The DMP queue priority is already set to the same value.
+		DmpQueuePriorityAlreadySet,
+		/// Invalid parameter.
+		InvalidParameter,
 	}
 
 	#[pallet::event]
@@ -983,6 +997,13 @@ pub mod pallet {
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			let old = DmpQueuePriorityConfig::<T>::get();
+			if old == new {
+				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
+			}
+			ensure!(
+				new.get_dmp_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				Error::<T>::InvalidParameter
+			);
 			DmpQueuePriorityConfig::<T>::put(new.clone());
 			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
 			Ok(())
@@ -1172,6 +1193,9 @@ pub mod pallet {
 			};
 
 			let period = dmp_priority_blocks + round_robin_blocks;
+			if period.is_zero() {
+				return;
+			}
 			let current_block = now % period;
 
 			let is_set = if current_block < dmp_priority_blocks {
