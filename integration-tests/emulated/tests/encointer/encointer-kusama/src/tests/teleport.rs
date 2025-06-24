@@ -26,6 +26,7 @@ use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
+use integration_tests_helpers::test_parachain_is_trusted_teleporter;
 
 fn relay_dest_assertions_fail(_t: EncointerParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(false, Some(EncointerKusama::para_id()), None);
@@ -113,6 +114,52 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 		Kusama,
 		amount,
 		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
+	let amount = ENCOINTER_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		EncointerKusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubKusama,
+		vec![EncointerKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
+	let amount = ENCOINTER_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		EncointerKusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		transfer_assets
+	);
+
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubKusama,
+		vec![EncointerKusama],
+		(native_asset, amount),
+		transfer_assets
 	);
 }
 
