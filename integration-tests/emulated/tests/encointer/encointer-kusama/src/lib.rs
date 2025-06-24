@@ -29,6 +29,7 @@ pub use kusama_system_emulated_network::{
 		AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	encointer_kusama_emulated_chain::{
+		genesis::{ED as ENCOINTER_KUSAMA_ED},
 		EncointerKusamaParaPallet as EncointerKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
@@ -41,7 +42,7 @@ pub use kusama_system_emulated_network::{
 	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
 	PenpalAPara as PenpalA, PenpalAParaReceiver as PenpalAReceiver,
 	PenpalAParaSender as PenpalASender, PenpalBPara as PenpalB,
-	PenpalBParaReceiver as PenpalBReceiver,
+	PenpalBParaReceiver as PenpalBReceiver, EncointerKusamaParaReceiver as EncointerKusamaReceiver, EncointerKusamaParaSender as EncointerKusamaSender,
 };
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
@@ -51,5 +52,5 @@ pub use parachains_common::{AccountId, Balance};
 
 pub use asset_test_utils::xcm_helpers;
 
-pub type SystemParaToRelayTest = Test<EncointerKusama, Kusama>;
+pub type EncointerParaToRelayTest = Test<EncointerKusama, Kusama>;
 pub type ParaToSystemParaTest = Test<EncointerKusama, AssetHubKusama>;
