@@ -2641,6 +2641,7 @@ dependencies = [
 name = "collectives-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
