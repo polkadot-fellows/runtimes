@@ -19,7 +19,6 @@ use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	traits::fungible::Mutate,
 };
-use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
@@ -51,17 +50,6 @@ fn para_origin_assertions(t: EncointerParaToRelayTest) {
 
 fn system_para_limited_teleport_assets(t: EncointerParaToRelayTest) -> DispatchResult {
 	<EncointerKusama as EncointerKusamaPallet>::PolkadotXcm::limited_teleport_assets(
-		t.signed_origin,
-		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
-		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
-		t.args.weight_limit,
-	)
-}
-
-fn para_to_system_para_transfer_assets(t: ParaToSystemParaTest) -> DispatchResult {
-	<EncointerKusama as EncointerKusamaPallet>::PolkadotXcm::transfer_assets(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
 		bx!(t.args.beneficiary.into()),
