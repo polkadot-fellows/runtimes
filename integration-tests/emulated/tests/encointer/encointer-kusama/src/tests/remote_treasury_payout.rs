@@ -65,46 +65,6 @@ fn treasury_account_on_ah() -> AccountId {
 	treasury_account_on_ah
 }
 
-const ONE_KSM: u128 = 1_000_000_000_000;
-const TREASURY_INITIAL_BALANCE: u128 = 100 * ONE_KSM;
-
-fn treasury_spend(recipient: &AccountId, asset_id: AssetId, spend_amount: u128) {
-	let asset_kind =
-		VersionedLocatableAsset::V5 { location: (Parent, Parachain(1000)).into(), asset_id };
-	let treasury_account_on_ah = treasury_account_on_ah();
-
-	<AssetHubKusama as TestExt>::execute_with(|| {
-		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
-		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
-
-		// USDT created at genesis, mint some assets to the treasury account.
-		assert_ok!(<Assets as Mutate<_>>::mint_into(
-			USDT_ID,
-			&treasury_account_on_ah,
-			spend_amount * 4
-		));
-		assert_ok!(<Balances as M<_>>::mint_into(
-			&treasury_account_on_ah,
-			TREASURY_INITIAL_BALANCE
-		));
-
-		// // Check starting balance
-		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), spend_amount * 4);
-		assert_eq!(Balances::free_balance(&treasury_account_on_ah), TREASURY_INITIAL_BALANCE);
-		assert_eq!(Assets::balance(USDT_ID, recipient), 0);
-	});
-
-	<EncointerKusama as TestExt>::execute_with(|| {
-		encointer_kusama_runtime::EncointerTreasuries::do_spend_asset(
-			None,
-			recipient,
-			asset_kind.clone(),
-			spend_amount,
-		)
-		.unwrap();
-	});
-}
-
 #[test]
 fn treasury_location_on_ah_works() {
 	let treasury = treasury_account();
@@ -112,8 +72,7 @@ fn treasury_location_on_ah_works() {
 		treasury_location_on_ah(),
 		Location::new(
 			1,
-			X2([Parachain(1001), Junction::AccountId32 { network: None, id: treasury.into() }]
-				.into(),),
+			X2([Parachain(1001), Junction::AccountId32 { network: None, id: treasury.into() }].into(),),
 		)
 	);
 }
@@ -183,16 +142,62 @@ fn constant_remote_execution_fees_are_correct() {
 }
 
 #[test]
-fn remote_treasury_usdt_payout_works() {
+fn remote_treasury_payout_works() {
+	sp_tracing::init_for_tests();
+
 	const SPEND_AMOUNT: u128 = 10_000_000;
+	const ONE_KSM: u128 = 1_000_000_000_000;
+	const TREASURY_INITIAL_BALANCE: u128 = 100 * ONE_KSM;
 	let recipient = AccountId::new([5u8; 32]);
 
-	let treasury_on_ah = treasury_account_on_ah();
-	treasury_spend(
-		&recipient,
-		AssetId((PalletInstance(50), GeneralIndex(USDT_ID.into())).into()),
-		SPEND_AMOUNT,
-	);
+	let asset_kind = VersionedLocatableAsset::V5 {
+		location: (Parent, Parachain(1000)).into(),
+		asset_id: AssetId((PalletInstance(50), GeneralIndex(USDT_ID.into())).into()),
+	};
+
+	let treasury_account_local = treasury_account();
+	let treasury_account_on_ah = treasury_account_on_ah();
+	println!("treasury_account: {:?}", treasury_account_on_ah);
+
+	<AssetHubKusama as TestExt>::execute_with(|| {
+		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
+		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
+
+		// USDT created at genesis, mint some assets to the treasury account.
+		assert_ok!(<Assets as Mutate<_>>::mint_into(
+			USDT_ID,
+			&treasury_account_on_ah,
+			SPEND_AMOUNT * 4
+		));
+		assert_ok!(<Balances as M<_>>::mint_into(
+			&treasury_account_on_ah,
+			TREASURY_INITIAL_BALANCE
+		));
+
+		// // Check starting balance
+		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 4);
+		assert_eq!(Balances::free_balance(&treasury_account_on_ah), TREASURY_INITIAL_BALANCE);
+		assert_eq!(Assets::balance(USDT_ID, &recipient), 0);
+	});
+
+	<EncointerKusama as TestExt>::execute_with(|| {
+		// Fixme: use the transfer call below directly for easier debugging
+		// encointer_kusama_runtime::EncointerTreasuries::do_spend_asset(
+		// 	None,
+		// 	&recipient,
+		// 	asset_kind.clone(),
+		// 	SPEND_AMOUNT,
+		// )
+		// 	.unwrap();
+		//
+		let _ = encointer_kusama_runtime::TransferOverXcm::transfer(
+			&treasury_account_local,
+			&recipient,
+			asset_kind,
+			SPEND_AMOUNT,
+		)
+		.unwrap();
+	});
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
@@ -200,10 +205,49 @@ fn remote_treasury_usdt_payout_works() {
 
 		// Check ending balance
 		assert_eq!(
-			Balances::free_balance(&treasury_on_ah),
+			Balances::free_balance(&treasury_account_on_ah),
 			TREASURY_INITIAL_BALANCE - remote_fee()
 		);
-		assert_eq!(Assets::balance(USDT_ID, &treasury_on_ah), SPEND_AMOUNT * 3);
+		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 3);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), SPEND_AMOUNT);
 	});
+}
+
+// Fixme: Why do we get this log in the above test.
+// We seem to fund the correct account in the setup of the account balance
+#[test]
+fn account_from_log_matches() {
+	// withdraw_asset what=Asset { id: AssetId(Location { parents: 1, interior: Here }), fun:
+	// Fungible(12749033321) } who=Location  { parents: 1, interior: X2([Parachain(1001),
+	// AccountId32 { network: None, id: [150, 141, 187, 98, 102, 33, 87, 174, 108, 105, 38, 201, 33,
+	// 252, 99, 215, 105, 11, 253, 230, 89, 13, 87, 138, 18, 41, 154, 220, 108, 179, 239, 229] }]) }
+	// 2025-06-19T07:45:58.473305Z TRACE get_version_1: state: method="Get" ext_id=7eba
+	// key=26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9759e3ef811e8e4c7e6df550a0dfaf910084bd52ce2fef65d1481558542743bf14359db2cffba3f1b98431daf7c55dc25
+	// result=None result_encoded=00 2025-06-19T07:45:58.473312Z TRACE get_version_1: state:
+	// method="Get" ext_id=7eba key=3a7472616e73616374696f6e5f6c6576656c3a result=Some(02000000)
+	// result_encoded=0102000000 2025-06-19T07:45:58.473315Z TRACE set_version_1: state:
+	// method="Put" ext_id=7eba key=3a7472616e73616374696f6e5f6c6576656c3a value=Some(01000000)
+	// value_encoded=0101000000 2025-06-19T07:45:58.473321Z DEBUG xcm::process: XCM execution
+	// failed at instruction index=1 error=FailedToTransactAsset("Funds are unavailable")
+	let loc = Location {
+		parents: 1,
+		interior: X2([
+			Parachain(1001),
+			Junction::AccountId32 {
+				network: None,
+				id: [
+					150, 141, 187, 98, 102, 33, 87, 174, 108, 105, 38, 201, 33, 252, 99, 215, 105,
+					11, 253, 230, 89, 13, 87, 138, 18, 41, 154, 220, 108, 179, 239, 229,
+				],
+			},
+		]
+		.into()),
+	};
+
+	assert_eq!(treasury_location_on_ah(), loc);
+
+	let account_on_asset_hub =
+		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(&loc).unwrap();
+
+	assert_eq!(account_on_asset_hub, treasury_account_on_ah());
 }
