@@ -53,6 +53,7 @@ runtime-benchmarks = [
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
