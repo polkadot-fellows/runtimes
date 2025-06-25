@@ -53,6 +53,7 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation =
 	[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub const GovernanceLocation: Location = Location::parent();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
