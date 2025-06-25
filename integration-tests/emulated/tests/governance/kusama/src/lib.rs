@@ -15,7 +15,4 @@
 // limitations under the License.
 
 #[cfg(test)]
-// TODO: currently it doesn't compile as there is no governance on KAH implemented yet
-// mod open_gov_on_asset_hub;
-#[cfg(test)]
 mod open_gov_on_relay;
