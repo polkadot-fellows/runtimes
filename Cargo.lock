@@ -5290,6 +5290,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "kusama-system-emulated-network",
+ "pallet-utility",
+ "pallet-whitelist",
+ "parity-scale-codec",
+ "people-kusama-runtime",
+ "sp-runtime",
+ "staging-kusama-runtime",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6169,11 +6187,15 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
  "hex-literal",
  "pallet-balances",
  "pallet-message-queue",
+ "pallet-whitelist",
  "pallet-xcm",
  "paste",
+ "sp-core 36.1.0",
+ "sp-runtime",
  "staging-xcm",
  "xcm-emulator",
 ]
