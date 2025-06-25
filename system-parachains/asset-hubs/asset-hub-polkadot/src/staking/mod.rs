@@ -36,7 +36,8 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = nom_pools::StakingMock;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = (); // TODO weights::pallet_fast_unstake::WeightInfo<Runtime>;
+	// TODO: use weights::pallet_fast_unstake::WeightInfo<Runtime> instead of ()
+	type WeightInfo = pallet_ah_migrator::MaxOnIdleOrInner<AhMigrator, ()>;
 }
 
 parameter_types! {

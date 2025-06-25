@@ -215,6 +215,33 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	}
 }
 
+/// A weight that is `Weight::MAX` if the migration is ongoing, otherwise it is the [`Inner`]
+/// weight of the [`pallet_fast_unstake::weights::WeightInfo`] trait.
+pub struct MaxOnIdleOrInner<Status, Inner>(PhantomData<(Status, Inner)>);
+impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
+	pallet_fast_unstake::weights::WeightInfo for MaxOnIdleOrInner<Status, Inner>
+{
+	fn on_idle_unstake(b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_unstake(b))
+	}
+	fn on_idle_check(v: u32, b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_check(v, b))
+	}
+	fn register_fast_unstake() -> Weight {
+		Inner::register_fast_unstake()
+	}
+	fn deregister() -> Weight {
+		Inner::deregister()
+	}
+	fn control() -> Weight {
+		Inner::control()
+	}
+}
+
 /// A utility struct for batching XCM messages to stay within size limits.
 ///
 /// This struct manages collections of XCM messages, automatically creating
