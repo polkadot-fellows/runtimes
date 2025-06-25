@@ -14,16 +14,16 @@
 // limitations under the License.
 
 use crate::*;
-use encointer_kusama_runtime::xcm_config::{XcmConfig as EncointerKusamaXcmConfig};
+use encointer_kusama_runtime::xcm_config::XcmConfig as EncointerKusamaXcmConfig;
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	traits::fungible::Mutate,
 };
+use integration_tests_helpers::test_parachain_is_trusted_teleporter;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
-use integration_tests_helpers::test_parachain_is_trusted_teleporter;
 
 fn relay_dest_assertions_fail(_t: EncointerParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(false, Some(EncointerKusama::para_id()), None);
@@ -188,7 +188,7 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 
 	// Sender's balance is reduced
 	// Todo: this assertion fails.
-	// assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
+	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
 	// Receiver's balance does not change
 	assert_eq!(receiver_balance_after, receiver_balance_before);
 }

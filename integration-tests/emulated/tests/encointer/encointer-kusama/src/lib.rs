@@ -2,14 +2,6 @@
 mod tests;
 
 // Substrate
-pub use frame_support::{
-	assert_err, assert_ok,
-	dispatch::RawOrigin,
-	pallet_prelude::Weight,
-	sp_runtime::{AccountId32, DispatchError, DispatchResult},
-	traits::fungibles::Inspect,
-};
-pub use sp_runtime::traits::Dispatchable;
 pub use emulated_integration_tests_common::{
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
@@ -17,11 +9,15 @@ pub use emulated_integration_tests_common::{
 	},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, RESERVABLE_ASSET_ID, XCM_V5,
 };
+pub use frame_support::{
+	assert_err, assert_ok,
+	dispatch::RawOrigin,
+	pallet_prelude::Weight,
+	sp_runtime::{AccountId32, DispatchError, DispatchResult},
+	traits::fungibles::Inspect,
+};
 pub use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
-};
-pub use kusama_system_emulated_network::{
-	AssetHubKusamaPara as AssetHubKusama, EncointerKusamaPara as EncointerKusama,
 };
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
@@ -29,26 +25,29 @@ pub use kusama_system_emulated_network::{
 		AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	encointer_kusama_emulated_chain::{
-		genesis::{ED as ENCOINTER_KUSAMA_ED},
-		EncointerKusamaParaPallet as EncointerKusamaPallet,
+		genesis::ED as ENCOINTER_KUSAMA_ED, EncointerKusamaParaPallet as EncointerKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	penpal_emulated_chain::{
 		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
 		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
-	}, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
+	},
+	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
-	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, KusamaRelay as Kusama,
+	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, EncointerKusamaPara as EncointerKusama,
+	EncointerKusamaParaReceiver as EncointerKusamaReceiver,
+	EncointerKusamaParaSender as EncointerKusamaSender, KusamaRelay as Kusama,
 	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
 	PenpalAPara as PenpalA, PenpalAParaReceiver as PenpalAReceiver,
 	PenpalAParaSender as PenpalASender, PenpalBPara as PenpalB,
-	PenpalBParaReceiver as PenpalBReceiver, EncointerKusamaParaReceiver as EncointerKusamaReceiver, EncointerKusamaParaSender as EncointerKusamaSender,
+	PenpalBParaReceiver as PenpalBReceiver,
 };
+pub use parachains_common::{AccountId, Balance};
+pub use sp_runtime::traits::Dispatchable;
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
 	v5::{self, Error, NetworkId::Kusama as KusamaId},
 };
-pub use parachains_common::{AccountId, Balance};
 
 pub use asset_test_utils::xcm_helpers;
 

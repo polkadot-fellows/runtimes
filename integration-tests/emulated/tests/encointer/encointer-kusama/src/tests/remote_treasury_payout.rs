@@ -1,9 +1,10 @@
 use crate::*;
-use emulated_integration_tests_common::{
-	xcm_emulator::{ConvertLocation},
-	USDT_ID,
+use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, USDT_ID};
+use encointer_kusama_runtime::{
+	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee},
+	xcm_config::KsmLocation,
+	AccountId, CommunityIdentifier,
 };
-use encointer_kusama_runtime::{treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee}, AccountId, CommunityIdentifier};
 use frame_support::{
 	assert_ok,
 	traits::{fungible::Mutate as M, fungibles::Mutate},
@@ -12,7 +13,6 @@ use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::AssetHubKus
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm::latest::Junctions::X2;
 use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
-use encointer_kusama_runtime::xcm_config::KsmLocation;
 
 fn remote_fee() -> u128 {
 	let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);
@@ -71,7 +71,8 @@ fn treasury_location_on_ah_works() {
 		treasury_location_on_ah(),
 		Location::new(
 			1,
-			X2([Parachain(1001), Junction::AccountId32 { network: None, id: treasury.into() }].into(),),
+			X2([Parachain(1001), Junction::AccountId32 { network: None, id: treasury.into() }]
+				.into(),),
 		)
 	);
 }
@@ -164,7 +165,7 @@ fn remote_treasury_usdt_payout_works() {
 			asset_kind.clone(),
 			SPEND_AMOUNT,
 		)
-			.unwrap();
+		.unwrap();
 	});
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
@@ -214,7 +215,7 @@ fn remote_treasury_native_payout_works() {
 			asset_kind.clone(),
 			SPEND_AMOUNT,
 		)
-			.unwrap();
+		.unwrap();
 	});
 
 	<AssetHubKusama as TestExt>::execute_with(|| {

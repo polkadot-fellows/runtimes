@@ -238,7 +238,7 @@ impl<
 
 	fn origin_location_on_remote(asset_location: &Location) -> Result<Location, Error> {
 		let origin_on_remote = Querier::UniversalLocation::get()
-			.invert_target(&asset_location)
+			.invert_target(asset_location)
 			.map_err(|()| Error::LocationNotInvertible)?;
 		log::trace!("Origin on destination: {:?}", origin_on_remote);
 		Ok(origin_on_remote)
