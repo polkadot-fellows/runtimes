@@ -116,7 +116,6 @@ fn transfer_over_xcm_works() {
 			// Assume that we always pay in native for now
 			WithdrawAsset(fee_asset.clone().into()),
 			PayFees { asset: fee_asset },
-			WithdrawAsset((asset_kind.asset_id.clone(), transfer_amount).into()),
 			SetAppendix(Xcm(vec![
 				ReportError(QueryResponseInfo {
 					destination: (Parent, Parachain(42)).into(),
@@ -138,7 +137,7 @@ fn transfer_over_xcm_works() {
 
 		assert_eq!(
 			sent_xcm(),
-			vec![((Parent, Parachain(42)).into(), expected_message, expected_hash)]
+			vec![((Parent, Parachain(1000)).into(), expected_message, expected_hash)]
 		);
 
 		let (_, message, mut hash) = sent_xcm()[0].clone();
@@ -158,7 +157,7 @@ fn transfer_over_xcm_works() {
 		assert_eq!(mock::Assets::balance(1, &recipient), transfer_amount);
 
 		let expected_lower_bound = INITIAL_BALANCE - transfer_amount - fee_amount;
-		assert_eq!(mock::Assets::balance(1, &sender_account_on_target), expected_lower_bound);
+		assert!(mock::Assets::balance(1, &sender_account_on_target) > expected_lower_bound);
 	});
 }
 

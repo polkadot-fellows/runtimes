@@ -173,7 +173,10 @@ impl<
 		asset_kind: <Self as Transfer>::AssetKind,
 		amount: <Self as Transfer>::Balance,
 	) -> Result<(Xcm<()>, Location, QueryId), Error> {
-		let (destination, asset_location, asset_id) = Self::destination_and_asset_data(asset_kind)?;
+		let locatable = Self::locatable_asset_id(asset_kind)?;
+		let LocatableAssetId { asset_id, location: asset_location } = locatable;
+
+		let origin_location_on_remote = Self::origin_location_on_remote(&asset_location)?;
 
 		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
 			log::error!("Could not convert `from` into Location: {:?}", e);
@@ -196,7 +199,7 @@ impl<
 
 		let message = remote_transfer_xcm(
 			from_location,
-			destination.clone(),
+			origin_location_on_remote,
 			beneficiary,
 			asset_id,
 			amount,
@@ -216,25 +219,29 @@ impl<
 			Error::InvalidLocation
 		})?;
 
-		let (destination, _, _) = Self::destination_and_asset_data(asset_kind)?;
+		let locatable = Self::locatable_asset_id(asset_kind)?;
 
-		destination.appended_with(from_location).map_err(|_| Error::LocationFull)
+		let origin_location_on_remote = Self::origin_location_on_remote(&locatable.location)?;
+		origin_location_on_remote
+			.appended_with(from_location)
+			.map_err(|_| Error::LocationFull)
 	}
 
-	pub fn destination_and_asset_data(
-		asset_kind: <Self as Transfer>::AssetKind,
-	) -> Result<(Location, Location, AssetId), Error> {
-		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
-			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
-			Error::InvalidLocation
-		})?;
-
-		let LocatableAssetId { asset_id, location: asset_location } = locatable;
-		let destination = Querier::UniversalLocation::get()
+	pub fn origin_location_on_remote(asset_location: &Location) -> Result<Location, Error> {
+		let origin_on_remote = Querier::UniversalLocation::get()
 			.invert_target(&asset_location)
 			.map_err(|()| Error::LocationNotInvertible)?;
-		log::trace!("Destination: {:?}", destination);
-		Ok((destination, asset_location, asset_id))
+		log::trace!("Origin on destination: {:?}", origin_on_remote);
+		Ok(origin_on_remote)
+	}
+
+	pub fn locatable_asset_id(
+		asset_kind: <Self as Transfer>::AssetKind,
+	) -> Result<LocatableAssetId, Error> {
+		AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
+			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
+			Error::InvalidLocation
+		})
 	}
 }
 
