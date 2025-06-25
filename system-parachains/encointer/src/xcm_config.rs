@@ -44,6 +44,8 @@ use xcm_builder::{
 };
 use xcm_executor::XcmExecutor;
 
+pub use system_parachains_constants::kusama::locations::GovernanceLocation;
+
 parameter_types! {
 	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
@@ -53,7 +55,6 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation =
 	[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
-	pub const GovernanceLocation: Location = Location::parent();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.

@@ -50,6 +50,8 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
+pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
@@ -58,11 +60,6 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-
-	// The AHM migration does not send progress to other chains, so we need to keep and trust two constants for a while.
-	pub const RcGovernanceLocation: Location = Location::parent();
-	pub AhGovernanceLocation: Location = AssetHubLocation::get();
-
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;

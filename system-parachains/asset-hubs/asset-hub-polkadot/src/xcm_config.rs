@@ -68,6 +68,8 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
+pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
@@ -84,7 +86,6 @@ parameter_types! {
 		xcm::v4::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	pub const RcGovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();

@@ -52,6 +52,8 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
+pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const RelayLocation: Location = Location::parent();
@@ -61,11 +63,6 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-
-	// The AHM migration does not send progress to other chains, so we need to keep and trust two constants for a while.
-	pub const RcGovernanceLocation: Location = Location::parent();
-	pub AhGovernanceLocation: Location = AssetHubLocation::get();
-
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	/// The asset ID for the asset that we use to pay for message delivery fees. Just DOT.
 	pub FeeAssetId: AssetId = AssetId(RelayLocation::get());

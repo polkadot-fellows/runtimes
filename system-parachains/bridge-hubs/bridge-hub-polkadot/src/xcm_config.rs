@@ -55,6 +55,8 @@ use xcm_executor::{
 	XcmExecutor,
 };
 
+pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const DotRelayLocation: Location = Location::parent();
@@ -65,11 +67,6 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-
-	// The AHM migration does not send progress to other chains, so we need to keep and trust two constants for a while.
-	pub const RcGovernanceLocation: Location = Location::parent();
-	pub AhGovernanceLocation: Location = AssetHubLocation::get();
-
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
