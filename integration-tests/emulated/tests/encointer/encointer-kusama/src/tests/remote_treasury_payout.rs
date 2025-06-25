@@ -1,9 +1,9 @@
 use crate::*;
 use emulated_integration_tests_common::{
-	xcm_emulator::{sp_tracing, ConvertLocation},
+	xcm_emulator::{ConvertLocation},
 	USDT_ID,
 };
-use encointer_kusama_runtime::{treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, Transfer}, AccountId, CommunityIdentifier};
+use encointer_kusama_runtime::{treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee}, AccountId, CommunityIdentifier};
 use frame_support::{
 	assert_ok,
 	traits::{fungible::Mutate as M, fungibles::Mutate},
