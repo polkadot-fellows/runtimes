@@ -258,12 +258,11 @@ pub fn remote_transfer_xcm(
 	log::info!("From at target account: {:?}", treasury_account_on_ah);
 
 	let xcm = Xcm(vec![
-		// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])
+		// Transform origin into Location::new(1, X2([Parachain(SourceParaId), from.interior }])
 		DescendOrigin(from_location.interior.clone()),
 		// For simplicity, we assume now that the treasury has KSM and pays fees with KSM.
 		WithdrawAsset(vec![remote_fee.clone()].into()),
 		PayFees { asset: remote_fee },
-		WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(amount) }].into()),
 		SetAppendix(Xcm(vec![
 			ReportError(QueryResponseInfo {
 				destination: destination.clone(),
