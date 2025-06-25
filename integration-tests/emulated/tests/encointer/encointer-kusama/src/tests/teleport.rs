@@ -14,7 +14,6 @@
 // limitations under the License.
 
 use crate::*;
-use encointer_kusama_runtime::xcm_config::XcmConfig as EncointerKusamaXcmConfig;
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	traits::fungible::Mutate,
