@@ -183,7 +183,7 @@ fn sender_on_remote_works() {
 		LocatableAssetKindConverter,
 		AliasesIntoAccountId32<AnyNetwork, AccountId>,
 		ConstantKsmFee,
-	>::sender_on_remote(&sender, asset_kind.clone())
+	>::from_on_remote(&sender, asset_kind.clone())
 	.unwrap();
 
 	assert_eq!(sender_location_on_target, sender_on_remote,);

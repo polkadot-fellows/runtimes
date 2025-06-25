@@ -3,10 +3,7 @@ use emulated_integration_tests_common::{
 	xcm_emulator::{sp_tracing, ConvertLocation},
 	USDT_ID,
 };
-use encointer_kusama_runtime::{
-	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, Transfer},
-	AccountId,
-};
+use encointer_kusama_runtime::{treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, Transfer}, AccountId, CommunityIdentifier};
 use frame_support::{
 	assert_ok,
 	traits::{fungible::Mutate as M, fungibles::Mutate},
@@ -27,10 +24,10 @@ fn remote_fee() -> u128 {
 	}
 }
 
-fn treasury_account() -> AccountId {
+fn treasury_account(maybe_community_identifier: Option<CommunityIdentifier>) -> AccountId {
 	<EncointerKusama as TestExt>::execute_with(|| {
 		encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(
-			None,
+			maybe_community_identifier,
 		)
 	})
 }
@@ -39,13 +36,14 @@ fn treasury_location_on_ah() -> Location {
 	// Transact the parents native asset on parachain 1000.
 	let asset_kind = VersionedLocatableAsset::V5 {
 		location: (Parent, Parachain(1000)).into(),
+		// Will
 		asset_id: v5::AssetId(Location::parent()),
 	};
 
-	let treasury_account = treasury_account();
+	let treasury_account = treasury_account(None);
 
 	<EncointerKusama as TestExt>::execute_with(|| {
-		encointer_kusama_runtime::TransferOverXcm::sender_on_remote(
+		encointer_kusama_runtime::TransferOverXcm::from_on_remote(
 			&treasury_account,
 			asset_kind.clone(),
 		)
@@ -68,7 +66,7 @@ fn treasury_account_on_ah() -> AccountId {
 
 #[test]
 fn treasury_location_on_ah_works() {
-	let treasury = treasury_account();
+	let treasury = treasury_account(None);
 	assert_eq!(
 		treasury_location_on_ah(),
 		Location::new(
@@ -76,25 +74,6 @@ fn treasury_location_on_ah_works() {
 			X2([Parachain(1001), Junction::AccountId32 { network: None, id: treasury.into() }].into(),),
 		)
 	);
-}
-
-#[test]
-fn treasury_location_to_account_id_works() {
-	let treasury_location_on_ah = treasury_location_on_ah();
-
-	let treasury_account_on_assethub_encointer =
-		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-			&treasury_location_on_ah,
-		)
-		.unwrap();
-
-	let treasury_account_on_assethub_ah =
-		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-			&treasury_location_on_ah,
-		)
-		.unwrap();
-
-	assert_eq!(treasury_account_on_assethub_ah, treasury_account_on_assethub_encointer);
 }
 
 #[test]

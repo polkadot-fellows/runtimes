@@ -23,7 +23,7 @@ use frame_support::traits::{tokens::PaymentStatus, Get};
 use sp_runtime::traits::TryConvert;
 use xcm::{latest::Error, opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
-use xcm_executor::traits::{ConvertLocation, QueryHandler, QueryResponseStatus};
+use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
 pub use pallet_encointer_treasuries::Transfer;
 
@@ -48,9 +48,13 @@ pub fn fee_asset(amount: u128) -> Asset {
 	(KsmLocation::get(), amount).into()
 }
 
-/// Transfer an asset at asset hub.
+/// Transfer an asset on a remote chain (in practice this should be only asset hub).
 ///
-/// The idea is to only support stable coins for now.
+/// It is similar to the `PayOverXcm` struct from the polkadot-sdk with the difference
+/// that the source account executing the transaction is function parameter.
+///
+/// The account transferring funds remotely will be for example:
+///  * `Location::new(1, XX([Parachain(SourceParaId), from_location.interior ])`
 #[allow(clippy::type_complexity)]
 pub struct TransferOverXcm<
 	Router,
@@ -110,7 +114,8 @@ impl<
 		let (message, asset_location, query_id) =
 			Self::get_remote_transfer_xcm(from, to, asset_kind, amount)?;
 
-		let (ticket, _) = Router::validate(&mut Some(asset_location), &mut Some(message))?;
+		let (ticket, _delivery_fees) =
+			Router::validate(&mut Some(asset_location), &mut Some(message))?;
 		Router::deliver(ticket)?;
 		Ok(query_id)
 	}
@@ -167,6 +172,7 @@ impl<
 		RemoteFee,
 	>
 {
+	/// Gets the XCM executing the transfer on the remote chain.
 	pub fn get_remote_transfer_xcm(
 		from: &<Self as Transfer>::Payer,
 		to: &<Self as Transfer>::Beneficiary,
@@ -210,7 +216,10 @@ impl<
 		Ok((message, asset_location, query_id))
 	}
 
-	pub fn sender_on_remote(
+	/// Returns the `from` relative to the asset's location.
+	///
+	/// This is the account that executes the transfer on the remote chain.
+	pub fn from_on_remote(
 		from: &<Self as Transfer>::Payer,
 		asset_kind: <Self as Transfer>::AssetKind,
 	) -> Result<Location, Error> {
@@ -227,7 +236,7 @@ impl<
 			.map_err(|_| Error::LocationFull)
 	}
 
-	pub fn origin_location_on_remote(asset_location: &Location) -> Result<Location, Error> {
+	fn origin_location_on_remote(asset_location: &Location) -> Result<Location, Error> {
 		let origin_on_remote = Querier::UniversalLocation::get()
 			.invert_target(&asset_location)
 			.map_err(|()| Error::LocationNotInvertible)?;
@@ -235,7 +244,7 @@ impl<
 		Ok(origin_on_remote)
 	}
 
-	pub fn locatable_asset_id(
+	fn locatable_asset_id(
 		asset_kind: <Self as Transfer>::AssetKind,
 	) -> Result<LocatableAssetId, Error> {
 		AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
@@ -254,15 +263,10 @@ pub fn remote_transfer_xcm(
 	remote_fee: Asset,
 	query_id: QueryId,
 ) -> Result<Xcm<()>, Error> {
-	// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
+	// Transform `from` into Location::new(1, XX([Parachain(source), from.interior }])
 	// We need this one for the refunds.
 	let from_at_target = append_from_to_target(from_location.clone(), destination.clone())?;
-	log::info!("From at target: {:?}", from_at_target);
-
-	let treasury_account_on_ah =
-		crate::xcm_config::LocationToAccountId::convert_location(&from_at_target).unwrap();
-
-	log::info!("From at target account: {:?}", treasury_account_on_ah);
+	log::trace!("From at target: {:?}", from_at_target);
 
 	let xcm = Xcm(vec![
 		// Transform origin into Location::new(1, X2([Parachain(SourceParaId), from.interior }])
