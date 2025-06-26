@@ -14,7 +14,6 @@
 // limitations under the License.
 
 pub mod migration {
-	use crate::ForeignAssetsInstance;
 	#[cfg(feature = "try-runtime")]
 	use crate::{vec, Vec};
 	#[cfg(feature = "try-runtime")]
@@ -31,21 +30,19 @@ pub mod migration {
 	const LOG_TARGET: &str = "runtime::verify_xcm_upgrade_migration";
 
 	mod asset_as_v4 {
-		use crate::ForeignAssetsInstance;
 		use frame_support::{storage_alias, Blake2_128Concat};
 
 		#[storage_alias]
-		pub type Asset<T: frame_system::Config + pallet_assets::Config<ForeignAssetsInstance>> =
-			StorageMap<
-				pallet_assets::Pallet<T, ForeignAssetsInstance>,
-				Blake2_128Concat,
-				xcm::v4::Location,
-				pallet_assets::AssetDetails<
-					<T as pallet_assets::Config<ForeignAssetsInstance>>::Balance,
-					<T as frame_system::Config>::AccountId,
-					pallet_assets::DepositBalanceOf<T, ForeignAssetsInstance>,
-				>,
-			>;
+		pub type Asset<T: frame_system::Config + pallet_assets::Config<I>, I: 'static> = StorageMap<
+			pallet_assets::Pallet<T, I>,
+			Blake2_128Concat,
+			xcm::v4::Location,
+			pallet_assets::AssetDetails<
+				<T as pallet_assets::Config<I>>::Balance,
+				<T as frame_system::Config>::AccountId,
+				pallet_assets::DepositBalanceOf<T, I>,
+			>,
+		>;
 
 		#[storage_alias]
 		pub type Pools<T: pallet_asset_conversion::Config> = StorageMap<
@@ -57,21 +54,19 @@ pub mod migration {
 	}
 
 	mod asset_as_v5 {
-		use crate::ForeignAssetsInstance;
 		use frame_support::{storage_alias, Blake2_128Concat};
 
 		#[storage_alias]
-		pub type Asset<T: frame_system::Config + pallet_assets::Config<ForeignAssetsInstance>> =
-			StorageMap<
-				pallet_assets::Pallet<T, ForeignAssetsInstance>,
-				Blake2_128Concat,
-				xcm::v4::Location,
-				pallet_assets::AssetDetails<
-					<T as pallet_assets::Config<ForeignAssetsInstance>>::Balance,
-					<T as frame_system::Config>::AccountId,
-					pallet_assets::DepositBalanceOf<T, ForeignAssetsInstance>,
-				>,
-			>;
+		pub type Asset<T: frame_system::Config + pallet_assets::Config<I>, I: 'static> = StorageMap<
+			pallet_assets::Pallet<T, I>,
+			Blake2_128Concat,
+			xcm::v4::Location,
+			pallet_assets::AssetDetails<
+				<T as pallet_assets::Config<I>>::Balance,
+				<T as frame_system::Config>::AccountId,
+				pallet_assets::DepositBalanceOf<T, I>,
+			>,
+		>;
 
 		#[storage_alias]
 		pub type Pools<T: pallet_asset_conversion::Config> = StorageMap<
@@ -86,22 +81,24 @@ pub mod migration {
 	/// storage. This migration doesn't actually alter storage, it only verifies that:
 	/// 1. XCM V4 encoded locations can be decoded as V5
 	/// 2. Location encoding remains the same between V4 and V5
-	pub struct TestXcmV4ToV5Compatibility<T>(core::marker::PhantomData<T>);
+	pub struct TestXcmV4ToV5Compatibility<T, I = crate::ForeignAssetsInstance>(
+		core::marker::PhantomData<(T, I)>,
+	);
 
-	impl<T> OnRuntimeUpgrade for TestXcmV4ToV5Compatibility<T>
+	impl<T, I> OnRuntimeUpgrade for TestXcmV4ToV5Compatibility<T, I>
 	where
 		T: frame_system::Config
-			+ pallet_assets::Config<ForeignAssetsInstance>
+			+ pallet_assets::Config<I>
 			+ pallet_asset_conversion::Config<
 				PoolId = (
 					<T as pallet_asset_conversion::Config>::AssetKind,
 					<T as pallet_asset_conversion::Config>::AssetKind,
 				),
 			>,
+		I: 'static,
 		T::AssetKind: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 		T::PoolId: Into<(T::AssetKind, T::AssetKind)>,
-		<T as pallet_assets::Config<ForeignAssetsInstance>>::AssetId:
-			From<xcm::v5::Location> + Into<xcm::v5::Location>,
+		<T as pallet_assets::Config<I>>::AssetId: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
@@ -130,10 +127,10 @@ pub mod migration {
 		}
 	}
 
-	impl<T> TestXcmV4ToV5Compatibility<T>
+	impl<T, I> TestXcmV4ToV5Compatibility<T, I>
 	where
 		T: frame_system::Config
-			+ pallet_assets::Config<ForeignAssetsInstance>
+			+ pallet_assets::Config<I>
 			+ pallet_asset_conversion::Config
 			+ pallet_asset_conversion::Config<
 				PoolId = (
@@ -141,20 +138,22 @@ pub mod migration {
 					<T as pallet_asset_conversion::Config>::AssetKind,
 				),
 			>,
+		I: 'static,
 		T::PoolId: Into<(T::AssetKind, T::AssetKind)>,
 		T::AssetKind: From<xcm::v5::Location> + Into<xcm::v5::Location>,
-		<T as pallet_assets::Config<crate::ForeignAssetsInstance>>::AssetId:
-			From<xcm::v5::Location> + Into<xcm::v5::Location>,
+		<T as pallet_assets::Config<I>>::AssetId: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
 		#[cfg(feature = "try-runtime")]
 		fn test_foreign_assets_compatibility() -> Weight {
 			let weight = T::DbWeight::get().reads(1);
 			let tested_assets = 0u32;
 
-			log::info!(target: LOG_TARGET, "Found XCM V4 asset keys: {}", asset_as_v4::Asset::<T>::iter_keys().count());
-			log::info!(target: LOG_TARGET, "Found XCM V5 asset keys: {}", asset_as_v5::Asset::<T>::iter_keys().count());
+			log::info!(target: LOG_TARGET, "Found XCM V4 asset keys: {}", asset_as_v4::Asset::<T, I>::iter_keys().count());
+			log::info!(target: LOG_TARGET, "Found XCM V5 asset keys: {}", asset_as_v5::Asset::<T, I>::iter_keys().count());
 
-			assert!(asset_as_v4::Asset::<T>::iter_keys().eq(asset_as_v5::Asset::<T>::iter_keys()));
+			assert!(
+				asset_as_v4::Asset::<T, I>::iter_keys().eq(asset_as_v5::Asset::<T, I>::iter_keys())
+			);
 
 			log::info!(target: LOG_TARGET, "Tested {} ForeignAssets for XCM compatibility", tested_assets);
 			weight

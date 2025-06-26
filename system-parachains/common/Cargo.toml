@@ -1,0 +1,46 @@
+[package]
+name = "system-parachains-common"
+description = "Common functionality for System Parachains runtimes"
+repository.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+hex-literal = { workspace = true }
+log = { workspace = true }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-assets = { workspace = true }
+pallet-asset-conversion = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+xcm = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-assets/std",
+	"pallet-asset-conversion/std",
+	"sp-core/std",
+	"sp-runtime/std",
+	"xcm/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-assets/try-runtime",
+	"pallet-asset-conversion/try-runtime",
+]
