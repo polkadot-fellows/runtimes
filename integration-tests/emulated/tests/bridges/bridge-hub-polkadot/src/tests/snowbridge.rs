@@ -1364,7 +1364,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v5,
+					asset_id: *asset_id == weth_location,
 					owner: *owner == AssetHubKusamaReceiver::get(),
 				},
 			]
