@@ -106,11 +106,11 @@ pub mod migration {
 
 			log::info!("Starting XCM V4 to V5 compatibility test migration");
 
-			// Test ForeignAssets storage items
-			Self::test_foreign_assets_compatibility();
+			// Ensure ForeignAssets storage items
+			Self::ensure_foreign_assets_compatibility()?;
 
-			// Test AssetConversion storage items
-			Self::test_asset_conversion_compatibility();
+			// Ensure AssetConversion storage items
+			Self::ensure_asset_conversion_compatibility()?;
 
 			log::info!("XCM V4 to V5 compatibility test migration completed successfully");
 
@@ -120,7 +120,7 @@ pub mod migration {
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			// Test a few sample conversions to ensure compatibility
-			Self::test_sample_location_conversions()?;
+			Self::test_sample_locatifmton_conversions()?;
 
 			log::info!(target: LOG_TARGET, "XCM V4 to V5 compatibility test migration validated successfully");
 			Ok(())
@@ -144,14 +144,14 @@ pub mod migration {
 		<T as pallet_assets::Config<I>>::AssetId: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
 		#[cfg(feature = "try-runtime")]
-		fn test_foreign_assets_compatibility() -> Weight {
+		fn ensure_foreign_assets_compatibility() -> TryRuntimeError {
 			let weight = T::DbWeight::get().reads(1);
 			let tested_assets = 0u32;
 
 			log::info!(target: LOG_TARGET, "Found XCM V4 asset keys: {}", asset_as_v4::Asset::<T, I>::iter_keys().count());
 			log::info!(target: LOG_TARGET, "Found XCM V5 asset keys: {}", asset_as_v5::Asset::<T, I>::iter_keys().count());
 
-			assert!(
+			ensure!(
 				asset_as_v4::Asset::<T, I>::iter_keys().eq(asset_as_v5::Asset::<T, I>::iter_keys())
 			);
 
@@ -160,7 +160,7 @@ pub mod migration {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn test_asset_conversion_compatibility() -> Weight {
+		fn ensure_asset_conversion_compatibility() -> TryRuntimeError {
 			let weight = T::DbWeight::get().reads(1);
 			let tested_pools = 0u32;
 
@@ -168,14 +168,14 @@ pub mod migration {
 			log::info!(target: LOG_TARGET, "Found XCM V5 pool keys: {}", asset_as_v5::Pools::<T>::iter_keys().count());
 
 			// Test Pools storage items - the keys should remain the same between V4 and V5
-			assert!(asset_as_v4::Pools::<T>::iter_keys().eq(asset_as_v5::Pools::<T>::iter_keys()));
+			ensure!(asset_as_v4::Pools::<T>::iter_keys().eq(asset_as_v5::Pools::<T>::iter_keys()));
 
 			log::info!(target: LOG_TARGET, "Tested {} AssetConversion pools for XCM compatibility", tested_pools);
 			weight
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn test_sample_location_conversions() -> Result<(), TryRuntimeError> {
+		fn ensure_sample_location_conversions() -> Result<(), TryRuntimeError> {
 			// Test some common XCM location patterns to ensure V4 -> V5 compatibility
 			let test_locations_v4 = vec![
 				// Relay chain
