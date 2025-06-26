@@ -560,7 +560,7 @@ macro_rules! test_chain_can_claim_assets {
 	};
 }
 
-// TODO: remove when stable2503 / stable2506 released
+// TODO: remove when stable2503-7 / stable2506 released
 /// Wraps a runtime call in a whitelist preimage call and dispatches it
 pub fn dispatch_whitelisted_call_with_preimage<T>(
 	call: T::RuntimeCall,
@@ -583,7 +583,7 @@ where
 	})
 }
 
-// TODO: remove when stable2503 / stable2506 released
+// TODO: remove when stable2503-7 / stable2506 released
 /// Builds a `pallet_xcm::send` call to authorize an upgrade at the provided location,
 /// wrapped in an unpaid XCM `Transact` with `OriginKind::Superuser`.
 pub fn build_xcm_send_authorize_upgrade_call<T, D>(
@@ -617,7 +617,7 @@ where
 	call
 }
 
-// TODO: remove when stable2503 / stable2506 released
+// TODO: remove when stable2503-7 / stable2506 released
 /// Encodes a runtime call and returns its H256 hash
 pub fn call_hash_of<T>(call: &T::RuntimeCall) -> H256
 where
@@ -628,7 +628,7 @@ where
 	<T::Runtime as frame_system::Config>::Hashing::hash_of(&call)
 }
 
-// TODO: remove when stable2503 / stable2506 released
+// TODO: remove when stable2503-7 / stable2506 released
 #[macro_export]
 macro_rules! assert_whitelisted {
     ($chain:ident, $expected_call_hash:expr) => {
