@@ -61,7 +61,8 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn force_set_stage() {
-		let stage = MigrationStageOf::<T>::Scheduled { block_number: 1u32.into() };
+		let stage =
+			MigrationStageOf::<T>::Scheduled { start: 1u32.into(), cool_off_end: 2u32.into() };
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, Box::new(stage.clone()));
@@ -73,15 +74,19 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn schedule_migration() {
-		let start_moment = DispatchTime::<BlockNumberFor<T>>::At(10u32.into());
+		let start = DispatchTime::<BlockNumberFor<T>>::At(10u32.into());
+		let cool_off_end = DispatchTime::<BlockNumberFor<T>>::At(20u32.into());
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, start_moment);
+		_(RawOrigin::Root, start, cool_off_end);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: MigrationStageOf::<T>::Pending,
-				new: MigrationStageOf::<T>::Scheduled { block_number: 10u32.into() },
+				new: MigrationStageOf::<T>::Scheduled {
+					start: 10u32.into(),
+					cool_off_end: 20u32.into(),
+				},
 			}
 			.into(),
 		);
@@ -89,13 +94,17 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn start_data_migration() {
+		let cool_off_end = 20u32.into();
+		let initial_stage = MigrationStageOf::<T>::WaitingForAh { cool_off_end };
+		RcMigrationStage::<T>::put(&initial_stage);
+
 		#[extrinsic_call]
 		_(RawOrigin::Root);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
-				old: MigrationStageOf::<T>::Pending,
-				new: MigrationStageOf::<T>::Starting,
+				old: initial_stage,
+				new: MigrationStageOf::<T>::CoolOff { cool_off_end },
 			}
 			.into(),
 		);
