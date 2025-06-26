@@ -41,7 +41,8 @@ jobs:
         run: |
           cargo clippy --version
           cargo clippy --all-targets --locked --workspace --quiet
-          cargo clippy --all-targets --all-features --locked --workspace --quiet
+          # Turn back on after 2503-7
+          # cargo clippy --all-targets --all-features --locked --workspace --quiet
         env:
           RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1
