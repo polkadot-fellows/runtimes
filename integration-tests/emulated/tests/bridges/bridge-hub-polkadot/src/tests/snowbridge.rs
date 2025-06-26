@@ -178,15 +178,13 @@ fn send_token_from_ethereum_to_penpal() {
 
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
 			<PenpalB as Chain>::RuntimeOrigin::root(),
-			weth_asset_location_latest.clone(),
+			weth_asset_location.clone(),
 			asset_hub_sovereign.clone().into(),
 			true,
 			1000
 		));
 
-		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(
-			weth_asset_location_latest
-		));
+		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_location));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -420,7 +418,7 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 		);
 	});
 
-	send_token_back_to_ethereum(asset_location_latest, amount);
+	send_token_back_to_ethereum(asset_location, amount);
 }
 
 fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
@@ -1307,8 +1305,6 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let weth_location: Location =
-		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 
 	let fee = dot_at_ah_polkadot();
 	let fees_asset: AssetId = fee.clone().into();

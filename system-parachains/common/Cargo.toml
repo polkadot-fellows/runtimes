@@ -23,8 +23,10 @@ xcm = { workspace = true }
 [features]
 default = ["std"]
 std = [
+	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
+	"log/std",
 	"pallet-assets/std",
 	"pallet-asset-conversion/std",
 	"sp-core/std",
@@ -37,10 +39,12 @@ runtime-benchmarks = [
 	"pallet-assets/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-asset-conversion/try-runtime",
+	"sp-runtime/try-runtime"
 ]

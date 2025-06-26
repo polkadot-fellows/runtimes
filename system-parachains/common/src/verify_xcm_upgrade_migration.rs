@@ -180,7 +180,9 @@ pub mod migration {
 				return Err(TryRuntimeError::Other("Pool key count mismatch between V4 and V5"));
 			}
 
-			for (idx, (v4_pool_key, v5_pool_key)) in v4_pool_keys.iter().zip(v5_pool_keys.iter()).enumerate() {
+			for (idx, (v4_pool_key, v5_pool_key)) in
+				v4_pool_keys.iter().zip(v5_pool_keys.iter()).enumerate()
+			{
 				if v4_pool_key != v5_pool_key {
 					log::error!(target: LOG_TARGET, "Pool key mismatch at index {}: V4 = {:?}, V5 = {:?}", idx, v4_pool_key, v5_pool_key);
 					return Err(TryRuntimeError::Other("Pool key mismatch between V4 and V5"));
@@ -232,8 +234,9 @@ pub mod migration {
 
 				// Test V4 encoded -> V5 decoded compatibility
 				let encoded_v4 = v4_location.encode();
-				let decoded_v5 = xcm::v5::Location::decode(&mut &encoded_v4[..])
-					.map_err(|_| TryRuntimeError::Other("Failed to decode V4 encoded location as V5"))?;
+				let decoded_v5 = xcm::v5::Location::decode(&mut &encoded_v4[..]).map_err(|_| {
+					TryRuntimeError::Other("Failed to decode V4 encoded location as V5")
+				})?;
 
 				// try-from is compatible
 				frame_support::ensure!(
