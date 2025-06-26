@@ -150,7 +150,6 @@ fn send_token_from_ethereum_to_penpal() {
 	// The Weth asset location, identified by the contract address on Ethereum
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
-	let weth_asset_location_latest: Location = weth_asset_location.clone();
 	// Converts the Weth asset location into an asset ID
 
 	// Fund ethereum sovereign on AssetHub
@@ -332,7 +331,6 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	amount: u128,
 	asset_location: Location,
 ) {
-	let asset_location_latest: Location = asset_location.clone();
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
 		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
 	);
@@ -516,8 +514,7 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let ether_location: Location = (Parent, Parent, v4_ethereum_network).into();
+	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Perform a roundtrip transfer of Ether
 	send_token_from_ethereum_to_asset_hub_and_back_works(
@@ -533,9 +530,8 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
 	let weth_location: Location =
-		(Parent, Parent, v4_ethereum_network, AccountKey20 { network: None, key: WETH }).into();
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Perform a roundtrip transfer of WETH
 	send_token_from_ethereum_to_asset_hub_and_back_works(WETH.into(), TOKEN_AMOUNT, weth_location);
 }
@@ -1311,9 +1307,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let weth_location_v5: Location =
-		(Parent, Parent, v4_ethereum_network, AccountKey20 { network: None, key: WETH }).into();
+	let weth_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 
 	let fee = dot_at_ah_polkadot();
 	let fees_asset: AssetId = fee.clone().into();
@@ -1369,7 +1364,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v5,
+					asset_id: *asset_id == weth_location,
 					owner: *owner == AssetHubKusamaReceiver::get(),
 				},
 			]
@@ -1454,7 +1449,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v5,
+					asset_id: *asset_id == weth_location,
 					owner: *owner == AssetHubPolkadotReceiver::get(),
 				},
 			]
