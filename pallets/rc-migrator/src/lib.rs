@@ -96,8 +96,12 @@ use preimage::{
 };
 use proxy::*;
 use referenda::ReferendaStage;
+use runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
 use sp_core::{crypto::Ss58Codec, H256};
-use sp_runtime::AccountId32;
+use sp_runtime::{
+	traits::{One, Zero},
+	AccountId32,
+};
 use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
@@ -105,7 +109,9 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
-use types::PalletMigration;
+pub use types::{
+	ForceSetHead, MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority,
+};
 use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
@@ -469,6 +475,22 @@ pub mod pallet {
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
 		type UnprocessedMsgBuffer: Get<u32>;
+
+		/// Means to force a next queue within the UMPs from different parachains.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+
+		/// The priority pattern for AH UMP queue processing during migration [Config::MessageQueue].
+		///
+		/// This configures how frequently the AH UMP queue gets priority over other UMP queues.
+		/// The tuple (ah_ump_priority_blocks, round_robin_blocks) defines a repeating cycle where:
+		/// - `ah_ump_priority_blocks` consecutive blocks: AH UMP queue gets priority
+		/// - `round_robin_blocks` consecutive blocks: round-robin processing of all queues
+		/// - Then the cycle repeats
+		///
+		/// For example, (18, 2) means a cycle of 20 blocks that repeats.
+		///
+		/// This configuration can be overridden by a storage item [`AhUmpQueuePriorityConfig`].
+		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 	}
 
 	#[pallet::error]
@@ -485,6 +507,10 @@ pub mod pallet {
 		BalanceOverflow,
 		/// Balance accounting underflow.
 		BalanceUnderflow,
+		/// Invalid parameter.
+		InvalidParameter,
+		/// The AH UMP queue priority configuration is already set.
+		AhUmpQueuePriorityAlreadySet,
 	}
 
 	#[pallet::event]
@@ -510,6 +536,25 @@ pub mod pallet {
 		/// to understand. The finishing is immediate and affects all events happening
 		/// afterwards.
 		AssetHubMigrationFinished,
+
+		/// Whether the AH UMP queue was prioritized for the next block.
+		AhUmpQueuePrioritySet {
+			/// Indicates if AH UMP queue was successfully set as priority.
+			/// If `false`, it means we're in the round-robin phase of our priority pattern
+			/// (see [`Config::AhUmpQueuePriorityPattern`]), where no queue gets priority.
+			prioritized: bool,
+			/// Current block number within the pattern cycle (1 to period).
+			cycle_block: BlockNumberFor<T>,
+			/// Total number of blocks in the pattern cycle
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The AH UMP queue priority config was set.
+		AhUmpQueuePriorityConfigSet {
+			/// The old priority pattern.
+			old: AhUmpQueuePriority<BlockNumberFor<T>>,
+			/// The new priority pattern.
+			new: AhUmpQueuePriority<BlockNumberFor<T>>,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -534,6 +579,16 @@ pub mod pallet {
 	/// keep this number low to not accidentally overload the asset hub.
 	#[pallet::storage]
 	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+
+	/// The priority of the Asset Hub UMP queue during migration.
+	///
+	/// Controls how the Asset Hub UMP (Upward Message Passing) queue is processed relative to other
+	/// queues during the migration process. This helps ensure timely processing of migration
+	/// messages. The default priority pattern is defined in the pallet configuration, but can be
+	/// overridden by a storage value of this type.
+	#[pallet::storage]
+	pub type AhUmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, AhUmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -605,6 +660,29 @@ pub mod pallet {
 			Self::update_msg_processed_count(count);
 			Ok(())
 		}
+
+		/// Set the AH UMP queue priority configuration.
+		///
+		/// Can only be called by the `ManagerOrigin`.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::RcWeightInfo::set_ah_ump_queue_priority())]
+		pub fn set_ah_ump_queue_priority(
+			origin: OriginFor<T>,
+			new: AhUmpQueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let old = AhUmpQueuePriorityConfig::<T>::get();
+			if old == new {
+				return Err(Error::<T>::AhUmpQueuePriorityAlreadySet.into());
+			}
+			ensure!(
+				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				Error::<T>::InvalidParameter
+			);
+			AhUmpQueuePriorityConfig::<T>::put(new.clone());
+			Self::deposit_event(Event::AhUmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
 	}
 
 	#[pallet::hooks]
@@ -615,10 +693,27 @@ pub mod pallet {
 		crate::BalanceOf<T>:
 			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
 	{
+		fn integrity_test() {
+			let (ah_ump_priority_blocks, _) = T::AhUmpQueuePriorityPattern::get();
+			assert!(!ah_ump_priority_blocks.is_zero(), "the `ah_ump_priority_blocks` should be non-zero");
+		}
+
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if Self::is_ongoing() {
+				Self::force_ah_ump_queue_priority(now);
+			}
+		}
+
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut weight_counter = WeightMeter::with_limit(T::MaxRcWeight::get());
+
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
+
+			if stage.is_ongoing() {
+				// account the weight of `on_finalize` for the `force_ah_ump_queue_priority` job.
+				weight_counter.consume(T::RcWeightInfo::force_ah_ump_queue_priority());
+			}
 
 			if Self::has_excess_unconfirmed_dmp(&stage) {
 				log::info!(
@@ -1658,6 +1753,46 @@ pub mod pallet {
 			} else {
 				Some((T::CheckingAccount::get(), MintLocation::Local))
 			}
+		}
+
+		/// Force the AH UMP queue priority for the next block.
+		pub fn force_ah_ump_queue_priority(now: BlockNumberFor<T>) {
+			let (ah_ump_priority_blocks, round_robin_blocks) =
+				match AhUmpQueuePriorityConfig::<T>::get() {
+					AhUmpQueuePriority::Config => T::AhUmpQueuePriorityPattern::get(),
+					AhUmpQueuePriority::OverrideConfig(
+						ah_ump_priority_blocks,
+						round_robin_blocks,
+					) => (ah_ump_priority_blocks, round_robin_blocks),
+					AhUmpQueuePriority::Disabled => return,
+				};
+
+			let period = ah_ump_priority_blocks + round_robin_blocks;
+			if period.is_zero() {
+				return;
+			}
+			let current_block = now % period;
+
+			let is_set = if current_block < ah_ump_priority_blocks {
+				// it is safe to force set the queue without checking if the AH UMP queue is empty,
+				// as the implementation handles these checks internally.
+				let ah_ump = AggregateMessageOrigin::Ump(UmpQueueId::Para(1000.into()));
+				match T::MessageQueue::force_set_head(&mut WeightMeter::new(), &ah_ump) {
+					Ok(is_set) => is_set,
+					Err(_) => {
+						defensive!("Failed to force set AH UMP queue priority");
+						false
+					},
+				}
+			} else {
+				false
+			};
+
+			Self::deposit_event(Event::AhUmpQueuePrioritySet {
+				prioritized: is_set,
+				cycle_block: current_block + BlockNumberFor::<T>::one(),
+				cycle_period: period,
+			});
 		}
 	}
 

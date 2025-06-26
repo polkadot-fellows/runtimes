@@ -78,3 +78,17 @@ fn test_bench_send_chunked_xcm_and_track() {
 		test_send_chunked_xcm_and_track::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_set_ah_ump_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_set_ah_ump_queue_priority::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_force_ah_ump_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_force_ah_ump_queue_priority::<RelayChain>();
+	});
+}

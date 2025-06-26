@@ -21,6 +21,12 @@ use pallet_ah_migrator::{
 	AhMigrationStage, DmpQueuePriority, DmpQueuePriorityConfig,
 	Event::DmpQueuePrioritySet as DmpQueuePrioritySetEvent, MigrationStage,
 };
+use pallet_rc_migrator::{
+	AhUmpQueuePriority, AhUmpQueuePriorityConfig,
+	Event::AhUmpQueuePrioritySet as AhUmpQueuePrioritySetEvent, MigrationStage as RcMigrationStage,
+	RcMigrationStage as RcMigrationStageStorage,
+};
+use polkadot_runtime::RcMigrator;
 
 #[test]
 fn test_force_dmp_queue_priority() {
@@ -176,6 +182,167 @@ fn test_force_dmp_queue_priority() {
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
 			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }.into(),
+		));
+	});
+}
+
+#[test]
+fn test_force_ah_ump_queue_priority() {
+	let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<RcRuntime>::default()
+		.build_storage()
+		.unwrap()
+		.into();
+
+	// prioritization is not even attempted if the migration is not ongoing
+	t.execute_with(|| {
+		let now = 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::Pending);
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		let events = frame_system::Pallet::<RcRuntime>::events();
+		assert!(!events.iter().any(|record| {
+			matches!(record.event, RcRuntimeEvent::RcMigrator(AhUmpQueuePrioritySetEvent { .. }))
+		}));
+	});
+
+	// prioritization with default config setup is attempted if the migration is ongoing
+	t.execute_with(|| {
+		let now = 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		let events = frame_system::Pallet::<RcRuntime>::events();
+		assert!(events.iter().any(|record| {
+			matches!(record.event, RcRuntimeEvent::RcMigrator(AhUmpQueuePrioritySetEvent { .. }))
+		}));
+	});
+
+	// prioritization is disabled
+	t.execute_with(|| {
+		let now = 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::Disabled);
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		let events = frame_system::Pallet::<RcRuntime>::events();
+		assert!(!events.iter().any(|record| {
+			matches!(record.event, RcRuntimeEvent::RcMigrator(AhUmpQueuePrioritySetEvent { .. }))
+		}));
+	});
+
+	// prioritization with (10, 2) pattern
+
+	t.execute_with(|| {
+		let now = 11;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 }
+				.into(),
+		));
+	});
+
+	t.execute_with(|| {
+		let now = 12;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }
+				.into(),
+		));
+	});
+
+	t.execute_with(|| {
+		let now = 13;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 2, cycle_period: 12 }
+				.into(),
+		));
+	});
+
+	t.execute_with(|| {
+		let now = 21;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 10, cycle_period: 12 }
+				.into(),
+		));
+	});
+
+	t.execute_with(|| {
+		let now = 22;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 11, cycle_period: 12 }
+				.into(),
+		));
+	});
+
+	t.execute_with(|| {
+		let now = 23;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 }
+				.into(),
+		));
+	});
+
+	t.execute_with(|| {
+		let now = 24;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+
+		RcMigrationStageStorage::<RcRuntime>::put(RcMigrationStage::AccountsMigrationInit);
+		AhUmpQueuePriorityConfig::<RcRuntime>::put(AhUmpQueuePriority::OverrideConfig(10, 2));
+		<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }
+				.into(),
 		));
 	});
 }

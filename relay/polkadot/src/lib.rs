@@ -1527,6 +1527,7 @@ parameter_types! {
 	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
 	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
+	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
 pub struct ContainsAssetHub;
@@ -1559,6 +1560,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
 	type OnDemandPalletId = OnDemandPalletId;
 	type UnprocessedMsgBuffer = ConstU32<5>;
+	// TODO: set actual message queue instance when upgraded to sdk/2503
+	type MessageQueue = ();
+	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
 }
 
 #[cfg(not(feature = "zombie-bite-sudo"))]
