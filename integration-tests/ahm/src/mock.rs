@@ -257,7 +257,7 @@ pub fn set_initial_migration_stage(
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStage::Scheduled { block_number: 0u32.into() }
+			RcMigrationStage::Scheduled { start: 0u32.into(), cool_off_end: 0u32.into() }
 		};
 		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
 		stage
@@ -295,7 +295,7 @@ pub fn rc_migrate(
 			dmps.extend(new_dmps);
 
 			match RcMigrationStageStorage::<Polkadot>::get() {
-				RcMigrationStage::WaitingForAh => {
+				RcMigrationStage::WaitingForAh { .. } => {
 					log::info!("Migration waiting for AH signal");
 					break dmps;
 				},

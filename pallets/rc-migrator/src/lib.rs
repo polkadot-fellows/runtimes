@@ -169,13 +169,37 @@ pub enum MigrationStage<
 	Pending,
 	/// The migration has been scheduled to start at the given block number.
 	Scheduled {
-		block_number: BlockNumber,
+		/// The block number at which the migration will start.
+		///
+		/// The block number at which we notify the Asset Hub about the start of the migration and
+		/// move to `WaitingForAH` stage. After we receive the confirmation, the Relay Chain will
+		/// enter the `CoolOff` stage and wait for the cool-off period to end (`cool_off_end`)
+		/// before starting to send the migration data to the Asset Hub.
+		start: BlockNumber,
+		/// The block number at which the cool-off period will end.
+		///
+		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// to the Asset Hub.
+		cool_off_end: BlockNumber,
 	},
 	/// The migration is waiting for confirmation from AH to go ahead.
 	///
 	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
 	/// receive the migration data.
-	WaitingForAh,
+	WaitingForAh {
+		/// The block number at which the cool-off period will end.
+		///
+		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// to the Asset Hub.
+		cool_off_end: BlockNumber,
+	},
+	CoolOff {
+		/// The block number at which the cool-off period will end.
+		///
+		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// to the Asset Hub.
+		cool_off_end: BlockNumber,
+	},
 	/// The migration is starting and initialization hooks are being executed.
 	Starting,
 	/// Initializing the account migration process.
@@ -485,6 +509,8 @@ pub mod pallet {
 		BalanceOverflow,
 		/// Balance accounting underflow.
 		BalanceUnderflow,
+		/// The migration stage is not reachable from the current stage.
+		UnreachableStage,
 	}
 
 	#[pallet::event]
@@ -571,17 +597,26 @@ pub mod pallet {
 		}
 
 		/// Schedule the migration to start at a given moment.
+		///
+		/// ### Parameters:
+		/// - `start`: The block number at which the migration will start.
+		/// - `cool_off_end`: The block number at which the cool-off period will end.
+		///
+		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
-			start_moment: DispatchTime<BlockNumberFor<T>>,
+			start: DispatchTime<BlockNumberFor<T>>,
+			cool_off_end: DispatchTime<BlockNumberFor<T>>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
-			let block_number = start_moment.evaluate(now);
-			ensure!(block_number > now, Error::<T>::PastBlockNumber);
-			Self::transition(MigrationStage::Scheduled { block_number });
+			let start = start.evaluate(now);
+			let cool_off_end = cool_off_end.evaluate(now);
+			ensure!(start > now, Error::<T>::PastBlockNumber);
+			ensure!(cool_off_end > start, Error::<T>::PastBlockNumber);
+			Self::transition(MigrationStage::Scheduled { start, cool_off_end });
 			Ok(())
 		}
 
@@ -593,7 +628,11 @@ pub mod pallet {
 		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::transition(MigrationStage::Starting);
+			let cool_off_end = match RcMigrationStage::<T>::get() {
+				MigrationStage::WaitingForAh { cool_off_end } => cool_off_end,
+				_ => return Err(Error::<T>::UnreachableStage.into()),
+			};
+			Self::transition(MigrationStage::CoolOff { cool_off_end });
 			Ok(())
 		}
 
@@ -632,11 +671,11 @@ pub mod pallet {
 				MigrationStage::Pending => {
 					return weight_counter.consumed();
 				},
-				MigrationStage::Scheduled { block_number } =>
-					if now >= block_number {
+				MigrationStage::Scheduled { start, cool_off_end } =>
+					if now >= start {
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
-								Self::transition(MigrationStage::WaitingForAh);
+								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
 							},
 							Err(_) => {
 								defensive!(
@@ -646,11 +685,24 @@ pub mod pallet {
 							},
 						}
 					},
-				MigrationStage::WaitingForAh => {
+				MigrationStage::WaitingForAh { .. } => {
 					// waiting AH to send a message and to start sending the data. This stage may be
 					// skipped if AH is fast.
 					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
 					// We transition out here in `start_data_migration`
+					return weight_counter.consumed();
+				},
+				MigrationStage::CoolOff { cool_off_end } => {
+					// waiting for the cool-off period to end
+					if now >= cool_off_end {
+						Self::transition(MigrationStage::Starting);
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Waiting for the cool-off period to end, cool_off_end: {:?}",
+							cool_off_end,
+						);
+					}
 					return weight_counter.consumed();
 				},
 				MigrationStage::Starting => {
@@ -1482,7 +1534,12 @@ pub mod pallet {
 
 			if new == MigrationStage::Starting {
 				defensive_assert!(
-					matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }),
+					matches!(
+						old,
+						MigrationStage::WaitingForAh { .. } |
+							MigrationStage::Scheduled { .. } |
+							MigrationStage::CoolOff { .. }
+					),
 					"Data migration can only enter from WaitingForAh or Scheduled"
 				);
 				Self::deposit_event(Event::AssetHubMigrationStarted);
