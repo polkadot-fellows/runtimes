@@ -331,7 +331,6 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	amount: u128,
 	asset_location: Location,
 ) {
-	let asset_location_latest: Location = asset_location.clone();
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
 		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
 	);
