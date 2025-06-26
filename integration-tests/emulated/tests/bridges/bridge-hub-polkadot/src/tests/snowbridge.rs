@@ -1307,9 +1307,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let weth_location_v5: Location =
-		(Parent, Parent, v4_ethereum_network, AccountKey20 { network: None, key: WETH }).into();
+	let weth_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 
 	let fee = dot_at_ah_polkadot();
 	let fees_asset: AssetId = fee.clone().into();
