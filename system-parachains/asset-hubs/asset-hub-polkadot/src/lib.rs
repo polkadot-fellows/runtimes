@@ -1060,7 +1060,7 @@ pub type Migrations = (
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
 	// Test XCM V4 to V5 compatibility for ForeignAssets and AssetConversion storage
-	system_parachains_common::verify_xcm_upgrade_migration::migration::TestXcmV4ToV5Compatibility<
+	system_parachains_common::verify_xcm_upgrade_migration::migration::VerifyXcmV4ToV5Compatibility<
 		Runtime,
 	>,
 	// permanent

@@ -77,11 +77,11 @@ pub mod migration {
 	/// storage. This migration doesn't actually alter storage, it only verifies that:
 	/// 1. XCM V4 encoded locations can be decoded as V5
 	/// 2. Location encoding remains the same between V4 and V5
-	pub struct TestXcmV4ToV5Compatibility<T, I = crate::ForeignAssetsInstance>(
+	pub struct VerifyXcmV4ToV5Compatibility<T, I = crate::ForeignAssetsInstance>(
 		core::marker::PhantomData<(T, I)>,
 	);
 
-	impl<T, I> OnRuntimeUpgrade for TestXcmV4ToV5Compatibility<T, I>
+	impl<T, I> OnRuntimeUpgrade for VerifyXcmV4ToV5Compatibility<T, I>
 	where
 		T: frame_system::Config + pallet_assets::Config<I> + pallet_asset_conversion::Config,
 		I: 'static,
@@ -113,7 +113,7 @@ pub mod migration {
 		}
 	}
 
-	impl<T, I> TestXcmV4ToV5Compatibility<T, I>
+	impl<T, I> VerifyXcmV4ToV5Compatibility<T, I>
 	where
 		T: frame_system::Config + pallet_assets::Config<I> + pallet_asset_conversion::Config,
 		I: 'static,
