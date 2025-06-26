@@ -5308,6 +5308,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-polkadot-runtime",
+ "collectives-polkadot-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "pallet-utility",
+ "pallet-whitelist",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-system-emulated-network",
+ "sp-runtime",
+ "staging-xcm",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
