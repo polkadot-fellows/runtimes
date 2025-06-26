@@ -49,7 +49,7 @@ pub mod migration {
 			pallet_asset_conversion::Pallet<T>,
 			Blake2_128Concat,
 			<T as pallet_asset_conversion::Config>::PoolId,
-			pallet_asset_conversion::PoolInfo<<T as pallet_asset_conversion::Config>::AssetKind>,
+			pallet_asset_conversion::PoolInfo<xcm::v4::Location>,
 		>;
 	}
 
@@ -60,7 +60,7 @@ pub mod migration {
 		pub type Asset<T: frame_system::Config + pallet_assets::Config<I>, I: 'static> = StorageMap<
 			pallet_assets::Pallet<T, I>,
 			Blake2_128Concat,
-			xcm::v4::Location,
+			xcm::v5::Location,
 			pallet_assets::AssetDetails<
 				<T as pallet_assets::Config<I>>::Balance,
 				<T as frame_system::Config>::AccountId,
@@ -73,7 +73,7 @@ pub mod migration {
 			pallet_asset_conversion::Pallet<T>,
 			Blake2_128Concat,
 			<T as pallet_asset_conversion::Config>::PoolId,
-			pallet_asset_conversion::PoolInfo<<T as pallet_asset_conversion::Config>::AssetKind>,
+			pallet_asset_conversion::PoolInfo<xcm::v5::Location>,
 		>;
 	}
 
@@ -148,12 +148,20 @@ pub mod migration {
 			let weight = T::DbWeight::get().reads(1);
 			let tested_assets = 0u32;
 
-			log::info!(target: LOG_TARGET, "Found XCM V4 asset keys: {}", asset_as_v4::Asset::<T, I>::iter_keys().count());
-			log::info!(target: LOG_TARGET, "Found XCM V5 asset keys: {}", asset_as_v5::Asset::<T, I>::iter_keys().count());
+			let v4_keys: Vec<_> = asset_as_v4::Asset::<T, I>::iter_keys().collect();
+			let v5_keys: Vec<_> = asset_as_v5::Asset::<T, I>::iter_keys().collect();
 
-			ensure!(
-				asset_as_v4::Asset::<T, I>::iter_keys().eq(asset_as_v5::Asset::<T, I>::iter_keys())
-			);
+			if v4_keys.len() != v5_keys.len() {
+				log::error!(target: LOG_TARGET, "Asset key count mismatch: V4 has {} keys, V5 has {} keys", v4_keys.len(), v5_keys.len());
+				return Err(TryRuntimeError::Other("Asset key count mismatch between V4 and V5"));
+			}
+
+			for (idx, (v4_key, v5_key)) in v4_keys.iter().zip(v5_keys.iter()).enumerate() {
+				if v4_key != v5_key {
+					log::error!(target: LOG_TARGET, "Asset key mismatch at index {}: V4 = {:?}, V5 = {:?}", idx, v4_key, v5_key);
+					return Err(TryRuntimeError::Other("Asset key mismatch between V4 and V5"));
+				}
+			}
 
 			log::info!(target: LOG_TARGET, "Tested {} ForeignAssets for XCM compatibility", tested_assets);
 			weight
@@ -164,11 +172,20 @@ pub mod migration {
 			let weight = T::DbWeight::get().reads(1);
 			let tested_pools = 0u32;
 
-			log::info!(target: LOG_TARGET, "Found XCM V4 pool keys: {}", asset_as_v4::Pools::<T>::iter_keys().count());
-			log::info!(target: LOG_TARGET, "Found XCM V5 pool keys: {}", asset_as_v5::Pools::<T>::iter_keys().count());
+			let v4_pool_keys: Vec<_> = asset_as_v4::Pools::<T>::iter_keys().collect();
+			let v5_pool_keys: Vec<_> = asset_as_v5::Pools::<T>::iter_keys().collect();
 
-			// Test Pools storage items - the keys should remain the same between V4 and V5
-			ensure!(asset_as_v4::Pools::<T>::iter_keys().eq(asset_as_v5::Pools::<T>::iter_keys()));
+			if v4_pool_keys.len() != v5_pool_keys.len() {
+				log::error!(target: LOG_TARGET, "Pool key count mismatch: V4 has {} keys, V5 has {} keys", v4_pool_keys.len(), v5_pool_keys.len());
+				return Err(TryRuntimeError::Other("Pool key count mismatch between V4 and V5"));
+			}
+
+			for (idx, (v4_pool_key, v5_pool_key)) in v4_pool_keys.iter().zip(v5_pool_keys.iter()).enumerate() {
+				if v4_pool_key != v5_pool_key {
+					log::error!(target: LOG_TARGET, "Pool key mismatch at index {}: V4 = {:?}, V5 = {:?}", idx, v4_pool_key, v5_pool_key);
+					return Err(TryRuntimeError::Other("Pool key mismatch between V4 and V5"));
+				}
+			}
 
 			log::info!(target: LOG_TARGET, "Tested {} AssetConversion pools for XCM compatibility", tested_pools);
 			weight
@@ -211,6 +228,23 @@ pub mod migration {
 				frame_support::ensure!(
 					v5_location == decoded,
 					"V5 location encode/decode round-trip failed"
+				);
+
+				// Test V4 encoded -> V5 decoded compatibility
+				let encoded_v4 = v4_location.encode();
+				let decoded_v5 = xcm::v5::Location::decode(&mut &encoded_v4[..])
+					.map_err(|_| TryRuntimeError::Other("Failed to decode V4 encoded location as V5"))?;
+
+				// try-from is compatible
+				frame_support::ensure!(
+					decoded_v5 == v5_location,
+					"V4 encoded -> V5 decoded should match try_from conversion"
+				);
+
+				// encode/decode is compatible
+				frame_support::ensure!(
+					encoded_v4 == decoded_v5.encode(),
+					"V4 encoded should match V5 re-encoded"
 				);
 
 				log::info!(target: LOG_TARGET, "Successfully tested V4 -> V5 conversion for: {:?}", v4_location);
