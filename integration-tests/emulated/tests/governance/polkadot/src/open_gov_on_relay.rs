@@ -102,6 +102,12 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	type PolkadotRuntimeCall = <Polkadot as Chain>::RuntimeCall;
 	type PolkadotRuntimeOrigin = <Polkadot as Chain>::RuntimeOrigin;
 
+	let code_hash_asset_hub = [1u8; 32].into();
+	let code_hash_bridge_hub = [2u8; 32].into();
+	let code_hash_collectives = [3u8; 32].into();
+	let code_hash_coretime = [4u8; 32].into();
+	let code_hash_people = [5u8; 32].into();
+
 	Polkadot::execute_with(|| {
 		Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
 		Dmp::make_parachain_reachable(BridgeHubPolkadot::para_id());
@@ -115,18 +121,28 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 			calls: vec![
 				build_xcm_send_authorize_upgrade_call::<Polkadot, AssetHubPolkadot>(
 					Polkadot::child_location_of(AssetHubPolkadot::para_id()),
+					&code_hash_asset_hub,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Polkadot, BridgeHubPolkadot>(
 					Polkadot::child_location_of(BridgeHubPolkadot::para_id()),
+					&code_hash_bridge_hub,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Polkadot, CollectivesPolkadot>(
 					Polkadot::child_location_of(CollectivesPolkadot::para_id()),
+					&code_hash_collectives,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Polkadot, CoretimePolkadot>(
 					Polkadot::child_location_of(CoretimePolkadot::para_id()),
+					&code_hash_coretime,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Polkadot, PeoplePolkadot>(
 					Polkadot::child_location_of(PeoplePolkadot::para_id()),
+					&code_hash_people,
+					None,
 				),
 			],
 		});

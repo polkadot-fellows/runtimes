@@ -20,6 +20,7 @@ pub use pallet_balances;
 pub use pallet_message_queue;
 
 // Polkadot
+pub use pallet_whitelist;
 pub use pallet_xcm;
 pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 
@@ -27,7 +28,7 @@ pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
 pub use emulated_integration_tests_common::macros::Dmp;
-pub use xcm_emulator::Chain;
+pub use xcm_emulator::{assert_expected_events, Chain};
 
 pub mod common;
 
@@ -625,4 +626,20 @@ where
 	T::RuntimeCall: Encode,
 {
 	<T::Runtime as frame_system::Config>::Hashing::hash_of(&call)
+}
+
+// TODO: remove when stable2503 / stable2506 released
+#[macro_export]
+macro_rules! assert_whitelisted {
+    ($chain:ident, $expected_call_hash:expr) => {
+		type RuntimeEvent = <$chain as $crate::Chain>::RuntimeEvent;
+		$crate::assert_expected_events!(
+			$chain,
+			vec![
+				RuntimeEvent::Whitelist($crate::pallet_whitelist::Event::CallWhitelisted { call_hash }) => {
+						call_hash: *call_hash == $expected_call_hash,
+				},
+			]
+		);
+    };
 }
