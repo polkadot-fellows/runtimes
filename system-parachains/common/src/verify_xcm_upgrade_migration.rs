@@ -20,10 +20,6 @@ pub mod migration {
 	use codec::{Decode, Encode};
 	use frame_support::traits::OnRuntimeUpgrade;
 	#[cfg(feature = "try-runtime")]
-	use frame_support::weights::Weight;
-	#[cfg(feature = "try-runtime")]
-	use sp_core::Get;
-	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
 
 	#[cfg(feature = "try-runtime")]
@@ -87,18 +83,8 @@ pub mod migration {
 
 	impl<T, I> OnRuntimeUpgrade for TestXcmV4ToV5Compatibility<T, I>
 	where
-		T: frame_system::Config
-			+ pallet_assets::Config<I>
-			+ pallet_asset_conversion::Config<
-				PoolId = (
-					<T as pallet_asset_conversion::Config>::AssetKind,
-					<T as pallet_asset_conversion::Config>::AssetKind,
-				),
-			>,
+		T: frame_system::Config + pallet_assets::Config<I> + pallet_asset_conversion::Config,
 		I: 'static,
-		T::AssetKind: From<xcm::v5::Location> + Into<xcm::v5::Location>,
-		T::PoolId: Into<(T::AssetKind, T::AssetKind)>,
-		<T as pallet_assets::Config<I>>::AssetId: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
@@ -129,23 +115,11 @@ pub mod migration {
 
 	impl<T, I> TestXcmV4ToV5Compatibility<T, I>
 	where
-		T: frame_system::Config
-			+ pallet_assets::Config<I>
-			+ pallet_asset_conversion::Config
-			+ pallet_asset_conversion::Config<
-				PoolId = (
-					<T as pallet_asset_conversion::Config>::AssetKind,
-					<T as pallet_asset_conversion::Config>::AssetKind,
-				),
-			>,
+		T: frame_system::Config + pallet_assets::Config<I> + pallet_asset_conversion::Config,
 		I: 'static,
-		T::PoolId: Into<(T::AssetKind, T::AssetKind)>,
-		T::AssetKind: From<xcm::v5::Location> + Into<xcm::v5::Location>,
-		<T as pallet_assets::Config<I>>::AssetId: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
 		#[cfg(feature = "try-runtime")]
-		fn ensure_foreign_assets_compatibility() -> TryRuntimeError {
-			let weight = T::DbWeight::get().reads(1);
+		fn ensure_foreign_assets_compatibility() -> Result<(), TryRuntimeError> {
 			let tested_assets = 0u32;
 
 			let v4_keys: Vec<_> = asset_as_v4::Asset::<T, I>::iter_keys().collect();
@@ -157,19 +131,18 @@ pub mod migration {
 			}
 
 			for (idx, (v4_key, v5_key)) in v4_keys.iter().zip(v5_keys.iter()).enumerate() {
-				if v4_key != v5_key {
+				if v4_key.encode() != v5_key.encode() {
 					log::error!(target: LOG_TARGET, "Asset key mismatch at index {}: V4 = {:?}, V5 = {:?}", idx, v4_key, v5_key);
 					return Err(TryRuntimeError::Other("Asset key mismatch between V4 and V5"));
 				}
 			}
 
 			log::info!(target: LOG_TARGET, "Tested {} ForeignAssets for XCM compatibility", tested_assets);
-			weight
+			Ok(())
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn ensure_asset_conversion_compatibility() -> TryRuntimeError {
-			let weight = T::DbWeight::get().reads(1);
+		fn ensure_asset_conversion_compatibility() -> Result<(), TryRuntimeError> {
 			let tested_pools = 0u32;
 
 			let v4_pool_keys: Vec<_> = asset_as_v4::Pools::<T>::iter_keys().collect();
@@ -190,7 +163,8 @@ pub mod migration {
 			}
 
 			log::info!(target: LOG_TARGET, "Tested {} AssetConversion pools for XCM compatibility", tested_pools);
-			weight
+
+			Ok(())
 		}
 
 		#[cfg(feature = "try-runtime")]
