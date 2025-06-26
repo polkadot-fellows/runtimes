@@ -150,7 +150,6 @@ fn send_token_from_ethereum_to_penpal() {
 	// The Weth asset location, identified by the contract address on Ethereum
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
-	let weth_asset_location_latest: Location = weth_asset_location.clone();
 	// Converts the Weth asset location into an asset ID
 
 	// Fund ethereum sovereign on AssetHub
