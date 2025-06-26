@@ -120,7 +120,7 @@ pub mod migration {
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			// Test a few sample conversions to ensure compatibility
-			Self::test_sample_locatifmton_conversions()?;
+			Self::ensure_sample_location_conversions()?;
 
 			log::info!(target: LOG_TARGET, "XCM V4 to V5 compatibility test migration validated successfully");
 			Ok(())
