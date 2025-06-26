@@ -514,8 +514,7 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let ether_location: Location = (Parent, Parent, v4_ethereum_network).into();
+	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Perform a roundtrip transfer of Ether
 	send_token_from_ethereum_to_asset_hub_and_back_works(
