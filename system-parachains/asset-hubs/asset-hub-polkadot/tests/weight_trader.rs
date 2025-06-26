@@ -288,8 +288,8 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			let v5_asset: Asset = (foreign_location.clone(), asset_refund).into();
-			assert_eq!(actual_refund, v5_asset);
+			let asset: Asset = (foreign_location.clone(), asset_refund).into();
+			assert_eq!(actual_refund, asset);
 
 			// assert.
 			assert_eq!(Balances::balance(&staking_pot), initial_balance);
