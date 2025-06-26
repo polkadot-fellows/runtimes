@@ -57,7 +57,10 @@ pub mod vesting;
 pub mod xcm_config;
 
 pub use pallet::*;
-pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
+pub use pallet_rc_migrator::{
+	types::{ForceSetHead, QueuePriority as DmpQueuePriority, ZeroWeightOr},
+	weights_ah,
+};
 pub use weights_ah::WeightInfo;
 
 use frame_support::{
@@ -201,57 +204,6 @@ pub struct BalancesBefore<Balance: Default> {
 }
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
-
-// TODO: replace by pallet_message_queue::ForceSetHead once the 2503 merged from master.
-/// Allows to force the processing head to a specific queue.
-pub trait ForceSetHead<O> {
-	/// Set the `ServiceHead` to `origin`.
-	///
-	/// This function:
-	/// - `Err`: Queue did not exist, not enough weight or other error.
-	/// - `Ok(true)`: The service head was updated.
-	/// - `Ok(false)`: The service head was not updated since the queue is empty.
-	fn force_set_head(weight: &mut WeightMeter, origin: &O) -> Result<bool, ()>;
-}
-
-impl ForceSetHead<AggregateMessageOrigin> for () {
-	fn force_set_head(
-		_weight: &mut WeightMeter,
-		_origin: &AggregateMessageOrigin,
-	) -> Result<bool, ()> {
-		Ok(true)
-	}
-}
-
-/// The priority of the DMP queue during migration.
-///
-/// Controls how the DMP (Downward Message Passing) queue is processed relative to other queues
-/// during the migration process. This helps ensure timely processing of migration messages.
-/// The default priority pattern is defined in the pallet configuration, but can be overridden
-/// by a storage value of this type.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
-pub enum DmpQueuePriority<BlockNumber: Copy> {
-	/// Use the default priority pattern from the pallet configuration.
-	#[default]
-	Config,
-	/// Override the default priority pattern from the configuration.
-	/// The tuple (priority_blocks, round_robin_blocks) defines how many blocks to prioritize
-	/// DMP queue processing vs normal round-robin processing.
-	OverrideConfig(BlockNumber, BlockNumber),
-	/// Disable DMP queue priority processing entirely.
-	Disabled,
-}
-
-impl<BlockNumber: Copy> DmpQueuePriority<BlockNumber> {
-	pub fn get_dmp_priority_blocks(&self) -> Option<BlockNumber> {
-		match self {
-			DmpQueuePriority::Config => None,
-			DmpQueuePriority::OverrideConfig(dmp_priority_blocks, _) => Some(*dmp_priority_blocks),
-			DmpQueuePriority::Disabled => None,
-		}
-	}
-}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -1003,7 +955,7 @@ pub mod pallet {
 				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
 			}
 			ensure!(
-				new.get_dmp_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
 				Error::<T>::InvalidParameter
 			);
 			DmpQueuePriorityConfig::<T>::put(new.clone());
