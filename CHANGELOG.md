@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - [[#754](https://github.com/polkadot-fellows/runtimes/pull/754)]  Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
 
+- PolkadotAssetHub: Enable Async Backing ([polkadot-fellows/runtimes/pull/763](https://github.com/polkadot-fellows/runtimes/pull/763))
 - Extend bounty update period to ~10 years ([polkadot-fellows/runtimes/pull/766](https://github.com/polkadot-fellows/runtimes/pull/766))
 
 ### Fixed
