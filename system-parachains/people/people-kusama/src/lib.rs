@@ -406,6 +406,7 @@ parameter_types! {
 /// We allow Root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
+	// TODO: split GovernanceOnRcLocation and GovernanceOnAhLocation - because we don't send migration start to other system paras
 	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
 >;
 
