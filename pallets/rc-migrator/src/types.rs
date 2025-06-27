@@ -205,13 +205,43 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
-/// A weight that is zero if the migration is ongoing, otherwise it is the default weight.
-pub struct ZeroWeightOr<Status, Default>(PhantomData<(Status, Default)>);
-impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr<Status, Default> {
-	fn get() -> Weight {
-		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
+/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
+pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftOrRight<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
 	}
 }
+
+/// A weight that is `Weight::MAX` if the migration is ongoing, otherwise it is the [`Inner`]
+/// weight of the [`pallet_fast_unstake::weights::WeightInfo`] trait.
+pub struct MaxOnIdleOrInner<Status, Inner>(PhantomData<(Status, Inner)>);
+impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
+	pallet_fast_unstake::weights::WeightInfo for MaxOnIdleOrInner<Status, Inner>
+{
+	fn on_idle_unstake(b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_unstake(b))
+	}
+	fn on_idle_check(v: u32, b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_check(v, b))
+	}
+	fn register_fast_unstake() -> Weight {
+		Inner::register_fast_unstake()
+	}
+	fn deregister() -> Weight {
+		Inner::deregister()
+	}
+	fn control() -> Weight {
+		Inner::control()
+	}
+}
+
 /// A utility struct for batching XCM messages to stay within size limits.
 ///
 /// This struct manages collections of XCM messages, automatically creating

@@ -57,7 +57,10 @@ pub mod vesting;
 pub mod xcm_config;
 
 pub use pallet::*;
-pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
+pub use pallet_rc_migrator::{
+	types::{LeftOrRight, MaxOnIdleOrInner},
+	weights_ah,
+};
 pub use weights_ah::WeightInfo;
 
 use frame_support::{
