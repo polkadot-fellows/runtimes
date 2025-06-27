@@ -33,7 +33,8 @@ mod tracks;
 pub use tracks::TracksInfo;
 
 parameter_types! {
-	pub const VoteLockingPeriod: BlockNumber = 7 * DAYS;
+	// TODO: verify DAYS from RC or SP/AH constants to use?
+	pub const VoteLockingPeriod: BlockNumber = 7 * kusama_runtime_constants::time::DAYS;
 }
 
 impl pallet_conviction_voting::Config for Runtime {
@@ -51,8 +52,10 @@ impl pallet_conviction_voting::Config for Runtime {
 
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
-	pub const SubmissionDeposit: Balance = QUID;
-	pub const UndecidingTimeout: BlockNumber = 14 * DAYS;
+	// TODO: verify QUID from RC or SP/AH constants to use?
+	pub const SubmissionDeposit: Balance = kusama_runtime_constants::currency::QUID;
+	// TODO: verify DAYS from RC or SP/AH constants to use?
+	pub const UndecidingTimeout: BlockNumber = 14 * kusama_runtime_constants::time::DAYS;
 }
 
 parameter_types! {
