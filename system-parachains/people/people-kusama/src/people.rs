@@ -44,6 +44,7 @@ parameter_types! {
 
 pub type IdentityAdminOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
+	// TODO: split GovernanceOnRcLocation and GovernanceOnAhLocation - because we don't send migration start to other system paras
 	EnsureXcm<IsVoiceOfBody<GovernanceLocation, GeneralAdminBodyId>>,
 >;
 
