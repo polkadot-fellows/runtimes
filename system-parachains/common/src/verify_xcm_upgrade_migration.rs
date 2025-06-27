@@ -15,9 +15,9 @@
 
 pub mod migration {
 	#[cfg(feature = "try-runtime")]
-	use crate::{vec, Vec};
+	use crate::Vec;
 	#[cfg(feature = "try-runtime")]
-	use codec::{Decode, Encode};
+	use codec::Encode;
 	use frame_support::traits::OnRuntimeUpgrade;
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
@@ -105,9 +105,6 @@ pub mod migration {
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			// Test a few sample conversions to ensure compatibility
-			Self::ensure_sample_location_conversions()?;
-
 			log::info!(target: LOG_TARGET, "XCM V4 to V5 compatibility test migration validated successfully");
 			Ok(())
 		}
@@ -149,7 +146,7 @@ pub mod migration {
 			let v5_pool_keys: Vec<_> = asset_as_v5::Pools::<T>::iter_keys().collect();
 
 			if v4_pool_keys.len() != v5_pool_keys.len() {
-				log::error!(target: LOG_TARGET, "Pool key count mismatch: V4 has {} keys, V5 has {} keys", v4_pool_keys.len(), v5_pool_keys.len());
+				log::error!(target: LOG_TARGET, "Pool key count mismatch: V4 has {} keys, V5 has {} keys", v4_pool_keys, v5_pool_keys);
 				return Err(TryRuntimeError::Other("Pool key count mismatch between V4 and V5"));
 			}
 
@@ -166,68 +163,72 @@ pub mod migration {
 
 			Ok(())
 		}
+	}
+}
 
-		#[cfg(feature = "try-runtime")]
-		fn ensure_sample_location_conversions() -> Result<(), TryRuntimeError> {
-			// Test some common XCM location patterns to ensure V4 -> V5 compatibility
-			let test_locations_v4 = vec![
-				// Relay chain
-				xcm::v4::Location::new(1, xcm::v4::Junctions::Here),
-				// Sibling parachain
-				xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(1000)]),
-				// Asset on sibling parachain
-				xcm::v4::Location::new(
-					1,
-					[
-						xcm::v4::Junction::Parachain(1000),
-						xcm::v4::Junction::PalletInstance(50),
-						xcm::v4::Junction::GeneralIndex(1984),
-					],
-				),
-				// Global consensus location
-				xcm::v4::Location::new(
-					1,
-					[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
-				),
-			];
+#[cfg(test)]
+mod tests {
+	use codec::{Decode, Encode};
+	use sp_runtime::TryRuntimeError;
 
-			for v4_location in test_locations_v4 {
-				// Test V4 -> V5 conversion
-				let v5_location = xcm::v5::Location::try_from(v4_location.clone())
-					.map_err(|_| TryRuntimeError::Other("Failed to convert V4 location to V5"))?;
+	#[test]
+	fn test_sample_location_conversions() -> Result<(), TryRuntimeError> {
+		// Test some common XCM location patterns to ensure V4 -> V5 compatibility
+		let test_locations_v4 = vec![
+			// Relay chain
+			xcm::v4::Location::new(1, xcm::v4::Junctions::Here),
+			// Sibling parachain
+			xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(1000)]),
+			// Asset on sibling parachain
+			xcm::v4::Location::new(
+				1,
+				[
+					xcm::v4::Junction::Parachain(1000),
+					xcm::v4::Junction::PalletInstance(50),
+					xcm::v4::Junction::GeneralIndex(1984),
+				],
+			),
+			// Global consensus location
+			xcm::v4::Location::new(
+				1,
+				[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
+			),
+		];
 
-				// Test that we can encode/decode V5 location
-				let encoded = v5_location.encode();
-				let decoded = xcm::v5::Location::decode(&mut &encoded[..])
-					.map_err(|_| TryRuntimeError::Other("Failed to decode V5 location"))?;
+		for v4_location in test_locations_v4 {
+			// Test V4 -> V5 conversion
+			let v5_location = xcm::v5::Location::try_from(v4_location.clone())
+				.map_err(|_| TryRuntimeError::Other("Failed to convert V4 location to V5"))?;
 
-				frame_support::ensure!(
-					v5_location == decoded,
-					"V5 location encode/decode round-trip failed"
-				);
+			// Test that we can encode/decode V5 location
+			let encoded = v5_location.encode();
+			let decoded = xcm::v5::Location::decode(&mut &encoded[..])
+				.map_err(|_| TryRuntimeError::Other("Failed to decode V5 location"))?;
 
-				// Test V4 encoded -> V5 decoded compatibility
-				let encoded_v4 = v4_location.encode();
-				let decoded_v5 = xcm::v5::Location::decode(&mut &encoded_v4[..]).map_err(|_| {
-					TryRuntimeError::Other("Failed to decode V4 encoded location as V5")
-				})?;
+			frame_support::ensure!(
+				v5_location == decoded,
+				"V5 location encode/decode round-trip failed"
+			);
 
-				// try-from is compatible
-				frame_support::ensure!(
-					decoded_v5 == v5_location,
-					"V4 encoded -> V5 decoded should match try_from conversion"
-				);
+			// Test V4 encoded -> V5 decoded compatibility
+			let encoded_v4 = v4_location.encode();
+			let decoded_v5 = xcm::v5::Location::decode(&mut &encoded_v4[..]).map_err(|_| {
+				TryRuntimeError::Other("Failed to decode V4 encoded location as V5")
+			})?;
 
-				// encode/decode is compatible
-				frame_support::ensure!(
-					encoded_v4 == decoded_v5.encode(),
-					"V4 encoded should match V5 re-encoded"
-				);
+			// try-from is compatible
+			frame_support::ensure!(
+				decoded_v5 == v5_location,
+				"V4 encoded -> V5 decoded should match try_from conversion"
+			);
 
-				log::info!(target: LOG_TARGET, "Successfully tested V4 -> V5 conversion for: {:?}", v4_location);
-			}
-
-			Ok(())
+			// encode/decode is compatible
+			frame_support::ensure!(
+				encoded_v4 == decoded_v5.encode(),
+				"V4 encoded should match V5 re-encoded"
+			);
 		}
+
+		Ok(())
 	}
 }
