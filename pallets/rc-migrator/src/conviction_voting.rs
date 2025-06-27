@@ -17,7 +17,6 @@
 use crate::*;
 use frame_support::traits::{Currency, Polling};
 use pallet_conviction_voting::{ClassLocksFor, TallyOf, Voting};
-use sp_runtime::traits::Zero;
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]

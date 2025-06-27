@@ -215,6 +215,54 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	}
 }
 
+// TODO: replace by pallet_message_queue::ForceSetHead once the 2503 merged from master.
+/// Allows to force the processing head to a specific queue.
+pub trait ForceSetHead<O> {
+	/// Set the `ServiceHead` to `origin`.
+	///
+	/// This function:
+	/// - `Err`: Queue did not exist, not enough weight or other error.
+	/// - `Ok(true)`: The service head was updated.
+	/// - `Ok(false)`: The service head was not updated since the queue is empty.
+	fn force_set_head(weight: &mut WeightMeter, origin: &O) -> Result<bool, ()>;
+}
+
+impl<O> ForceSetHead<O> for () {
+	fn force_set_head(_weight: &mut WeightMeter, _origin: &O) -> Result<bool, ()> {
+		Ok(true)
+	}
+}
+
+/// The priority of the DMP/UMP queue during migration.
+///
+/// Controls how the DMP (Downward Message Passing) or UMP (Upward Message Passing) queue is
+/// processed relative to other queues during the migration process. This helps ensure timely
+/// processing of migration messages. The default priority pattern is defined in the pallet
+/// configuration, but can be overridden by a storage value of this type.
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+pub enum QueuePriority<BlockNumber: Copy> {
+	/// Use the default priority pattern from the pallet configuration.
+	#[default]
+	Config,
+	/// Override the default priority pattern from the configuration.
+	/// The tuple (priority_blocks, round_robin_blocks) defines how many blocks to prioritize
+	/// DMP queue processing vs normal round-robin processing.
+	OverrideConfig(BlockNumber, BlockNumber),
+	/// Disable DMP queue priority processing entirely.
+	Disabled,
+}
+
+impl<BlockNumber: Copy> QueuePriority<BlockNumber> {
+	pub fn get_priority_blocks(&self) -> Option<BlockNumber> {
+		match self {
+			QueuePriority::Config => None,
+			QueuePriority::OverrideConfig(priority_blocks, _) => Some(*priority_blocks),
+			QueuePriority::Disabled => None,
+		}
+	}
+}
+
 /// A weight that is `Weight::MAX` if the migration is ongoing, otherwise it is the [`Inner`]
 /// weight of the [`pallet_fast_unstake::weights::WeightInfo`] trait.
 pub struct MaxOnIdleOrInner<Status, Inner>(PhantomData<(Status, Inner)>);
