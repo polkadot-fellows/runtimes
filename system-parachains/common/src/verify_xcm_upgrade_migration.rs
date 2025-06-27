@@ -123,7 +123,7 @@ pub mod migration {
 			let v5_keys: Vec<_> = asset_as_v5::Asset::<T, I>::iter_keys().collect();
 
 			if v4_keys.len() != v5_keys.len() {
-				log::error!(target: LOG_TARGET, "Asset key count mismatch: V4 has {} keys, V5 has {} keys", v4_keys, v5_keys);
+				log::error!(target: LOG_TARGET, "Asset key count mismatch: V4 has {:?} keys, V5 has {:?} keys", v4_keys, v5_keys);
 				return Err(TryRuntimeError::Other("Asset key count mismatch between V4 and V5"));
 			}
 
@@ -146,7 +146,7 @@ pub mod migration {
 			let v5_pool_keys: Vec<_> = asset_as_v5::Pools::<T>::iter_keys().collect();
 
 			if v4_pool_keys.len() != v5_pool_keys.len() {
-				log::error!(target: LOG_TARGET, "Pool key count mismatch: V4 has {} keys, V5 has {} keys", v4_pool_keys, v5_pool_keys);
+				log::error!(target: LOG_TARGET, "Pool key count mismatch: V4 has {:?} keys, V5 has {:?} keys", v4_pool_keys, v5_pool_keys);
 				return Err(TryRuntimeError::Other("Pool key count mismatch between V4 and V5"));
 			}
 
