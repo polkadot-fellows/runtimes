@@ -19,7 +19,7 @@
 use super::*;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU16, EitherOf},
+	traits::{EitherOf, EitherOfDiverse},
 };
 use frame_system::EnsureRootWithSuccess;
 
@@ -66,8 +66,10 @@ impl pallet_whitelist::Config for Runtime {
 	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
-	type WhitelistOrigin =
-		EitherOf<EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
+	type WhitelistOrigin = EitherOfDiverse<
+		EnsureRoot<Self::AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+	>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
 }
