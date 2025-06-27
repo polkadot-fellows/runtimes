@@ -4417,7 +4417,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cea14ef9355e3beab063703aa9dab15afd25f0667c341310c1e5274bb1d0da18"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6216,7 +6216,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.1",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -9438,9 +9438,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive-fixtures"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc1df19ca809f036d6ddf1632039e9db312f92dbe8f9390e6722ad808cd95377"
+checksum = "279282bb5f8e1da5a22f0e74aabbe31d62e158b7700e102fd9447a971f90d383"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -10560,9 +10560,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-primitives"
-version = "18.1.0"
+version = "18.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d46b3d45e295d975a9be6128212b29e0efd05f26cdde4a45115424a1f6bad0dd"
+checksum = "7eadd5ca22e2ded7a12a484a6e0962ed86c379ce4bb83fbd82843b6459a20cef"
 dependencies = [
  "bitvec",
  "hex-literal",
@@ -10777,9 +10777,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-parachains"
-version = "19.1.0"
+version = "19.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0a4c580cf509b6b7d4f2b556e31da04e528c69acfaeec28d5ac7f02b4dc0fa9"
+checksum = "a76fc49c2a9a7d13fbd1d97d448366ad5b7197d7684ec9013271d99c015d13d6"
 dependencies = [
  "bitflags 1.3.2",
  "bitvec",
@@ -11493,7 +11493,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12043,7 +12043,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12056,7 +12056,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12156,7 +12156,7 @@ dependencies = [
  "security-framework 3.2.0",
  "security-framework-sys",
  "webpki-root-certs 0.26.11",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -15501,7 +15501,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -16835,7 +16835,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
