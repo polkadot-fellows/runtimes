@@ -1428,10 +1428,8 @@ mod benches {
 				account,
 			));
 
-			let native_asset_id_latest: AssetId = native_asset_id.try_into().unwrap();
-			let asset_id_latest: AssetId = asset_id.try_into().unwrap();
-			let give_assets: XcmAssets = (native_asset_id_latest, 500 * UNITS).into();
-			let receive_assets: XcmAssets = (asset_id_latest, 660 * UNITS).into();
+			let give_assets: XcmAssets = (native_asset_id, 500 * UNITS).into();
+			let receive_assets: XcmAssets = (asset_id, 660 * UNITS).into();
 
 			Ok((give_assets, receive_assets))
 		}
