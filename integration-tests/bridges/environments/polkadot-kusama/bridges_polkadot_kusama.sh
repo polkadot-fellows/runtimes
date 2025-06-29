@@ -68,6 +68,7 @@ GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT="FxqimVubBRPqJ8kTwb3wL7G4q645hEkBEnX
 ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA="FBeL7EFTDeHnuViqaUHUXvhhUusN5FawDmHgfvzF97DXFr3"
 GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT="14zcUAhP5XypiFQWA3b1AnGKrhZqR4XWUo4deWkwuN5y983G"
 ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="13cKp89SgdtqUngo2WiEijPrQWdHFhzYZLf2TJePKRvExk7o"
+ALICE_SOVEREIGN_ACCOUNT="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 
 # Expected sovereign accounts for rewards on BridgeHubs.
 #
@@ -213,7 +214,7 @@ function run_parachains_relay() {
     local relayer_path=$(ensure_relayer)
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
-        $relayer_path relay-parachains polkadot-to-bridge-hub-kusama \
+        $relayer_path relay-parachains bridge-hub-polkadot-to-bridge-hub-kusama \
         --only-free-headers \
         --source-uri ws://localhost:9942 \
         --source-version-mode Auto \
@@ -223,7 +224,7 @@ function run_parachains_relay() {
         --target-transactions-mortality 4&
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
-        $relayer_path relay-parachains kusama-to-bridge-hub-polkadot \
+        $relayer_path relay-parachains bridge-hub-kusama-to-bridge-hub-polkadot \
         --only-free-headers \
         --source-uri ws://localhost:9945 \
         --source-version-mode Auto \
@@ -290,6 +291,20 @@ case "$1" in
           "$GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT" \
           $AHP_KSM_ED \
           true
+      create_pool \
+          "ws://127.0.0.1:9910" \
+          "//Alice" \
+          "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama" }] } }')"
+      # Create liquidity in the pool
+      add_liquidity \
+          "ws://127.0.0.1:9910" \
+          "//Alice" \
+          "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama"}] } }')" \
+          10000000000 \
+          10000000000 \
+          "$ALICE_SOVEREIGN_ACCOUNT"
       # HRMP
       open_hrmp_channels \
           "ws://127.0.0.1:9942" \
@@ -349,6 +364,20 @@ case "$1" in
           "$GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT" \
           $AHK_DOT_ED \
           true
+      create_pool \
+          "ws://127.0.0.1:9010" \
+          "//Alice" \
+          "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot" }] } }')"
+      # Create liquidity in the pool
+      add_liquidity \
+          "ws://127.0.0.1:9010" \
+          "//Alice" \
+          "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot"}] } }')" \
+          10000000000 \
+          10000000000 \
+          "$ALICE_SOVEREIGN_ACCOUNT"
       # HRMP
       open_hrmp_channels \
           "ws://127.0.0.1:9945" \
