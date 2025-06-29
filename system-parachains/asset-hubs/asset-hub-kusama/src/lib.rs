@@ -1183,7 +1183,7 @@ pub type Migrations = (
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// Test XCM V4 to V5 compatibility for ForeignAssets and AssetConversion storage
+	// Test XCM V4 to V5 compatibility for ForeignAssets and AssetConversion storage.
 	system_parachains_common::verify_xcm_upgrade_migration::migration::VerifyXcmV4ToV5Compatibility<
 		Runtime,
 	>,
