@@ -15,6 +15,7 @@ emulated-integration-tests-common = { workspace = true }
 # Runtimes
 asset-hub-kusama-emulated-chain = { workspace = true }
 bridge-hub-kusama-emulated-chain = { workspace = true }
+encointer-kusama-emulated-chain = { workspace = true }
 kusama-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 people-kusama-emulated-chain = { workspace = true }
@@ -25,6 +26,7 @@ runtime-benchmarks = [
 	"asset-hub-kusama-emulated-chain/runtime-benchmarks",
 	"bridge-hub-kusama-emulated-chain/runtime-benchmarks",
 	"coretime-kusama-emulated-chain/runtime-benchmarks",
+	"encointer-kusama-emulated-chain/runtime-benchmarks",
 	"kusama-emulated-chain/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",
 	"people-kusama-emulated-chain/runtime-benchmarks",
