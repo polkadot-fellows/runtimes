@@ -34,6 +34,7 @@
 use crate::porting_prelude::*;
 
 use super::{
+	balances_test::BalancesCrossChecker,
 	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
@@ -75,7 +76,7 @@ use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
 	SanityChecks,
-	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
+	pallet_rc_migrator::accounts::AccountsMigrationChecker<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -89,6 +90,7 @@ type RcChecks = (
 	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
+	BalancesCrossChecker,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
@@ -112,7 +114,7 @@ pub type RcPolkadotChecks = ();
 
 type AhChecks = (
 	SanityChecks,
-	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
+	pallet_rc_migrator::accounts::AccountsMigrationChecker<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
@@ -129,6 +131,7 @@ type AhChecks = (
 	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
+	BalancesCrossChecker,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
@@ -614,6 +617,9 @@ async fn some_account_migration_works() {
 		"5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
 		// 18.03.2025 - account with free balance below ED, and reserve above ED
 		"5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+		// 19.06.2025 - account with free balance below ED, some reserved balance to keep on the
+		// RC, and a staking hold to migrate to AH.
+		"5CfWkGnSnG89mGm3HjSUYHfJrNKmeyWgix5NKAMqePu4csgP".parse().unwrap(),
 	];
 
 	for account_id in accounts {
