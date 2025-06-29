@@ -262,6 +262,7 @@ tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
 rand = { version = "0.9.1", default-features = false }
+pallets-common = { path = "pallets/common", default-features = false }
 
 [workspace]
 resolver = "2"
@@ -292,11 +293,14 @@ members = [
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/coretime/coretime-polkadot",
+	"integration-tests/emulated/tests/governance/kusama",
+	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
 	"pallets/ah-migrator",
 	"pallets/ah-ops",
+	"pallets/common",
 	"pallets/rc-migrator",
 	"pallets/remote-proxy",
 	"relay/common",

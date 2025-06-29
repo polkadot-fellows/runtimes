@@ -85,6 +85,7 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
+pallets-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 # Bridges
@@ -186,6 +187,7 @@ std = [
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm-bridge-hub/std",
 	"pallet-xcm/std",
+	"pallets-common/std",
 	"parachain-info/std",
 	"parachains-common/std",
 	"polkadot-core-primitives/std",
