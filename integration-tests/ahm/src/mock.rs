@@ -39,7 +39,7 @@ use runtime_parachains::{
 use sp_io::TestExternalities;
 use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
-use tokio::sync::{Mutex as TokioMutex, OnceCell};
+use tokio::sync::OnceCell;
 use xcm::prelude::*;
 //use frame_support::traits::QueueFootprintQuery; // Only on westend
 
