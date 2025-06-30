@@ -78,8 +78,6 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::types::MigrationStatus;
-
-#[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::bounties::RcBountiesMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::claims::RcClaimsMessageOf;
@@ -123,8 +121,6 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcHoldReason,
 	<T as Config>::RcFreezeReason,
 >;
-
-#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -301,11 +297,9 @@ pub mod pallet {
 		///
 		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
 		/// list should not include the native asset.
-		#[cfg(not(feature = "ahm-westend"))]
 		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
-		#[cfg(not(feature = "ahm-westend"))]
 		type RcToAhTreasurySpend: Convert<
 			(VersionedLocatableAsset, VersionedLocation),
 			Result<
@@ -710,8 +704,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(12)]
 		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
 		pub fn receive_claims(
@@ -786,8 +778,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(17)]
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
@@ -817,8 +807,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(19)]
 		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
 		pub fn receive_crowdloan_messages(
@@ -848,8 +836,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(21)]
 		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
 		pub fn receive_treasury_messages(
@@ -1046,8 +1032,6 @@ pub mod pallet {
 				// FIXME fails only on Westend
 				#[cfg(feature = "ahm-westend")]
 				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
-
-				#[cfg(not(feature = "ahm-westend"))]
 				defensive!("Account migration failed: {:?}", err);
 			}
 

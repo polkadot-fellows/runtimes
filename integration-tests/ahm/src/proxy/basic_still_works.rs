@@ -76,7 +76,6 @@ impl RcMigrationCheck for ProxyBasicWorks {
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
-				#[cfg(not(feature = "ahm-westend"))]
 				let inner = proxy.proxy_type.0;
 				#[cfg(feature = "ahm-westend")] // Westend does not have remote proxies
 				let inner = proxy.proxy_type;
@@ -206,7 +205,6 @@ impl ProxyBasicWorks {
 		// Alice cannot transfer
 		assert!(!Self::can_transfer(&alice, &delegator, false), "Alice cannot transfer");
 		// Alice cannot do governance
-		#[cfg(not(feature = "ahm-westend"))]
 		assert!(!Self::can_governance(&alice, &delegator, false), "Alice cannot do governance");
 	}
 
@@ -315,7 +313,6 @@ impl ProxyBasicWorks {
 	}
 
 	/// Check if there is a `BountyProposed` event.
-	#[cfg(not(feature = "ahm-westend"))]
 	fn find_bounty_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
 			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(
