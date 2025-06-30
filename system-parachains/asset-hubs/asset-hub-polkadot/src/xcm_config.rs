@@ -63,7 +63,6 @@ use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 pub const ASSET_HUB_ID: u32 = 1000;
 
 parameter_types! {
-	pub SystemAssetHubLocation: Location = Location::new(1, [Parachain(ASSET_HUB_ID)]);
 	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
 	pub const DotLocationV4: xcm::v4::Location = xcm::v4::Location::parent();
@@ -411,7 +410,7 @@ pub type TrustedTeleporters = (
 /// - Allow origins explicitly authorized by the alias target location.
 pub type TrustedAliasers = (
 	AliasChildLocation,
-	AliasOriginRootUsingFilter<SystemAssetHubLocation, Everything>,
+	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, Everything>,
 	AuthorizedAliasers<Runtime>,
 );
 
