@@ -901,16 +901,55 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn finish_migration() {
+		AhMigrationStage::<T>::put(MigrationStage::DataMigrationOngoing);
 		#[extrinsic_call]
 		_(RawOrigin::Root, MigrationFinishedData { rc_balance_kept: 100 });
 
 		assert_last_event::<T>(
 			Event::StageTransition {
-				old: MigrationStage::Pending,
+				old: MigrationStage::DataMigrationOngoing,
 				new: MigrationStage::MigrationDone,
 			}
 			.into(),
 		);
+	}
+
+	#[benchmark]
+	fn force_dmp_queue_priority() {
+		let now = BlockNumberFor::<T>::from(1u32);
+		let priority_blocks = BlockNumberFor::<T>::from(10u32);
+		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);
+		DmpQueuePriorityConfig::<T>::put(DmpQueuePriority::OverrideConfig(
+			priority_blocks,
+			round_robin_blocks,
+		));
+
+		#[block]
+		{
+			Pallet::<T>::force_dmp_queue_priority(now)
+		}
+
+		assert_last_event::<T>(
+			Event::DmpQueuePrioritySet {
+				prioritized: true,
+				cycle_block: now + BlockNumberFor::<T>::from(1u32),
+				cycle_period: priority_blocks + round_robin_blocks,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn set_dmp_queue_priority() {
+		let old = DmpQueuePriorityConfig::<T>::get();
+		let new = DmpQueuePriority::OverrideConfig(
+			BlockNumberFor::<T>::from(10u32),
+			BlockNumberFor::<T>::from(1u32),
+		);
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
 	}
 
 	#[cfg(feature = "std")]
@@ -1172,5 +1211,23 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_preimage_chunk::<T>(m, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_force_dmp_queue_priority<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_force_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_dmp_queue_priority<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_dmp_queue_priority::<T>(true)
 	}
 }

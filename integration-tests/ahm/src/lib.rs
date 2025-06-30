@@ -29,6 +29,7 @@ pub mod mock;
 pub mod multisig_still_work;
 pub mod multisig_test;
 pub mod proxy;
+pub mod queues_priority;
 pub mod tests;
 
 /// Imports for the AHM tests that can be reused for other chains.
@@ -66,10 +67,12 @@ pub mod porting_prelude {
 
 	// Convenience aliases:
 	pub use asset_hub_polkadot_runtime::{
-		Runtime as AhRuntime, RuntimeCall as AhRuntimeCall, RuntimeOrigin as AhRuntimeOrigin,
+		Runtime as AhRuntime, RuntimeCall as AhRuntimeCall, RuntimeEvent as AhRuntimeEvent,
+		RuntimeOrigin as AhRuntimeOrigin,
 	};
 	pub use polkadot_runtime::{
-		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeOrigin as RcRuntimeOrigin,
+		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeEvent as RcRuntimeEvent,
+		RuntimeOrigin as RcRuntimeOrigin,
 	};
 
 	// Westend does not support remote proxies, so we have to figure out the import location:

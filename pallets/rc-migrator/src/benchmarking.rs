@@ -89,12 +89,14 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn start_data_migration() {
+		RcMigrationStage::<T>::put(&MigrationStageOf::<T>::WaitingForAh);
+
 		#[extrinsic_call]
 		_(RawOrigin::Root);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
-				old: MigrationStageOf::<T>::Pending,
+				old: MigrationStageOf::<T>::WaitingForAh,
 				new: MigrationStageOf::<T>::Starting,
 			}
 			.into(),
@@ -129,6 +131,44 @@ pub mod benchmarks {
 		assert_eq!(sent, 0);
 	}
 
+	#[benchmark]
+	fn force_ah_ump_queue_priority() {
+		let now = BlockNumberFor::<T>::from(1u32);
+		let priority_blocks = BlockNumberFor::<T>::from(10u32);
+		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);
+		AhUmpQueuePriorityConfig::<T>::put(AhUmpQueuePriority::OverrideConfig(
+			priority_blocks,
+			round_robin_blocks,
+		));
+
+		#[block]
+		{
+			Pallet::<T>::force_ah_ump_queue_priority(now)
+		}
+
+		assert_last_event::<T>(
+			Event::AhUmpQueuePrioritySet {
+				prioritized: true,
+				cycle_block: now + BlockNumberFor::<T>::from(1u32),
+				cycle_period: priority_blocks + round_robin_blocks,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn set_ah_ump_queue_priority() {
+		let old = AhUmpQueuePriorityConfig::<T>::get();
+		let new = AhUmpQueuePriority::OverrideConfig(
+			BlockNumberFor::<T>::from(10u32),
+			BlockNumberFor::<T>::from(1u32),
+		);
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::AhUmpQueuePriorityConfigSet { old, new }.into());
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_withdraw_account<T: Config>() {
 		_withdraw_account::<T>(true /* enable checks */)
@@ -157,5 +197,15 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_send_chunked_xcm_and_track<T: Config>() {
 		_send_chunked_xcm_and_track::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_force_ah_ump_queue_priority<T: Config>() {
+		_force_ah_ump_queue_priority::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_ah_ump_queue_priority<T: Config>() {
+		_set_ah_ump_queue_priority::<T>(true /* enable checks */);
 	}
 }
