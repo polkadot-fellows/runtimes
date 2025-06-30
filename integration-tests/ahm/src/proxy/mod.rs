@@ -67,9 +67,6 @@ impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 			Auction => Permission::Auction,
 			NominationPools => Permission::NominationPools,
 			ParaRegistration => Permission::ParaRegistration,
-
-			#[cfg(feature = "ahm-westend")]
-			SudoBalances | IdentityJudgement => return Err(proxy),
 		})
 	}
 }

@@ -191,7 +191,6 @@ pub fn enqueue_ump(msgs: (Vec<UpwardMessage>, BlockNumberFor<AssetHub>)) {
 	}
 }
 
-#[cfg(feature = "ahm-polkadot")] // XCM V3 or V4
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	match xcm {
@@ -223,7 +222,7 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	};
 }
 
-#[cfg(feature = "ahm-westend")] // XCM V5
+#[cfg(feature = "stable2503")] // XCM V5
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	let xcm = match xcm {

@@ -32,9 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,11 +48,9 @@ pub use pallet::*;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod xcm_config;
 
@@ -65,7 +61,6 @@ use crate::{
 	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
 };
 use accounts::AccountsMigrator;
-#[cfg(not(feature = "ahm-westend"))]
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
 	pallet_prelude::*,
@@ -86,7 +81,6 @@ use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-#[cfg(not(feature = "ahm-westend"))]
 use polkadot_runtime_common::claims as pallet_claims;
 use polkadot_runtime_common::{
 	crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
@@ -116,12 +110,7 @@ use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
-
-#[cfg(feature = "ahm-polkadot")]
 use runtime_parachains::hrmp;
-// For westend
-#[cfg(feature = "ahm-westend")]
-use polkadot_runtime_parachains::hrmp;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -815,8 +804,6 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationDone => {
 					Self::transition(MigrationStage::ClaimsMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::ClaimsMigrationDone);
 				},
 				MigrationStage::ClaimsMigrationInit => {
 					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
@@ -1292,8 +1279,6 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::BountiesMigrationDone);
 					Self::transition(MigrationStage::BountiesMigrationInit);
 				},
 				MigrationStage::BountiesMigrationInit => {
@@ -1359,8 +1344,6 @@ pub mod pallet {
 				},
 				MigrationStage::AssetRateMigrationDone => {
 					Self::transition(MigrationStage::CrowdloanMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::CrowdloanMigrationDone);
 				},
 				MigrationStage::CrowdloanMigrationInit => {
 					Self::transition(MigrationStage::CrowdloanMigrationOngoing { last_key: None });
@@ -1393,8 +1376,6 @@ pub mod pallet {
 				},
 				MigrationStage::CrowdloanMigrationDone => {
 					Self::transition(MigrationStage::TreasuryMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::TreasuryMigrationDone);
 				},
 				MigrationStage::TreasuryMigrationInit => {
 					Self::transition(MigrationStage::TreasuryMigrationOngoing { last_key: None });
@@ -1610,10 +1591,7 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
-						#[cfg(feature = "ahm-polkadot")]
 						require_weight_at_most: weight_at_most(batch_len),
-						#[cfg(feature = "ahm-westend")]
-						fallback_max_weight: Some(weight_at_most(batch_len)),
 						call: call.encode().into(),
 					},
 				]);
@@ -1663,10 +1641,7 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
-					#[cfg(feature = "ahm-polkadot")]
 					require_weight_at_most: weight_at_most,
-					#[cfg(feature = "ahm-westend")]
-					fallback_max_weight: Some(weight_at_most),
 					call: call.encode().into(),
 				},
 			]);

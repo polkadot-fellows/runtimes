@@ -35,13 +35,10 @@ pub mod account;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod call;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
 pub mod conviction_voting;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,7 +47,6 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod types;
 pub mod vesting;
@@ -79,11 +75,8 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::types::MigrationStatus;
 use pallet_rc_migrator::bounties::RcBountiesMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::claims::RcClaimsMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::treasury::RcTreasuryMessage;
 
 use cumulus_primitives_core::AggregateMessageOrigin;
@@ -1029,9 +1022,6 @@ pub mod pallet {
 		) -> Result<(), Error<T>> {
 			// Accounts
 			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				// FIXME fails only on Westend
-				#[cfg(feature = "ahm-westend")]
-				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
 				defensive!("Account migration failed: {:?}", err);
 			}
 

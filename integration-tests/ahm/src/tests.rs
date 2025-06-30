@@ -28,7 +28,7 @@
 //! Run with:
 //!
 //! ```
-//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works --features ahm-polkadot -- --nocapture
+//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! ```
 
 use crate::porting_prelude::*;
@@ -96,7 +96,6 @@ type RcChecks = (
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
-#[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -106,9 +105,6 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
 );
-
-#[cfg(not(feature = "ahm-polkadot"))]
-pub type RcPolkadotChecks = ();
 
 type AhChecks = (
 	SanityChecks,
@@ -135,9 +131,6 @@ type AhChecks = (
 	MultisigStillWork,
 );
 
-// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
-// (like AH Westend)
-#[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -147,9 +140,6 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	ProxyWhaleWatching,
 );
-
-#[cfg(not(feature = "ahm-polkadot"))]
-pub type AhPolkadotChecks = ();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
@@ -202,8 +192,6 @@ async fn pallet_migration_works() {
 		let root = sp_io::storage::root(sp_runtime::StateVersion::V1);
 		println!("Post AH root hash: {:?}", hex::encode(root));
 	});
-	// Post RC root hash: "882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5"
-	// Post AH root hash: "fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b"
 }
 
 fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
@@ -214,7 +202,6 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 	}
 }
 
-#[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();

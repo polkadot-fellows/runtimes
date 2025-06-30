@@ -145,7 +145,5 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-ahm-polkadot = []
-ahm-westend = ["ahm-staking-migration", "stable2503"]
 stable2503 = []
 ahm-staking-migration = []

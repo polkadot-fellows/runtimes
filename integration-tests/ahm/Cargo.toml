@@ -57,7 +57,7 @@ frame-benchmarking = { workspace = true }
 rand = { workspace = true, default-feature = true }
 
 [features]
-default = ["ahm-polkadot", "std"]
+default = ["std"]
 std = [
 	"cumulus-pallet-parachain-system/std",
 	"frame-benchmarking/std",
@@ -94,17 +94,4 @@ runtime-benchmarks = [
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
-]
-
-ahm-polkadot = [
-	"pallet-ah-migrator/ahm-polkadot",
-	"pallet-ah-ops/ahm-polkadot",
-	"pallet-rc-migrator/ahm-polkadot",
-]
-
-# This will be changed by our porting script
-stable2503 = ["pallet-ah-migrator/stable2503", "pallet-rc-migrator/stable2503"]
-ahm-staking-migration = [
-	"pallet-ah-migrator/ahm-staking-migration",
-	"pallet-rc-migrator/ahm-staking-migration",
 ]
