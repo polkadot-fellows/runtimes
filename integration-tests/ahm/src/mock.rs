@@ -41,7 +41,6 @@ use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
 use tokio::sync::OnceCell;
 use xcm::prelude::*;
-//use frame_support::traits::QueueFootprintQuery; // Only on westend
 
 pub const AH_PARA_ID: ParaId = ParaId::new(1000);
 const LOG_RC: &str = "runtime::relay";
@@ -232,7 +231,6 @@ pub fn enqueue_ump(msgs: (Vec<UpwardMessage>, BlockNumberFor<AssetHub>)) {
 	}
 }
 
-#[cfg(feature = "ahm-polkadot")] // XCM V3 or V4
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	match xcm {
@@ -264,7 +262,7 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	};
 }
 
-#[cfg(feature = "ahm-westend")] // XCM V5
+#[cfg(feature = "stable2503")] // XCM V5
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	let xcm = match xcm {

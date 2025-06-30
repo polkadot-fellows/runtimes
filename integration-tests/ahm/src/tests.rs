@@ -28,13 +28,13 @@
 //! Run with:
 //!
 //! ```
-//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
+//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! ```
 
 use crate::porting_prelude::*;
 
 use super::{
-	checks::SanityChecks,
+	checks::{assert_root_hash, SanityChecks},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -96,7 +96,6 @@ type RcChecks = (
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
-#[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -106,9 +105,6 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
 );
-
-#[cfg(not(feature = "ahm-polkadot"))]
-pub type RcPolkadotChecks = ();
 
 type AhChecks = (
 	SanityChecks,
@@ -135,9 +131,6 @@ type AhChecks = (
 	MultisigStillWork,
 );
 
-// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
-// (like AH Westend)
-#[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -147,9 +140,6 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	ProxyWhaleWatching,
 );
-
-#[cfg(not(feature = "ahm-polkadot"))]
-pub type AhPolkadotChecks = ();
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -193,6 +183,20 @@ async fn pallet_migration_works() {
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+
+	// To check if anything changed
+	rc.execute_with(|| {
+		assert_root_hash(
+			"Relay",
+			"882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5",
+		);
+	});
+	ah.execute_with(|| {
+		assert_root_hash(
+			"Asset Hub",
+			"fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b",
+		);
+	});
 }
 
 fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R> {
@@ -203,7 +207,6 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 	}
 }
 
-#[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
@@ -486,6 +489,19 @@ async fn migration_works_time() {
 		rc_block_end - rc_block_start,
 		ah_block_end - ah_block_start
 	);
+	// To check if anything changed
+	rc.execute_with(|| {
+		assert_root_hash(
+			"Relay",
+			"ec26367c27bffef2b2815e75c5266ef921eeeefe93ac884ef4a73309886eb676",
+		);
+	});
+	ah.execute_with(|| {
+		assert_root_hash(
+			"Asset Hub",
+			"e106ad1352726bae7c10f4efc8d1d280bef83deb919db440185e41955735688c",
+		);
+	});
 }
 
 #[tokio::test]

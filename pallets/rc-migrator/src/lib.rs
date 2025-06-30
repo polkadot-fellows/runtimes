@@ -32,9 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,11 +48,9 @@ pub use pallet::*;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod xcm_config;
 
@@ -65,7 +61,6 @@ use crate::{
 	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
 };
 use accounts::AccountsMigrator;
-#[cfg(not(feature = "ahm-westend"))]
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
 	pallet_prelude::*,
@@ -86,17 +81,18 @@ use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-#[cfg(not(feature = "ahm-westend"))]
-use polkadot_runtime_common::claims as pallet_claims;
 use polkadot_runtime_common::{
-	crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
+	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
 };
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
 use referenda::ReferendaStage;
-use runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
+use runtime_parachains::{
+	hrmp,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+};
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
 	traits::{One, Zero},
@@ -116,12 +112,6 @@ use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
-
-#[cfg(feature = "ahm-polkadot")]
-use runtime_parachains::hrmp;
-// For westend
-#[cfg(feature = "ahm-westend")]
-use polkadot_runtime_parachains::hrmp;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -201,10 +191,7 @@ pub enum MigrationStage<
 		last_key: Option<(AccountId, [u8; 32])>,
 	},
 	MultisigMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	ClaimsMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	ClaimsMigrationOngoing {
 		current_key: Option<ClaimsStage<AccountId>>,
 	},
@@ -286,10 +273,7 @@ pub enum MigrationStage<
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	BountiesMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	BountiesMigrationOngoing {
 		last_key: Option<bounties::BountiesStage>,
 	},
@@ -300,18 +284,12 @@ pub enum MigrationStage<
 		last_key: Option<AssetKind>,
 	},
 	AssetRateMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	CrowdloanMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	CrowdloanMigrationOngoing {
 		last_key: Option<crowdloan::CrowdloanStage>,
 	},
 	CrowdloanMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	TreasuryMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	TreasuryMigrationOngoing {
 		last_key: Option<treasury::TreasuryStage>,
 	},
@@ -369,17 +347,14 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
 			"skip-accounts" => MigrationStage::AccountsMigrationDone,
-			#[cfg(not(feature = "ahm-westend"))]
 			"crowdloan" => MigrationStage::CrowdloanMigrationInit,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
-			#[cfg(not(feature = "ahm-westend"))]
 			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			"indices" => MigrationStage::IndicesMigrationInit,
-			#[cfg(not(feature = "ahm-westend"))]
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
@@ -404,8 +379,10 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
-		+ pallet_balances::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason, Balance = u128>
-		+ hrmp::Config
+		+ pallet_balances::Config<
+			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			Balance = u128,
+		> + hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
@@ -421,12 +398,10 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
-		+ pallet_staking::Config // Not on westend
-		+ pallet_claims::Config // Not on westend
-		+ pallet_bounties::Config // Not on westend
-		+ pallet_treasury::Config // Not on westend
-		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
-		//+ pallet_staking_async_ah_client::Config // Only on westend
+		+ pallet_staking::Config
+		+ pallet_claims::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -468,10 +443,10 @@ pub mod pallet {
 		type OnDemandPalletId: Get<PalletId>;
 		/// Maximum number of unprocessed DMP messages allowed before the RC migrator temporarily
 		/// pauses sending data messages to the Asset Hub.
-		/// 
-		/// The Asset Hub confirms processed message counts back to this pallet. Due to async backing,
-		/// there is typically a delay of 1-2 blocks before these confirmations are received by the
-		/// RC migrator.
+		///
+		/// The Asset Hub confirms processed message counts back to this pallet. Due to async
+		/// backing, there is typically a delay of 1-2 blocks before these confirmations are
+		/// received by the RC migrator.
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
 		type UnprocessedMsgBuffer: Get<u32>;
@@ -479,7 +454,8 @@ pub mod pallet {
 		/// Means to force a next queue within the UMPs from different parachains.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
 
-		/// The priority pattern for AH UMP queue processing during migration [Config::MessageQueue].
+		/// The priority pattern for AH UMP queue processing during migration
+		/// [Config::MessageQueue].
 		///
 		/// This configures how frequently the AH UMP queue gets priority over other UMP queues.
 		/// The tuple (ah_ump_priority_blocks, round_robin_blocks) defines a repeating cycle where:
@@ -831,16 +807,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::MultisigMigrationDone => {
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::ClaimsMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::ClaimsMigrationDone);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::ClaimsMigrationInit => {
 					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::ClaimsMigrationOngoing { current_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match ClaimsMigrator::<T>::migrate_many(current_key, &mut weight_counter) {
@@ -1312,16 +1283,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::BountiesMigrationDone);
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::BountiesMigrationInit);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::BountiesMigrationInit => {
 					Self::transition(MigrationStage::BountiesMigrationOngoing { last_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::BountiesMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match bounties::BountiesMigrator::<T>::migrate_many(
@@ -1381,16 +1347,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::AssetRateMigrationDone => {
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::CrowdloanMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::CrowdloanMigrationDone);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::CrowdloanMigrationInit => {
 					Self::transition(MigrationStage::CrowdloanMigrationOngoing { last_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::CrowdloanMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match crowdloan::CrowdloanMigrator::<T>::migrate_many(
@@ -1418,16 +1379,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::CrowdloanMigrationDone => {
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::TreasuryMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::TreasuryMigrationDone);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::TreasuryMigrationInit => {
 					Self::transition(MigrationStage::TreasuryMigrationOngoing { last_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::TreasuryMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match treasury::TreasuryMigrator::<T>::migrate_many(
@@ -1639,10 +1595,7 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
-						#[cfg(feature = "ahm-polkadot")]
 						require_weight_at_most: weight_at_most(batch_len),
-						#[cfg(feature = "ahm-westend")]
-						fallback_max_weight: Some(weight_at_most(batch_len)),
 						call: call.encode().into(),
 					},
 				]);
@@ -1692,10 +1645,7 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
-					#[cfg(feature = "ahm-polkadot")]
 					require_weight_at_most: weight_at_most,
-					#[cfg(feature = "ahm-westend")]
-					fallback_max_weight: Some(weight_at_most),
 					call: call.encode().into(),
 				},
 			]);
