@@ -69,3 +69,14 @@ impl AhMigrationCheck for SanityChecks {
 		);
 	}
 }
+
+/// Assert that the root hash is what we expect.
+pub fn assert_root_hash(chain: &str, want_hex: &str) {
+	let got = hex::encode(sp_io::storage::root(sp_runtime::StateVersion::V1));
+	println!("{chain} root hash: {:?}", got);
+	if got == want_hex {
+		return
+	}
+
+	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {}\nGot:      {}", want_hex, got);
+}

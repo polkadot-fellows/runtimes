@@ -34,7 +34,7 @@
 use crate::porting_prelude::*;
 
 use super::{
-	checks::SanityChecks,
+	checks::{assert_root_hash, SanityChecks},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -185,12 +185,10 @@ async fn pallet_migration_works() {
 
 	// To check if anything changed
 	rc.execute_with(|| {
-		let root = sp_io::storage::root(sp_runtime::StateVersion::V1);
-		println!("Post RC root hash: {:?}", hex::encode(root));
+		assert_root_hash("Relay", "882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5");
 	});
 	ah.execute_with(|| {
-		let root = sp_io::storage::root(sp_runtime::StateVersion::V1);
-		println!("Post AH root hash: {:?}", hex::encode(root));
+		assert_root_hash("Asset Hub", "fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b");
 	});
 }
 
@@ -485,6 +483,13 @@ async fn migration_works_time() {
 		rc_block_end - rc_block_start,
 		ah_block_end - ah_block_start
 	);
+	// To check if anything changed
+	rc.execute_with(|| {
+		assert_root_hash("Relay", "ec26367c27bffef2b2815e75c5266ef921eeeefe93ac884ef4a73309886eb676");
+	});
+	ah.execute_with(|| {
+		assert_root_hash("Asset Hub", "e106ad1352726bae7c10f4efc8d1d280bef83deb919db440185e41955735688c");
+	});
 }
 
 #[tokio::test(flavor = "current_thread")]
