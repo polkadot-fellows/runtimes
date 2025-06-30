@@ -41,7 +41,6 @@ use runtime_parachains::{
 use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
 use xcm::prelude::*;
-//use frame_support::traits::QueueFootprintQuery; // Only on westend
 
 pub const AH_PARA_ID: ParaId = ParaId::new(1000);
 const LOG_RC: &str = "runtime::relay";

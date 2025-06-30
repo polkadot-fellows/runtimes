@@ -229,11 +229,9 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64>
 		+ pallet_ah_ops::Config
-		+ pallet_claims::Config // Not on westend
-		+ pallet_bounties::Config // Not on westend
-		+ pallet_treasury::Config // Not on westend
-		//+ pallet_staking_async::Config // Only on westend
-		//+ pallet_staking_async_rc_client::Config // Only on westend
+		+ pallet_claims::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
