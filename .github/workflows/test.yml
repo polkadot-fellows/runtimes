@@ -187,11 +187,16 @@ jobs:
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
       - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r -- --nocapture --test-threads 1
         env:
           RUST_BACKTRACE: 1
           SNAP_RC: "../../polkadot.snap"
           SNAP_AH: "../../ah-polkadot.snap"
+          RUST_LOG: "warn"
+      - name: Test Benchmarks Asset Hub Migration (Polkadot)
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
+        env:
+          RUST_BACKTRACE: 1
           RUST_LOG: "warn"
 
   # TODO: remove if not needed. or reuse for Paseo
