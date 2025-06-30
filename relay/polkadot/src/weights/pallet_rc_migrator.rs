@@ -147,4 +147,10 @@ impl<T: frame_system::Config> pallet_rc_migrator::WeightInfo for WeightInfo<T> {
 	fn set_unprocessed_msg_buffer() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
 	}
+	fn set_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
 }

@@ -61,6 +61,8 @@ pub trait WeightInfo {
 	fn receive_query_response() -> Weight;
 	fn resend_xcm() -> Weight;
 	fn set_unprocessed_msg_buffer() -> Weight;
+	fn set_ah_ump_queue_priority() -> Weight;
+	fn force_ah_ump_queue_priority() -> Weight;
 }
 
 /// Weights for `pallet_rc_migrator` using the Substrate node and recommended hardware.
@@ -158,6 +160,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	fn set_unprocessed_msg_buffer() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
 	}
 }
 
@@ -258,5 +266,11 @@ impl WeightInfo for () {
 
 	fn set_unprocessed_msg_buffer() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
 	}
 }

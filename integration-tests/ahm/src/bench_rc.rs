@@ -79,6 +79,12 @@ fn test_bench_receive_query_response() {
 	});
 }
 
+fn test_bench_set_ah_ump_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_set_ah_ump_queue_priority::<RelayChain>();
+	});
+}
+
 #[test]
 fn test_bench_resend_xcm() {
 	new_test_ext().execute_with(|| {
@@ -90,5 +96,11 @@ fn test_bench_resend_xcm() {
 fn test_bench_set_unprocessed_msg_buffer() {
 	new_test_ext().execute_with(|| {
 		test_set_unprocessed_msg_buffer::<RelayChain>();
+	});
+}
+
+fn test_bench_force_ah_ump_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_force_ah_ump_queue_priority::<RelayChain>();
 	});
 }

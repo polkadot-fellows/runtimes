@@ -57,7 +57,10 @@ pub mod vesting;
 pub mod xcm_config;
 
 pub use pallet::*;
-pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
+pub use pallet_rc_migrator::{
+	types::{ForceSetHead, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority},
+	weights_ah,
+};
 pub use weights_ah::WeightInfo;
 
 use frame_support::{
@@ -70,9 +73,11 @@ use frame_support::{
 		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
+	weights::WeightMeter,
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
+use pallet_rc_migrator::types::MigrationStatus;
 
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::bounties::RcBountiesMessageOf;
@@ -83,6 +88,7 @@ use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::treasury::RcTreasuryMessage;
 
+use cumulus_primitives_core::AggregateMessageOrigin;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
@@ -101,7 +107,7 @@ use scheduler::RcSchedulerMessageOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{BlockNumberProvider, Convert, TryConvert, Zero},
+	traits::{BlockNumberProvider, Convert, One, TryConvert, Zero},
 	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
@@ -325,6 +331,23 @@ pub mod pallet {
 		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
 		type RcStakingMessage: Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+
+		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+
+		/// The priority pattern for DMP queue processing during migration [Config::MessageQueue].
+		///
+		/// This configures how frequently the DMP queue gets priority over other queues
+		/// (like HRMP). The tuple (dmp_priority_blocks, round_robin_blocks) defines a repeating
+		/// cycle where:
+		/// - `dmp_priority_blocks` consecutive blocks: DMP queue gets priority
+		/// - `round_robin_blocks` consecutive blocks: round-robin processing of all queues
+		/// - Then the cycle repeats
+		///
+		/// For example, (18, 2) means a cycle of 20 blocks that repeats.
+		///
+		/// This configuration can be overridden by a storage item [`DmpQueuePriorityConfig`].
+		type DmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -343,6 +366,16 @@ pub mod pallet {
 	/// change for other reason than the migration itself.
 	#[pallet::storage]
 	pub type AhBalancesBefore<T: Config> = StorageValue<_, BalancesBefore<T::Balance>, ValueQuery>;
+
+	/// The priority of the DMP queue during migration.
+	///
+	/// Controls how the DMP (Downward Message Passing) queue is processed relative to other queues
+	/// during the migration process. This helps ensure timely processing of migration messages.
+	/// The default priority pattern is defined in the pallet configuration, but can be overridden
+	/// by a storage value of this type.
+	#[pallet::storage]
+	pub type DmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, DmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -369,8 +402,10 @@ pub mod pallet {
 		FailedToCalculateCheckingAccount,
 		/// Vector did not fit into its compile-time bound.
 		FailedToBoundVector,
-		/// Invalid parameters.
-		InvalidParameters,
+		/// The DMP queue priority is already set to the same value.
+		DmpQueuePriorityAlreadySet,
+		/// Invalid parameter.
+		InvalidParameter,
 	}
 
 	#[pallet::event]
@@ -400,6 +435,24 @@ pub mod pallet {
 		/// to understand. The finishing is immediate and affects all events happening
 		/// afterwards.
 		AssetHubMigrationFinished,
+		/// Whether the DMP queue was prioritized for the next block.
+		DmpQueuePrioritySet {
+			/// Indicates if DMP queue was successfully set as priority.
+			/// If `false`, it means we're in the round-robin phase of our priority pattern
+			/// (see [`Config::DmpQueuePriorityPattern`]), where no queue gets priority.
+			prioritized: bool,
+			/// Current block number within the pattern cycle (1 to period).
+			cycle_block: BlockNumberFor<T>,
+			/// Total number of blocks in the pattern cycle
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The DMP queue priority config was set.
+		DmpQueuePriorityConfigSet {
+			/// The old priority pattern.
+			old: DmpQueuePriority<BlockNumberFor<T>>,
+			/// The new priority pattern.
+			new: DmpQueuePriority<BlockNumberFor<T>>,
+		},
 	}
 
 	#[pallet::pallet]
@@ -569,10 +622,10 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			ensure!(values.len() == 1, Error::<T>::InvalidParameters);
+			ensure!(values.len() == 1, Error::<T>::InvalidParameter);
 
 			let (referendum_count, deciding_count, track_queue) =
-				values.pop().ok_or(Error::<T>::InvalidParameters)?;
+				values.pop().ok_or(Error::<T>::InvalidParameter)?;
 
 			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
 				.map_err(Into::into)
@@ -793,6 +846,29 @@ pub mod pallet {
 			Self::migration_start_hook().map_err(Into::into)
 		}
 
+		/// Set the DMP queue priority configuration.
+		///
+		/// Can only be called by the `ManagerOrigin`.
+		#[pallet::call_index(102)]
+		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
+		pub fn set_dmp_queue_priority(
+			origin: OriginFor<T>,
+			new: DmpQueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let old = DmpQueuePriorityConfig::<T>::get();
+			if old == new {
+				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
+			}
+			ensure!(
+				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				Error::<T>::InvalidParameter
+			);
+			DmpQueuePriorityConfig::<T>::put(new.clone());
+			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
+
 		/// Finish the migration.
 		///
 		/// This is typically called by the Relay Chain to signal the migration has finished.
@@ -805,6 +881,30 @@ pub mod pallet {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 
 			Self::migration_finish_hook(data).map_err(Into::into)
+		}
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+			let mut weight = Weight::from_parts(0, 0);
+
+			if Self::is_ongoing() {
+				weight = weight.saturating_add(T::AhWeightInfo::force_dmp_queue_priority());
+			}
+
+			weight.saturating_add(T::AhWeightInfo::on_finalize())
+		}
+
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if Self::is_ongoing() {
+				Self::force_dmp_queue_priority(now);
+			}
+		}
+
+		fn integrity_test() {
+			let (dmp_priority_blocks, _) = T::DmpQueuePriorityPattern::get();
+			assert!(!dmp_priority_blocks.is_zero(), "the `dmp_priority_blocks` should be non-zero");
 		}
 	}
 
@@ -917,9 +1017,47 @@ pub mod pallet {
 				None
 			}
 		}
+
+		/// Force the DMP queue priority for the next block.
+		pub fn force_dmp_queue_priority(now: BlockNumberFor<T>) {
+			let (dmp_priority_blocks, round_robin_blocks) = match DmpQueuePriorityConfig::<T>::get()
+			{
+				DmpQueuePriority::Config => T::DmpQueuePriorityPattern::get(),
+				DmpQueuePriority::OverrideConfig(dmp_priority_blocks, round_robin_blocks) =>
+					(dmp_priority_blocks, round_robin_blocks),
+				DmpQueuePriority::Disabled => return,
+			};
+
+			let period = dmp_priority_blocks + round_robin_blocks;
+			if period.is_zero() {
+				return;
+			}
+			let current_block = now % period;
+
+			let is_set = if current_block < dmp_priority_blocks {
+				// it is safe to force set the queue without checking if the DMP queue is empty, as
+				// the implementation handles these checks internally.
+				let dmp = AggregateMessageOrigin::Parent;
+				match T::MessageQueue::force_set_head(&mut WeightMeter::new(), &dmp) {
+					Ok(is_set) => is_set,
+					Err(_) => {
+						defensive!("Failed to force set DMP queue priority");
+						false
+					},
+				}
+			} else {
+				false
+			};
+
+			Self::deposit_event(Event::DmpQueuePrioritySet {
+				prioritized: is_set,
+				cycle_block: current_block + BlockNumberFor::<T>::one(),
+				cycle_period: period,
+			});
+		}
 	}
 
-	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
+	impl<T: Config> MigrationStatus for Pallet<T> {
 		fn is_ongoing() -> bool {
 			AhMigrationStage::<T>::get().is_ongoing()
 		}
