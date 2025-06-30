@@ -630,7 +630,10 @@ pub mod pallet {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			let cool_off_end = match RcMigrationStage::<T>::get() {
 				MigrationStage::WaitingForAh { cool_off_end } => cool_off_end,
-				_ => return Err(Error::<T>::UnreachableStage.into()),
+				stage => {
+					defensive!("start_data_migration called in invalid stage: {:?}", stage);
+					return Err(Error::<T>::UnreachableStage.into())
+				},
 			};
 			Self::transition(MigrationStage::CoolOff { cool_off_end });
 			Ok(())
@@ -686,8 +689,7 @@ pub mod pallet {
 						}
 					},
 				MigrationStage::WaitingForAh { .. } => {
-					// waiting AH to send a message and to start sending the data. This stage may be
-					// skipped if AH is fast.
+					// waiting AH to send a message and to start sending the data.
 					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
 					// We transition out here in `start_data_migration`
 					return weight_counter.consumed();
