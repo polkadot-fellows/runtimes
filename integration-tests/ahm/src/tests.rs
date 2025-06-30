@@ -60,11 +60,11 @@ use pallet_rc_migrator::{
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
-use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
+use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
-use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::crypto::Ss58Codec;
+use sp_io::TestExternalities;
 use sp_runtime::{AccountId32, DispatchError, TokenError};
 use std::{
 	collections::{BTreeMap, VecDeque},
@@ -141,6 +141,7 @@ pub type AhPolkadotChecks = (
 	ProxyWhaleWatching,
 );
 
+#[ignore] // we use the equivalent [migration_works_time] test instead
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
 	let (mut rc, mut ah) = load_externalities().await.unwrap();
@@ -198,7 +199,7 @@ async fn pallet_migration_works() {
 	});
 }
 
-fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
+fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R> {
 	if std::env::var("START_STAGE").is_err() {
 		Some(ext.execute_with(|| f()))
 	} else {
@@ -208,7 +209,7 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
-	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 	let f = |now: BlockNumberFor<Polkadot>, num_leases: u32| {
 		frame_system::Pallet::<Polkadot>::set_block_number(now);
 		pallet_rc_migrator::crowdloan::num_leases_to_ending_block::<Polkadot>(num_leases)
@@ -327,7 +328,7 @@ async fn print_sovereign_account_translation() {
 async fn print_accounts_statistics() {
 	use frame_system::Account as SystemAccount;
 
-	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 
 	let mut total_counts = std::collections::HashMap::new();
 
@@ -390,8 +391,7 @@ fn ah_account_migration_weight() {
 	}
 }
 
-#[ignore] // Slow
-#[tokio::test(flavor = "current_thread")]
+#[tokio::test]
 async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
@@ -504,7 +504,7 @@ async fn migration_works_time() {
 	});
 }
 
-#[tokio::test(flavor = "current_thread")]
+#[tokio::test]
 async fn scheduled_migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
