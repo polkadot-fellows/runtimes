@@ -39,9 +39,8 @@ use runtime_parachains::{
 use sp_io::TestExternalities;
 use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
-use tokio::sync::Mutex as TokioMutex;
+use tokio::sync::{Mutex as TokioMutex, OnceCell};
 use xcm::prelude::*;
-use tokio::sync::OnceCell;
 //use frame_support::traits::QueueFootprintQuery; // Only on westend
 
 pub const AH_PARA_ID: ParaId = ParaId::new(1000);
@@ -86,29 +85,34 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 		Chain::AssetHub => &AH_CACHE,
 	};
 
-	let snapshot = cache.get_or_init(|| async {
-		log::info!("Loading {} snapshot", chain.to_string());
+	let snapshot = cache
+		.get_or_init(|| async {
+			log::info!("Loading {} snapshot", chain.to_string());
 
-		// Load snapshot.
-		let snap = std::env::var(chain.to_string()).ok().expect("Env var not set");
-		let abs = std::path::absolute(snap.clone());
+			// Load snapshot.
+			let snap = std::env::var(chain.to_string()).ok().expect("Env var not set");
+			let abs = std::path::absolute(snap.clone());
 
-		let ext = Builder::<PolkadotBlock>::default()
-			.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
-			.build()
-			.await
-			.map_err(|e| {
-				eprintln!("Could not load from snapshot: {:?}: {:?}", abs, e);
-			})
-			.unwrap();
+			let ext = Builder::<PolkadotBlock>::default()
+				.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
+				.build()
+				.await
+				.map_err(|e| {
+					eprintln!("Could not load from snapshot: {:?}: {:?}", abs, e);
+				})
+				.unwrap();
 
-		// `RemoteExternalities` and `TestExternalities` types cannot be cloned so we need to convert
-		// them to raw snapshot and store it in the cache.
-		ext.inner_ext.into_raw_snapshot()
-	}).await;
+			// `RemoteExternalities` and `TestExternalities` types cannot be cloned so we need to
+			// convert them to raw snapshot and store it in the cache.
+			ext.inner_ext.into_raw_snapshot()
+		})
+		.await;
 
-	let ext =
-		TestExternalities::from_raw_snapshot(snapshot.0.clone(), snapshot.1.clone(), sp_storage::StateVersion::V1);
+	let ext = TestExternalities::from_raw_snapshot(
+		snapshot.0.clone(),
+		snapshot.1.clone(),
+		sp_storage::StateVersion::V1,
+	);
 
 	Some(ext)
 }
