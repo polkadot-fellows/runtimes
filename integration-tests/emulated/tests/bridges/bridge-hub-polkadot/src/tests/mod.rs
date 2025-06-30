@@ -98,63 +98,6 @@ pub(crate) fn foreign_balance_on_ah_polkadot(id: Location, who: &AccountId) -> u
 	})
 }
 
-// set up pool
-pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: Location, is_foreign: bool) {
-	let ksm: Location = Parent.into();
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-		let owner = AssetHubKusamaSender::get();
-		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
-
-		if is_foreign {
-			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
-				signed_owner.clone(),
-				asset.clone(),
-				owner.clone().into(),
-				3_000_000_000_000,
-			));
-		} else {
-			let asset_id = match asset.interior.last() {
-				Some(GeneralIndex(id)) => *id as u32,
-				_ => unreachable!(),
-			};
-			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::mint(
-				signed_owner.clone(),
-				asset_id.into(),
-				owner.clone().into(),
-				3_000_000_000_000,
-			));
-		}
-		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
-			signed_owner.clone(),
-			Box::new(ksm.clone()),
-			Box::new(asset.clone()),
-		));
-		assert_expected_events!(
-			AssetHubKusama,
-			vec![
-				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
-			]
-		);
-		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
-			signed_owner.clone(),
-			Box::new(ksm),
-			Box::new(asset),
-			1_000_000_000_000,
-			2_000_000_000_000,
-			1,
-			1,
-			owner,
-		));
-		assert_expected_events!(
-			AssetHubKusama,
-			vec![
-				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {..}) => {},
-			]
-		);
-	});
-}
-
 pub(crate) fn send_assets_from_asset_hub_polkadot(
 	destination: Location,
 	assets: Assets,

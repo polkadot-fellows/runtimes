@@ -30,6 +30,7 @@ xcm-runtime-apis = { workspace = true, default-features = true }
 # Cumulus
 emulated-integration-tests-common = { workspace = true }
 parachains-common = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
 
 # Bridges
