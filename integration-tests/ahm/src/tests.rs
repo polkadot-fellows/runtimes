@@ -185,10 +185,16 @@ async fn pallet_migration_works() {
 
 	// To check if anything changed
 	rc.execute_with(|| {
-		assert_root_hash("Relay", "882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5");
+		assert_root_hash(
+			"Relay",
+			"882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5",
+		);
 	});
 	ah.execute_with(|| {
-		assert_root_hash("Asset Hub", "fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b");
+		assert_root_hash(
+			"Asset Hub",
+			"fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b",
+		);
 	});
 }
 
@@ -485,10 +491,16 @@ async fn migration_works_time() {
 	);
 	// To check if anything changed
 	rc.execute_with(|| {
-		assert_root_hash("Relay", "ec26367c27bffef2b2815e75c5266ef921eeeefe93ac884ef4a73309886eb676");
+		assert_root_hash(
+			"Relay",
+			"ec26367c27bffef2b2815e75c5266ef921eeeefe93ac884ef4a73309886eb676",
+		);
 	});
 	ah.execute_with(|| {
-		assert_root_hash("Asset Hub", "e106ad1352726bae7c10f4efc8d1d280bef83deb919db440185e41955735688c");
+		assert_root_hash(
+			"Asset Hub",
+			"e106ad1352726bae7c10f4efc8d1d280bef83deb919db440185e41955735688c",
+		);
 	});
 }
 
