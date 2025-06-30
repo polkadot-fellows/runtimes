@@ -28,7 +28,7 @@
 //! Run with:
 //!
 //! ```
-//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
+//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works --features ahm-polkadot -- --nocapture
 //! ```
 
 use crate::porting_prelude::*;
@@ -192,6 +192,18 @@ async fn pallet_migration_works() {
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+
+	// To check if anything changed
+	rc.execute_with(|| {
+		let root = sp_io::storage::root(sp_runtime::StateVersion::V1);
+		println!("Post RC root hash: {:?}", hex::encode(root));
+	});
+	ah.execute_with(|| {
+		let root = sp_io::storage::root(sp_runtime::StateVersion::V1);
+		println!("Post AH root hash: {:?}", hex::encode(root));
+	});
+	// Post RC root hash: "882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5"
+	// Post AH root hash: "fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b"
 }
 
 fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
