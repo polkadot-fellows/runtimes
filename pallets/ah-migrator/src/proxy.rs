@@ -184,7 +184,7 @@ where
 		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
 		// excluding the ones that are un-translateable.
 
-		let mut delegators =
+		let delegators =
 			rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
 
 		for delegator in delegators {
@@ -207,7 +207,8 @@ where
 					// Best effort sanity checking that only Auction and ParaRegistration dont work
 					let k = translated.encode().get(0).cloned();
 					assert!(
-						k == Some(7) || k == Some(9), // TODO @ggwpez make all work and add legacy variants
+						k == Some(7) || k == Some(9), /* TODO @ggwpez make all work and add
+						                               * legacy variants */
 						"Must translate all proxy Kinds except Auction and ParaRegistration"
 					);
 					continue;

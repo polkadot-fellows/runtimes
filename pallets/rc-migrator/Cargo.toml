@@ -147,3 +147,4 @@ try-runtime = [
 
 stable2503 = []
 ahm-staking-migration = []
+ahm-kusama = []

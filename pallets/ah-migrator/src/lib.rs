@@ -73,11 +73,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::types::MigrationStatus;
-use pallet_rc_migrator::bounties::RcBountiesMessageOf;
-use pallet_rc_migrator::claims::RcClaimsMessageOf;
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
-use pallet_rc_migrator::treasury::RcTreasuryMessage;
+use pallet_rc_migrator::{
+	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
+	treasury::RcTreasuryMessage, types::MigrationStatus,
+};
 
 use cumulus_primitives_core::AggregateMessageOrigin;
 use pallet_rc_migrator::{
@@ -240,7 +239,7 @@ pub mod pallet {
 		/// All supported assets registry.
 		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
-		/// 
+		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
@@ -290,7 +289,10 @@ pub mod pallet {
 		///
 		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
 		/// list should not include the native asset.
-		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
+		type TreasuryAccounts: Get<(
+			Self::AccountId,
+			Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>,
+		)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
 		type RcToAhTreasurySpend: Convert<
@@ -315,7 +317,8 @@ pub mod pallet {
 		/// We need to inject this here to be able to convert it. The message type is require to
 		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+		type RcStakingMessage: Parameter
+			+ IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;

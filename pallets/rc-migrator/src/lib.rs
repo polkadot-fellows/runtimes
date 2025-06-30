@@ -81,16 +81,18 @@ use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-use polkadot_runtime_common::claims as pallet_claims;
 use polkadot_runtime_common::{
-	crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
+	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
 };
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
 use referenda::ReferendaStage;
-use runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
+use runtime_parachains::{
+	hrmp,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+};
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
 	traits::{One, Zero},
@@ -110,7 +112,6 @@ use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
-use runtime_parachains::hrmp;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -378,8 +379,10 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
-		+ pallet_balances::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason, Balance = u128>
-		+ hrmp::Config
+		+ pallet_balances::Config<
+			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			Balance = u128,
+		> + hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
@@ -440,10 +443,10 @@ pub mod pallet {
 		type OnDemandPalletId: Get<PalletId>;
 		/// Maximum number of unprocessed DMP messages allowed before the RC migrator temporarily
 		/// pauses sending data messages to the Asset Hub.
-		/// 
-		/// The Asset Hub confirms processed message counts back to this pallet. Due to async backing,
-		/// there is typically a delay of 1-2 blocks before these confirmations are received by the
-		/// RC migrator.
+		///
+		/// The Asset Hub confirms processed message counts back to this pallet. Due to async
+		/// backing, there is typically a delay of 1-2 blocks before these confirmations are
+		/// received by the RC migrator.
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
 		type UnprocessedMsgBuffer: Get<u32>;
@@ -451,7 +454,8 @@ pub mod pallet {
 		/// Means to force a next queue within the UMPs from different parachains.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
 
-		/// The priority pattern for AH UMP queue processing during migration [Config::MessageQueue].
+		/// The priority pattern for AH UMP queue processing during migration
+		/// [Config::MessageQueue].
 		///
 		/// This configures how frequently the AH UMP queue gets priority over other UMP queues.
 		/// The tuple (ah_ump_priority_blocks, round_robin_blocks) defines a repeating cycle where:
