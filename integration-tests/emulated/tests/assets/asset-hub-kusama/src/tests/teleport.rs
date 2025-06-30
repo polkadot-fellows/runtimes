@@ -327,12 +327,10 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		ASSET_HUB_KUSAMA_ED * 100_000_000_000,
 	)]);
 
-	let asset_location_on_penpal_v4: xcm::v4::Location =
-		asset_location_on_penpal.try_into().unwrap();
 	// Init values for System Parachain
 	let foreign_asset_at_asset_hub_kusama =
-		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
-			.appended_with(asset_location_on_penpal_v4)
+		Location::new(1, [Parachain(PenpalA::para_id().into())])
+			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubKusamaReceiver::get();
 
@@ -431,7 +429,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_to_penpal_beneficiary_id = PenpalAReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let foreign_asset_at_asset_hub_kusama_latest: Location =
-		foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap();
+		foreign_asset_at_asset_hub_kusama.clone();
 	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(foreign_asset_at_asset_hub_kusama_latest.clone(), asset_amount_to_send).into(),
