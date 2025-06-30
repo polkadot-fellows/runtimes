@@ -35,13 +35,10 @@ pub mod account;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod call;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
 pub mod conviction_voting;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,7 +47,6 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod types;
 pub mod vesting;
@@ -77,16 +73,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::types::MigrationStatus;
-
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::bounties::RcBountiesMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::claims::RcClaimsMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::treasury::RcTreasuryMessage;
+use pallet_rc_migrator::{
+	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
+	treasury::RcTreasuryMessage, types::MigrationStatus,
+};
 
 use cumulus_primitives_core::AggregateMessageOrigin;
 use pallet_rc_migrator::{
@@ -123,8 +113,6 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcHoldReason,
 	<T as Config>::RcFreezeReason,
 >;
-
-#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -229,11 +217,9 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64>
 		+ pallet_ah_ops::Config
-		+ pallet_claims::Config // Not on westend
-		+ pallet_bounties::Config // Not on westend
-		+ pallet_treasury::Config // Not on westend
-		//+ pallet_staking_async::Config // Only on westend
-		//+ pallet_staking_async_rc_client::Config // Only on westend
+		+ pallet_claims::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -253,7 +239,7 @@ pub mod pallet {
 		/// All supported assets registry.
 		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
-		/// 
+		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
@@ -303,11 +289,12 @@ pub mod pallet {
 		///
 		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
 		/// list should not include the native asset.
-		#[cfg(not(feature = "ahm-westend"))]
-		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
+		type TreasuryAccounts: Get<(
+			Self::AccountId,
+			Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>,
+		)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
-		#[cfg(not(feature = "ahm-westend"))]
 		type RcToAhTreasurySpend: Convert<
 			(VersionedLocatableAsset, VersionedLocation),
 			Result<
@@ -330,7 +317,8 @@ pub mod pallet {
 		/// We need to inject this here to be able to convert it. The message type is require to
 		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+		type RcStakingMessage: Parameter
+			+ IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
@@ -712,8 +700,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(12)]
 		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
 		pub fn receive_claims(
@@ -788,8 +774,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(17)]
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
@@ -819,8 +803,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(19)]
 		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
 		pub fn receive_crowdloan_messages(
@@ -850,8 +832,6 @@ pub mod pallet {
 
 			res.map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(21)]
 		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
 		pub fn receive_treasury_messages(
@@ -1045,11 +1025,6 @@ pub mod pallet {
 		) -> Result<(), Error<T>> {
 			// Accounts
 			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				// FIXME fails only on Westend
-				#[cfg(feature = "ahm-westend")]
-				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
-
-				#[cfg(not(feature = "ahm-westend"))]
 				defensive!("Account migration failed: {:?}", err);
 			}
 
