@@ -611,10 +611,18 @@ pub mod pallet {
 		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
 	/// The pending XCM messages.
+	///
+	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
+	/// The `QueryId` is the identifier from the [`pallet_xcm`] query handler registry. The XCM
+	/// pallet will notify about the status of the message by calling the
+	/// [`Pallet::receive_query_response`] function with the `QueryId` and the
+	/// response.
+	///
+	/// Unconfirmed messages can be resent by calling the [`Pallet::resend_xcm`] function.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
-		CountedStorageMap<_, Twox64Concat, u64, Xcm<()>, OptionQuery>;
+		CountedStorageMap<_, Twox64Concat, QueryId, Xcm<()>, OptionQuery>;
 
 	/// The DMP queue priority.
 	#[pallet::storage]
@@ -697,7 +705,7 @@ pub mod pallet {
 		#[pallet::weight(T::RcWeightInfo::receive_query_response())]
 		pub fn receive_query_response(
 			origin: OriginFor<T>,
-			query_id: u64,
+			query_id: QueryId,
 			response: Response,
 		) -> DispatchResult {
 			match <T as Config>::ManagerOrigin::ensure_origin(origin.clone()) {
@@ -730,6 +738,13 @@ pub mod pallet {
 					query_id
 				);
 				PendingXcmMessages::<T>::remove(query_id);
+			} else {
+				log::error!(
+					target: LOG_TARGET,
+					"Received error response for query id: {}; response: {:?}",
+					query_id,
+					response.clone(),
+				);
 			}
 
 			Self::deposit_event(Event::<T>::QueryResponseReceived { query_id, response });
