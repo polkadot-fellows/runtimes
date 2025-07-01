@@ -8894,6 +8894,7 @@ dependencies = [
  "pallet-staking",
  "pallet-treasury",
  "pallet-vesting",
+ "pallet-xcm",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",

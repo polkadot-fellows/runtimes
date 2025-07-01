@@ -24,8 +24,8 @@ use cumulus_primitives_core::{
 use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{
-	DmpDataMessageCounts as RcDmpDataMessageCounts, MigrationStage as RcMigrationStage,
-	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
+	MigrationStage as RcMigrationStage, MigrationStageOf as RcMigrationStageOf,
+	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{
@@ -321,11 +321,6 @@ pub fn rc_migrate(relay_chain: &mut TestExternalities) -> Vec<InboundDownwardMes
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
 			next_block_rc();
-
-			// Bypass the unconfirmed DMP messages limit since we do not send the messages to the AH
-			// on every RC block.
-			let (sent, _) = RcDmpDataMessageCounts::<Polkadot>::get();
-			RcDmpDataMessageCounts::<Polkadot>::put((sent, sent));
 
 			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
 			dmps.extend(new_dmps);
