@@ -75,7 +75,7 @@ impl<T: Config> Pallet<T> {
 		for delegation in existing_proxies {
 			proxies.push(pallet_proxy::ProxyDefinition {
 				delegate: delegation.delegate,
-				delay: delegation.delay,
+				delay: todo!("FAIL-CI"), // FAIL-CI delegation.delay,
 				proxy_type: delegation.proxy_type,
 			});
 		}
@@ -96,7 +96,8 @@ impl<T: Config> Pallet<T> {
 		};
 
 		// Add the proxies
-		pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
+		// pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
+		todo!("FAIL-CI");
 
 		Ok(())
 	}
