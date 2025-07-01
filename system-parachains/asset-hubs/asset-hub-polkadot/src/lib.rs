@@ -156,7 +156,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 1_005_001,
+	spec_version: 1_006_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -1109,7 +1109,7 @@ impl
 
 		assert_ok!(ForeignAssets::force_create(
 			RuntimeOrigin::root(),
-			asset_id.clone().into(),
+			asset_id.clone(),
 			account.clone().into(), /* owner */
 			true,                   /* is_sufficient */
 			1,
@@ -1118,11 +1118,7 @@ impl
 		let lp_provider = account.clone();
 		use frame_support::traits::Currency;
 		let _ = Balances::deposit_creating(&lp_provider, u64::MAX.into());
-		assert_ok!(ForeignAssets::mint_into(
-			asset_id.clone().into(),
-			&lp_provider,
-			u64::MAX.into()
-		));
+		assert_ok!(ForeignAssets::mint_into(asset_id.clone(), &lp_provider, u64::MAX.into()));
 
 		let token_native = Box::new(DotLocationV4::get());
 		let token_second = Box::new(asset_id);
@@ -1356,7 +1352,7 @@ mod benches {
 				xcm_config::bridging::to_kusama::AssetHubKusama::get(),
 				Asset::from((
 					xcm_config::bridging::to_kusama::KsmLocation::get(),
-					1000000000000 as u128
+					1000000000000_u128
 				))
 			)
 		);
@@ -1398,7 +1394,7 @@ mod benches {
 
 			assert_ok!(ForeignAssets::force_create(
 				RuntimeOrigin::root(),
-				asset_location.clone().into(),
+				asset_location.clone(),
 				account.clone().into(),
 				true,
 				1,
@@ -1406,7 +1402,7 @@ mod benches {
 
 			assert_ok!(ForeignAssets::mint(
 				origin.clone(),
-				asset_location.clone().into(),
+				asset_location.clone(),
 				account.clone().into(),
 				4_000 * UNITS,
 			));
@@ -1426,7 +1422,7 @@ mod benches {
 				2_000 * UNITS,
 				1,
 				1,
-				account.into(),
+				account,
 			));
 
 			let native_asset_id_latest: AssetId = native_asset_id.try_into().unwrap();
@@ -1495,7 +1491,7 @@ mod benches {
 				xcm_config::bridging::SiblingBridgeHubParaId::get().into(),
 			);
 			let bridged_asset_hub = xcm_config::bridging::to_kusama::AssetHubKusama::get();
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(bridged_asset_hub.clone()),
 				XCM_VERSION,

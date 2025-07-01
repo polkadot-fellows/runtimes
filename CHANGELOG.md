@@ -4,7 +4,14 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.6.1] 24.06.2025
+
+### Changed
+
+- Slash and disable lazy and spammy validators as part of the new validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827), [polkadot-fellows/runtimes/pull/782](https://github.com/polkadot-fellows/runtimes/pull/782))
+- Switch to UpToLimitWithReEnablingDisablingStrategy (Polkadot & Kusama) which always prioritises highest offenders for disabling instead of stopping when limit is reached ([polkadot-fellows/runtimes/pull/781](https://github.com/polkadot-fellows/runtimes/pull/781))
+
+## [1.6.0] 19.06.2025
 
 ### Added
 
