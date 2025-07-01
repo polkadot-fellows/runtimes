@@ -145,7 +145,7 @@ pub type UncheckedExtrinsic =
 parameter_types! {
 	pub const BridgeKusamaMessagesPalletName: &'static str = "BridgeKusamaMessages";
 	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
-	pub const EthereumSystemPalletName: &'static str = "Ethereum";
+	pub const EthereumSystemPalletName: &'static str = "EthereumSystem";
 	pub const NativeToForeignIdKey: &'static str = "NativeToForeignId";
 }
 
