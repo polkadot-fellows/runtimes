@@ -145,6 +145,8 @@ pub type UncheckedExtrinsic =
 parameter_types! {
 	pub const BridgeKusamaMessagesPalletName: &'static str = "BridgeKusamaMessages";
 	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+	pub const EthereumSystemPalletName: &'static str = "Ethereum";
+	pub const NativeToForeignIdKey: &'static str = "NativeToForeignId";
 }
 
 /// Migrations to apply on runtime upgrade.
@@ -154,7 +156,11 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
-	bridge_to_ethereum_config::migration::RemoveNativeToForeignId<Runtime>,
+	frame_support::migrations::RemoveStorage<
+		EthereumSystemPalletName,
+		NativeToForeignIdKey,
+		RocksDbWeight,
+	>,
 	pallet_session::migrations::v1::MigrateV0ToV1<
 		Runtime,
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
