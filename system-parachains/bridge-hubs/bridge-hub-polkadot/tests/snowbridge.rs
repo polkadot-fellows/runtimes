@@ -534,8 +534,10 @@ fn check_compatibility_for_token_id_stored_on_ethereum() {
 	}
 }
 
+// Check compatibility for the XCM `Location` stored on BridgeHub, which is required to send PNA
+// back from Ethereum to Polkadot. If this test starts to fail, a runtime migration will be needed to update the storage [ForeignToNativeId](https://github.com/paritytech/polkadot-sdk/blob/20510c488198e8ee72b241fd2d0f6d1784982734/bridges/snowbridge/pallets/system/src/lib.rs#L233-L234).
 #[test]
-fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
+fn check_compatibility_for_xcm_location_stored_on_bridge_hub() {
 	use xcm::v4::prelude::{
 		GeneralIndex as GeneralIndexV4, GeneralKey as GeneralKeyV4,
 		GlobalConsensus as GlobalConsensusV4, Kusama as KusamaV4, Location as LocationV4,
