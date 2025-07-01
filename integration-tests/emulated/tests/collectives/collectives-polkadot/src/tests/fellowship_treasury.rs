@@ -23,6 +23,7 @@ use frame_support::{
 use polkadot_runtime::OriginCaller;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use polkadot_runtime_constants::currency::UNITS;
+use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 use xcm_executor::traits::ConvertLocation;
 
 // Fund Fellowship Treasury from Polkadot Treasury and spend from Fellowship Treasury.
@@ -59,6 +60,7 @@ fn fellowship_treasury_spend() {
 			treasury_account.clone().into(),
 			treasury_balance * 2,
 		));
+		Dmp::make_parachain_reachable(1000);
 
 		let native_asset = Location::here();
 		let asset_hub_location: Location = [Parachain(1000)].into();
@@ -105,7 +107,7 @@ fn fellowship_treasury_spend() {
 		let native_asset_on_asset_hub = Location::parent();
 
 		let treasury_spend_call = RuntimeCall::Treasury(pallet_treasury::Call::<Runtime>::spend {
-			asset_kind: bx!(VersionedLocatableAsset::V4 {
+			asset_kind: bx!(VersionedLocatableAsset::V5 {
 				location: asset_hub_location.clone(),
 				asset_id: native_asset_on_asset_hub.into(),
 			}),
@@ -177,12 +179,11 @@ fn fellowship_treasury_spend() {
 		let native_asset_on_asset_hub = Location::parent();
 
 		let alice_location: Location =
-			[Junction::AccountId32 { network: None, id: Polkadot::account_id_of(ALICE).into() }]
-				.into();
+			[AccountId32 { network: None, id: Polkadot::account_id_of(ALICE).into() }].into();
 
 		let fellowship_treasury_spend_call =
 			RuntimeCall::FellowshipTreasury(pallet_treasury::Call::<Runtime, Instance1>::spend {
-				asset_kind: bx!(VersionedLocatableAsset::V4 {
+				asset_kind: bx!(VersionedLocatableAsset::V5 {
 					location: asset_hub_location,
 					asset_id: native_asset_on_asset_hub.into(),
 				}),

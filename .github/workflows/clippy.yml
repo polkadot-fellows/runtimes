@@ -28,7 +28,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          components: "clippy"
+          components: "clippy, rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
@@ -40,7 +40,8 @@ jobs:
       - name: Clippy
         run: |
           cargo clippy --version
-          cargo clippy --all-targets --locked -q
+          cargo clippy --all-targets --locked --workspace --quiet
+          cargo clippy --all-targets --all-features --locked --workspace --quiet
         env:
           #RUSTFLAGS: "-D warnings" FAIL-CI re-enable after AHM
           SKIP_WASM_BUILD: 1

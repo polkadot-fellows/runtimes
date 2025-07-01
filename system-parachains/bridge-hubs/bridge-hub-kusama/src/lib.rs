@@ -22,28 +22,31 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+extern crate alloc;
+
 pub mod bridge_to_polkadot_config;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 mod weights;
 pub mod xcm_config;
 
+use alloc::{borrow::Cow, vec, vec::Vec};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
+use bridge_to_polkadot_config::bp_polkadot;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
 
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Get},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult,
 };
 
-use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -105,8 +108,8 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 
-/// The SignedExtension to the basic transaction logic.
-pub type SignedExtra = (
+/// The `TransactionExtension` to the basic transaction logic.
+pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -132,7 +135,7 @@ bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
 parameter_types! {
 	pub EthereumInboundQueueName: &'static str = "EthereumInboundQueue";
@@ -148,37 +151,20 @@ parameter_types! {
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// unreleased and/or un-applied
-	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
-	frame_support::migrations::RemovePallet<
-		EthereumInboundQueueName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumOutboundQueueName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumBeaconClientName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumSystemName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	pallet_bridge_messages::migration::v1::MigrationToV1<
+	// Unreleased
+	bridge_to_polkadot_config::migration::MigrateToXcm5<
 		Runtime,
-		bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+		bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
 	>,
-	bridge_to_polkadot_config::migration::StaticToDynamicLanes,
-	frame_support::migrations::RemoveStorage<
-		BridgePolkadotMessagesPalletName,
-		OutboundLanesCongestedSignalsKey,
-		RocksDbWeight,
+	pallet_session::migrations::v1::MigrateV0ToV1<
+		Runtime,
+		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
-	pallet_bridge_relayers::migration::v1::MigrationToV1<
+	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	pallet_bridge_relayers::migration::v2::MigrationToV2<
 		Runtime,
 		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
+		bp_messages::LegacyLaneId,
 	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
@@ -202,14 +188,14 @@ impl_opaque_keys! {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("bridge-hub-kusama"),
-	impl_name: create_runtime_str!("bridge-hub-kusama"),
+	spec_name: Cow::Borrowed("bridge-hub-kusama"),
+	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_004_001,
+	spec_version: 1_006_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -283,6 +269,8 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	/// Weight information for the extensions from this pallet.
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -331,6 +319,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
 	type MaxFreezes = ConstU32<0>;
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -346,6 +335,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
+	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
 
 parameter_types! {
@@ -366,6 +356,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
+	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -405,8 +396,8 @@ impl pallet_message_queue::Config for Runtime {
 	// The XCMP queue pallet is only ever able to handle the `Sibling(ParaId)` origin:
 	type QueueChangeHandler = NarrowOriginToSibling<XcmpQueue>;
 	type QueuePausedQuery = NarrowOriginToSibling<XcmpQueue>;
-	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
-	type MaxStale = sp_core::ConstU32<8>;
+	type HeapSize = ConstU32<{ 64 * 1024 }>;
+	type MaxStale = ConstU32<8>;
 	type ServiceWeight = MessageQueueServiceWeight;
 	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 }
@@ -452,7 +443,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	// Most on-chain HRMP channels are configured to use 102400 bytes of max message size, so we
 	// need to set the page size larger than that until we reduce the channel size on-chain.
 	type MaxPageSize = ConstU32<{ 103 * 1024 }>;
-	type MaxInboundSuspended = sp_core::ConstU32<1_000>;
+	type MaxInboundSuspended = ConstU32<1_000>;
 	type ControllerOrigin = RootOrFellows;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
@@ -479,6 +470,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -533,6 +525,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = ConstU32<100>;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -593,20 +586,24 @@ use pallet_bridge_messages::LaneIdOf;
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::*;
+	use alloc::boxed::Box;
+	use system_parachains_constants::kusama::locations::{AssetHubLocation, AssetHubParaId};
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_utility, Utility]
 		[pallet_timestamp, Timestamp]
+		[pallet_transaction_payment, TransactionPayment]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
-		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
+		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
@@ -619,7 +616,7 @@ mod benches {
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
-		fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+		fn setup_set_code_requirements(code: &Vec<u8>) -> Result<(), BenchmarkError> {
 			ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
 			Ok(())
 		}
@@ -643,11 +640,20 @@ mod benches {
 	}
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
-		type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
-			xcm_config::XcmConfig,
-			ExistentialDepositAsset,
-			PriceForParentDelivery,
-		>;
+		type DeliveryHelper = (
+			cumulus_primitives_utility::ToParentDeliveryHelper<
+				xcm_config::XcmConfig,
+				ExistentialDepositAsset,
+				PriceForParentDelivery,
+			>,
+			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				xcm_config::XcmConfig,
+				ExistentialDepositAsset,
+				PriceForSiblingParachainDelivery,
+				AssetHubParaId,
+				ParachainSystem,
+			>,
+		);
 
 		fn reachable_dest() -> Option<Location> {
 			Some(Parent.into())
@@ -667,10 +673,15 @@ mod benches {
 		}
 
 		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
-			// BH only supports teleports to system parachain.
-			// Relay/native token can be teleported between BH and Relay.
+			// Only supports native token teleports to system parachain
 			let native_location = Parent.into();
-			let dest = Parent.into();
+			let dest = AssetHubLocation::get();
+
+			// TODO: Remove below line once we update to polkadot-sdk stable2503
+			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
+				AssetHubParaId::get(),
+			);
+
 			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
 				native_location,
 				dest,
@@ -769,7 +780,7 @@ mod benches {
 		fn export_message_origin_and_destination(
 		) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
 			// save XCM version for remote bridge hub
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(bridge_to_polkadot_config::BridgeHubPolkadotLocation::get()),
 				XCM_VERSION,
@@ -822,18 +833,28 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
+		fn bench_reward() -> Self::Reward {
+			bp_relayers::RewardsAccountParams::new(
+				bp_messages::LegacyLaneId::default(),
+				*b"test",
+				bp_relayers::RewardsAccountOwner::ThisChain,
+			)
+		}
+
 		fn prepare_rewards_account(
 			account_params: bp_relayers::RewardsAccountParams<
 				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
 			>,
 			reward: Balance,
-		) {
+		) -> Option<AccountId> {
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
 				bp_messages::LegacyLaneId,
+				Balance,
 			>::rewards_account(account_params);
-			Self::deposit_account(rewards_account, reward);
+			Self::deposit_account(rewards_account.clone(), reward);
+			Some(rewards_account)
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
@@ -919,7 +940,7 @@ mod benches {
 			use cumulus_primitives_core::XcmpMessageSource;
 			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(Location::new(1, Parachain(42))),
 				XCM_VERSION,
@@ -973,10 +994,12 @@ mod benches {
 	}
 
 	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
-	pub use frame_system_benchmarking::Pallet as SystemBench;
-	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+	pub use frame_system_benchmarking::{
+		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
+	};
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
 	pub use pallet_bridge_relayers::benchmarking::Pallet as BridgeRelayersBench;
@@ -1038,7 +1061,7 @@ impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -1176,8 +1199,8 @@ impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			PolkadotXcm::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			PolkadotXcm::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
@@ -1306,7 +1329,7 @@ impl_runtime_apis! {
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
