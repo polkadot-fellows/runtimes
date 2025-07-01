@@ -224,7 +224,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
-    + pallet_delegated_staking::Config
+		+ pallet_delegated_staking::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
