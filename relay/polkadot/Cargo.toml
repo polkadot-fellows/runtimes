@@ -288,6 +288,7 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"relay-common/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",

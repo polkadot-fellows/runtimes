@@ -8,10 +8,11 @@ license = "GPL-3.0-only"                                        # TODO <https://
 [workspace.dependencies]
 pallet-ah-migrator = { path = "pallets/ah-migrator" }
 pallet-rc-migrator = { path = "pallets/rc-migrator" }
-pallet-ah-ops = { version = "0.1.0" }
+pallet-ah-ops = { path = "pallets/ah-ops" }
 system-parachains-common = { path = "system-parachains/common" }
-hex = { version = "*" }
-impl-trait-for-tuples = { version = "*" }
+hex = { version = "0.4.3", default-features = false }
+impl-trait-for-tuples = { version = "0.2.2" }
+rand = { version = "0.8.5", default-features = false }
 
 assert_matches = { version = "1.5.0" }
 approx = { version = "0.5.1" }
@@ -266,6 +267,12 @@ ss58-registry = { version = "1.47.0" }
 resolver = "2"
 
 members = [
+	"pallets/ah-migrator",
+	"pallets/ah-ops",
+	"pallets/rc-migrator",
+	"integration-tests/ahm",
+	"system-parachains/common",
+
 	"chain-spec-generator",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",

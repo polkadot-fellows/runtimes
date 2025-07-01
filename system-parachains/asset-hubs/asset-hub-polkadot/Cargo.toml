@@ -187,6 +187,18 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks",
+	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
+	"pallet-referenda/runtime-benchmarks",
+	"pallet-scheduler/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
+	"pallet-transaction-payment/runtime-benchmarks",
+	"pallet-treasury/runtime-benchmarks",
+	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
+	"system-parachains-common/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -339,6 +351,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"sp-staking/std"
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
