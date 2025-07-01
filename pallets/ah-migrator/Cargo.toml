@@ -184,7 +184,7 @@ try-runtime = [
 ]
 
 ahm-kusama = [
-	"pallet-rc-migrator/ahm-kusama"
+	"pallet-rc-migrator/ahm-kusama",
 ]
 stable2503 = [
 	"pallet-rc-migrator/stable2503",

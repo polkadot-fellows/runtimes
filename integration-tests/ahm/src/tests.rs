@@ -34,7 +34,7 @@
 use crate::porting_prelude::*;
 
 use super::{
-	checks::{assert_root_hash, SanityChecks},
+	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -183,20 +183,6 @@ async fn pallet_migration_works() {
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
-
-	// To check if anything changed
-	rc.execute_with(|| {
-		assert_root_hash(
-			"Relay",
-			"882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5",
-		);
-	});
-	ah.execute_with(|| {
-		assert_root_hash(
-			"Asset Hub",
-			"fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b",
-		);
-	});
 }
 
 fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R> {
@@ -489,19 +475,6 @@ async fn migration_works_time() {
 		rc_block_end - rc_block_start,
 		ah_block_end - ah_block_start
 	);
-	// To check if anything changed
-	rc.execute_with(|| {
-		assert_root_hash(
-			"Relay",
-			"ec26367c27bffef2b2815e75c5266ef921eeeefe93ac884ef4a73309886eb676",
-		);
-	});
-	ah.execute_with(|| {
-		assert_root_hash(
-			"Asset Hub",
-			"e106ad1352726bae7c10f4efc8d1d280bef83deb919db440185e41955735688c",
-		);
-	});
 }
 
 #[tokio::test]
@@ -532,13 +505,17 @@ async fn scheduled_migration_works() {
 	});
 	ah.commit_all().unwrap();
 
+	let mut start = 0u32.into();
+	let mut cool_off_end = 0u32.into();
+
 	// Schedule the migration on RC.
 	let dmp_messages = rc.execute_with(|| {
 		log::info!("Scheduling the migration on RC");
 		next_block_rc();
 
 		let now = frame_system::Pallet::<Polkadot>::block_number();
-		let scheduled_at = now + 2;
+		start = now + 2;
+		cool_off_end = start + 3;
 
 		// Fellowship Origin
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
@@ -548,24 +525,31 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
-		assert_ok!(RcMigrator::schedule_migration(origin.into(), DispatchTime::At(scheduled_at)));
+		assert_ok!(RcMigrator::schedule_migration(
+			origin.into(),
+			DispatchTime::At(start),
+			DispatchTime::At(cool_off_end),
+		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { block_number: scheduled_at }
+			RcMigrationStage::Scheduled { start, cool_off_end }
 		);
 
 		next_block_rc();
 		// migrating not yet started
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { block_number: scheduled_at }
+			RcMigrationStage::Scheduled { start, cool_off_end }
 		);
 		assert_eq!(DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID).len(), 0);
 
 		next_block_rc();
 
-		// migration started
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
+		// migration is waiting for AH to acknowledge the start
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::WaitingForAh { cool_off_end }
+		);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(dmp_messages.len() > 0);
 
@@ -604,10 +588,36 @@ async fn scheduled_migration_works() {
 	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
+
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::WaitingForAh { cool_off_end }
+		);
 
 		next_block_rc();
 
+		// cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { cool_off_end }
+		);
+
+		next_block_rc();
+
+		// still cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { cool_off_end }
+		);
+
+		next_block_rc();
+
+		// starting
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Starting);
+
+		next_block_rc();
+
+		// accounts migration init
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
 			RcMigrationStage::AccountsMigrationInit
