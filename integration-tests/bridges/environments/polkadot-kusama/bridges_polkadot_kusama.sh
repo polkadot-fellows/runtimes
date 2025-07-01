@@ -19,17 +19,6 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #
 #
 #	println!(
-#		"GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT=\"{}\"",
-#		frame_support::sp_runtime::AccountId32::new(
-#			GlobalConsensusConvertsFor::<UniversalLocationAHK, [u8; 32]>::convert_location(
-#				&Location { parents: 2, interior: [GlobalConsensus(Polkadot)].into() }
-#			)
-#			.unwrap()
-#		)
-#		.to_ss58check_with_version(2_u16.into())
-#	);
-#
-#	println!(
 #		"ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
 #			SiblingParachainConvertsVia::<Sibling, [u8; 32]>::convert_location(&Location {
@@ -43,16 +32,6 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #
 #
 #	println!(
-#		"GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT=\"{}\"",
-#		frame_support::sp_runtime::AccountId32::new(
-#			GlobalConsensusConvertsFor::<UniversalLocationAHP, [u8; 32]>::convert_location(
-#				&Location { parents: 2, interior: [GlobalConsensus(Kusama)].into() }
-#			)
-#			.unwrap()
-#		)
-#		.to_ss58check_with_version(0_u16.into())
-#	);
-#	println!(
 #		"ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
 #			SiblingParachainConvertsVia::<Sibling, [u8; 32]>::convert_location(&Location {
@@ -64,11 +43,10 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #		.to_ss58check_with_version(0_u16.into())
 #	);
 #}
-GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT="FxqimVubBRPqJ8kTwb3wL7G4q645hEkBEnXPyttLsTrFc5Q"
 ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA="FBeL7EFTDeHnuViqaUHUXvhhUusN5FawDmHgfvzF97DXFr3"
-GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT="14zcUAhP5XypiFQWA3b1AnGKrhZqR4XWUo4deWkwuN5y983G"
 ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="13cKp89SgdtqUngo2WiEijPrQWdHFhzYZLf2TJePKRvExk7o"
-ALICE_SOVEREIGN_ACCOUNT="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+BOB_SOVEREIGN_ACCOUNT_AT_KUSAMA="FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP"
+BOB_SOVEREIGN_ACCOUNT_AT_POLKADOT="14E5nqKAp3oAJcmzgZhUD2RcptBeUBScxKHgJKU4HPNcKVf3"
 
 # Expected sovereign accounts for rewards on BridgeHubs.
 #
@@ -136,10 +114,8 @@ ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain="EoQB
 LANE_ID="00000001"
 XCM_VERSION=4
 
-AHK_DOT_ED=10000000
 DOT=10000000000
 
-AHP_KSM_ED=10000000
 KSM=1000000000000
 
 function init_polkadot_kusama() {
@@ -281,30 +257,21 @@ case "$1" in
     ;;
   init-asset-hub-polkadot-local)
       ensure_polkadot_js_api
-      # create foreign assets for native Kusama token (governance call on Polkadot)
-      force_create_foreign_asset \
-          "ws://127.0.0.1:9942" \
-          "//Alice" \
-          1000 \
-          "ws://127.0.0.1:9910" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Kusama" } ] } }')" \
-          "$GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT" \
-          $AHP_KSM_ED \
-          true
+      # create pool for DOT and wKSM
       create_pool \
           "ws://127.0.0.1:9910" \
-          "//Alice" \
+          "//Bob" \
           "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama" }] } }')"
       # Create liquidity in the pool
       add_liquidity \
           "ws://127.0.0.1:9910" \
-          "//Alice" \
+          "//Bob" \
           "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama"}] } }')" \
           10000000000 \
-          10000000000 \
-          "$ALICE_SOVEREIGN_ACCOUNT"
+          10000000 \
+          "$BOB_SOVEREIGN_ACCOUNT_AT_POLKADOT"
       # HRMP
       open_hrmp_channels \
           "ws://127.0.0.1:9942" \
@@ -354,30 +321,21 @@ case "$1" in
       ;;
   init-asset-hub-kusama-local)
       ensure_polkadot_js_api
-      # create foreign assets for native Polkadot token (governance call on Kusama)
-      force_create_foreign_asset \
-          "ws://127.0.0.1:9945" \
-          "//Alice" \
-          1000 \
-          "ws://127.0.0.1:9010" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Polkadot" } ] } }')" \
-          "$GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT" \
-          $AHK_DOT_ED \
-          true
+      # create pool for KSM and wDOT
       create_pool \
           "ws://127.0.0.1:9010" \
-          "//Alice" \
+          "//Bob" \
           "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot" }] } }')"
       # Create liquidity in the pool
       add_liquidity \
           "ws://127.0.0.1:9010" \
-          "//Alice" \
+          "//Bob" \
           "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot"}] } }')" \
           10000000000 \
-          10000000000 \
-          "$ALICE_SOVEREIGN_ACCOUNT"
+          10000000 \
+          "$BOB_SOVEREIGN_ACCOUNT_AT_KUSAMA"
       # HRMP
       open_hrmp_channels \
           "ws://127.0.0.1:9945" \
