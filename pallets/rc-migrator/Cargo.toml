@@ -28,8 +28,6 @@ pallet-conviction-voting = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
-# pallet-staking-async = { workspace = true } # Only on westend
-# pallet-staking-async-ah-client = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-multisig = { workspace = true }
@@ -151,7 +149,6 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-ahm-polkadot = []
-ahm-westend = ["ahm-staking-migration", "stable2503"]
 stable2503 = []
 ahm-staking-migration = []
+ahm-kusama = []
