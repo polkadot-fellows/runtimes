@@ -44,13 +44,14 @@ impl pallet_treasury::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocatableAccount;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type Paymaster = LocalPay<NativeAndAssets, TreasuryAccount, xcm_config::LocationToAccountId>;
+	type Paymaster = polkadot_runtime_common::impls::LocalPay<NativeAndAssets, TreasuryAccount, xcm_config::LocationToAccountId>;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayArguments<
 		xcm_config::TrustBackedAssetsPalletIndex,
 	>;
+	type BlockNumberProvider = System; // FAIL-CI check
 }
 
 parameter_types! {

@@ -15,7 +15,10 @@
 
 pub mod call_filter;
 
+extern crate alloc;
+
 use super::*;
+use alloc::boxed::Box;
 use codec::DecodeAll;
 use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
 use frame_system::pallet_prelude::BlockNumberFor;
@@ -49,7 +52,7 @@ impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
 }
 
 /// Relay Chain Hold Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
@@ -69,7 +72,7 @@ impl Default for RcHoldReason {
 }
 
 /// Relay Chain Freeze Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcFreezeReason {
 	#[codec(index = 39u8)]
 	NominationPools(pallet_nomination_pools::FreezeReason),
@@ -144,7 +147,7 @@ impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToAhDelay {
 ///
 /// These origins are utilized in Governance and mapped to Asset Hub origins for active referendums.
 #[allow(non_camel_case_types)]
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcPalletsOrigin {
 	#[codec(index = 0u8)]
 	system(frame_system::Origin<Runtime>),
