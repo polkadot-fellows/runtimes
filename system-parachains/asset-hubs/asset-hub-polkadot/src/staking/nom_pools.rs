@@ -19,7 +19,7 @@
 use crate::*;
 use pallet_nomination_pools::{adapter, BondType};
 use sp_runtime::{DispatchError, DispatchResult, FixedU128};
-use sp_staking::{EraIndex, Stake};
+use sp_staking::{EraIndex, Stake, StakingUnchecked};
 
 parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
@@ -257,4 +257,22 @@ impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
 			unimplemented!()
 		}
 	}*/
+}
+
+impl StakingUnchecked for StakingMock {
+	fn migrate_to_virtual_staker(_who: &Self::AccountId) {
+		unimplemented!()
+	}
+
+	fn virtual_bond(
+		_keyless_who: &Self::AccountId,
+		_value: Self::Balance,
+		_payee: &Self::AccountId,
+	) -> DispatchResult {
+		unimplemented!()
+	}
+
+	fn migrate_to_direct_staker(_who: &Self::AccountId) {
+		unimplemented!()
+	}
 }

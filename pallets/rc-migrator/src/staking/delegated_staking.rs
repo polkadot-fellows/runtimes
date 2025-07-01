@@ -17,7 +17,7 @@
 //! Migrator for pallet-delegated-staking.
 
 use crate::*;
-use types::AccountIdOf;
+use types::{AccountIdOf, RcMigrationCheck};
 
 /// Stage of the delegated-staking pallet migration.
 #[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
@@ -204,5 +204,71 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 		} else {
 			Ok(Some(last_key))
 		}
+	}
+}
+
+pub mod test {
+	use super::*;
+
+	// Delegation used in Delegations storage item
+	#[derive(Debug, PartialEq, Eq, Clone)]
+	pub struct RcDelegation {
+		pub delegator: AccountId32,
+		pub agent: AccountId32,
+		pub amount: u128,
+	}
+
+	// AgentLedger used in AgentLedgers storage item
+	#[derive(Debug, PartialEq, Eq, Clone)]
+	pub struct RcAgentLedger {
+		pub agent: AccountId32,
+		pub payee: AccountId32,
+		pub total_delegated: u128,
+		pub unclaimed_withdrawals: u128,
+		pub pending_slash: u128,
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> RcMigrationCheck for DelegatedStakingMigrator<T> {
+	type RcPrePayload = (Vec<test::RcDelegation>, Vec<test::RcAgentLedger>);
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut delegations = Vec::new();
+		let mut agent_ledgers = Vec::new();
+
+		for (delegator, delegation) in alias::Delegations::<T>::iter() {
+			delegations.push(test::RcDelegation {
+				delegator: delegator.clone(),
+				agent: delegation.agent.clone(),
+				amount: delegation.amount,
+			});
+		}
+
+		for (agent, agent_ledger) in alias::AgentLedgers::<T>::iter() {
+			agent_ledgers.push(test::RcAgentLedger {
+				agent: agent.clone(),
+				payee: agent_ledger.payee.clone(),
+				total_delegated: agent_ledger.total_delegated,
+				unclaimed_withdrawals: agent_ledger.unclaimed_withdrawals,
+				pending_slash: agent_ledger.pending_slash,
+			});
+		}
+
+		(delegations, agent_ledgers)
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage "Delegations::rc_post::empty"
+		assert!(
+			alias::Delegations::<T>::iter().next().is_none(),
+			"No delegations should exist on the Relay Chain after migration"
+		);
+
+		// Assert storage "AgentLedgers::rc_post::empty"
+		assert!(
+			alias::AgentLedgers::<T>::iter().next().is_none(),
+			"No agent ledgers should exist on the Relay Chain after migration"
+		);
 	}
 }

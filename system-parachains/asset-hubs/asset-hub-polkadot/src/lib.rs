@@ -1235,6 +1235,7 @@ construct_runtime!(
 		NominationPools: pallet_nomination_pools = 80,
 		FastUnstake: pallet_fast_unstake = 81,
 		VoterList: pallet_bags_list::<Instance1> = 82,
+		DelegatedStaking: pallet_delegated_staking = 83,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,

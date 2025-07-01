@@ -795,7 +795,6 @@ pub mod pallet {
 			Self::do_receive_scheduler_agenda_messages(messages).map_err(Into::into)
 		}
 
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(23)]
 		#[pallet::weight(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() as u32))]
 		pub fn receive_delegated_staking_messages(
@@ -804,11 +803,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_delegated_staking_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
 		#[cfg(feature = "ahm-staking-migration")]
