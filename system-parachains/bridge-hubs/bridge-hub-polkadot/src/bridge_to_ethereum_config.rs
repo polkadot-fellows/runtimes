@@ -360,6 +360,37 @@ pub mod migration {
 			Ok(())
 		}
 	}
+
+	/// Remove NativeToForeignId from storage.
+	pub struct RemoveNativeToForeignId<T: snowbridge_pallet_system::Config>(
+		core::marker::PhantomData<T>,
+	);
+
+	impl<T: snowbridge_pallet_system::Config> frame_support::traits::OnRuntimeUpgrade
+		for RemoveNativeToForeignId<T>
+	{
+		fn on_runtime_upgrade() -> Weight {
+			let mut weight: Weight = Weight::zero();
+
+			let res = snowbridge_pallet_system::NativeToForeignId::<T>::clear(32, None);
+			weight = weight.saturating_add(
+				T::DbWeight::get().reads_writes(res.loops as u64, res.backend as u64),
+			);
+			log::info!("RemoveNativeToForeignId finished!");
+
+			weight
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
+			log::info!(
+				"Number of PNAs: {}",
+				snowbridge_pallet_system::NativeToForeignId::<T>::iter().count()
+			);
+
+			Ok(Vec::new())
+		}
+	}
 }
 
 #[cfg(test)]
