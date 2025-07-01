@@ -41,6 +41,7 @@ use pallet_rc_migrator::{
 	scheduler::RcSchedulerMessage,
 	staking::{
 		bags_list::alias::Node,
+		delegated_staking::RcDelegatedStakingMessage,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
@@ -764,11 +765,30 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_delegated_staking_messages(n: Linear<1, 255>) {
-		// TODO: implement benchmarking
-		let messages = Vec::new();
+		let create_delegated_staking = |n: u8| -> RcDelegatedStakingMessageOf<T> {
+			RcDelegatedStakingMessage::Agents {
+				agent: [n; 32].into(),
+				payee: [n; 32].into(),
+				total_delegated: n.into(),
+				unclaimed_withdrawals: n.into(),
+				pending_slash: n.into(),
+			}
+		};
+		let messages = (0..n)
+			.map(|i| create_delegated_staking(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::DelegatedStaking,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
 	}
 
 	#[benchmark]
