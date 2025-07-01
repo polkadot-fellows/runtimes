@@ -426,6 +426,8 @@ fn construct_and_apply_extrinsic(
 	r.unwrap()
 }
 
+// Check compatibility for `token_id` stored on ethereum. If this test starts to fail, the [TokenIdOf](https://github.com/paritytech/polkadot-sdk/blob/20510c488198e8ee72b241fd2d0f6d1784982734/bridges/snowbridge/primitives/core/src/location.rs#L38-L43)
+// converter should be updated to ensure the generated token ID remains consistent and unchanged.
 #[test]
 fn check_compatibility_for_token_id_stored_on_ethereum() {
 	pub struct RegisterTokenTestCase {
