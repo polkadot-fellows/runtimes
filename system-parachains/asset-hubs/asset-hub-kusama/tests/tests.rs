@@ -23,8 +23,8 @@ use alloc::boxed::Box;
 use asset_hub_kusama_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, ForeignCreatorsSovereignAccountOf, GovernanceLocation, KsmLocation,
-		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
+		CheckingAccount, GovernanceLocation, KsmLocation, LocationToAccountId,
+		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
@@ -282,7 +282,7 @@ include_teleports_for_foreign_assets_works!(
 	CheckingAccount,
 	WeightToFee,
 	ParachainSystem,
-	ForeignCreatorsSovereignAccountOf,
+	LocationToAccountId,
 	ForeignAssetsInstance,
 	collator_session_keys(),
 	slot_durations(),
@@ -356,7 +356,7 @@ include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_wo
 	Runtime,
 	XcmConfig,
 	WeightToFee,
-	ForeignCreatorsSovereignAccountOf,
+	LocationToAccountId,
 	ForeignAssetsInstance,
 	Location,
 	WithLatestLocationConverter<Location>,
