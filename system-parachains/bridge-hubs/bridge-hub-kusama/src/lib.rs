@@ -191,7 +191,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-kusama"),
 	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_005_001,
+	spec_version: 1_006_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
@@ -780,7 +780,7 @@ mod benches {
 		fn export_message_origin_and_destination(
 		) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
 			// save XCM version for remote bridge hub
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(bridge_to_polkadot_config::BridgeHubPolkadotLocation::get()),
 				XCM_VERSION,
@@ -940,7 +940,7 @@ mod benches {
 			use cumulus_primitives_core::XcmpMessageSource;
 			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(Location::new(1, Parachain(42))),
 				XCM_VERSION,
