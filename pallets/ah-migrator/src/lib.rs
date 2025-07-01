@@ -299,7 +299,7 @@ pub mod pallet {
 		/// Some part of the Relay Chain origins used in Governance.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcPalletsOrigin: Parameter + Default;
+		type RcPalletsOrigin: Parameter + Default + DecodeWithMemTracking;
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,

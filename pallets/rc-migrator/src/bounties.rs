@@ -47,7 +47,7 @@ pub enum BountiesStage {
 }
 
 /// Bounties data message that is being sent to the AH Migrator.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
 pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
 	BountyCount(BountyIndex),
 	BountyApprovals(Vec<BountyIndex>),

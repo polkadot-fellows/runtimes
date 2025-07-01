@@ -234,7 +234,7 @@ pub mod alias {
 	///
 	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L181
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo)]
+	#[derive(Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo)]
 	pub struct SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId> {
 		// The kind of asset to be spent.
 		pub asset_kind: AssetKind,

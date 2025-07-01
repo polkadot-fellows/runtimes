@@ -69,6 +69,19 @@ impl<T: frame_system::Config> pallet_bounties::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
+		/// Storage: `Bounties::Bounties` (r:1 w:1)
+	/// Proof: `Bounties::Bounties` (`max_values`: None, `max_size`: Some(177), added: 2652, mode: `MaxEncodedLen`)
+	/// Storage: `Bounties::BountyApprovals` (r:1 w:1)
+	/// Proof: `Bounties::BountyApprovals` (`max_values`: Some(1), `max_size`: Some(402), added: 897, mode: `MaxEncodedLen`)
+	fn approve_bounty_with_curator() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `176`
+		//  Estimated: `3642`
+		// Minimum execution time: 14_120_000 picoseconds.
+		Weight::from_parts(14_539_000, 3642)
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+	}
 	/// Storage: `Bounties::Bounties` (r:1 w:1)
 	/// Proof: `Bounties::Bounties` (`max_values`: None, `max_size`: Some(177), added: 2652, mode: `MaxEncodedLen`)
 	/// Storage: `Bounties::BountyApprovals` (r:1 w:1)

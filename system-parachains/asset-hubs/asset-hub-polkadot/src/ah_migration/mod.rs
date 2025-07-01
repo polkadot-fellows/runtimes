@@ -32,23 +32,34 @@ use xcm::latest::prelude::*;
 /// Treasury accounts migrating to the new treasury account address (same account address that was
 /// used on the Relay Chain).
 pub struct TreasuryAccounts;
-impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
-	fn get() -> (AccountId, Vec<Location>) {
+impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
+	fn get() -> (AccountId, Vec<xcm::v4::Location>) {
 		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
 		(
 			xcm_config::PreMigrationRelayTreasuryPalletAccount::get(),
 			vec![
 				// USDT
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1984)]),
+				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(1984)]),
 				// USDC
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1337)]),
+				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(1337)]),
 				// DED
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(30)]),
+				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(30)]),
 				// STINK
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(42069)]),
+				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(42069)]),
 			],
 		)
 	}
+}
+
+fn has_mem_tracking<T: DecodeWithMemTracking>() -> bool {
+	true
+}
+
+fn other() {
+	has_mem_tracking::<frame_support::traits::Bounded<RuntimeCall, BlakeTwo256>>();
+	has_mem_tracking::<pallet_conviction_voting::Tally<u128, frame_support::traits::ActiveIssuanceOf<pallet_balances::Pallet<Runtime>, sp_runtime::AccountId32>>>();
+	has_mem_tracking::<RcPalletsOrigin>();
+	has_mem_tracking::<pallet_ah_migrator::referenda::RcReferendumInfoOf<Runtime, ()>>();
 }
 
 /// Relay Chain Hold Reason
@@ -386,10 +397,10 @@ impl
 		rc: (VersionedLocatableAsset, VersionedLocation),
 	) -> Result<(VersionedLocatableAsset, VersionedLocatableAccount), ()> {
 		let (asset_kind, beneficiary) = rc;
-		let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
+		/*let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
 			log::error!(target: LOG_TARGET, "Failed to convert RC asset kind to latest version");
 		})?;
-		if asset_kind.location != Location::new(0, Parachain(1000)) {
+		if asset_kind.location != xcm::v4::Location::new(0, Parachain(1000)) {
 			log::error!(
 				target: LOG_TARGET,
 				"Unsupported RC asset kind location: {:?}",
@@ -398,8 +409,8 @@ impl
 			return Err(());
 		};
 		let asset_kind = VersionedLocatableAsset::V4 {
-			location: Location::here(),
-			asset_id: asset_kind.asset_id,
+			location: xcm::v4::Location::here(),
+			asset_id: todo!("FAIL-CI"),//asset_kind.asset_id,
 		};
 		let beneficiary = beneficiary.try_into().map_err(|_| {
 			log::error!(
@@ -408,7 +419,8 @@ impl
 			);
 		})?;
 		let beneficiary =
-			VersionedLocatableAccount::V4 { location: Location::here(), account_id: beneficiary };
-		Ok((asset_kind, beneficiary))
+			VersionedLocatableAccount::V4 { location: xcm::v4::Location::here(), account_id: beneficiary };
+		Ok((asset_kind, beneficiary))*/
+		todo!("FAIL-CI")
 	}
 }

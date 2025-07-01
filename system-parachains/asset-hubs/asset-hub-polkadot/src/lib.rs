@@ -97,6 +97,7 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
+use system_parachains_constants::MINUTES; // Change for Async Backing https://github.com/polkadot-fellows/runtimes/pull/763
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -2060,39 +2061,21 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, xcm::v4::Location> for Runtime {
-		fn quote_price_exact_tokens_for_tokens(
-			asset1: xcm::v4::Location,
-			asset2: xcm::v4::Location,
-			amount: Balance,
-			include_fee: bool,
-		) -> Option<Balance> {
-			AssetConversion::quote_price_exact_tokens_for_tokens(
-				asset1,
-				asset2,
-				amount,
-				include_fee,
-			)
+		impl pallet_asset_conversion::AssetConversionApi<
+		Block,
+		Balance,
+		xcm::v4::Location,
+	> for Runtime
+	{
+		fn quote_price_exact_tokens_for_tokens(asset1: xcm::v4::Location, asset2: xcm::v4::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+			AssetConversion::quote_price_exact_tokens_for_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn quote_price_tokens_for_exact_tokens(
-			asset1: xcm::v4::Location,
-			asset2: xcm::v4::Location,
-			amount: Balance,
-			include_fee: bool,
-		) -> Option<Balance> {
-			AssetConversion::quote_price_tokens_for_exact_tokens(
-				asset1,
-				asset2,
-				amount,
-				include_fee,
-			)
+		fn quote_price_tokens_for_exact_tokens(asset1: xcm::v4::Location, asset2: xcm::v4::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+			AssetConversion::quote_price_tokens_for_exact_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn get_reserves(
-			asset1: xcm::v4::Location,
-			asset2: xcm::v4::Location,
-		) -> Option<(Balance, Balance)> {
+		fn get_reserves(asset1: xcm::v4::Location, asset2: xcm::v4::Location) -> Option<(Balance, Balance)> {
 			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
@@ -2163,7 +2146,6 @@ impl pallet_state_trie_migration::Config for Runtime {
 	// An origin that can control the whole pallet: Should be a Fellowship member or the controller
 	// of the migration.
 	type ControlOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
 		EnsureSignedBy<MigControllerRoot, AccountId>,
 	>;
