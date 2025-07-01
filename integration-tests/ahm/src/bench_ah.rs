@@ -218,6 +218,13 @@ fn test_bench_receive_treasury_messages() {
 }
 
 #[test]
+fn test_bench_receive_delegated_staking_messages() {
+	new_test_ext().execute_with(|| {
+		test_receive_delegated_staking_messages::<AssetHub>(BENCHMARK_N);
+	});
+}
+
+#[test]
 fn test_bench_force_set_stage() {
 	new_test_ext().execute_with(|| {
 		test_force_set_stage::<AssetHub>();

@@ -105,6 +105,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
+	delegated_staking::{DelegatedStakingMigrator, DelegatedStakingStage},
 	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
@@ -255,6 +256,12 @@ pub enum MigrationStage<
 		next_key: Option<FastUnstakeStage<AccountId>>,
 	},
 	FastUnstakeMigrationDone,
+
+	DelegatedStakingMigrationInit,
+	DelegatedStakingMigrationOngoing {
+		next_key: Option<staking::delegated_staking::DelegatedStakingStage<AccountId>>,
+	},
+	DelegatedStakingMigrationDone,
 
 	IndicesMigrationInit,
 	IndicesMigrationOngoing {
@@ -425,6 +432,7 @@ pub mod pallet {
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
 		+ pallet_treasury::Config // Not on westend
+		+ pallet_delegated_staking::Config // Not on westend
 		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
 		//+ pallet_staking_async_ah_client::Config // Only on westend
 	{
@@ -1125,6 +1133,41 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::FastUnstakeMigrationDone => {
+					#[cfg(feature = "ahm-westend")]
+					Self::transition(MigrationStage::IndicesMigrationInit);
+					#[cfg(not(feature = "ahm-westend"))]
+					Self::transition(MigrationStage::DelegatedStakingMigrationInit);
+				},
+				MigrationStage::DelegatedStakingMigrationInit => {
+					Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::DelegatedStakingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match DelegatedStakingMigrator::<T>::migrate_many(next_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::DelegatedStakingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating delegated staking: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::DelegatedStakingMigrationDone => {
 					Self::transition(MigrationStage::IndicesMigrationInit);
 				},
 				MigrationStage::IndicesMigrationInit => {

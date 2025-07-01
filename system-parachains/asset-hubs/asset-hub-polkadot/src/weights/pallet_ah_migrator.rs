@@ -512,6 +512,9 @@ impl<T: frame_system::Config> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
+	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
+		todo!()
+	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)

@@ -75,6 +75,7 @@ pub trait WeightInfo {
 	fn receive_crowdloan_messages(n: u32, ) -> Weight;
 	fn receive_referenda_metadata(n: u32, ) -> Weight;
 	fn receive_treasury_messages(n: u32, ) -> Weight;
+	fn receive_delegated_staking_messages(n: u32, ) -> Weight;
 	fn receive_preimage_legacy_status(n: u32, ) -> Weight;
 	fn receive_preimage_request_status(n: u32, ) -> Weight;
 	fn force_set_stage() -> Weight;
@@ -545,6 +546,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+	}
+	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
+		todo!()
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -1099,6 +1103,9 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
+	}
+	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
+		todo!()
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)

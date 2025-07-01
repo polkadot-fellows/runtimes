@@ -763,6 +763,15 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn receive_delegated_staking_messages(n: Linear<1, 255>) {
+		// TODO: implement benchmarking
+		let messages = Vec::new();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+	}
+
+	#[benchmark]
 	fn receive_preimage_legacy_status(n: Linear<1, 255>) {
 		let create_preimage_legacy_status = |n: u8| -> RcPreimageLegacyStatusOf<T> {
 			let depositor: AccountId32 = [n; 32].into();
@@ -1157,6 +1166,15 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_treasury_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_delegated_staking_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_delegated_staking_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
