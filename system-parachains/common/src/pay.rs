@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::traits::{
 	fungibles,
 	tokens::{PaymentStatus, Preservation},
@@ -27,14 +27,21 @@ use xcm_executor::traits::ConvertLocation;
 /// Versioned locatable account type which contains both an XCM `location` and `account_id` to
 /// identify an account which exists on some chain.
 #[derive(
-	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
+	Encode,
+	Decode,
+	Eq,
+	PartialEq,
+	Clone,
+	RuntimeDebug,
+	scale_info::TypeInfo,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
 )]
 pub enum VersionedLocatableAccount {
-	// TODO: remove the V3 variant when V5 is available
-	#[codec(index = 3)]
-	V3 { location: xcm::v3::Location, account_id: xcm::v3::Location },
 	#[codec(index = 4)]
 	V4 { location: xcm::v4::Location, account_id: xcm::v4::Location },
+	#[codec(index = 5)]
+	V5 { location: xcm::v5::Location, account_id: xcm::v5::Location },
 }
 
 /// Pay on the local chain with `fungibles` implementation if the beneficiary and the asset are both
@@ -43,7 +50,7 @@ pub struct LocalPay<F, A, C>(core::marker::PhantomData<(F, A, C)>);
 impl<A, F, C> frame_support::traits::tokens::Pay for LocalPay<F, A, C>
 where
 	A: TypedGet,
-	F: fungibles::Mutate<A::Type, AssetId = xcm::v4::Location> + fungibles::Create<A::Type>,
+	F: fungibles::Mutate<A::Type, AssetId = xcm::v5::Location> + fungibles::Create<A::Type>,
 	C: ConvertLocation<A::Type>,
 	A::Type: Eq + Clone,
 {
@@ -94,19 +101,19 @@ where
 	fn match_location(who: &VersionedLocatableAccount) -> Result<A::Type, ()> {
 		// only applicable for the local accounts
 		let account_id = match who {
-			VersionedLocatableAccount::V3 { location, account_id } if location.is_here() =>
-				&(*account_id).try_into().map_err(|_| ())?,
 			VersionedLocatableAccount::V4 { location, account_id } if location.is_here() =>
+				&account_id.clone().try_into().map_err(|_| ())?,
+			VersionedLocatableAccount::V5 { location, account_id } if location.is_here() =>
 				account_id,
 			_ => return Err(()),
 		};
 		C::convert_location(account_id).ok_or(())
 	}
-	fn match_asset(asset: &VersionedLocatableAsset) -> Result<xcm::v4::Location, ()> {
+	fn match_asset(asset: &VersionedLocatableAsset) -> Result<xcm::v5::Location, ()> {
 		match asset {
-			VersionedLocatableAsset::V3 { location, asset_id } if location.is_here() =>
-				(*asset_id).try_into().map(|a: xcm::v4::AssetId| a.0).map_err(|_| ()),
 			VersionedLocatableAsset::V4 { location, asset_id } if location.is_here() =>
+				asset_id.clone().try_into().map(|a: xcm::v5::AssetId| a.0).map_err(|_| ()),
+			VersionedLocatableAsset::V5 { location, asset_id } if location.is_here() =>
 				Ok(asset_id.clone().0),
 			_ => Err(()),
 		}
@@ -116,10 +123,10 @@ where
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarks {
 	use super::*;
+	use core::marker::PhantomData;
 	use frame_support::traits::Get;
 	use pallet_treasury::ArgumentsFactory as TreasuryArgumentsFactory;
 	use sp_core::ConstU8;
-	use sp_std::marker::PhantomData;
 
 	/// Provides factory methods for the `AssetKind` and the `Beneficiary` that are applicable for
 	/// the payout made by [`LocalPay`].
@@ -133,7 +140,7 @@ pub mod benchmarks {
 		for LocalPayArguments<PalletId>
 	{
 		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
-			VersionedLocatableAsset::V4 {
+			VersionedLocatableAsset::V5 {
 				location: Location::new(0, []),
 				asset_id: Location::new(
 					0,
@@ -143,7 +150,7 @@ pub mod benchmarks {
 			}
 		}
 		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocatableAccount {
-			VersionedLocatableAccount::V4 {
+			VersionedLocatableAccount::V5 {
 				location: Location::new(0, []),
 				account_id: Location::new(0, [AccountId32 { network: None, id: seed }]),
 			}

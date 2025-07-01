@@ -548,7 +548,8 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			messages.push(tests::GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
 		}
 
-		messages
+		//messages
+		todo!("FAIL-CI");
 	}
 
 	fn post_check(_: Self::RcPrePayload) {

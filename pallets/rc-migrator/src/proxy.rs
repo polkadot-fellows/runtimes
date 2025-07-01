@@ -89,7 +89,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				continue;
 			}
 
-			match Self::migrate_single(
+			/*FAIL-CI match Self::migrate_single(
 				acc.clone(),
 				(proxies.into_inner(), deposit),
 				weight_counter,
@@ -108,7 +108,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
-			}
+			}*/
 		}
 
 		// Send batch if we have any items

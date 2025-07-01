@@ -232,8 +232,9 @@ impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
 		let descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter()
 			.map(|(key, bounded_vec)| (key, bounded_vec.into_inner()))
 			.collect();
-		let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
-		(count, bounties, descriptions, approvals)
+		//let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
+		//(count, bounties, descriptions, approvals)
+		todo!("FAIL-CI");
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
