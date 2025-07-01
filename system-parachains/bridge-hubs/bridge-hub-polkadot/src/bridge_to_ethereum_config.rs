@@ -230,7 +230,7 @@ pub mod benchmark_helpers {
 pub mod migration {
 	#[cfg(feature = "try-runtime")]
 	use crate::{vec, Vec};
-	use frame_support::weights::Weight;
+	use frame_support::{pallet_prelude::OptionQuery, weights::Weight, Blake2_128Concat};
 	#[cfg(feature = "try-runtime")]
 	use hex_literal::hex;
 	use snowbridge_core::TokenId;
@@ -366,13 +366,22 @@ pub mod migration {
 		core::marker::PhantomData<T>,
 	);
 
+	#[frame_support::storage_alias]
+	pub type OldNativeToForeignId<T: snowbridge_pallet_system::Config> = StorageMap<
+		snowbridge_pallet_system::Pallet<T>,
+		Blake2_128Concat,
+		xcm::v4::Location,
+		TokenId,
+		OptionQuery,
+	>;
+
 	impl<T: snowbridge_pallet_system::Config> frame_support::traits::OnRuntimeUpgrade
 		for RemoveNativeToForeignId<T>
 	{
 		fn on_runtime_upgrade() -> Weight {
 			let mut weight: Weight = Weight::zero();
 
-			let res = snowbridge_pallet_system::NativeToForeignId::<T>::clear(32, None);
+			let res = OldNativeToForeignId::<T>::clear(32, None);
 			weight = weight.saturating_add(
 				T::DbWeight::get().reads_writes(res.loops as u64, res.backend as u64),
 			);
@@ -383,10 +392,7 @@ pub mod migration {
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
-			log::info!(
-				"Number of PNAs: {}",
-				snowbridge_pallet_system::NativeToForeignId::<T>::iter().count()
-			);
+			log::info!("Number of PNAs: {}", OldNativeToForeignId::<T>::iter().count());
 
 			Ok(Vec::new())
 		}
