@@ -427,7 +427,7 @@ fn construct_and_apply_extrinsic(
 }
 
 #[test]
-fn check_token_id_on_chain_derived_from_xcm_v4_is_same_as_value_derived_from_xcm_v5() {
+fn check_compatibility_for_token_id_stored_on_ethereum() {
 	pub struct RegisterTokenTestCase {
 		/// Input: Location of Polkadot-native token relative to BH
 		pub native: Location,
