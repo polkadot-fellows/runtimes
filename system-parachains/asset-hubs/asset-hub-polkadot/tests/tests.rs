@@ -46,7 +46,7 @@ use parachains_common::{
 };
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::traits::MaybeEquivalence;
+use sp_runtime::{traits::MaybeEquivalence, TryRuntimeError};
 use system_parachains_constants::{
 	kusama::consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, polkadot::fee::WeightToFee,
 };
@@ -786,4 +786,59 @@ fn xcm_payment_api_works() {
 		RuntimeOrigin,
 		Block,
 	>();
+}
+
+#[test]
+fn test_xcm_v4_to_v5_works() {
+	// Test some common XCM location patterns to ensure V4 -> V5 compatibility
+	let test_locations_v4 = vec![
+		// Relay chain
+		xcm::v4::Location::new(1, xcm::v4::Junctions::Here),
+		// Sibling parachain
+		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(1000)]),
+		// Asset on sibling parachain
+		xcm::v4::Location::new(
+			1,
+			[
+				xcm::v4::Junction::Parachain(1000),
+				xcm::v4::Junction::PalletInstance(50),
+				xcm::v4::Junction::GeneralIndex(1984),
+			],
+		),
+		// Global consensus location
+		xcm::v4::Location::new(
+			1,
+			[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
+		),
+	];
+
+	for v4_location in test_locations_v4 {
+		// Test V4 -> V5 conversion
+		let v5_location = xcm::v5::Location::try_from(v4_location.clone())
+			.map_err(|_| TryRuntimeError::Other("Failed to convert V4 location to V5"))
+			.unwrap();
+
+		// Test that we can encode/decode V5 location
+		let encoded = v5_location.encode();
+		let decoded = xcm::v5::Location::decode(&mut &encoded[..])
+			.map_err(|_| TryRuntimeError::Other("Failed to decode V5 location"))
+			.unwrap();
+
+		assert_eq!(v5_location, decoded, "V5 location encode/decode round-trip failed");
+
+		// Test V4 encoded -> V5 decoded compatibility
+		let encoded_v4 = v4_location.encode();
+		let decoded_v5 = xcm::v5::Location::decode(&mut &encoded_v4[..])
+			.map_err(|_| TryRuntimeError::Other("Failed to decode V4 encoded location as V5"))
+			.unwrap();
+
+		// try-from is compatible
+		assert_eq!(
+			decoded_v5, v5_location,
+			"V4 encoded -> V5 decoded should match try_from conversion"
+		);
+
+		// encode/decode is compatible
+		assert_eq!(encoded_v4, decoded_v5.encode(), "V4 encoded should match V5 re-encoded");
+	}
 }

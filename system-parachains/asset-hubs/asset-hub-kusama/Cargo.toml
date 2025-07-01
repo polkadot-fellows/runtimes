@@ -96,7 +96,6 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 assets-common = { workspace = true }
 
@@ -156,7 +155,6 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -198,7 +196,6 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
-	"system-parachains-common/try-runtime",
 ]
 std = [
 	"assets-common/std",
@@ -274,7 +271,6 @@ std = [
 	"sp-version/std",
 	"sp-weights/std",
 	"substrate-wasm-builder",
-	"system-parachains-common/std",
 	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
