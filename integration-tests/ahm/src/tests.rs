@@ -505,13 +505,17 @@ async fn scheduled_migration_works() {
 	});
 	ah.commit_all().unwrap();
 
+	let mut start = 0u32.into();
+	let mut cool_off_end = 0u32.into();
+
 	// Schedule the migration on RC.
 	let dmp_messages = rc.execute_with(|| {
 		log::info!("Scheduling the migration on RC");
 		next_block_rc();
 
 		let now = frame_system::Pallet::<Polkadot>::block_number();
-		let scheduled_at = now + 2;
+		start = now + 2;
+		cool_off_end = start + 3;
 
 		// Fellowship Origin
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
@@ -521,24 +525,31 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
-		assert_ok!(RcMigrator::schedule_migration(origin.into(), DispatchTime::At(scheduled_at)));
+		assert_ok!(RcMigrator::schedule_migration(
+			origin.into(),
+			DispatchTime::At(start),
+			DispatchTime::At(cool_off_end),
+		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { block_number: scheduled_at }
+			RcMigrationStage::Scheduled { start, cool_off_end }
 		);
 
 		next_block_rc();
 		// migrating not yet started
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { block_number: scheduled_at }
+			RcMigrationStage::Scheduled { start, cool_off_end }
 		);
 		assert_eq!(DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID).len(), 0);
 
 		next_block_rc();
 
-		// migration started
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
+		// migration is waiting for AH to acknowledge the start
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::WaitingForAh { cool_off_end }
+		);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(dmp_messages.len() > 0);
 
@@ -577,10 +588,36 @@ async fn scheduled_migration_works() {
 	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
+
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::WaitingForAh { cool_off_end }
+		);
 
 		next_block_rc();
 
+		// cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { cool_off_end }
+		);
+
+		next_block_rc();
+
+		// still cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { cool_off_end }
+		);
+
+		next_block_rc();
+
+		// starting
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Starting);
+
+		next_block_rc();
+
+		// accounts migration init
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
 			RcMigrationStage::AccountsMigrationInit
