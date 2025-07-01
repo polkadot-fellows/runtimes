@@ -60,10 +60,12 @@ impl<T: Config> Pallet<T> {
 
 		match message {
 			RcSchedulerMessage::IncompleteSince(block_number) => {
-				pallet_scheduler::IncompleteSince::<T>::put(block_number);
+				//pallet_scheduler::IncompleteSince::<T>::put(block_number);
+				todo!("FAIL-CI");
 			},
 			RcSchedulerMessage::Retries((task_address, retry_config)) => {
-				pallet_scheduler::Retries::<T>::insert(task_address, retry_config);
+				//pallet_scheduler::Retries::<T>::insert(task_address, retry_config);
+				todo!("FAIL-CI");
 			},
 			RcSchedulerMessage::Lookup((task_name, task_address)) => {
 				pallet_rc_migrator::scheduler::alias::Lookup::<T>::insert(task_name, task_address);
@@ -184,11 +186,12 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			.expect("Failed to decode RcPrePayload bytes");
 
 		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
-		assert_eq!(
+		/*assert_eq!(
 			pallet_scheduler::IncompleteSince::<T>::get(),
 			rc_payload.incomplete_since,
 			"IncompleteSince on Asset Hub should match the RC value"
-		);
+		);*/
+		todo!("FAIL-CI");
 
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct
 		// expected Agendas. Critically, use the passed agenda call encodings to remove reliance
@@ -292,10 +295,11 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		);
 
 		// Assert storage 'Scheduler::Retries::ah_post::correct'
-		assert_eq!(
+		/*assert_eq!(
 			pallet_scheduler::Retries::<T>::iter().collect::<Vec<_>>(),
 			rc_payload.retries,
 			"Retries map value on Asset Hub should match the RC value"
-		);
+		);*/
+		todo!("FAIL-CI");
 	}
 }

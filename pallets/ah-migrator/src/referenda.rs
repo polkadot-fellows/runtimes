@@ -123,14 +123,15 @@ impl<T: Config> Pallet<T> {
 					}
 					// TODO: use referenda block provider
 					let now = frame_system::Pallet::<T>::block_number();
-					ReferendumInfoFor::<T, ()>::insert(
+					/*ReferendumInfoFor::<T, ()>::insert(
 						id,
 						ReferendumInfo::Cancelled(
 							now,
 							Some(status.submission_deposit),
 							status.decision_deposit,
 						),
-					);
+					);*/
+					todo!("FAIL-CI");
 					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
 				};
 

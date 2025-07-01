@@ -123,8 +123,17 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
 >;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
@@ -153,8 +162,18 @@ pub enum PalletEventName {
 }
 
 /// The migration stage on the Asset Hub.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum MigrationStage {
 	/// The migration has not started but will start in the future.
 	#[default]
@@ -184,8 +203,18 @@ impl MigrationStage {
 }
 
 /// Helper struct storing certain balances before the migration.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub struct BalancesBefore<Balance: Default> {
 	pub checking_account: Balance,
 	pub total_issuance: Balance,
@@ -317,8 +346,7 @@ pub mod pallet {
 		/// We need to inject this here to be able to convert it. The message type is require to
 		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter
-			+ IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+		type RcStakingMessage: Get<u32>; // FAIL-CI Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
@@ -967,11 +995,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Xcm,
-					#[cfg(feature = "stable2503")]
-					fallback_max_weight: None,
-					#[cfg(not(feature = "stable2503"))]
-					// TODO: just big enough weight to work for all calls; remove with xcm5
-					require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
+					fallback_max_weight: None, // TODO @muharem: please check
 					call: call.encode().into(),
 				},
 			]);

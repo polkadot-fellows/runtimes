@@ -18,8 +18,18 @@ use crate::*;
 use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 
 /// Stage of the scheduler pallet migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum TreasuryStage {
 	#[default]
 	ProposalCount,
@@ -36,8 +46,7 @@ pub enum TreasuryStage {
 }
 
 /// Message that is being sent to the AH Migrator.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
 pub enum RcTreasuryMessage<
 	AccountId,
 	Balance,

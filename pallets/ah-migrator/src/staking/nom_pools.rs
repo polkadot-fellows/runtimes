@@ -104,13 +104,15 @@ impl<T: Config> Pallet<T> {
 		if let Some(ref mut throttle_from) = pool.commission.throttle_from {
 			// Plus one here to be safe for the pool member just in case that the pool operator
 			// would like to enact commission rate changes immediately.
-			*throttle_from = Self::rc_to_ah_timepoint(*throttle_from).saturating_add(One::one());
+			//*throttle_from = Self::rc_to_ah_timepoint(*throttle_from).saturating_add(One::one());
+			todo!("FAIL-CI");
 		}
 		if let Some(ref mut change_rate) = pool.commission.change_rate {
 			// We cannot assume how this conversion works, but adding one will ensure that we err on
 			// the side of pool-member safety in case of rounding.
-			change_rate.min_delay =
-				T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
+			//change_rate.min_delay =
+			//	T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
+			todo!("FAIL-CI");
 		}
 
 		pool
@@ -375,9 +377,10 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 		// Assert storage "NominationPools::ReversePoolIdLookup::ah_post::consistent"
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::correct"
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::consistent"
-		assert_eq!(
+		/*assert_eq!(
 			rc_pre_payload, ah_filtered,
 			"Assert storage 'NominationPools::Metadata::ah_post::correct'"
-		);
+		);*/
+		todo!("FAIL-CI");
 	}
 }

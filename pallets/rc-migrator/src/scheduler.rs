@@ -20,8 +20,18 @@ pub use frame_system::pallet_prelude::BlockNumberFor as SchedulerBlockNumberFor;
 use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Stage of the scheduler pallet migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum SchedulerStage<BlockNumber> {
 	#[default]
 	IncompleteSince,
@@ -31,8 +41,9 @@ pub enum SchedulerStage<BlockNumber> {
 }
 
 /// Message that is being sent to the AH Migrator.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode, DecodeWithMemTracking, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq,
+)]
 pub enum RcSchedulerMessage<BlockNumber> {
 	IncompleteSince(BlockNumber),
 	Retries((TaskAddress<BlockNumber>, RetryConfig<BlockNumber>)),
@@ -246,8 +257,17 @@ pub mod alias {
 
 	/// Information regarding an item to be executed in the future.
 	// FROM: https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/scheduler/src/lib.rs#L148
-	#[derive(Clone, RuntimeDebug, Encode, Decode, MaxEncodedLen, TypeInfo, PartialEq, Eq)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	#[derive(
+		Clone,
+		RuntimeDebug,
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		MaxEncodedLen,
+		TypeInfo,
+		PartialEq,
+		Eq,
+	)]
 	pub struct Scheduled<Call, BlockNumber, PalletsOrigin> {
 		/// The unique identity for this task, if there is one.
 		pub maybe_id: Option<TaskName>,

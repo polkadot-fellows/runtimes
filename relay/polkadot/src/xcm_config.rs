@@ -23,7 +23,6 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Everything, Nothing},
 	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;

@@ -21,8 +21,18 @@ use pallet_bounties::{Bounty, BountyIndex};
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// The stages of the bounties pallet data migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum BountiesStage {
 	#[default]
 	BountyCount,
@@ -182,8 +192,17 @@ pub mod alias {
 	/// A bounty proposal.
 	///
 	/// Alias of [pallet_bounties::Bounty].
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	#[derive(
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		Clone,
+		PartialEq,
+		Eq,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+	)]
 	pub struct Bounty<AccountId, Balance, BlockNumber> {
 		/// The account proposing it.
 		pub proposer: AccountId,

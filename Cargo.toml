@@ -6,10 +6,10 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
-pallet-ah-migrator = { path = "pallets/ah-migrator" }
-pallet-rc-migrator = { path = "pallets/rc-migrator" }
-pallet-ah-ops = { path = "pallets/ah-ops" }
-system-parachains-common = { path = "system-parachains/common" }
+pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
+pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
+pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
+system-parachains-common = { path = "system-parachains/common", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 impl-trait-for-tuples = { version = "0.2.2" }
 rand = { version = "0.8.5", default-features = false }

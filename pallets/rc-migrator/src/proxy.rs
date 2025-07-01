@@ -36,8 +36,7 @@ type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 	/// The account that is delegating to their proxy.
 	pub delegator: AccountId,
@@ -54,8 +53,7 @@ pub type RcProxyOf<T, ProxyType> =
 pub(crate) type RcProxyLocalOf<T> = RcProxyOf<T, <T as pallet_proxy::Config>::ProxyType>;
 
 /// A deposit that was taken for a proxy announcement.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcProxyAnnouncement<AccountId, Balance> {
 	pub depositor: AccountId,
 	pub deposit: Balance,
