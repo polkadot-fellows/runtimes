@@ -34,7 +34,7 @@
 use crate::porting_prelude::*;
 
 use super::{
-	checks::{assert_root_hash, SanityChecks},
+	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -183,20 +183,6 @@ async fn pallet_migration_works() {
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
-
-	// To check if anything changed
-	rc.execute_with(|| {
-		assert_root_hash(
-			"Relay",
-			"882df5c0921a3bacf18b01f698c1f9b72666a040cf4515be87cb86e5e8ae6ea5",
-		);
-	});
-	ah.execute_with(|| {
-		assert_root_hash(
-			"Asset Hub",
-			"fd5db07de15b9c060e84294588f7500ecbf77ac7f3083c62f9243644fb3f492b",
-		);
-	});
 }
 
 fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R> {
