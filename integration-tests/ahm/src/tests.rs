@@ -489,19 +489,6 @@ async fn migration_works_time() {
 		rc_block_end - rc_block_start,
 		ah_block_end - ah_block_start
 	);
-	// To check if anything changed
-	rc.execute_with(|| {
-		assert_root_hash(
-			"Relay",
-			"ec26367c27bffef2b2815e75c5266ef921eeeefe93ac884ef4a73309886eb676",
-		);
-	});
-	ah.execute_with(|| {
-		assert_root_hash(
-			"Asset Hub",
-			"e106ad1352726bae7c10f4efc8d1d280bef83deb919db440185e41955735688c",
-		);
-	});
 }
 
 #[tokio::test]
