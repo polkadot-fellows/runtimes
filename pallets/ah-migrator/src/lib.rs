@@ -349,11 +349,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type AhMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
 
-	/// The total number of XCM data messages processed from the Relay Chain and the number of XCM
-	/// messages that encountered an error during processing.
-	#[pallet::storage]
-	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
-
 	/// Helper storage item to store the total balance / total issuance of native token at the start
 	/// of the migration. Since teleports are disabled during migration, the total issuance will not
 	/// change for other reason than the migration itself.
@@ -395,7 +390,6 @@ pub mod pallet {
 		FailedToCalculateCheckingAccount,
 		/// Vector did not fit into its compile-time bound.
 		FailedToBoundVector,
-		Unreachable,
 		/// The DMP queue priority is already set to the same value.
 		DmpQueuePriorityAlreadySet,
 		/// Invalid parameter.
@@ -483,11 +477,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_accounts(accounts);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_accounts(accounts).map_err(Into::into)
 		}
 
 		/// Receive multisigs from the Relay Chain.
@@ -503,11 +493,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_multisigs(accounts);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_multisigs(accounts).map_err(Into::into)
 		}
 
 		/// Receive proxies from the Relay Chain.
@@ -519,11 +505,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_proxies(proxies);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_proxies(proxies).map_err(Into::into)
 		}
 
 		/// Receive proxy announcements from the Relay Chain.
@@ -535,11 +517,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_proxy_announcements(announcements);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
 		}
 
 		#[pallet::call_index(4)]
@@ -558,11 +536,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_preimage_chunks(chunks);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
 		}
 
 		#[pallet::call_index(5)]
@@ -573,11 +547,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_preimage_request_statuses(request_status);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
 		}
 
 		#[pallet::call_index(6)]
@@ -588,11 +558,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_preimage_legacy_statuses(legacy_status);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
 		}
 
 		#[pallet::call_index(7)]
@@ -603,11 +569,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_nom_pools_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(8)]
@@ -618,11 +580,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_vesting_schedules(schedules);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_vesting_schedules(schedules).map_err(Into::into)
 		}
 
 		#[pallet::call_index(9)]
@@ -633,11 +591,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_fast_unstake_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
 		}
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
@@ -645,20 +599,24 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_referenda_values())]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
-			referendum_count: u32,
-			// track_id, count
-			deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
-			// referendum_id, votes
-			track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+			mut values: Vec<(
+				// referendum_count
+				u32,
+				// deciding_count (track_id, count)
+				Vec<(TrackIdOf<T, ()>, u32)>,
+				// track_queue (referendum_id, votes)
+				Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+			)>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res =
-				Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue);
+			ensure!(values.len() == 1, Error::<T>::InvalidParameter);
 
-			Self::increment_msg_received_count(res.is_err());
+			let (referendum_count, deciding_count, track_queue) =
+				values.pop().ok_or(Error::<T>::InvalidParameter)?;
 
-			res.map_err(Into::into)
+			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
+				.map_err(Into::into)
 		}
 
 		/// Receive referendums from the Relay Chain.
@@ -694,11 +652,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_referendums(referendums);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_referendums(referendums).map_err(Into::into)
 		}
 		#[pallet::call_index(12)]
 		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
@@ -708,11 +662,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_claims(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_claims(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(13)]
@@ -723,11 +673,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_bags_list_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(14)]
@@ -738,11 +684,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_scheduler_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(15)]
@@ -753,11 +695,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_indices(indices);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_indices(indices).map_err(Into::into)
 		}
 
 		#[pallet::call_index(16)]
@@ -768,11 +706,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_conviction_voting_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
 		#[pallet::call_index(17)]
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
@@ -782,11 +716,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_bounties_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_bounties_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(18)]
@@ -797,11 +727,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_asset_rates(rates);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_asset_rates(rates).map_err(Into::into)
 		}
 		#[pallet::call_index(19)]
 		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
@@ -811,11 +737,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_crowdloan_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(20)]
@@ -826,11 +748,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_referenda_metadata(metadata);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_referenda_metadata(metadata).map_err(Into::into)
 		}
 		#[pallet::call_index(21)]
 		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
@@ -840,11 +758,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_treasury_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_treasury_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(22)]
@@ -873,11 +787,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_scheduler_agenda_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_scheduler_agenda_messages(messages).map_err(Into::into)
 		}
 
 		#[cfg(feature = "ahm-staking-migration")]
@@ -889,11 +799,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_staking_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_staking_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.
@@ -974,21 +880,6 @@ pub mod pallet {
 			if Self::is_ongoing() {
 				Self::force_dmp_queue_priority(now);
 			}
-
-			let (processed, _) = DmpDataMessageCounts::<T>::get();
-			if processed == 0 {
-				return;
-			}
-			log::info!(
-				target: LOG_TARGET,
-				"Sending XCM message to update XCM data message processed count: {}",
-				processed
-			);
-			let res = Self::send_xcm(types::RcMigratorCall::UpdateAhMsgProcessedCount(processed));
-			defensive_assert!(
-				res.is_ok(),
-				"Failed to send XCM message to update XCM data message processed count"
-			);
 		}
 
 		fn integrity_test() {
@@ -1031,20 +922,6 @@ pub mod pallet {
 			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
-		}
-
-		/// Increments the number of XCM messages received from the Relay Chain.
-		fn increment_msg_received_count(with_error: bool) {
-			let (processed, processed_with_error) = DmpDataMessageCounts::<T>::get();
-			let processed = processed + 1;
-			let processed_with_error = processed_with_error + if with_error { 1 } else { 0 };
-			DmpDataMessageCounts::<T>::put((processed, processed_with_error));
-			log::debug!(
-				target: LOG_TARGET,
-				"Increment XCM message processed, total processed: {}, failed: {}",
-				processed,
-				processed_with_error
-			);
 		}
 
 		/// Execute a stage transition and log it.

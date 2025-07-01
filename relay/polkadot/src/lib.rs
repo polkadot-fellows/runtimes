@@ -1533,6 +1533,7 @@ parameter_types! {
 	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
 	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
+	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
@@ -1544,6 +1545,8 @@ impl Contains<Location> for ContainsAssetHub {
 }
 
 impl pallet_rc_migrator::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeEvent = RuntimeEvent;
 	type ManagerOrigin = EitherOfDiverse<
@@ -1566,6 +1569,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
 	type OnDemandPalletId = OnDemandPalletId;
 	type UnprocessedMsgBuffer = ConstU32<5>;
+	type XcmResponseTimeout = XcmResponseTimeout;
 	// TODO: set actual message queue instance when upgraded to sdk/2503
 	type MessageQueue = ();
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;

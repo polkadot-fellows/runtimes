@@ -61,7 +61,7 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 }
 
 impl<T: Config> ReferendaMigrator<T> {
-	fn migrate_values(_weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
+	fn migrate_values(weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Migrating referenda values");
 
 		let referendum_count = ReferendumCount::<T, ()>::take();
@@ -81,13 +81,14 @@ impl<T: Config> ReferendaMigrator<T> {
 			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
 
-		Pallet::<T>::send_xcm_and_track(
-			types::AhMigratorCall::<T>::ReceiveReferendaValues {
-				referendum_count,
-				deciding_count,
-				track_queue,
-			},
-			T::AhWeightInfo::receive_referenda_values(),
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
+		batch.push((referendum_count, deciding_count, track_queue));
+		weight_counter.consume(batch.consume_weight());
+
+		Pallet::<T>::send_chunked_xcm_and_track(
+			batch,
+			|batch| types::AhMigratorCall::<T>::ReceiveReferendaValues { values: batch },
+			|_| T::AhWeightInfo::receive_referenda_values(),
 		)?;
 
 		Ok(())
