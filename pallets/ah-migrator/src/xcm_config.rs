@@ -30,10 +30,8 @@ use xcm::latest::prelude::*;
 use xcm_builder::{AllowExplicitUnpaidExecutionFrom, IsSiblingSystemParachain};
 use xcm_executor::traits::{Properties, ShouldExecute};
 
-#[cfg(feature = "ahm-polkadot")]
+#[cfg(not(feature = "ahm-kusama"))]
 use polkadot_runtime_constants::system_parachain;
-#[cfg(feature = "ahm-westend")]
-use westend_runtime_constants::system_parachain;
 
 pub mod common {
 	use super::*;
@@ -127,10 +125,8 @@ mod before {
 
 	#[cfg(feature = "ahm-kusama")]
 	use kusama_runtime_constants::TREASURY_PALLET_ID;
-	#[cfg(feature = "ahm-polkadot")]
+	#[cfg(not(feature = "ahm-kusama"))]
 	use polkadot_runtime_constants::TREASURY_PALLET_ID;
-	#[cfg(feature = "ahm-westend")]
-	use westend_runtime_constants::TREASURY_PALLET_ID;
 
 	parameter_types! {
 		pub RelayTreasuryLocation: Location =

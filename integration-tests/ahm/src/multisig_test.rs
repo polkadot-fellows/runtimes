@@ -55,7 +55,6 @@ pub struct MultisigSummary {
 	pub call_hash: [u8; 32],
 }
 
-#[cfg(feature = "ahm-polkadot")]
 impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 	// sample multisig info
 	// The sample multisig is created on the relay chain before migration.
@@ -90,7 +89,6 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 	}
 }
 
-#[cfg(feature = "ahm-polkadot")]
 impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 	// sample multisig info
 	// The sample multisig is created on the relay chain before migration and then recreated on
@@ -139,7 +137,6 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 	}
 }
 
-#[cfg(feature = "ahm-polkadot")]
 impl MultisigsAccountIdStaysTheSame {
 	// Create a sample multisig on the Relay chain.
 	fn create_sample_multisig_rc() -> MultisigSummary {
