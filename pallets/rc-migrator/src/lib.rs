@@ -101,6 +101,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
+	delegated_staking::{DelegatedStakingMigrator, DelegatedStakingStage},
 	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
@@ -286,6 +287,12 @@ pub enum MigrationStage<
 	},
 	FastUnstakeMigrationDone,
 
+	DelegatedStakingMigrationInit,
+	DelegatedStakingMigrationOngoing {
+		next_key: Option<DelegatedStakingStage<AccountId>>,
+	},
+	DelegatedStakingMigrationDone,
+
 	IndicesMigrationInit,
 	IndicesMigrationOngoing {
 		next_key: Option<()>,
@@ -445,6 +452,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
+		+ pallet_delegated_staking::Config
 		+ pallet_xcm::Config
 	{
 		/// The overall runtime origin type.
@@ -1308,6 +1316,38 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::FastUnstakeMigrationDone => {
+					Self::transition(MigrationStage::DelegatedStakingMigrationInit);
+				},
+				MigrationStage::DelegatedStakingMigrationInit => {
+					Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::DelegatedStakingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match DelegatedStakingMigrator::<T>::migrate_many(next_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::DelegatedStakingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating delegated staking: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::DelegatedStakingMigrationDone => {
 					Self::transition(MigrationStage::IndicesMigrationInit);
 				},
 				MigrationStage::IndicesMigrationInit => {

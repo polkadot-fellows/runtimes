@@ -88,6 +88,7 @@ type RcChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
 	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<Polkadot>,
+	pallet_rc_migrator::staking::delegated_staking::DelegatedStakingMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
@@ -124,6 +125,7 @@ type AhChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
 	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<AssetHub>,
+	pallet_rc_migrator::staking::delegated_staking::DelegatedStakingMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)

@@ -86,7 +86,10 @@ use pallet_rc_migrator::{
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*, *},
+	staking::{
+		bags_list::RcBagsListMessage, delegated_staking::RcDelegatedStakingMessageOf,
+		fast_unstake::RcFastUnstakeMessage, nom_pools::*, *,
+	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
@@ -159,6 +162,7 @@ pub enum PalletEventName {
 	ConvictionVoting,
 	AssetRates,
 	Staking,
+	DelegatedStaking,
 }
 
 /// The migration stage on the Asset Hub.
@@ -249,6 +253,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
+		+ pallet_delegated_staking::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -809,6 +814,17 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_scheduler_agenda_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(23)]
+		#[pallet::weight(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() as u32))]
+		pub fn receive_delegated_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcDelegatedStakingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
 		#[cfg(feature = "ahm-staking-migration")]
