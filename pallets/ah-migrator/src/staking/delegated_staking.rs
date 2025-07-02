@@ -121,20 +121,20 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 				delegated_staking_alias::Delegations::<T>::get(delegation.delegator.clone());
 			assert!(
 				ah_delegation_maybe.is_some(),
-				"Delegation for delegator {} should exist on the Asset Hub after migration",
+				"Delegation for delegator {:?} should exist on the Asset Hub after migration",
 				delegation.delegator
 			);
 			let ah_delegation = ah_delegation_maybe.unwrap();
 			assert_eq!(
 				ah_delegation.agent,
 				delegation.agent,
-				"Agent for delegation of delegator {} should be the same on the Asset Hub after migration",
+				"Agent for delegation of delegator {:?} should be the same on the Asset Hub after migration",
 				delegation.delegator
 			);
 			assert_eq!(
 				ah_delegation.amount,
 				delegation.amount,
-				"Amount for delegation of delegator {} should be the same on the Asset Hub after migration",
+				"Amount for delegation of delegator {:?} should be the same on the Asset Hub after migration",
 				delegation.delegator
 			);
 		}
@@ -145,32 +145,32 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 				delegated_staking_alias::AgentLedgers::<T>::get(agent_ledger.agent.clone());
 			assert!(
 				ah_agent_ledger_maybe.is_some(),
-				"Agent ledger for agent {} should exist on the Asset Hub after migration",
+				"Agent ledger for agent {:?} should exist on the Asset Hub after migration",
 				agent_ledger.agent
 			);
 			let ah_agent_ledger = ah_agent_ledger_maybe.unwrap();
 			assert_eq!(
 				ah_agent_ledger.payee,
 				agent_ledger.payee,
-				"Payee for agent ledger of agent {} should be the same on the Asset Hub after migration",
+				"Payee for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
 				agent_ledger.agent
 			);
 			assert_eq!(
 				ah_agent_ledger.total_delegated,
 				agent_ledger.total_delegated,
-				"Total delegated for agent ledger of agent {} should be the same on the Asset Hub after migration",
+				"Total delegated for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
 				agent_ledger.agent
 			);
 			assert_eq!(
 				ah_agent_ledger.unclaimed_withdrawals,
 				agent_ledger.unclaimed_withdrawals,
-				"Unclaimed withdrawals for agent ledger of agent {} should be the same on the Asset Hub after migration",
+				"Unclaimed withdrawals for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
 				agent_ledger.agent
 			);
 			assert_eq!(
 				ah_agent_ledger.pending_slash,
 				agent_ledger.pending_slash,
-				"Pending slash for agent ledger of agent {} should be the same on the Asset Hub after migration",
+				"Pending slash for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
 				agent_ledger.agent
 			);
 		}

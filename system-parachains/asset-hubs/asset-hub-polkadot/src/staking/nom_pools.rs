@@ -272,6 +272,7 @@ impl StakingUnchecked for StakingMock {
 		unimplemented!()
 	}
 
+	#[cfg(feature = "runtime-benchmarks")]
 	fn migrate_to_direct_staker(_who: &Self::AccountId) {
 		unimplemented!()
 	}
