@@ -117,7 +117,6 @@ pub struct RcToProxyType;
 impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 	fn try_convert(p: RcProxyType) -> Result<ProxyType, RcProxyType> {
 		use polkadot_runtime_constants::proxy::ProxyType::*;
-		todo!("FAIL-CI add stubs");
 
 		match p {
 			Any => Ok(ProxyType::Any),
@@ -125,9 +124,9 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			Governance => Ok(ProxyType::Governance),
 			Staking => Ok(ProxyType::Staking),
 			CancelProxy => Ok(ProxyType::CancelProxy),
-			Auction => Err(p), // Does not exist on PAH
+			Auction => Ok(ProxyType::OldAuction),
 			NominationPools => Ok(ProxyType::NominationPools),
-			ParaRegistration => Err(p), // Does not exist on PAH
+			ParaRegistration => Ok(ProxyType::OldParaRegistration),
 		}
 	}
 }

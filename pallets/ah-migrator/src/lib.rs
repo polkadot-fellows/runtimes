@@ -341,13 +341,6 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		/// Messaging type that the staking migration uses.
-		///
-		/// We need to inject this here to be able to convert it. The message type is require to
-		/// also be able to convert messages from Relay to Asset Hub format.
-		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Get<u32>; // FAIL-CI Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
-
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
 

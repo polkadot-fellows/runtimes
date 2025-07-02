@@ -523,6 +523,14 @@ pub enum ProxyType {
 	///
 	/// Contains the `NominationPools` and `Utility` pallets.
 	NominationPools,
+	/// Placeholder variant for old migrated `Auction` proxy type from the Relay chain.
+	///
+	/// Cannot do anything.
+	OldAuction,
+	/// Placeholder variant for old migrated `ParaRegistration` proxy type from the Relay chain.
+	///
+	/// Cannot do anything.
+	OldParaRegistration,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -534,6 +542,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
+			ProxyType::OldAuction | ProxyType::OldParaRegistration => false,
 			ProxyType::NonTransfer => !matches!(
 				c,
 				RuntimeCall::Balances { .. } |

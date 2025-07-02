@@ -451,7 +451,7 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			BalanceOf<T>,
 			T::RewardCounter,
 			<T as frame_system::Config>::AccountId,
-			BlockNumberFor<T>,
+			pallet_nomination_pools::BlockNumberFor<T>,
 		>,
 	>;
 
@@ -566,8 +566,7 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			messages.push(tests::GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
 		}
 
-		//messages
-		todo!("FAIL-CI");
+		messages
 	}
 
 	fn post_check(_: Self::RcPrePayload) {

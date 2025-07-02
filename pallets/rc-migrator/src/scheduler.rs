@@ -101,8 +101,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 				},
 				SchedulerStage::Retries(last_key) => {
 					let mut iter = if let Some(last_key) = last_key {
-						//pallet_scheduler::Retries::<T>::iter_from_key(last_key)
-						todo!("FAIL-CI");
+						pallet_scheduler::Retries::<T>::iter_from_key(last_key)
 					} else {
 						pallet_scheduler::Retries::<T>::iter()
 					};
@@ -110,8 +109,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 						Some((key, value)) => {
 							pallet_scheduler::Retries::<T>::remove(&key);
 							messages.push(RcSchedulerMessage::Retries((key, value)));
-							//SchedulerStage::Retries(Some(key))
-							todo!("FAIL-CI");
+							SchedulerStage::Retries(Some(key))
 						},
 						None => SchedulerStage::Lookup(None),
 					}
@@ -125,9 +123,8 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					match iter.next() {
 						Some((key, value)) => {
 							alias::Lookup::<T>::remove(&key);
-							//messages.push(RcSchedulerMessage::Lookup((key, value)));
-							//SchedulerStage::Lookup(Some(key))
-							todo!("FAIL-CI");
+							messages.push(RcSchedulerMessage::Lookup((key, value)));
+							SchedulerStage::Lookup(Some(key))
 						},
 						None => SchedulerStage::Finished,
 					}
@@ -139,12 +136,11 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			/*Pallet::<T>::send_chunked_xcm_and_track(
+			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveSchedulerMessages { messages },
 				|len| T::AhWeightInfo::receive_scheduler_lookup(len),
-			)?;*/
-			todo!("FAIL-CI");
+			)?;
 		}
 
 		if last_key == SchedulerStage::Finished {

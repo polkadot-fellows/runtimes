@@ -205,7 +205,6 @@ fn max_message_queue_service_weight_is_more_than_beacon_extrinsic_weights() {
 	max_message_queue_weight.all_gt(submit_checkpoint);
 }
 
-// FAIL-CI @bkontur can you help me to check why it's exceeding the weight limits?
 #[test]
 fn ethereum_client_consensus_extrinsics_work() {
 	ethereum_extrinsic(collator_session_keys(), 1013, construct_and_apply_extrinsic);
