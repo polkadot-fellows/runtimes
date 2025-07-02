@@ -308,7 +308,7 @@ pub enum MigrationStage<
 		last_key: Option<scheduler::SchedulerStage<SchedulerBlockNumber>>,
 	},
 	SchedulerAgendaMigrationOngoing {
-		last_key: Option<BlockNumber>,
+		last_key: Option<SchedulerBlockNumber>,
 	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,

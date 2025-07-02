@@ -16,7 +16,7 @@
 
 use super::*;
 use frame_support::traits::schedule::v3::TaskName;
-pub use frame_system::pallet_prelude::BlockNumberFor as SchedulerBlockNumberFor;
+pub use pallet_scheduler::BlockNumberFor as SchedulerBlockNumberFor;
 use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Stage of the scheduler pallet migration.
@@ -160,7 +160,7 @@ pub struct SchedulerAgendaMigrator<T: Config> {
 }
 
 impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
-	type Key = BlockNumberFor<T>;
+	type Key = pallet_scheduler::BlockNumberFor<T>;
 	type Error = Error<T>;
 	fn migrate_many(
 		mut last_key: Option<Self::Key>,
