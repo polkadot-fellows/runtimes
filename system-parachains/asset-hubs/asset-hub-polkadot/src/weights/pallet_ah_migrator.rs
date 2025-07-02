@@ -512,7 +512,7 @@ impl<T: frame_system::Config> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
+	fn receive_delegated_staking_messages(_n: u32, ) -> Weight {
 		todo!()
 	}
 	/// Storage: `System::Account` (r:255 w:255)

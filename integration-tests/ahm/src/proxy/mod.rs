@@ -75,7 +75,7 @@ impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permissio
 	fn try_convert(
 		proxy: asset_hub_polkadot_runtime::ProxyType,
 	) -> Result<Self, asset_hub_polkadot_runtime::ProxyType> {
-		use asset_hub_polkadot_runtime::ProxyType::*;
+		use asset_hub_polkadot_runtime::ProxyType::*; // FAIL-CI
 
 		Ok(match proxy {
 			Any => Permission::Any,

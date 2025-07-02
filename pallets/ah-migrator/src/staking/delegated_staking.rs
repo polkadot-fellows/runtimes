@@ -40,7 +40,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Self::deposit_event(Event::BatchProcessed {
-			pallet: PalletEventName::Treasury,
+			pallet: PalletEventName::DelegatedStaking,
 			count_good,
 			count_bad,
 		});
