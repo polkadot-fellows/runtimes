@@ -51,17 +51,6 @@ impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
 	}
 }
 
-fn has_mem_tracking<T: DecodeWithMemTracking>() -> bool {
-	true
-}
-
-fn other() {
-	has_mem_tracking::<frame_support::traits::Bounded<RuntimeCall, BlakeTwo256>>();
-	has_mem_tracking::<pallet_conviction_voting::Tally<u128, frame_support::traits::ActiveIssuanceOf<pallet_balances::Pallet<Runtime>, sp_runtime::AccountId32>>>();
-	has_mem_tracking::<RcPalletsOrigin>();
-	has_mem_tracking::<pallet_ah_migrator::referenda::RcReferendumInfoOf<Runtime, ()>>();
-}
-
 /// Relay Chain Hold Reason
 #[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcHoldReason {
@@ -128,6 +117,7 @@ pub struct RcToProxyType;
 impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 	fn try_convert(p: RcProxyType) -> Result<ProxyType, RcProxyType> {
 		use polkadot_runtime_constants::proxy::ProxyType::*;
+		todo!("FAIL-CI add stubs");
 
 		match p {
 			Any => Ok(ProxyType::Any),

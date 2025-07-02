@@ -895,6 +895,16 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
+/* let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+							// ensure new era is not planned when starting migration.
+							if current_era > active_era {
+								defensive!("New era is planned, migration cannot start until it is completed");
+								Self::transition(MigrationStage::Pending);
+								return weight_counter.consumed();
+							}
+								*/ // FAIL-CI staking check
+
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh { cool_off_end });

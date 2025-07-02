@@ -239,7 +239,7 @@ pub mod pallet {
 		+ pallet_nomination_pools::Config
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
-		+ pallet_scheduler::Config
+		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
