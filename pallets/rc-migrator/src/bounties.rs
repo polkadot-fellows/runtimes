@@ -235,7 +235,7 @@ pub type RcPrePayload<T> = (
 	BountyIndex,
 	Vec<(
 		BountyIndex,
-		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
+		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, pallet_treasury::BlockNumberFor<T>>,
 	)>,
 	Vec<(BountyIndex, Vec<u8>)>,
 	Vec<BountyIndex>,
@@ -251,9 +251,8 @@ impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
 		let descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter()
 			.map(|(key, bounded_vec)| (key, bounded_vec.into_inner()))
 			.collect();
-		//let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
-		//(count, bounties, descriptions, approvals)
-		todo!("FAIL-CI");
+		let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
+		(count, bounties, descriptions, approvals)
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {

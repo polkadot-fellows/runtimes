@@ -133,12 +133,11 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 
 		// Assert storage 'Bounties::Bounties::ah_post::correct'
 		// Assert storage 'Bounties::Bounties::ah_post::consistent'
-		/*assert_eq!(
+		assert_eq!(
 			pallet_bounties::Bounties::<T>::iter().collect::<Vec<_>>(),
 			rc_bounties,
 			"Bounties map value on Asset Hub should match the RC value"
-		);*/
-		todo!("FAIL-CI");
+		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::length'
 		assert_eq!(

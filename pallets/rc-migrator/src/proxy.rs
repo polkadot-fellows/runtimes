@@ -22,7 +22,6 @@ use frame_support::traits::Currency;
 extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
-use frame_system::pallet_prelude::BlockNumberFor;
 
 pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -47,7 +46,7 @@ pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 }
 
 pub type RcProxyOf<T, ProxyType> =
-	RcProxy<AccountIdOf<T>, BalanceOf<T>, ProxyType, BlockNumberFor<T>>;
+	RcProxy<AccountIdOf<T>, BalanceOf<T>, ProxyType, pallet_proxy::BlockNumberFor<T>>;
 
 /// A RcProxy in Relay chain format, can only be understood by the RC and must be translated first.
 pub(crate) type RcProxyLocalOf<T> = RcProxyOf<T, <T as pallet_proxy::Config>::ProxyType>;
@@ -87,7 +86,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				continue;
 			}
 
-			/*FAIL-CI match Self::migrate_single(
+			match Self::migrate_single(
 				acc.clone(),
 				(proxies.into_inner(), deposit),
 				weight_counter,
@@ -106,7 +105,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
-			}*/
+			}
 		}
 
 		// Send batch if we have any items
@@ -131,7 +130,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
 		(proxies, deposit): (
-			Vec<pallet_proxy::ProxyDefinition<T::AccountId, T::ProxyType, BlockNumberFor<T>>>,
+			Vec<pallet_proxy::ProxyDefinition<T::AccountId, T::ProxyType, pallet_proxy::BlockNumberFor<T>>>,
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,

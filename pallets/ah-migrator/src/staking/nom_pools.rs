@@ -375,10 +375,9 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 		// Assert storage "NominationPools::ReversePoolIdLookup::ah_post::consistent"
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::correct"
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::consistent"
-		/*assert_eq!(
+		assert_eq!(
 			rc_pre_payload, ah_filtered,
 			"Assert storage 'NominationPools::Metadata::ah_post::correct'"
-		);*/
-		todo!("FAIL-CI");
+		);
 	}
 }

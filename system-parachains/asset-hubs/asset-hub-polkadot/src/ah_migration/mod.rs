@@ -411,6 +411,6 @@ impl
 		let beneficiary =
 			VersionedLocatableAccount::V4 { location: xcm::v4::Location::here(), account_id: beneficiary };
 		Ok((asset_kind, beneficiary))*/
-		todo!("FAIL-CI")
+		todo!("FAIL-CI @muharem please fix the XCM convert V4 vs V5 stuff here")
 	}
 }
