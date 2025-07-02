@@ -100,8 +100,8 @@ where
 				account_id,
 			_ => return Err(()),
 		};
-		// FAIL-CI C::convert_location(account_id).ok_or(())
-		todo!("FIXME")
+		let account_id_v5 = account_id.clone().try_into().map_err(|_| ())?;
+		C::convert_location(&account_id_v5).ok_or(())
 	}
 	fn match_asset(asset: &VersionedLocatableAsset) -> Result<xcm::v4::Location, ()> {
 		match asset {
