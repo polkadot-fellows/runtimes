@@ -26,7 +26,9 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
-use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains};
+use parachains_common::xcm_config::{
+	AliasAccountId32FromSiblingSystemChain, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
+};
 use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_core::ConstU32;
@@ -158,9 +160,13 @@ parameter_types! {
 /// - KSM with the parent Relay Chain and sibling parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<KsmRelayLocation>;
 
-/// We allow locations to alias into their own child locations, as well as
-/// AssetHub to alias into anything.
-pub type Aliasers = (AliasChildLocation, AliasOriginRootUsingFilter<AssetHubLocation, Everything>);
+/// We allow locations to alias into their own child locations, allow AssetHub root to alias into
+/// anything, and allow same accounts to alias into each other across system chains.
+pub type Aliasers = (
+	AliasChildLocation,
+	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
+	AliasAccountId32FromSiblingSystemChain,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {

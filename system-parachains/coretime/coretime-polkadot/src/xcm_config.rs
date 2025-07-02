@@ -29,8 +29,8 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::xcm_config::{
-	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
-	RelayOrOtherSystemParachains,
+	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains, ConcreteAssetFromSystem,
+	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
@@ -213,9 +213,13 @@ pub type WaivedLocations = (
 	FellowsPlurality,
 );
 
-/// We allow locations to alias into their own child locations, as well as
-/// AssetHub to alias into anything.
-pub type Aliasers = (AliasChildLocation, AliasOriginRootUsingFilter<AssetHubLocation, Everything>);
+/// We allow locations to alias into their own child locations, allow AssetHub root to alias into
+/// anything, and allow same accounts to alias into each other across system chains.
+pub type Aliasers = (
+	AliasChildLocation,
+	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
+	AliasAccountId32FromSiblingSystemChain,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
