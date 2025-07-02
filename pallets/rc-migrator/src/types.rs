@@ -208,8 +208,8 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
-/// A wrapper around `Inner` that routes messages through `Inner` unless `Exception` is true and
-/// `MigrationState` is ongoing.
+/// A wrapper around `Inner` that routes messages through `Inner` unless `MigrationState` is ongoing
+/// and `Exception` returns true for the given destination and message.
 pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
 	PhantomData<(Inner, Exception, MigrationState)>,
 );
