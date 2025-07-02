@@ -97,15 +97,15 @@ impl Default for RcFreezeReason {
 
 pub struct RcToAhHoldReason;
 impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(rc_reason: RcHoldReason) -> RuntimeHoldReason {
-		match rc_reason {
-			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
-			// TODO: uncomment with the sdk upgrade
-			// RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
-			// RcHoldReason::Staking(_) =>
-			// RuntimeHoldReason::Staking(pallet_staking_async::HoldReason::Staking),
-			_ => RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage),
-		}
+	fn convert(_: RcHoldReason) -> RuntimeHoldReason {
+		todo!("This is wrong");
+		//match rc_hold_reason {
+			//RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
+			//RcHoldReason::DelegatedStaking(inner) => {
+			//	RuntimeHoldReason::DelegatedStaking(inner)
+			//},
+			//RcHoldReason::Staking(_) => RuntimeHoldReason::Staking(pallet_staking_async::HoldReason::Staking),
+		//}
 	}
 }
 
