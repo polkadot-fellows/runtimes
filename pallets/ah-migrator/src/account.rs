@@ -19,12 +19,6 @@
 
 use crate::*;
 use frame_support::traits::DefensiveSaturating;
-use pallet_rc_migrator::accounts::{
-	tests::{BalanceSummary, ChainType},
-	AccountsMigrationChecker,
-};
-#[cfg(feature = "std")]
-use std::collections::BTreeMap;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_accounts(
@@ -217,6 +211,14 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 }
+
+#[cfg(feature = "std")]
+use pallet_rc_migrator::accounts::{
+	tests::{BalanceSummary, ChainType},
+	AccountsMigrationChecker,
+};
+#[cfg(feature = "std")]
+use std::collections::BTreeMap;
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
