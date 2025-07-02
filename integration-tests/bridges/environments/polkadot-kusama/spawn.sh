@@ -46,6 +46,9 @@ if [[ $init -eq 1 ]]; then
   kusama_init_pid=$!
   wait -n $polkadot_init_pid $kusama_init_pid
 
+  run_zndsl ${BASH_SOURCE%/*}/polkadot-init.zndsl $polkadot_dir
+  run_zndsl ${BASH_SOURCE%/*}/kusama-init.zndsl $kusama_dir
+
   $helper_script init-asset-hub-polkadot-local >> $polkadot_init_log 2>&1 &
   polkadot_init_pid=$!
   $helper_script init-asset-hub-kusama-local >> $kusama_init_log 2>&1 &
@@ -57,9 +60,6 @@ if [[ $init -eq 1 ]]; then
   $helper_script init-bridge-hub-kusama-local >> $kusama_init_log 2>&1 &
   kusama_init_pid=$!
   wait -n $polkadot_init_pid $kusama_init_pid
-
-  run_zndsl ${BASH_SOURCE%/*}/polkadot-init.zndsl $polkadot_dir
-  run_zndsl ${BASH_SOURCE%/*}/kusama-init.zndsl $kusama_dir
 fi
 
 if [[ $start_relayer -eq 1 ]]; then
