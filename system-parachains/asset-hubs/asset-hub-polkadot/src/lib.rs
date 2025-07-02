@@ -84,6 +84,7 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
+use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -128,9 +129,9 @@ use xcm::{
 	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
-	DotLocation, DotLocationV4, FellowshipLocation, ForeignAssetsConvertedConcreteId,
+	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
 	ForeignCreatorsSovereignAccountOf, GovernanceLocation, PoolAssetsConvertedConcreteId,
-	StakingPot, TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV4,
+	StakingPot, TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
 	XcmOriginToTransactDispatchOrigin,
 };
 
@@ -302,7 +303,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
 		NativeAndAssets,
-		DotLocationV4,
+		DotLocation,
 		ResolveAssetTo<StakingPot, NativeAndAssets>,
 	>;
 	type WeightToFee = WeightToFee;
@@ -373,22 +374,22 @@ pub type ForeignAssetsInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = xcm::v4::Location;
-	type AssetIdParameter = xcm::v4::Location;
+	type AssetId = Location;
+	type AssetIdParameter = Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
 		(
-			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v4::Location>,
+			FromSiblingParachain<parachain_info::Pallet<Runtime>, Location>,
 			FromNetwork<
 				xcm_config::UniversalLocation,
 				xcm_config::bridging::to_ethereum::EthereumNetwork,
-				xcm::v4::Location,
+				Location,
 			>,
 			xcm_config::bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
-		xcm::v4::Location,
+		Location,
 	>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ForeignAssetsAssetDeposit;
@@ -781,9 +782,9 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type AssetId = xcm::v4::Location;
+	type AssetId = Location;
 	type OnChargeAssetTransaction = pallet_asset_conversion_tx_payment::SwapAssetAdapter<
-		DotLocationV4,
+		DotLocation,
 		NativeAndAssets,
 		AssetConversion,
 		ResolveAssetTo<StakingPot, NativeAndAssets>,
@@ -916,11 +917,11 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 	Assets,
 	ForeignAssets,
 	LocalFromLeft<
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV4, xcm::v4::Location>,
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation, Location>,
 		AssetIdForTrustBackedAssets,
-		xcm::v4::Location,
+		Location,
 	>,
-	xcm::v4::Location,
+	Location,
 	AccountId,
 >;
 
@@ -928,8 +929,8 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 pub type NativeAndAssets = fungible::UnionOf<
 	Balances,
 	LocalAndForeignAssets,
-	TargetFromLeft<DotLocationV4, xcm::v4::Location>,
-	xcm::v4::Location,
+	TargetFromLeft<DotLocation, Location>,
+	Location,
 	AccountId,
 >;
 
@@ -941,20 +942,18 @@ parameter_types! {
 	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
 }
 
-pub type PoolIdToAccountId = pallet_asset_conversion::AccountIdConverter<
-	AssetConversionPalletId,
-	(xcm::v4::Location, xcm::v4::Location),
->;
+pub type PoolIdToAccountId =
+	pallet_asset_conversion::AccountIdConverter<AssetConversionPalletId, (Location, Location)>;
 
 impl pallet_asset_conversion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type HigherPrecisionBalance = sp_core::U256;
-	type AssetKind = xcm::v4::Location;
+	type AssetKind = Location;
 	type Assets = NativeAndAssets;
 	type PoolId = (Self::AssetKind, Self::AssetKind);
 	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
-		DotLocationV4,
+		DotLocation,
 		AccountId,
 		Self::AssetKind,
 		PoolIdToAccountId,
@@ -962,7 +961,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
-	type PoolSetupFeeAsset = DotLocationV4;
+	type PoolSetupFeeAsset = DotLocation;
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = ConstU32<3>;
@@ -972,7 +971,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
-		DotLocationV4,
+		DotLocation,
 		parachain_info::Pallet<Runtime>,
 		xcm_config::TrustBackedAssetsPalletIndex,
 		Self::AssetKind,
@@ -1092,12 +1091,12 @@ impl
 		seed: u32,
 	) -> (AssetConversionAssetIdFor<Runtime>, AssetConversionAssetIdFor<Runtime>) {
 		// Use a different parachain' foreign assets pallet so that the asset is indeed foreign.
-		let asset_id = xcm::v4::Location::new(
+		let asset_id = Location::new(
 			1,
 			[
-				xcm::v4::Junction::Parachain(3000),
-				xcm::v4::Junction::PalletInstance(53),
-				xcm::v4::Junction::GeneralIndex(seed.into()),
+				Junction::Parachain(3000),
+				Junction::PalletInstance(53),
+				Junction::GeneralIndex(seed.into()),
 			],
 		);
 		(asset_id.clone(), asset_id)
@@ -1120,7 +1119,7 @@ impl
 		let _ = Balances::deposit_creating(&lp_provider, u64::MAX.into());
 		assert_ok!(ForeignAssets::mint_into(asset_id.clone(), &lp_provider, u64::MAX.into()));
 
-		let token_native = Box::new(DotLocationV4::get());
+		let token_native = Box::new(DotLocation::get());
 		let token_second = Box::new(asset_id);
 
 		assert_ok!(AssetConversion::create_pool(
@@ -1182,8 +1181,8 @@ mod benches {
 	use frame_benchmarking::BenchmarkError;
 
 	use xcm::latest::prelude::{
-		Asset, Assets as XcmAssets, Fungible, Here, InteriorLocation, Junction, Junction::*,
-		Location, NetworkId, NonFungible, Parent, ParentThen, Response, XCM_VERSION,
+		Asset, Assets as XcmAssets, Fungible, Here, InteriorLocation, Junction, Location,
+		NetworkId, NonFungible, Parent, ParentThen, Response, XCM_VERSION,
 	};
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -1379,12 +1378,12 @@ mod benches {
 		}
 
 		fn worst_case_asset_exchange() -> Result<(XcmAssets, XcmAssets), BenchmarkError> {
-			let native_asset_location = xcm::v4::Location::parent();
-			let native_asset_id = xcm::v4::AssetId(native_asset_location.clone());
+			let native_asset_location = Location::parent();
+			let native_asset_id = AssetId(native_asset_location.clone());
 			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
 			let origin = RuntimeOrigin::signed(account.clone());
-			let asset_location = xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(2001)]);
-			let asset_id = xcm::v4::AssetId(asset_location.clone());
+			let asset_location = Location::new(1, [Junction::Parachain(2001)]);
+			let asset_id = AssetId(asset_location.clone());
 
 			// We set everything up, initial amounts, liquidity pools, liquidity...
 			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
@@ -1425,10 +1424,8 @@ mod benches {
 				account,
 			));
 
-			let native_asset_id_latest: AssetId = native_asset_id.try_into().unwrap();
-			let asset_id_latest: AssetId = asset_id.try_into().unwrap();
-			let give_assets: XcmAssets = (native_asset_id_latest, 500 * UNITS).into();
-			let receive_assets: XcmAssets = (asset_id_latest, 660 * UNITS).into();
+			let give_assets: XcmAssets = (native_asset_id, 500 * UNITS).into();
+			let receive_assets: XcmAssets = (asset_id, 660 * UNITS).into();
 
 			Ok((give_assets, receive_assets))
 		}
@@ -1814,10 +1811,10 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, xcm::v4::Location> for Runtime {
+	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, Location> for Runtime {
 		fn quote_price_exact_tokens_for_tokens(
-			asset1: xcm::v4::Location,
-			asset2: xcm::v4::Location,
+			asset1: Location,
+			asset2: Location,
 			amount: Balance,
 			include_fee: bool,
 		) -> Option<Balance> {
@@ -1830,8 +1827,8 @@ impl_runtime_apis! {
 		}
 
 		fn quote_price_tokens_for_exact_tokens(
-			asset1: xcm::v4::Location,
-			asset2: xcm::v4::Location,
+			asset1: Location,
+			asset2: Location,
 			amount: Balance,
 			include_fee: bool,
 		) -> Option<Balance> {
@@ -1844,8 +1841,8 @@ impl_runtime_apis! {
 		}
 
 		fn get_reserves(
-			asset1: xcm::v4::Location,
-			asset2: xcm::v4::Location,
+			asset1: Location,
+			asset2: Location,
 		) -> Option<(Balance, Balance)> {
 			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
