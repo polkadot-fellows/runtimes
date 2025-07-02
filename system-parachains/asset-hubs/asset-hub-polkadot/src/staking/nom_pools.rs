@@ -261,7 +261,7 @@ impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
 }
 
 impl StakingUnchecked for StakingMock {
-	fn migrate_to_virtual_staker(_who: &Self::AccountId) {
+	fn migrate_to_virtual_staker(_who: &Self::AccountId) -> DispatchResult {
 		unimplemented!("FAIL-CI")
 	}
 

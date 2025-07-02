@@ -89,8 +89,8 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
 		match rc_hold_reason {
 			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
-			RcHoldReason::StateTrieMigration(_) => unimplemented!("FAIL-CI state trie migration"),
-			RcHoldReason::DelegatedStaking(_) => unimplemented!("FAIL-CI delegated staking"),
+			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
+			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
 		}
 	}
 }
