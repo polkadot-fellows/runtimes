@@ -68,13 +68,17 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
-		referendum_count: u32,
-		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
-		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		values: Vec<(
+			// referendum_count
+			u32,
+			// deciding_count (track_id, count)
+			Vec<(TrackIdOf<T, ()>, u32)>,
+			// track_queue (referendum_id, votes)
+			Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		)>,
 	},
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
@@ -87,17 +91,14 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 17)]
 	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 19)]
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 22)]

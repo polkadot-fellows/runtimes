@@ -59,8 +59,6 @@ pub enum RcTreasuryMessage<
 	// LastSpendPeriod(BlockNumber),
 	Funds,
 }
-
-#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,

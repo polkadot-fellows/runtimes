@@ -256,7 +256,6 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
 		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
 		// added DOT ED to all existing AH accounts.
 		// This is fine, we can just ignore/accept this small amount.
-		#[cfg(not(feature = "ahm-westend"))]
 		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
 
 		let mut ah_pre_payload = BTreeMap::new();
