@@ -60,7 +60,6 @@ use xcm_builder::{
 	WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
-pub const ASSET_HUB_ID: u32 = 1000;
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
