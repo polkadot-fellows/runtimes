@@ -26,14 +26,14 @@ use crate::{
 use assets_common::{matching::FromSiblingParachain, AssetIdForTrustBackedAssetsConvert};
 #[cfg(feature = "runtime-benchmarks")]
 use benchmark_helpers::DoNothingRouter;
+use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
+use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use frame_support::{parameter_types, traits::EitherOf};
 use frame_system::EnsureRootWithSuccess;
 use parachains_common::AssetIdForTrustBackedAssets;
+use snowbridge_runtime_common::{ForeignAssetOwner, LocalAssetOwner};
 use xcm::prelude::{Asset, InteriorLocation, Location, PalletInstance, Parachain};
 use xcm_executor::XcmExecutor;
-use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
-use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
-use snowbridge_runtime_common::{ForeignAssetOwner, LocalAssetOwner};
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {

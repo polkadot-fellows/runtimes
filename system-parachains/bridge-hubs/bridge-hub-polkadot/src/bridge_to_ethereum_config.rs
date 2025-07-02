@@ -20,9 +20,9 @@ use crate::{
 	Balances, EthereumInboundQueue, EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem,
 	EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
 };
+use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
 use bp_bridge_hub_polkadot::snowbridge::{
 	CreateAssetCall, InboundQueuePalletInstance, InboundQueueV2PalletInstance, Parameters,
-	SystemFrontendPalletInstance,
 };
 pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
 use frame_support::{parameter_types, traits::Contains, weights::ConstantMultiplier};
@@ -58,7 +58,6 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	snowbridge_pallet_outbound_queue_v2::Pallet<Runtime>,
 	snowbridge_core::AgentIdOf,
 	EthereumSystemV2,
-	AssetHubParaId,
 >;
 
 parameter_types! {
