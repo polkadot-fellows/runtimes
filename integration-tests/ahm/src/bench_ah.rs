@@ -64,13 +64,6 @@ fn test_bench_receive_multisigs() {
 }
 
 #[test]
-fn test_bench_on_finalize() {
-	new_test_ext().execute_with(|| {
-		test_on_finalize::<AssetHub>();
-	});
-}
-
-#[test]
 fn test_bench_receive_proxy_proxies() {
 	new_test_ext().execute_with(|| {
 		test_receive_proxy_proxies::<AssetHub>(BENCHMARK_N);
@@ -249,5 +242,19 @@ fn test_bench_receive_preimage_legacy_status() {
 fn test_bench_receive_preimage_request_status() {
 	new_test_ext().execute_with(|| {
 		test_receive_preimage_request_status::<AssetHub>(BENCHMARK_N);
+	});
+}
+
+#[test]
+fn test_bench_force_dmp_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_force_dmp_queue_priority::<AssetHub>();
+	});
+}
+
+#[test]
+fn test_bench_set_dmp_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_set_dmp_queue_priority::<AssetHub>();
 	});
 }

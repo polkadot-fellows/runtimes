@@ -69,13 +69,17 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
-		referendum_count: u32,
-		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
-		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		values: Vec<(
+			// referendum_count
+			u32,
+			// deciding_count (track_id, count)
+			Vec<(TrackIdOf<T, ()>, u32)>,
+			// track_queue (referendum_id, votes)
+			Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		)>,
 	},
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
@@ -88,17 +92,14 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 17)]
 	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 19)]
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 22)]
@@ -206,14 +207,6 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
-/// A weight that is zero if the migration is ongoing, otherwise it is the default weight.
-pub struct ZeroWeightOr<Status, Default>(PhantomData<(Status, Default)>);
-impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr<Status, Default> {
-	fn get() -> Weight {
-		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
-	}
-}
-
 /// A wrapper around `Inner` that routes messages through `Inner` unless `Exception` is true and
 /// `MigrationState` is ongoing.
 pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
@@ -249,6 +242,91 @@ impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueue
 
 	fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
 		Inner::get_messages()
+	}
+}
+
+// TODO: replace by pallet_message_queue::ForceSetHead once the 2503 merged from master.
+/// Allows to force the processing head to a specific queue.
+pub trait ForceSetHead<O> {
+	/// Set the `ServiceHead` to `origin`.
+	///
+	/// This function:
+	/// - `Err`: Queue did not exist, not enough weight or other error.
+	/// - `Ok(true)`: The service head was updated.
+	/// - `Ok(false)`: The service head was not updated since the queue is empty.
+	fn force_set_head(weight: &mut WeightMeter, origin: &O) -> Result<bool, ()>;
+}
+
+impl<O> ForceSetHead<O> for () {
+	fn force_set_head(_weight: &mut WeightMeter, _origin: &O) -> Result<bool, ()> {
+		Ok(true)
+	}
+}
+
+/// The priority of the DMP/UMP queue during migration.
+///
+/// Controls how the DMP (Downward Message Passing) or UMP (Upward Message Passing) queue is
+/// processed relative to other queues during the migration process. This helps ensure timely
+/// processing of migration messages. The default priority pattern is defined in the pallet
+/// configuration, but can be overridden by a storage value of this type.
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+pub enum QueuePriority<BlockNumber: Copy> {
+	/// Use the default priority pattern from the pallet configuration.
+	#[default]
+	Config,
+	/// Override the default priority pattern from the configuration.
+	/// The tuple (priority_blocks, round_robin_blocks) defines how many blocks to prioritize
+	/// DMP queue processing vs normal round-robin processing.
+	OverrideConfig(BlockNumber, BlockNumber),
+	/// Disable DMP queue priority processing entirely.
+	Disabled,
+}
+
+impl<BlockNumber: Copy> QueuePriority<BlockNumber> {
+	pub fn get_priority_blocks(&self) -> Option<BlockNumber> {
+		match self {
+			QueuePriority::Config => None,
+			QueuePriority::OverrideConfig(priority_blocks, _) => Some(*priority_blocks),
+			QueuePriority::Disabled => None,
+		}
+	}
+}
+
+/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
+pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftOrRight<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+	}
+}
+
+/// A weight that is `Weight::MAX` if the migration is ongoing, otherwise it is the [`Inner`]
+/// weight of the [`pallet_fast_unstake::weights::WeightInfo`] trait.
+pub struct MaxOnIdleOrInner<Status, Inner>(PhantomData<(Status, Inner)>);
+impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
+	pallet_fast_unstake::weights::WeightInfo for MaxOnIdleOrInner<Status, Inner>
+{
+	fn on_idle_unstake(b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_unstake(b))
+	}
+	fn on_idle_check(v: u32, b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_check(v, b))
+	}
+	fn register_fast_unstake() -> Weight {
+		Inner::register_fast_unstake()
+	}
+	fn deregister() -> Weight {
+		Inner::deregister()
+	}
+	fn control() -> Weight {
+		Inner::control()
 	}
 }
 

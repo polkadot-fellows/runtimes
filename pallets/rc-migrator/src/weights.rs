@@ -58,6 +58,11 @@ pub trait WeightInfo {
 	fn start_data_migration() -> Weight;
 	fn send_chunked_xcm_and_track() -> Weight;
 	fn update_ah_msg_processed_count() -> Weight;
+	fn receive_query_response() -> Weight;
+	fn resend_xcm() -> Weight;
+	fn set_unprocessed_msg_buffer() -> Weight;
+	fn set_ah_ump_queue_priority() -> Weight;
+	fn force_ah_ump_queue_priority() -> Weight;
 }
 
 /// Weights for `pallet_rc_migrator` using the Substrate node and recommended hardware.
@@ -147,6 +152,21 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+	fn receive_query_response() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn resend_xcm() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_unprocessed_msg_buffer() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
 }
 
 // For backwards compatibility and tests.
@@ -234,5 +254,23 @@ impl WeightInfo for () {
 		Weight::from_parts(9_000_000, 1493)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
+
+	fn receive_query_response() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+
+	fn resend_xcm() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+
+	fn set_unprocessed_msg_buffer() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
 	}
 }

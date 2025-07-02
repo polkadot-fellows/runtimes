@@ -24,10 +24,8 @@ use frame_support::{
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
 
-#[cfg(feature = "ahm-polkadot")]
+#[cfg(not(feature = "ahm-kusama"))]
 use polkadot_runtime_constants::system_parachain::*;
-#[cfg(feature = "ahm-westend")]
-use westend_runtime_constants::system_parachain::*;
 
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();

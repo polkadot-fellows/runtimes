@@ -32,9 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,11 +48,9 @@ pub use pallet::*;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod xcm_config;
 
@@ -65,7 +61,6 @@ use crate::{
 	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
 };
 use accounts::AccountsMigrator;
-#[cfg(not(feature = "ahm-westend"))]
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
 	pallet_prelude::*,
@@ -86,18 +81,23 @@ use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-#[cfg(not(feature = "ahm-westend"))]
-use polkadot_runtime_common::claims as pallet_claims;
 use polkadot_runtime_common::{
-	crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
+	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
 };
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
 use referenda::ReferendaStage;
+use runtime_parachains::{
+	hrmp,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+};
 use sp_core::{crypto::Ss58Codec, H256};
-use sp_runtime::AccountId32;
+use sp_runtime::{
+	traits::{BadOrigin, One, Zero},
+	AccountId32,
+};
 use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
@@ -105,17 +105,13 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
-use types::PalletMigration;
+pub use types::{
+	ForceSetHead, MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority,
+};
 use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
-
-#[cfg(feature = "ahm-polkadot")]
-use runtime_parachains::hrmp;
-// For westend
-#[cfg(feature = "ahm-westend")]
-use polkadot_runtime_parachains::hrmp;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -169,13 +165,37 @@ pub enum MigrationStage<
 	Pending,
 	/// The migration has been scheduled to start at the given block number.
 	Scheduled {
-		block_number: BlockNumber,
+		/// The block number at which the migration will start.
+		///
+		/// The block number at which we notify the Asset Hub about the start of the migration and
+		/// move to `WaitingForAH` stage. After we receive the confirmation, the Relay Chain will
+		/// enter the `CoolOff` stage and wait for the cool-off period to end (`cool_off_end`)
+		/// before starting to send the migration data to the Asset Hub.
+		start: BlockNumber,
+		/// The block number at which the cool-off period will end.
+		///
+		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// to the Asset Hub.
+		cool_off_end: BlockNumber,
 	},
 	/// The migration is waiting for confirmation from AH to go ahead.
 	///
 	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
 	/// receive the migration data.
-	WaitingForAh,
+	WaitingForAh {
+		/// The block number at which the cool-off period will end.
+		///
+		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// to the Asset Hub.
+		cool_off_end: BlockNumber,
+	},
+	CoolOff {
+		/// The block number at which the cool-off period will end.
+		///
+		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// to the Asset Hub.
+		cool_off_end: BlockNumber,
+	},
 	/// The migration is starting and initialization hooks are being executed.
 	Starting,
 	/// Initializing the account migration process.
@@ -195,10 +215,7 @@ pub enum MigrationStage<
 		last_key: Option<(AccountId, [u8; 32])>,
 	},
 	MultisigMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	ClaimsMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	ClaimsMigrationOngoing {
 		current_key: Option<ClaimsStage<AccountId>>,
 	},
@@ -280,10 +297,7 @@ pub enum MigrationStage<
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	BountiesMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	BountiesMigrationOngoing {
 		last_key: Option<bounties::BountiesStage>,
 	},
@@ -294,18 +308,12 @@ pub enum MigrationStage<
 		last_key: Option<AssetKind>,
 	},
 	AssetRateMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	CrowdloanMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	CrowdloanMigrationOngoing {
 		last_key: Option<crowdloan::CrowdloanStage>,
 	},
 	CrowdloanMigrationDone,
-
-	#[cfg(not(feature = "ahm-westend"))]
 	TreasuryMigrationInit,
-	#[cfg(not(feature = "ahm-westend"))]
 	TreasuryMigrationOngoing {
 		last_key: Option<treasury::TreasuryStage>,
 	},
@@ -363,17 +371,14 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
 			"skip-accounts" => MigrationStage::AccountsMigrationDone,
-			#[cfg(not(feature = "ahm-westend"))]
 			"crowdloan" => MigrationStage::CrowdloanMigrationInit,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
-			#[cfg(not(feature = "ahm-westend"))]
 			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			"indices" => MigrationStage::IndicesMigrationInit,
-			#[cfg(not(feature = "ahm-westend"))]
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
@@ -398,8 +403,10 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
-		+ pallet_balances::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason, Balance = u128>
-		+ hrmp::Config
+		+ pallet_balances::Config<
+			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			Balance = u128,
+		> + hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
@@ -415,13 +422,18 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
-		+ pallet_staking::Config // Not on westend
-		+ pallet_claims::Config // Not on westend
-		+ pallet_bounties::Config // Not on westend
-		+ pallet_treasury::Config // Not on westend
-		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
-		//+ pallet_staking_async_ah_client::Config // Only on westend
+		+ pallet_staking::Config
+		+ pallet_claims::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
+		+ pallet_xcm::Config
 	{
+		/// The overall runtime origin type.
+		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>
+			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>;
+		/// The overall runtime call type.
+		type RuntimeCall: From<Call<Self>> + IsType<<Self as pallet_xcm::Config>::RuntimeCall>;
+		/// The runtime hold reasons.
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -462,13 +474,35 @@ pub mod pallet {
 		type OnDemandPalletId: Get<PalletId>;
 		/// Maximum number of unprocessed DMP messages allowed before the RC migrator temporarily
 		/// pauses sending data messages to the Asset Hub.
-		/// 
-		/// The Asset Hub confirms processed message counts back to this pallet. Due to async backing,
-		/// there is typically a delay of 1-2 blocks before these confirmations are received by the
-		/// RC migrator.
+		///
+		/// The Asset Hub confirms processed message counts back to this pallet. Due to async
+		/// backing, there is typically a delay of 1-2 blocks before these confirmations are
+		/// received by the RC migrator.
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
+		///
+		/// This configuration can be overridden by a storage item [`UnprocessedMsgBuffer`].
 		type UnprocessedMsgBuffer: Get<u32>;
+
+		/// The timeout for the XCM response.
+		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
+
+		/// Means to force a next queue within the UMPs from different parachains.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+
+		/// The priority pattern for AH UMP queue processing during migration
+		/// [Config::MessageQueue].
+		///
+		/// This configures how frequently the AH UMP queue gets priority over other UMP queues.
+		/// The tuple (ah_ump_priority_blocks, round_robin_blocks) defines a repeating cycle where:
+		/// - `ah_ump_priority_blocks` consecutive blocks: AH UMP queue gets priority
+		/// - `round_robin_blocks` consecutive blocks: round-robin processing of all queues
+		/// - Then the cycle repeats
+		///
+		/// For example, (18, 2) means a cycle of 20 blocks that repeats.
+		///
+		/// This configuration can be overridden by a storage item [`AhUmpQueuePriorityConfig`].
+		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 	}
 
 	#[pallet::error]
@@ -485,6 +519,18 @@ pub mod pallet {
 		BalanceOverflow,
 		/// Balance accounting underflow.
 		BalanceUnderflow,
+		/// The query response is invalid.
+		InvalidQueryResponse,
+		/// The xcm query was not found.
+		QueryNotFound,
+		/// Failed to send XCM message.
+		XcmSendError,
+		/// The migration stage is not reachable from the current stage.
+		UnreachableStage,
+		/// Invalid parameter.
+		InvalidParameter,
+		/// The AH UMP queue priority configuration is already set.
+		AhUmpQueuePriorityAlreadySet,
 	}
 
 	#[pallet::event]
@@ -510,6 +556,45 @@ pub mod pallet {
 		/// to understand. The finishing is immediate and affects all events happening
 		/// afterwards.
 		AssetHubMigrationFinished,
+		/// A query response has been received.
+		QueryResponseReceived {
+			/// The query ID.
+			query_id: u64,
+			/// The response.
+			response: MaybeErrorCode,
+		},
+		/// A XCM message has been resent.
+		XcmResendAttempt {
+			/// The query ID.
+			query_id: u64,
+			/// The error message.
+			send_error: Option<SendError>,
+		},
+		/// The unprocessed message buffer size has been set.
+		UnprocessedMsgBufferSet {
+			/// The new size.
+			new: u32,
+			/// The old size.
+			old: u32,
+		},
+		/// Whether the AH UMP queue was prioritized for the next block.
+		AhUmpQueuePrioritySet {
+			/// Indicates if AH UMP queue was successfully set as priority.
+			/// If `false`, it means we're in the round-robin phase of our priority pattern
+			/// (see [`Config::AhUmpQueuePriorityPattern`]), where no queue gets priority.
+			prioritized: bool,
+			/// Current block number within the pattern cycle (1 to period).
+			cycle_block: BlockNumberFor<T>,
+			/// Total number of blocks in the pattern cycle
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The AH UMP queue priority config was set.
+		AhUmpQueuePriorityConfigSet {
+			/// The old priority pattern.
+			old: AhUmpQueuePriority<BlockNumberFor<T>>,
+			/// The new priority pattern.
+			new: AhUmpQueuePriority<BlockNumberFor<T>>,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -527,13 +612,33 @@ pub mod pallet {
 	pub type RcMigratedBalance<T: Config> =
 		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
-	/// The total number of XCM data messages sent to the Asset Hub and the number of XCM messages
-	/// the Asset Hub has confirmed as processed.
+	/// The pending XCM messages.
 	///
-	/// The difference between these two numbers are the messages that are "in-flight". We aim to
-	/// keep this number low to not accidentally overload the asset hub.
+	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
+	/// The `QueryId` is the identifier from the [`pallet_xcm`] query handler registry. The XCM
+	/// pallet will notify about the status of the message by calling the
+	/// [`Pallet::receive_query_response`] function with the `QueryId` and the
+	/// response.
+	///
+	/// Unconfirmed messages can be resent by calling the [`Pallet::resend_xcm`] function.
 	#[pallet::storage]
-	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+	#[pallet::unbounded]
+	pub type PendingXcmMessages<T: Config> =
+		CountedStorageMap<_, Twox64Concat, QueryId, Xcm<()>, OptionQuery>;
+
+	/// The DMP queue priority.
+	#[pallet::storage]
+	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
+
+	/// The priority of the Asset Hub UMP queue during migration.
+	///
+	/// Controls how the Asset Hub UMP (Upward Message Passing) queue is processed relative to other
+	/// queues during the migration process. This helps ensure timely processing of migration
+	/// messages. The default priority pattern is defined in the pallet configuration, but can be
+	/// overridden by a storage value of this type.
+	#[pallet::storage]
+	pub type AhUmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, AhUmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -571,17 +676,26 @@ pub mod pallet {
 		}
 
 		/// Schedule the migration to start at a given moment.
+		///
+		/// ### Parameters:
+		/// - `start`: The block number at which the migration will start.
+		/// - `cool_off_end`: The block number at which the cool-off period will end.
+		///
+		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
-			start_moment: DispatchTime<BlockNumberFor<T>>,
+			start: DispatchTime<BlockNumberFor<T>>,
+			cool_off_end: DispatchTime<BlockNumberFor<T>>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
-			let block_number = start_moment.evaluate(now);
-			ensure!(block_number > now, Error::<T>::PastBlockNumber);
-			Self::transition(MigrationStage::Scheduled { block_number });
+			let start = start.evaluate(now);
+			let cool_off_end = cool_off_end.evaluate(now);
+			ensure!(start > now, Error::<T>::PastBlockNumber);
+			ensure!(cool_off_end > start, Error::<T>::PastBlockNumber);
+			Self::transition(MigrationStage::Scheduled { start, cool_off_end });
 			Ok(())
 		}
 
@@ -593,16 +707,127 @@ pub mod pallet {
 		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::transition(MigrationStage::Starting);
+			let cool_off_end = match RcMigrationStage::<T>::get() {
+				MigrationStage::WaitingForAh { cool_off_end } => cool_off_end,
+				stage => {
+					defensive!("start_data_migration called in invalid stage: {:?}", stage);
+					return Err(Error::<T>::UnreachableStage.into())
+				},
+			};
+			Self::transition(MigrationStage::CoolOff { cool_off_end });
 			Ok(())
 		}
 
-		/// Update the total number of XCM messages processed by the Asset Hub.
+		/// Receive a query response from the Asset Hub for a previously sent xcm message.
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::RcWeightInfo::update_ah_msg_processed_count())]
-		pub fn update_ah_msg_processed_count(origin: OriginFor<T>, count: u32) -> DispatchResult {
+		#[pallet::weight(T::RcWeightInfo::receive_query_response())]
+		pub fn receive_query_response(
+			origin: OriginFor<T>,
+			query_id: QueryId,
+			response: Response,
+		) -> DispatchResult {
+			match <T as Config>::ManagerOrigin::ensure_origin(origin.clone()) {
+				Ok(_) => {
+					// Origin is valid [`Config::ManagerOrigin`].
+				},
+				Err(_) => {
+					match <T as Config>::RuntimeOrigin::from(origin.clone()).into() {
+						Ok(pallet_xcm::Origin::Response(response_origin))
+							if response_origin == Location::new(0, Parachain(1000)) =>
+						{
+							// Origin is valid - this is a response from Asset Hub
+						},
+						_ => {
+							return Err(BadOrigin.into());
+						},
+					}
+				},
+			}
+
+			let response = match response {
+				Response::DispatchResult(maybe_error) => maybe_error,
+				_ => return Err(Error::<T>::InvalidQueryResponse.into()),
+			};
+
+			if matches!(response, MaybeErrorCode::Success) {
+				log::info!(
+					target: LOG_TARGET,
+					"Received success response for query id: {}",
+					query_id
+				);
+				PendingXcmMessages::<T>::remove(query_id);
+			} else {
+				log::error!(
+					target: LOG_TARGET,
+					"Received error response for query id: {}; response: {:?}",
+					query_id,
+					response.clone(),
+				);
+			}
+
+			Self::deposit_event(Event::<T>::QueryResponseReceived { query_id, response });
+
+			Ok(())
+		}
+
+		/// Resend a previously sent and unconfirmed XCM message.
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::RcWeightInfo::resend_xcm())]
+		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::update_msg_processed_count(count);
+
+			let xcm = PendingXcmMessages::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+
+			if let Err(err) = send_xcm::<T::SendXcm>(Location::new(0, Parachain(1000)), xcm) {
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				Self::deposit_event(Event::<T>::XcmResendAttempt {
+					query_id,
+					send_error: Some(err),
+				});
+			} else {
+				Self::deposit_event(Event::<T>::XcmResendAttempt { query_id, send_error: None });
+			}
+
+			Ok(Pays::No.into())
+		}
+
+		/// Set the unprocessed message buffer size.
+		///
+		/// `None` means to use the configuration value.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::RcWeightInfo::set_unprocessed_msg_buffer())]
+		pub fn set_unprocessed_msg_buffer(
+			origin: OriginFor<T>,
+			new: Option<u32>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let old = Self::get_unprocessed_msg_buffer_size();
+			UnprocessedMsgBuffer::<T>::set(new);
+			let new = Self::get_unprocessed_msg_buffer_size();
+			Self::deposit_event(Event::UnprocessedMsgBufferSet { new, old });
+			Ok(())
+		}
+
+		/// Set the AH UMP queue priority configuration.
+		///
+		/// Can only be called by the `ManagerOrigin`.
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::RcWeightInfo::set_ah_ump_queue_priority())]
+		pub fn set_ah_ump_queue_priority(
+			origin: OriginFor<T>,
+			new: AhUmpQueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let old = AhUmpQueuePriorityConfig::<T>::get();
+			if old == new {
+				return Err(Error::<T>::AhUmpQueuePriorityAlreadySet.into());
+			}
+			ensure!(
+				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				Error::<T>::InvalidParameter
+			);
+			AhUmpQueuePriorityConfig::<T>::put(new.clone());
+			Self::deposit_event(Event::AhUmpQueuePriorityConfigSet { old, new });
 			Ok(())
 		}
 	}
@@ -615,10 +840,27 @@ pub mod pallet {
 		crate::BalanceOf<T>:
 			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
 	{
+		fn integrity_test() {
+			let (ah_ump_priority_blocks, _) = T::AhUmpQueuePriorityPattern::get();
+			assert!(!ah_ump_priority_blocks.is_zero(), "the `ah_ump_priority_blocks` should be non-zero");
+		}
+
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if Self::is_ongoing() {
+				Self::force_ah_ump_queue_priority(now);
+			}
+		}
+
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut weight_counter = WeightMeter::with_limit(T::MaxRcWeight::get());
+
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
+
+			if stage.is_ongoing() {
+				// account the weight of `on_finalize` for the `force_ah_ump_queue_priority` job.
+				weight_counter.consume(T::RcWeightInfo::force_ah_ump_queue_priority());
+			}
 
 			if Self::has_excess_unconfirmed_dmp(&stage) {
 				log::info!(
@@ -632,11 +874,11 @@ pub mod pallet {
 				MigrationStage::Pending => {
 					return weight_counter.consumed();
 				},
-				MigrationStage::Scheduled { block_number } =>
-					if now >= block_number {
+				MigrationStage::Scheduled { start, cool_off_end } =>
+					if now >= start {
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
-								Self::transition(MigrationStage::WaitingForAh);
+								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
 							},
 							Err(_) => {
 								defensive!(
@@ -646,11 +888,23 @@ pub mod pallet {
 							},
 						}
 					},
-				MigrationStage::WaitingForAh => {
-					// waiting AH to send a message and to start sending the data. This stage may be
-					// skipped if AH is fast.
+				MigrationStage::WaitingForAh { .. } => {
+					// waiting AH to send a message and to start sending the data.
 					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
 					// We transition out here in `start_data_migration`
+					return weight_counter.consumed();
+				},
+				MigrationStage::CoolOff { cool_off_end } => {
+					// waiting for the cool-off period to end
+					if now >= cool_off_end {
+						Self::transition(MigrationStage::Starting);
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Waiting for the cool-off period to end, cool_off_end: {:?}",
+							cool_off_end,
+						);
+					}
 					return weight_counter.consumed();
 				},
 				MigrationStage::Starting => {
@@ -736,16 +990,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::MultisigMigrationDone => {
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::ClaimsMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::ClaimsMigrationDone);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::ClaimsMigrationInit => {
 					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::ClaimsMigrationOngoing { current_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match ClaimsMigrator::<T>::migrate_many(current_key, &mut weight_counter) {
@@ -1217,16 +1466,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::BountiesMigrationDone);
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::BountiesMigrationInit);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::BountiesMigrationInit => {
 					Self::transition(MigrationStage::BountiesMigrationOngoing { last_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::BountiesMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match bounties::BountiesMigrator::<T>::migrate_many(
@@ -1286,16 +1530,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::AssetRateMigrationDone => {
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::CrowdloanMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::CrowdloanMigrationDone);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::CrowdloanMigrationInit => {
 					Self::transition(MigrationStage::CrowdloanMigrationOngoing { last_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::CrowdloanMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match crowdloan::CrowdloanMigrator::<T>::migrate_many(
@@ -1323,16 +1562,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::CrowdloanMigrationDone => {
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::TreasuryMigrationInit);
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::TreasuryMigrationDone);
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::TreasuryMigrationInit => {
 					Self::transition(MigrationStage::TreasuryMigrationOngoing { last_key: None });
 				},
-				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::TreasuryMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match treasury::TreasuryMigrator::<T>::migrate_many(
@@ -1428,52 +1662,33 @@ pub mod pallet {
 			if !current.is_ongoing() {
 				return false;
 			}
-			let unprocessed_buffer = T::UnprocessedMsgBuffer::get();
-			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			if sent > (processed + unprocessed_buffer) {
+			let unprocessed_buffer = Self::get_unprocessed_msg_buffer_size();
+			let unconfirmed = PendingXcmMessages::<T>::count();
+			if unconfirmed > unprocessed_buffer {
 				log::info!(
 					target: LOG_TARGET,
-					"Excess unconfirmed XCM messages: sent = {}, processed = {}",
-					sent,
-					processed
+					"Excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
+					unconfirmed,
+					unprocessed_buffer
 				);
 				// TODO: make it possible to reset the counts with an extrinsic.
 				return true;
 			}
+			log::debug!(
+				target: LOG_TARGET,
+				"No excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
+				unconfirmed,
+				unprocessed_buffer
+			);
 			false
 		}
 
-		/// Increases the number of XCM messages sent to the Asset Hub.
-		fn increase_msg_sent_count(count: u32) {
-			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			let new_sent = sent + count;
-			DmpDataMessageCounts::<T>::put((new_sent, processed));
-			log::debug!(
-				target: LOG_TARGET,
-				"Increased XCM message sent count by {}; sent: {}, processed: {}",
-				count,
-				new_sent,
-				processed
-			);
-		}
-
-		/// Updates the number of XCM messages processed by the Asset Hub.
-		fn update_msg_processed_count(new_processed: u32) {
-			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			if processed > new_processed {
-				defensive!(
-					"Processed XCM message count is less than the new processed count: {}",
-					(processed, new_processed),
-				);
-				return;
+		/// Get the unprocessed message buffer size.
+		pub fn get_unprocessed_msg_buffer_size() -> u32 {
+			match UnprocessedMsgBuffer::<T>::get() {
+				Some(size) => size,
+				None => T::UnprocessedMsgBuffer::get(),
 			}
-			DmpDataMessageCounts::<T>::put((sent, new_processed));
-			log::info!(
-				target: LOG_TARGET,
-				"Updated XCM message processed count to {}; sent: {}",
-				new_processed,
-				sent,
-			);
 		}
 
 		/// Execute a stage transition and log it.
@@ -1482,7 +1697,12 @@ pub mod pallet {
 
 			if new == MigrationStage::Starting {
 				defensive_assert!(
-					matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }),
+					matches!(
+						old,
+						MigrationStage::WaitingForAh { .. } |
+							MigrationStage::Scheduled { .. } |
+							MigrationStage::CoolOff { .. }
+					),
 					"Data migration can only enter from WaitingForAh or Scheduled"
 				);
 				Self::deposit_event(Event::AssetHubMigrationStarted);
@@ -1504,6 +1724,10 @@ pub mod pallet {
 		/// Split up the items into chunks of `MAX_XCM_SIZE` and send them as separate XCM
 		/// transacts.
 		///
+		/// Sent messages are tracked and require confirmation from the Asset Hub before being
+		/// removed. If the number of unconfirmed messages exceeds the buffer limit, the migration
+		/// is paused.
+		///
 		/// ### Parameters:
 		/// - items - data items to batch and send with the `create_call`
 		/// - create_call - function to create the call from the items
@@ -1512,7 +1736,7 @@ pub mod pallet {
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
-		fn send_chunked_xcm<E: Encode>(
+		pub fn send_chunked_xcm_and_track<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
@@ -1525,8 +1749,20 @@ pub mod pallet {
 			while let Some(batch) = items.pop_front() {
 				let batch_len = batch.len() as u32;
 				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
-				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 
+				let asset_hub_location = Location::new(0, Parachain(1000));
+
+				let receive_notification_call =
+					Call::<T>::receive_query_response { query_id: 0, response: Default::default() };
+
+				let query_id = pallet_xcm::Pallet::<T>::new_notify_query(
+					asset_hub_location.clone(),
+					<T as Config>::RuntimeCall::from(receive_notification_call),
+					frame_system::Pallet::<T>::block_number() + T::XcmResponseTimeout::get(),
+					Location::here(),
+				);
+
+				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 				let message = Xcm(vec![
 					Instruction::UnpaidExecution {
 						weight_limit: WeightLimit::Unlimited,
@@ -1544,21 +1780,21 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
-						#[cfg(feature = "ahm-polkadot")]
 						require_weight_at_most: weight_at_most(batch_len),
-						#[cfg(feature = "ahm-westend")]
-						fallback_max_weight: Some(weight_at_most(batch_len)),
 						call: call.encode().into(),
 					},
+					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
+						destination: Location::parent(),
+						query_id,
+						max_weight: T::RcWeightInfo::receive_query_response(),
+					})])),
 				]);
 
-				if let Err(err) = send_xcm::<T::SendXcm>(
-					Location::new(0, [Junction::Parachain(1000)]),
-					message.clone(),
-				) {
+				if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, message.clone()) {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 					return Err(Error::XcmError);
 				} else {
+					PendingXcmMessages::<T>::insert(query_id, message);
 					batch_count += 1;
 				}
 			}
@@ -1597,10 +1833,7 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
-					#[cfg(feature = "ahm-polkadot")]
 					require_weight_at_most: weight_at_most,
-					#[cfg(feature = "ahm-westend")]
-					fallback_max_weight: Some(weight_at_most),
 					call: call.encode().into(),
 				},
 			]);
@@ -1616,41 +1849,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Decorates the `send_chunked_xcm` function by calling the `increase_msg_sent_count`
-		/// function with the number of XCM messages sent.
-		///
-		/// Check the `send_chunked_xcm` function for the documentation.
-		pub fn send_chunked_xcm_and_track<E: Encode>(
-			items: impl Into<XcmBatch<E>>,
-			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
-			weight_at_most: impl Fn(u32) -> Weight,
-		) -> Result<u32, Error<T>> {
-			match Self::send_chunked_xcm(items, create_call, weight_at_most) {
-				Ok(count) => {
-					Self::increase_msg_sent_count(count);
-					Ok(count)
-				},
-				Err(e) => Err(e),
-			}
-		}
-
-		/// Decorates the `send_xcm` function by calling the `increase_msg_sent_count` function
-		/// with the number of XCM messages sent.
-		///
-		/// Check the `send_xcm` function for the documentation.
-		pub fn send_xcm_and_track(
-			call: types::AhMigratorCall<T>,
-			weight_at_most: Weight,
-		) -> Result<u32, Error<T>> {
-			match Self::send_xcm(call, weight_at_most) {
-				Ok(_) => {
-					Self::increase_msg_sent_count(1);
-					Ok(1)
-				},
-				Err(e) => Err(e),
-			}
-		}
-
 		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
 			let stage = RcMigrationStage::<T>::get();
 			if stage.is_finished() || stage.is_ongoing() {
@@ -1658,6 +1856,46 @@ pub mod pallet {
 			} else {
 				Some((T::CheckingAccount::get(), MintLocation::Local))
 			}
+		}
+
+		/// Force the AH UMP queue priority for the next block.
+		pub fn force_ah_ump_queue_priority(now: BlockNumberFor<T>) {
+			let (ah_ump_priority_blocks, round_robin_blocks) =
+				match AhUmpQueuePriorityConfig::<T>::get() {
+					AhUmpQueuePriority::Config => T::AhUmpQueuePriorityPattern::get(),
+					AhUmpQueuePriority::OverrideConfig(
+						ah_ump_priority_blocks,
+						round_robin_blocks,
+					) => (ah_ump_priority_blocks, round_robin_blocks),
+					AhUmpQueuePriority::Disabled => return,
+				};
+
+			let period = ah_ump_priority_blocks + round_robin_blocks;
+			if period.is_zero() {
+				return;
+			}
+			let current_block = now % period;
+
+			let is_set = if current_block < ah_ump_priority_blocks {
+				// it is safe to force set the queue without checking if the AH UMP queue is empty,
+				// as the implementation handles these checks internally.
+				let ah_ump = AggregateMessageOrigin::Ump(UmpQueueId::Para(1000.into()));
+				match T::MessageQueue::force_set_head(&mut WeightMeter::new(), &ah_ump) {
+					Ok(is_set) => is_set,
+					Err(_) => {
+						defensive!("Failed to force set AH UMP queue priority");
+						false
+					},
+				}
+			} else {
+				false
+			};
+
+			Self::deposit_event(Event::AhUmpQueuePrioritySet {
+				prioritized: is_set,
+				cycle_block: current_block + BlockNumberFor::<T>::one(),
+				cycle_period: period,
+			});
 		}
 	}
 

@@ -138,4 +138,19 @@ impl<T: frame_system::Config> pallet_rc_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	fn receive_query_response() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn resend_xcm() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_unprocessed_msg_buffer() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
+	fn set_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_ah_ump_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
 }
