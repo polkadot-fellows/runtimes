@@ -39,6 +39,13 @@ if [[ $init -eq 1 ]]; then
   echo -e "Setting up the polkadot side of the bridge. Logs available at: $polkadot_init_log\n"
   kusama_init_log=$logs_dir/kusama-init.log
   echo -e "Setting up the kusama side of the bridge. Logs available at: $kusama_init_log\n"
+
+  $helper_script init-polkadot-local >> $polkadot_init_log 2>&1 &
+  polkadot_init_pid=$!
+  $helper_script init-kusama-local >> $kusama_init_log 2>&1 &
+  kusama_init_pid=$!
+  wait -n $polkadot_init_pid $kusama_init_pid
+
   $helper_script init-asset-hub-polkadot-local >> $polkadot_init_log 2>&1 &
   polkadot_init_pid=$!
   $helper_script init-asset-hub-kusama-local >> $kusama_init_log 2>&1 &

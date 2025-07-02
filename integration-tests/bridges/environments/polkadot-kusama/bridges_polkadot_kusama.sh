@@ -255,6 +255,34 @@ case "$1" in
   run-messages-relay)
     run_messages_relay
     ;;
+  init-polkadot-local)
+      ensure_polkadot_js_api
+      # HRMP
+      open_hrmp_channels \
+          "ws://127.0.0.1:9942" \
+          "//Alice" \
+          1000 1002 4 524288
+      open_hrmp_channels \
+          "ws://127.0.0.1:9942" \
+          "//Alice" \
+          1002 1000 4 524288
+      # governance set XCM version of remote AssetHubKusama on AHP
+      force_xcm_version \
+          "ws://127.0.0.1:9942" \
+          "//Alice" \
+          1000 \
+          "ws://127.0.0.1:9910" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } }')" \
+          $XCM_VERSION
+      # governance set XCM version of remote BridgeHubKusama on BHP
+      force_xcm_version \
+          "ws://127.0.0.1:9942" \
+          "//Alice" \
+          1002 \
+          "ws://127.0.0.1:8943" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1002 } ] } }')" \
+          $XCM_VERSION
+      ;;
   init-asset-hub-polkadot-local)
       ensure_polkadot_js_api
       # create pool for DOT and wKSM
@@ -272,23 +300,6 @@ case "$1" in
           10000000000 \
           10000000 \
           "$BOB_SOVEREIGN_ACCOUNT_AT_POLKADOT"
-      # HRMP
-      open_hrmp_channels \
-          "ws://127.0.0.1:9942" \
-          "//Alice" \
-          1000 1002 4 524288
-      open_hrmp_channels \
-          "ws://127.0.0.1:9942" \
-          "//Alice" \
-          1002 1000 4 524288
-      # set XCM version of remote AssetHubKusama
-      force_xcm_version \
-          "ws://127.0.0.1:9942" \
-          "//Alice" \
-          1000 \
-          "ws://127.0.0.1:9910" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } }')" \
-          $XCM_VERSION
       ;;
   init-bridge-hub-polkadot-local)
       ensure_polkadot_js_api
@@ -310,13 +321,33 @@ case "$1" in
           "//Alice" \
           "$ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_BridgedChain" \
           $((25 * $DOT))
-      # set XCM version of remote BridgeHubKusama
+      ;;
+  init-kusama-local)
+      ensure_polkadot_js_api
+      # HRMP
+      open_hrmp_channels \
+          "ws://127.0.0.1:9945" \
+          "//Alice" \
+          1000 1002 4 524288
+      open_hrmp_channels \
+          "ws://127.0.0.1:9945" \
+          "//Alice" \
+          1002 1000 4 524288
+      # governance set XCM version of remote AssetHubPolkadot on AHK
       force_xcm_version \
-          "ws://127.0.0.1:9942" \
+          "ws://127.0.0.1:9945" \
+          "//Alice" \
+          1000 \
+          "ws://127.0.0.1:9010" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } }')" \
+          $XCM_VERSION
+      # governance set XCM version of remote BridgeHubPolkadot on BHK
+      force_xcm_version \
+          "ws://127.0.0.1:9945" \
           "//Alice" \
           1002 \
-          "ws://127.0.0.1:8943" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1002 } ] } }')" \
+          "ws://127.0.0.1:8945" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1002 } ] } }')" \
           $XCM_VERSION
       ;;
   init-asset-hub-kusama-local)
@@ -336,23 +367,6 @@ case "$1" in
           10000000000 \
           10000000 \
           "$BOB_SOVEREIGN_ACCOUNT_AT_KUSAMA"
-      # HRMP
-      open_hrmp_channels \
-          "ws://127.0.0.1:9945" \
-          "//Alice" \
-          1000 1002 4 524288
-      open_hrmp_channels \
-          "ws://127.0.0.1:9945" \
-          "//Alice" \
-          1002 1000 4 524288
-      # set XCM version of remote AssetHubPolkadot
-      force_xcm_version \
-          "ws://127.0.0.1:9945" \
-          "//Alice" \
-          1000 \
-          "ws://127.0.0.1:9010" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } }')" \
-          $XCM_VERSION
       ;;
   init-bridge-hub-kusama-local)
       # SA of sibling asset hub pays for the execution
@@ -373,14 +387,6 @@ case "$1" in
           "//Alice" \
           "$ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain" \
           $((25 * $KSM))
-      # set XCM version of remote BridgeHubPolkadot
-      force_xcm_version \
-          "ws://127.0.0.1:9945" \
-          "//Alice" \
-          1002 \
-          "ws://127.0.0.1:8945" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1002 } ] } }')" \
-          $XCM_VERSION
       ;;
   reserve-transfer-assets-from-asset-hub-polkadot-local)
       amount=$2
