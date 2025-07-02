@@ -270,7 +270,7 @@ pub enum MigrationStage<
 
 	DelegatedStakingMigrationInit,
 	DelegatedStakingMigrationOngoing {
-		next_key: Option<staking::delegated_staking::DelegatedStakingStage<AccountId>>,
+		next_key: Option<DelegatedStakingStage<AccountId>>,
 	},
 	DelegatedStakingMigrationDone,
 
