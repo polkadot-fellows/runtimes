@@ -98,5 +98,5 @@ impl pallet_referenda::Config for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = TracksInfo;
 	type Preimages = Preimage;
-	type BlockNumberProvider = System; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
 }

@@ -75,7 +75,7 @@ impl<T: Config> Pallet<T> {
 		for delegation in existing_proxies {
 			proxies.push(pallet_proxy::ProxyDefinition {
 				delegate: delegation.delegate,
-				delay: todo!("FAIL-CI"), // FAIL-CI delegation.delay,
+				delay: delegation.delay,
 				proxy_type: delegation.proxy_type,
 			});
 		}
@@ -89,15 +89,14 @@ impl<T: Config> Pallet<T> {
 			proxies.truncate(max_proxies);
 		}
 
-		/*let Ok(bounded_proxies) =
+		let Ok(bounded_proxies) =
 			BoundedSlice::try_from(proxies.as_slice()).defensive_proof("Proxies should fit")
 		else {
 			return Err(Error::TODO);
-		};*/
+		};
 
 		// Add the proxies
-		// pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
-		todo!("FAIL-CI");
+		pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
 
 		Ok(())
 	}

@@ -233,10 +233,10 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
-		+ pallet_proxy::Config
+		+ pallet_proxy::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_preimage::Config<Hash = H256>
-		+ pallet_referenda::Config<Votes = u128>
-		+ pallet_nomination_pools::Config
+		+ pallet_referenda::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider, Votes = u128>
+		+ pallet_nomination_pools::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>

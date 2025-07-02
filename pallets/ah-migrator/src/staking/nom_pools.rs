@@ -104,15 +104,13 @@ impl<T: Config> Pallet<T> {
 		if let Some(ref mut throttle_from) = pool.commission.throttle_from {
 			// Plus one here to be safe for the pool member just in case that the pool operator
 			// would like to enact commission rate changes immediately.
-			//*throttle_from = Self::rc_to_ah_timepoint(*throttle_from).saturating_add(One::one());
-			todo!("FAIL-CI");
+			*throttle_from = Self::rc_to_ah_timepoint(*throttle_from).saturating_add(One::one());
 		}
 		if let Some(ref mut change_rate) = pool.commission.change_rate {
 			// We cannot assume how this conversion works, but adding one will ensure that we err on
 			// the side of pool-member safety in case of rounding.
-			//change_rate.min_delay =
-			//	T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
-			todo!("FAIL-CI");
+			change_rate.min_delay =
+				T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
 		}
 
 		pool
