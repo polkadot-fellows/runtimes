@@ -261,7 +261,7 @@ impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
 
 impl StakingUnchecked for StakingMock {
 	fn migrate_to_virtual_staker(_who: &Self::AccountId) {
-		unimplemented!()
+		unimplemented!("FAIL-CI")
 	}
 
 	fn virtual_bond(
@@ -269,11 +269,11 @@ impl StakingUnchecked for StakingMock {
 		_value: Self::Balance,
 		_payee: &Self::AccountId,
 	) -> DispatchResult {
-		unimplemented!()
+		unimplemented!("FAIL-CI")
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn migrate_to_direct_staker(_who: &Self::AccountId) {
-		unimplemented!()
+		unimplemented!("FAIL-CI")
 	}
 }

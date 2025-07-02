@@ -1287,9 +1287,6 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::FastUnstakeMigrationDone => {
-					#[cfg(feature = "ahm-westend")]
-					Self::transition(MigrationStage::IndicesMigrationInit);
-					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::DelegatedStakingMigrationInit);
 				},
 				MigrationStage::DelegatedStakingMigrationInit => {

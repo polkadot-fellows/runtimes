@@ -139,6 +139,10 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 					break;
 				}
 			}
+			if messages.len() > 10_000 {
+				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+				break;
+			}
 
 			last_key = match last_key {
 				DelegatedStakingStage::Delegators(last_key) => {
