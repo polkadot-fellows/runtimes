@@ -99,6 +99,26 @@ pub mod common {
 		}
 	}
 
+	/// Location type to determine the Secretary Collective related
+	/// pallets for use in XCM.
+	pub struct SecretaryEntities;
+	impl Contains<Location> for SecretaryEntities {
+		fn contains(location: &Location) -> bool {
+			matches!(
+				location.unpack(),
+				(
+					1,
+					[
+						Parachain(system_parachain::COLLECTIVES_ID),
+						PalletInstance(
+							collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX
+						)
+					]
+				)
+			)
+		}
+	}
+
 	// Teleport filters are a special case because we might want to have finer control over which
 	// one to use at fine-grained stages of the migration.
 
@@ -120,7 +140,9 @@ pub mod common {
 
 mod before {
 	use super::{
-		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities, RootLocation},
+		common::{
+			AmbassadorEntities, AssetHubParaId, FellowshipEntities, RootLocation, SecretaryEntities,
+		},
 		*,
 	};
 
@@ -151,6 +173,7 @@ mod before {
 		Equals<RelayTreasuryLocation>,
 		FellowshipEntities,
 		AmbassadorEntities,
+		SecretaryEntities,
 	)>;
 
 	/// Locations that will not be charged fees in the executor, either execution or delivery.
@@ -163,12 +186,15 @@ mod before {
 		Equals<RelayTreasuryLocation>,
 		FellowshipEntities,
 		AmbassadorEntities,
+		SecretaryEntities,
 	);
 }
 
 mod after {
 	use super::{
-		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities, RootLocation},
+		common::{
+			AmbassadorEntities, AssetHubParaId, FellowshipEntities, RootLocation, SecretaryEntities,
+		},
 		*,
 	};
 
@@ -183,6 +209,7 @@ mod after {
 		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		FellowshipEntities,
 		AmbassadorEntities,
+		SecretaryEntities,
 	)>;
 
 	/// Locations that will not be charged fees in the executor, either execution or delivery.
@@ -196,6 +223,7 @@ mod after {
 		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		FellowshipEntities,
 		AmbassadorEntities,
+		SecretaryEntities,
 	);
 }
 
