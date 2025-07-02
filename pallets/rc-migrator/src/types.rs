@@ -229,7 +229,7 @@ impl<
 				destination.as_ref().ok_or(SendError::MissingArgument)?,
 				message.as_ref().ok_or(SendError::MissingArgument)?,
 			) {
-			Err(SendError::Unroutable)
+			Err(SendError::Transport("Migration ongoing - routing is temporary blocked!"))
 		} else {
 			Inner::validate(destination, message)
 		}
