@@ -70,11 +70,11 @@ fn asset_hub_kusama_genesis(
 		"foreignAssets": ForeignAssetsConfig {
 			assets: foreign_assets
 				.into_iter()
-				.map(|asset| (asset.0.try_into().unwrap(), asset.1, false, asset.2))
+				.map(|asset| (asset.0, asset.1, false, asset.2))
 				.collect(),
 			accounts: foreign_assets_endowed_accounts
 				.into_iter()
-				.map(|asset| (asset.0.try_into().unwrap(), asset.1, asset.2))
+				.map(|asset| (asset.0, asset.1, asset.2))
 				.collect(),
 			..Default::default()
 		},
