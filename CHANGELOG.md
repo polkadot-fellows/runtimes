@@ -24,29 +24,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bump ParachainHost runtime API version to 13 for polkadot and kusama ([polkadot-fellows/runtimes/pull/768](https://github.com/polkadot-fellows/runtimes/pull/768))
 - Update to SDK version `stable2503-6` ([polkadot-fellows/runtimes/pull/762](https://github.com/polkadot-fellows/runtimes/pull/762))
 - Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add missing events to nomination pool extrinsics ([SDK stable2503 #7377](https://github.com/paritytech/polkadot-sdk/pull/7377)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add view functions to Proxy pallet for runtime-specific type configuration ([SDK stable2503 #7320](https://github.com/paritytech/polkadot-sdk/pull/7320)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Core-fellowship: Add permissionless import_member ([SDK stable2503 #7030](https://github.com/paritytech/polkadot-sdk/pull/7030)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove a lease ([SDK stable2503 #7026](https://github.com/paritytech/polkadot-sdk/pull/7026)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove an assignment ([SDK stable2503 #7080](https://github.com/paritytech/polkadot-sdk/pull/7080)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to reserve a system core without having to wait two sale boundaries ([SDK stable2503 #4273](https://github.com/paritytech/polkadot-sdk/pull/4273)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add missing events to nomination pool extrinsics ([SDK stable2503 #7377](https://github.com/paritytech/polkadot-sdk/pull/7377)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add view functions to Proxy pallet for runtime-specific type configuration ([SDK stable2503 #7320](https://github.com/paritytech/polkadot-sdk/pull/7320)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Core-fellowship: Add permissionless import_member ([SDK stable2503 #7030](https://github.com/paritytech/polkadot-sdk/pull/7030)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove a lease ([SDK stable2503 #7026](https://github.com/paritytech/polkadot-sdk/pull/7026)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove an assignment ([SDK stable2503 #7080](https://github.com/paritytech/polkadot-sdk/pull/7080)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to reserve a system core without having to wait two sale boundaries ([SDK stable2503 #4273](https://github.com/paritytech/polkadot-sdk/pull/4273)).
 
 - [[#755](https://github.com/polkadot-fellows/runtimes/pull/755)] Added `pallet_revive` to Kusama AssetHub.
 
 ### Changed
 
 - Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Alter semantic meaning of 0 in metering limits of EVM contract calls ([SDK stable2503 #6890](https://github.com/paritytech/polkadot-sdk/pull/6890)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] `apply_authorized_upgrade`: Remote authorization if the version check fails ([SDK stable2503 #7812](https://github.com/paritytech/polkadot-sdk/pull/7812)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] `CheckOnlySudoAccount`: Provide some tags ([SDK stable2503 #7838](https://github.com/paritytech/polkadot-sdk/pull/7838)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Currency to Fungible migration for pallet-staking ([SDK stable2503 #5501](https://github.com/paritytech/polkadot-sdk/pull/5501)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Enable report_fork_voting() ([SDK stable2503 #6856](https://github.com/paritytech/polkadot-sdk/pull/6856)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Implement pallet view functions ([SDK stable2503 #4722](https://github.com/paritytech/polkadot-sdk/pull/4722)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] On-demand credits ([SDK stable2503 #5990](https://github.com/paritytech/polkadot-sdk/pull/5990)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Only allow apply slash to be executed if the slash amount is atleast ED ([SDK stable2503 #6540](https://github.com/paritytech/polkadot-sdk/pull/6540)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Paras-registrar: Improve error reporting ([SDK stable2503 #6989](https://github.com/paritytech/polkadot-sdk/pull/6989)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: convert properly assets in xcmpayment apis ([SDK stable2503 #7134](https://github.com/paritytech/polkadot-sdk/pull/7134)).
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Ensure Consistent Topic IDs for Traceable Cross-Chain XCM ([SDK stable2503 #7691](https://github.com/paritytech/polkadot-sdk/pull/7691)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Alter semantic meaning of 0 in metering limits of EVM contract calls ([SDK stable2503 #6890](https://github.com/paritytech/polkadot-sdk/pull/6890)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] `apply_authorized_upgrade`: Remote authorization if the version check fails ([SDK stable2503 #7812](https://github.com/paritytech/polkadot-sdk/pull/7812)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] `CheckOnlySudoAccount`: Provide some tags ([SDK stable2503 #7838](https://github.com/paritytech/polkadot-sdk/pull/7838)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Currency to Fungible migration for pallet-staking ([SDK stable2503 #5501](https://github.com/paritytech/polkadot-sdk/pull/5501)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Enable report_fork_voting() ([SDK stable2503 #6856](https://github.com/paritytech/polkadot-sdk/pull/6856)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Implement pallet view functions ([SDK stable2503 #4722](https://github.com/paritytech/polkadot-sdk/pull/4722)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] On-demand credits ([SDK stable2503 #5990](https://github.com/paritytech/polkadot-sdk/pull/5990)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Only allow apply slash to be executed if the slash amount is atleast ED ([SDK stable2503 #6540](https://github.com/paritytech/polkadot-sdk/pull/6540)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Paras-registrar: Improve error reporting ([SDK stable2503 #6989](https://github.com/paritytech/polkadot-sdk/pull/6989)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: convert properly assets in xcmpayment apis ([SDK stable2503 #7134](https://github.com/paritytech/polkadot-sdk/pull/7134)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Ensure Consistent Topic IDs for Traceable Cross-Chain XCM ([SDK stable2503 #7691](https://github.com/paritytech/polkadot-sdk/pull/7691)).
 
 - [[#754](https://github.com/polkadot-fellows/runtimes/pull/754)]  Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
 
@@ -55,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
-    - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: minor fix for compatibility with V4 ([SDK stable2503 #6503](https://github.com/paritytech/polkadot-sdk/pull/6503)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: minor fix for compatibility with V4 ([SDK stable2503 #6503](https://github.com/paritytech/polkadot-sdk/pull/6503)).
 - Allow `Utility` and `Multisig` calls from `CancelProxy` proxy types in Polkadot/Kusama relaychain runtimes ([polkadot-fellows/runtimes#740](https://github.com/polkadot-fellows/runtimes/pull/740))
 
 ## [1.5.1] 22.05.2025
@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Correct weights for pallet xcm's `transfer_asset` extrinsic for multiple chains ([polkadot-fellows/runtimes#673](https://github.com/polkadot-fellows/runtimes/pull/673))
 - Snowbridge: Update transfer token gas and fee ([polkadot-fellows/runtimes#721](https://github.com/polkadot-fellows/runtimes/pull/721))
 - Update to SDK version `stable2412-6` ([polkadot-fellows/runtimes#712](https://github.com/polkadot-fellows/runtimes/pull/712))
-    - [stable2412-6 changelog here](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-6)
+  - [stable2412-6 changelog here](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-6)
 
 ### Added
 
@@ -79,22 +79,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Now each system extension has its own weight, defined by `ExtensionWeightInfo` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
 - Parachains define the default `CoreSelector` strategy, according to [`RFC-0103`](https://polkadot-fellows.github.io/RFCs/approved/0103-introduce-core-index-commitment.html) ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
 - Update to SDK version `2412-4` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
-    - Added XCM v5 ([paritytech/polkadot-sdk/pull/4826](https://github.com/paritytech/polkadot-sdk/pull/4826))
-    - Added Trusted Query API calls ([paritytech/polkadot-sdk/pull/6039](https://github.com/paritytech/polkadot-sdk/pull/6039))
-    - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
-    - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
-    - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
-    - Enable RFC103 on Kusama ([polkadot-fellows/runtimes/pull/681](https://github.com/polkadot-fellows/runtimes/pull/681/))
+  - Added XCM v5 ([paritytech/polkadot-sdk/pull/4826](https://github.com/paritytech/polkadot-sdk/pull/4826))
+  - Added Trusted Query API calls ([paritytech/polkadot-sdk/pull/6039](https://github.com/paritytech/polkadot-sdk/pull/6039))
+  - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
+  - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
+  - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
+  - Enable RFC103 on Kusama ([polkadot-fellows/runtimes/pull/681](https://github.com/polkadot-fellows/runtimes/pull/681/))
 
 ### Changed
 
 - Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
-    - Changed from `SignedExtension` to `TransactionExtension` ([paritytech/polkadot-sdk/pull/3685](https://github.com/paritytech/polkadot-sdk/pull/3685))
-    - Identity: Decouple usernames from identities ([https://github.com/paritytech/polkadot-sdk/pull/5554](https://github.com/paritytech/polkadot-sdk/pull/5554))
-    - Staking: page information to staking::PayoutStarted event ([paritytech/polkadot-sdk/pull/5984](https://github.com/paritytech/polkadot-sdk/pull/5984))
-    - Balances: fix: do not emit Issued { amount: 0 } event ([paritytech/polkadot-sdk/pull/5946](https://github.com/paritytech/polkadot-sdk/pull/5946))
-    - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
-    - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
+  - Changed from `SignedExtension` to `TransactionExtension` ([paritytech/polkadot-sdk/pull/3685](https://github.com/paritytech/polkadot-sdk/pull/3685))
+  - Identity: Decouple usernames from identities ([https://github.com/paritytech/polkadot-sdk/pull/5554](https://github.com/paritytech/polkadot-sdk/pull/5554))
+  - Staking: page information to staking::PayoutStarted event ([paritytech/polkadot-sdk/pull/5984](https://github.com/paritytech/polkadot-sdk/pull/5984))
+  - Balances: fix: do not emit Issued { amount: 0 } event ([paritytech/polkadot-sdk/pull/5946](https://github.com/paritytech/polkadot-sdk/pull/5946))
+  - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
+  - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
 - Kusama: disable/filter `Nis` and `NisCounterpartBalances` pallets calls ([polkadot-fellows/runtimes/pull/656](https://github.com/polkadot-fellows/runtimes/pull/656))
 - Increase spend payout period for treasuries from 30 to 90 days to provide sufficient time to address issues with insufficient balance of a specific asset in the treasury pot ([polkadot-fellows/runtimes/pull/647](https://github.com/polkadot-fellows/runtimes/pull/647))
 - Asset Hub: remove XCM sufficient asset fee trader ([polkadot-fellows/runtimes#502](https://github.com/polkadot-fellows/runtimes/pull/502))
