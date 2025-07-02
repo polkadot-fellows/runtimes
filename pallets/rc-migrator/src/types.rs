@@ -105,6 +105,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveSchedulerAgendaMessages {
 		messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::alias::ScheduledOf<T>>>)>,
 	},
+	#[codec(index = 23)]
+	ReceiveDelegatedStakingMessages {
+		messages: Vec<staking::delegated_staking::RcDelegatedStakingMessageOf<T>>,
+	},
 	#[codec(index = 30)]
 	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
 	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
