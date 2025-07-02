@@ -86,15 +86,12 @@ impl Default for RcFreezeReason {
 
 pub struct RcToAhHoldReason;
 impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(_: RcHoldReason) -> RuntimeHoldReason {
-		todo!("This is wrong");
-		//match rc_hold_reason {
-			//RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
-			//RcHoldReason::DelegatedStaking(inner) => {
-			//	RuntimeHoldReason::DelegatedStaking(inner)
-			//},
-			//RcHoldReason::Staking(_) => RuntimeHoldReason::Staking(pallet_staking_async::HoldReason::Staking),
-		//}
+	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
+		match rc_hold_reason {
+			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
+			RcHoldReason::StateTrieMigration(_) => unimplemented!("FAIL-CI state trie migration"),
+			RcHoldReason::DelegatedStaking(_) => unimplemented!("FAIL-CI delegated staking"),
+		}
 	}
 }
 
@@ -386,10 +383,10 @@ impl
 		rc: (VersionedLocatableAsset, VersionedLocation),
 	) -> Result<(VersionedLocatableAsset, VersionedLocatableAccount), ()> {
 		let (asset_kind, beneficiary) = rc;
-		/*let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
+		let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
 			log::error!(target: LOG_TARGET, "Failed to convert RC asset kind to latest version");
 		})?;
-		if asset_kind.location != xcm::v4::Location::new(0, Parachain(1000)) {
+		if asset_kind.location != xcm::v5::Location::new(0, xcm::v5::Junction::Parachain(1000)) {
 			log::error!(
 				target: LOG_TARGET,
 				"Unsupported RC asset kind location: {:?}",
@@ -397,9 +394,9 @@ impl
 			);
 			return Err(());
 		};
-		let asset_kind = VersionedLocatableAsset::V4 {
-			location: xcm::v4::Location::here(),
-			asset_id: todo!("FAIL-CI"),//asset_kind.asset_id,
+		let asset_kind = VersionedLocatableAsset::V5 {
+			location: xcm::v5::Location::here(),
+			asset_id: asset_kind.asset_id,
 		};
 		let beneficiary = beneficiary.try_into().map_err(|_| {
 			log::error!(
@@ -409,7 +406,6 @@ impl
 		})?;
 		let beneficiary =
 			VersionedLocatableAccount::V4 { location: xcm::v4::Location::here(), account_id: beneficiary };
-		Ok((asset_kind, beneficiary))*/
-		todo!("FAIL-CI @muharem please fix the XCM convert V4 vs V5 stuff here")
+		Ok((asset_kind, beneficiary))
 	}
 }
