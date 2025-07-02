@@ -20,6 +20,7 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
+use frame_support::traits::ContainsPair;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
@@ -212,8 +213,11 @@ pub trait MigrationStatus {
 pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
 	PhantomData<(Inner, Exception, MigrationState)>,
 );
-impl<Inner: SendXcm, Exception: Contains<Location>, MigrationState: MigrationStatus> SendXcm
-	for RouteInnerWithException<Inner, Exception, MigrationState>
+impl<
+		Inner: SendXcm,
+		Exception: ContainsPair<Location, Xcm<()>>,
+		MigrationState: MigrationStatus,
+	> SendXcm for RouteInnerWithException<Inner, Exception, MigrationState>
 {
 	type Ticket = Inner::Ticket;
 	fn validate(
@@ -221,8 +225,10 @@ impl<Inner: SendXcm, Exception: Contains<Location>, MigrationState: MigrationSta
 		message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
 		if MigrationState::is_ongoing() &&
-			Exception::contains(destination.as_ref().ok_or(SendError::MissingArgument)?)
-		{
+			Exception::contains(
+				destination.as_ref().ok_or(SendError::MissingArgument)?,
+				message.as_ref().ok_or(SendError::MissingArgument)?,
+			) {
 			Err(SendError::Unroutable)
 		} else {
 			Inner::validate(destination, message)
@@ -242,6 +248,16 @@ impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueue
 
 	fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
 		Inner::get_messages()
+	}
+}
+
+pub struct ExceptResponseFor<Querier>(PhantomData<Querier>);
+impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querier> {
+	fn contains(l: &Xcm<()>) -> bool {
+		match l.first() {
+			Some(QueryResponse { querier: Some(querier), .. }) => !Querier::contains(querier),
+			_ => true,
+		}
 	}
 }
 

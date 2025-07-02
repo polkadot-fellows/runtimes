@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals, Everything, Nothing},
+	traits::{Contains, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -142,7 +142,7 @@ pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
 /// This router does not route to the Asset Hub if the migration is ongoing.
 pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
 	XcmRouterWithoutException,
-	Equals<AssetHubLocation>,
+	FromContains<Equals<AssetHubLocation>, Everything>,
 	crate::RcMigrator,
 >;
 

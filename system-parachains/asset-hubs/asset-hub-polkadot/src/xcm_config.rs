@@ -29,7 +29,8 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Equals, Everything, Nothing, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, FromContains, Nothing,
+		PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -83,6 +84,7 @@ parameter_types! {
 	pub PostMigrationTreasuryAccount: AccountId = crate::Treasury::account_id();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
+	pub const Here: Location = Location::here();
 }
 
 /// Treasury account that changes once migration ends.
@@ -415,7 +417,7 @@ pub(crate) type LocalXcmRouterWithoutException = (
 /// For routing XCM messages which do not cross local consensus boundary.
 type LocalXcmRouter = pallet_ah_migrator::RouteInnerWithException<
 	LocalXcmRouterWithoutException,
-	Equals<ParentLocation>,
+	FromContains<Equals<ParentLocation>, pallet_ah_migrator::ExceptResponseFor<Equals<Here>>>,
 	crate::AhMigrator,
 >;
 
