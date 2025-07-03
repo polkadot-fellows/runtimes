@@ -335,10 +335,10 @@ impl Contains<Location> for PolkadotOrEthereumGlobalConsensus {
 pub type TrustedAliasers = (
 	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin).
 	AliasChildLocation,
-	// Allow cousin Asset Hub to alias into whitelisted global consensus origins.
+	// Allow cousin Polkadot Asset Hub to alias into Polkadot or Ethereum (bridged) origins.
 	AliasOriginRootUsingFilter<
 		bridging::to_polkadot::AssetHubPolkadot,
-		MatchWhitelistedGlobalConsensus,
+		PolkadotOrEthereumGlobalConsensus,
 	>,
 );
 
