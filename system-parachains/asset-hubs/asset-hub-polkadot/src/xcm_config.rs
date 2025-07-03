@@ -403,8 +403,8 @@ pub type TrustedTeleporters = (
 );
 
 /// Defines all global consensus locations that the asset hub is allowed to alias into.
-pub struct MatchWhitelistedGlobalConsensus;
-impl Contains<Location> for MatchWhitelistedGlobalConsensus {
+pub struct KusamaGlobalConsensus;
+impl Contains<Location> for KusamaGlobalConsensus {
 	fn contains(location: &Location) -> bool {
 		match location.unpack() {
 			(2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
@@ -420,7 +420,7 @@ pub type TrustedAliasers = (
 	AliasChildLocation,
 	// Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
 	AliasOriginRootUsingFilter<
-		bridging::to_polkadot::AssetHubPolkadot,
+		bridging::to_kusama::AssetHubKusama,
 		KusamaGlobalConsensus,
 	>,
 );
