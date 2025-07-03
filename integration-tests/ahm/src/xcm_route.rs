@@ -99,7 +99,7 @@ fn test_send_to_rc_from_ah() {
 		let dest = Location::parent();
 		let err = send_xcm::<AhXcmRouter>(dest, xcm_message.clone()).unwrap_err();
 
-		assert_eq!(err, SendError::Unroutable);
+		assert_eq!(err, SendError::Transport("Migration ongoing - routing is temporary blocked!"));
 
 		let dest = Location::new(1, Parachain(1001));
 		let result = send_xcm::<AhXcmRouter>(dest, xcm_message.clone());
@@ -159,6 +159,11 @@ fn test_send_to_ah_from_rc() {
 				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
 			})
 			.dispatch(RcRuntimeOrigin::root());
+
+		runtime_parachains::configuration::ActiveConfig::<RcRuntime>::mutate(|config| {
+			config.max_downward_message_size = 51200;
+		});
+
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 
@@ -194,7 +199,7 @@ fn test_send_to_ah_from_rc() {
 		let dest = Location::new(0, Parachain(1000));
 		let err = send_xcm::<RcXcmRouter>(dest, xcm_message.clone()).unwrap_err();
 
-		assert_eq!(err, SendError::Unroutable);
+		assert_eq!(err, SendError::Transport("Migration ongoing - routing is temporary blocked!"));
 
 		let dest = Location::new(0, Parachain(1001));
 		let result = send_xcm::<RcXcmRouter>(dest, xcm_message.clone());
