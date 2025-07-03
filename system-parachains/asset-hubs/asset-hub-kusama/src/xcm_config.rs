@@ -315,12 +315,31 @@ pub type TrustedTeleporters = (
 	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
 );
 
+/// Defines all global consensus locations that the asset hub is allowed to alias into.
+pub struct MatchWhitelistedGlobalConsensus;
+impl Contains<Location> for MatchWhitelistedGlobalConsensus {
+	fn contains(location: &Location) -> bool {
+		match location.unpack() {
+			(2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
+				if matches!(
+					*network_id,
+					NetworkId::Polkadot | NetworkId::Ethereum { chain_id: 1 }
+				) =>
+				true,
+			_ => false,
+		}
+	}
+}
+
 /// Defines origin aliasing rules for this chain.
 pub type TrustedAliasers = (
 	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 	AliasChildLocation,
 	// Allow cousin AssetHub root to alias into anything,
-	AliasOriginRootUsingFilter<bridging::to_polkadot::AssetHubPolkadot, Everything>,
+	AliasOriginRootUsingFilter<
+		bridging::to_polkadot::AssetHubPolkadot,
+		MatchWhitelistedGlobalConsensus,
+	>,
 );
 
 pub struct XcmConfig;
