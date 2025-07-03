@@ -20,8 +20,13 @@ if [ -z "$FRAMEWORK_REPO_PATH" ]; then
     https://github.com/paritytech/polkadot-sdk.git $framework_repo_path
   pushd $framework_repo_path
   git sparse-checkout set --no-cone bridges/testing/framework
-  git fetch --tags
-  git checkout polkadot-stable2409
+  # Checkout specified tag-or-commit, if not specified then master
+  if [ -n "$FRAMEWORK_REPO_TAG_OR_COMMIT" ]; then
+    git fetch --tags
+    git checkout $FRAMEWORK_REPO_TAG_OR_COMMIT
+  else
+    git checkout master
+  fi
   popd
 else
     framework_repo_path=$FRAMEWORK_REPO_PATH

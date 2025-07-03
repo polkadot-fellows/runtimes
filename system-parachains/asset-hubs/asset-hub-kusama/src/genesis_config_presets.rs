@@ -16,10 +16,13 @@
 
 //! Genesis configs presets for the AssetHubKusama runtime
 
-use crate::*;
+use crate::{xcm_config::UniversalLocation, *};
 use alloc::vec::Vec;
 use sp_genesis_builder::PresetId;
 use system_parachains_constants::genesis_presets::*;
+use xcm::latest::prelude::*;
+use xcm_builder::GlobalConsensusConvertsFor;
+use xcm_executor::traits::ConvertLocation;
 
 const ASSET_HUB_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
@@ -27,6 +30,8 @@ fn asset_hub_kusama_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
+	foreign_assets: Vec<(Location, AccountId, Balance)>,
+	foreign_assets_endowed_accounts: Vec<(Location, AccountId, Balance)>,
 ) -> serde_json::Value {
 	serde_json::json!({
 		"balances": BalancesConfig {
@@ -62,13 +67,47 @@ fn asset_hub_kusama_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"foreignAssets": ForeignAssetsConfig {
+			assets: foreign_assets
+				.into_iter()
+				.map(|asset| (asset.0, asset.1, false, asset.2))
+				.collect(),
+			accounts: foreign_assets_endowed_accounts
+				.into_iter()
+				.map(|asset| (asset.0, asset.1, asset.2))
+				.collect(),
+			..Default::default()
+		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
 }
 
 pub fn asset_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_kusama_genesis(invulnerables(), testnet_accounts(), para_id)
+	asset_hub_kusama_genesis(
+		invulnerables(),
+		testnet_accounts(),
+		para_id,
+		vec![
+			// bridged DOT
+			(
+				Location::new(2, [GlobalConsensus(Polkadot)]),
+				GlobalConsensusConvertsFor::<UniversalLocation, AccountId>::convert_location(
+					&Location { parents: 2, interior: [GlobalConsensus(Polkadot)].into() },
+				)
+				.unwrap(),
+				10000000,
+			),
+		],
+		vec![
+			// bridged DOT to Bob
+			(
+				Location::new(2, [GlobalConsensus(Polkadot)]),
+				get_account_id_from_seed::<sp_core::sr25519::Public>("Bob"),
+				10000000 * 4096 * 4096,
+			),
+		],
+	)
 }
 
 fn asset_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
@@ -79,12 +118,17 @@ fn asset_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 			StakingPot::get(),
 		]),
 		para_id,
+		vec![],
+		vec![],
 	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.
 pub fn preset_names() -> Vec<PresetId> {
-	vec![PresetId::from("development"), PresetId::from("local_testnet")]
+	vec![
+		PresetId::from(sp_genesis_builder::DEV_RUNTIME_PRESET),
+		PresetId::from(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET),
+	]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
