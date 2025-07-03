@@ -333,9 +333,9 @@ impl Contains<Location> for MatchWhitelistedGlobalConsensus {
 
 /// Defines origin aliasing rules for this chain.
 pub type TrustedAliasers = (
-	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
+	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin).
 	AliasChildLocation,
-	// Allow cousin AssetHub root to alias into anything,
+	// Allow cousin Asset Hub to alias into whitelisted global consensus origins.
 	AliasOriginRootUsingFilter<
 		bridging::to_polkadot::AssetHubPolkadot,
 		MatchWhitelistedGlobalConsensus,
