@@ -39,7 +39,7 @@ frame_support::parameter_types! {
 	pub AssetHubPolkadotAssetOwner: AccountId = Sr25519Keyring::Alice.to_account_id();
 	pub PenpalATeleportableAssetLocation: xcm::v4::Location
 		= xcm::v4::Location::new(1, [
-				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),0
 				xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
 				xcm::v4::Junction::GeneralIndex(TELEPORTABLE_ASSET_ID.into()),
 			]
