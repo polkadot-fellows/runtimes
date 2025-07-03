@@ -56,8 +56,8 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	UniversalLocation,
 	EthereumNetwork,
 	snowbridge_pallet_outbound_queue_v2::Pallet<Runtime>,
-	snowbridge_core::AgentIdOf,
 	EthereumSystemV2,
+	AssetHubParaId,
 >;
 
 parameter_types! {
@@ -68,6 +68,7 @@ parameter_types! {
 	pub AssetHubUniversalLocation: InteriorLocation = [GlobalConsensus(RelayNetwork::get()), Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)].into();
 	pub AssetHubLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)]);
 	pub InboundQueueV2Location: InteriorLocation = [PalletInstance(InboundQueueV2PalletInstance::get())].into();
+	pub SnowbridgeFrontendLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID), PalletInstance(SystemFrontendPalletInstance::get())]);
 	pub AssetHubXCMFee: u128 = 1_000_000_000_000u128;
 	pub const SnowbridgeReward: BridgeReward = BridgeReward::Snowbridge;
 }
