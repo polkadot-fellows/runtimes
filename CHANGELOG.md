@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Add foreign-consensus cousin asset hub as trusted aliaser to allow XCMv5 origin preservation for parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
+- Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
 
 ## [1.6.1] 24.06.2025
 
