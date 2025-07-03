@@ -93,11 +93,11 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
+use system_parachains_constants::MINUTES;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
-};
-use system_parachains_constants::MINUTES; // Change for Async Backing https://github.com/polkadot-fellows/runtimes/pull/763
+}; // Change for Async Backing https://github.com/polkadot-fellows/runtimes/pull/763
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;

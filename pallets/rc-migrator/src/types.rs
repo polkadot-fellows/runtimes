@@ -103,7 +103,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
-		messages: Vec<(pallet_scheduler::BlockNumberFor<T>, Vec<Option<scheduler::alias::ScheduledOf<T>>>)>,
+		messages: Vec<(
+			pallet_scheduler::BlockNumberFor<T>,
+			Vec<Option<scheduler::alias::ScheduledOf<T>>>,
+		)>,
 	},
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {

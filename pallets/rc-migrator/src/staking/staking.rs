@@ -479,7 +479,8 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm( // FAIL-CI
+			Pallet::<T>::send_chunked_xcm(
+				// FAIL-CI
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveStakingMessages { messages },
 				|_len| Weight::from_all(1),

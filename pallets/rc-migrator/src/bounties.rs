@@ -235,7 +235,11 @@ pub type RcPrePayload<T> = (
 	BountyIndex,
 	Vec<(
 		BountyIndex,
-		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, pallet_treasury::BlockNumberFor<T>>,
+		Bounty<
+			<T as frame_system::Config>::AccountId,
+			BalanceOf<T>,
+			pallet_treasury::BlockNumberFor<T>,
+		>,
 	)>,
 	Vec<(BountyIndex, Vec<u8>)>,
 	Vec<BountyIndex>,

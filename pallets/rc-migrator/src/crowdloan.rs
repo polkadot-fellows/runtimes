@@ -21,7 +21,17 @@ pub struct CrowdloanMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
-#[derive(Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 	/// Reserve for some slot leases.
 	LeaseReserve {

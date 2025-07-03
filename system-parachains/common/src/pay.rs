@@ -27,7 +27,15 @@ use xcm_executor::traits::ConvertLocation;
 /// Versioned locatable account type which contains both an XCM `location` and `account_id` to
 /// identify an account which exists on some chain.
 #[derive(
-	Encode, Decode, DecodeWithMemTracking, Eq, PartialEq, Clone, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Eq,
+	PartialEq,
+	Clone,
+	RuntimeDebug,
+	scale_info::TypeInfo,
+	MaxEncodedLen,
 )]
 pub enum VersionedLocatableAccount {
 	// TODO: remove the V3 variant when V5 is available

@@ -39,20 +39,54 @@ impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
 			xcm_config::PreMigrationRelayTreasuryPalletAccount::get(),
 			vec![
 				// USDT
-				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(1984)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(1984),
+					],
+				),
 				// USDC
-				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(1337)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(1337),
+					],
+				),
 				// DED
-				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(30)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(30),
+					],
+				),
 				// STINK
-				xcm::v4::Location::new(0, [xcm::v4::Junction::PalletInstance(assets_id), xcm::v4::Junction::GeneralIndex(42069)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(42069),
+					],
+				),
 			],
 		)
 	}
 }
 
 /// Relay Chain Hold Reason
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
@@ -72,7 +106,17 @@ impl Default for RcHoldReason {
 }
 
 /// Relay Chain Freeze Reason
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum RcFreezeReason {
 	#[codec(index = 39u8)]
 	NominationPools(pallet_nomination_pools::FreezeReason),
@@ -404,8 +448,10 @@ impl
 				"Failed to convert RC beneficiary type to the latest version"
 			);
 		})?;
-		let beneficiary =
-			VersionedLocatableAccount::V4 { location: xcm::v4::Location::here(), account_id: beneficiary };
+		let beneficiary = VersionedLocatableAccount::V4 {
+			location: xcm::v4::Location::here(),
+			account_id: beneficiary,
+		};
 		Ok((asset_kind, beneficiary))
 	}
 }

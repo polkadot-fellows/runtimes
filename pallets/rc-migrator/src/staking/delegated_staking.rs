@@ -20,7 +20,17 @@ use crate::*;
 use types::{AccountIdOf, RcMigrationCheck};
 
 /// Stage of the delegated-staking pallet migration.
-#[derive(Encode, Decode, DecodeWithMemTracking, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum DelegatedStakingStage<AccountId> {
 	Delegators(Option<AccountId>),

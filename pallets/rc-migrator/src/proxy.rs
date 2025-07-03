@@ -130,7 +130,13 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
 		(proxies, deposit): (
-			Vec<pallet_proxy::ProxyDefinition<T::AccountId, T::ProxyType, pallet_proxy::BlockNumberFor<T>>>,
+			Vec<
+				pallet_proxy::ProxyDefinition<
+					T::AccountId,
+					T::ProxyType,
+					pallet_proxy::BlockNumberFor<T>,
+				>,
+			>,
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
