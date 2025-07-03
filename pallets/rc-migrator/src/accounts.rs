@@ -1034,7 +1034,7 @@ pub mod tests {
 			let total_issuance = <T as Config>::Currency::total_issuance();
 			let tests::RcKeptBalance { rc_reserved_kept, rc_free_kept } =
 				tests::RcKeptBalance::<T>::build();
-			for (who, account_info) in SystemAccount::<T>::iter() {
+			for (who, _) in SystemAccount::<T>::iter() {
 				// Checking account balance migration is tested separately.
 				if who == T::CheckingAccount::get() {
 					continue;
@@ -1065,7 +1065,7 @@ pub mod tests {
 					.saturating_sub(freed_for_migration)
 					.saturating_sub(*rc_kept_reserved_balance);
 
-				let frozen = account_info.data.frozen;
+				let mut frozen = 0;
 
 				let mut locks_enc = Vec::new();
 				for lock in pallet_balances::Locks::<T>::get(&who) {
@@ -1074,6 +1074,7 @@ pub mod tests {
 						lock.amount,
 						lock.reasons as u8,
 					));
+					frozen += lock.amount;
 				}
 				let mut freezes_enc = Vec::new();
 				for freeze in pallet_balances::Freezes::<T>::get(&who) {
@@ -1081,6 +1082,7 @@ pub mod tests {
 						Self::freeze_id_encoding(freeze.id.encode(), tests::ChainType::RC),
 						freeze.amount,
 					));
+					frozen += freeze.amount;
 				}
 				let mut holds_enc = Vec::new();
 				for hold in pallet_balances::Holds::<T>::get(&who) {

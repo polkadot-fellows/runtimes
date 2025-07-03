@@ -18,7 +18,6 @@
 //! Account balance migration.
 
 use crate::*;
-use frame_support::traits::DefensiveSaturating;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_accounts(
@@ -284,6 +283,12 @@ pub mod tests {
 
 			let (account_summaries, _) = rc_pre_payload;
 			for (who, summary) in account_summaries {
+				// Checking account balance migration is tested separately.
+				if who == T::CheckingAccount::get() ||
+					who == pallet_treasury::Pallet::<T>::account_id()
+				{
+					continue;
+				}
 				let ah_free_post = <T as Config>::Currency::balance(&who);
 				let ah_reserved_post = <T as Config>::Currency::reserved_balance(&who);
 				let mut ah_free_before = 0;
@@ -293,7 +298,7 @@ pub mod tests {
 					ah_reserved_before = *ah_reserved_pre;
 				}
 
-				let frozen = frame_system::Account::<T>::get(&who).data.frozen;
+				let mut frozen = 0;
 				let mut holds_enc = Vec::new();
 				for hold in pallet_balances::Holds::<T>::get(&who) {
 					holds_enc.push((
@@ -307,6 +312,7 @@ pub mod tests {
 						Self::freeze_id_encoding(freeze.id.encode(), ChainType::AH),
 						freeze.amount,
 					));
+					frozen += freeze.amount;
 				}
 				let mut locks_enc = Vec::new();
 				for lock in pallet_balances::Locks::<T>::get(&who) {
@@ -315,6 +321,7 @@ pub mod tests {
 						lock.amount,
 						lock.reasons as u8,
 					));
+					frozen += lock.amount;
 				}
 
 				let rc_migrated_balance =
@@ -328,7 +335,8 @@ pub mod tests {
 				// the balance may fail. Therefore, we just check that the difference between
 				// the balance migrated from the RC to AH and the balance delta on AH before and
 				// after migration is less than AH existential deposit.
-				assert!(rc_migrated_balance.saturating_sub(ah_migrated_balance) <= ah_ed,
+				assert!(
+					rc_migrated_balance.saturating_sub(ah_migrated_balance) <= ah_ed,
 					"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
 					who.to_ss58check()
 				);
