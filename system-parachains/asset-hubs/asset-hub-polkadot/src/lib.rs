@@ -1314,7 +1314,7 @@ mod benches {
 			));
 			let amount = 1_000_000u128;
 			let asset_location =
-				Location::new(0, [PalletInstance(50), GeneralIndex(u32::from(asset_id).into())]);
+				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
 			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
 	}
@@ -1403,7 +1403,7 @@ mod benches {
 			));
 			let amount = 1_000_000u128;
 			let asset_location =
-				Location::new(0, [PalletInstance(50), GeneralIndex(u32::from(asset_id).into())]);
+				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
 			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
 	}
