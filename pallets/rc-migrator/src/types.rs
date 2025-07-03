@@ -20,9 +20,11 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
+use frame_support::traits::ContainsPair;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
+use xcm_builder::InspectMessageQueues;
 
 pub trait ToPolkadotSs58 {
 	fn to_polkadot_ss58(&self) -> String;
@@ -223,13 +225,60 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
-/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
-pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
-impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
-	for LeftOrRight<Status, Left, Right>
+/// A wrapper around `Inner` that routes messages through `Inner` unless `MigrationState` is ongoing
+/// and `Exception` returns true for the given destination and message.
+pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
+	PhantomData<(Inner, Exception, MigrationState)>,
+);
+impl<
+		Inner: SendXcm,
+		Exception: ContainsPair<Location, Xcm<()>>,
+		MigrationState: MigrationStatus,
+	> SendXcm for RouteInnerWithException<Inner, Exception, MigrationState>
 {
-	fn get() -> Left::Type {
-		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+	type Ticket = Inner::Ticket;
+	fn validate(
+		destination: &mut Option<Location>,
+		message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		if MigrationState::is_ongoing() &&
+			Exception::contains(
+				destination.as_ref().ok_or(SendError::MissingArgument)?,
+				message.as_ref().ok_or(SendError::MissingArgument)?,
+			) {
+			Err(SendError::Transport("Migration ongoing - routing is temporary blocked!"))
+		} else {
+			Inner::validate(destination, message)
+		}
+	}
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Inner::deliver(ticket)
+	}
+}
+
+impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueues
+	for RouteInnerWithException<Inner, Exception, MigrationState>
+{
+	fn clear_messages() {
+		Inner::clear_messages()
+	}
+
+	fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
+		Inner::get_messages()
+	}
+}
+
+/// Exception for routing XCM messages with the first instruction being a query response to the
+/// given `Querier`.
+///
+/// The `Querier` is from the perspective of the receiver of the XCM message.
+pub struct ExceptResponseFor<Querier>(PhantomData<Querier>);
+impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querier> {
+	fn contains(l: &Xcm<()>) -> bool {
+		match l.first() {
+			Some(QueryResponse { querier: Some(querier), .. }) => !Querier::contains(querier),
+			_ => true,
+		}
 	}
 }
 
@@ -288,6 +337,16 @@ impl<BlockNumber: Copy> QueuePriority<BlockNumber> {
 			QueuePriority::OverrideConfig(priority_blocks, _) => Some(*priority_blocks),
 			QueuePriority::Disabled => None,
 		}
+	}
+}
+
+/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
+pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftOrRight<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
 	}
 }
 

@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -130,12 +130,21 @@ parameter_types! {
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
-/// individual routers.
-pub type XcmRouter = WithUniqueTopic<(
+/// The XCM router. Use [`XcmRouter`] instead.
+pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
 	// Only one router so far - use DMP to communicate with child parachains.
 	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
 )>;
+
+/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
+/// individual routers.
+///
+/// This router does not route to the Asset Hub if the migration is ongoing.
+pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
+	XcmRouterWithoutException,
+	FromContains<Equals<AssetHubLocation>, Everything>,
+	crate::RcMigrator,
+>;
 
 pub struct Fellows;
 impl Contains<Location> for Fellows {

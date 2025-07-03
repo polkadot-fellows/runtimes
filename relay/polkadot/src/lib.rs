@@ -1602,7 +1602,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	>;
 	type Currency = Balances;
 	type CheckingAccount = xcm_config::CheckAccount;
-	type SendXcm = xcm_config::XcmRouter;
+	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;

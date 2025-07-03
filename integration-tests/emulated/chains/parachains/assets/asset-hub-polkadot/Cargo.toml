@@ -40,6 +40,7 @@ runtime-benchmarks = [
 	"integration-tests-helpers/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 
+	"penpal-emulated-chain/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",

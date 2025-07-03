@@ -54,7 +54,10 @@ pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
-	types::{ForceSetHead, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority},
+	types::{
+		ExceptResponseFor, ForceSetHead, LeftOrRight, MaxOnIdleOrInner,
+		QueuePriority as DmpQueuePriority, RouteInnerWithException,
+	},
 	weights_ah,
 };
 pub use weights_ah::WeightInfo;
