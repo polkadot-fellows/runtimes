@@ -188,10 +188,8 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let assets_owner = PenpalAssetOwner::get();
 	// Foreign asset used: bridged KSM
 	let foreign_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000_000;
-	let ksm_at_polkadot_parachains =
-		xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
-	let ksm_at_polkadot_parachains_latest: Location =
-		ksm_at_polkadot_parachains.clone().try_into().unwrap();
+	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(NetworkId::Kusama)]);
+	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone();
 
 	// Configure destination chain to trust AH as reserve of KSM
 	PenpalB::execute_with(|| {
@@ -314,10 +312,8 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 
 	// Foreign asset used: bridged KSM
 	let foreign_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000_000;
-	let ksm_at_polkadot_parachains =
-		xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
-	let ksm_at_polkadot_parachains_latest: Location =
-		ksm_at_polkadot_parachains.clone().try_into().unwrap();
+	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(NetworkId::Kusama)]);
+	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone();
 
 	// Configure destination chain to trust AH as reserve of KSM
 	PenpalB::execute_with(|| {
@@ -486,10 +482,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 
 	// Register KSM as foreign asset and transfer it around the Polkadot ecosystem
-	let ksm_at_polkadot_parachains =
-		xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
-	let ksm_at_polkadot_parachains_latest: Location =
-		ksm_at_polkadot_parachains.clone().try_into().unwrap();
+	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(Kusama)]);
+	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone();
 	AssetHubPolkadot::force_create_foreign_asset(
 		ksm_at_polkadot_parachains.clone(),
 		assets_owner.clone(),
