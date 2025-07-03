@@ -129,6 +129,7 @@ pub mod benchmarks {
 	use pallet_treasury::ArgumentsFactory as TreasuryArgumentsFactory;
 	use sp_core::ConstU8;
 	use sp_std::marker::PhantomData;
+	use xcm::v4::{Location, Junction};
 
 	/// Provides factory methods for the `AssetKind` and the `Beneficiary` that are applicable for
 	/// the payout made by [`LocalPay`].

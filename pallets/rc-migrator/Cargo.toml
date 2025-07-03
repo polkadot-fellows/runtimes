@@ -153,7 +153,3 @@ try-runtime = [
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
-
-stable2503 = []
-ahm-staking-migration = []
-ahm-kusama = []
