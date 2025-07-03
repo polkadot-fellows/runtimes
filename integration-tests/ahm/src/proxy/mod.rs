@@ -65,13 +65,13 @@ impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 
 		Ok(match proxy {
 			ProxyType::Any => Permission::Any,
-			ProxyType::NonTransfer => Permission::NonTransfer,
-			ProxyType::Governance => Permission::Governance,
-			ProxyType::Staking => Permission::Staking,
-			ProxyType::CancelProxy => Permission::CancelProxy,
 			ProxyType::Auction => Permission::Auction,
+			ProxyType::CancelProxy => Permission::CancelProxy,
+			ProxyType::Governance => Permission::Governance,
 			ProxyType::NominationPools => Permission::NominationPools,
+			ProxyType::NonTransfer => Permission::NonTransfer,
 			ProxyType::ParaRegistration => Permission::ParaRegistration,
+			ProxyType::Staking => Permission::Staking,
 		})
 	}
 }
@@ -85,17 +85,17 @@ impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permissio
 
 		Ok(match proxy {
 			ProxyType::Any => Permission::Any,
-			ProxyType::NonTransfer => Permission::NonTransfer,
-			ProxyType::Governance => Permission::Governance,
-			ProxyType::Staking => Permission::Staking,
-			ProxyType::CancelProxy => Permission::CancelProxy,
-			ProxyType::Assets => Permission::Assets,
-			ProxyType::AssetOwner => Permission::AssetOwner,
 			ProxyType::AssetManager => Permission::AssetManager,
+			ProxyType::AssetOwner => Permission::AssetOwner,
+			ProxyType::Assets => Permission::Assets,
+			ProxyType::CancelProxy => Permission::CancelProxy,
 			ProxyType::Collator => Permission::Collator,
+			ProxyType::Governance => Permission::Governance,
 			ProxyType::NominationPools => Permission::NominationPools,
+			ProxyType::NonTransfer => Permission::NonTransfer,
 			ProxyType::OldAuction => Permission::Old,
 			ProxyType::OldParaRegistration => Permission::Old,
+			ProxyType::Staking => Permission::Staking,
 		})
 	}
 }
