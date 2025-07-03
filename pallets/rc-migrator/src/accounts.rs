@@ -380,7 +380,7 @@ impl<T: Config> AccountsMigrator<T> {
 			// prevents the free balance from being burned.
 			// This scenario causes a panic in the test environment - see:
 			// https://github.com/paritytech/polkadot-sdk/blob/35e6befc5dd61deb154ff0eb7c180a038e626d66/substrate/frame/balances/src/impl_fungible.rs#L285
-			let mut amount = if free < rc_ed && amount.saturating_sub(rc_ed - free) > 0 {
+			let amount = if free < rc_ed && amount.saturating_sub(rc_ed - free) > 0 {
 				log::debug!(
 					target: LOG_TARGET,
 					"Partially releasing hold to prevent the free balance from being burned"
@@ -701,7 +701,6 @@ impl<T: Config> AccountsMigrator<T> {
 			let actual_rc_reserved = (expected_rc_reserved
 				.min(total_reserved.saturating_sub(total_hold)))
 			.saturating_sub(missing_free);
-			let ah_free = free.saturating_sub(rc_ed);
 
 			if actual_rc_reserved == 0 {
 				log::debug!(
@@ -1122,20 +1121,20 @@ pub mod tests {
 				match acc_state_maybe {
 					Some(AccountState::Part { free, reserved, consumers, .. }) => {
 						assert_eq!(
-						<T as Config>::Currency::reserved_balance(&who), reserved,
-						"Incorrect reserve balance on the Relay Chain after the migration for account: {:?}, {:?}",
-						who.to_ss58check(), reserved
-					);
+							<T as Config>::Currency::reserved_balance(&who), reserved,
+							"Incorrect reserve balance on the Relay Chain after the migration for account: {:?}, {:?}",
+							who.to_ss58check(), reserved
+						);
 						assert_eq!(
-						<T as Config>::Currency::balance(&who), free,
-						"Incorrect free balance on the Relay Chain after the migration for account: {:?}, {:?}",
-						who.to_ss58check(), free
-					);
+							<T as Config>::Currency::balance(&who), free,
+							"Incorrect free balance on the Relay Chain after the migration for account: {:?}, {:?}",
+							who.to_ss58check(), free
+						);
 						assert_eq!(
-						frame_system::Pallet::<T>::consumers(&who), consumers,
-						"Incorrect consumer count on the Relay Chain after the migration for account: {:?}, {:?}",
-						who.to_ss58check(), consumers
-					);
+							frame_system::Pallet::<T>::consumers(&who), consumers,
+							"Incorrect consumer count on the Relay Chain after the migration for account: {:?}, {:?}",
+							who.to_ss58check(), consumers
+						);
 
 						// Assert storage "Balances::Locks::rc_post::empty"
 						let locks = pallet_balances::Locks::<T>::get(&who);
@@ -1156,10 +1155,10 @@ pub mod tests {
 						// Assert storage "Balances::Freezes::rc_post::empty"
 						let freezes = pallet_balances::Freezes::<T>::get(&who);
 						assert!(
-						freezes.is_empty(),
-						"Account {:?} should have no freezes on the relay chain after migration",
-						who.to_ss58check()
-					);
+							freezes.is_empty(),
+							"Account {:?} should have no freezes on the relay chain after migration",
+							who.to_ss58check()
+						);
 					},
 					Some(AccountState::Preserve) => {
 						// If the total balance is smaller than the existential deposit, we don't
@@ -1174,24 +1173,24 @@ pub mod tests {
 							// Preserved accounts should have no Holds, Freezes, or Locks.
 							let holds = pallet_balances::Holds::<T>::get(&who);
 							assert!(
-							holds.is_empty(),
-							"Preserved account {:?} should have no holds on the relay chain after migration",
-							who.to_ss58check()
-						);
+								holds.is_empty(),
+								"Preserved account {:?} should have no holds on the relay chain after migration",
+								who.to_ss58check()
+							);
 
 							let freezes = pallet_balances::Freezes::<T>::get(&who);
 							assert!(
-							freezes.is_empty(),
-							"Preserved account {:?} should have no freezes on the relay chain after migration",
-							who.to_ss58check()
-						);
+								freezes.is_empty(),
+								"Preserved account {:?} should have no freezes on the relay chain after migration",
+								who.to_ss58check()
+							);
 
 							let locks = pallet_balances::Locks::<T>::get(&who);
 							assert!(
-							locks.is_empty(),
-							"Preserved account {:?} should have no locks on the relay chain after migration",
-							who.to_ss58check()
-						);
+								locks.is_empty(),
+								"Preserved account {:?} should have no locks on the relay chain after migration",
+								who.to_ss58check()
+							);
 
 							// Preserved accounts should not have enough free balance to be partly
 							// migrated to Asset Hub.
@@ -1200,20 +1199,24 @@ pub mod tests {
 								Preservation::Expendable,
 								Fortitude::Polite,
 							);
-							assert!(free_balance < <T as Config>::Currency::minimum_balance().saturating_add(T::AhExistentialDeposit::get()), "Preserved account {:?} should have not enough free balance on the relay chain after migration to be migrated to Asset Hub", who.to_ss58check());
+							assert!(
+								free_balance == ed.saturating_add(T::AhExistentialDeposit::get()),
+								"Preserved account {:?} should have not enough free balance on the relay chain after migration to be migrated to Asset Hub", 
+								who.to_ss58check()
+							);
 						}
 					},
 					// This corresponds to AccountState::Migrate: the account should be fully
 					// migrated to Asset Hub.
-					_ => {
+					Some(AccountState::Migrate) | None => {
 						// Assert storage "Balances::Account::rc_post::empty"
 						let total_balance = <T as Config>::Currency::total_balance(&who);
 						assert_eq!(
-						total_balance,
-						0,
-						"Account {:?} should have no balance on the relay chain after migration",
-						who.to_ss58check()
-					);
+							total_balance,
+							0,
+							"Account {:?} should have no balance on the relay chain after migration",
+							who.to_ss58check()
+						);
 
 						// Assert storage "Balances::Locks::rc_post::empty"
 						let locks = pallet_balances::Locks::<T>::get(&who);
@@ -1234,19 +1237,19 @@ pub mod tests {
 						// Assert storage "Balances::Freezes::rc_post::empty"
 						let freezes = pallet_balances::Freezes::<T>::get(&who);
 						assert!(
-						freezes.is_empty(),
-						"Account {:?} should have no freezes on the relay chain after migration",
-						who.to_ss58check()
-					);
+							freezes.is_empty(),
+							"Account {:?} should have no freezes on the relay chain after migration",
+							who.to_ss58check()
+						);
 
 						// Assert storage "Balances::Reserves::rc_post::empty"
 						let reserved = <T as Config>::Currency::reserved_balance(&who);
 						assert_eq!(
-						reserved,
-						0,
-						"Account {:?} should have no reserves on the relay chain after migration",
-						who.to_ss58check()
-					);
+							reserved,
+							0,
+							"Account {:?} should have no reserves on the relay chain after migration",
+							who.to_ss58check()
+						);
 					},
 				}
 			}
@@ -1254,8 +1257,15 @@ pub mod tests {
 			let total_issuance = <T as Config>::Currency::total_issuance();
 			let tracker = RcMigratedBalance::<T>::get();
 			// verify total issuance hasn't changed for any other reason than the migrated funds
-			assert_eq!(total_issuance, rc_total_issuance_before.saturating_sub(tracker.migrated));
-			assert_eq!(total_issuance, tracker.kept);
+			assert_eq!(
+				total_issuance,
+				rc_total_issuance_before.saturating_sub(tracker.migrated),
+				"Change on total issuance on the relay chain after migration is not as expected"
+			);
+			assert_eq!(
+				total_issuance, tracker.kept,
+				"Kept balance on the relay chain after migration is not as expected"
+			);
 		}
 	}
 }
