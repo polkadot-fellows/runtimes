@@ -15,10 +15,10 @@
 
 use super::{
 	AccountId, AllPalletsWithSystem, AssetConversion, Assets, Authorship, Balance, Balances,
-	CollatorSelection, ForeignAssets, ForeignAssetsInstance, NativeAndAssets, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeOrigin, ToKusamaXcmRouter, TrustBackedAssetsInstance, WeightToFee,
-	XcmpQueue,
+	CollatorSelection, FellowshipAdmin, ForeignAssets, ForeignAssetsInstance, GeneralAdmin,
+	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
+	ToKusamaXcmRouter, Treasurer, TrustBackedAssetsInstance, WeightToFee, XcmpQueue,
 };
 use assets_common::{
 	matching::{FromNetwork, IsForeignConcreteAsset, ParentLocation},
@@ -38,7 +38,11 @@ use parachains_common::xcm_config::{
 	AssetFeeAsExistentialDepositMultiplier, ParentRelayOrSiblingParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{
+	system_parachain,
+	// TODO: check this?
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
 use xcm::latest::prelude::*;
@@ -47,13 +51,14 @@ use xcm_builder::{
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
 	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
-	IsConcrete, LocalMint, MatchedConvertedConcreteId, MintLocation, NoChecking, ParentAsSuperuser,
-	ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SingleAssetExchangeAdapter, SovereignPaidRemoteExporter, SovereignSignedViaLocation,
-	StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithLatestLocationConverter,
-	WithUniqueTopic, XcmFeeManagerFromComponents,
+	IsConcrete, LocalMint, MatchedConvertedConcreteId, MintLocation, NoChecking,
+	OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SingleAssetExchangeAdapter,
+	SovereignPaidRemoteExporter, SovereignSignedViaLocation, StartsWith,
+	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
+	WeightInfoBounds, WithComputedOrigin, WithLatestLocationConverter, WithUniqueTopic,
+	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
@@ -400,9 +405,50 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelClosingHandler = ();
 }
 
+parameter_types! {
+	// `GeneralAdmin` pluralistic body.
+	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
+	// StakingAdmin pluralistic body.
+	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
+	// FellowshipAdmin pluralistic body.
+	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
+	// `Treasurer` pluralistic body.
+	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
+}
+
+/// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
+pub type GeneralAdminToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, GeneralAdmin, GeneralAdminBodyId>;
+
+/// Type to convert the `StakingAdmin` origin to a Plurality `Location` value.
+pub type StakingAdminToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, StakingAdmin, StakingAdminBodyId>;
+
+/// Type to convert the `FellowshipAdmin` origin to a Plurality `Location` value.
+pub type FellowshipAdminToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, FellowshipAdmin, FellowshipAdminBodyId>;
+
+/// Type to convert the `Treasurer` origin to a Plurality `Location` value.
+pub type TreasurerToPlurality = OriginToPluralityVoice<RuntimeOrigin, Treasurer, TreasurerBodyId>;
+
 /// Converts a local signed origin into an XCM `Location`.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
+
+/// Type to convert a pallet `Origin` type value into a `Location` value which represents an
+/// interior location of this chain for a destination chain.
+pub type LocalPalletOrSignedOriginToLocation = (
+	// GeneralAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
+	GeneralAdminToPlurality,
+	// StakingAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
+	StakingAdminToPlurality,
+	// FellowshipAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
+	FellowshipAdminToPlurality,
+	// `Treasurer` origin to be used in XCM as a corresponding Plurality `Location` value.
+	TreasurerToPlurality,
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
+	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
+);
 
 /// For routing XCM messages which do not cross local consensus boundary.
 type LocalXcmRouter = (
@@ -433,7 +479,7 @@ pub type XcmRouter = WithUniqueTopic<(
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	// Any local signed origin can send XCM messages.
-	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalPalletOrSignedOriginToLocation>;
 	type XcmRouter = XcmRouter;
 	// Any local signed origin can execute XCM messages.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;

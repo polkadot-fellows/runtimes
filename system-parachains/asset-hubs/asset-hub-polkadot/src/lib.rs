@@ -79,7 +79,9 @@ use assets_common::{
 use core::cmp::Ordering;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
+use governance::{
+	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer, TreasurySpender,
+};
 use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
