@@ -57,8 +57,11 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	// TODO: wrong - before/during/after migration setup?
-	pub const GovernanceLocation: Location = Location::parent();
+
+	// The AHM migration does not send progress to other chains, so we need to keep and trust two constants for a while.
+	pub const RcGovernanceLocation: Location = Location::parent();
+	pub AhGovernanceLocation: Location = AssetHubLocation::get();
+
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	/// The asset ID for the asset that we use to pay for message delivery fees. Just DOT.
 	pub FeeAssetId: AssetId = AssetId(RelayLocation::get());
@@ -71,6 +74,7 @@ parameter_types! {
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	// TODO: replace from system consts
 	pub AssetHubLocation: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
 }
 

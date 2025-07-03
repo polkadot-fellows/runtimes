@@ -59,7 +59,7 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
 		EitherOfDiverse, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
@@ -73,7 +73,8 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
-	FellowshipLocation, GovernanceLocation, StakingPot, XcmOriginToTransactDispatchOrigin,
+	AhGovernanceLocation, FellowshipLocation, RcGovernanceLocation, StakingPot,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -507,7 +508,10 @@ parameter_types! {
 /// We allow root, the StakingAdmin to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, StakingAdminBodyId>>,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {

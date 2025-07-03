@@ -29,7 +29,6 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 use xcm::latest::prelude::BodyId;
-use xcm_config::GovernanceLocation;
 
 parameter_types! {
 	//   27 | Min encoded size of `Registration`
@@ -46,7 +45,10 @@ parameter_types! {
 
 pub type IdentityAdminOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, GeneralAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, GeneralAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, GeneralAdminBodyId>>,
+	>,
 >;
 
 impl pallet_identity::Config for Runtime {

@@ -64,8 +64,11 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	// TODO: wrong - before/during/after migration setup?
-	pub const GovernanceLocation: Location = Location::parent();
+
+	// The AHM migration does not send progress to other chains, so we need to keep and trust two constants for a while.
+	pub const RcGovernanceLocation: Location = Location::parent();
+	pub AhGovernanceLocation: Location = AssetHubLocation::get();
+
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
@@ -74,6 +77,7 @@ parameter_types! {
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	// TODO: replace from system consts
 	pub AssetHubLocation: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
 }
 

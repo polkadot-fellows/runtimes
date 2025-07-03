@@ -76,7 +76,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOfDiverse, FromContains,
+		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, FromContains,
 		InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
@@ -96,8 +96,8 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	GovernanceLocation, LocationToAccountId, SelfParaId, StakingPot, TreasurerBodyId,
-	XcmOriginToTransactDispatchOrigin,
+	AhGovernanceLocation, LocationToAccountId, RcGovernanceLocation, SelfParaId, StakingPot,
+	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -528,7 +528,10 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, StakingAdminBodyId>>,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
@@ -672,7 +675,13 @@ impl pallet_asset_rate::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type CreateOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
-		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
+		EitherOfDiverse<
+			EitherOf<
+				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, TreasurerBodyId>>,
+			>,
+			Fellows,
+		>,
 	>;
 	type RemoveOrigin = Self::CreateOrigin;
 	type UpdateOrigin = Self::CreateOrigin;
