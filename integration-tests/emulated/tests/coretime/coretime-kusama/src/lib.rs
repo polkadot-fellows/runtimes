@@ -40,11 +40,16 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
 pub use kusama_system_emulated_network::{
+	asset_hub_kusama_emulated_chain::{
+		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
+	},
 	coretime_kusama_emulated_chain::{
 		genesis::ED as CORETIME_KUSAMA_ED, CoretimeKusamaParaPallet as CoretimeKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
-	CoretimeKusamaPara as CoretimeKusama, CoretimeKusamaParaReceiver as CoretimeKusamaReceiver,
+	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
+	AssetHubKusamaParaSender as AssetHubKusamaSender, CoretimeKusamaPara as CoretimeKusama,
+	CoretimeKusamaParaReceiver as CoretimeKusamaReceiver,
 	CoretimeKusamaParaSender as CoretimeKusamaSender, KusamaRelay as Kusama,
 	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
 	PenpalAPara as PenpalA,

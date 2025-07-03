@@ -27,6 +27,7 @@ use frame_support::{
 };
 use kusama_runtime::OriginCaller;
 use kusama_runtime_constants::currency::GRAND;
+use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
 
@@ -50,6 +51,8 @@ fn spend_ksm_on_asset_hub() {
 		type Runtime = <Kusama as Chain>::Runtime;
 		type Balances = <Kusama as KusamaPallet>::Balances;
 		type Treasury = <Kusama as KusamaPallet>::Treasury;
+
+		Dmp::make_parachain_reachable(1000);
 
 		// Fund Treasury account on Asset Hub with KSMs.
 
@@ -110,7 +113,7 @@ fn spend_ksm_on_asset_hub() {
 		let native_asset_on_asset_hub = Location::parent();
 
 		let treasury_spend_call = RuntimeCall::Treasury(pallet_treasury::Call::<Runtime>::spend {
-			asset_kind: bx!(VersionedLocatableAsset::V4 {
+			asset_kind: bx!(VersionedLocatableAsset::V5 {
 				location: asset_hub_location.clone(),
 				asset_id: native_asset_on_asset_hub.into(),
 			}),
@@ -175,13 +178,13 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		)
 		.unwrap();
 	let asset_hub_location =
-		v4::Location::new(0, v4::Junction::Parachain(AssetHubKusama::para_id().into()));
+		v5::Location::new(0, v5::Junction::Parachain(AssetHubKusama::para_id().into()));
 	let root = <Kusama as Chain>::RuntimeOrigin::root();
 	// asset kind to be spend from the treasury.
-	let asset_kind = VersionedLocatableAsset::V4 {
+	let asset_kind = VersionedLocatableAsset::V5 {
 		location: asset_hub_location,
-		asset_id: v4::AssetId(
-			(v4::Junction::PalletInstance(50), v4::Junction::GeneralIndex(USDT_ID.into())).into(),
+		asset_id: v5::AssetId(
+			(v5::Junction::PalletInstance(50), v5::Junction::GeneralIndex(USDT_ID.into())).into(),
 		),
 	};
 	// treasury spend beneficiary.
@@ -206,6 +209,7 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		// create a conversion rate from `asset_kind` to the native currency.
 		assert_ok!(AssetRate::create(root.clone(), Box::new(asset_kind.clone()), 2.into()));
 
+		Dmp::make_parachain_reachable(1000);
 		// create and approve a treasury spend.
 		assert_ok!(Treasury::spend(
 			root,

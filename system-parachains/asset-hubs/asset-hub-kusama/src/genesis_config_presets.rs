@@ -17,8 +17,8 @@
 //! Genesis configs presets for the AssetHubKusama runtime
 
 use crate::*;
+use alloc::vec::Vec;
 use sp_genesis_builder::PresetId;
-use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
 const ASSET_HUB_KUSAMA_ED: Balance = ExistentialDeposit::get();
@@ -35,6 +35,7 @@ fn asset_hub_kusama_genesis(
 				.cloned()
 				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -71,7 +72,14 @@ pub fn asset_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Va
 }
 
 fn asset_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_kusama_local_testnet_genesis(para_id)
+	asset_hub_kusama_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.
@@ -80,10 +88,11 @@ pub fn preset_names() -> Vec<PresetId> {
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
-pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
-	let patch = match id.try_into() {
-		Ok("development") => asset_hub_kusama_development_genesis(1000.into()),
-		Ok("local_testnet") => asset_hub_kusama_local_testnet_genesis(1000.into()),
+pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
+	let patch = match id.as_ref() {
+		sp_genesis_builder::DEV_RUNTIME_PRESET => asset_hub_kusama_development_genesis(1000.into()),
+		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
+			asset_hub_kusama_local_testnet_genesis(1000.into()),
 		_ => return None,
 	};
 	Some(

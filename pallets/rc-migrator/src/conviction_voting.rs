@@ -19,16 +19,34 @@ use frame_support::traits::{Currency, Polling};
 use pallet_conviction_voting::{ClassLocksFor, TallyOf, Voting};
 
 /// Stage of the scheduler pallet migration.
-#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum ConvictionVotingStage<AccountId, Class> {
 	VotingFor(Option<(AccountId, Class)>),
 	ClassLocksFor(Option<AccountId>),
 	Finished,
 }
 
-#[derive(Encode, Decode, RuntimeDebug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	RuntimeDebug,
+	Clone,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum RcConvictionVotingMessage<AccountId, Class, Voting, Balance> {
 	VotingFor(AccountId, Class, Voting),
 	ClassLocksFor(AccountId, Vec<(Class, Balance)>),
