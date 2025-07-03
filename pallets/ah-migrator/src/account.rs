@@ -292,12 +292,8 @@ pub mod tests {
 				}
 				let ah_free_post = <T as Config>::Currency::balance(&who);
 				let ah_reserved_post = <T as Config>::Currency::reserved_balance(&who);
-				let mut ah_free_before = 0;
-				let mut ah_reserved_before = 0;
-				if let Some((ah_reserved_pre, ah_free_pre)) = ah_pre_payload.get(&who) {
-					ah_free_before = *ah_free_pre;
-					ah_reserved_before = *ah_reserved_pre;
-				}
+				let (ah_reserved_before, ah_free_before) =
+					ah_pre_payload.get(&who).copied().unwrap_or((0, 0));
 
 				let mut frozen = 0;
 				let mut holds_enc = Vec::new();
