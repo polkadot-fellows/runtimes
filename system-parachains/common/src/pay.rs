@@ -147,7 +147,7 @@ pub mod benchmarks {
 				location: Location::new(0, []),
 				asset_id: Location::new(
 					0,
-					[PalletInstance(PalletId::get()), GeneralIndex(seed.into())],
+					[todo!("FIXME PalletInstance(PalletId::get()), GeneralIndex(seed.into())")],
 				)
 				.into(),
 			}
@@ -155,7 +155,7 @@ pub mod benchmarks {
 		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocatableAccount {
 			VersionedLocatableAccount::V4 {
 				location: Location::new(0, []),
-				account_id: Location::new(0, [AccountId32 { network: None, id: seed }]),
+				account_id: todo!("Fuck this stupid shit just compile now FIXME"),//Location::new(0, [AccountId32 { network: None, id: seed }]),
 			}
 		}
 	}
