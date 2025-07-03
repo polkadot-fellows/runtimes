@@ -19,7 +19,17 @@ use crate::*;
 use alias::{EthereumAddress, StatementKind};
 use frame_support::traits::{Currency, VestingSchedule};
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum ClaimsStage<AccountId> {
 	StorageValues,
 	Claims(Option<EthereumAddress>),
@@ -29,7 +39,17 @@ pub enum ClaimsStage<AccountId> {
 	Finished,
 }
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub enum RcClaimsMessage<AccountId, Balance, BlockNumber> {
 	StorageValues { total: Balance },
 	Claims((EthereumAddress, Balance)),
@@ -190,13 +210,34 @@ pub mod alias {
 	/// :(
 	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L130-L133
 	#[derive(
-		Clone, Copy, PartialEq, Eq, Encode, Decode, Default, RuntimeDebug, TypeInfo, MaxEncodedLen,
+		Clone,
+		Copy,
+		PartialEq,
+		Eq,
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		Default,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
 	)]
 	pub struct EthereumAddress(pub [u8; 20]);
 
 	// Also not MEL...
 	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L84-L103
-	#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		Clone,
+		Copy,
+		Eq,
+		PartialEq,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+	)]
 	pub enum StatementKind {
 		Regular,
 		Saft,

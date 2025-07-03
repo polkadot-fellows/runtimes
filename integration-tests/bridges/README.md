@@ -27,7 +27,7 @@ To start a test, you need to:
 - build chain spec generator:
   - (you can use the current branch, or you can build generators from different branches, such as from specific tags or releases)
   - add the `sudo` pallet to the Polkadot and Kusama runtimes and give sudo rights to Alice, e.g. by running `git apply ./integration-tests/bridges/sudo-relay.patch` from the fellows root dir.
-  - with this change build the chain spec generator by running `cargo build --release -p chain-spec-generator --features fast-runtime` 
+  - with this change build the chain spec generator by running `cargo build --release -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,kusama,bridge-hub-kusama,bridge-hub-polkadot,asset-hub-kusama,asset-hub-polkadot`
 command.
     - Copy the binary to `~/local_bridge_testing/bin/chain-spec-generator-kusama`.
     - Copy the binary to `~/local_bridge_testing/bin/chain-spec-generator-polkadot`.

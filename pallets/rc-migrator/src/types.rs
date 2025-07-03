@@ -103,7 +103,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
-		messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::alias::ScheduledOf<T>>>)>,
+		messages: Vec<(
+			pallet_scheduler::BlockNumberFor<T>,
+			Vec<Option<scheduler::alias::ScheduledOf<T>>>,
+		)>,
 	},
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
@@ -123,8 +126,18 @@ pub enum AhMigratorCall<T: Config> {
 }
 
 /// Further data coming from Relay Chain alongside the signal that migration has finished.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub struct MigrationFinishedData<Balance: Default> {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: Balance,
@@ -244,8 +257,18 @@ impl<O> ForceSetHead<O> for () {
 /// processed relative to other queues during the migration process. This helps ensure timely
 /// processing of migration messages. The default priority pattern is defined in the pallet
 /// configuration, but can be overridden by a storage value of this type.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum QueuePriority<BlockNumber: Copy> {
 	/// Use the default priority pattern from the pallet configuration.
 	#[default]

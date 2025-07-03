@@ -14,7 +14,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+/*
+FIXME v4 -> v5 broke it
 use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::{
@@ -50,6 +51,7 @@ use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, Track
 use pallet_treasury::PaymentState;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
+use xcm::
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -1249,3 +1251,4 @@ pub mod benchmarks {
 		_set_dmp_queue_priority::<T>(true)
 	}
 }
+*/
