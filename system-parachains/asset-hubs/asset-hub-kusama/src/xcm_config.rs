@@ -316,8 +316,8 @@ pub type TrustedTeleporters = (
 );
 
 /// Defines all global consensus locations that the asset hub is allowed to alias into.
-pub struct MatchWhitelistedGlobalConsensus;
-impl Contains<Location> for MatchWhitelistedGlobalConsensus {
+pub struct PolkadotOrEthereumGlobalConsensus;
+impl Contains<Location> for PolkadotOrEthereumGlobalConsensus {
 	fn contains(location: &Location) -> bool {
 		match location.unpack() {
 			(2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
