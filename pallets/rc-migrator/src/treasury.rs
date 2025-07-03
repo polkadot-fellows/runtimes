@@ -59,8 +59,6 @@ pub enum RcTreasuryMessage<
 	// LastSpendPeriod(BlockNumber),
 	Funds,
 }
-
-#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -176,7 +174,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 		}
 
 		if messages.len() > 0 {
-			Pallet::<T>::send_chunked_xcm(
+			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages },
 				|len| T::AhWeightInfo::receive_treasury_messages(len),

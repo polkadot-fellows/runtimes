@@ -23,12 +23,11 @@ pallet-bags-list = { workspace = true }
 pallet-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-fast-unstake = { workspace = true }
+pallet-delegated-staking = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
-# pallet-staking-async = { workspace = true } # Only on westend
-# pallet-staking-async-rc-client = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
@@ -80,6 +79,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-bounties/std",
 	"pallet-conviction-voting/std",
+	"pallet-delegated-staking/std",
 	"pallet-fast-unstake/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
@@ -129,6 +129,7 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
@@ -165,6 +166,7 @@ try-runtime = [
 	"pallet-balances/try-runtime",
 	"pallet-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-delegated-staking/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
@@ -185,17 +187,8 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-ahm-kusama = []
-ahm-polkadot = [
-	"pallet-ah-ops/ahm-polkadot",
-	"pallet-rc-migrator/ahm-polkadot",
-]
-ahm-westend = [
-	"ahm-staking-migration",
-	"pallet-ah-ops/ahm-westend",
-	"pallet-rc-migrator/ahm-westend",
-	"stable2503",
-
+ahm-kusama = [
+	"pallet-rc-migrator/ahm-kusama",
 ]
 stable2503 = [
 	"pallet-rc-migrator/stable2503",

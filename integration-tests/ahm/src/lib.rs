@@ -28,60 +28,35 @@ pub mod mock;
 pub mod multisig_still_work;
 pub mod multisig_test;
 pub mod proxy;
+pub mod queues_priority;
 pub mod tests;
 
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
 	// Dependency renaming depending on runtimes or SDK names:
-	#[cfg(feature = "ahm-polkadot")]
+	#[cfg(not(feature = "ahm-kusama"))]
 	pub mod dependency_alias {
 		// Polkadot it is the canonical code
-	}
-	#[cfg(feature = "ahm-westend")]
-	pub mod dependency_alias {
-		// Westend lives in the Polkadot SDK - it has different dependency names:
-		pub use polkadot_runtime_parachains as runtime_parachains;
-		pub use sp_authority_discovery as authority_discovery_primitives;
-		pub use sp_consensus_babe as babe_primitives;
-		pub use sp_consensus_beefy as beefy_primitives;
-		pub use sp_consensus_grandpa as grandpa;
 	}
 	pub use dependency_alias::*;
 
 	// Import renaming depending on runtimes or SDK names:
-	#[cfg(feature = "ahm-polkadot")]
+	#[cfg(not(feature = "ahm-kusama"))]
 	pub mod import_alias {
 		pub use polkadot_runtime_constants::DOLLARS as RC_DOLLARS;
-	}
-	#[cfg(feature = "ahm-westend")]
-	pub mod import_alias {
-		pub use asset_hub_westend_runtime as asset_hub_polkadot_runtime;
-		pub use westend_runtime as polkadot_runtime;
-		pub use westend_runtime_constants as polkadot_runtime_constants;
-
-		pub use testnet_parachains_constants::westend::currency::DOLLARS as RC_DOLLARS;
 	}
 	pub use import_alias::*;
 
 	// Convenience aliases:
 	pub use asset_hub_polkadot_runtime::{
-		Runtime as AhRuntime, RuntimeCall as AhRuntimeCall, RuntimeOrigin as AhRuntimeOrigin,
+		Runtime as AhRuntime, RuntimeCall as AhRuntimeCall, RuntimeEvent as AhRuntimeEvent,
+		RuntimeOrigin as AhRuntimeOrigin,
 	};
 	pub use polkadot_runtime::{
-		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeOrigin as RcRuntimeOrigin,
+		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeEvent as RcRuntimeEvent,
+		RuntimeOrigin as RcRuntimeOrigin,
 	};
 
-	// Westend does not support remote proxies, so we have to figure out the import location:
-	#[cfg(feature = "ahm-westend")]
-	pub use polkadot_runtime as rc_proxy_definition;
-	#[cfg(feature = "ahm-polkadot")]
+	#[cfg(not(feature = "ahm-kusama"))]
 	pub use polkadot_runtime_constants::proxy as rc_proxy_definition;
-}
-
-#[doc(hidden)]
-mod sanity_checks {
-	#[cfg(not(any(feature = "ahm-polkadot", feature = "ahm-westend")))]
-	compile_error!("You must enable exactly one of the features: `ahm-polkadot` or `ahm-westend`");
-	#[cfg(all(feature = "ahm-polkadot", feature = "ahm-westend"))]
-	compile_error!("Cannot enable multiple `ahm-test-*` features at once");
 }

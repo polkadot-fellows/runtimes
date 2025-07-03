@@ -28,7 +28,7 @@
 //! Run with:
 //!
 //! ```
-//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
+//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! ```
 
 use crate::porting_prelude::*;
@@ -60,11 +60,11 @@ use pallet_rc_migrator::{
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
-use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
+use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
-use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::crypto::Ss58Codec;
+use sp_io::TestExternalities;
 use sp_runtime::{AccountId32, DispatchError, TokenError};
 use std::{
 	collections::{BTreeMap, VecDeque},
@@ -88,6 +88,7 @@ type RcChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
 	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<Polkadot>,
+	pallet_rc_migrator::staking::delegated_staking::DelegatedStakingMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
@@ -96,7 +97,6 @@ type RcChecks = (
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
-#[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -106,9 +106,6 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
 );
-
-#[cfg(not(feature = "ahm-polkadot"))]
-pub type RcPolkadotChecks = ();
 
 type AhChecks = (
 	SanityChecks,
@@ -128,6 +125,7 @@ type AhChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
 	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<AssetHub>,
+	pallet_rc_migrator::staking::delegated_staking::DelegatedStakingMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
@@ -135,9 +133,6 @@ type AhChecks = (
 	MultisigStillWork,
 );
 
-// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
-// (like AH Westend)
-#[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -148,9 +143,7 @@ pub type AhPolkadotChecks = (
 	ProxyWhaleWatching,
 );
 
-#[cfg(not(feature = "ahm-polkadot"))]
-pub type AhPolkadotChecks = ();
-
+#[ignore] // we use the equivalent [migration_works_time] test instead
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
 	let (mut rc, mut ah) = load_externalities().await.unwrap();
@@ -194,7 +187,7 @@ async fn pallet_migration_works() {
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 }
 
-fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
+fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R> {
 	if std::env::var("START_STAGE").is_err() {
 		Some(ext.execute_with(|| f()))
 	} else {
@@ -202,10 +195,9 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 	}
 }
 
-#[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
-	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 	let f = |now: BlockNumberFor<Polkadot>, num_leases: u32| {
 		frame_system::Pallet::<Polkadot>::set_block_number(now);
 		pallet_rc_migrator::crowdloan::num_leases_to_ending_block::<Polkadot>(num_leases)
@@ -324,7 +316,7 @@ async fn print_sovereign_account_translation() {
 async fn print_accounts_statistics() {
 	use frame_system::Account as SystemAccount;
 
-	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 
 	let mut total_counts = std::collections::HashMap::new();
 
@@ -387,8 +379,7 @@ fn ah_account_migration_weight() {
 	}
 }
 
-#[ignore] // Slow
-#[tokio::test(flavor = "current_thread")]
+#[tokio::test]
 async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
@@ -488,7 +479,7 @@ async fn migration_works_time() {
 	);
 }
 
-#[tokio::test(flavor = "current_thread")]
+#[tokio::test]
 async fn scheduled_migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
@@ -516,13 +507,17 @@ async fn scheduled_migration_works() {
 	});
 	ah.commit_all().unwrap();
 
+	let mut start = 0u32.into();
+	let mut cool_off_end = 0u32.into();
+
 	// Schedule the migration on RC.
 	let dmp_messages = rc.execute_with(|| {
 		log::info!("Scheduling the migration on RC");
 		next_block_rc();
 
 		let now = frame_system::Pallet::<Polkadot>::block_number();
-		let scheduled_at = now + 2;
+		start = now + 2;
+		cool_off_end = start + 3;
 
 		// Fellowship Origin
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
@@ -532,24 +527,31 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
-		assert_ok!(RcMigrator::schedule_migration(origin.into(), DispatchTime::At(scheduled_at)));
+		assert_ok!(RcMigrator::schedule_migration(
+			origin.into(),
+			DispatchTime::At(start),
+			DispatchTime::At(cool_off_end),
+		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { block_number: scheduled_at }
+			RcMigrationStage::Scheduled { start, cool_off_end }
 		);
 
 		next_block_rc();
 		// migrating not yet started
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { block_number: scheduled_at }
+			RcMigrationStage::Scheduled { start, cool_off_end }
 		);
 		assert_eq!(DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID).len(), 0);
 
 		next_block_rc();
 
-		// migration started
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
+		// migration is waiting for AH to acknowledge the start
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::WaitingForAh { cool_off_end }
+		);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(dmp_messages.len() > 0);
 
@@ -588,10 +590,36 @@ async fn scheduled_migration_works() {
 	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
+
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::WaitingForAh { cool_off_end }
+		);
 
 		next_block_rc();
 
+		// cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { cool_off_end }
+		);
+
+		next_block_rc();
+
+		// still cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { cool_off_end }
+		);
+
+		next_block_rc();
+
+		// starting
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Starting);
+
+		next_block_rc();
+
+		// accounts migration init
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
 			RcMigrationStage::AccountsMigrationInit

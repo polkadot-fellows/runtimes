@@ -21,6 +21,6 @@ xcm = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true }
 
 # Runtimes
-asset-hub-polkadot-runtime = { workspace = true, default-features = true }
+asset-hub-polkadot-runtime = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }

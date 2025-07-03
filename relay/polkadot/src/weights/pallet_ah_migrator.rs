@@ -512,6 +512,9 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
+	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
+		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI
+	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
@@ -620,5 +623,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 			.saturating_add(Weight::from_parts(0, 3593))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	fn set_dmp_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_dmp_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
 	}
 }

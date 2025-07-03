@@ -35,13 +35,10 @@ pub mod account;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod call;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
 pub mod conviction_voting;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,14 +47,16 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
-#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 
 pub use pallet::*;
-pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
+pub use pallet_rc_migrator::{
+	types::{ForceSetHead, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority},
+	weights_ah,
+};
 pub use weights_ah::WeightInfo;
 
 use frame_support::{
@@ -70,19 +69,16 @@ use frame_support::{
 		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
+	weights::WeightMeter,
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
+use pallet_rc_migrator::{
+	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
+	treasury::RcTreasuryMessage, types::MigrationStatus,
+};
 
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::bounties::RcBountiesMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::claims::RcClaimsMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::treasury::RcTreasuryMessage;
-
+use cumulus_primitives_core::AggregateMessageOrigin;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
@@ -90,7 +86,10 @@ use pallet_rc_migrator::{
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*, *},
+	staking::{
+		bags_list::RcBagsListMessage, delegated_staking::RcDelegatedStakingMessageOf,
+		fast_unstake::RcFastUnstakeMessage, nom_pools::*, *,
+	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
@@ -101,7 +100,7 @@ use scheduler::RcSchedulerMessageOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{BlockNumberProvider, Convert, TryConvert, Zero},
+	traits::{BlockNumberProvider, Convert, One, TryConvert, Zero},
 	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
@@ -117,8 +116,6 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcHoldReason,
 	<T as Config>::RcFreezeReason,
 >;
-
-#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -156,6 +153,7 @@ pub enum PalletEventName {
 	ConvictionVoting,
 	AssetRates,
 	Staking,
+	DelegatedStaking,
 }
 
 /// The migration stage on the Asset Hub.
@@ -223,11 +221,10 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64>
 		+ pallet_ah_ops::Config
-		+ pallet_claims::Config // Not on westend
-		+ pallet_bounties::Config // Not on westend
-		+ pallet_treasury::Config // Not on westend
-		//+ pallet_staking_async::Config // Only on westend
-		//+ pallet_staking_async_rc_client::Config // Only on westend
+		+ pallet_claims::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
+		+ pallet_delegated_staking::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -247,7 +244,7 @@ pub mod pallet {
 		/// All supported assets registry.
 		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
-		/// 
+		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
@@ -297,11 +294,12 @@ pub mod pallet {
 		///
 		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
 		/// list should not include the native asset.
-		#[cfg(not(feature = "ahm-westend"))]
-		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
+		type TreasuryAccounts: Get<(
+			Self::AccountId,
+			Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>,
+		)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
-		#[cfg(not(feature = "ahm-westend"))]
 		type RcToAhTreasurySpend: Convert<
 			(VersionedLocatableAsset, VersionedLocation),
 			Result<
@@ -324,7 +322,25 @@ pub mod pallet {
 		/// We need to inject this here to be able to convert it. The message type is require to
 		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+		type RcStakingMessage: Parameter
+			+ IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+
+		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+
+		/// The priority pattern for DMP queue processing during migration [Config::MessageQueue].
+		///
+		/// This configures how frequently the DMP queue gets priority over other queues
+		/// (like HRMP). The tuple (dmp_priority_blocks, round_robin_blocks) defines a repeating
+		/// cycle where:
+		/// - `dmp_priority_blocks` consecutive blocks: DMP queue gets priority
+		/// - `round_robin_blocks` consecutive blocks: round-robin processing of all queues
+		/// - Then the cycle repeats
+		///
+		/// For example, (18, 2) means a cycle of 20 blocks that repeats.
+		///
+		/// This configuration can be overridden by a storage item [`DmpQueuePriorityConfig`].
+		type DmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -338,16 +354,21 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type AhMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
 
-	/// The total number of XCM data messages processed from the Relay Chain and the number of XCM
-	/// messages that encountered an error during processing.
-	#[pallet::storage]
-	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
-
 	/// Helper storage item to store the total balance / total issuance of native token at the start
 	/// of the migration. Since teleports are disabled during migration, the total issuance will not
 	/// change for other reason than the migration itself.
 	#[pallet::storage]
 	pub type AhBalancesBefore<T: Config> = StorageValue<_, BalancesBefore<T::Balance>, ValueQuery>;
+
+	/// The priority of the DMP queue during migration.
+	///
+	/// Controls how the DMP (Downward Message Passing) queue is processed relative to other queues
+	/// during the migration process. This helps ensure timely processing of migration messages.
+	/// The default priority pattern is defined in the pallet configuration, but can be overridden
+	/// by a storage value of this type.
+	#[pallet::storage]
+	pub type DmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, DmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -374,7 +395,10 @@ pub mod pallet {
 		FailedToCalculateCheckingAccount,
 		/// Vector did not fit into its compile-time bound.
 		FailedToBoundVector,
-		Unreachable,
+		/// The DMP queue priority is already set to the same value.
+		DmpQueuePriorityAlreadySet,
+		/// Invalid parameter.
+		InvalidParameter,
 	}
 
 	#[pallet::event]
@@ -404,6 +428,24 @@ pub mod pallet {
 		/// to understand. The finishing is immediate and affects all events happening
 		/// afterwards.
 		AssetHubMigrationFinished,
+		/// Whether the DMP queue was prioritized for the next block.
+		DmpQueuePrioritySet {
+			/// Indicates if DMP queue was successfully set as priority.
+			/// If `false`, it means we're in the round-robin phase of our priority pattern
+			/// (see [`Config::DmpQueuePriorityPattern`]), where no queue gets priority.
+			prioritized: bool,
+			/// Current block number within the pattern cycle (1 to period).
+			cycle_block: BlockNumberFor<T>,
+			/// Total number of blocks in the pattern cycle
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The DMP queue priority config was set.
+		DmpQueuePriorityConfigSet {
+			/// The old priority pattern.
+			old: DmpQueuePriority<BlockNumberFor<T>>,
+			/// The new priority pattern.
+			new: DmpQueuePriority<BlockNumberFor<T>>,
+		},
 	}
 
 	#[pallet::pallet]
@@ -440,11 +482,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_accounts(accounts);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_accounts(accounts).map_err(Into::into)
 		}
 
 		/// Receive multisigs from the Relay Chain.
@@ -460,11 +498,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_multisigs(accounts);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_multisigs(accounts).map_err(Into::into)
 		}
 
 		/// Receive proxies from the Relay Chain.
@@ -476,11 +510,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_proxies(proxies);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_proxies(proxies).map_err(Into::into)
 		}
 
 		/// Receive proxy announcements from the Relay Chain.
@@ -492,11 +522,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_proxy_announcements(announcements);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
 		}
 
 		#[pallet::call_index(4)]
@@ -515,11 +541,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_preimage_chunks(chunks);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
 		}
 
 		#[pallet::call_index(5)]
@@ -530,11 +552,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_preimage_request_statuses(request_status);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
 		}
 
 		#[pallet::call_index(6)]
@@ -545,11 +563,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_preimage_legacy_statuses(legacy_status);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
 		}
 
 		#[pallet::call_index(7)]
@@ -560,11 +574,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_nom_pools_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(8)]
@@ -575,11 +585,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_vesting_schedules(schedules);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_vesting_schedules(schedules).map_err(Into::into)
 		}
 
 		#[pallet::call_index(9)]
@@ -590,11 +596,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_fast_unstake_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
 		}
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
@@ -602,20 +604,24 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_referenda_values())]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
-			referendum_count: u32,
-			// track_id, count
-			deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
-			// referendum_id, votes
-			track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+			mut values: Vec<(
+				// referendum_count
+				u32,
+				// deciding_count (track_id, count)
+				Vec<(TrackIdOf<T, ()>, u32)>,
+				// track_queue (referendum_id, votes)
+				Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+			)>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res =
-				Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue);
+			ensure!(values.len() == 1, Error::<T>::InvalidParameter);
 
-			Self::increment_msg_received_count(res.is_err());
+			let (referendum_count, deciding_count, track_queue) =
+				values.pop().ok_or(Error::<T>::InvalidParameter)?;
 
-			res.map_err(Into::into)
+			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
+				.map_err(Into::into)
 		}
 
 		/// Receive referendums from the Relay Chain.
@@ -651,14 +657,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_referendums(referendums);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_referendums(referendums).map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(12)]
 		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
 		pub fn receive_claims(
@@ -667,11 +667,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_claims(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_claims(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(13)]
@@ -682,11 +678,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_bags_list_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(14)]
@@ -697,11 +689,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_scheduler_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(15)]
@@ -712,11 +700,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_indices(indices);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_indices(indices).map_err(Into::into)
 		}
 
 		#[pallet::call_index(16)]
@@ -727,14 +711,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_conviction_voting_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(17)]
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
@@ -743,11 +721,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_bounties_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_bounties_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(18)]
@@ -758,14 +732,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_asset_rates(rates);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_asset_rates(rates).map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(19)]
 		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
 		pub fn receive_crowdloan_messages(
@@ -774,11 +742,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_crowdloan_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(20)]
@@ -789,14 +753,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_referenda_metadata(metadata);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_referenda_metadata(metadata).map_err(Into::into)
 		}
-
-		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(21)]
 		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
 		pub fn receive_treasury_messages(
@@ -805,11 +763,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_treasury_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_treasury_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(22)]
@@ -838,11 +792,18 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_scheduler_agenda_messages(messages);
+			Self::do_receive_scheduler_agenda_messages(messages).map_err(Into::into)
+		}
 
-			Self::increment_msg_received_count(res.is_err());
+		#[pallet::call_index(23)]
+		#[pallet::weight(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() as u32))]
+		pub fn receive_delegated_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcDelegatedStakingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
 
-			res.map_err(Into::into)
+			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
 		#[cfg(feature = "ahm-staking-migration")]
@@ -854,11 +815,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			let res = Self::do_receive_staking_messages(messages);
-
-			Self::increment_msg_received_count(res.is_err());
-
-			res.map_err(Into::into)
+			Self::do_receive_staking_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.
@@ -885,6 +842,29 @@ pub mod pallet {
 			Self::migration_start_hook().map_err(Into::into)
 		}
 
+		/// Set the DMP queue priority configuration.
+		///
+		/// Can only be called by the `ManagerOrigin`.
+		#[pallet::call_index(102)]
+		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
+		pub fn set_dmp_queue_priority(
+			origin: OriginFor<T>,
+			new: DmpQueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let old = DmpQueuePriorityConfig::<T>::get();
+			if old == new {
+				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
+			}
+			ensure!(
+				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				Error::<T>::InvalidParameter
+			);
+			DmpQueuePriorityConfig::<T>::put(new.clone());
+			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
+
 		/// Finish the migration.
 		///
 		/// This is typically called by the Relay Chain to signal the migration has finished.
@@ -903,24 +883,24 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-			T::AhWeightInfo::on_finalize()
+			let mut weight = Weight::from_parts(0, 0);
+
+			if Self::is_ongoing() {
+				weight = weight.saturating_add(T::AhWeightInfo::force_dmp_queue_priority());
+			}
+
+			weight.saturating_add(T::AhWeightInfo::on_finalize())
 		}
 
-		fn on_finalize(_: BlockNumberFor<T>) {
-			let (processed, _) = DmpDataMessageCounts::<T>::get();
-			if processed == 0 {
-				return;
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if Self::is_ongoing() {
+				Self::force_dmp_queue_priority(now);
 			}
-			log::info!(
-				target: LOG_TARGET,
-				"Sending XCM message to update XCM data message processed count: {}",
-				processed
-			);
-			let res = Self::send_xcm(types::RcMigratorCall::UpdateAhMsgProcessedCount(processed));
-			defensive_assert!(
-				res.is_ok(),
-				"Failed to send XCM message to update XCM data message processed count"
-			);
+		}
+
+		fn integrity_test() {
+			let (dmp_priority_blocks, _) = T::DmpQueuePriorityPattern::get();
+			assert!(!dmp_priority_blocks.is_zero(), "the `dmp_priority_blocks` should be non-zero");
 		}
 	}
 
@@ -952,31 +932,12 @@ pub mod pallet {
 		) -> Result<(), Error<T>> {
 			// Accounts
 			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				// FIXME fails only on Westend
-				#[cfg(feature = "ahm-westend")]
-				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
-
-				#[cfg(not(feature = "ahm-westend"))]
 				defensive!("Account migration failed: {:?}", err);
 			}
 
 			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
-		}
-
-		/// Increments the number of XCM messages received from the Relay Chain.
-		fn increment_msg_received_count(with_error: bool) {
-			let (processed, processed_with_error) = DmpDataMessageCounts::<T>::get();
-			let processed = processed + 1;
-			let processed_with_error = processed_with_error + if with_error { 1 } else { 0 };
-			DmpDataMessageCounts::<T>::put((processed, processed_with_error));
-			log::debug!(
-				target: LOG_TARGET,
-				"Increment XCM message processed, total processed: {}, failed: {}",
-				processed,
-				processed_with_error
-			);
 		}
 
 		/// Execute a stage transition and log it.
@@ -1047,9 +1008,47 @@ pub mod pallet {
 				None
 			}
 		}
+
+		/// Force the DMP queue priority for the next block.
+		pub fn force_dmp_queue_priority(now: BlockNumberFor<T>) {
+			let (dmp_priority_blocks, round_robin_blocks) = match DmpQueuePriorityConfig::<T>::get()
+			{
+				DmpQueuePriority::Config => T::DmpQueuePriorityPattern::get(),
+				DmpQueuePriority::OverrideConfig(dmp_priority_blocks, round_robin_blocks) =>
+					(dmp_priority_blocks, round_robin_blocks),
+				DmpQueuePriority::Disabled => return,
+			};
+
+			let period = dmp_priority_blocks + round_robin_blocks;
+			if period.is_zero() {
+				return;
+			}
+			let current_block = now % period;
+
+			let is_set = if current_block < dmp_priority_blocks {
+				// it is safe to force set the queue without checking if the DMP queue is empty, as
+				// the implementation handles these checks internally.
+				let dmp = AggregateMessageOrigin::Parent;
+				match T::MessageQueue::force_set_head(&mut WeightMeter::new(), &dmp) {
+					Ok(is_set) => is_set,
+					Err(_) => {
+						defensive!("Failed to force set DMP queue priority");
+						false
+					},
+				}
+			} else {
+				false
+			};
+
+			Self::deposit_event(Event::DmpQueuePrioritySet {
+				prioritized: is_set,
+				cycle_block: current_block + BlockNumberFor::<T>::one(),
+				cycle_period: period,
+			});
+		}
 	}
 
-	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
+	impl<T: Config> MigrationStatus for Pallet<T> {
 		fn is_ongoing() -> bool {
 			AhMigrationStage::<T>::get().is_ongoing()
 		}

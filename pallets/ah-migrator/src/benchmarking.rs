@@ -41,6 +41,7 @@ use pallet_rc_migrator::{
 	scheduler::RcSchedulerMessage,
 	staking::{
 		bags_list::alias::Node,
+		delegated_staking::RcDelegatedStakingMessage,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
@@ -64,17 +65,6 @@ pub type ConvictionVotingIndexOf<T> = <<T as pallet_conviction_voting::Config>::
 )]
 pub mod benchmarks {
 	use super::*;
-
-	#[benchmark]
-	fn on_finalize() {
-		let block_num = BlockNumberFor::<T>::from(1u32);
-		DmpDataMessageCounts::<T>::put((1, 0));
-
-		#[block]
-		{
-			Pallet::<T>::on_finalize(block_num)
-		}
-	}
 
 	#[benchmark]
 	fn receive_multisigs(n: Linear<1, 255>) {
@@ -382,7 +372,7 @@ pub mod benchmarks {
 		}
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, referendum_count, deciding_count, track_queue);
+		_(RawOrigin::Root, vec![(referendum_count, deciding_count, track_queue)]);
 
 		assert_last_event::<T>(
 			Event::BatchProcessed {
@@ -763,6 +753,34 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn receive_delegated_staking_messages(n: Linear<1, 255>) {
+		let create_delegated_staking = |n: u8| -> RcDelegatedStakingMessageOf<T> {
+			RcDelegatedStakingMessage::Agents {
+				agent: [n; 32].into(),
+				payee: [n; 32].into(),
+				total_delegated: n.into(),
+				unclaimed_withdrawals: n.into(),
+				pending_slash: n.into(),
+			}
+		};
+		let messages = (0..n)
+			.map(|i| create_delegated_staking(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::DelegatedStaking,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
 	fn receive_preimage_legacy_status(n: Linear<1, 255>) {
 		let create_preimage_legacy_status = |n: u8| -> RcPreimageLegacyStatusOf<T> {
 			let depositor: AccountId32 = [n; 32].into();
@@ -901,16 +919,55 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn finish_migration() {
+		AhMigrationStage::<T>::put(&MigrationStage::DataMigrationOngoing);
 		#[extrinsic_call]
 		_(RawOrigin::Root, MigrationFinishedData { rc_balance_kept: 100 });
 
 		assert_last_event::<T>(
 			Event::StageTransition {
-				old: MigrationStage::Pending,
+				old: MigrationStage::DataMigrationOngoing,
 				new: MigrationStage::MigrationDone,
 			}
 			.into(),
 		);
+	}
+
+	#[benchmark]
+	fn force_dmp_queue_priority() {
+		let now = BlockNumberFor::<T>::from(1u32);
+		let priority_blocks = BlockNumberFor::<T>::from(10u32);
+		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);
+		DmpQueuePriorityConfig::<T>::put(DmpQueuePriority::OverrideConfig(
+			priority_blocks,
+			round_robin_blocks,
+		));
+
+		#[block]
+		{
+			Pallet::<T>::force_dmp_queue_priority(now)
+		}
+
+		assert_last_event::<T>(
+			Event::DmpQueuePrioritySet {
+				prioritized: true,
+				cycle_block: now + BlockNumberFor::<T>::from(1u32),
+				cycle_period: priority_blocks + round_robin_blocks,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn set_dmp_queue_priority() {
+		let old = DmpQueuePriorityConfig::<T>::get();
+		let new = DmpQueuePriority::OverrideConfig(
+			BlockNumberFor::<T>::from(10u32),
+			BlockNumberFor::<T>::from(1u32),
+		);
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
 	}
 
 	#[cfg(feature = "std")]
@@ -920,15 +977,6 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_multisigs::<T>(n, true /* enable checks */)
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_on_finalize<T>()
-	where
-		T: Config,
-		ConvictionVotingIndexOf<T>: From<u8>,
-	{
-		_on_finalize::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
@@ -1121,6 +1169,15 @@ pub mod benchmarks {
 	}
 
 	#[cfg(feature = "std")]
+	pub fn test_receive_delegated_staking_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_delegated_staking_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
 	pub fn test_force_set_stage<T>()
 	where
 		T: Config,
@@ -1172,5 +1229,23 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_preimage_chunk::<T>(m, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_force_dmp_queue_priority<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_force_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_dmp_queue_priority<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_dmp_queue_priority::<T>(true)
 	}
 }

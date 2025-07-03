@@ -228,6 +228,7 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
 		BlockWeights::get().max_block;
+	pub ZeroWeight: Weight = Weight::zero();
 	pub const MaxScheduledPerBlock: u32 = 50;
 	pub const NoPreimagePostponement: Option<u32> = Some(10);
 }
@@ -256,7 +257,7 @@ impl pallet_scheduler::Config for Runtime {
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
 	type MaximumWeight =
-		pallet_rc_migrator::types::ZeroWeightOr<RcMigrator, MaximumSchedulerWeight>;
+		pallet_rc_migrator::types::LeftOrRight<RcMigrator, ZeroWeight, MaximumSchedulerWeight>;
 	// The goal of having ScheduleOrigin include AuctionAdmin is to allow the auctions track of
 	// OpenGov to schedule periodic auctions.
 	// Also allow Treasurer to schedule recurring payments.
@@ -724,7 +725,10 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
+	type WeightInfo = pallet_rc_migrator::types::MaxOnIdleOrInner<
+		RcMigrator,
+		weights::pallet_fast_unstake::WeightInfo<Runtime>,
+	>;
 }
 
 parameter_types! {
@@ -732,6 +736,7 @@ parameter_types! {
 	pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
 	pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
 	pub const SpendPeriod: BlockNumber = 24 * DAYS;
+	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
@@ -756,7 +761,8 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod = SpendPeriod;
+	type SpendPeriod =
+		pallet_rc_migrator::types::LeftOrRight<RcMigrator, DisableSpends, SpendPeriod>;
 	type Burn = Burn;
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
@@ -1528,9 +1534,13 @@ parameter_types! {
 	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
 	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
+	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
+	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
 impl pallet_rc_migrator::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeEvent = RuntimeEvent;
 	type ManagerOrigin = EitherOfDiverse<
@@ -1553,6 +1563,10 @@ impl pallet_rc_migrator::Config for Runtime {
 	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
 	type OnDemandPalletId = OnDemandPalletId;
 	type UnprocessedMsgBuffer = ConstU32<5>;
+	type XcmResponseTimeout = XcmResponseTimeout;
+	// TODO: set actual message queue instance when upgraded to sdk/2503
+	type MessageQueue = ();
+	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
 }
 
 #[cfg(not(feature = "zombie-bite-sudo"))]
