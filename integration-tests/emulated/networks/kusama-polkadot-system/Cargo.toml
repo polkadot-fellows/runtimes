@@ -28,6 +28,6 @@ runtime-benchmarks = [
 	"bridge-hub-kusama-emulated-chain/runtime-benchmarks",
 	"bridge-hub-polkadot-emulated-chain/runtime-benchmarks",
 	"kusama-emulated-chain/runtime-benchmarks",
-	
+
 	"polkadot-emulated-chain/runtime-benchmarks",
 ]
