@@ -44,7 +44,9 @@ use assets_common::{
 use core::cmp::Ordering;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use governance::{pallet_custom_origins, AuctionAdmin, GeneralAdmin, Treasurer};
+use governance::{
+	pallet_custom_origins, AuctionAdmin, Fellows, GeneralAdmin, StakingAdmin, Treasurer,
+};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
 use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
