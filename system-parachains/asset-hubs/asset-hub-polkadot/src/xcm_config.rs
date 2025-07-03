@@ -417,6 +417,12 @@ pub(crate) type LocalXcmRouterWithoutException = (
 /// For routing XCM messages which do not cross local consensus boundary.
 type LocalXcmRouter = pallet_ah_migrator::RouteInnerWithException<
 	LocalXcmRouterWithoutException,
+	// Exception: query responses to Relay Chain (`ParentLocation`) which initiated (`Querier`) by
+	// the Relay Chain (`Here`, since from the perspective of the receiver).
+	// See: https://github.com/paritytech/polkadot-sdk/blob/28b7c7770e9e7abf5b561fc42cfe565baf076cb7/polkadot/xcm/xcm-executor/src/lib.rs#L728
+	//
+	// This exception is required for the migration flow-control system to send query responses
+	// to the Relay Chain, confirming that data messages have been received.
 	FromContains<Equals<ParentLocation>, pallet_ah_migrator::ExceptResponseFor<Equals<Here>>>,
 	crate::AhMigrator,
 >;

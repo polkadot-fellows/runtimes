@@ -251,6 +251,10 @@ impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueue
 	}
 }
 
+/// Exception for routing XCM messages with the first instruction being a query response to the
+/// given `Querier`.
+///
+/// The `Querier` is from the perspective of the receiver of the XCM message.
 pub struct ExceptResponseFor<Querier>(PhantomData<Querier>);
 impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querier> {
 	fn contains(l: &Xcm<()>) -> bool {
