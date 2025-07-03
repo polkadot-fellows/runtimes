@@ -42,7 +42,7 @@ fn test_send_to_rc_from_ah() {
 		Instruction::UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 		Instruction::Transact {
 			origin_kind: OriginKind::Xcm,
-			require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
+			fallback_max_weight: None,
 			call: AhRuntimeCall::System(frame_system::Call::remark { remark: vec![1] })
 				.encode()
 				.into(),
@@ -140,7 +140,7 @@ fn test_send_to_ah_from_rc() {
 		Instruction::UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 		Instruction::Transact {
 			origin_kind: OriginKind::Xcm,
-			require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
+			fallback_max_weight: None,
 			call: RcRuntimeCall::System(frame_system::Call::remark { remark: vec![1] })
 				.encode()
 				.into(),
