@@ -23,8 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals, Everything, FromContains, Nothing},
-	traits::{Contains, Disabled, Equals, Everything, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;

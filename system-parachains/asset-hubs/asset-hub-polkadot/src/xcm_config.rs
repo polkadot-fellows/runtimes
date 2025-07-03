@@ -30,9 +30,8 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Equals, Everything, FromContains, Nothing,
+		ConstU32, Contains, ContainsPair, Disabled, Equals, Everything, FromContains, Nothing,
 		PalletInfoAccess,
-		ConstU32, Contains, ContainsPair, Disabled, Equals, Everything, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
