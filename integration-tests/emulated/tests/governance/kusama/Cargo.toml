@@ -1,0 +1,31 @@
+[package]
+name = "governance-kusama-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Kusama governance integration tests with xcm-emulator"
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+
+# Substrate
+sp-runtime = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+pallet-whitelist = { workspace = true, default-features = true }
+pallet-utility = { workspace = true, default-features = true }
+
+# Cumulus
+emulated-integration-tests-common = { workspace = true }
+
+# Polkadot
+pallet-xcm = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
+
+# Local
+asset-hub-kusama-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+kusama-runtime = { workspace = true }
+kusama-system-emulated-network = { workspace = true }
