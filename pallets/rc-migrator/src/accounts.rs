@@ -1116,18 +1116,18 @@ pub mod tests {
 		fn post_check(rc_pre_payload: Self::RcPrePayload) {
 			let (_, rc_total_issuance_before) = rc_pre_payload;
 
-			let mut acc_state_maybe: Option<AccountStateFor<T>>;
+			let mut account_state_maybe: Option<AccountStateFor<T>>;
 			// Check that all accounts have been processed correctly
 			for (who, _) in SystemAccount::<T>::iter() {
-				acc_state_maybe = RcAccounts::<T>::get(who.clone());
-				if acc_state_maybe.is_none() {
+				account_state_maybe = RcAccounts::<T>::get(who.clone());
+				if account_state_maybe.is_none() {
 					let ed = <T as Config>::Currency::minimum_balance();
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					if total_balance < ed {
-						acc_state_maybe = Some(AccountState::Preserve);
+						account_state_maybe = Some(AccountState::Preserve);
 					}
 				}
-				match acc_state_maybe {
+				match account_state_maybe {
 					Some(AccountState::Part { free, reserved, consumers, .. }) => {
 						assert_eq!(
 							<T as Config>::Currency::reserved_balance(&who), reserved,
