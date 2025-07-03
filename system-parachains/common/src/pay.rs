@@ -129,7 +129,7 @@ pub mod benchmarks {
 	use pallet_treasury::ArgumentsFactory as TreasuryArgumentsFactory;
 	use sp_core::ConstU8;
 	use sp_std::marker::PhantomData;
-	use xcm::v4::{Location, Junction};
+	use xcm::v4::{Junction, Location};
 
 	/// Provides factory methods for the `AssetKind` and the `Beneficiary` that are applicable for
 	/// the payout made by [`LocalPay`].
@@ -155,7 +155,7 @@ pub mod benchmarks {
 		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocatableAccount {
 			VersionedLocatableAccount::V4 {
 				location: Location::new(0, []),
-				account_id: todo!("Fuck this stupid shit just compile now FIXME"),//Location::new(0, [AccountId32 { network: None, id: seed }]),
+				account_id: todo!("Fuck this stupid shit just compile now FIXME"), /* Location::new(0, [AccountId32 { network: None, id: seed }]), */
 			}
 		}
 	}

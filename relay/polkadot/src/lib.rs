@@ -2019,8 +2019,7 @@ mod benches {
 	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use xcm_builder::MintLocation;
 	use xcm_config::{
-		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation,
-		XcmConfig,
+		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
 	};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
