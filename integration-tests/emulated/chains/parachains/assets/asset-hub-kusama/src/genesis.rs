@@ -18,8 +18,8 @@ use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
-	SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, xcm_emulator::ConvertLocation, ASSETS_PALLET_ID,
+	RESERVABLE_ASSET_ID, SAFE_XCM_VERSION, TELEPORTABLE_ASSET_ID,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::snowbridge::{
@@ -29,8 +29,6 @@ use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::prelude::*;
 use xcm_builder::GlobalConsensusParachainConvertsFor;
-use emulated_integration_tests_common::ASSETS_PALLET_ID;
-use emulated_integration_tests_common::TELEPORTABLE_ASSET_ID;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();

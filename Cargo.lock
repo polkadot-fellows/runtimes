@@ -813,12 +813,43 @@ dependencies = [
  "integration-tests-helpers",
  "kusama-emulated-chain",
  "parachains-common",
- "penpal-emulated-chain 0.1.0",
+ "penpal-emulated-chain",
  "polkadot-parachain-primitives",
  "sp-core 36.1.0",
  "sp-keyring",
  "staging-xcm",
  "staging-xcm-builder",
+]
+
+[[package]]
+name = "asset-hub-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "assert_matches",
+ "asset-hub-kusama-runtime",
+ "asset-test-utils",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-runtime-constants",
+ "kusama-system-emulated-network",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-message-queue",
+ "pallet-treasury",
+ "pallet-utility",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "sp-runtime",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "system-parachains-constants",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -919,7 +950,7 @@ dependencies = [
  "frame-support",
  "integration-tests-helpers",
  "parachains-common",
- "penpal-emulated-chain 0.1.0",
+ "penpal-emulated-chain",
  "polkadot-emulated-chain",
  "polkadot-parachain-primitives",
  "snowbridge-inbound-queue-primitives",
@@ -6393,7 +6424,7 @@ dependencies = [
  "bridge-hub-polkadot-emulated-chain",
  "emulated-integration-tests-common",
  "kusama-emulated-chain",
- "penpal-emulated-chain 0.1.0",
+ "penpal-emulated-chain",
  "polkadot-emulated-chain",
 ]
 
@@ -6424,7 +6455,7 @@ dependencies = [
  "coretime-kusama-emulated-chain",
  "emulated-integration-tests-common",
  "kusama-emulated-chain",
- "penpal-emulated-chain 0.1.0",
+ "penpal-emulated-chain",
  "people-kusama-emulated-chain",
 ]
 
@@ -9581,21 +9612,6 @@ dependencies = [
 
 [[package]]
 name = "penpal-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=oty-2503-paseo#4e69aee8e82f110b654ce3f85ed668f20c7481a0"
-dependencies = [
- "cumulus-primitives-core",
- "emulated-integration-tests-common",
- "frame-support",
- "parachains-common",
- "penpal-runtime",
- "sp-core 36.1.0",
- "sp-keyring",
- "staging-xcm",
-]
-
-[[package]]
-name = "penpal-emulated-chain"
 version = "1.0.0"
 dependencies = [
  "cumulus-primitives-core",
@@ -10441,7 +10457,7 @@ dependencies = [
  "collectives-polkadot-emulated-chain",
  "coretime-polkadot-emulated-chain",
  "emulated-integration-tests-common",
- "penpal-emulated-chain 0.1.0",
+ "penpal-emulated-chain",
  "people-polkadot-emulated-chain",
  "polkadot-emulated-chain",
 ]
