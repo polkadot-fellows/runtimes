@@ -1159,7 +1159,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = ah_migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
-	type SendXcm = xcm_config::LocalXcmRouterWithoutException;
+	type SendXcm = xcm_builder::WithUniqueTopic<xcm_config::LocalXcmRouterWithoutException>;
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
 	type TreasuryAccounts = ah_migration::TreasuryAccounts;
 	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
