@@ -184,7 +184,7 @@ people-polkadot-runtime = { path = "system-parachains/people/people-polkadot" }
 polkadot-core-primitives = { version = "17.1.0", default-features = false }
 polkadot-emulated-chain = { path = "integration-tests/emulated/chains/relays/polkadot" }
 polkadot-parachain-primitives = { version = "16.1.0", default-features = false }
-polkadot-primitives = { version = "18.1.0", default-features = false }
+polkadot-primitives = { version = "18.2.0", default-features = false }
 polkadot-runtime = { path = "relay/polkadot" }
 polkadot-runtime-common = { version = "19.1.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
@@ -192,7 +192,7 @@ polkadot-system-emulated-network = { path = "integration-tests/emulated/networks
 primitive-types = { version = "0.12.2", default-features = false }
 frame-metadata-hash-extension = { version = "0.8.0", default-features = false }
 remote-externalities = { version = "0.50.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "19.1.0", default-features = false, package = "polkadot-runtime-parachains" }
+runtime-parachains = { version = "19.2.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "42.0.0" }
 sc-network = { version = "0.49.2" }
 scale-info = { version = "2.10.0", default-features = false }

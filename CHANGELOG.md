@@ -9,6 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
 
+## [1.6.1] 24.06.2025
+
+### Changed
+
+- Slash and disable lazy and spammy validators as part of the new validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827), [polkadot-fellows/runtimes/pull/782](https://github.com/polkadot-fellows/runtimes/pull/782))
+- Switch to UpToLimitWithReEnablingDisablingStrategy (Polkadot & Kusama) which always prioritises highest offenders for disabling instead of stopping when limit is reached ([polkadot-fellows/runtimes/pull/781](https://github.com/polkadot-fellows/runtimes/pull/781))
+
 ## [1.6.0] 19.06.2025
 
 ### Added
@@ -40,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: convert properly assets in xcmpayment apis ([SDK stable2503 #7134](https://github.com/paritytech/polkadot-sdk/pull/7134)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Ensure Consistent Topic IDs for Traceable Cross-Chain XCM ([SDK stable2503 #7691](https://github.com/paritytech/polkadot-sdk/pull/7691)).
 
+- [[#753](https://github.com/polkadot-fellows/runtimes/pull/753)] Upgrades Polkadot and Kusama AssetHub to XCM v5. Adds a migration to check upgrade safety.
 - [[#754](https://github.com/polkadot-fellows/runtimes/pull/754)]  Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
 
 - Extend bounty update period to ~10 years ([polkadot-fellows/runtimes/pull/766](https://github.com/polkadot-fellows/runtimes/pull/766))
