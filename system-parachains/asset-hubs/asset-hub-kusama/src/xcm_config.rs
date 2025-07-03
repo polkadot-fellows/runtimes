@@ -76,8 +76,7 @@ parameter_types! {
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	// TODO: split GovernanceOnRcLocation and GovernanceOnAhLocation - because we don't send migration start to other system paras
-	pub const GovernanceLocation: Location = Location::parent();
+	pub const RcGovernanceLocation: Location = Location::parent();
 	pub const FellowshipLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
