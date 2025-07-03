@@ -418,10 +418,10 @@ impl Contains<Location> for MatchWhitelistedGlobalConsensus {
 pub type TrustedAliasers = (
 	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin).
 	AliasChildLocation,
-	// Allow cousin Asset Hub to alias into whitelisted global consensus origins.
+	// Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
 	AliasOriginRootUsingFilter<
-		bridging::to_kusama::AssetHubKusama,
-		MatchWhitelistedGlobalConsensus,
+		bridging::to_polkadot::AssetHubPolkadot,
+		KusamaGlobalConsensus,
 	>,
 );
 
