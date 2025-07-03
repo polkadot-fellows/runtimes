@@ -298,7 +298,7 @@ case "$1" in
           "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama"}] } }')" \
           100000000000 \
-          250000000000 \
+          4000000000000 \
           "$BOB_SOVEREIGN_ACCOUNT_AT_POLKADOT"
       ;;
   init-bridge-hub-polkadot-local)
@@ -365,7 +365,7 @@ case "$1" in
           "$(jq --null-input '{ "parents": 1, "interior": "Here" }')" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot"}] } }')" \
           1000000000000 \
-          400000000000 \
+          25000000000 \
           "$BOB_SOVEREIGN_ACCOUNT_AT_KUSAMA"
       ;;
   init-bridge-hub-kusama-local)
