@@ -284,6 +284,7 @@ pub mod tests {
 			let (account_summaries, _) = rc_pre_payload;
 			for (who, summary) in account_summaries {
 				// Checking account balance migration is tested separately.
+				// Treasury may be modified during migration.
 				if who == T::CheckingAccount::get() ||
 					who == pallet_treasury::Pallet::<T>::account_id()
 				{

@@ -461,12 +461,15 @@ impl<T: Config> AccountsMigrator<T> {
 			.checked_sub(account_state.get_rc_free())
 			.defensive_unwrap_or_default();
 
-		debug_assert!(teleport_free >= ah_ed);
+		debug_assert!(teleport_free >= ah_ed, "teleport_free >= ah_ed");
 		defensive_assert!(
 			teleport_total ==
 				total_balance - account_state.get_rc_free() - account_state.get_rc_reserved()
 		);
-		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
+		defensive_assert!(
+			teleport_total == teleport_free + teleport_reserved,
+			"teleport_total == teleport_free + teleport_reserved"
+		);
 
 		let burned = match <T as Config>::Currency::burn_from(
 			&who,
@@ -1039,9 +1042,14 @@ pub mod tests {
 				if who == T::CheckingAccount::get() {
 					continue;
 				}
+				let total_balance = <T as Config>::Currency::total_balance(&who);
+				let rc_ed = <T as Config>::Currency::minimum_balance();
+				// Such accounts are not migrated to Asset Hub.
+				if total_balance < rc_ed {
+					continue;
+				}
 				let rc_kept_reserved_balance = rc_reserved_kept.get(&who).unwrap_or(&0);
 				let rc_kept_free_balance = rc_free_kept.get(&who).unwrap_or(&0);
-				let total_balance = <T as Config>::Currency::total_balance(&who);
 				if total_balance == rc_kept_free_balance.saturating_add(*rc_kept_reserved_balance) {
 					// Account is fully kept on the relay chain
 					continue;
@@ -1050,7 +1058,6 @@ pub mod tests {
 				let free = <T as Config>::Currency::balance(&who);
 				// Extra balance that needs to be freed for migration for existential deposits.
 				let mut freed_for_migration = 0;
-				let rc_ed = <T as Config>::Currency::minimum_balance();
 				let ah_ed = T::AhExistentialDeposit::get();
 				let tot_kept_balance =
 					rc_kept_reserved_balance.saturating_add(*rc_kept_free_balance);
