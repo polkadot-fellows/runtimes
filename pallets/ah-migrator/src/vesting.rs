@@ -59,7 +59,8 @@ impl<T: Config> Pallet<T> {
 
 		// Emit translation event if account was translated
 		if let Some(para_id) = para_id {
-			Self::deposit_event(Event::<T>::VestingTranslated {
+			Self::deposit_event(Event::<T>::AccountTranslated {
+				pallet: PalletEventName::Vesting,
 				original: original_account,
 				translated: translated_account.clone(),
 				para_id,

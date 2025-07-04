@@ -172,6 +172,7 @@ mod test_helpers {
 
 	/// Verify account translation event was emitted
 	pub fn verify_account_translation_event(
+		pallet: pallet_ah_migrator::PalletEventName,
 		test_case: &AccountTestCase,
 		original_account: &AccountId32,
 	) {
@@ -196,6 +197,7 @@ mod test_helpers {
 					event_record.event,
 					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
 						pallet_ah_migrator::Event::AccountTranslated {
+							pallet,
 							original: original_account.clone(),
 							translated: test_case.expected_translated.clone().unwrap(),
 							para_id: test_case.expected_para_id.unwrap(),
@@ -207,38 +209,42 @@ mod test_helpers {
 		}
 	}
 
-	/// Verify vesting translation event was emitted
-	pub fn verify_vesting_translation_event(
+	/// Verify account translation event was emitted for a specific pallet type
+	pub fn verify_account_translation_event_for_pallet(
+		pallet: pallet_ah_migrator::PalletEventName,
 		test_case: &AccountTestCase,
 		original_account: &AccountId32,
 	) {
 		let events = frame_system::Pallet::<AssetHub>::events();
 		if test_case.should_translate {
-			let vesting_translated_event = events.iter().find(|record| {
+			let account_translated_event = events.iter().find(|record| {
 				matches!(
 					record.event,
 					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
-						pallet_ah_migrator::Event::VestingTranslated { .. }
-					)
+						pallet_ah_migrator::Event::AccountTranslated { pallet: ref p, .. }
+					) if *p == pallet
 				)
 			});
 
 			assert!(
-				vesting_translated_event.is_some(),
-				"VestingTranslated event should be emitted for parachain sovereign account"
+				account_translated_event.is_some(),
+				"AccountTranslated event should be emitted for parachain sovereign account in {:?} pallet",
+				pallet
 			);
 
-			if let Some(event_record) = vesting_translated_event {
+			if let Some(event_record) = account_translated_event {
 				assert_eq!(
 					event_record.event,
 					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
-						pallet_ah_migrator::Event::VestingTranslated {
+						pallet_ah_migrator::Event::AccountTranslated {
+							pallet: pallet.clone(),
 							original: original_account.clone(),
 							translated: test_case.expected_translated.clone().unwrap(),
 							para_id: test_case.expected_para_id.unwrap(),
 						}
 					),
-					"VestingTranslated event should match expected values"
+					"AccountTranslated event should match expected values for {:?} pallet",
+					pallet
 				);
 			}
 		}
@@ -869,7 +875,11 @@ async fn some_account_migration_works() {
 				expected_translated: expected_translated.clone(),
 				expected_para_id,
 			};
-			verify_account_translation_event(&test_case, &original_account);
+			verify_account_translation_event(
+				pallet_ah_migrator::PalletEventName::Balances,
+				&test_case,
+				&original_account,
+			);
 
 			if should_translate {
 				log::info!(
@@ -966,7 +976,11 @@ async fn vesting_account_migration_works() {
 
 			// Verify VestingTranslated event was emitted (only for translated accounts)
 			if *should_translate {
-				verify_vesting_translation_event(&test_case, &rc_account);
+				verify_account_translation_event_for_pallet(
+					pallet_ah_migrator::PalletEventName::Vesting,
+					&test_case,
+					&rc_account,
+				);
 			}
 
 			log::info!(

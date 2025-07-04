@@ -121,7 +121,12 @@ pub trait AccountTranslator<AccountId> {
 	fn translate_account(account: &AccountId) -> AccountId;
 
 	/// Emit an event when an account is translated
-	fn emit_translation_event(original: &AccountId, translated: &AccountId, para_id: u16);
+	fn emit_translation_event(
+		pallet: PalletEventName,
+		original: &AccountId,
+		translated: &AccountId,
+		para_id: u16,
+	);
 }
 
 /// Helper function to translate RC sovereign accounts to AH sibling accounts.
@@ -216,15 +221,18 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	TypeInfo,
 	MaxEncodedLen,
 )]
+/// Enum representing the pallet types that support account translation during migration.
+/// New pallet types will be added as migration support is implemented for each pallet.
 pub enum PalletEventName {
+	/// Account migrations (System::Account storage)
+	Balances,
+	Vesting,
 	Indices,
 	FastUnstake,
 	Crowdloan,
 	BagsList,
-	Vesting,
 	Bounties,
 	Treasury,
-	Balances,
 	Multisig,
 	Claims,
 	ProxyProxies,
@@ -551,15 +559,8 @@ pub mod pallet {
 		},
 		/// An account was translated from RC format to AH format.
 		AccountTranslated {
-			/// The original account before translation.
-			original: T::AccountId,
-			/// The translated account after translation.
-			translated: T::AccountId,
-			/// The para ID that was extracted from the sovereign account.
-			para_id: u16,
-		},
-		/// A vesting schedule account was translated from RC format to AH format.
-		VestingTranslated {
+			/// The pallet type where the account translation occurred.
+			pallet: PalletEventName,
 			/// The original account before translation.
 			original: T::AccountId,
 			/// The translated account after translation.
@@ -1182,8 +1183,14 @@ impl<T: Config> AccountTranslator<T::AccountId> for Pallet<T> {
 		translated_account
 	}
 
-	fn emit_translation_event(original: &T::AccountId, translated: &T::AccountId, para_id: u16) {
+	fn emit_translation_event(
+		pallet: PalletEventName,
+		original: &T::AccountId,
+		translated: &T::AccountId,
+		para_id: u16,
+	) {
 		Self::deposit_event(Event::AccountTranslated {
+			pallet,
 			original: original.clone(),
 			translated: translated.clone(),
 			para_id,
