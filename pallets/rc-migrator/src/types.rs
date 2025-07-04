@@ -20,9 +20,11 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
+use frame_support::traits::ContainsPair;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
+use xcm_builder::InspectMessageQueues;
 
 pub trait ToPolkadotSs58 {
 	fn to_polkadot_ss58(&self) -> String;
@@ -103,7 +105,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
-		messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::alias::ScheduledOf<T>>>)>,
+		messages: Vec<(
+			pallet_scheduler::BlockNumberFor<T>,
+			Vec<Option<scheduler::alias::ScheduledOf<T>>>,
+		)>,
 	},
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
@@ -123,8 +128,18 @@ pub enum AhMigratorCall<T: Config> {
 }
 
 /// Further data coming from Relay Chain alongside the signal that migration has finished.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub struct MigrationFinishedData<Balance: Default> {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: Balance,
@@ -210,13 +225,60 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
-/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
-pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
-impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
-	for LeftOrRight<Status, Left, Right>
+/// A wrapper around `Inner` that routes messages through `Inner` unless `MigrationState` is ongoing
+/// and `Exception` returns true for the given destination and message.
+pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
+	PhantomData<(Inner, Exception, MigrationState)>,
+);
+impl<
+		Inner: SendXcm,
+		Exception: ContainsPair<Location, Xcm<()>>,
+		MigrationState: MigrationStatus,
+	> SendXcm for RouteInnerWithException<Inner, Exception, MigrationState>
 {
-	fn get() -> Left::Type {
-		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+	type Ticket = Inner::Ticket;
+	fn validate(
+		destination: &mut Option<Location>,
+		message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		if MigrationState::is_ongoing() &&
+			Exception::contains(
+				destination.as_ref().ok_or(SendError::MissingArgument)?,
+				message.as_ref().ok_or(SendError::MissingArgument)?,
+			) {
+			Err(SendError::Transport("Migration ongoing - routing is temporary blocked!"))
+		} else {
+			Inner::validate(destination, message)
+		}
+	}
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Inner::deliver(ticket)
+	}
+}
+
+impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueues
+	for RouteInnerWithException<Inner, Exception, MigrationState>
+{
+	fn clear_messages() {
+		Inner::clear_messages()
+	}
+
+	fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
+		Inner::get_messages()
+	}
+}
+
+/// Exception for routing XCM messages with the first instruction being a query response to the
+/// given `Querier`.
+///
+/// The `Querier` is from the perspective of the receiver of the XCM message.
+pub struct ExceptResponseFor<Querier>(PhantomData<Querier>);
+impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querier> {
+	fn contains(l: &Xcm<()>) -> bool {
+		match l.first() {
+			Some(QueryResponse { querier: Some(querier), .. }) => !Querier::contains(querier),
+			_ => true,
+		}
 	}
 }
 
@@ -244,8 +306,18 @@ impl<O> ForceSetHead<O> for () {
 /// processed relative to other queues during the migration process. This helps ensure timely
 /// processing of migration messages. The default priority pattern is defined in the pallet
 /// configuration, but can be overridden by a storage value of this type.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum QueuePriority<BlockNumber: Copy> {
 	/// Use the default priority pattern from the pallet configuration.
 	#[default]
@@ -265,6 +337,16 @@ impl<BlockNumber: Copy> QueuePriority<BlockNumber> {
 			QueuePriority::OverrideConfig(priority_blocks, _) => Some(*priority_blocks),
 			QueuePriority::Disabled => None,
 		}
+	}
+}
+
+/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
+pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftOrRight<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
 	}
 }
 

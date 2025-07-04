@@ -20,3 +20,11 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 coretime-polkadot-runtime = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"coretime-polkadot-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+]
