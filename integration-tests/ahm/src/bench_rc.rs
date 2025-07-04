@@ -68,7 +68,7 @@ fn test_bench_start_data_migration() {
 #[test]
 fn test_bench_send_chunked_xcm_and_track() {
 	new_test_ext().execute_with(|| {
-		// FIXME test_send_chunked_xcm_and_track::<RelayChain>();
+		test_send_chunked_xcm_and_track::<RelayChain>();
 	});
 }
 
@@ -79,6 +79,7 @@ fn test_bench_receive_query_response() {
 	});
 }
 
+#[test]
 fn test_bench_set_ah_ump_queue_priority() {
 	new_test_ext().execute_with(|| {
 		test_set_ah_ump_queue_priority::<RelayChain>();
@@ -88,7 +89,7 @@ fn test_bench_set_ah_ump_queue_priority() {
 #[test]
 fn test_bench_resend_xcm() {
 	new_test_ext().execute_with(|| {
-		// FIXME test_resend_xcm::<RelayChain>();
+		test_resend_xcm::<RelayChain>();
 	});
 }
 
@@ -99,6 +100,7 @@ fn test_bench_set_unprocessed_msg_buffer() {
 	});
 }
 
+#[test]
 fn test_bench_force_ah_ump_queue_priority() {
 	new_test_ext().execute_with(|| {
 		test_force_ah_ump_queue_priority::<RelayChain>();

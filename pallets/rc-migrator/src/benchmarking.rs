@@ -19,6 +19,7 @@ use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::Currency;
 use frame_system::{Account as SystemAccount, RawOrigin};
+use runtime_parachains::dmp as parachains_dmp;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -115,6 +116,8 @@ pub mod benchmarks {
 		let mut batches = XcmBatch::new();
 		batches.push(vec![0u8; (MAX_XCM_SIZE / 2 - 10) as usize]);
 		batches.push(vec![1u8; (MAX_XCM_SIZE / 2 - 10) as usize]);
+		parachains_dmp::Pallet::<T>::make_parachain_reachable(1000);
+
 		#[block]
 		{
 			let res = Pallet::<T>::send_chunked_xcm_and_track(
@@ -155,6 +158,7 @@ pub mod benchmarks {
 			check_origin: None,
 		}]);
 		PendingXcmMessages::<T>::insert(query_id, xcm);
+		parachains_dmp::Pallet::<T>::make_parachain_reachable(1000);
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, query_id);
