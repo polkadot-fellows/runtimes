@@ -313,15 +313,8 @@ pub type TrustedTeleporters = (
 pub struct PolkadotOrEthereumGlobalConsensus;
 impl Contains<Location> for PolkadotOrEthereumGlobalConsensus {
 	fn contains(location: &Location) -> bool {
-		match location.unpack() {
-			(2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
-				if matches!(
-					*network_id,
-					NetworkId::Polkadot | NetworkId::Ethereum { chain_id: 1 }
-				) =>
-				true,
-			_ => false,
-		}
+		matches!(location.unpack(), (2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
+			if matches!(*network_id, NetworkId::Polkadot | NetworkId::Ethereum { chain_id: 1 }))
 	}
 }
 

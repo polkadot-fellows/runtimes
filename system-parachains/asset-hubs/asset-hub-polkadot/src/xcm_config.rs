@@ -401,12 +401,8 @@ pub type TrustedTeleporters = (
 pub struct KusamaGlobalConsensus;
 impl Contains<Location> for KusamaGlobalConsensus {
 	fn contains(location: &Location) -> bool {
-		match location.unpack() {
-			(2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
-				if matches!(*network_id, NetworkId::Kusama) =>
-				true,
-			_ => false,
-		}
+		matches!(location.unpack(), (2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
+				if matches!(*network_id, NetworkId::Kusama))
 	}
 }
 /// Defines origin aliasing rules for this chain.
