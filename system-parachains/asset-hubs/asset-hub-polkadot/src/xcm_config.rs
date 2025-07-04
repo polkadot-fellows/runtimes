@@ -95,6 +95,11 @@ parameter_types! {
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
 	pub const Here: Location = Location::here();
+
+	// FAIL-CI remove. Only here to make other tests compile
+	pub RelayTreasuryPalletAccount: AccountId =
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
+			.unwrap_or(TreasuryAccount::get());
 }
 
 /// Treasury account that changes once migration ends.

@@ -6,7 +6,7 @@
 
 [workspace]
 resolver = "2"
-members = ["chain-spec-generator", "integration-tests/ahm", "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama", "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot", "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama", "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot", "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot", "integration-tests/emulated/chains/parachains/coretime/coretime-kusama", "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot", "integration-tests/emulated/chains/parachains/people/people-kusama", "integration-tests/emulated/chains/parachains/people/people-polkadot", "integration-tests/emulated/chains/parachains/testing/penpal", "integration-tests/emulated/chains/relays/kusama", "integration-tests/emulated/chains/relays/polkadot", "integration-tests/emulated/helpers", "integration-tests/emulated/networks/kusama-polkadot-system", "integration-tests/emulated/networks/kusama-system", "integration-tests/emulated/networks/polkadot-system", "integration-tests/emulated/tests/assets/asset-hub-kusama", "integration-tests/emulated/tests/assets/asset-hub-polkadot", "integration-tests/emulated/tests/bridges/bridge-hub-kusama", "integration-tests/emulated/tests/bridges/bridge-hub-polkadot", "integration-tests/emulated/tests/collectives/collectives-polkadot", "integration-tests/emulated/tests/coretime/coretime-kusama", "integration-tests/emulated/tests/coretime/coretime-polkadot", "integration-tests/emulated/tests/people/people-kusama", "integration-tests/emulated/tests/people/people-polkadot", "integration-tests/zombienet", "pallets/ah-migrator", "pallets/ah-ops", "pallets/rc-migrator", "pallets/remote-proxy", "relay/common", "relay/kusama", "relay/kusama/constants", "relay/polkadot", "relay/polkadot/constants", "system-parachains/asset-hubs/asset-hub-kusama", "system-parachains/asset-hubs/asset-hub-kusama/primitives", "system-parachains/asset-hubs/asset-hub-polkadot", "system-parachains/asset-hubs/asset-hub-polkadot/primitives", "system-parachains/bridge-hubs/bridge-hub-kusama", "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", "system-parachains/bridge-hubs/bridge-hub-polkadot", "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", "system-parachains/collectives/collectives-polkadot", "system-parachains/collectives/collectives-polkadot/constants", "system-parachains/constants", "system-parachains/coretime/coretime-kusama", "system-parachains/coretime/coretime-polkadot", "system-parachains/encointer", "system-parachains/gluttons/glutton-kusama", "system-parachains/people/people-kusama", "system-parachains/people/people-polkadot"]
+members = ["chain-spec-generator", "integration-tests/ahm", "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama", "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot", "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama", "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot", "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot", "integration-tests/emulated/chains/parachains/coretime/coretime-kusama", "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot", "integration-tests/emulated/chains/parachains/people/people-kusama", "integration-tests/emulated/chains/parachains/people/people-polkadot", "integration-tests/emulated/chains/parachains/testing/penpal", "integration-tests/emulated/chains/relays/kusama", "integration-tests/emulated/chains/relays/polkadot", "integration-tests/emulated/helpers", "integration-tests/emulated/networks/kusama-polkadot-system", "integration-tests/emulated/networks/kusama-system", "integration-tests/emulated/networks/polkadot-system", "integration-tests/emulated/tests/assets/asset-hub-kusama", "integration-tests/emulated/tests/assets/asset-hub-polkadot", "integration-tests/emulated/tests/bridges/bridge-hub-kusama", "integration-tests/emulated/tests/bridges/bridge-hub-polkadot", "integration-tests/emulated/tests/collectives/collectives-polkadot", "integration-tests/emulated/tests/coretime/coretime-kusama", "integration-tests/emulated/tests/coretime/coretime-polkadot", "integration-tests/emulated/tests/people/people-kusama", "integration-tests/emulated/tests/people/people-polkadot", "integration-tests/zombienet", "pallets/ah-migrator", "pallets/ah-ops", "pallets/rc-migrator", "pallets/remote-proxy", "relay/common", "relay/kusama", "relay/kusama/constants", "relay/polkadot", "relay/polkadot/constants", "system-parachains/asset-hubs/asset-hub-kusama", "system-parachains/asset-hubs/asset-hub-kusama/primitives", "system-parachains/asset-hubs/asset-hub-polkadot", "system-parachains/asset-hubs/asset-hub-polkadot/primitives", "system-parachains/bridge-hubs/bridge-hub-kusama", "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", "system-parachains/bridge-hubs/bridge-hub-polkadot", "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", "system-parachains/collectives/collectives-polkadot", "system-parachains/collectives/collectives-polkadot/constants", "system-parachains/constants", "system-parachains/coretime/coretime-kusama", "system-parachains/coretime/coretime-polkadot", "system-parachains/gluttons/glutton-kusama", "system-parachains/people/people-kusama", "system-parachains/people/people-polkadot"]
 
 [workspace.package]
 version = "1.0.0"
@@ -288,21 +288,6 @@ version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
 branch = "oty-2503-paseo"
 
-[workspace.dependencies.encointer-balances-tx-payment]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.encointer-balances-tx-payment-rpc-runtime-api]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.encointer-kusama-runtime]
-path = "system-parachains/encointer"
-
-[workspace.dependencies.encointer-primitives]
-version = "~16.4.0"
-default-features = false
-
 [workspace.dependencies.enumflags2]
 version = "0.7.7"
 
@@ -551,58 +536,6 @@ version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
 branch = "oty-2503-paseo"
-
-[workspace.dependencies.pallet-encointer-balances]
-version = "~16.2.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-bazaar]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-bazaar-rpc-runtime-api]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-ceremonies]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-ceremonies-rpc-runtime-api]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-communities]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-communities-rpc-runtime-api]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-democracy]
-version = "~16.4.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-faucet]
-version = "~16.2.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-reputation-commitments]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-scheduler]
-version = "~16.1.0"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-treasuries]
-version = "~16.4.1"
-default-features = false
-
-[workspace.dependencies.pallet-encointer-treasuries-rpc-runtime-api]
-version = "~16.3.0"
-default-features = false
 
 [workspace.dependencies.pallet-fast-unstake]
 version = "*"
