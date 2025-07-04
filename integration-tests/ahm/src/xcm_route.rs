@@ -164,6 +164,9 @@ fn test_send_to_ah_from_rc() {
 			config.max_downward_message_size = 51200;
 		});
 
+		polkadot_runtime::Dmp::make_parachain_reachable(1000);
+		polkadot_runtime::Dmp::make_parachain_reachable(1001);
+
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 
