@@ -18,7 +18,6 @@
 //! Account balance migration.
 
 use crate::*;
-use pallet_rc_migrator::accounts::AccountsMigrator;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_accounts(
@@ -69,7 +68,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let who = account.who;
-		let total_balance = account.free + account.reserved;
+		let total_balance = account.free.saturating_add(account.reserved);
 		let minted = match <T as pallet::Config>::Currency::mint_into(&who, total_balance) {
 			Ok(minted) => minted,
 			Err(e) => {
@@ -213,64 +212,194 @@ impl<T: Config> Pallet<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
-	// rc_total_issuance_before
-	type RcPrePayload = BalanceOf<T>;
-	// ah_checking_account_before
-	type AhPrePayload = BalanceOf<T>;
+pub mod tests {
+	use super::*;
+	use pallet_rc_migrator::accounts::tests::{
+		AccountsMigrationChecker, BalanceSummary, ChainType,
+	};
 
-	/// Run some checks on asset hub before the migration and store intermediate payload.
-	///
-	/// The expected output should contain the data stored in asset hub before the migration.
-	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		// Assert storage "Balances::Locks::ah_pre::empty"
-		assert!(
-			pallet_balances::Locks::<T>::iter().next().is_none(),
-			"No locks should exist on Asset Hub before migration"
-		);
+	use std::collections::BTreeMap;
 
-		// Assert storage "Balances::Reserves::ah_pre::empty"
-		assert!(
-			pallet_balances::Reserves::<T>::iter().next().is_none(),
-			"No reserves should exist on Asset Hub before migration"
-		);
+	impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
+		// The RC payload is a mapping from account to a summary of their balances, including holds,
+		// reserves, locks, and freezes. The second item is the total issuance on the relay chain
+		// before migration.
+		// The AH payload is a mapping from account to (ah_reserved_pre, ah_free_pre), i.e., the
+		// reserved balance on Asset Hub before migration and the free balance on Asset Hub before
+		// migration.
+		type RcPrePayload = (BTreeMap<T::AccountId, BalanceSummary>, u128);
+		type AhPrePayload = BTreeMap<T::AccountId, (u128, u128)>;
 
-		// Assert storage "Balances::Freezes::ah_pre::empty"
-		assert!(
-			pallet_balances::Freezes::<T>::iter().next().is_none(),
-			"No freezes should exist on Asset Hub before migration"
-		);
+		/// Run some checks on asset hub before the migration and store intermediate payload.
+		///
+		/// The expected output should contain the data stored in asset hub before the migration.
+		fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+			// Assert storage "Balances::Locks::ah_pre::empty"
+			assert!(
+				pallet_balances::Locks::<T>::iter().next().is_none(),
+				"No locks should exist on Asset Hub before migration"
+			);
 
-		// Assert storage "Balances::Account::ah_pre::empty"
-		assert!(
-			pallet_balances::Account::<T>::iter().next().is_none(),
-			"No Account should exist on Asset Hub before migration"
-		);
+			// Assert storage "Balances::Reserves::ah_pre::empty"
+			assert!(
+				pallet_balances::Reserves::<T>::iter().next().is_none(),
+				"No reserves should exist on Asset Hub before migration"
+			);
 
-		let check_account = T::CheckingAccount::get();
-		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
-		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
-		// added DOT ED to all existing AH accounts.
-		// This is fine, we can just ignore/accept this small amount.
-		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
-		checking_balance
-	}
+			// Assert storage "Balances::Freezes::ah_pre::empty"
+			assert!(
+				pallet_balances::Freezes::<T>::iter().next().is_none(),
+				"No freezes should exist on Asset Hub before migration"
+			);
 
-	/// Run some checks after the migration and use the intermediate payload.
-	///
-	/// The expected input should contain the data just transferred out of the relay chain, to allow
-	/// the check that data has been correctly migrated to asset hub. It should also contain the
-	/// data previously stored in asset hub, allowing for more complex logical checks on the
-	/// migration outcome.
-	fn post_check(_rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
-		// Check that no failed accounts remain in storage
-		//assert!(
-		//	RcAccounts::<T>::iter().next().is_none(),
-		//	"Failed accounts should not remain in storage after migration"
-		//); FAIL-CI fails
+			let check_account = T::CheckingAccount::get();
+			let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+			// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
+			// added DOT ED to all existing AH accounts.
+			// This is fine, we can just ignore/accept this small amount.
+			defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
 
-		// TODO: Giuseppe @re-gius
-		//   run post migration sanity checks like:
-		//    - rc_migrated_out == ah_migrated_in - failed accounts
+			let mut ah_pre_payload = BTreeMap::new();
+			for (account, _) in frame_system::Account::<T>::iter() {
+				let free = <T as Config>::Currency::balance(&account);
+				let reserved = <T as Config>::Currency::reserved_balance(&account);
+				ah_pre_payload.insert(account, (reserved, free));
+			}
+			ah_pre_payload
+		}
+
+		/// Run some checks after the migration and use the intermediate payload.
+		///
+		/// The expected input should contain the data just transferred out of the relay chain, to
+		/// allow the check that data has been correctly migrated to asset hub. It should also
+		/// contain the data previously stored in asset hub, allowing for more complex logical
+		/// checks on the migration outcome.
+		fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+			// Check that no failed accounts remain in storage
+			assert!(
+				RcAccounts::<T>::iter().next().is_none(),
+				"Failed accounts should not remain in storage after migration"
+			);
+
+			let (account_summaries, _) = rc_pre_payload;
+			for (who, summary) in account_summaries {
+				// Checking account balance migration is tested separately.
+				// Treasury may be modified during migration.
+				if who == T::CheckingAccount::get() ||
+					who == pallet_treasury::Pallet::<T>::account_id()
+				{
+					continue;
+				}
+				let ah_free_post = <T as Config>::Currency::balance(&who);
+				let ah_reserved_post = <T as Config>::Currency::reserved_balance(&who);
+				let (ah_reserved_before, ah_free_before) =
+					ah_pre_payload.get(&who).copied().unwrap_or((0, 0));
+
+				let mut frozen = 0;
+				let mut holds_enc = Vec::new();
+				for hold in pallet_balances::Holds::<T>::get(&who) {
+					holds_enc.push((
+						Self::hold_id_encoding(hold.id.encode(), ChainType::AH),
+						hold.amount,
+					));
+				}
+				let mut freezes_enc = Vec::new();
+				for freeze in pallet_balances::Freezes::<T>::get(&who) {
+					freezes_enc.push((
+						Self::freeze_id_encoding(freeze.id.encode(), ChainType::AH),
+						freeze.amount,
+					));
+					frozen += freeze.amount;
+				}
+				let mut locks_enc = Vec::new();
+				for lock in pallet_balances::Locks::<T>::get(&who) {
+					locks_enc.push((
+						Self::lock_id_encoding(lock.id, ChainType::AH),
+						lock.amount,
+						lock.reasons as u8,
+					));
+					frozen += lock.amount;
+				}
+
+				let rc_migrated_balance =
+					summary.migrated_free.saturating_add(summary.migrated_reserved);
+				let ah_migrated_balance = ah_free_post
+					.saturating_sub(ah_free_before)
+					.saturating_add(ah_reserved_post.saturating_sub(ah_reserved_before));
+				let ah_ed: u128 = <T as Config>::Currency::minimum_balance();
+
+				// In case the balance migrated to AH is less than the existential deposit, minting
+				// the balance may fail. Moreover, in case an account has less then AH existential
+				// deposit free balance on AH after all the holds are applied, the residual free
+				// balance may be dusted.
+				// https://github.com/paritytech/polkadot-sdk/blob/f1ba2a1c7206c70ad66168859c90ab4e4327aab6/substrate/frame/support/src/traits/tokens/fungible/regular.rs#L194
+				// Therefore, we just check that the difference between the balance migrated from
+				// the RC to AH and the balance delta on AH before and after migration is less than
+				// AH existential deposit.
+				assert!(
+					rc_migrated_balance.saturating_sub(ah_migrated_balance) < ah_ed,
+					"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
+					who.to_ss58check()
+				);
+
+				// There are several `unreserve` operations on AH after migration (e.g., unreserve
+				// deposits for multisigs because they are not migrated to AH, adjust deposits for
+				// preimages, ...). Therefore, we just check that the change in reserved balance on
+				// AH after migration is less than the migrated reserved balance from RC.
+				assert!(
+					ah_reserved_post.saturating_sub(ah_reserved_before) <= summary.migrated_reserved,
+					"Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC", 
+					who.to_ss58check()
+				);
+
+				// There should be no frozen balance on AH before the migration so we just need to
+				// check that the frozen balance on AH after migration is the same as on RC
+				// before migration.
+				assert_eq!(
+					summary.frozen,
+					frozen,
+					"Frozen balance mismatch for account {:?} between RC pre-migration and AH post-migration",
+					who.to_ss58check()
+				);
+
+				// Holds migrated from RC may be merged on AH after migration. Therefore, we need to
+				// check that, for each hold reason, the sum of the hold amounts on AH after
+				// migration is the same as the sum of the hold amounts on RC before migration.
+				for (hold_id, hold_amount) in holds_enc {
+					let mut rc_hold_amount_for_id: u128 = 0;
+					for (id, amount) in summary.holds.clone() {
+						if id == hold_id {
+							rc_hold_amount_for_id = rc_hold_amount_for_id.saturating_add(amount);
+						}
+					}
+					assert_eq!(
+						rc_hold_amount_for_id,
+						hold_amount,
+						"Hold amount mismatch for account {:?} and hold id {:?} between RC pre-migration and AH post-migration",
+						who.to_ss58check(),
+						hold_id
+					);
+				}
+
+				// There should be no locks on AH before the migration so we just need to check that
+				// the locks on AH after migration are the same as on RC before migration.
+				assert_eq!(
+					summary.locks,
+					locks_enc,
+					"Locks mismatch for account {:?} between RC pre-migration and AH post-migration",
+					who.to_ss58check()
+				);
+
+				// There should be no freezes on AH before the migration so we just need to check
+				// that the freezes on AH after migration are the same as on RC before
+				// migration.
+				assert_eq!(
+					summary.freezes,
+					freezes_enc,
+					"Freezes mismatch for account {:?} between RC pre-migration and AH post-migration",
+					who.to_ss58check()
+				);
+			}
+		}
 	}
 }
