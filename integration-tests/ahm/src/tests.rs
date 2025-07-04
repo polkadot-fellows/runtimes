@@ -248,7 +248,8 @@ fn sovereign_account_translation() {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 		let ah_acc = AccountId32::from_str(ah_acc).unwrap();
 
-		let (translated, _para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+		let (translated, para_id) = pallet_ah_migrator::translate_rc_sovereign_to_ah(&rc_acc);
+		assert!(para_id.is_some());
 		assert_eq!(translated, ah_acc);
 	}
 
@@ -264,8 +265,9 @@ fn sovereign_account_translation() {
 	for rc_acc in bad_cases {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 
-		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap();
-		assert!(translated.is_none());
+		let (translated, para_id) = pallet_ah_migrator::translate_rc_sovereign_to_ah(&rc_acc);
+		assert!(para_id.is_none());
+		assert_eq!(translated, rc_acc); // Should return original account
 	}
 }
 

@@ -52,6 +52,9 @@ pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 
+#[cfg(test)]
+mod account_translator_test;
+
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{ForceSetHead, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority},
@@ -59,6 +62,7 @@ pub use pallet_rc_migrator::{
 };
 pub use weights_ah::WeightInfo;
 
+use codec::{DecodeAll, Encode};
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
@@ -109,6 +113,81 @@ use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
+
+/// Trait for translating accounts from Relay Chain format to Asset Hub format.
+pub trait AccountTranslator<AccountId> {
+	/// Translate an account from RC format to AH format.
+	/// Returns the translated account or the original if no translation needed.
+	fn translate_account(account: &AccountId) -> AccountId;
+
+	/// Emit an event when an account is translated
+	fn emit_translation_event(original: &AccountId, translated: &AccountId, para_id: u16);
+}
+
+/// Helper function to translate RC sovereign accounts to AH sibling accounts.
+///
+/// ## Parameters
+/// - `acc`: The account to potentially translate
+///
+/// ## Returns
+/// - `(AccountId, Option<u16>)`: The account (translated if applicable) and para_id if translated
+///
+/// ## Behavior
+/// - **Parachain sovereign accounts**: Translates "para" prefix to "sibl" prefix
+/// - **Regular accounts**: Returns the original account unchanged
+/// - **Infallible**: Never panics, always returns a valid account
+///
+/// ## Details
+/// This function translates parachain sovereign accounts from RC format to AH format:
+/// - **RC format**: `"para" + para_id_bytes + 26_zero_bytes`
+/// - **AH format**: `"sibl" + para_id_bytes + 26_zero_bytes`
+///
+/// The translation is based on the XCM location conversion patterns used by Polkadot SDK:
+/// - RC uses `ChildParachainConvertsVia` with `para` type-ID for parachain accounts
+/// - AH uses `SiblingParachainConvertsVia` with `sibl` type-ID for sibling accounts
+///  More in details: the way that this normally works is through the configured
+/// `SiblingParachainConvertsVia`: https://github.com/polkadot-fellows/runtimes/blob/7b096c14c2b16cc81ca4e2188eea9103f120b7a4/system-parachains/asset-hubs/asset-hub-polkadot/src/xcm_config.rs#L93-L94
+/// it passes the `Sibling` type into it which has type-ID `sibl`:
+/// https://github.com/paritytech/polkadot-sdk/blob/c10e25aaa8b8afd8665b53f0a0b02e4ea44caa77/polkadot/parachain/src/primitives.rs#L272-L274.
+/// This type-ID gets used by the converter here:
+/// https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/polkadot/xcm/xcm-builder/src/location_conversion.rs#L314
+/// and eventually ends up in the encoding here
+/// https://github.com/paritytech/polkadot-sdk/blob/cdf107de700388a52a17b2fb852c98420c78278e/substrate/primitives/runtime/src/traits/mod.rs#L1997-L1999
+/// The `para` conversion is likewise with `ChildParachainConvertsVia` and the `para` type-ID
+/// https://github.com/paritytech/polkadot-sdk/blob/c10e25aaa8b8afd8665b53f0a0b02e4ea44caa77/polkadot/parachain/src/primitives.rs#L162-L164
+pub fn translate_rc_sovereign_to_ah<AccountId>(acc: &AccountId) -> (AccountId, Option<u16>)
+where
+	AccountId: Clone + AsRef<[u8; 32]> + From<[u8; 32]>,
+{
+	let raw = acc.as_ref().to_vec();
+
+	// Try to extract parachain sovereign account components
+	let Some(after_para) = raw.strip_prefix(b"para") else {
+		// Not a parachain sovereign account, return original
+		return (acc.clone(), None);
+	};
+
+	// Must end with 26 zero bytes
+	let Some(para_id_bytes) = after_para.strip_suffix(&[0u8; 26]) else {
+		// Not a valid parachain sovereign account, return original
+		return (acc.clone(), None);
+	};
+
+	// Try to decode para_id
+	let Ok(para_id) = u16::decode_all(&mut &para_id_bytes[..]) else {
+		// Invalid para_id encoding, return original
+		return (acc.clone(), None);
+	};
+
+	// Translate to AH sibling account
+	let mut ah_raw = [0u8; 32];
+	ah_raw[0..4].copy_from_slice(b"sibl");
+	ah_raw[4..6].copy_from_slice(&para_id.encode());
+	// Remaining bytes are already zeros
+	let ah_acc = AccountId::from(ah_raw);
+
+	(ah_acc, Some(para_id))
+}
 
 type RcAccountFor<T> = RcAccount<
 	<T as frame_system::Config>::AccountId,
@@ -470,6 +549,15 @@ pub mod pallet {
 			/// The new priority pattern.
 			new: DmpQueuePriority<BlockNumberFor<T>>,
 		},
+		/// An account was translated from RC format to AH format.
+		AccountTranslated {
+			/// The original account before translation.
+			original: T::AccountId,
+			/// The translated account after translation.
+			translated: T::AccountId,
+			/// The para ID that was extracted from the sovereign account.
+			para_id: u16,
+		},
 	}
 
 	#[pallet::pallet]
@@ -486,7 +574,7 @@ pub mod pallet {
 			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
 				T::AhWeightInfo::receive_liquid_accounts
 			} else {
-				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where 
+				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where
 				// `require_weight_at_most` not required
 				T::AhWeightInfo::receive_liquid_accounts
 			};
@@ -1075,6 +1163,22 @@ pub mod pallet {
 		fn is_finished() -> bool {
 			AhMigrationStage::<T>::get().is_finished()
 		}
+	}
+}
+
+impl<T: Config> AccountTranslator<T::AccountId> for Pallet<T> {
+	fn translate_account(account: &T::AccountId) -> T::AccountId {
+		// T::AccountId is constrained to be AccountId32 in the Config trait
+		let (translated_account, _para_id) = translate_rc_sovereign_to_ah(account);
+		translated_account
+	}
+
+	fn emit_translation_event(original: &T::AccountId, translated: &T::AccountId, para_id: u16) {
+		Self::deposit_event(Event::AccountTranslated {
+			original: original.clone(),
+			translated: translated.clone(),
+			para_id,
+		});
 	}
 }
 
