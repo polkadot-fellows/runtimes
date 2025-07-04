@@ -420,5 +420,3 @@ jobs:
               repo: context.repo.repo,
               content: '+1'
             })
-
-
