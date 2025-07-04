@@ -26,6 +26,7 @@ pallet-balances = { workspace = true, default-features = true }
 pallet-indices = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-timestamp = { workspace = true, default-features = true }
+pallet-vesting = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 pallet-multisig = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
@@ -83,6 +84,7 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-vesting/runtime-benchmarks",
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
