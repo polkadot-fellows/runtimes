@@ -18,10 +18,7 @@
 pub mod frame_election_provider_support;
 pub mod frame_system;
 pub mod frame_system_extensions;
-<<<<<<< HEAD
 pub mod pallet_ah_migrator;
-=======
->>>>>>> v1.6.1
 pub mod pallet_asset_rate;
 pub mod pallet_bags_list;
 pub mod pallet_balances;

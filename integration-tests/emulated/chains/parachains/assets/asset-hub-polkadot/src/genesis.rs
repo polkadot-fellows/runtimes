@@ -21,8 +21,6 @@ use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwo
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, ASSETS_PALLET_ID,
 	RESERVABLE_ASSET_ID, SAFE_XCM_VERSION, TELEPORTABLE_ASSET_ID,
-	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
-	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::snowbridge::{

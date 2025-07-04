@@ -20,8 +20,6 @@ use crate::{
 	system_parachains_specs::{
 		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
 		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, CoretimeKusamaChainSpec,
-		CoretimePolkadotChainSpec, GluttonKusamaChainSpec, PeopleKusamaChainSpec,
-		PeoplePolkadotChainSpec,
 		CoretimePolkadotChainSpec, EncointerKusamaChainSpec, GluttonKusamaChainSpec,
 		PeopleKusamaChainSpec, PeoplePolkadotChainSpec,
 	},

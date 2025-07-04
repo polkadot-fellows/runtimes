@@ -6,6 +6,14 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
+pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
+pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
+pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
+system-parachains-common = { path = "system-parachains/common", default-features = false }
+hex = { version = "0.4.3", default-features = false }
+impl-trait-for-tuples = { version = "0.2.2" }
+rand = { version = "0.8.5", default-features = false }
+
 assert_matches = { version = "1.5.0" }
 approx = { version = "0.5.1" }
 asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama" }
@@ -259,6 +267,11 @@ ss58-registry = { version = "1.47.0" }
 resolver = "2"
 
 members = [
+	"pallets/ah-migrator",
+	"pallets/rc-migrator",
+	"pallets/ah-ops",
+	"integration-tests/ahm",
+
 	"chain-spec-generator",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
