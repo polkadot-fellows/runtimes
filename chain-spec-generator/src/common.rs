@@ -22,6 +22,8 @@ use crate::{
 		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, CoretimeKusamaChainSpec,
 		CoretimePolkadotChainSpec, GluttonKusamaChainSpec, PeopleKusamaChainSpec,
 		PeoplePolkadotChainSpec,
+		CoretimePolkadotChainSpec, EncointerKusamaChainSpec, GluttonKusamaChainSpec,
+		PeopleKusamaChainSpec, PeoplePolkadotChainSpec,
 	},
 	ChainSpec,
 };

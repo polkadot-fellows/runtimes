@@ -21,6 +21,8 @@ use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwo
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, ASSETS_PALLET_ID,
 	RESERVABLE_ASSET_ID, SAFE_XCM_VERSION, TELEPORTABLE_ASSET_ID,
+	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
+	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::snowbridge::{
@@ -40,15 +42,15 @@ frame_support::parameter_types! {
 	pub PenpalATeleportableAssetLocation: xcm::v4::Location
 		= xcm::v4::Location::new(1, [
 				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-				xcm::v4::Junction::GeneralIndex(TELEPORTABLE_ASSET_ID.into()),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub PenpalBTeleportableAssetLocation: xcm::v4::Location
 		= xcm::v4::Location::new(1, [
 				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_B),
-				xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-				xcm::v4::Junction::GeneralIndex(TELEPORTABLE_ASSET_ID.into()),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();

@@ -23,6 +23,8 @@ use asset_hub_polkadot_runtime::{
 		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, GovernanceLocation,
 		LocationToAccountId, RelayTreasuryLocation, StakingPot, TrustBackedAssetsPalletLocation,
 		XcmConfig,
+		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
+		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
 	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,

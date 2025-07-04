@@ -24,6 +24,7 @@ use super::{
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
