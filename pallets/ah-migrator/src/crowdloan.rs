@@ -53,17 +53,38 @@ impl<T: Config> Pallet<T> {
 	pub fn do_process_crowdloan_message(message: RcCrowdloanMessageOf<T>) -> Result<(), Error<T>> {
 		match message {
 			RcCrowdloanMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
-				log::info!(target: LOG_TARGET, "Integrating lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &account, &amount, &unreserve_block);
-				defensive_assert!(!pallet_ah_ops::RcLeaseReserve::<T>::contains_key((
+				// Leases are not removed from the RC when migrated, so we need to check if it's
+				// already migrated and skip it if so.
+				if pallet_ah_ops::RcLeaseReserve::<T>::contains_key((
 					unreserve_block,
 					para_id,
-					&account
-				)));
+					&account,
+				)) {
+					log::info!(
+						target: LOG_TARGET,
+						"Lease reserve already migrated (skipping) for para_id: {:?}, \
+							account: {:?}, amount: {:?}, unreserve_block: {:?}",
+						&para_id,
+						&account,
+						&amount,
+						&unreserve_block
+					);
+				} else {
+					log::info!(
+						target: LOG_TARGET,
+						"Integrating lease reserve for para_id: {:?}, account: {:?}, \
+							amount: {:?}, unreserve_block: {:?}",
+						&para_id,
+						&account,
+						&amount,
+						&unreserve_block
+					);
 
-				pallet_ah_ops::RcLeaseReserve::<T>::insert(
-					(unreserve_block, para_id, &account),
-					amount,
-				);
+					pallet_ah_ops::RcLeaseReserve::<T>::insert(
+						(unreserve_block, para_id, &account),
+						amount,
+					);
+				}
 			},
 			RcCrowdloanMessage::CrowdloanContribution {
 				withdraw_block,
@@ -72,7 +93,16 @@ impl<T: Config> Pallet<T> {
 				amount,
 				crowdloan_account,
 			} => {
-				log::info!(target: LOG_TARGET, "Integrating crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, crowdloan_account: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &crowdloan_account, &withdraw_block);
+				log::info!(
+					target: LOG_TARGET,
+					"Integrating crowdloan contribution for para_id: {:?}, contributor: {:?}, \
+						amount: {:?}, crowdloan_account: {:?}, withdraw_block: {:?}",
+					&para_id,
+					&contributor,
+					&amount,
+					&crowdloan_account,
+					&withdraw_block
+				);
 				defensive_assert!(!pallet_ah_ops::RcCrowdloanContribution::<T>::contains_key((
 					withdraw_block,
 					para_id,
@@ -94,7 +124,13 @@ impl<T: Config> Pallet<T> {
 				amount,
 				depositor,
 			} => {
-				log::info!(target: LOG_TARGET, "Integrating crowdloan reserve for para_id: {:?}, amount: {:?}, depositor: {:?}", &para_id, &amount, &depositor);
+				log::info!(
+					target: LOG_TARGET,
+					"Integrating crowdloan reserve for para_id: {:?}, amount: {:?}, depositor: {:?}",
+					&para_id,
+					&amount,
+					&depositor
+				);
 				defensive_assert!(!pallet_ah_ops::RcCrowdloanReserve::<T>::contains_key((
 					unreserve_block,
 					para_id,

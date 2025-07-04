@@ -161,8 +161,6 @@ pub enum MigrationStage {
 	Pending,
 	/// Migrating data from the Relay Chain.
 	DataMigrationOngoing,
-	/// Migrating data from the Relay Chain is completed.
-	DataMigrationDone,
 	/// The migration is done.
 	MigrationDone,
 }
