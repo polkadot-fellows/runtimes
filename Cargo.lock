@@ -10096,6 +10096,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-rc-migrator",
  "pallet-timestamp",
+ "pallet-vesting",
  "pallet-whitelist",
  "pallet-xcm",
  "parachains-common",

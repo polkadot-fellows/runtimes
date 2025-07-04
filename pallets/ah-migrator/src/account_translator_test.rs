@@ -19,7 +19,7 @@
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+
 	use codec::Encode;
 	use sp_runtime::AccountId32;
 

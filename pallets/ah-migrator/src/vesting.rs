@@ -53,7 +53,22 @@ impl<T: Config> Pallet<T> {
 
 	/// Integrate vesting schedules.
 	pub fn do_process_vesting_schedule(message: RcVestingSchedule<T>) -> Result<(), Error<T>> {
-		let mut ah_schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
+		// Extract and translate the account
+		let original_account = message.who.clone();
+		let (translated_account, para_id) = crate::translate_rc_sovereign_to_ah(&original_account);
+
+		// Emit translation event if account was translated
+		if let Some(para_id) = para_id {
+			Self::deposit_event(Event::<T>::VestingTranslated {
+				original: original_account,
+				translated: translated_account.clone(),
+				para_id,
+			});
+		}
+
+		let target_account = translated_account;
+		let mut ah_schedules =
+			pallet_vesting::Vesting::<T>::get(&target_account).unwrap_or_default();
 
 		if !ah_schedules.is_empty() {
 			defensive!("We disabled vesting, looks like someone used it. Manually verify this and then remove this defensive assert.");
@@ -66,8 +81,8 @@ impl<T: Config> Pallet<T> {
 				.map_err(|_| Error::<T>::FailedToIntegrateVestingSchedule)?;
 		}
 
-		pallet_vesting::Vesting::<T>::insert(&message.who, &ah_schedules);
-		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
+		pallet_vesting::Vesting::<T>::insert(&target_account, &ah_schedules);
+		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", target_account, ah_schedules.len());
 
 		Ok(())
 	}

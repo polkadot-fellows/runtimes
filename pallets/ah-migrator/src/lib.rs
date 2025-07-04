@@ -92,7 +92,7 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::RcBagsListMessage, delegated_staking::RcDelegatedStakingMessageOf,
-		fast_unstake::RcFastUnstakeMessage, nom_pools::*, *,
+		fast_unstake::RcFastUnstakeMessage, nom_pools::*,
 	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
@@ -551,6 +551,15 @@ pub mod pallet {
 		},
 		/// An account was translated from RC format to AH format.
 		AccountTranslated {
+			/// The original account before translation.
+			original: T::AccountId,
+			/// The translated account after translation.
+			translated: T::AccountId,
+			/// The para ID that was extracted from the sovereign account.
+			para_id: u16,
+		},
+		/// A vesting schedule account was translated from RC format to AH format.
+		VestingTranslated {
 			/// The original account before translation.
 			original: T::AccountId,
 			/// The translated account after translation.

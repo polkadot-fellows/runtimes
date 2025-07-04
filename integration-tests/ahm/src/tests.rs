@@ -63,6 +63,188 @@ use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use runtime_parachains::dmp::DownwardMessageQueues;
+
+// Test helpers module
+mod test_helpers {
+	use super::*;
+	use frame_system::Account as SystemAccount;
+	use pallet_rc_migrator::accounts::AccountsMigrator;
+
+	/// Common test account case structure
+	#[derive(Clone)]
+	pub struct AccountTestCase {
+		pub account_id: AccountId32,
+		pub should_translate: bool,
+		pub expected_translated: Option<AccountId32>,
+		pub expected_para_id: Option<u16>,
+	}
+
+	/// Well-known test accounts with expected behavior
+	pub fn get_test_accounts() -> Vec<AccountTestCase> {
+		vec![
+			// 18.03.2025 - account with reserve above ED, but no free balance
+			AccountTestCase {
+				account_id: "5HB5nWBF2JfqogQYTcVkP1BfrgfadBizGmLBhmoAbGm5C7ir".parse().unwrap(),
+				should_translate: false,
+				expected_translated: None,
+				expected_para_id: None,
+			},
+			// 18.03.2025 - account with zero free balance, and reserve below ED
+			AccountTestCase {
+				account_id: "5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
+				should_translate: false,
+				expected_translated: None,
+				expected_para_id: None,
+			},
+			// 18.03.2025 - account with free balance below ED, and reserve above ED
+			AccountTestCase {
+				account_id: "5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+				should_translate: false,
+				expected_translated: None,
+				expected_para_id: None,
+			},
+			// Bifrost parachain sovereign account (para:2030 -> sibling:2030)
+			// RC sovereign: 13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm
+			// AH sibling: 13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A
+			AccountTestCase {
+				account_id: "13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm".parse().unwrap(),
+				should_translate: true,
+				expected_translated: Some(
+					"13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A".parse().unwrap(),
+				),
+				expected_para_id: Some(2030),
+			},
+		]
+	}
+
+	/// Withdraw an account from the relay chain
+	pub fn withdraw_account_from_rc(
+		account_id: &AccountId32,
+	) -> Option<
+		pallet_rc_migrator::accounts::Account<
+			AccountId32,
+			u128,
+			polkadot_runtime::RuntimeHoldReason,
+			polkadot_runtime::RuntimeFreezeReason,
+		>,
+	> {
+		let rc_account = SystemAccount::<Polkadot>::get(account_id);
+		log::info!("Migrating account id: {:?}", account_id.to_ss58check());
+		log::info!("RC account info: {:?}", rc_account);
+
+		AccountsMigrator::<Polkadot>::withdraw_account(
+			account_id.clone(),
+			rc_account,
+			&mut WeightMeter::new(),
+			0,
+		)
+		.unwrap_or_else(|err| {
+			log::error!("Account withdrawal failed: {:?}", err);
+			None
+		})
+	}
+
+	/// Create a vesting schedule on the relay chain for an account
+	pub fn create_vesting_schedule_on_rc(
+		account_id: &AccountId32,
+		locked_amount: u128,
+		per_block: u128,
+		starting_block: u32,
+	) {
+		use frame_support::traits::Currency;
+
+		// Fund the account first
+		let balance = locked_amount * 2; // Fund with more than locked amount
+		let _ = <pallet_balances::Pallet<Polkadot> as frame_support::traits::Currency<_>>::deposit_creating(account_id, balance);
+
+		// Create a vesting schedule
+		let vesting_info =
+			pallet_vesting::VestingInfo::new(locked_amount, per_block, starting_block);
+
+		let mut schedules = sp_runtime::BoundedVec::default();
+		schedules.try_push(vesting_info).unwrap();
+
+		// Set the vesting schedule
+		pallet_vesting::Vesting::<Polkadot>::insert(account_id, &schedules);
+
+		log::info!("Created vesting schedule for RC account: {:?}", account_id.to_ss58check());
+	}
+
+	/// Verify account translation event was emitted
+	pub fn verify_account_translation_event(
+		test_case: &AccountTestCase,
+		original_account: &AccountId32,
+	) {
+		let events = frame_system::Pallet::<AssetHub>::events();
+		if test_case.should_translate {
+			let account_translated_event = events.iter().find(|record| {
+				matches!(
+					record.event,
+					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
+						pallet_ah_migrator::Event::AccountTranslated { .. }
+					)
+				)
+			});
+
+			assert!(
+				account_translated_event.is_some(),
+				"AccountTranslated event should be emitted for parachain sovereign account"
+			);
+
+			if let Some(event_record) = account_translated_event {
+				assert_eq!(
+					event_record.event,
+					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
+						pallet_ah_migrator::Event::AccountTranslated {
+							original: original_account.clone(),
+							translated: test_case.expected_translated.clone().unwrap(),
+							para_id: test_case.expected_para_id.unwrap(),
+						}
+					),
+					"AccountTranslated event should match expected values"
+				);
+			}
+		}
+	}
+
+	/// Verify vesting translation event was emitted
+	pub fn verify_vesting_translation_event(
+		test_case: &AccountTestCase,
+		original_account: &AccountId32,
+	) {
+		let events = frame_system::Pallet::<AssetHub>::events();
+		if test_case.should_translate {
+			let vesting_translated_event = events.iter().find(|record| {
+				matches!(
+					record.event,
+					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
+						pallet_ah_migrator::Event::VestingTranslated { .. }
+					)
+				)
+			});
+
+			assert!(
+				vesting_translated_event.is_some(),
+				"VestingTranslated event should be emitted for parachain sovereign account"
+			);
+
+			if let Some(event_record) = vesting_translated_event {
+				assert_eq!(
+					event_record.event,
+					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
+						pallet_ah_migrator::Event::VestingTranslated {
+							original: original_account.clone(),
+							translated: test_case.expected_translated.clone().unwrap(),
+							para_id: test_case.expected_para_id.unwrap(),
+						}
+					),
+					"VestingTranslated event should match expected values"
+				);
+			}
+		}
+	}
+}
+
 use sp_core::crypto::Ss58Codec;
 use sp_io::TestExternalities;
 use sp_runtime::{AccountId32, DispatchError, TokenError};
@@ -640,76 +822,17 @@ async fn scheduled_migration_works() {
 
 #[tokio::test]
 async fn some_account_migration_works() {
-	use frame_system::Account as SystemAccount;
-	use pallet_rc_migrator::accounts::AccountsMigrator;
+	use test_helpers::*;
 
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
-	// Define test case structure for clarity
-	struct AccountTestCase {
-		account_id: AccountId32,
-		should_translate: bool,
-		expected_translated: Option<AccountId32>,
-		expected_para_id: Option<u16>,
-	}
-
-	// Define test cases with expected behavior
-	let test_cases = vec![
-		// 18.03.2025 - account with reserve above ED, but no free balance
-		AccountTestCase {
-			account_id: "5HB5nWBF2JfqogQYTcVkP1BfrgfadBizGmLBhmoAbGm5C7ir".parse().unwrap(),
-			should_translate: false,
-			expected_translated: None,
-			expected_para_id: None,
-		},
-		// 18.03.2025 - account with zero free balance, and reserve below ED
-		AccountTestCase {
-			account_id: "5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
-			should_translate: false,
-			expected_translated: None,
-			expected_para_id: None,
-		},
-		// 18.03.2025 - account with free balance below ED, and reserve above ED
-		AccountTestCase {
-			account_id: "5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
-			should_translate: false,
-			expected_translated: None,
-			expected_para_id: None,
-		},
-		// Bifrost parachain sovereign account (para:2030 -> sibling:2030)
-		// RC sovereign: 13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm
-		// AH sibling: 13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A
-		AccountTestCase {
-			account_id: "13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm".parse().unwrap(),
-			should_translate: true,
-			expected_translated: Some(
-				"13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A".parse().unwrap(),
-			),
-			expected_para_id: Some(2030),
-		},
-	];
+	// Use predefined test cases
+	let test_cases = get_test_accounts();
 
 	for test_case in test_cases {
 		let AccountTestCase { account_id, should_translate, expected_translated, expected_para_id } =
 			test_case;
-		let maybe_withdrawn_account = rc.execute_with(|| {
-			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
-			log::info!("Migrating account id: {:?}", account_id.to_ss58check());
-			log::info!("RC account info: {:?}", rc_account);
-
-			let maybe_withdrawn_account = AccountsMigrator::<Polkadot>::withdraw_account(
-				account_id,
-				rc_account,
-				&mut WeightMeter::new(),
-				0,
-			)
-			.unwrap_or_else(|err| {
-				log::error!("Account withdrawal failed: {:?}", err);
-				None
-			});
-
-			maybe_withdrawn_account
-		});
+		let maybe_withdrawn_account = rc.execute_with(|| withdraw_account_from_rc(&account_id));
 
 		let withdrawn_account = match maybe_withdrawn_account {
 			Some(withdrawn_account) => withdrawn_account,
@@ -740,54 +863,117 @@ async fn some_account_migration_works() {
 			log::info!("Account integration result: {:?}", res);
 
 			// Verify event emission based on expected behavior
-			let events = frame_system::Pallet::<AssetHub>::events();
-			let found_event = events.iter().find(|record| {
-				matches!(
-					record.event,
-					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
-						pallet_ah_migrator::Event::AccountTranslated { .. }
-					)
-				)
-			});
+			let test_case = AccountTestCase {
+				account_id: original_account.clone(),
+				should_translate,
+				expected_translated: expected_translated.clone(),
+				expected_para_id,
+			};
+			verify_account_translation_event(&test_case, &original_account);
 
 			if should_translate {
-				// Should emit AccountTranslated event
-				assert!(
-					found_event.is_some(),
-					"AccountTranslated event should be emitted for parachain sovereign account"
-				);
-
-				if let Some(event_record) = found_event {
-					assert_eq!(
-						event_record.event,
-						asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
-							pallet_ah_migrator::Event::AccountTranslated {
-								original: original_account.clone(),
-								translated: expected_translated.clone().unwrap(),
-								para_id: expected_para_id.unwrap(),
-							}
-						),
-						"AccountTranslated event should match expected values"
-					);
-				}
-
 				log::info!(
 					"✅ AccountTranslated event verified: {:?} -> {:?} (para_id: {})",
 					original_account.to_ss58check(),
 					expected_translated.unwrap().to_ss58check(),
 					expected_para_id.unwrap()
 				);
-			} else {
-				// Should NOT emit AccountTranslated event
+			}
+		});
+	}
+}
+
+#[tokio::test]
+async fn vesting_account_migration_works() {
+	use asset_hub_polkadot_runtime::AhMigrator;
+	use codec::{Decode, Encode};
+	use pallet_rc_migrator::vesting::VestingMigrator;
+	use test_helpers::*;
+
+	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	// Use all test accounts instead of just Bifrost
+	let test_cases = get_test_accounts();
+
+	for test_case in test_cases {
+		let AccountTestCase { account_id, should_translate, expected_translated, expected_para_id } =
+			&test_case;
+
+		let rc_account = account_id.clone();
+
+		// Create a mock vesting schedule on RC using helper
+		rc.execute_with(|| {
+			create_vesting_schedule_on_rc(
+				&rc_account,
+				500_000_000_000u128, // 0.5 DOT locked
+				1_000_000_000u128,   // 0.001 DOT per block
+				100u32,              // starting block
+			);
+		});
+
+		// Get the vesting schedule that was created
+		let vesting_schedule =
+			rc.execute_with(|| pallet_vesting::Vesting::<Polkadot>::get(&rc_account).unwrap());
+
+		// Simulate vesting migration from RC
+		let vesting_message = rc.execute_with(|| {
+			use pallet_rc_migrator::vesting::RcVestingSchedule;
+
+			RcVestingSchedule { who: rc_account.clone(), schedules: vesting_schedule }
+		});
+
+		// Process vesting on AH
+		ah.execute_with(|| {
+			// Reset events before the test
+			frame_system::Pallet::<AssetHub>::reset_events();
+
+			// Encode and decode the vesting message (simulating XCM transfer)
+			let encoded_message = vesting_message.encode();
+			let decoded_message: pallet_rc_migrator::vesting::RcVestingSchedule<AssetHub> =
+				Decode::decode(&mut &encoded_message[..]).unwrap();
+
+			// Process the vesting schedule
+			let result = AhMigrator::do_process_vesting_schedule(decoded_message);
+			log::info!("Vesting processing result: {:?}", result);
+
+			// Verify the result is successful
+			assert!(result.is_ok(), "Vesting schedule processing should succeed");
+
+			// Determine target account based on whether it should be translated
+			let target_account =
+				if *should_translate { expected_translated.as_ref().unwrap() } else { &rc_account };
+
+			// Check that vesting was applied to the target account
+			let target_vesting = pallet_vesting::Vesting::<AssetHub>::get(target_account);
+			assert!(target_vesting.is_some(), "Target account should have vesting schedules");
+			let target_schedules = target_vesting.unwrap();
+			assert_eq!(target_schedules.len(), 1, "Should have exactly one vesting schedule");
+
+			// Verify the vesting schedule details
+			let schedule = &target_schedules[0];
+			assert_eq!(schedule.locked(), 500_000_000_000u128, "Locked amount should match");
+			assert_eq!(schedule.per_block(), 1_000_000_000u128, "Per block amount should match");
+			assert_eq!(schedule.starting_block(), 100u32, "Starting block should match");
+
+			// For translated accounts, verify original account has no vesting
+			if *should_translate {
+				let original_vesting = pallet_vesting::Vesting::<AssetHub>::get(&rc_account);
 				assert!(
-					found_event.is_none(),
-					"AccountTranslated event should NOT be emitted for regular accounts"
-				);
-				log::info!(
-					"✅ No AccountTranslated event for regular account: {:?}",
-					original_account.to_ss58check()
+					original_vesting.is_none(),
+					"Original account should have no vesting schedules after translation"
 				);
 			}
+
+			// Verify VestingTranslated event was emitted (only for translated accounts)
+			if *should_translate {
+				verify_vesting_translation_event(&test_case, &rc_account);
+			}
+
+			log::info!(
+				"✅ Vesting migration verified for account: {:?} -> target: {:?}",
+				rc_account.to_ss58check(),
+				target_account.to_ss58check()
+			);
 		});
 	}
 }
