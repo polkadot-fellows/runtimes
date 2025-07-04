@@ -40,13 +40,6 @@
     "path": "system-parachains/asset-hubs/asset-hub-kusama",
     "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "blocktime": 12000,
-    "try_runtime_args": "--overwrite-state-version 1"
-=======
-=======
->>>>>>> v1.6.1
     "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
     "try_runtime_args": "--overwrite-state-version 1",
@@ -54,10 +47,6 @@
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
     }
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> v1.6.1
   },
   {
     "name": "asset-hub-polkadot",
@@ -66,22 +55,12 @@
     "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "try_runtime_args": "--overwrite-state-version 1"
-=======
-=======
->>>>>>> v1.6.1
     "extra_args": "--disable-mbm-checks",
     "try_runtime_args": "--overwrite-state-version 1",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
     }
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> v1.6.1
   },
   {
     "name": "bridge-hub-kusama",

@@ -1,331 +1,21 @@
-[workspace.package]
-version = "1.0.0"
-authors = ["Polkadot Fellowship"]
-edition = "2021"
-repository = "https://github.com/polkadot-fellows/runtimes.git"
-license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
+# AUTO-GENERATED FILE. DO NOT EDIT.
+# Check backup Cargo.toml.bak for the original file.
+# Script at https://github.com/ggwpez/substrate-scripts/blob/master/diener-git.py 
+# > python3 diener-git.py --sdk ../polkadot-sdk --sdk-git https://github.com/paritytech/polkadot-sdk --sdk-branch oty-2503-paseo --runtimes ../runtimes
 
-[workspace.dependencies]
-pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
-pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
-pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
-system-parachains-common = { path = "system-parachains/common", default-features = false }
-hex = { version = "0.4.3", default-features = false }
-impl-trait-for-tuples = { version = "0.2.2" }
-rand = { version = "0.8.5", default-features = false }
-
-assert_matches = { version = "1.5.0" }
-approx = { version = "0.5.1" }
-asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama" }
-asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
-asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
-asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "23.0.0" }
-assets-common = { version = "0.21.0", default-features = false }
-authority-discovery-primitives = { version = "36.0.0", default-features = false, package = "sp-authority-discovery" }
-babe-primitives = { version = "0.42.1", default-features = false, package = "sp-consensus-babe" }
-beefy-primitives = { version = "24.1.0", default-features = false, package = "sp-consensus-beefy" }
-binary-merkle-tree = { version = "16.0.0", default-features = false }
-bp-asset-hub-kusama = { path = "system-parachains/asset-hubs/asset-hub-kusama/primitives", default-features = false }
-bp-asset-hub-polkadot = { path = "system-parachains/asset-hubs/asset-hub-polkadot/primitives", default-features = false }
-bp-bridge-hub-cumulus = { version = "0.21.0", default-features = false }
-bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
-bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
-bp-header-chain = { version = "0.20.1", default-features = false }
-bp-messages = { version = "0.20.1", default-features = false }
-bp-parachains = { version = "0.20.0", default-features = false }
-bp-polkadot-core = { version = "0.20.1", default-features = false }
-bp-relayers = { version = "0.20.1", default-features = false }
-bp-runtime = { version = "0.20.1", default-features = false }
-bp-xcm-bridge-hub = { version = "0.6.1", default-features = false }
-bp-xcm-bridge-hub-router = { version = "0.17.0", default-features = false }
-bridge-hub-common = { version = "0.13.1", default-features = false }
-bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
-bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
-bridge-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot" }
-bridge-hub-polkadot-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-test-utils = { version = "0.22.0" }
-bridge-runtime-common = { version = "0.21.0", default-features = false }
-clap = { version = "4.5.0" }
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
-collectives-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot" }
-collectives-polkadot-runtime = { path = "system-parachains/collectives/collectives-polkadot" }
-collectives-polkadot-runtime-constants = { path = "system-parachains/collectives/collectives-polkadot/constants" }
-coretime-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama" }
-coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" }
-coretime-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot" }
-coretime-polkadot-runtime = { path = "system-parachains/coretime/coretime-polkadot" }
-cumulus-pallet-aura-ext = { version = "0.20.0", default-features = false }
-cumulus-pallet-parachain-system = { version = "0.20.0", default-features = false }
-cumulus-pallet-session-benchmarking = { version = "21.0.0", default-features = false }
-cumulus-pallet-xcm = { version = "0.19.1", default-features = false }
-cumulus-pallet-xcmp-queue = { version = "0.20.0", default-features = false }
-cumulus-primitives-aura = { version = "0.17.0", default-features = false }
-cumulus-primitives-core = { version = "0.18.1", default-features = false }
-cumulus-primitives-utility = { version = "0.20.0", default-features = false }
-emulated-integration-tests-common = { version = "20.1.0" }
-encointer-balances-tx-payment = { version = "~16.1.0", default-features = false }
-encointer-balances-tx-payment-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-primitives = { version = "~16.4.0", default-features = false }
-enumflags2 = { version = "0.7.7" }
-frame-benchmarking = { version = "40.2.0", default-features = false }
-frame-election-provider-support = { version = "40.1.1", default-features = false }
-frame-executive = { version = "40.0.1", default-features = false }
-frame-support = { version = "40.1.0", default-features = false }
-frame-system = { version = "40.1.0", default-features = false }
-frame-system-benchmarking = { version = "40.0.0", default-features = false }
-frame-system-rpc-runtime-api = { version = "36.0.0", default-features = false }
-frame-try-runtime = { version = "0.46.0", default-features = false }
-glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
-grandpa = { version = "0.34.0", package = "sc-consensus-grandpa" }
-hex-literal = { version = "0.4.1" }
-integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
-kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
-kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-polkadot-system" }
-kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }
-kusama-runtime-constants = { path = "relay/kusama/constants", default-features = false }
-kusama-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-system" }
-log = { version = "0.4.21", default-features = false }
-pallet-alliance = { version = "39.1.0", default-features = false }
-pallet-asset-conversion = { version = "22.0.0", default-features = false }
-pallet-asset-conversion-tx-payment = { version = "22.0.0", default-features = false }
-pallet-asset-rate = { version = "19.0.0", default-features = false }
-pallet-asset-tx-payment = { version = "40.0.0", default-features = false }
-pallet-assets = { version = "42.0.0", default-features = false }
-pallet-aura = { version = "39.0.0", default-features = false }
-pallet-authority-discovery = { version = "40.0.0", default-features = false }
-pallet-authorship = { version = "40.0.0", default-features = false }
-pallet-babe = { version = "40.0.0", default-features = false }
-pallet-bags-list = { version = "39.1.0", default-features = false }
-pallet-balances = { version = "41.1.0", default-features = false }
-pallet-beefy = { version = "41.1.1", default-features = false }
-pallet-beefy-mmr = { version = "41.0.0", default-features = false }
-pallet-bounties = { version = "39.0.0", default-features = false }
-pallet-bridge-grandpa = { version = "0.20.0", default-features = false }
-pallet-bridge-messages = { version = "0.20.1", default-features = false }
-pallet-bridge-parachains = { version = "0.20.0", default-features = false }
-pallet-bridge-relayers = { version = "0.20.0", default-features = false }
-pallet-broker = { version = "0.19.2", default-features = false }
-pallet-child-bounties = { version = "39.0.0", default-features = false }
-pallet-collator-selection = { version = "21.0.0", default-features = false }
-pallet-collective = { version = "40.1.0", default-features = false }
-pallet-conviction-voting = { version = "40.1.0", default-features = false }
-pallet-core-fellowship = { version = "24.1.0", default-features = false }
-pallet-election-provider-multi-phase = { version = "39.2.0", default-features = false }
-pallet-election-provider-support-benchmarking = { version = "39.0.0", default-features = false }
-pallet-encointer-balances = { version = "~16.2.0", default-features = false }
-pallet-encointer-bazaar = { version = "~16.1.0", default-features = false }
-pallet-encointer-bazaar-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-pallet-encointer-ceremonies = { version = "~16.1.0", default-features = false }
-pallet-encointer-ceremonies-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-pallet-encointer-communities = { version = "~16.1.0", default-features = false }
-pallet-encointer-communities-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-pallet-encointer-democracy = { version = "~16.4.0", default-features = false }
-pallet-encointer-faucet = { version = "~16.2.0", default-features = false }
-pallet-encointer-reputation-commitments = { version = "~16.1.0", default-features = false }
-pallet-encointer-scheduler = { version = "~16.1.0", default-features = false }
-pallet-encointer-treasuries = { version = "~16.4.1", default-features = false }
-pallet-encointer-treasuries-rpc-runtime-api = { version = "~16.3.0", default-features = false }
-pallet-fast-unstake = { version = "39.0.0", default-features = false }
-pallet-glutton = { version = "26.0.0", default-features = false }
-pallet-grandpa = { version = "40.0.0", default-features = false }
-pallet-identity = { version = "40.1.0", default-features = false }
-pallet-indices = { version = "40.0.0", default-features = false }
-pallet-insecure-randomness-collective-flip = { version = "28.0.0", default-features = false }
-pallet-membership = { version = "40.0.0", default-features = false }
-pallet-message-queue = { version = "43.1.0", default-features = false }
-pallet-mmr = { version = "40.0.0", default-features = false }
-pallet-multisig = { version = "40.1.0", default-features = false }
-pallet-nft-fractionalization = { version = "23.0.0", default-features = false }
-pallet-nfts = { version = "34.1.0", default-features = false }
-pallet-nfts-runtime-api = { version = "26.0.0", default-features = false }
-pallet-nis = { version = "40.0.0", default-features = false }
-pallet-migrations = { version = "10.1.0", default-features = false }
-pallet-nomination-pools = { version = "38.1.0", default-features = false }
-pallet-nomination-pools-benchmarking = { version = "38.0.0", default-features = false }
-pallet-nomination-pools-runtime-api = { version = "36.0.0", default-features = false }
-pallet-offences = { version = "39.0.0", default-features = false }
-pallet-offences-benchmarking = { version = "40.0.0", default-features = false }
-pallet-parameters = { version = "0.11.0", default-features = false }
-pallet-preimage = { version = "40.0.0", default-features = false }
-pallet-proxy = { version = "40.1.0", default-features = false }
-pallet-ranked-collective = { version = "40.1.0", default-features = false }
-pallet-recovery = { version = "40.0.0", default-features = false }
-pallet-referenda = { version = "40.1.0", default-features = false }
-pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
-pallet-revive = { version = "0.6.1", default-features = false }
-pallet-salary = { version = "25.0.0", default-features = false }
-pallet-scheduler = { version = "41.2.0", default-features = false }
-pallet-session = { version = "40.0.1", default-features = false }
-pallet-session-benchmarking = { version = "40.0.0", default-features = false }
-pallet-society = { version = "40.1.0", default-features = false }
-pallet-staking = { version = "40.1.1", default-features = false }
-pallet-delegated-staking = { version = "7.0.0", default-features = false }
-pallet-staking-reward-curve = { version = "12.0.0" }
-pallet-staking-reward-fn = { version = "22.0.1", default-features = false }
-pallet-staking-runtime-api = { version = "26.0.0", default-features = false }
-pallet-state-trie-migration = { version = "44.1.0", default-features = false }
-pallet-sudo = { version = "40.0.0", default-features = false }
-pallet-timestamp = { version = "39.0.0", default-features = false }
-pallet-transaction-payment = { version = "40.0.0", default-features = false }
-pallet-transaction-payment-rpc-runtime-api = { version = "40.0.0", default-features = false }
-pallet-treasury = { version = "39.0.0", default-features = false }
-pallet-uniques = { version = "40.1.0", default-features = false }
-pallet-utility = { version = "40.0.0", default-features = false }
-pallet-vesting = { version = "40.1.0", default-features = false }
-pallet-whitelist = { version = "39.0.0", default-features = false }
-pallet-xcm = { version = "19.1.2", default-features = false }
-pallet-xcm-benchmarks = { version = "20.0.0", default-features = false }
-pallet-xcm-bridge-hub = { version = "0.16.3", default-features = false }
-pallet-xcm-bridge-hub-router = { version = "0.18.0", default-features = false }
-parachain-info = { version = "0.20.0", default-features = false, package = "staging-parachain-info" }
-parachains-common = { version = "21.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "22.0.0" }
-paste = { version = "1.0.14" }
-penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
-penpal-runtime = { version = "0.29.0" }
-people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
-people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
-people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
-people-polkadot-runtime = { path = "system-parachains/people/people-polkadot" }
-polkadot-core-primitives = { version = "17.1.0", default-features = false }
-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/relays/polkadot" }
-polkadot-parachain-primitives = { version = "16.1.0", default-features = false }
-polkadot-primitives = { version = "18.2.0", default-features = false }
-polkadot-runtime = { path = "relay/polkadot" }
-polkadot-runtime-common = { version = "19.1.0", default-features = false }
-polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
-primitive-types = { version = "0.12.2", default-features = false }
-frame-metadata-hash-extension = { version = "0.8.0", default-features = false }
-remote-externalities = { version = "0.50.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "19.2.0", default-features = false, package = "polkadot-runtime-parachains" }
-sc-chain-spec = { version = "42.0.0" }
-sc-network = { version = "0.49.2" }
-scale-info = { version = "2.10.0", default-features = false }
-separator = { version = "0.4.1" }
-serde = { version = "1.0.196" }
-serde_json = { version = "1.0.113", default-features = false }
-smallvec = { version = "1.13.1" }
-snowbridge-beacon-primitives = { version = "0.13.1", default-features = false }
-snowbridge-core = { version = "0.13.2", default-features = false }
-snowbridge-merkle-tree = { version = "0.2.0", default-features = false }
-snowbridge-outbound-queue-runtime-api = { version = "0.13.0", default-features = false }
-snowbridge-outbound-queue-primitives = { version = "0.2.2", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.13.0", default-features = false }
-snowbridge-pallet-inbound-queue = { version = "0.13.2", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.21.0" }
-snowbridge-pallet-ethereum-client-fixtures = { version = "0.21.1" }
-snowbridge-pallet-outbound-queue = { version = "0.13.0", default-features = false }
-snowbridge-pallet-system = { version = "0.13.3", default-features = false }
-snowbridge-inbound-queue-primitives = { version = "0.2.2", default-features = false }
-snowbridge-runtime-common = { version = "0.13.0", default-features = false }
-snowbridge-runtime-test-common = { version = "0.15.0" }
-snowbridge-system-runtime-api = { version = "0.13.0", default-features = false }
-sp-api = { version = "36.0.1", default-features = false }
-sp-application-crypto = { version = "40.1.0", default-features = false }
-sp-arithmetic = { version = "26.1.0", default-features = false }
-sp-block-builder = { version = "36.0.0", default-features = false }
-sp-consensus-aura = { version = "0.42.0", default-features = false }
-sp-core = { version = "36.1.0", default-features = false }
-sp-debug-derive = { version = "14.0.0", default-features = false }
-sp-genesis-builder = { version = "0.17.0", default-features = false }
-sp-inherents = { version = "36.0.0", default-features = false }
-sp-io = { version = "40.0.1", default-features = false }
-sp-keyring = { version = "41.0.0" }
-sp-npos-elections = { version = "36.2.0", default-features = false }
-sp-offchain = { version = "36.0.0", default-features = false }
-sp-runtime = { version = "41.1.0", default-features = false }
-sp-session = { version = "38.1.0", default-features = false }
-sp-staking = { version = "38.0.0", default-features = false }
-sp-std = { version = "14.0.0", default-features = false }
-sp-state-machine = { version = "0.45.0", default-features = false }
-sp-storage = { version = "22.0.0", default-features = false }
-sp-tracing = { version = "17.1.0", default-features = false }
-sp-transaction-pool = { version = "36.0.0", default-features = false }
-sp-trie = { version = "39.1.0", default-features = false }
-sp-version = { version = "39.0.0", default-features = false }
-sp-weights = { version = "31.1.0", default-features = false }
-substrate-wasm-builder = { version = "26.0.1" }
-system-parachains-constants = { path = "system-parachains/constants", default-features = false }
-tokio = { version = "1.36.0" }
-xcm = { version = "16.2.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "20.1.1", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.19.3" }
-xcm-executor = { version = "19.1.2", default-features = false, package = "staging-xcm-executor" }
-xcm-runtime-apis = { version = "0.7.1", default-features = false }
-anyhow = { version = "1.0.82" }
-subxt = { version = "0.38.1" }
-tracing-subscriber = { version = "0.3.18" }
-zombienet-sdk = { version = "0.2.30" }
-tuplex = { version = "0.1.0", default-features = false }
-relay-common = { path = "relay/common", default-features = false }
-ss58-registry = { version = "1.47.0" }
 
 [workspace]
 resolver = "2"
+members = [ "pallets/ah-migrator", "pallets/rc-migrator", "pallets/ah-ops", "integration-tests/ahm", "chain-spec-generator", "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama", "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot", "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama", "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot", "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot", "integration-tests/emulated/chains/parachains/coretime/coretime-kusama", "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot", "integration-tests/emulated/chains/parachains/people/people-kusama", "integration-tests/emulated/chains/parachains/people/people-polkadot", "integration-tests/emulated/chains/parachains/testing/penpal", "integration-tests/emulated/chains/relays/kusama", "integration-tests/emulated/chains/relays/polkadot", "integration-tests/emulated/helpers", "integration-tests/emulated/networks/kusama-polkadot-system", "integration-tests/emulated/networks/kusama-system", "integration-tests/emulated/networks/polkadot-system", "integration-tests/emulated/tests/assets/asset-hub-kusama", "integration-tests/emulated/tests/assets/asset-hub-polkadot", "integration-tests/emulated/tests/bridges/bridge-hub-kusama", "integration-tests/emulated/tests/bridges/bridge-hub-polkadot", "integration-tests/emulated/tests/collectives/collectives-polkadot", "integration-tests/emulated/tests/coretime/coretime-kusama", "integration-tests/emulated/tests/coretime/coretime-polkadot", "integration-tests/emulated/tests/people/people-kusama", "integration-tests/emulated/tests/people/people-polkadot", "integration-tests/zombienet", "pallets/remote-proxy", "relay/common", "relay/kusama", "relay/kusama/constants", "relay/polkadot", "relay/polkadot/constants", "system-parachains/asset-hubs/asset-hub-kusama", "system-parachains/asset-hubs/asset-hub-kusama/primitives", "system-parachains/asset-hubs/asset-hub-polkadot", "system-parachains/asset-hubs/asset-hub-polkadot/primitives", "system-parachains/bridge-hubs/bridge-hub-kusama", "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", "system-parachains/bridge-hubs/bridge-hub-polkadot", "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", "system-parachains/collectives/collectives-polkadot", "system-parachains/collectives/collectives-polkadot/constants", "system-parachains/constants", "system-parachains/coretime/coretime-kusama", "system-parachains/coretime/coretime-polkadot", "system-parachains/encointer", "system-parachains/gluttons/glutton-kusama", "system-parachains/people/people-kusama", "system-parachains/people/people-polkadot",]
 
-members = [
-	"pallets/ah-migrator",
-	"pallets/rc-migrator",
-	"pallets/ah-ops",
-	"integration-tests/ahm",
-
-	"chain-spec-generator",
-	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
-	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
-	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
-	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
-	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
-	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
-	"integration-tests/emulated/chains/parachains/coretime/coretime-polkadot",
-	"integration-tests/emulated/chains/parachains/people/people-kusama",
-	"integration-tests/emulated/chains/parachains/people/people-polkadot",
-	"integration-tests/emulated/chains/parachains/testing/penpal",
-	"integration-tests/emulated/chains/relays/kusama",
-	"integration-tests/emulated/chains/relays/polkadot",
-	"integration-tests/emulated/helpers",
-	"integration-tests/emulated/networks/kusama-polkadot-system",
-	"integration-tests/emulated/networks/kusama-system",
-	"integration-tests/emulated/networks/polkadot-system",
-	"integration-tests/emulated/tests/assets/asset-hub-kusama",
-	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
-	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
-	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
-	"integration-tests/emulated/tests/collectives/collectives-polkadot",
-	"integration-tests/emulated/tests/coretime/coretime-kusama",
-	"integration-tests/emulated/tests/coretime/coretime-polkadot",
-	"integration-tests/emulated/tests/people/people-kusama",
-	"integration-tests/emulated/tests/people/people-polkadot",
-	"integration-tests/zombienet",
-	"pallets/remote-proxy",
-	"relay/common",
-	"relay/kusama",
-	"relay/kusama/constants",
-	"relay/polkadot",
-	"relay/polkadot/constants",
-	"system-parachains/asset-hubs/asset-hub-kusama",
-	"system-parachains/asset-hubs/asset-hub-kusama/primitives",
-	"system-parachains/asset-hubs/asset-hub-polkadot",
-	"system-parachains/asset-hubs/asset-hub-polkadot/primitives",
-	"system-parachains/bridge-hubs/bridge-hub-kusama",
-	"system-parachains/bridge-hubs/bridge-hub-kusama/primitives",
-	"system-parachains/bridge-hubs/bridge-hub-polkadot",
-	"system-parachains/bridge-hubs/bridge-hub-polkadot/primitives",
-	"system-parachains/collectives/collectives-polkadot",
-	"system-parachains/collectives/collectives-polkadot/constants",
-	"system-parachains/constants",
-	"system-parachains/coretime/coretime-kusama",
-	"system-parachains/coretime/coretime-polkadot",
-	"system-parachains/encointer",
-	"system-parachains/gluttons/glutton-kusama",
-	"system-parachains/people/people-kusama",
-	"system-parachains/people/people-polkadot",
-]
+[workspace.package]
+version = "1.0.0"
+authors = [ "Polkadot Fellowship",]
+edition = "2021"
+repository = "https://github.com/polkadot-fellows/runtimes.git"
+license = "GPL-3.0-only"
 
 [profile.release]
-# Polkadot runtime requires unwinding.
 panic = "unwind"
 opt-level = 3
 
@@ -333,3 +23,1317 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
+
+[workspace.dependencies.pallet-ah-migrator]
+path = "pallets/ah-migrator"
+default-features = false
+
+[workspace.dependencies.pallet-rc-migrator]
+path = "pallets/rc-migrator"
+default-features = false
+
+[workspace.dependencies.pallet-ah-ops]
+path = "pallets/ah-ops"
+default-features = false
+
+[workspace.dependencies.system-parachains-common]
+path = "system-parachains/common"
+default-features = false
+
+[workspace.dependencies.hex]
+version = "0.4.3"
+default-features = false
+
+[workspace.dependencies.impl-trait-for-tuples]
+version = "0.2.2"
+
+[workspace.dependencies.rand]
+version = "0.8.5"
+default-features = false
+
+[workspace.dependencies.assert_matches]
+version = "1.5.0"
+
+[workspace.dependencies.approx]
+version = "0.5.1"
+
+[workspace.dependencies.asset-hub-kusama-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama"
+
+[workspace.dependencies.asset-hub-kusama-runtime]
+path = "system-parachains/asset-hubs/asset-hub-kusama"
+
+[workspace.dependencies.asset-hub-polkadot-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot"
+
+[workspace.dependencies.asset-hub-polkadot-runtime]
+path = "system-parachains/asset-hubs/asset-hub-polkadot"
+
+[workspace.dependencies.asset-test-utils]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.assets-common]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.authority-discovery-primitives]
+version = "*"
+default-features = false
+package = "sp-authority-discovery"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.babe-primitives]
+version = "*"
+default-features = false
+package = "sp-consensus-babe"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.beefy-primitives]
+version = "*"
+default-features = false
+package = "sp-consensus-beefy"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.binary-merkle-tree]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-asset-hub-kusama]
+path = "system-parachains/asset-hubs/asset-hub-kusama/primitives"
+default-features = false
+
+[workspace.dependencies.bp-asset-hub-polkadot]
+path = "system-parachains/asset-hubs/asset-hub-polkadot/primitives"
+default-features = false
+
+[workspace.dependencies.bp-bridge-hub-cumulus]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-bridge-hub-kusama]
+path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives"
+default-features = false
+
+[workspace.dependencies.bp-bridge-hub-polkadot]
+path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives"
+default-features = false
+
+[workspace.dependencies.bp-header-chain]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-messages]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-parachains]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-polkadot-core]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-relayers]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-runtime]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-xcm-bridge-hub]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bp-xcm-bridge-hub-router]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bridge-hub-common]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bridge-hub-kusama-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama"
+
+[workspace.dependencies.bridge-hub-kusama-runtime]
+path = "system-parachains/bridge-hubs/bridge-hub-kusama"
+
+[workspace.dependencies.bridge-hub-polkadot-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot"
+
+[workspace.dependencies.bridge-hub-polkadot-runtime]
+path = "system-parachains/bridge-hubs/bridge-hub-polkadot"
+
+[workspace.dependencies.bridge-hub-test-utils]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.bridge-runtime-common]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.clap]
+version = "4.5.0"
+
+[workspace.dependencies.codec]
+package = "parity-scale-codec"
+version = "3.6.9"
+default-features = false
+
+[workspace.dependencies.collectives-polkadot-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot"
+
+[workspace.dependencies.collectives-polkadot-runtime]
+path = "system-parachains/collectives/collectives-polkadot"
+
+[workspace.dependencies.collectives-polkadot-runtime-constants]
+path = "system-parachains/collectives/collectives-polkadot/constants"
+
+[workspace.dependencies.coretime-kusama-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama"
+
+[workspace.dependencies.coretime-kusama-runtime]
+path = "system-parachains/coretime/coretime-kusama"
+
+[workspace.dependencies.coretime-polkadot-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot"
+
+[workspace.dependencies.coretime-polkadot-runtime]
+path = "system-parachains/coretime/coretime-polkadot"
+
+[workspace.dependencies.cumulus-pallet-aura-ext]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-pallet-parachain-system]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-pallet-session-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-pallet-xcm]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-pallet-xcmp-queue]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-primitives-aura]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-primitives-core]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.cumulus-primitives-utility]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.emulated-integration-tests-common]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.encointer-balances-tx-payment]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.encointer-balances-tx-payment-rpc-runtime-api]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.encointer-kusama-runtime]
+path = "system-parachains/encointer"
+
+[workspace.dependencies.encointer-primitives]
+version = "~16.4.0"
+default-features = false
+
+[workspace.dependencies.enumflags2]
+version = "0.7.7"
+
+[workspace.dependencies.frame-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-election-provider-support]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-executive]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-support]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-system]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-system-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-system-rpc-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.frame-try-runtime]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.glutton-kusama-runtime]
+path = "system-parachains/gluttons/glutton-kusama"
+
+[workspace.dependencies.grandpa]
+version = "*"
+package = "sc-consensus-grandpa"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.hex-literal]
+version = "0.4.1"
+
+[workspace.dependencies.integration-tests-helpers]
+path = "integration-tests/emulated/helpers"
+
+[workspace.dependencies.kusama-emulated-chain]
+path = "integration-tests/emulated/chains/relays/kusama"
+
+[workspace.dependencies.kusama-polkadot-system-emulated-network]
+path = "integration-tests/emulated/networks/kusama-polkadot-system"
+
+[workspace.dependencies.kusama-runtime]
+path = "relay/kusama"
+package = "staging-kusama-runtime"
+
+[workspace.dependencies.kusama-runtime-constants]
+path = "relay/kusama/constants"
+default-features = false
+
+[workspace.dependencies.kusama-system-emulated-network]
+path = "integration-tests/emulated/networks/kusama-system"
+
+[workspace.dependencies.log]
+version = "0.4.21"
+default-features = false
+
+[workspace.dependencies.pallet-alliance]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-asset-conversion]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-asset-conversion-tx-payment]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-asset-rate]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-asset-tx-payment]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-assets]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-aura]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-authority-discovery]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-authorship]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-babe]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-bags-list]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-balances]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-beefy]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-beefy-mmr]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-bounties]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-bridge-grandpa]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-bridge-messages]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-bridge-parachains]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-bridge-relayers]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-broker]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-child-bounties]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-collator-selection]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-collective]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-conviction-voting]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-core-fellowship]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-election-provider-multi-phase]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-election-provider-support-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-encointer-balances]
+version = "~16.2.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-bazaar]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-bazaar-rpc-runtime-api]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-ceremonies]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-ceremonies-rpc-runtime-api]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-communities]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-communities-rpc-runtime-api]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-democracy]
+version = "~16.4.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-faucet]
+version = "~16.2.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-reputation-commitments]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-scheduler]
+version = "~16.1.0"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-treasuries]
+version = "~16.4.1"
+default-features = false
+
+[workspace.dependencies.pallet-encointer-treasuries-rpc-runtime-api]
+version = "~16.3.0"
+default-features = false
+
+[workspace.dependencies.pallet-fast-unstake]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-glutton]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-grandpa]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-identity]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-indices]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-insecure-randomness-collective-flip]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-membership]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-message-queue]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-mmr]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-multisig]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nft-fractionalization]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nfts]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nfts-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nis]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-migrations]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nomination-pools]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nomination-pools-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-nomination-pools-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-offences]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-offences-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-parameters]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-preimage]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-proxy]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-ranked-collective]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-recovery]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-referenda]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-remote-proxy]
+path = "pallets/remote-proxy"
+default-features = false
+
+[workspace.dependencies.pallet-revive]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-salary]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-scheduler]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-session]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-session-benchmarking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-society]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-staking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-delegated-staking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-staking-reward-curve]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-staking-reward-fn]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-staking-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-state-trie-migration]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-sudo]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-timestamp]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-transaction-payment]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-transaction-payment-rpc-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-treasury]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-uniques]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-utility]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-vesting]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-whitelist]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-xcm]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-xcm-benchmarks]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-xcm-bridge-hub]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-xcm-bridge-hub-router]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.parachain-info]
+version = "*"
+default-features = false
+package = "staging-parachain-info"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.parachains-common]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.parachains-runtimes-test-utils]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.paste]
+version = "1.0.14"
+
+[workspace.dependencies.penpal-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/testing/penpal"
+
+[workspace.dependencies.penpal-runtime]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.people-kusama-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/people/people-kusama"
+
+[workspace.dependencies.people-kusama-runtime]
+path = "system-parachains/people/people-kusama"
+
+[workspace.dependencies.people-polkadot-emulated-chain]
+path = "integration-tests/emulated/chains/parachains/people/people-polkadot"
+
+[workspace.dependencies.people-polkadot-runtime]
+path = "system-parachains/people/people-polkadot"
+
+[workspace.dependencies.polkadot-core-primitives]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.polkadot-emulated-chain]
+path = "integration-tests/emulated/chains/relays/polkadot"
+
+[workspace.dependencies.polkadot-parachain-primitives]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.polkadot-primitives]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.polkadot-runtime]
+path = "relay/polkadot"
+
+[workspace.dependencies.polkadot-runtime-common]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.polkadot-runtime-constants]
+path = "relay/polkadot/constants"
+default-features = false
+
+[workspace.dependencies.polkadot-system-emulated-network]
+path = "integration-tests/emulated/networks/polkadot-system"
+
+[workspace.dependencies.primitive-types]
+version = "0.12.2"
+default-features = false
+
+[workspace.dependencies.frame-metadata-hash-extension]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.remote-externalities]
+version = "*"
+package = "frame-remote-externalities"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.runtime-parachains]
+version = "*"
+default-features = false
+package = "polkadot-runtime-parachains"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sc-chain-spec]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sc-network]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.scale-info]
+version = "2.10.0"
+default-features = false
+
+[workspace.dependencies.separator]
+version = "0.4.1"
+
+[workspace.dependencies.serde]
+version = "1.0.196"
+
+[workspace.dependencies.serde_json]
+version = "1.0.113"
+default-features = false
+
+[workspace.dependencies.smallvec]
+version = "1.13.1"
+
+[workspace.dependencies.snowbridge-beacon-primitives]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-core]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-merkle-tree]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-outbound-queue-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-outbound-queue-primitives]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-pallet-ethereum-client]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-pallet-inbound-queue]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-pallet-inbound-queue-fixtures]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-pallet-ethereum-client-fixtures]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-pallet-outbound-queue]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-pallet-system]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-inbound-queue-primitives]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-runtime-common]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-runtime-test-common]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.snowbridge-system-runtime-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-api]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-application-crypto]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-arithmetic]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-block-builder]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-consensus-aura]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-core]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-debug-derive]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-genesis-builder]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-inherents]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-io]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-keyring]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-npos-elections]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-offchain]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-runtime]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-session]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-staking]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-std]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-state-machine]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-storage]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-tracing]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-transaction-pool]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-trie]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-version]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.sp-weights]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.substrate-wasm-builder]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.system-parachains-constants]
+path = "system-parachains/constants"
+default-features = false
+
+[workspace.dependencies.tokio]
+version = "1.36.0"
+
+[workspace.dependencies.xcm]
+version = "*"
+default-features = false
+package = "staging-xcm"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.xcm-builder]
+version = "*"
+default-features = false
+package = "staging-xcm-builder"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.xcm-emulator]
+version = "*"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.xcm-executor]
+version = "*"
+default-features = false
+package = "staging-xcm-executor"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.xcm-runtime-apis]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.anyhow]
+version = "1.0.82"
+
+[workspace.dependencies.subxt]
+version = "0.38.1"
+
+[workspace.dependencies.tracing-subscriber]
+version = "0.3.18"
+
+[workspace.dependencies.zombienet-sdk]
+version = "0.2.30"
+
+[workspace.dependencies.tuplex]
+version = "0.1.0"
+default-features = false
+
+[workspace.dependencies.relay-common]
+path = "relay/common"
+default-features = false
+
+[workspace.dependencies.ss58-registry]
+version = "1.47.0"

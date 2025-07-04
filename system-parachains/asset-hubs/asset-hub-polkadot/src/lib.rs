@@ -110,7 +110,6 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
-		fungible,
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::ResolveAssetTo,
