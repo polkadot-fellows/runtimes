@@ -29,6 +29,7 @@ use sp_core::H160;
 use xcm::opaque::latest::{ROCOCO_GENESIS_HASH, WESTEND_GENESIS_HASH};
 use xcm_builder::ExternalConsensusLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFeeV2;
 
 pub const INITIAL_FUND: u128 = 50_000_000_000_000;
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
@@ -36,8 +37,8 @@ pub const AGENT_ADDRESS: [u8; 20] = hex!("90A987B944Cb1dCcE5564e5FDeCD7a54D3de27
 pub const TOKEN_AMOUNT: u128 = 10_000_000_000_000;
 pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 600_000_000_000;
 pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_000;
-
 pub const EXECUTION_WEIGHT: u64 = 8_000_000_000;
+const AH_BASE_FEE_V2: u128 = 100_000_000_000;
 
 pub fn beneficiary() -> Location {
 	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }])
@@ -549,4 +550,16 @@ pub(crate) fn bridge_hub_polkadot_location() -> Location {
 			Parachain(BridgeHubPolkadot::para_id().into()),
 		],
 	)
+}
+
+pub fn set_bridge_hub_ethereum_base_fee() {
+	// Set base transfer fee to Ethereum on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
+			RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFeeV2::key().to_vec(), AH_BASE_FEE_V2.encode())],
+		));
+	});
 }

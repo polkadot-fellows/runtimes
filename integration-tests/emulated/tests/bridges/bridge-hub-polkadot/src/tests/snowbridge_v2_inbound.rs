@@ -14,7 +14,7 @@
 // limitations under the License.
 use crate::{
 	tests::snowbridge_common::{
-		erc20_token_location, eth_location, fund_on_ah, fund_on_bh, register_assets_on_ah,
+		erc20_token_location, eth_location,
 		register_foreign_asset, set_up_eth_and_dot_pool, set_up_eth_and_dot_pool_on_penpal,
 		snowbridge_sovereign, weth_location,
 	},
@@ -30,7 +30,6 @@ use bridge_hub_polkadot_runtime::{
 use codec::Encode;
 use frame_support::assert_ok;
 use pallet_bridge_relayers;
-use snowbridge_pallet_system_v2::{self};
 // Polkadot genesis hash
 const POLKADOT_GENESIS_HASH: [u8; 32] =
 	hex!("91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3");

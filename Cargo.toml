@@ -324,3 +324,6 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+xcm-builder = { path = "../polkadot-sdk/polkadot/xcm/xcm-builder", package = "staging-xcm-builder" }

@@ -394,13 +394,14 @@ impl pallet_message_queue::Config for Runtime {
 	type MessageProcessor =
 		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
 	#[cfg(not(all(not(feature = "std"), feature = "runtime-benchmarks")))]
-	type MessageProcessor = bridge_hub_common::BridgeHubMessageRouter<
+	type MessageProcessor = bridge_hub_common::BridgeHubDualMessageRouter<
 		xcm_builder::ProcessXcmMessage<
 			AggregateMessageOrigin,
 			xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
 			RuntimeCall,
 		>,
 		EthereumOutboundQueue,
+		EthereumOutboundQueueV2,
 	>;
 	type Size = u32;
 	// The XCMP queue pallet is only ever able to handle the `Sibling(ParaId)` origin:

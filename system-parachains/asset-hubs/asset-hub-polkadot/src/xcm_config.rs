@@ -57,7 +57,7 @@ use xcm_builder::{
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
 	SingleAssetExchangeAdapter, SovereignSignedViaLocation, StartsWith,
 	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId,
-	UnpaidRemoteExporter, UsingComponents, WeightInfoBounds, WithComputedOrigin,
+	SovereignPaidRemoteExporter, UsingComponents, WeightInfoBounds, WithComputedOrigin,
 	WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
@@ -493,21 +493,18 @@ pub type XcmRouter = WithUniqueTopic<(
 	// GlobalConsensus
 	ToKusamaXcmRouter,
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
-	// GlobalConsensus
+	// GlobalConsensus with a pausable flag, if the flag is set true then the Router is paused
+	// TODO update when https://github.com/paritytech/polkadot-sdk/commit/40e3fcb050147c89e80c3dc1d47599ce23c619ed
 	PausableExporter<
 		crate::SnowbridgeSystemFrontend,
-		(
-			UnpaidRemoteExporter<
+		SovereignPaidRemoteExporter<
+			(
 				bridging::to_ethereum::EthereumNetworkExportTableV2,
-				XcmpQueue,
-				UniversalLocation,
-			>,
-			UnpaidRemoteExporter<
 				bridging::to_ethereum::EthereumNetworkExportTable,
-				XcmpQueue,
-				UniversalLocation,
-			>,
-		),
+			),
+			XcmpQueue,
+			UniversalLocation,
+		>,
 	>,
 )>;
 
