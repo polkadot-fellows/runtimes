@@ -14,8 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-/*
-FIXME v4 -> v5 broke it
+
 use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::{
@@ -1251,4 +1250,3 @@ pub mod benchmarks {
 		_set_dmp_queue_priority::<T>(true)
 	}
 }
-*/
