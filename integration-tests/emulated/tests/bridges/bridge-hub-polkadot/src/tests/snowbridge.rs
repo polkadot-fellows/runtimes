@@ -20,10 +20,10 @@ use crate::{
 	},
 	*,
 };
-use asset_hub_polkadot_runtime::xcm_config::{
+use asset_hub_polkadot_runtime::{xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,
-};
+}};
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
@@ -452,8 +452,8 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 				AssetHubPolkadotReceiver::get(),
 			);
 		// Send the Token back to Ethereum
-		assert_ok!(
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
 				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
 				Box::new(destination),
 				Box::new(beneficiary),

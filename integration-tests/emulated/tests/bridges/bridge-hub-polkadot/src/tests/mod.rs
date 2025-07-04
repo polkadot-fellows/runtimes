@@ -20,6 +20,9 @@ mod claim_assets;
 mod register_bridged_assets;
 mod send_xcm;
 mod snowbridge;
+mod snowbridge_common;
+mod snowbridge_v2_inbound;
+mod snowbridge_v2_outbound;
 mod teleport;
 
 pub(crate) fn asset_hub_kusama_location() -> Location {
