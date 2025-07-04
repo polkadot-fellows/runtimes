@@ -87,6 +87,14 @@ impl<T: Config> ReferendaMigrator<T> {
 			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
 
+		if referendum_count.is_none() && deciding_count.is_empty() && track_queue.is_empty() {
+			log::info!(
+				target: LOG_TARGET,
+				"Referenda values are empty. Skipping referenda values migration.",
+			);
+			return Ok(());
+		}
+
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		batch.push((referendum_count, deciding_count, track_queue));
 		weight_counter.consume(batch.consume_weight());

@@ -63,6 +63,19 @@ pub struct NomPoolsStorageValues<Balance> {
 	pub last_pool_id: Option<u32>,
 }
 
+impl<Balance> NomPoolsStorageValues<Balance> {
+	pub fn is_empty(&self) -> bool {
+		self.total_value_locked.is_none() &&
+			self.min_join_bond.is_none() &&
+			self.min_create_bond.is_none() &&
+			self.max_pools.is_none() &&
+			self.max_pool_members.is_none() &&
+			self.max_pool_members_per_pool.is_none() &&
+			self.global_max_commission.is_none() &&
+			self.last_pool_id.is_none()
+	}
+}
+
 /// A message from RC to AH to migrate some nomination pools data.
 #[derive(
 	Encode,
@@ -142,7 +155,15 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 			inner_key = match inner_key {
 				NomPoolsStage::StorageValues => {
 					let values = Self::take_values();
-					messages.push(RcNomPoolsMessage::StorageValues { values });
+					if !values.is_empty() {
+						messages.push(RcNomPoolsMessage::StorageValues { values });
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Nomination pools storage values are empty. Skipping nomination pools \
+								values migration.",
+						);
+					}
 					NomPoolsStage::<T::AccountId>::PoolMembers(None)
 				},
 				// Bunch of copy & paste code

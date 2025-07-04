@@ -64,6 +64,12 @@ pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub eras_to_check_per_block: Option<u32>,
 }
 
+impl<T: pallet_fast_unstake::Config> FastUnstakeStorageValues<T> {
+	pub fn is_empty(&self) -> bool {
+		self.head.is_none() && self.eras_to_check_per_block.is_none()
+	}
+}
+
 impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T> {
 	pub fn take_values() -> FastUnstakeStorageValues<T> {
 		FastUnstakeStorageValues {
@@ -130,7 +136,15 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 			inner_key = match inner_key {
 				FastUnstakeStage::StorageValues => {
 					let values = Self::take_values();
-					messages.push(RcFastUnstakeMessage::StorageValues { values });
+					if !values.is_empty() {
+						messages.push(RcFastUnstakeMessage::StorageValues { values });
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Fast unstake storage values are empty. Skipping fast unstake values \
+								migration.",
+						);
+					}
 					FastUnstakeStage::Queue(None)
 				},
 				FastUnstakeStage::Queue(queue_iter) => {

@@ -471,6 +471,16 @@ impl<T: Config> AccountsMigrator<T> {
 		);
 		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
 
+		if teleport_total.is_zero() {
+			log::info!(
+				target: LOG_TARGET,
+				"Nothing to migrate for account: {:?}; state: {:?}",
+				who.to_ss58check(),
+				account_state,
+			);
+			return Ok(None);
+		}
+
 		let burned = match <T as Config>::Currency::burn_from(
 			&who,
 			teleport_total,
