@@ -68,7 +68,19 @@ impl<T: Config> Pallet<T> {
 			frame_system::Pallet::<T>::inc_providers(&account.who);
 		}
 
-		let who = account.who;
+		// Extract and translate the account
+		let (translated_account, para_id) = crate::translate_rc_sovereign_to_ah(&account.who);
+
+		// Emit translation event if account was translated
+		if let Some(para_id) = para_id {
+			Self::deposit_event(Event::<T>::AccountTranslated {
+				original: account.who.clone(),
+				translated: translated_account.clone(),
+				para_id,
+			});
+		}
+
+		let who = translated_account;
 		let total_balance = account.free + account.reserved;
 		let minted = match <T as pallet::Config>::Currency::mint_into(&who, total_balance) {
 			Ok(minted) => minted,

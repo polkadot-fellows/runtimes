@@ -28,7 +28,7 @@
 //! Run with:
 //!
 //! ```
-//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+//! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" cargo test polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! ```
 
 use crate::porting_prelude::*;
@@ -280,16 +280,24 @@ async fn print_sovereign_account_translation() {
 
 	rc.execute_with(|| {
 		for para_id in paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>() {
-			let rc_acc = xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(&Location::new(0, Junction::Parachain(para_id.into()))).unwrap();
+			let rc_acc =
+				xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
+					&Location::new(0, Junction::Parachain(para_id.into())),
+				)
+				.unwrap();
 
-			let (ah_acc, para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc.clone()).unwrap().unwrap();
+			let (ah_acc, para_id) = pallet_ah_migrator::translate_rc_sovereign_to_ah(&rc_acc);
+			if para_id.is_none() {
+				continue; // Skip non-sovereign accounts
+			}
+			let para_id = para_id.unwrap();
 			rc_to_ah.insert(rc_acc, (ah_acc, para_id));
 		}
 
 		for account in frame_system::Account::<Polkadot>::iter_keys() {
-			let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(account.clone()).unwrap();
+			let (ah_acc, para_id) = pallet_ah_migrator::translate_rc_sovereign_to_ah(&account);
 
-			if let Some((ah_acc, para_id)) = translated {
+			if let Some(para_id) = para_id {
 				if !rc_to_ah.contains_key(&account) {
 					println!("Account belongs to an unregistered para {}: {}", para_id, account);
 					rc_to_ah.insert(account, (ah_acc, para_id));
@@ -637,16 +645,53 @@ async fn some_account_migration_works() {
 
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
-	let accounts: Vec<AccountId32> = vec![
+	// Define test case structure for clarity
+	struct AccountTestCase {
+		account_id: AccountId32,
+		should_translate: bool,
+		expected_translated: Option<AccountId32>,
+		expected_para_id: Option<u16>,
+	}
+
+	// Define test cases with expected behavior
+	let test_cases = vec![
 		// 18.03.2025 - account with reserve above ED, but no free balance
-		"5HB5nWBF2JfqogQYTcVkP1BfrgfadBizGmLBhmoAbGm5C7ir".parse().unwrap(),
+		AccountTestCase {
+			account_id: "5HB5nWBF2JfqogQYTcVkP1BfrgfadBizGmLBhmoAbGm5C7ir".parse().unwrap(),
+			should_translate: false,
+			expected_translated: None,
+			expected_para_id: None,
+		},
 		// 18.03.2025 - account with zero free balance, and reserve below ED
-		"5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
+		AccountTestCase {
+			account_id: "5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
+			should_translate: false,
+			expected_translated: None,
+			expected_para_id: None,
+		},
 		// 18.03.2025 - account with free balance below ED, and reserve above ED
-		"5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+		AccountTestCase {
+			account_id: "5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+			should_translate: false,
+			expected_translated: None,
+			expected_para_id: None,
+		},
+		// Bifrost parachain sovereign account (para:2030 -> sibling:2030)
+		// RC sovereign: 13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm
+		// AH sibling: 13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A
+		AccountTestCase {
+			account_id: "13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm".parse().unwrap(),
+			should_translate: true,
+			expected_translated: Some(
+				"13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A".parse().unwrap(),
+			),
+			expected_para_id: Some(2030),
+		},
 	];
 
-	for account_id in accounts {
+	for test_case in test_cases {
+		let AccountTestCase { account_id, should_translate, expected_translated, expected_para_id } =
+			test_case;
 		let maybe_withdrawn_account = rc.execute_with(|| {
 			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
 			log::info!("Migrating account id: {:?}", account_id.to_ss58check());
@@ -680,10 +725,69 @@ async fn some_account_migration_works() {
 			use asset_hub_polkadot_runtime::AhMigrator;
 			use codec::{Decode, Encode};
 
+			// Reset events before the test
+			frame_system::Pallet::<AssetHub>::reset_events();
+
 			let encoded_account = withdrawn_account.encode();
-			let account = Decode::decode(&mut &encoded_account[..]).unwrap();
+			let account: pallet_rc_migrator::accounts::Account<
+				AccountId32,
+				u128,
+				asset_hub_polkadot_runtime::ah_migration::RcHoldReason,
+				asset_hub_polkadot_runtime::ah_migration::RcFreezeReason,
+			> = Decode::decode(&mut &encoded_account[..]).unwrap();
+			let original_account = account.who.clone();
 			let res = AhMigrator::do_receive_account(account);
 			log::info!("Account integration result: {:?}", res);
+
+			// Verify event emission based on expected behavior
+			let events = frame_system::Pallet::<AssetHub>::events();
+			let found_event = events.iter().find(|record| {
+				matches!(
+					record.event,
+					asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
+						pallet_ah_migrator::Event::AccountTranslated { .. }
+					)
+				)
+			});
+
+			if should_translate {
+				// Should emit AccountTranslated event
+				assert!(
+					found_event.is_some(),
+					"AccountTranslated event should be emitted for parachain sovereign account"
+				);
+
+				if let Some(event_record) = found_event {
+					assert_eq!(
+						event_record.event,
+						asset_hub_polkadot_runtime::RuntimeEvent::AhMigrator(
+							pallet_ah_migrator::Event::AccountTranslated {
+								original: original_account.clone(),
+								translated: expected_translated.clone().unwrap(),
+								para_id: expected_para_id.unwrap(),
+							}
+						),
+						"AccountTranslated event should match expected values"
+					);
+				}
+
+				log::info!(
+					"✅ AccountTranslated event verified: {:?} -> {:?} (para_id: {})",
+					original_account.to_ss58check(),
+					expected_translated.unwrap().to_ss58check(),
+					expected_para_id.unwrap()
+				);
+			} else {
+				// Should NOT emit AccountTranslated event
+				assert!(
+					found_event.is_none(),
+					"AccountTranslated event should NOT be emitted for regular accounts"
+				);
+				log::info!(
+					"✅ No AccountTranslated event for regular account: {:?}",
+					original_account.to_ss58check()
+				);
+			}
 		});
 	}
 }
