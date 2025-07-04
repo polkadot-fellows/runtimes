@@ -329,11 +329,15 @@ pub mod tests {
 				let ah_ed: u128 = <T as Config>::Currency::minimum_balance();
 
 				// In case the balance migrated to AH is less than the existential deposit, minting
-				// the balance may fail. Therefore, we just check that the difference between
-				// the balance migrated from the RC to AH and the balance delta on AH before and
-				// after migration is less than AH existential deposit.
+				// the balance may fail. Moreover, in case an account has less then AH existential
+				// deposit free balance on AH after all the holds are applied, the residual free
+				// balance may be dusted.
+				// https://github.com/paritytech/polkadot-sdk/blob/f1ba2a1c7206c70ad66168859c90ab4e4327aab6/substrate/frame/support/src/traits/tokens/fungible/regular.rs#L194
+				// Therefore, we just check that the difference between the balance migrated from
+				// the RC to AH and the balance delta on AH before and after migration is less than
+				// AH existential deposit.
 				assert!(
-					rc_migrated_balance.saturating_sub(ah_migrated_balance) <= ah_ed,
+					rc_migrated_balance.saturating_sub(ah_migrated_balance) < ah_ed,
 					"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
 					who.to_ss58check()
 				);

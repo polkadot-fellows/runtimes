@@ -844,6 +844,7 @@ pub mod tests {
 	pub enum HoldReason {
 		Preimage,
 		Staking,
+		DelegatedStaking,
 	}
 
 	#[derive(Debug, PartialEq, Eq, Clone)]
@@ -1019,15 +1020,21 @@ pub mod tests {
 		) -> tests::HoldReason {
 			// TODO: implement mapping for Kusama and Paseo
 			let preimage_encoding: [u8; 2] = match chain_type {
-				tests::ChainType::RC => [10, 0], // 10 = preimage pallet index on Polkadot
-				tests::ChainType::AH => [5, 0],  // 5 = preimage pallet index on Asset Hub
+				tests::ChainType::RC => [10, 0], // 10 = preimage pallet index on Polkadot RC
+				tests::ChainType::AH => [5, 0],  // 5 = preimage pallet index on Polkadot Asset Hub
 			};
 			let staking_encoding: [u8; 2] = match chain_type {
-				tests::ChainType::RC => [41, 0], // 41 = staking pallet index on Polkadot
+				tests::ChainType::RC => [7, 0], // 7 = staking pallet index on Polkadot RC
 				// TODO: change to the correct encoding when Staking holds are correctly re-created
 				// on Asset Hub in pallet-staking-async, so when we add pallet-staking-async to
 				// Asset Hub.
-				tests::ChainType::AH => [5, 0], // ? = staking pallet index on Asset Hub
+				tests::ChainType::AH => [5, 0], // ? = staking async pallet index on Polkadot AH
+			};
+			let delegated_staking_encoding: [u8; 2] = match chain_type {
+				tests::ChainType::RC => [41, 0], /* 42 = delegated-staking pallet index on */
+				// Polkadot RC
+				tests::ChainType::AH => [83, 0], /* 81 = delegated-staking pallet index on
+				                                  * Polkadot AH */
 			};
 			if hold_id.as_slice() == preimage_encoding {
 				return tests::HoldReason::Preimage;
@@ -1035,6 +1042,8 @@ pub mod tests {
 				// TODO: change to tests::HoldReason::Staking when Staking holds are correctly
 				// re-created on Asset Hub in pallet-staking-async
 				return tests::HoldReason::Preimage;
+			} else if hold_id.as_slice() == delegated_staking_encoding {
+				return tests::HoldReason::DelegatedStaking;
 			} else {
 				panic!("Unknown hold id: {:?}", hold_id);
 			}

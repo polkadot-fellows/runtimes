@@ -121,8 +121,16 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		);
 
 		let ah_total_issuance_after = pallet_balances::Pallet::<AhRuntime>::total_issuance();
+
 		// There is a small difference between the total issuance before and after migration but the
-		// reason is unknown. Currently ignoring it since the difference is less than 0.1 DOT.
+		// reason is unknown. This is ~0,010108 DOT as of 2025-07-04. The 0,000108 DOT is due to an
+		// account having 0,000108 DOT free balance on RC + the rest reserved for a hold. After
+		// migrating the account to AH and applying the hold, the free balance is dusted as a
+		// result of being less than the AH existential deposit. The reason for the remaining 0,01
+		// DOT error is unknown, it corresponds exactly to AH existential deposit (maybe from DED
+		// airdrop to checking account?).
+		//
+		// Currently allowing for a difference of 0.1 DOT.
 		assert!(
 			ah_total_issuance_after.abs_diff(rc_total_issuance_before) < MIN_DOT_ERROR,
 			"Total issuance is not correctly tracked: before migration {} after migration {}.",
