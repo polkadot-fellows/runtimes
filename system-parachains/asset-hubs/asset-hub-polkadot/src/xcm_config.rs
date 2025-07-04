@@ -414,10 +414,7 @@ pub type TrustedAliasers = (
 	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin).
 	AliasChildLocation,
 	// Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
-	AliasOriginRootUsingFilter<
-		bridging::to_kusama::AssetHubKusama,
-		KusamaGlobalConsensus,
-	>,
+	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
 );
 
 pub struct XcmConfig;
