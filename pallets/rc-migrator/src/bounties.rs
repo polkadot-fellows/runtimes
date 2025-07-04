@@ -94,15 +94,23 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 			last_key = match last_key {
 				BountiesStage::BountyCount => {
-					let count = pallet_bounties::BountyCount::<T>::take();
-					log::debug!(target: LOG_TARGET, "Migration BountyCount {:?}", &count);
-					messages.push(RcBountiesMessage::BountyCount(count));
+					if pallet_bounties::BountyCount::<T>::exists() {
+						let count = pallet_bounties::BountyCount::<T>::take();
+						log::debug!(target: LOG_TARGET, "Migration BountyCount {:?}", &count);
+						messages.push(RcBountiesMessage::BountyCount(count));
+					} else {
+						log::debug!(target: LOG_TARGET, "Not migrating empty BountyCount");
+					}
 					BountiesStage::BountyApprovals
 				},
 				BountiesStage::BountyApprovals => {
-					let approvals = pallet_bounties::BountyApprovals::<T>::take();
-					log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
-					messages.push(RcBountiesMessage::BountyApprovals(approvals.into_inner()));
+					if pallet_bounties::BountyApprovals::<T>::exists() {
+						let approvals = pallet_bounties::BountyApprovals::<T>::take();
+						log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
+						messages.push(RcBountiesMessage::BountyApprovals(approvals.into_inner()));
+					} else {
+						log::debug!(target: LOG_TARGET, "Not migrating empty BountyApprovals");
+					}
 					BountiesStage::BountyDescriptions { last_key: None }
 				},
 				BountiesStage::BountyDescriptions { last_key } => {

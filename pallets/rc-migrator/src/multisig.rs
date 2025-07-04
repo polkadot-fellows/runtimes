@@ -145,11 +145,6 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 			let kv = iter.next();
 
-			// Remove the previous multisig from storage if it exists.
-			if let Some((k1, k2)) = last_key {
-				aliases::Multisigs::<T>::remove(k1.clone(), k2.clone());
-			}
-
 			let Some((k1, k2, multisig)) = kv else {
 				last_key = None;
 				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
@@ -164,6 +159,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				details: Some(k1.clone()),
 			});
 
+			aliases::Multisigs::<T>::remove(&k1, &k2);
 			last_key = Some((k1, k2));
 		}
 

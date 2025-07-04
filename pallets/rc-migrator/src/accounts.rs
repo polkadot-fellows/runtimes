@@ -647,6 +647,11 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
+		if RcAccounts::<T>::count() > 0 {
+			log::info!(target: LOG_TARGET, "Init accounts migration already ran, skipping");
+			return T::DbWeight::get().reads(1);
+		}
+
 		let mut weight = Weight::zero();
 		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
 		let mut update_reserves = |id, deposit| {

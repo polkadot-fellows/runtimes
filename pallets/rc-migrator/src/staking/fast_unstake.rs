@@ -61,20 +61,28 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub head: Option<UnstakeRequest<T>>,
-	pub eras_to_check_per_block: u32,
+	pub eras_to_check_per_block: Option<u32>,
 }
 
 impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T> {
 	pub fn take_values() -> FastUnstakeStorageValues<T> {
 		FastUnstakeStorageValues {
 			head: alias::Head::<T>::take(),
-			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::take(),
+			eras_to_check_per_block: if pallet_fast_unstake::ErasToCheckPerBlock::<T>::exists() {
+				Some(pallet_fast_unstake::ErasToCheckPerBlock::<T>::take())
+			} else {
+				None
+			},
 		}
 	}
 
 	pub fn put_values(values: FastUnstakeStorageValues<T>) {
-		alias::Head::<T>::set(values.head);
-		pallet_fast_unstake::ErasToCheckPerBlock::<T>::put(values.eras_to_check_per_block);
+		if let Some(head) = values.head {
+			alias::Head::<T>::put(head);
+		}
+		if let Some(eras_to_check_per_block) = values.eras_to_check_per_block {
+			pallet_fast_unstake::ErasToCheckPerBlock::<T>::put(eras_to_check_per_block);
+		}
 	}
 }
 

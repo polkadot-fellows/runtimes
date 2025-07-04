@@ -211,6 +211,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			}
 
 			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });
+			pallet_proxy::Announcements::<T>::remove(&acc);
 			last_processed = Some(acc);
 		}
 
@@ -259,5 +260,7 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
 		assert_eq!(count, 0, "Assert storage 'Proxy::Proxies::rc_post::empty'");
+		let count = pallet_proxy::Announcements::<T>::iter_keys().count();
+		assert_eq!(count, 0, "Assert storage 'Proxy::Announcements::rc_post::empty'");
 	}
 }

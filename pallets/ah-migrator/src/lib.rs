@@ -441,6 +441,10 @@ pub mod pallet {
 			/// The new priority pattern.
 			new: DmpQueuePriority<BlockNumberFor<T>>,
 		},
+		/// The balances before the migration were recorded.
+		BalancesBeforeRecordSet { checking_account: T::Balance, total_issuance: T::Balance },
+		/// The balances before the migration were consumed.
+		BalancesBeforeRecordConsumed { checking_account: T::Balance, total_issuance: T::Balance },
 	}
 
 	#[pallet::pallet]
@@ -599,9 +603,13 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_referenda_values())]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
+			// we accept a vector here only to satisfy the signature of the
+			// `pallet_rc_migrator::Pallet::send_chunked_xcm_and_track` function and avoid
+			// introducing a send function for non-vector data or rewriting the referenda pallet
+			// migration.
 			mut values: Vec<(
 				// referendum_count
-				u32,
+				Option<u32>,
 				// deciding_count (track_id, count)
 				Vec<(TrackIdOf<T, ()>, u32)>,
 				// track_queue (referendum_id, votes)
@@ -852,11 +860,15 @@ pub mod pallet {
 		/// Finish the migration.
 		///
 		/// This is typically called by the Relay Chain to signal the migration has finished.
+		///
+		/// The `data` parameter might be `None` if we are running the migration for a second time
+		/// for some pallets and have already performed the checking account balance correction,
+		/// so we do not need to do it this time.
 		#[pallet::call_index(110)]
 		#[pallet::weight(T::AhWeightInfo::finish_migration())]
 		pub fn finish_migration(
 			origin: OriginFor<T>,
-			data: MigrationFinishedData<T::Balance>,
+			data: Option<MigrationFinishedData<T::Balance>>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 
@@ -904,7 +916,12 @@ pub mod pallet {
 				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
 				balances_before.checking_account, balances_before.total_issuance
 			);
-			AhBalancesBefore::<T>::put(balances_before);
+			AhBalancesBefore::<T>::put(&balances_before);
+
+			Self::deposit_event(Event::BalancesBeforeRecordSet {
+				checking_account: balances_before.checking_account,
+				total_issuance: balances_before.total_issuance,
+			});
 
 			Self::transition(MigrationStage::DataMigrationOngoing);
 			Ok(())
@@ -912,11 +929,13 @@ pub mod pallet {
 
 		/// Auxiliary logic to be done after the migration finishes.
 		pub fn migration_finish_hook(
-			data: MigrationFinishedData<T::Balance>,
+			data: Option<MigrationFinishedData<T::Balance>>,
 		) -> Result<(), Error<T>> {
 			// Accounts
-			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				defensive!("Account migration failed: {:?}", err);
+			if let Some(data) = data {
+				if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+					defensive!("Account migration failed: {:?}", err);
+				}
 			}
 
 			// We have to go into the Done state, otherwise the chain will be blocked

@@ -112,8 +112,10 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 
 			last_key = match last_key {
 				TreasuryStage::ProposalCount => {
-					let count = pallet_treasury::ProposalCount::<T>::take();
-					messages.push(RcTreasuryMessage::ProposalCount(count));
+					if pallet_treasury::ProposalCount::<T>::exists() {
+						let count = pallet_treasury::ProposalCount::<T>::take();
+						messages.push(RcTreasuryMessage::ProposalCount(count));
+					}
 					TreasuryStage::Proposals(None)
 				},
 				TreasuryStage::Proposals(last_key) => {
@@ -132,13 +134,17 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					}
 				},
 				TreasuryStage::Approvals => {
-					let approvals = pallet_treasury::Approvals::<T>::take();
-					messages.push(RcTreasuryMessage::Approvals(approvals.into_inner()));
+					if pallet_treasury::Approvals::<T>::exists() {
+						let approvals = pallet_treasury::Approvals::<T>::take();
+						messages.push(RcTreasuryMessage::Approvals(approvals.into_inner()));
+					}
 					TreasuryStage::SpendCount
 				},
 				TreasuryStage::SpendCount => {
-					let count = alias::SpendCount::<T>::take();
-					messages.push(RcTreasuryMessage::SpendCount(count));
+					if alias::SpendCount::<T>::exists() {
+						let count = alias::SpendCount::<T>::take();
+						messages.push(RcTreasuryMessage::SpendCount(count));
+					}
 					TreasuryStage::Spends(None)
 				},
 				TreasuryStage::Spends(last_key) => {
@@ -159,8 +165,10 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				},
 				// TODO: with new sdk version
 				// TreasuryStage::LastSpendPeriod => {
-				//     let last_spend_period = pallet_treasury::LastSpendPeriod::<T>::take();
-				// 	messages.push(RcTreasuryMessage::LastSpendPeriod(last_spend_period));
+				// 	if pallet_treasury::LastSpendPeriod::<T>::exists() {
+				// 		let last_spend_period = pallet_treasury::LastSpendPeriod::<T>::take();
+				// 		messages.push(RcTreasuryMessage::LastSpendPeriod(last_spend_period));
+				// 	}
 				// 	TreasuryStage::Funds
 				// },
 				TreasuryStage::Funds => {

@@ -191,21 +191,21 @@ pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
 
 #[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct StakingValues<Balance> {
-	pub validator_count: u32,
-	pub min_validator_count: u32,
-	pub min_nominator_bond: Balance,
-	pub min_validator_bond: Balance,
-	pub min_active_stake: Balance,
-	pub min_commission: Perbill,
+	pub validator_count: Option<u32>,
+	pub min_validator_count: Option<u32>,
+	pub min_nominator_bond: Option<Balance>,
+	pub min_validator_bond: Option<Balance>,
+	pub min_active_stake: Option<Balance>,
+	pub min_commission: Option<Perbill>,
 	pub max_validators_count: Option<u32>,
 	pub max_nominators_count: Option<u32>,
 	pub current_era: Option<EraIndex>,
 	pub active_era: Option<ActiveEraInfo>,
-	pub force_era: Forcing,
+	pub force_era: Option<Forcing>,
 	pub max_staked_rewards: Option<Percent>,
-	pub slash_reward_fraction: Perbill,
-	pub canceled_slash_payout: Balance,
-	pub current_planned_session: SessionIndex,
+	pub slash_reward_fraction: Option<Perbill>,
+	pub canceled_slash_payout: Option<Balance>,
+	pub current_planned_session: Option<SessionIndex>,
 	pub chill_threshold: Option<Percent>,
 }
 
@@ -445,21 +445,57 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 		use pallet_staking::*;
 
 		StakingValues {
-			validator_count: ValidatorCount::<T>::take(),
-			min_validator_count: MinimumValidatorCount::<T>::take(),
-			min_nominator_bond: MinNominatorBond::<T>::take(),
-			min_validator_bond: MinValidatorBond::<T>::take(),
-			min_active_stake: MinimumActiveStake::<T>::take(),
-			min_commission: MinCommission::<T>::take(),
+			validator_count: if ValidatorCount::<T>::exists() {
+				Some(ValidatorCount::<T>::take())
+			} else {
+				None
+			},
+			min_validator_count: if MinimumValidatorCount::<T>::exists() {
+				Some(MinimumValidatorCount::<T>::take())
+			} else {
+				None
+			},
+			min_nominator_bond: if MinNominatorBond::<T>::exists() {
+				Some(MinNominatorBond::<T>::take())
+			} else {
+				None
+			},
+			min_validator_bond: if MinValidatorBond::<T>::exists() {
+				Some(MinValidatorBond::<T>::take())
+			} else {
+				None
+			},
+			min_active_stake: if MinimumActiveStake::<T>::exists() {
+				Some(MinimumActiveStake::<T>::take())
+			} else {
+				None
+			},
+			min_commission: if MinCommission::<T>::exists() {
+				Some(MinCommission::<T>::take())
+			} else {
+				None
+			},
 			max_validators_count: MaxValidatorsCount::<T>::take(),
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
 			active_era: ActiveEra::<T>::take(),
-			force_era: ForceEra::<T>::take(),
+			force_era: if ForceEra::<T>::exists() { Some(ForceEra::<T>::take()) } else { None },
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
-			slash_reward_fraction: SlashRewardFraction::<T>::take(),
-			canceled_slash_payout: CanceledSlashPayout::<T>::take(),
-			current_planned_session: CurrentPlannedSession::<T>::take(),
+			slash_reward_fraction: if SlashRewardFraction::<T>::exists() {
+				Some(SlashRewardFraction::<T>::take())
+			} else {
+				None
+			},
+			canceled_slash_payout: if CanceledSlashPayout::<T>::exists() {
+				Some(CanceledSlashPayout::<T>::take())
+			} else {
+				None
+			},
+			current_planned_session: if CurrentPlannedSession::<T>::exists() {
+				Some(CurrentPlannedSession::<T>::take())
+			} else {
+				None
+			},
 			chill_threshold: ChillThreshold::<T>::take(),
 		}
 	}
@@ -469,24 +505,49 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 	pub fn put_values(values: AhStakingValuesOf<T>) {
 		use pallet_staking_async::*;
 
-		ValidatorCount::<T>::put(&values.validator_count);
+		if let Some(validator_count) = values.validator_count {
+			ValidatorCount::<T>::put(validator_count);
+		}
 		// MinimumValidatorCount is not migrated
-		MinNominatorBond::<T>::put(&values.min_nominator_bond);
-		MinValidatorBond::<T>::put(&values.min_validator_bond);
-		MinimumActiveStake::<T>::put(&values.min_active_stake);
-		MinCommission::<T>::put(&values.min_commission);
-		MaxValidatorsCount::<T>::set(values.max_validators_count);
-		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		let active_era = values.active_era.map(pallet_staking::ActiveEraInfo::intoAh);
-
-		ActiveEra::<T>::set(active_era.clone());
-		CurrentEra::<T>::set(active_era.map(|a| a.index));
-		ForceEra::<T>::put(pallet_staking::Forcing::intoAh(values.force_era));
-		MaxStakedRewards::<T>::set(values.max_staked_rewards);
-		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
-		CanceledSlashPayout::<T>::set(values.canceled_slash_payout);
+		if let Some(min_nominator_bond) = values.min_nominator_bond {
+			MinNominatorBond::<T>::put(min_nominator_bond);
+		}
+		if let Some(min_validator_bond) = values.min_validator_bond {
+			MinValidatorBond::<T>::put(min_validator_bond);
+		}
+		if let Some(min_active_stake) = values.min_active_stake {
+			MinimumActiveStake::<T>::put(min_active_stake);
+		}
+		if let Some(min_commission) = values.min_commission {
+			MinCommission::<T>::put(min_commission);
+		}
+		if let Some(max_validators_count) = values.max_validators_count {
+			MaxValidatorsCount::<T>::put(max_validators_count);
+		}
+		if let Some(max_nominators_count) = values.max_nominators_count {
+			MaxNominatorsCount::<T>::put(max_nominators_count);
+		}
+		if let Some(active_era) = values.active_era {
+			let active_era = pallet_staking::ActiveEraInfo::intoAh(active_era);
+			ActiveEra::<T>::put(active_era);
+			CurrentEra::<T>::put(active_era.map(|a| a.index));
+		}
+		if let Some(force_era) = values.force_era {
+			ForceEra::<T>::put(pallet_staking::Forcing::intoAh(force_era));
+		}
+		if let Some(max_staked_rewards) = values.max_staked_rewards {
+			MaxStakedRewards::<T>::put(max_staked_rewards);
+		}
+		if let Some(slash_reward_fraction) = values.slash_reward_fraction {
+			SlashRewardFraction::<T>::put(slash_reward_fraction);
+		}
+		if let Some(canceled_slash_payout) = values.canceled_slash_payout {
+			CanceledSlashPayout::<T>::put(canceled_slash_payout);
+		}
 		// CurrentPlannedSession is not migrated
-		ChillThreshold::<T>::set(values.chill_threshold);
+		if let Some(chill_threshold) = values.chill_threshold {
+			ChillThreshold::<T>::put(chill_threshold);
+		}
 	}
 }
 

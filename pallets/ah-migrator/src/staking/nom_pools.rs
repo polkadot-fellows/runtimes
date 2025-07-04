@@ -229,14 +229,14 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 
 		// Collect storage values from AH
 		let values = NomPoolsStorageValues {
-			total_value_locked: pallet_nomination_pools::TotalValueLocked::<T>::get(),
-			min_join_bond: pallet_nomination_pools::MinJoinBond::<T>::get(),
-			min_create_bond: pallet_nomination_pools::MinCreateBond::<T>::get(),
+			total_value_locked: pallet_nomination_pools::TotalValueLocked::<T>::try_get().ok(),
+			min_join_bond: pallet_nomination_pools::MinJoinBond::<T>::try_get().ok(),
+			min_create_bond: pallet_nomination_pools::MinCreateBond::<T>::try_get().ok(),
 			max_pools: pallet_nomination_pools::MaxPools::<T>::get(),
 			max_pool_members: pallet_nomination_pools::MaxPoolMembers::<T>::get(),
 			max_pool_members_per_pool: pallet_nomination_pools::MaxPoolMembersPerPool::<T>::get(),
 			global_max_commission: pallet_nomination_pools::GlobalMaxCommission::<T>::get(),
-			last_pool_id: pallet_nomination_pools::LastPoolId::<T>::get(),
+			last_pool_id: pallet_nomination_pools::LastPoolId::<T>::try_get().ok(),
 		};
 		ah_messages.push(tests::GenericNomPoolsMessage::StorageValues { values });
 

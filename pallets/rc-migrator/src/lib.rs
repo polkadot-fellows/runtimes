@@ -595,6 +595,10 @@ pub mod pallet {
 			/// The new priority pattern.
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		},
+		/// The total issuance was recorded.
+		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
+		/// The RC kept balance was consumed.
+		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
 	}
 
 	/// The Relay Chain migration state.
@@ -604,8 +608,13 @@ pub mod pallet {
 	/// Helper storage item to obtain and store the known accounts that should be kept partially or
 	/// fully on Relay Chain.
 	#[pallet::storage]
-	pub type RcAccounts<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, accounts::AccountState<T::Balance>, OptionQuery>;
+	pub type RcAccounts<T: Config> = CountedStorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		accounts::AccountState<T::Balance>,
+		OptionQuery,
+	>;
 
 	/// Helper storage item to store the total balance that should be kept on Relay Chain.
 	#[pallet::storage]
@@ -917,12 +926,17 @@ pub mod pallet {
 				MigrationStage::AccountsMigrationInit => {
 					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
 					weight_counter.consume(weight);
+					let total_issuance = <T as Config>::Currency::total_issuance();
 					RcMigratedBalance::<T>::mutate(|tracker| {
 						// initialize `kept` balance as total issuance, we'll substract from it as
 						// we migrate accounts
-						tracker.kept = <T as Config>::Currency::total_issuance();
+						tracker.kept = total_issuance;
+						tracker.migrated = 0;
 					});
-
+					Self::deposit_event(Event::MigratedBalanceRecordSet {
+						kept: total_issuance,
+						migrated: 0,
+					});
 					Self::transition(MigrationStage::AccountsMigrationOngoing { last_key: None });
 				},
 				MigrationStage::AccountsMigrationOngoing { last_key } => {
@@ -1636,9 +1650,22 @@ pub mod pallet {
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 
 					// Send finish message to AH, TODO: weight
-					let tracker = RcMigratedBalance::<T>::get();
-					let data = MigrationFinishedData {
-						rc_balance_kept: tracker.kept,
+					let data = if RcMigratedBalance::<T>::exists() {
+						let tracker = if cfg!(feature = "std") {
+							// we should keep this value for the tests.
+							RcMigratedBalance::<T>::get()
+						} else {
+							RcMigratedBalance::<T>::take()
+						};
+						Self::deposit_event(Event::MigratedBalanceConsumed {
+							kept: tracker.kept,
+							migrated: tracker.migrated,
+						});
+						Some(MigrationFinishedData {
+							rc_balance_kept: tracker.kept,
+						})
+					} else {
+						None
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
 					if let Err(err) = Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
