@@ -38,6 +38,7 @@ pub mod common {
 	parameter_types! {
 		pub const AssetHubParaId: ParaId = ParaId::new(system_parachain::ASSET_HUB_ID);
 		pub const DotLocation: Location = Location::parent();
+		pub const RootLocation: Location = Location::here();
 	}
 
 	pub struct FellowshipEntities;
@@ -119,7 +120,7 @@ pub mod common {
 
 mod before {
 	use super::{
-		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities},
+		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities, RootLocation},
 		*,
 	};
 
@@ -156,6 +157,7 @@ mod before {
 	///
 	/// We only waive fees for system functions, which these locations represent.
 	pub type WaivedLocationsBeforeDuring = (
+		Equals<RootLocation>,
 		Equals<ParentLocation>,
 		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		Equals<RelayTreasuryLocation>,
@@ -166,7 +168,7 @@ mod before {
 
 mod after {
 	use super::{
-		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities},
+		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities, RootLocation},
 		*,
 	};
 
@@ -187,6 +189,7 @@ mod after {
 	///
 	/// We only waive fees for system functions, which these locations represent.
 	pub type WaivedLocationsAfter = (
+		Equals<RootLocation>,
 		// outside this pallet, when the `Runtime` type is available, the below can be replaced
 		// with `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
 		Equals<ParentLocation>,
