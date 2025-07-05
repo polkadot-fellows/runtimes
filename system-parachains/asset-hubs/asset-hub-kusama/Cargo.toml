@@ -103,6 +103,9 @@ assets-common = { workspace = true }
 pallet-xcm-bridge-hub-router = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
 
+# Frame contrib
+fc-pallet-black-hole = { workspace = true }
+
 [dev-dependencies]
 asset-test-utils = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
@@ -124,6 +127,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
+	"fc-pallet-black-hole/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
@@ -166,6 +170,7 @@ try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-xcmp-queue/try-runtime",
+	"fc-pallet-black-hole/try-runtime",
 	"frame-executive/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
@@ -212,6 +217,7 @@ std = [
 	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
+	"fc-pallet-black-hole/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
 	"frame-metadata-hash-extension/std",

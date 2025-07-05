@@ -1061,6 +1061,24 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 }
 
+parameter_types! {
+	pub const BlackHolePalletId: PalletId = PalletId(*b"py/bhole");
+	pub const AdministrativeBodyId: BodyId = BodyId::Administration;
+}
+
+impl fc_pallet_black_hole::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+	type EventHorizonDispatchOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<GovernanceLocation, AdministrativeBodyId>>,
+	>;
+	type Balances = Balances;
+	type BlockNumberProvider = System;
+	type PalletId = BlackHolePalletId;
+	type BurnPeriod = ConstU32<DAYS>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1077,6 +1095,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment = 11,
 		AssetTxPayment: pallet_asset_conversion_tx_payment = 13,
 		Vesting: pallet_vesting = 14,
+		BlackHole: fc_pallet_black_hole = 15,
 
 		// Collator support. the order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
