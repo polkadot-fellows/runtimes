@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Add pallet BlackHole to Kusama AssetHub following [WFC #539](https://kusama.subsquare.io/referenda/539)
+
 ## [1.6.1] 24.06.2025
 
 ### Changed
