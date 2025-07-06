@@ -18,8 +18,10 @@
 
 use crate::*;
 use sp_genesis_builder::PresetId;
-use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 const ENCOINTER_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
@@ -35,6 +37,7 @@ fn encointer_kusama_genesis(
 				.cloned()
 				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -101,19 +104,22 @@ pub fn encointer_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Va
 }
 
 fn encointer_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	encointer_kusama_local_testnet_genesis(para_id)
-}
-
-/// Provides the names of the predefined genesis configs for this runtime.
-pub fn preset_names() -> Vec<PresetId> {
-	vec![PresetId::from("development"), PresetId::from("local_testnet")]
+	encointer_kusama_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
-pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
-	let patch = match id.try_into() {
-		Ok("development") => encointer_kusama_development_genesis(1001.into()),
-		Ok("local_testnet") => encointer_kusama_local_testnet_genesis(1001.into()),
+pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
+	let patch = match id.as_ref() {
+		sp_genesis_builder::DEV_RUNTIME_PRESET => encointer_kusama_development_genesis(1001.into()),
+		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
+			encointer_kusama_local_testnet_genesis(1001.into()),
 		_ => return None,
 	};
 	Some(
@@ -121,4 +127,12 @@ pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<
 			.expect("serialization to json is expected to work. qed.")
 			.into_bytes(),
 	)
+}
+
+/// List of supported presets.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![
+		PresetId::from(sp_genesis_builder::DEV_RUNTIME_PRESET),
+		PresetId::from(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET),
+	]
 }

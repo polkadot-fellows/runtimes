@@ -20,6 +20,13 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
+extern crate alloc;
+
+use alloc::{
+	collections::{BTreeMap, VecDeque},
+	vec,
+	vec::Vec,
+};
 use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
@@ -44,7 +51,7 @@ use runtime_parachains::{
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
 	runtime_api_impl::{
-		v10 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
+		v11 as parachains_runtime_api_impl, vstaging as parachains_runtime_api_impl_vstaging,
 	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
@@ -57,7 +64,8 @@ use beefy_primitives::{
 	mmr::{BeefyDataProvider, MmrLeafVersion},
 	OpaqueKeyOwnershipProof,
 };
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use core::cmp::Ordering;
 use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
 };
@@ -68,9 +76,9 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, FromContains, Get, InstanceFilter,
-		KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Equals, Everything, FromContains,
+		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade,
+		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -84,31 +92,29 @@ use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
-	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
-	CandidateHash, CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState, ExecutorParams,
-	GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment,
-	NodeFeatures, Nonce, OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes,
-	SessionInfo, Signature, ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex,
-	PARACHAIN_KEY_TYPE_ID,
+	slashing,
+	vstaging::{
+		async_backing::Constraints, CandidateEvent,
+		CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreState, ScrapedOnChainVotes,
+	},
+	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
+	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
+	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
+	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
+	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
 use sp_core::{OpaqueMetadata, H256};
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
-		Extrinsic as ExtrinsicT, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion,
-		Verify,
+		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
 	RuntimeDebug,
 };
 use sp_staking::SessionIndex;
-use sp_std::{
-	cmp::Ordering,
-	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
-	prelude::*,
-};
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -150,8 +156,6 @@ use governance::{
 pub mod impls;
 pub mod xcm_config;
 
-mod coretime_migration;
-
 /// Default logging target.
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
@@ -165,14 +169,14 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 /// Runtime version (Polkadot).
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("polkadot"),
-	impl_name: create_runtime_str!("parity-polkadot"),
+	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
+	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_005_000,
+	spec_version: 1_006_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
@@ -215,6 +219,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
@@ -266,6 +271,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -352,6 +358,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = ConstU32<8>;
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -449,6 +456,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
+	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -487,6 +495,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -683,16 +692,19 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 16
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 impl pallet_staking::Config for Runtime {
+	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type RewardRemainder = Treasury;
+	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = Treasury;
+	type Slash = ResolveTo<TreasuryAccount, Balances>;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -707,12 +719,11 @@ impl pallet_staking::Config for Runtime {
 	type VoterList = VoterList;
 	type TargetList = UseValidatorsMap<Self>;
 	type NominationsQuota = pallet_staking::FixedNominationsQuota<{ MaxNominations::get() }>;
-	type MaxUnlockingChunks = frame_support::traits::ConstU32<32>;
-	type HistoryDepth = frame_support::traits::ConstU32<84>;
+	type MaxUnlockingChunks = ConstU32<32>;
+	type HistoryDepth = ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5314>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
 }
@@ -739,7 +750,7 @@ parameter_types! {
 	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+	pub const PayoutSpendPeriod: BlockNumber = 90 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 19).
 	pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
@@ -784,6 +795,7 @@ impl pallet_treasury::Config for Runtime {
 	>;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
+	type BlockNumberProvider = System;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
 }
@@ -791,7 +803,8 @@ impl pallet_treasury::Config for Runtime {
 parameter_types! {
 	pub const BountyDepositBase: Balance = DOLLARS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
-	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
+	// Bounties expire after 10 years.
+	pub const BountyUpdatePeriod: BlockNumber = 10 * 12 * 30 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
 	pub const CuratorDepositMin: Balance = 10 * DOLLARS;
@@ -860,18 +873,44 @@ impl pallet_grandpa::Config for Runtime {
 		pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
+impl frame_system::offchain::SigningTypes for Runtime {
+	type Public = <Signature as Verify>::Signer;
+	type Signature = Signature;
+}
+
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type RuntimeCall = RuntimeCall;
+	type Extrinsic = UncheckedExtrinsic;
+}
+
+impl<LocalCall> frame_system::offchain::CreateTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	type Extension = TxExtension;
+
+	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_transaction(call, extension)
+	}
+}
+
 /// Submits a transaction with the node's public and signature type. Adheres to the signed extension
 /// format of the chain.
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
 	RuntimeCall: From<LocalCall>,
 {
-	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+	fn create_signed_transaction<
+		C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>,
+	>(
 		call: RuntimeCall,
 		public: <Signature as Verify>::Signer,
 		account: AccountId,
 		nonce: <Runtime as frame_system::Config>::Nonce,
-	) -> Option<(RuntimeCall, <UncheckedExtrinsic as ExtrinsicT>::SignaturePayload)> {
+	) -> Option<UncheckedExtrinsic> {
 		use sp_runtime::traits::StaticLookup;
 		// take the biggest period possible.
 		let period =
@@ -883,7 +922,7 @@ where
 			// so the actual block number is `n`.
 			.saturating_sub(1);
 		let tip = 0;
-		let extra: SignedExtra = (
+		let tx_ext: TxExtension = (
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -898,29 +937,26 @@ where
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::new(false),
 		);
-		let raw_payload = SignedPayload::new(call, extra)
+		let raw_payload = SignedPayload::new(call, tx_ext)
 			.map_err(|e| {
 				log::warn!(target: LOG_TARGET, "Unable to create signed payload: {:?}", e);
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
-		let (call, extra, _) = raw_payload.deconstruct();
+		let (call, tx_ext, _) = raw_payload.deconstruct();
 		let address = <Runtime as frame_system::Config>::Lookup::unlookup(account);
-		Some((call, (address, signature, extra)))
+		let transaction = UncheckedExtrinsic::new_signed(call, address, signature, tx_ext);
+		Some(transaction)
 	}
 }
 
-impl frame_system::offchain::SigningTypes for Runtime {
-	type Public = <Signature as Verify>::Signer;
-	type Signature = Signature;
-}
-
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+impl<LocalCall> frame_system::offchain::CreateInherent<LocalCall> for Runtime
 where
-	RuntimeCall: From<C>,
+	RuntimeCall: From<LocalCall>,
 {
-	type Extrinsic = UncheckedExtrinsic;
-	type OverarchingCall = RuntimeCall;
+	fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_bare(call)
+	}
 }
 
 parameter_types! {
@@ -982,6 +1018,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1008,6 +1045,7 @@ parameter_types! {
 	PartialOrd,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	RuntimeDebug,
 	MaxEncodedLen,
 	Default,
@@ -1095,7 +1133,12 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
 			ProxyType::CancelProxy => {
-				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
+				matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+						RuntimeCall::Utility { .. } |
+						RuntimeCall::Multisig { .. }
+				)
 			},
 			ProxyType::Auction => matches!(
 				c,
@@ -1140,6 +1183,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = System;
 }
 
 impl parachains_origin::Config for Runtime {}
@@ -1281,7 +1325,6 @@ impl Get<InteriorLocation> for BrokerPot {
 impl coretime::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type BrokerId = BrokerId;
 	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
 	type SendXcm = crate::xcm_config::XcmRouter;
@@ -1447,6 +1490,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 	type Filter = pallet_staking::AllStakers<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1537,13 +1581,6 @@ parameter_types! {
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
-pub struct ContainsAssetHub;
-impl Contains<Location> for ContainsAssetHub {
-	fn contains(loc: &Location) -> bool {
-		*loc == AssetHubLocation::get()
-	}
-}
-
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
@@ -1553,12 +1590,12 @@ impl pallet_rc_migrator::Config for Runtime {
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
-			EnsureXcm<ContainsAssetHub, Location>,
+			EnsureXcm<Equals<AssetHubLocation>, Location>,
 		>,
 	>;
 	type Currency = Balances;
 	type CheckingAccount = xcm_config::CheckAccount;
-	type SendXcm = xcm_config::XcmRouter;
+	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
@@ -1837,8 +1874,8 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// `BlockId` type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
-/// The `SignedExtension` to the basic transaction logic.
-pub type SignedExtra = (
+/// The `TransactionExtension` to the basic transaction logic.
+pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -1851,221 +1888,6 @@ pub type SignedExtra = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-pub struct NominationPoolsMigrationV4OldPallet;
-impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
-	fn get() -> Perbill {
-		Perbill::zero()
-	}
-}
-
-/// Migration to remove deprecated judgement proxies.
-mod clear_judgement_proxies {
-	use super::*;
-
-	use frame_support::{
-		pallet_prelude::{TypeInfo, ValueQuery},
-		storage_alias,
-		traits::{Currency, OnRuntimeUpgrade, ReservableCurrency},
-		Twox64Concat,
-	};
-	use frame_system::pallet_prelude::BlockNumberFor;
-	use pallet_proxy::ProxyDefinition;
-	use sp_runtime::{BoundedVec, Saturating};
-
-	/// ProxyType including the deprecated `IdentityJudgement`.
-	#[derive(
-		Copy,
-		Clone,
-		Eq,
-		PartialEq,
-		Ord,
-		PartialOrd,
-		Encode,
-		Decode,
-		RuntimeDebug,
-		MaxEncodedLen,
-		TypeInfo,
-	)]
-	pub enum PrevProxyType {
-		Any = 0,
-		NonTransfer = 1,
-		Governance = 2,
-		Staking = 3,
-		// Skip 4 as it is now removed (was SudoBalances)
-		IdentityJudgement = 5,
-		CancelProxy = 6,
-		Auction = 7,
-		NominationPools = 8,
-	}
-
-	type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::Balance;
-
-	type PrevProxiesValue<T> = (
-		BoundedVec<ProxyDefinition<AccountId, PrevProxyType, BlockNumberFor<T>>, MaxProxies>,
-		BalanceOf<T>,
-	);
-
-	/// Proxies including the deprecated `IdentityJudgement` type.
-	#[storage_alias]
-	pub type Proxies<T: pallet_proxy::Config> = StorageMap<
-		pallet_proxy::Pallet<T>,
-		Twox64Concat,
-		AccountId,
-		PrevProxiesValue<T>,
-		ValueQuery,
-	>;
-
-	pub struct Migration;
-	impl OnRuntimeUpgrade for Migration {
-		/// Compute the expected post-upgrade state for Proxies storage, and the reserved value
-		/// for all accounts with a proxy.
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			let mut expected_proxies: BTreeMap<AccountId, PrevProxiesValue<Runtime>> =
-				BTreeMap::new();
-			let mut expected_reserved_amounts: BTreeMap<AccountId, Balance> = BTreeMap::new();
-
-			for (who, (mut proxies, old_deposit)) in Proxies::<Runtime>::iter().collect::<Vec<_>>()
-			{
-				let proxies_len_before = proxies.len() as u64;
-				proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
-				let proxies_len_after = proxies.len() as u64;
-
-				let new_deposit = pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
-
-				let current_reserved =
-					<Balances as ReservableCurrency<AccountId>>::reserved_balance(&who);
-
-				// Update the deposit only if proxies were removed and the deposit decreased.
-				if new_deposit < old_deposit && proxies_len_after < proxies_len_before {
-					// If there're no proxies left, they should be removed
-					if proxies.len() > 0 {
-						expected_proxies.insert(who.clone(), (proxies, new_deposit));
-					}
-					expected_reserved_amounts
-						.insert(who, current_reserved.saturating_sub(old_deposit - new_deposit));
-				} else {
-					// Deposit should not change. If any proxies needed to be removed, this
-					// won't impact that.
-					expected_proxies.insert(who.clone(), (proxies, old_deposit));
-					expected_reserved_amounts.insert(who, current_reserved);
-				}
-			}
-
-			let pre_upgrade_state = (expected_proxies, expected_reserved_amounts);
-			Ok(pre_upgrade_state.encode())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			let mut reads = 0u64;
-			let mut writes = 0u64;
-			let mut proxies_removed_total = 0u64;
-
-			Proxies::<Runtime>::translate(
-				|who: AccountId, (mut proxies, old_deposit): PrevProxiesValue<Runtime>| {
-					// Remove filter out IdentityJudgement proxies.
-					let proxies_len_before = proxies.len() as u64;
-					proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
-					let proxies_len_after = proxies.len() as u64;
-
-					let deposit = if proxies_len_before > proxies_len_after {
-						log::info!(
-							"Removing {} IdentityJudgement proxies for {:?}",
-							proxies_len_before - proxies_len_after,
-							&who
-						);
-						proxies_removed_total
-							.saturating_accrue(proxies_len_before - proxies_len_after);
-
-						let new_deposit =
-							pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
-
-						// Be kind and don't increase the deposit in case it increased (can
-						// happen if param change).
-						let deposit = new_deposit.min(old_deposit);
-						if deposit < old_deposit {
-							writes.saturating_inc();
-							<Balances as ReservableCurrency<AccountId>>::unreserve(
-								&who,
-								old_deposit - deposit,
-							);
-						}
-
-						deposit
-					} else {
-						// Nothing to do, use the old deposit.
-						old_deposit
-					};
-
-					reads.saturating_accrue(proxies_len_before + 1);
-					writes.saturating_accrue(proxies_len_after + 1);
-
-					// No need to keep the k/v around if there're no proxies left.
-					match proxies.is_empty() {
-						true => {
-							debug_assert_eq!(deposit, 0);
-							None
-						},
-						false => Some((proxies, deposit)),
-					}
-				},
-			);
-
-			log::info!("Removed {} IdentityJudgement proxies in total", proxies_removed_total);
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(reads, writes)
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			use frame_support::ensure;
-			use sp_runtime::TryRuntimeError;
-
-			let (expected_proxies, expected_total_reserved): (
-				BTreeMap<AccountId, PrevProxiesValue<Runtime>>,
-				BTreeMap<AccountId, Balance>,
-			) = Decode::decode(&mut &state[..]).expect("Failed to decode pre-upgrade state");
-
-			// Check Proxies storage is as expected
-			for (who, (proxies, deposit)) in Proxies::<Runtime>::iter() {
-				match expected_proxies.get(&who) {
-					Some((expected_proxies, expected_deposit)) => {
-						ensure!(&proxies == expected_proxies, "Unexpected Proxy");
-						ensure!(&deposit == expected_deposit, "Unexpected deposit");
-					},
-					None => {
-						return Err(TryRuntimeError::Other("Missing Proxy"));
-					},
-				}
-			}
-
-			// Check the total reserved amounts for every account is as expected
-			for (who, expected_reserved) in expected_total_reserved.iter() {
-				let current_reserved =
-					<Balances as ReservableCurrency<AccountId>>::reserved_balance(who);
-
-				ensure!(current_reserved == *expected_reserved, "Reserved balance mismatch");
-			}
-
-			// Check there are no extra entries in the expected state that are not in the
-			// current state
-			for (who, _) in expected_proxies.iter() {
-				if !Proxies::<Runtime>::contains_key(who) {
-					return Err(TryRuntimeError::Other("Extra entry in expected state"));
-				}
-			}
-
-			Ok(())
-		}
-	}
-}
-
-parameter_types! {
-	pub const IdentityPalletName: &'static str = "Identity";
-	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
-}
-
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -2075,102 +1897,24 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use polkadot_runtime_common::traits::Leaser;
-
 	use super::*;
-
-	pub struct GetLegacyLeaseImpl;
-	impl coretime_migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
-		fn get_parachain_lease_in_blocks(para: ParaId) -> Option<BlockNumber> {
-			let now = frame_system::Pallet::<Runtime>::block_number();
-			let lease = slots::Leases::<Runtime>::get(para);
-			if lease.is_empty() {
-				return None;
-			}
-			let (index, _) =
-				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
-			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
-		}
-
-		fn get_all_parachains_with_leases() -> Vec<ParaId> {
-			slots::Leases::<Runtime>::iter()
-				.filter(|(_, lease)| !lease.is_empty())
-				.map(|(para, _)| para)
-				.collect::<Vec<_>>()
-		}
-	}
-
-	/// Cancel all ongoing auctions.
-	///
-	/// Any leases that come into existence after coretime was launched will not be served. Yet,
-	/// any ongoing auctions must be cancelled.
-	///
-	/// Safety:
-	///
-	/// - After coretime is launched, there are no auctions anymore. So if this forgotten to be
-	///   removed after the runtime upgrade, running this again on the next one is harmless.
-	/// - I am assuming scheduler `TaskName`s are unique, so removal of the scheduled entry multiple
-	///   times should also be fine.
-	pub struct CancelAuctions;
-	impl OnRuntimeUpgrade for CancelAuctions {
-		fn on_runtime_upgrade() -> Weight {
-			if let Err(err) = Auctions::cancel_auction(frame_system::RawOrigin::Root.into()) {
-				log::debug!(target: "runtime", "Cancelling auctions failed: {:?}", err);
-			}
-			// Cancel scheduled auction as well:
-			if let Err(err) = Scheduler::cancel_named(
-				pallet_custom_origins::Origin::AuctionAdmin.into(),
-				[
-					0x87, 0xa8, 0x71, 0xb4, 0xd6, 0x21, 0xf0, 0xb9, 0x73, 0x47, 0x5a, 0xaf, 0xcc,
-					0x32, 0x61, 0x0b, 0xd7, 0x68, 0x8f, 0x15, 0x02, 0x33, 0x8a, 0xcd, 0x00, 0xee,
-					0x48, 0x8a, 0xc3, 0x62, 0x0f, 0x4c,
-				],
-			) {
-				log::debug!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
-			}
-			use pallet_scheduler::WeightInfo as _;
-			use polkadot_runtime_common::auctions::WeightInfo as _;
-			weights::polkadot_runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
-				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
-					<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
-				))
-		}
-	}
+	use pallet_balances::WeightInfo;
 
 	parameter_types! {
-		// This is used to bound number of pools migrating in the runtime upgrade.  This is set to
-		// ~existing_pool_count * 2 to also account for any new pools getting created before the
-		// migration is actually executed.
-		pub const MaxPoolsToMigrate: u32 = 500;
+		/// Weight for balance unreservations
+		pub BalanceTransferAllowDeath: Weight = weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
-		parachains_inclusion::migration::MigrateToV1<Runtime>,
-		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
-		frame_support::migrations::RemovePallet<
-			IdentityPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		frame_support::migrations::RemovePallet<
-			IdentityMigratorPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		clear_judgement_proxies::Migration,
-		// Migrate from legacy lease to coretime. Needs to run after configuration v11
-		coretime_migration::MigrateToCoretime<
+		parachains_shared::migration::MigrateToV1<Runtime>,
+		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
+		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
+		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
+		pallet_session::migrations::v1::MigrateV0ToV1<
 			Runtime,
-			crate::xcm_config::XcmRouter,
-			GetLegacyLeaseImpl,
+			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
 		>,
-		CancelAuctions,
-		// Migrate NominationPools to `DelegateStake` adapter.
-		pallet_nomination_pools::migration::unversioned::DelegationStakeMigration<
-			Runtime,
-			MaxPoolsToMigrate,
-		>,
-		// FAIL-CI restore_corrupt_ledger_2::Migrate,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2179,7 +1923,7 @@ pub mod migrations {
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -2191,7 +1935,7 @@ pub type Executive = frame_executive::Executive<
 >;
 
 /// The payload being signed in transactions.
-pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
+pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
@@ -2235,7 +1979,9 @@ mod benches {
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_staking, Staking]
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
+		[pallet_transaction_payment, TransactionPayment]
 		[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
@@ -2245,7 +1991,7 @@ mod benches {
 		[pallet_asset_rate, AssetRate]
 		[pallet_rc_migrator, RcMigrator]
 		// XCM
-		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
+		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
@@ -2256,13 +2002,17 @@ mod benches {
 	// Trying to add benchmarks directly to some pallets caused cyclic dependency issues.
 	// To get around that, we separated the benchmarks into its own crate.
 	pub use frame_benchmarking::baseline::Pallet as Baseline;
-	pub use frame_system_benchmarking::Pallet as SystemBench;
+	pub use frame_system_benchmarking::{
+		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
+	};
 	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
 	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
-	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
-
+	pub use pallet_xcm::benchmarking::{
+		Pallet as PalletXcmExtrinsiscsBenchmark, Pallet as PalletXcmExtrinsicsBenchmark,
+	};
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use xcm_builder::MintLocation;
 	use xcm_config::{
 		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
@@ -2281,7 +2031,6 @@ mod benches {
 			TokenLocation::get(),
 			ExistentialDeposit::get()
 		).into());
-		pub AssetHubParaId: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
 	}
 
@@ -2292,26 +2041,26 @@ mod benches {
 				ExistentialDepositAsset,
 				xcm_config::PriceForChildParachainDelivery,
 				AssetHubParaId,
-				(),
+				Dmp,
 			>,
 			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 				XcmConfig,
 				ExistentialDepositAsset,
 				xcm_config::PriceForChildParachainDelivery,
 				RandomParaId,
-				(),
+				Dmp,
 			>,
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			Some(crate::xcm_config::AssetHubLocation::get())
+			Some(AssetHubLocation::get())
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 			// Relay/native token can be teleported to/from AH.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				crate::xcm_config::AssetHubLocation::get(),
+				AssetHubLocation::get(),
 			))
 		}
 
@@ -2323,13 +2072,14 @@ mod benches {
 			))
 		}
 
-		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+		fn set_up_complex_asset_transfer(
+		) -> Option<(Assets, u32, Location, alloc::boxed::Box<dyn FnOnce()>)> {
 			// Relay supports only native token, either reserve transfer it to non-system
 			// parachains, or teleport it to system parachain. Use the teleport case for
 			// benchmarking as it's slightly heavier.
 			// Relay/native token can be teleported to/from AH.
 			let native_location = Here.into();
-			let dest = crate::xcm_config::AssetHubLocation::get();
+			let dest = AssetHubLocation::get();
 			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
 				native_location,
 				dest,
@@ -2349,22 +2099,25 @@ mod benches {
 			ExistentialDepositAsset,
 			xcm_config::PriceForChildParachainDelivery,
 			AssetHubParaId,
-			(),
+			Dmp,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
 		}
 		fn worst_case_holding(_depositable_count: u32) -> Assets {
 			// Polkadot only knows about DOT
-			vec![Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1_000_000 * UNITS) }]
-				.into()
+			vec![Asset {
+				id: AssetId(TokenLocation::get()),
+				fun: Fungible(1_000_000_000_000 * UNITS),
+			}]
+			.into()
 		}
 	}
 
 	parameter_types! {
 		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
 			AssetHubLocation::get(),
-			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1 * UNITS) }
+			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(UNITS) }
 		));
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
 		pub LocalCheckAccount: (AccountId, MintLocation) = TeleportTracking::get().unwrap();
@@ -2378,7 +2131,12 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1 * UNITS) }
+			// We put more than ED here for being able to keep accounts alive when transferring
+			// and paying the delivery fees.
+			Asset {
+				id: AssetId(TokenLocation::get()),
+				fun: Fungible(1_000_000 * ExistentialDeposit::get()),
+			}
 		}
 	}
 
@@ -2499,7 +2257,7 @@ sp_api::impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -2565,6 +2323,10 @@ sp_api::impl_runtime_apis! {
 		fn pool_balance(pool_id: pallet_nomination_pools::PoolId) -> Balance {
 			NominationPools::api_pool_balance(pool_id)
 		}
+
+		fn pool_accounts(pool_id: pallet_nomination_pools::PoolId) -> (AccountId, AccountId) {
+			NominationPools::api_pool_accounts(pool_id)
+		}
 	}
 
 	impl pallet_staking_runtime_api::StakingApi<Block, Balance, AccountId> for Runtime {
@@ -2597,7 +2359,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(11)]
+	#[api_version(13)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2734,11 +2496,13 @@ sp_api::impl_runtime_apis! {
 			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
 		}
 
-		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::async_backing::BackingState> {
+		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::vstaging::async_backing::BackingState> {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
 
 		fn async_backing_params() -> polkadot_primitives::AsyncBackingParams {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::async_backing_params::<Runtime>()
 		}
 
@@ -2755,11 +2519,23 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn claim_queue() -> BTreeMap<CoreIndex, VecDeque<ParaId>> {
-			parachains_vstaging_api_impl::claim_queue::<Runtime>()
+			parachains_runtime_api_impl::claim_queue::<Runtime>()
 		}
 
 		fn candidates_pending_availability(para_id: ParaId) -> Vec<CommittedCandidateReceipt<Hash>> {
-			parachains_vstaging_api_impl::candidates_pending_availability::<Runtime>(para_id)
+			parachains_runtime_api_impl::candidates_pending_availability::<Runtime>(para_id)
+		}
+
+		fn validation_code_bomb_limit() -> u32 {
+			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
+		}
+
+		fn backing_constraints(para_id: ParaId) -> Option<Constraints> {
+			parachains_runtime_api_impl_vstaging::backing_constraints::<Runtime>(para_id)
+		}
+
+		fn scheduling_lookahead() -> u32 {
+			parachains_runtime_api_impl_vstaging::scheduling_lookahead::<Runtime>()
 		}
 	}
 
@@ -3060,8 +2836,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
@@ -3125,14 +2901,14 @@ sp_api::impl_runtime_apis! {
 			list_benchmarks!(list, extra);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
-			return (list, storage_info)
+			(list, storage_info)
 		}
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<
 			Vec<frame_benchmarking::BenchmarkBatch>,
-			sp_runtime::RuntimeString,
+			alloc::string::String,
 		> {
 			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
@@ -3206,7 +2982,7 @@ mod test_fees {
 		println!("call = {:?} / info = {:?}", call, info);
 		// convert to runtime call.
 		let call = RuntimeCall::Balances(call);
-		let extra: SignedExtra = (
+		let tx_ext: TxExtension = (
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -3219,12 +2995,12 @@ mod test_fees {
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		);
 		let uxt = UncheckedExtrinsic {
-			function: call,
-			signature: Some((
+			preamble: generic::Preamble::Signed(
 				MultiAddress::Id(Alice.to_account_id()),
 				MultiSignature::Sr25519(Alice.sign(b"foo")),
-				extra,
-			)),
+				tx_ext,
+			),
+			function: call,
 		};
 		let len = uxt.encoded_size();
 
@@ -3305,10 +3081,11 @@ mod test {
 
 	#[test]
 	fn check_whitelist() {
-		let whitelist: HashSet<String> = AllPalletsWithSystem::whitelisted_storage_keys()
-			.iter()
-			.map(|e| HexDisplay::from(&e.key).to_string())
-			.collect();
+		let whitelist: HashSet<alloc::string::String> =
+			AllPalletsWithSystem::whitelisted_storage_keys()
+				.iter()
+				.map(|e| HexDisplay::from(&e.key).to_string())
+				.collect();
 
 		// Block number
 		assert!(
@@ -3531,7 +3308,9 @@ mod multiplier_tests {
 		let mut fees_paid = 0;
 
 		frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
-		let info = DispatchInfo { weight: Weight::MAX, ..Default::default() };
+		// TODO: Find out if this test is correct, since we're not yet considering
+		// `extension_weight`
+		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
 
 		let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()
@@ -3600,7 +3379,6 @@ mod multiplier_tests {
 		}
 	}
 }
-
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests {
 	use super::*;
@@ -3763,7 +3541,7 @@ mod remote_tests {
 			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
 				total_staked,
 				total_issuance,
-				average_era_duration_millis.into(),
+				average_era_duration_millis,
 			);
 			use ss58_registry::TokenRegistry;
 			let token: ss58_registry::Token = TokenRegistry::Dot.into();

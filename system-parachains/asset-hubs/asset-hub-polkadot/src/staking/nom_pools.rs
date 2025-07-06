@@ -19,7 +19,7 @@
 use crate::*;
 use pallet_nomination_pools::{adapter, BondType};
 use sp_runtime::{DispatchError, DispatchResult, FixedU128};
-use sp_staking::{EraIndex, Stake};
+use sp_staking::{EraIndex, Stake, StakingUnchecked};
 
 parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
@@ -44,6 +44,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type WeightInfo = (); // FAIL-CI weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EnsureRoot<AccountId>; // FAIL-CI EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 	type Filter = (); // FAIl-CI pallet_staking::AllStakers<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
 }
 
 // Mocks to make it compile, can be deleted once we have the Staking pallet migrated:
@@ -257,4 +258,23 @@ impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
 			unimplemented!()
 		}
 	}*/
+}
+
+impl StakingUnchecked for StakingMock {
+	fn migrate_to_virtual_staker(_who: &Self::AccountId) -> DispatchResult {
+		unimplemented!("FAIL-CI")
+	}
+
+	fn virtual_bond(
+		_keyless_who: &Self::AccountId,
+		_value: Self::Balance,
+		_payee: &Self::AccountId,
+	) -> DispatchResult {
+		unimplemented!("FAIL-CI")
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn migrate_to_direct_staker(_who: &Self::AccountId) {
+		unimplemented!("FAIL-CI")
+	}
 }

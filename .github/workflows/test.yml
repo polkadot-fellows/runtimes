@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2503-5
 
 # cancel previous runs
 concurrency:
@@ -104,8 +104,14 @@ jobs:
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
           # run benchmarking
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+            EXCLUDE_EXTRINSICS=""
+          else
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
+            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+          fi
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
@@ -230,15 +236,14 @@ jobs:
           shared-key: "fellowship-cache-chain-spec-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+      - name: Check
+        run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
@@ -270,7 +275,12 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --features fast-runtime --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
 
       - name: Zombienet smoke test
         timeout-minutes: 20
@@ -318,7 +328,7 @@ jobs:
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
             FEATURES="--features=metadata-hash"
           fi
-          
+
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
           cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
@@ -357,8 +367,8 @@ jobs:
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-          done 
-          
+          done
+
       - name: Installing dependencies of ecosystem tests
         working-directory: ./ecosystem-tests
         run: yarn install
@@ -383,7 +393,7 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       # FAIL-CI - zombienet-smoke
-      - ecosystem-tests
       - ahm-test-polkadot
+      - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

@@ -154,7 +154,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -191,7 +191,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -273,7 +273,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: assign_core_call.encode().into(),
 			},
 		]);
@@ -321,6 +321,9 @@ impl CoretimeInterface for CoretimeAllocator {
 
 parameter_types! {
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
+	pub const MinimumCreditPurchase: Balance = UNITS / 10;
+
+	pub const MinimumEndPrice: Balance = UNITS;
 }
 
 pub struct SovereignAccountOf;
@@ -346,5 +349,6 @@ impl pallet_broker::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
 	type MaxAutoRenewals = ConstU32<100>;
-	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
+	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
+	type MinimumCreditPurchase = MinimumCreditPurchase;
 }

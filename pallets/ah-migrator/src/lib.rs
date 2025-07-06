@@ -54,7 +54,10 @@ pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
-	types::{ForceSetHead, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority},
+	types::{
+		ExceptResponseFor, ForceSetHead, LeftOrRight, MaxOnIdleOrInner,
+		QueuePriority as DmpQueuePriority, RouteInnerWithException,
+	},
 	weights_ah,
 };
 pub use weights_ah::WeightInfo;
@@ -86,7 +89,10 @@ use pallet_rc_migrator::{
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*, *},
+	staking::{
+		bags_list::RcBagsListMessage, delegated_staking::RcDelegatedStakingMessageOf,
+		fast_unstake::RcFastUnstakeMessage, nom_pools::*, *,
+	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
@@ -123,8 +129,17 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
 >;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
@@ -150,11 +165,22 @@ pub enum PalletEventName {
 	ConvictionVoting,
 	AssetRates,
 	Staking,
+	DelegatedStaking,
 }
 
 /// The migration stage on the Asset Hub.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum MigrationStage {
 	/// The migration has not started but will start in the future.
 	#[default]
@@ -182,8 +208,18 @@ impl MigrationStage {
 }
 
 /// Helper struct storing certain balances before the migration.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub struct BalancesBefore<Balance: Default> {
 	pub checking_account: Balance,
 	pub total_issuance: Balance,
@@ -202,13 +238,16 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
-		+ pallet_proxy::Config
+		+ pallet_proxy::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_preimage::Config<Hash = H256>
-		+ pallet_referenda::Config<Votes = u128>
-		+ pallet_nomination_pools::Config
-		+ pallet_fast_unstake::Config
+		+ pallet_referenda::Config<
+			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
+			Votes = u128,
+		> + pallet_nomination_pools::Config<
+			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
+		> + pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
-		+ pallet_scheduler::Config
+		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
@@ -218,6 +257,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
+		+ pallet_delegated_staking::Config
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -268,7 +308,7 @@ pub mod pallet {
 		/// Some part of the Relay Chain origins used in Governance.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcPalletsOrigin: Parameter + Default;
+		type RcPalletsOrigin: Parameter + Default + DecodeWithMemTracking;
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
@@ -309,14 +349,6 @@ pub mod pallet {
 
 		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
-
-		/// Messaging type that the staking migration uses.
-		///
-		/// We need to inject this here to be able to convert it. The message type is require to
-		/// also be able to convert messages from Relay to Asset Hub format.
-		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter
-			+ IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
@@ -796,6 +828,17 @@ pub mod pallet {
 			Self::do_receive_scheduler_agenda_messages(messages).map_err(Into::into)
 		}
 
+		#[pallet::call_index(23)]
+		#[pallet::weight(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() as u32))]
+		pub fn receive_delegated_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcDelegatedStakingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
+		}
+
 		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
 		#[pallet::weight({1})] // TODO: weight
@@ -984,11 +1027,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Xcm,
-					#[cfg(feature = "stable2503")]
-					fallback_max_weight: None,
-					#[cfg(not(feature = "stable2503"))]
-					// TODO: just big enough weight to work for all calls; remove with xcm5
-					require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
+					fallback_max_weight: None, // TODO @muharem: please check
 					call: call.encode().into(),
 				},
 			]);

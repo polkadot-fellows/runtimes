@@ -21,8 +21,18 @@ use pallet_bounties::{Bounty, BountyIndex};
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// The stages of the bounties pallet data migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum BountiesStage {
 	#[default]
 	BountyCount,
@@ -37,7 +47,7 @@ pub enum BountiesStage {
 }
 
 /// Bounties data message that is being sent to the AH Migrator.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
 pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
 	BountyCount(BountyIndex),
 	BountyApprovals(Vec<BountyIndex>),
@@ -190,8 +200,17 @@ pub mod alias {
 	/// A bounty proposal.
 	///
 	/// Alias of [pallet_bounties::Bounty].
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	#[derive(
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		Clone,
+		PartialEq,
+		Eq,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+	)]
 	pub struct Bounty<AccountId, Balance, BlockNumber> {
 		/// The account proposing it.
 		pub proposer: AccountId,
@@ -224,7 +243,11 @@ pub type RcPrePayload<T> = (
 	BountyIndex,
 	Vec<(
 		BountyIndex,
-		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
+		Bounty<
+			<T as frame_system::Config>::AccountId,
+			BalanceOf<T>,
+			pallet_treasury::BlockNumberFor<T>,
+		>,
 	)>,
 	Vec<(BountyIndex, Vec<u8>)>,
 	Vec<BountyIndex>,

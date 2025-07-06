@@ -24,6 +24,7 @@ use sp_staking::EraIndex;
 // From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1301
 #[derive(
 	Encode,
+	DecodeWithMemTracking,
 	Decode,
 	MaxEncodedLen,
 	TypeInfo,
@@ -34,7 +35,6 @@ use sp_staking::EraIndex;
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RewardPool<T: pallet_nomination_pools::Config> {
 	/// The last recorded value of the reward counter.
 	///
@@ -59,6 +59,7 @@ pub struct RewardPool<T: pallet_nomination_pools::Config> {
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
 	RuntimeDebugNoBound,
@@ -68,7 +69,6 @@ pub struct RewardPool<T: pallet_nomination_pools::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct SubPools<T: pallet_nomination_pools::Config> {
 	/// A general, era agnostic pool of funds that have fully unbonded. The pools
 	/// of `Self::with_era` will lazily be merged into into this pool if they are
@@ -81,6 +81,7 @@ pub struct SubPools<T: pallet_nomination_pools::Config> {
 // From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1461
 #[derive(
 	Encode,
+	DecodeWithMemTracking,
 	Decode,
 	MaxEncodedLen,
 	TypeInfo,
@@ -91,7 +92,6 @@ pub struct SubPools<T: pallet_nomination_pools::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct UnbondPool<T: pallet_nomination_pools::Config> {
 	/// The points in this pool.
 	pub points: BalanceOf<T>,

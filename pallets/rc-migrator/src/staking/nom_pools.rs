@@ -26,8 +26,17 @@ use sp_runtime::{Perbill, Saturating};
 /// The stages of the nomination pools pallet migration.
 ///
 /// They advance in a linear fashion.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum NomPoolsStage<AccountId> {
 	/// Migrate the storage values.
 	StorageValues,
@@ -50,8 +59,17 @@ pub enum NomPoolsStage<AccountId> {
 }
 
 /// All the `StorageValues` from the nominations pools pallet.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub struct NomPoolsStorageValues<Balance> {
 	pub total_value_locked: Option<Balance>,
 	pub min_join_bond: Option<Balance>,
@@ -80,6 +98,7 @@ impl<Balance> NomPoolsStorageValues<Balance> {
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
 	RuntimeDebugNoBound,
@@ -89,7 +108,6 @@ impl<Balance> NomPoolsStorageValues<Balance> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	/// All `StorageValues` that can be migrated at once.
 	StorageValues { values: NomPoolsStorageValuesOf<T> },
@@ -487,7 +505,7 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			BalanceOf<T>,
 			T::RewardCounter,
 			<T as frame_system::Config>::AccountId,
-			BlockNumberFor<T>,
+			pallet_nomination_pools::BlockNumberFor<T>,
 		>,
 	>;
 

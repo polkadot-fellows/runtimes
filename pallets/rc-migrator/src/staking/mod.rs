@@ -15,6 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod bags_list;
+pub mod delegated_staking;
 pub mod fast_unstake;
 pub mod nom_pools;
 pub mod nom_pools_alias;

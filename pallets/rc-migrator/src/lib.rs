@@ -101,6 +101,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
+	delegated_staking::{DelegatedStakingMigrator, DelegatedStakingStage},
 	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
@@ -141,8 +142,17 @@ pub type MigrationStageOf<T> = MigrationStage<
 	scheduler::SchedulerBlockNumberFor<T>,
 >;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum PalletEventName {
 	FastUnstake,
 	BagsList,
@@ -150,8 +160,18 @@ pub enum PalletEventName {
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum MigrationStage<
 	AccountId,
 	BlockNumber,
@@ -267,6 +287,12 @@ pub enum MigrationStage<
 	},
 	FastUnstakeMigrationDone,
 
+	DelegatedStakingMigrationInit,
+	DelegatedStakingMigrationOngoing {
+		next_key: Option<DelegatedStakingStage<AccountId>>,
+	},
+	DelegatedStakingMigrationDone,
+
 	IndicesMigrationInit,
 	IndicesMigrationOngoing {
 		next_key: Option<()>,
@@ -289,7 +315,7 @@ pub enum MigrationStage<
 		last_key: Option<scheduler::SchedulerStage<SchedulerBlockNumber>>,
 	},
 	SchedulerAgendaMigrationOngoing {
-		last_key: Option<BlockNumber>,
+		last_key: Option<SchedulerBlockNumber>,
 	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,
@@ -426,6 +452,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
+		+ pallet_delegated_staking::Config
 		+ pallet_xcm::Config
 	{
 		/// The overall runtime origin type.
@@ -885,6 +912,16 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
+/* let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+							// ensure new era is not planned when starting migration.
+							if current_era > active_era {
+								defensive!("New era is planned, migration cannot start until it is completed");
+								Self::transition(MigrationStage::Pending);
+								return weight_counter.consumed();
+							}
+								*/ // FAIL-CI staking check
+
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
@@ -1293,6 +1330,38 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::FastUnstakeMigrationDone => {
+					Self::transition(MigrationStage::DelegatedStakingMigrationInit);
+				},
+				MigrationStage::DelegatedStakingMigrationInit => {
+					Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::DelegatedStakingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match DelegatedStakingMigrator::<T>::migrate_many(next_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::DelegatedStakingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating delegated staking: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::DelegatedStakingMigrationDone => {
 					Self::transition(MigrationStage::IndicesMigrationInit);
 				},
 				MigrationStage::IndicesMigrationInit => {
@@ -1797,17 +1866,7 @@ pub mod pallet {
 					},
 					Instruction::Transact {
 						origin_kind: OriginKind::Superuser,
-						// The `require_weight_at_most` parameter is used by the XCM executor to
-						// verify if the available weight is sufficient to process this call. If
-						// sufficient, the executor will execute the call and use the actual weight
-						// from the dispatchable result to adjust the meter limit. The weight meter
-						// limit on the Asset Hub is [Config::MaxAhWeight], which applies not only
-						// to process the calls passed with XCM messages but also to some base work
-						// required to process an XCM message.
-						// Additionally the call will not be executed if `require_weight_at_most` is
-						// lower than the actual weight of the call.
-						// TODO: we can remove ths with XCMv5
-						require_weight_at_most: weight_at_most(batch_len),
+						fallback_max_weight: None, // TODO @muharem: is this what you meant?
 						call: call.encode().into(),
 					},
 					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
@@ -1850,17 +1909,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Superuser,
-					// The `require_weight_at_most` parameter is used by the XCM executor to verify
-					// if the available weight is sufficient to process this call. If sufficient,
-					// the executor will execute the call and use the actual weight from the
-					// dispatchable result to adjust the meter limit. The weight meter limit on the
-					// Asset Hub is [Config::MaxAhWeight], which applies not only to process the
-					// calls passed with XCM messages but also to some base work required to process
-					// an XCM message.
-					// Additionally the call will not be executed if `require_weight_at_most` is
-					// lower than the actual weight of the call.
-					// TODO: we can remove ths with XCMv5
-					require_weight_at_most: weight_at_most,
+					fallback_max_weight: None, // TODO @muharem: is this what you meant?
 					call: call.encode().into(),
 				},
 			]);

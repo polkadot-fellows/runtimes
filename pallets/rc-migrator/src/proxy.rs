@@ -22,7 +22,6 @@ use frame_support::traits::Currency;
 extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
-use frame_system::pallet_prelude::BlockNumberFor;
 
 pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -36,8 +35,7 @@ type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 	/// The account that is delegating to their proxy.
 	pub delegator: AccountId,
@@ -48,14 +46,13 @@ pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 }
 
 pub type RcProxyOf<T, ProxyType> =
-	RcProxy<AccountIdOf<T>, BalanceOf<T>, ProxyType, BlockNumberFor<T>>;
+	RcProxy<AccountIdOf<T>, BalanceOf<T>, ProxyType, pallet_proxy::BlockNumberFor<T>>;
 
 /// A RcProxy in Relay chain format, can only be understood by the RC and must be translated first.
 pub(crate) type RcProxyLocalOf<T> = RcProxyOf<T, <T as pallet_proxy::Config>::ProxyType>;
 
 /// A deposit that was taken for a proxy announcement.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcProxyAnnouncement<AccountId, Balance> {
 	pub depositor: AccountId,
 	pub deposit: Balance,
@@ -133,7 +130,13 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
 		(proxies, deposit): (
-			Vec<pallet_proxy::ProxyDefinition<T::AccountId, T::ProxyType, BlockNumberFor<T>>>,
+			Vec<
+				pallet_proxy::ProxyDefinition<
+					T::AccountId,
+					T::ProxyType,
+					pallet_proxy::BlockNumberFor<T>,
+				>,
+			>,
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
