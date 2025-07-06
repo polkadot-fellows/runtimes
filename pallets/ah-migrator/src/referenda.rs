@@ -81,6 +81,67 @@ pub type AhReferendumStatusOf<T, I> = ReferendumStatus<
 >;
 
 impl<T: Config> Pallet<T> {
+	pub fn translate_referendum_info(
+		referendum: RcReferendumInfoOf<T, ()>,
+	) -> RcReferendumInfoOf<T, ()> {
+		match referendum {
+			ReferendumInfo::Ongoing(mut status) => {
+				status.submission_deposit.who =
+					Self::translate_account_rc_to_ah(status.submission_deposit.who.clone());
+				if let Some(ref mut decision_deposit) = status.decision_deposit {
+					decision_deposit.who =
+						Self::translate_account_rc_to_ah(decision_deposit.who.clone());
+				}
+				ReferendumInfo::Ongoing(status)
+			},
+			ReferendumInfo::Approved(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::Approved(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::Rejected(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::Rejected(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::Cancelled(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::Cancelled(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::TimedOut(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::TimedOut(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::Killed(block) => ReferendumInfo::Killed(block),
+		}
+	}
+
 	pub fn do_receive_referendums(
 		referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
 	) -> Result<(), Error<T>> {
@@ -92,7 +153,8 @@ impl<T: Config> Pallet<T> {
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for (id, referendum) in referendums {
-			match Self::do_receive_referendum(id, referendum) {
+			let translated_referendum = Self::translate_referendum_info(referendum);
+			match Self::do_receive_referendum(id, translated_referendum) {
 				Ok(()) => count_good += 1,
 				Err(_) => count_bad += 1,
 			}
@@ -378,7 +440,9 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		fn convert_rc_to_ah_referendum<T: Config>(
 			rc_info: RcReferendumInfoOf<T, ()>,
 		) -> AhReferendumInfoOf<T, ()> {
-			match rc_info {
+			let translated_rc_info = crate::Pallet::<T>::translate_referendum_info(rc_info);
+
+			match translated_rc_info {
 				ReferendumInfo::Ongoing(rc_status) => {
 					// --- Mimic do_receive_referendum logic ---
 					let ah_origin =
@@ -416,8 +480,8 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 						proposal: ah_proposal, // Use converted proposal
 						enactment: rc_status.enactment,
 						submitted: rc_status.submitted,
-						submission_deposit: rc_status.submission_deposit,
-						decision_deposit: rc_status.decision_deposit,
+						submission_deposit: rc_status.submission_deposit, // Already translated
+						decision_deposit: rc_status.decision_deposit,     // Already translated
 						deciding: rc_status.deciding,
 						tally: rc_status.tally,
 						in_queue: rc_status.in_queue,
