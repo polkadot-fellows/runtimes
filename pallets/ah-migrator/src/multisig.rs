@@ -61,10 +61,25 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_multisig(multisig: RcMultisigOf<T>) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating multisig {}, {:?}", multisig.creator.to_ss58check(), multisig.deposit);
+		// Translate the creator account from RC to AH format
+		let translated_creator = Self::translate_account_rc_to_ah(multisig.creator.clone());
+
+		// Translate the details account (derived multisig account) if present
+		let translated_details = multisig
+			.details
+			.as_ref()
+			.map(|details_account| Self::translate_account_rc_to_ah(details_account.clone()));
+
+		log::debug!(target: LOG_TARGET, "Integrating multisig {} -> {}, deposit: {:?}, details: {:?} -> {:?}",
+			multisig.creator.to_ss58check(),
+			translated_creator.to_ss58check(),
+			multisig.deposit,
+			multisig.details.as_ref().map(|d| d.to_ss58check()),
+			translated_details.as_ref().map(|d| d.to_ss58check())
+		);
 
 		let missing = <T as pallet_multisig::Config>::Currency::unreserve(
-			&multisig.creator,
+			&translated_creator,
 			multisig.deposit,
 		);
 
@@ -72,18 +87,21 @@ impl<T: Config> Pallet<T> {
 			if KNOWN_BAD_MULTISIGS.contains(&multisig.creator) {
 				log::warn!(
 					target: LOG_TARGET,
-					"Failed to unreserve deposit for known bad multisig {}, missing: {:?}, account: {:?}",
+					"Failed to unreserve deposit for known bad multisig {} -> {}, missing: {:?}, account: {:?}",
 					multisig.creator.to_ss58check(),
+					translated_creator.to_ss58check(),
 					missing,
-					frame_system::Account::<T>::get(&multisig.creator)
+					frame_system::Account::<T>::get(&translated_creator)
 				);
 			} else {
 				log::error!(
 					target: LOG_TARGET,
-					"Failed to unreserve deposit for multisig {}, missing: {:?}, details: {:?}",
+					"Failed to unreserve deposit for multisig {} -> {}, missing: {:?}, details: {:?} -> {:?}",
 					multisig.creator.to_ss58check(),
+					translated_creator.to_ss58check(),
 					missing,
-					multisig.details
+					multisig.details.as_ref().map(|d| d.to_ss58check()),
+					translated_details.as_ref().map(|d| d.to_ss58check())
 				);
 			}
 
@@ -112,12 +130,18 @@ impl<T: Config> crate::types::AhMigrationCheck for MultisigMigrationChecker<T> {
 			ah_pre_payload,
 			"Number of multisigs on Asset Hub should be the same before and after migration"
 		);
+
+		// Apply account translation to RC pre-check data for consistent comparison
 		for account_id in rc_pre_payload {
+			// Translate the account ID to match the migration logic
+			let translated_account_id = Pallet::<T>::translate_account_rc_to_ah(account_id.clone());
+
 			// Assert storage 'Multisig::Multisigs::ah_post::consistent'
 			assert!(
-				frame_system::Account::<T>::contains_key(&account_id),
-				"Multisig account {:?} from Relay Chain should be present on Asset Hub",
-				account_id.to_ss58check()
+				frame_system::Account::<T>::contains_key(&translated_account_id),
+				"Translated multisig account {:?} -> {:?} from Relay Chain should be present on Asset Hub",
+				account_id.to_ss58check(),
+				translated_account_id.to_ss58check()
 			);
 		}
 	}
