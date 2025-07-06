@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
-hex-literal = { workspace = true, default-features = true }
+hex-literal = { workspace = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
