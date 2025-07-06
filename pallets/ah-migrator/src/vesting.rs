@@ -16,6 +16,7 @@
 // limitations under the License.
 
 use super::*;
+use codec::Decode;
 use pallet_rc_migrator::vesting::{
 	BalanceOf, GenericVestingInfo, RcVestingSchedule, VestingMigrator,
 };
@@ -53,7 +54,10 @@ impl<T: Config> Pallet<T> {
 
 	/// Integrate vesting schedules.
 	pub fn do_process_vesting_schedule(message: RcVestingSchedule<T>) -> Result<(), Error<T>> {
-		let mut ah_schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
+		let translated_account = Self::translate_account_rc_to_ah(message.who);
+
+		let mut ah_schedules =
+			pallet_vesting::Vesting::<T>::get(&translated_account).unwrap_or_default();
 
 		if !ah_schedules.is_empty() {
 			defensive!("We disabled vesting, looks like someone used it. Manually verify this and then remove this defensive assert.");
@@ -66,8 +70,8 @@ impl<T: Config> Pallet<T> {
 				.map_err(|_| Error::<T>::FailedToIntegrateVestingSchedule)?;
 		}
 
-		pallet_vesting::Vesting::<T>::insert(&message.who, &ah_schedules);
-		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
+		pallet_vesting::Vesting::<T>::insert(&translated_account, &ah_schedules);
+		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", translated_account, ah_schedules.len());
 
 		Ok(())
 	}
@@ -110,12 +114,18 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
 
-		let rc_pre: BTreeMap<
-			Vec<u8>,
-			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
-		> = rc_pre_payload
+		// Apply account translation to RC pre-check data for consistent comparison
+		let translate_key = |who_encoded: Vec<u8>| {
+			let account = T::AccountId::decode(&mut &who_encoded[..])
+				.expect("Account decoding should never fail");
+			Pallet::<T>::translate_account_rc_to_ah(account).encode()
+		};
+
+		let rc_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
-			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
+			.map(|(who_encoded, balances, vesting_info)| {
+				(translate_key(who_encoded), (balances, vesting_info))
+			})
 			.collect();
 
 		let all_post: BTreeMap<
