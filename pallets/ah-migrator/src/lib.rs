@@ -956,6 +956,17 @@ pub mod pallet {
 			account
 		}
 
+		/// Helper function for migration post-check validation.
+		///
+		/// Should be used to apply account translation to RC pre-check data for consistent
+		/// comparison with AH post-state.
+		pub fn translate_encoded_account_rc_to_ah(who_encoded: Vec<u8>) -> Vec<u8> {
+			use codec::Decode;
+			let original_account = T::AccountId::decode(&mut &who_encoded[..])
+				.expect("Account decoding should never fail");
+			Self::translate_account_rc_to_ah(original_account).encode()
+		}
+
 		/// Auxiliary logic to be done before the migration starts.
 		pub fn migration_start_hook() -> Result<(), Error<T>> {
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;

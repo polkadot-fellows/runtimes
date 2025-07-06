@@ -16,7 +16,6 @@
 // limitations under the License.
 
 use super::*;
-use codec::Decode;
 use pallet_rc_migrator::vesting::{
 	BalanceOf, GenericVestingInfo, RcVestingSchedule, VestingMigrator,
 };
@@ -115,16 +114,13 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 		use std::collections::BTreeMap;
 
 		// Apply account translation to RC pre-check data for consistent comparison
-		let translate_key = |who_encoded: Vec<u8>| {
-			let account = T::AccountId::decode(&mut &who_encoded[..])
-				.expect("Account decoding should never fail");
-			Pallet::<T>::translate_account_rc_to_ah(account).encode()
-		};
 
 		let rc_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
 			.map(|(who_encoded, balances, vesting_info)| {
-				(translate_key(who_encoded), (balances, vesting_info))
+				let translated_encoded =
+					Pallet::<T>::translate_encoded_account_rc_to_ah(who_encoded);
+				(translated_encoded, (balances, vesting_info))
 			})
 			.collect();
 
