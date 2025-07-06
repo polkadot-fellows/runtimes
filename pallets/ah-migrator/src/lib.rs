@@ -487,7 +487,7 @@ pub mod pallet {
 			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
 				T::AhWeightInfo::receive_liquid_accounts
 			} else {
-				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where 
+			        // TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where
 				// `require_weight_at_most` not required
 				T::AhWeightInfo::receive_liquid_accounts
 			};
@@ -938,6 +938,24 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Translate account from RC format to AH format.
+		///
+		/// Currently returns the input account unchanged (mock implementation).
+		/// TODO: Will be extended to handle various translation scenarios:
+		/// - Sovereign accounts (para -> sibl)
+		/// - Sovereign derived accounts
+		/// - General derived accounts
+		/// - ...and more
+		///
+		/// TODO: Will also be responsible to emit a translation event.
+		/// TODO: The current signature suggests that the function is intended to be infallible and
+		/// always return a valid account. This should be revisited when we replace the mock
+		/// implementation with the real one.
+		pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
+			// Mock implementation - return unchanged for now
+			account
+		}
+
 		/// Auxiliary logic to be done before the migration starts.
 		pub fn migration_start_hook() -> Result<(), Error<T>> {
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
