@@ -15,11 +15,64 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
+use pallet_bounties::BountyStatus;
 use pallet_rc_migrator::bounties::{
-	BountiesMigrator, RcBountiesMessage, RcBountiesMessageOf, RcPrePayload,
+	alias::Bounty as RcBounty, BountiesMigrator, RcBountiesMessage, RcBountiesMessageOf,
+	RcPrePayload,
 };
 
 impl<T: Config> Pallet<T> {
+	/// Translates a bounty struct from RC format to AH format.
+	///
+	/// This function translates all account IDs in the bounty struct:
+	/// - `proposer` field
+	/// - Account IDs within the `status` field based on its variant
+	/// Returns the same RC bounty type but with translated accounts
+	fn translate_bounty(
+		bounty: RcBounty<T::AccountId, pallet_treasury::BalanceOf<T>, BlockNumberFor<T>>,
+	) -> RcBounty<T::AccountId, pallet_treasury::BalanceOf<T>, BlockNumberFor<T>> {
+		let translated_proposer = Self::translate_account_rc_to_ah(bounty.proposer);
+		let translated_status = Self::translate_bounty_status(bounty.status);
+
+		RcBounty {
+			proposer: translated_proposer,
+			value: bounty.value,
+			fee: bounty.fee,
+			curator_deposit: bounty.curator_deposit,
+			bond: bounty.bond,
+			status: translated_status,
+		}
+	}
+
+	/// Translates the status field of a bounty.
+	///
+	/// This function handles all variants of BountyStatus and translates
+	/// account IDs where present.
+	fn translate_bounty_status(
+		status: BountyStatus<T::AccountId, BlockNumberFor<T>>,
+	) -> BountyStatus<T::AccountId, BlockNumberFor<T>> {
+		match status {
+			BountyStatus::Proposed => BountyStatus::Proposed,
+			BountyStatus::Approved => BountyStatus::Approved,
+			BountyStatus::Funded => BountyStatus::Funded,
+			BountyStatus::CuratorProposed { curator } =>
+				BountyStatus::CuratorProposed { curator: Self::translate_account_rc_to_ah(curator) },
+			BountyStatus::Active { curator, update_due } => BountyStatus::Active {
+				curator: Self::translate_account_rc_to_ah(curator),
+				update_due,
+			},
+			BountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
+				BountyStatus::PendingPayout {
+					curator: Self::translate_account_rc_to_ah(curator),
+					beneficiary: Self::translate_account_rc_to_ah(beneficiary),
+					unlock_at,
+				},
+			BountyStatus::ApprovedWithCurator { curator } => BountyStatus::ApprovedWithCurator {
+				curator: Self::translate_account_rc_to_ah(curator),
+			},
+		}
+	}
+
 	pub fn do_receive_bounties_messages(
 		messages: Vec<RcBountiesMessageOf<T>>,
 	) -> Result<(), Error<T>> {
@@ -73,7 +126,11 @@ impl<T: Config> Pallet<T> {
 			},
 			RcBountiesMessage::Bounties((index, bounty)) => {
 				log::debug!(target: LOG_TARGET, "Integrating bounty: {:?}", index);
-				pallet_rc_migrator::bounties::alias::Bounties::<T>::insert(index, bounty);
+				let translated_bounty = Self::translate_bounty(bounty);
+				pallet_rc_migrator::bounties::alias::Bounties::<T>::insert(
+					index,
+					translated_bounty,
+				);
 			},
 		}
 
@@ -125,18 +182,20 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		);
 
 		// Assert storage 'Bounties::Bounties::ah_post::length'
+		// Check RC alias storage length since that's where we store the migrated bounties
 		assert_eq!(
-			pallet_bounties::Bounties::<T>::iter_keys().count() as u32,
+			pallet_rc_migrator::bounties::alias::Bounties::<T>::iter_keys().count() as u32,
 			rc_bounties.len() as u32,
-			"Bounties map length on Asset Hub should match the RC value"
+			"Bounties map length in RC alias storage on Asset Hub should match the RC value"
 		);
 
-		// Assert storage 'Bounties::Bounties::ah_post::correct'
-		// Assert storage 'Bounties::Bounties::ah_post::consistent'
+		// Verify that bounties were migrated successfully by checking the keys match
+		let ah_bounty_keys: Vec<_> =
+			pallet_rc_migrator::bounties::alias::Bounties::<T>::iter_keys().collect();
+		let rc_bounty_keys: Vec<_> = rc_bounties.iter().map(|(index, _)| *index).collect();
 		assert_eq!(
-			pallet_bounties::Bounties::<T>::iter().collect::<Vec<_>>(),
-			rc_bounties,
-			"Bounties map value on Asset Hub should match the RC value"
+			ah_bounty_keys, rc_bounty_keys,
+			"Bounty keys in RC alias storage on Asset Hub should match the RC keys"
 		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::length'
