@@ -436,10 +436,28 @@ impl
 				"Failed to convert RC beneficiary type to the latest version"
 			);
 		})?;
+
+		// Apply account translation to AccountId32 junctions in the beneficiary location
+		// This follows the same pattern as used throughout pallet-ah-migrator.
+		let translated_beneficiary = Self::translate_location_account_ids(beneficiary);
+
 		let beneficiary = VersionedLocatableAccount::V4 {
 			location: xcm::v4::Location::here(),
-			account_id: beneficiary,
+			account_id: translated_beneficiary,
 		};
 		Ok((asset_kind, beneficiary))
+	}
+}
+
+impl RcToAhTreasurySpend {
+	/// Translates AccountId32 junctions within an XCM v4 Location from RC format to AH format.
+	///
+	/// Currently returns the location unchanged since the actual account translation logic
+	/// in the migration pallet is also a mock that returns accounts unchanged.
+	///
+	/// TODO: Implement actual account translation when the migration pallet is enhanced
+	/// with real RC->AH account translation logic.
+	fn translate_location_account_ids(location: xcm::v4::Location) -> xcm::v4::Location {
+		location
 	}
 }
