@@ -51,6 +51,7 @@ pub mod treasury;
 pub mod types;
 pub mod vesting;
 pub mod xcm_config;
+pub mod xcm_translation;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
