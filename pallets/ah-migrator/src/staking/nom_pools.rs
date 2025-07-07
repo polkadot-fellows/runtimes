@@ -146,7 +146,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-
 	/// Translate a bonded RC pool to an AH one.
 	pub fn rc_to_ah_bonded_pool(mut pool: BondedPoolInner<T>) -> BondedPoolInner<T> {
 		if let Some(ref mut throttle_from) = pool.commission.throttle_from {
@@ -287,7 +286,10 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 					},
 					BondedPools { pool: (pool_id, pool) } => {
 						let mut translated_pool = pool.clone();
-						translate_bonded_pool_accounts!(translated_pool, Pallet::<T>::translate_account_rc_to_ah);
+						translate_bonded_pool_accounts!(
+							translated_pool,
+							Pallet::<T>::translate_account_rc_to_ah
+						);
 						BondedPools { pool: (*pool_id, translated_pool) }
 					},
 					RewardPools { rewards } => RewardPools { rewards: rewards.clone() },
