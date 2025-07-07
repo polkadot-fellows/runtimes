@@ -11,6 +11,7 @@ repository.workspace = true
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
+frame-election-provider-support = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
@@ -69,6 +70,7 @@ std = [
 	"codec/std",
 	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
+	"frame-election-provider-support/std",
 	"frame-support/std",
 	"frame-system/std",
 	"hex/std",

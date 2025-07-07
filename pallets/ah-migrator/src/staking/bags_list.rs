@@ -18,24 +18,43 @@
 //! Fast unstake migration logic.
 
 use crate::*;
+use frame_election_provider_support::SortedListProvider;
 use pallet_rc_migrator::staking::bags_list::{alias, BagsListMigrator, GenericBagsListMessage};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bags_list_messages(
 		messages: Vec<RcBagsListMessage<T>>,
 	) -> Result<(), Error<T>> {
-		let (mut good, mut bad) = (0, 0);
+		let (mut good, bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} BagsListMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::BagsList,
 			count: messages.len() as u32,
 		});
 
+		// Collect all nodes with translated accounts and their scores
+		let mut nodes_to_insert: Vec<(T::AccountId, T::Score)> = Vec::new();
+
 		for message in messages {
-			match Self::do_receive_bags_list_message(message) {
-				Ok(_) => good += 1,
-				Err(_) => bad += 1,
+			match message {
+				RcBagsListMessage::Node { id, node } => {
+					let translated_id = Self::translate_account_rc_to_ah(id);
+					nodes_to_insert.push((translated_id, node.score));
+					good += 1;
+				},
+				RcBagsListMessage::Bag { .. } => {
+					// Bags will be automatically created when nodes are inserted
+					// TODO: Should I increment "good" or not? We are handling the message, but we
+					// are not processing it since the bag will be recreated automatically when
+					// nodes are inserted.
+					good += 1;
+				},
 			}
+		}
+
+		// Now rebuild the bags list structure properly using the pallet's methods
+		if !nodes_to_insert.is_empty() {
+			Self::rebuild_bags_list(nodes_to_insert)?;
 		}
 
 		Self::deposit_event(Event::BatchProcessed {
@@ -47,38 +66,27 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn do_receive_bags_list_message(message: RcBagsListMessage<T>) -> Result<(), Error<T>> {
-		match message {
-			RcBagsListMessage::Node { id, node } => {
-				let translated_id = Self::translate_account_rc_to_ah(id);
-				debug_assert!(!alias::ListNodes::<T>::contains_key(&translated_id));
+	/// Rebuild the bags list structure using the pallet's proper methods
+	/// This ensures correct sorting and prev/next relationships after account translation
+	fn rebuild_bags_list(nodes: Vec<(T::AccountId, T::Score)>) -> Result<(), Error<T>> {
+		log::info!(target: LOG_TARGET, "Rebuilding bags list with {} nodes", nodes.len());
 
-				// Translate all AccountId fields in the node structure
-				let translated_node = alias::Node {
-					id: Self::translate_account_rc_to_ah(node.id),
-					prev: node.prev.map(|account| Self::translate_account_rc_to_ah(account)),
-					next: node.next.map(|account| Self::translate_account_rc_to_ah(account)),
-					bag_upper: node.bag_upper,
-					score: node.score,
-				};
+		let results: Result<Vec<_>, _> = nodes
+			.into_iter()
+			.map(|(account, score)| {
+				<pallet_bags_list::Pallet<T, pallet_bags_list::Instance1> as SortedListProvider<T::AccountId>>::on_insert(account.clone(), score)
+					.map_err(|_| {
+						log::error!(target: LOG_TARGET, "Failed to insert account {:?} with score {:?}", account, score);
+						Error::<T>::FailedToInsertIntoBagsList
+					})
+					.map(|_| {
+						log::debug!(target: LOG_TARGET, "Inserted account {:?} with score {:?}", account, score);
+					})
+			})
+			.collect();
 
-				alias::ListNodes::<T>::insert(&translated_id, &translated_node);
-				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &translated_id);
-			},
-			RcBagsListMessage::Bag { score, bag } => {
-				debug_assert!(!alias::ListBags::<T>::contains_key(&score));
-
-				// Translate all AccountId fields in the bag structure
-				let translated_bag = alias::Bag {
-					head: bag.head.map(|account| Self::translate_account_rc_to_ah(account)),
-					tail: bag.tail.map(|account| Self::translate_account_rc_to_ah(account)),
-				};
-
-				alias::ListBags::<T>::insert(&score, &translated_bag);
-				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
-			},
-		}
-
+		results?;
+		log::info!(target: LOG_TARGET, "Successfully rebuilt bags list structure");
 		Ok(())
 	}
 }
