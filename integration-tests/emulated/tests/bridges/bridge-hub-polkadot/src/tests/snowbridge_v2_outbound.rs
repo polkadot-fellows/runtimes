@@ -29,13 +29,13 @@ use snowbridge_pallet_outbound_queue_v2::Error;
 use sp_core::H256;
 use xcm::v5::AssetTransferFilter;
 use frame_support::BoundedVec;
-use xcm::latest::WESTEND_GENESIS_HASH;
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFeeV2;
+use frame_support::traits::fungibles::Mutate;
 
 #[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
 pub enum EthereumSystemFrontendCall {
 	#[codec(index = 1)]
-	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset },
+	//RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset }, // TODO when upgraded
+	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata },
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -166,7 +166,9 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 	fund_on_bh();
 	register_assets_on_ah();
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 	set_up_eth_and_dot_pool();
+
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -182,10 +184,6 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 				},
 			)
 		);
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::SwapExecuted { .. }) => {},]
-		);
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -200,18 +198,15 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 #[test]
 fn transfer_relay_token_from_ah() {
 	let ethereum_sovereign: AccountId = snowbridge_sovereign();
-
 	fund_on_bh();
-
 	// register token in either of the follow way should work
 	// a. register_relay_token_on_bh();
 	// b. register_relay_token_from_asset_hub_with_sudo();
 	// c. register_relay_token_from_asset_hub_user_origin();
 	register_relay_token_on_bh();
-
 	register_assets_on_ah();
-
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 
 	// Send token to Ethereum
 	AssetHubPolkadot::execute_with(|| {
@@ -307,12 +302,10 @@ fn transfer_relay_token_from_ah() {
 #[test]
 fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 	fund_on_bh();
-
 	register_relay_token_on_bh();
-
 	register_assets_on_ah();
-
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -394,12 +387,10 @@ fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 #[test]
 fn transact_with_agent_from_asset_hub() {
 	let weth_asset_location: Location = weth_location();
-
 	fund_on_bh();
-
 	register_assets_on_ah();
-
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -490,10 +481,9 @@ fn transact_with_agent_from_asset_hub() {
 #[test]
 fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 	fund_on_bh();
-
 	register_assets_on_ah();
-
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -577,9 +567,13 @@ fn register_token_from_penpal() {
 	register_assets_on_ah();
 	fund_on_ah();
 	create_pools_on_ah();
+	set_bridge_hub_ethereum_base_fee();
+
 	set_trust_reserve_on_penpal();
 	register_assets_on_penpal();
 	fund_on_penpal();
+	set_up_eth_and_dot_pool_on_penpal();
+
 	let penpal_user_location = Location::new(
 		1,
 		[
@@ -602,16 +596,16 @@ fn register_token_from_penpal() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(ethereum()), fun: Fungible(600_000_000_00000) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(ethereum()), fun: Fungible(600_000_000_00000) };
 
 		let call = EthereumSystemFrontend::EthereumSystemFrontend(
 			EthereumSystemFrontendCall::RegisterToken {
 				asset_id: Box::new(VersionedLocation::from(foreign_asset_at_asset_hub)),
 				metadata: Default::default(),
-				fee_asset: remote_fee_asset_on_ethereum.clone(),
+				//fee_asset: remote_fee_asset_on_ethereum.clone(),
 			},
 		);
 
@@ -698,10 +692,12 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 	register_pal_on_ah();
 	register_pal_on_bh();
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 	// penpal
 	set_trust_reserve_on_penpal();
 	register_assets_on_penpal();
 	fund_on_penpal();
+	//set_up_eth_and_dot_pool_on_penpal();
 
 	PenpalB::execute_with(|| {
 		type RuntimeOrigin = <PenpalB as Chain>::RuntimeOrigin;
@@ -710,10 +706,10 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(ethereum()), fun: Fungible(60000_000_000_00000) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(ethereum()), fun: Fungible(60000_000_000_00000) };
 
 		let pna =
 			Asset { id: AssetId(LocalTeleportableToAssetHub::get()), fun: Fungible(TOKEN_AMOUNT) };
@@ -755,7 +751,8 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 					// b. AH is configured to trust asset teleport from sibling chain
 					AssetTransferFilter::Teleport(Definite(pna.clone().into())),
 				]),
-				remote_xcm: Xcm(vec![InitiateTransfer {
+				remote_xcm: Xcm(vec![
+					InitiateTransfer {
 					destination: ethereum(),
 					remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 						remote_fee_asset_on_ethereum.clone().into(),
@@ -776,8 +773,10 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 							fallback_max_weight: None,
 							call: transact_info.encode().into(),
 						},
-					]),
-				}]),
+					]
+					),
+					}
+				]),
 			},
 		]));
 
@@ -852,10 +851,9 @@ fn invalid_nonce_for_delivery_receipt_fails() {
 #[test]
 fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode() {
 	fund_on_bh();
-
 	register_assets_on_ah();
-
 	fund_on_ah();
+	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;

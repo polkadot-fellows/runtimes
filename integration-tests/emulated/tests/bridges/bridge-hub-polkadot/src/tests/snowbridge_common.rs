@@ -31,13 +31,13 @@ use xcm_builder::ExternalConsensusLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
 use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFeeV2;
 
-pub const INITIAL_FUND: u128 = 50_000_000_000_000;
+pub const INITIAL_FUND: u128 = 50000_000_000_000_0000;
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
 pub const AGENT_ADDRESS: [u8; 20] = hex!("90A987B944Cb1dCcE5564e5FDeCD7a54D3de27Fe");
-pub const TOKEN_AMOUNT: u128 = 10_000_000_000_000;
-pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 600_000_000_000;
-pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_000;
-pub const EXECUTION_WEIGHT: u64 = 8_000_000_000;
+pub const TOKEN_AMOUNT: u128 = 10_000_000_000_000_000;
+pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 6_000_000_000_000_000;
+pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
+pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
 const AH_BASE_FEE_V2: u128 = 100_000_000_000;
 
 pub fn beneficiary() -> Location {
@@ -315,33 +315,54 @@ pub fn fund_on_ah() {
 }
 
 pub fn create_pools_on_ah() {
-	// We create a pool between WND and WETH in AssetHub to support paying for fees with WETH.
+	// We create a pool between DOT and ETH in AssetHub to support paying for fees with ETH.
 	let ethereum_sovereign = snowbridge_sovereign();
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
+			eth_location().try_into().unwrap(),
+			&ethereum_sovereign.clone(),
+			50000_000_000_000_0000,
+		));
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
+			weth_location().try_into().unwrap(),
+			&ethereum_sovereign.clone(),
+			50000_000_000_000_0000,
+		));
+	});
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
 		weth_location(),
 		true,
 		ethereum_sovereign.clone(),
-		1_000_000_000_000,
-		20_000_000_000
+		900_000_000_000,
+		100_000_000_000_0000
 	);
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
 		ethereum(),
 		true,
 		ethereum_sovereign.clone(),
-		1_000_000_000_000,
-		20_000_000_000
+		900_000_000_000,
+		100_000_000_000_0000
 	);
 }
 
 pub(crate) fn set_up_eth_and_dot_pool() {
-	// We create a pool between WND and WETH in AssetHub to support paying for fees with WETH.
+	// We create a pool between DOT and WETH in AssetHub to support paying for fees with WETH.
 	let ethereum_sovereign = snowbridge_sovereign();
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
+			eth_location().try_into().unwrap(),
+			&ethereum_sovereign.clone(),
+			500_000_000_000_000,
+		));
+	});
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
 		eth_location(),
@@ -356,6 +377,13 @@ pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
 	let ethereum_sovereign = snowbridge_sovereign();
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), 100_000_000_000_000)]);
 	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	PenpalB::execute_with(|| {
+		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
+			eth_location().try_into().unwrap(),
+			&ethereum_sovereign.clone(),
+			500_000_000_000_000,
+		));
+	});
 	create_pool_with_native_on!(
 		PenpalB,
 		eth_location(),
