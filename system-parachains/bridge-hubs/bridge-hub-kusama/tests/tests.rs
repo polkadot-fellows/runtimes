@@ -25,7 +25,7 @@ use bridge_hub_kusama_runtime::{
 		XcmOverBridgeHubPolkadotInstance,
 	},
 	xcm_config::{
-		GovernanceLocation, KsmRelayLocation, LocationToAccountId, RelayNetwork,
+		AhGovernanceLocation, KsmRelayLocation, LocationToAccountId, RelayNetwork,
 		RelayTreasuryLocation, RelayTreasuryPalletAccount, XcmConfig,
 	},
 	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
@@ -61,6 +61,7 @@ parameter_types! {
 	pub SiblingParachainLocation: Location = Location::new(1, [Parachain(SIBLING_PARACHAIN_ID)]);
 	pub SiblingSystemParachainLocation: Location = Location::new(1, [Parachain(SIBLING_SYSTEM_PARACHAIN_ID)]);
 	pub BridgedUniversalLocation: InteriorLocation = [GlobalConsensus(PolkadotGlobalConsensusNetwork::get()), Parachain(BRIDGED_LOCATION_PARACHAIN_ID)].into();
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Location(AhGovernanceLocation::get());
 }
 
 // Runtime from tests PoV
@@ -166,7 +167,7 @@ fn initialize_bridge_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -179,7 +180,7 @@ fn change_bridge_grandpa_pallet_mode_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -192,7 +193,7 @@ fn change_bridge_parachains_pallet_mode_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -205,7 +206,7 @@ fn change_bridge_messages_pallet_mode_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -218,7 +219,7 @@ fn change_delivery_reward_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| (DeliveryRewardInBalance::key().to_vec(), DeliveryRewardInBalance::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
@@ -233,7 +234,7 @@ fn change_required_stake_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| (RequiredStakeForStakeAndSlash::key().to_vec(), RequiredStakeForStakeAndSlash::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
