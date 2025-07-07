@@ -17,16 +17,18 @@
 use crate::XcmOverBridgeHubKusama;
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balances,
+	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balance, Balances,
 	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
 	Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
+use core::marker::PhantomData;
 use frame_support::{
 	parameter_types,
-	traits::{tokens::imbalance::ResolveTo, ConstU32, Contains, Equals, Everything, Nothing},
+	traits::{
+		tokens::imbalance::ResolveTo, ConstU32, Contains, Disabled, Equals, Everything, Nothing,
+	},
 };
 use frame_system::EnsureRoot;
-use pallet_collator_selection::StakingPotAccountId;
 use pallet_xcm::XcmPassthrough;
 use pallets_common::LocationAsSuperuser;
 use parachains_common::xcm_config::{
@@ -37,7 +39,6 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_runtime::traits::AccountIdConversion;
-use sp_std::marker::PhantomData;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -56,6 +57,7 @@ use xcm_executor::{
 };
 
 parameter_types! {
+	pub const RootLocation: Location = Location::here();
 	pub const DotRelayLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -197,6 +199,7 @@ pub type Barrier = TrailingSetTopicAsId<
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
+	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
@@ -228,7 +231,7 @@ impl xcm_executor::Config for XcmConfig {
 		DotRelayLocation,
 		AccountId,
 		Balances,
-		ResolveTo<StakingPotAccountId<Runtime>, Balances>,
+		ResolveTo<StakingPot, Balances>,
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
@@ -242,7 +245,7 @@ impl xcm_executor::Config for XcmConfig {
 		WaivedLocations,
 		(
 			XcmExportFeeToSibling<
-				bp_polkadot::Balance,
+				Balance,
 				AccountId,
 				DotRelayLocation,
 				EthereumNetwork,
@@ -263,6 +266,7 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
 	type XcmRecorder = PolkadotXcm;
+	type XcmEventEmitter = PolkadotXcm;
 }
 
 /// Converts a local signed origin into an XCM `Location`.
@@ -308,6 +312,7 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
+	type AuthorizedAliasConsideration = Disabled;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -329,7 +334,7 @@ impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
 		let Some(loc) = origin else { return false };
 		if let Export { network, destination: Here } = fee_reason {
 			if network == EthereumNetwork::get() {
-				return false
+				return false;
 			}
 		}
 		WaivedLocations::contains(loc)

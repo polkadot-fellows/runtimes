@@ -57,7 +57,6 @@ sp-io = { workspace = true }
 sp-offchain = { workspace = true }
 sp-runtime = { workspace = true }
 sp-session = { workspace = true }
-sp-std = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
@@ -94,8 +93,6 @@ bp-parachains = { workspace = true }
 bp-polkadot-core = { workspace = true }
 bp-relayers = { workspace = true }
 bp-runtime = { workspace = true }
-bp-kusama = { workspace = true }
-bp-polkadot = { workspace = true }
 bp-xcm-bridge-hub = { workspace = true }
 bp-xcm-bridge-hub-router = { workspace = true }
 bridge-hub-common = { workspace = true }
@@ -113,7 +110,6 @@ bridge-runtime-common = { features = [
 ], workspace = true, default-features = true }
 pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
-static_assertions = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
@@ -124,11 +120,9 @@ std = [
 	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"bp-header-chain/std",
-	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
 	"bp-polkadot-core/std",
-	"bp-polkadot/std",
 	"bp-relayers/std",
 	"bp-runtime/std",
 	"bp-xcm-bridge-hub-router/std",
@@ -191,7 +185,6 @@ std = [
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
-	"sp-std/std",
 	"sp-storage/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
@@ -205,6 +198,10 @@ std = [
 ]
 
 runtime-benchmarks = [
+	"bp-asset-hub-kusama/runtime-benchmarks",
+	"bp-asset-hub-polkadot/runtime-benchmarks",
+	"bp-bridge-hub-kusama/runtime-benchmarks",
+	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"bridge-hub-common/runtime-benchmarks",
 	"bridge-runtime-common/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
@@ -226,6 +223,7 @@ runtime-benchmarks = [
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm-bridge-hub/runtime-benchmarks",
@@ -239,6 +237,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
 
 try-runtime = [

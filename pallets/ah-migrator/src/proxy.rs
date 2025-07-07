@@ -55,7 +55,8 @@ impl<T: Config> Pallet<T> {
 		let mut proxies = proxy.proxies.into_iter().enumerate().filter_map(|(i, p)| {
 			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type.clone()) else {
 				log::info!(target: LOG_TARGET, "Dropping unsupported proxy kind of '{:?}' at index {} for {}", p.proxy_type, i, proxy.delegator.to_polkadot_ss58());
-				// TODO unreserve deposit
+				// we do not unreserve the deposit for unsupported proxies since this can be done
+				// with the `poke_deposit` dispatchable call.
 				return None;
 			};
 			let delay = T::RcToAhDelay::convert(p.delay);

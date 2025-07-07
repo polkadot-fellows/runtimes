@@ -21,7 +21,9 @@ use super::{
 use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
-	traits::{tokens::imbalance::ResolveTo, ConstU32, Contains, Equals, Everything, Nothing},
+	traits::{
+		tokens::imbalance::ResolveTo, ConstU32, Contains, Disabled, Equals, Everything, Nothing,
+	},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -31,16 +33,15 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{
-	system_parachain::ASSET_HUB_ID, xcm::body::FELLOWSHIP_ADMIN_INDEX,
-};
+use polkadot_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
+use system_parachains_constants::{polkadot::locations::AssetHubLocation, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
-	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
-	DenyThenTry, DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
+	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
+	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
+	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete, LocatableAssetId,
 	OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
 	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
@@ -72,8 +73,6 @@ parameter_types! {
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
-	// TODO: replace from system consts
-	pub AssetHubLocation: Location = (Parent, Parachain(ASSET_HUB_ID)).into();
 	pub AssetHubUsdt: LocatableAssetId = LocatableAssetId {
 		location: AssetHubLocation::get(),
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
@@ -196,15 +195,19 @@ pub type Barrier = TrailingSetTopicAsId<
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
+	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
-	Equals<RootLocation>,
 	LocalPlurality,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 /// - DOT with the parent Relay Chain and sibling parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<DotLocation>;
+
+/// We allow locations to alias into their own child locations, as well as
+/// AssetHub to alias into anything.
+pub type Aliasers = (AliasChildLocation, AliasOriginRootUsingFilter<AssetHubLocation, Everything>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -247,11 +250,12 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Nothing;
+	type Aliasers = Aliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
+	type XcmEventEmitter = PolkadotXcm;
 }
 
 /// Converts a local signed origin into an XCM `Location`.
@@ -300,6 +304,8 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
+	// Aliasing is disabled: xcm_executor::Config::Aliasers only allows some privileged locations.
+	type AuthorizedAliasConsideration = Disabled;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {

@@ -49,41 +49,53 @@ pub enum Permission {
 	Auction,
 	NominationPools,
 	ParaRegistration,
+	Assets,
+	AssetOwner,
+	AssetManager,
+	Collator,
+	Old,
 }
 
-// Implementation for the Polkadot runtime. Will need more for Kusama and Westend in the future.
+// Relay -> Permission
 impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 	fn try_convert(
 		proxy: rc_proxy_definition::ProxyType,
 	) -> Result<Self, rc_proxy_definition::ProxyType> {
-		use rc_proxy_definition::ProxyType::*;
+		use rc_proxy_definition::ProxyType;
 
 		Ok(match proxy {
-			Any => Permission::Any,
-			NonTransfer => Permission::NonTransfer,
-			Governance => Permission::Governance,
-			Staking => Permission::Staking,
-			CancelProxy => Permission::CancelProxy,
-			Auction => Permission::Auction,
-			NominationPools => Permission::NominationPools,
-			ParaRegistration => Permission::ParaRegistration,
+			ProxyType::Any => Permission::Any,
+			ProxyType::Auction => Permission::Auction,
+			ProxyType::CancelProxy => Permission::CancelProxy,
+			ProxyType::Governance => Permission::Governance,
+			ProxyType::NominationPools => Permission::NominationPools,
+			ProxyType::NonTransfer => Permission::NonTransfer,
+			ProxyType::ParaRegistration => Permission::ParaRegistration,
+			ProxyType::Staking => Permission::Staking,
 		})
 	}
 }
 
+// AH -> Permission
 impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permission {
 	fn try_convert(
 		proxy: asset_hub_polkadot_runtime::ProxyType,
 	) -> Result<Self, asset_hub_polkadot_runtime::ProxyType> {
-		use asset_hub_polkadot_runtime::ProxyType::*; // FAIL-CI
+		use asset_hub_polkadot_runtime::ProxyType;
 
 		Ok(match proxy {
-			Any => Permission::Any,
-			NonTransfer => Permission::NonTransfer,
-			Governance => Permission::Governance,
-			Staking => Permission::Staking,
-			CancelProxy => Permission::CancelProxy,
-			Auction => Permission::Auction,
+			ProxyType::Any => Permission::Any,
+			ProxyType::AssetManager => Permission::AssetManager,
+			ProxyType::AssetOwner => Permission::AssetOwner,
+			ProxyType::Assets => Permission::Assets,
+			ProxyType::CancelProxy => Permission::CancelProxy,
+			ProxyType::Collator => Permission::Collator,
+			ProxyType::Governance => Permission::Governance,
+			ProxyType::NominationPools => Permission::NominationPools,
+			ProxyType::NonTransfer => Permission::NonTransfer,
+			ProxyType::OldAuction => Permission::Old,
+			ProxyType::OldParaRegistration => Permission::Old,
+			ProxyType::Staking => Permission::Staking,
 		})
 	}
 }

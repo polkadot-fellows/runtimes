@@ -31,6 +31,7 @@ pub fn genesis() -> Storage {
 		system: coretime_polkadot_runtime::SystemConfig::default(),
 		balances: coretime_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances().iter().cloned().map(|k| (k, ED * 4096)).collect(),
+			dev_accounts: None,
 		},
 		parachain_info: coretime_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),

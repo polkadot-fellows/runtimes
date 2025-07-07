@@ -142,8 +142,17 @@ pub type MigrationStageOf<T> = MigrationStage<
 	scheduler::SchedulerBlockNumberFor<T>,
 >;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum PalletEventName {
 	FastUnstake,
 	BagsList,
@@ -151,8 +160,18 @@ pub enum PalletEventName {
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum MigrationStage<
 	AccountId,
 	BlockNumber,
@@ -296,7 +315,7 @@ pub enum MigrationStage<
 		last_key: Option<scheduler::SchedulerStage<SchedulerBlockNumber>>,
 	},
 	SchedulerAgendaMigrationOngoing {
-		last_key: Option<BlockNumber>,
+		last_key: Option<SchedulerBlockNumber>,
 	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,
@@ -603,6 +622,10 @@ pub mod pallet {
 			/// The new priority pattern.
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		},
+		/// The total issuance was recorded.
+		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
+		/// The RC kept balance was consumed.
+		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
 	}
 
 	/// The Relay Chain migration state.
@@ -612,8 +635,13 @@ pub mod pallet {
 	/// Helper storage item to obtain and store the known accounts that should be kept partially or
 	/// fully on Relay Chain.
 	#[pallet::storage]
-	pub type RcAccounts<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, accounts::AccountState<T::Balance>, OptionQuery>;
+	pub type RcAccounts<T: Config> = CountedStorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		accounts::AccountState<T::Balance>,
+		OptionQuery,
+	>;
 
 	/// Helper storage item to store the total balance that should be kept on Relay Chain.
 	#[pallet::storage]
@@ -884,6 +912,16 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
+/* let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+							// ensure new era is not planned when starting migration.
+							if current_era > active_era {
+								defensive!("New era is planned, migration cannot start until it is completed");
+								Self::transition(MigrationStage::Pending);
+								return weight_counter.consumed();
+							}
+								*/ // FAIL-CI staking check
+
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
@@ -925,12 +963,17 @@ pub mod pallet {
 				MigrationStage::AccountsMigrationInit => {
 					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
 					weight_counter.consume(weight);
+					let total_issuance = <T as Config>::Currency::total_issuance();
 					RcMigratedBalance::<T>::mutate(|tracker| {
 						// initialize `kept` balance as total issuance, we'll substract from it as
 						// we migrate accounts
-						tracker.kept = <T as Config>::Currency::total_issuance();
+						tracker.kept = total_issuance;
+						tracker.migrated = 0;
 					});
-
+					Self::deposit_event(Event::MigratedBalanceRecordSet {
+						kept: total_issuance,
+						migrated: 0,
+					});
 					Self::transition(MigrationStage::AccountsMigrationOngoing { last_key: None });
 				},
 				MigrationStage::AccountsMigrationOngoing { last_key } => {
@@ -1676,9 +1719,22 @@ pub mod pallet {
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 
 					// Send finish message to AH, TODO: weight
-					let tracker = RcMigratedBalance::<T>::get();
-					let data = MigrationFinishedData {
-						rc_balance_kept: tracker.kept,
+					let data = if RcMigratedBalance::<T>::exists() {
+						let tracker = if cfg!(feature = "std") {
+							// we should keep this value for the tests.
+							RcMigratedBalance::<T>::get()
+						} else {
+							RcMigratedBalance::<T>::take()
+						};
+						Self::deposit_event(Event::MigratedBalanceConsumed {
+							kept: tracker.kept,
+							migrated: tracker.migrated,
+						});
+						Some(MigrationFinishedData {
+							rc_balance_kept: tracker.kept,
+						})
+					} else {
+						None
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
 					if let Err(err) = Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
@@ -1810,17 +1866,7 @@ pub mod pallet {
 					},
 					Instruction::Transact {
 						origin_kind: OriginKind::Superuser,
-						// The `require_weight_at_most` parameter is used by the XCM executor to
-						// verify if the available weight is sufficient to process this call. If
-						// sufficient, the executor will execute the call and use the actual weight
-						// from the dispatchable result to adjust the meter limit. The weight meter
-						// limit on the Asset Hub is [Config::MaxAhWeight], which applies not only
-						// to process the calls passed with XCM messages but also to some base work
-						// required to process an XCM message.
-						// Additionally the call will not be executed if `require_weight_at_most` is
-						// lower than the actual weight of the call.
-						// TODO: we can remove ths with XCMv5
-						require_weight_at_most: weight_at_most(batch_len),
+						fallback_max_weight: None, // TODO @muharem: is this what you meant?
 						call: call.encode().into(),
 					},
 					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
@@ -1863,17 +1909,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Superuser,
-					// The `require_weight_at_most` parameter is used by the XCM executor to verify
-					// if the available weight is sufficient to process this call. If sufficient,
-					// the executor will execute the call and use the actual weight from the
-					// dispatchable result to adjust the meter limit. The weight meter limit on the
-					// Asset Hub is [Config::MaxAhWeight], which applies not only to process the
-					// calls passed with XCM messages but also to some base work required to process
-					// an XCM message.
-					// Additionally the call will not be executed if `require_weight_at_most` is
-					// lower than the actual weight of the call.
-					// TODO: we can remove ths with XCMv5
-					require_weight_at_most: weight_at_most,
+					fallback_max_weight: None, // TODO @muharem: is this what you meant?
 					call: call.encode().into(),
 				},
 			]);

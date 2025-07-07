@@ -81,8 +81,7 @@ mod aliases {
 // generics, otherwise it would be a bug and fail to decode. However, we can just prevent that but
 // by not exposing generics... On the other hand: for Westend and Kusama it could possibly help if
 // we don't hard-code all types.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcMultisig<AccountId, Balance> {
 	/// The creator of the multisig who placed the deposit.
 	pub creator: AccountId,
@@ -145,11 +144,6 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 			let kv = iter.next();
 
-			// Remove the previous multisig from storage if it exists.
-			if let Some((k1, k2)) = last_key {
-				aliases::Multisigs::<T>::remove(k1.clone(), k2.clone());
-			}
-
 			let Some((k1, k2, multisig)) = kv else {
 				last_key = None;
 				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
@@ -164,6 +158,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				details: Some(k1.clone()),
 			});
 
+			aliases::Multisigs::<T>::remove(&k1, &k2);
 			last_key = Some((k1, k2));
 		}
 

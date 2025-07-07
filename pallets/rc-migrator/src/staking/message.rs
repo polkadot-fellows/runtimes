@@ -191,21 +191,21 @@ pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
 
 #[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct StakingValues<Balance> {
-	pub validator_count: u32,
-	pub min_validator_count: u32,
-	pub min_nominator_bond: Balance,
-	pub min_validator_bond: Balance,
-	pub min_active_stake: Balance,
-	pub min_commission: Perbill,
+	pub validator_count: Option<u32>,
+	pub min_validator_count: Option<u32>,
+	pub min_nominator_bond: Option<Balance>,
+	pub min_validator_bond: Option<Balance>,
+	pub min_active_stake: Option<Balance>,
+	pub min_commission: Option<Perbill>,
 	pub max_validators_count: Option<u32>,
 	pub max_nominators_count: Option<u32>,
 	pub current_era: Option<EraIndex>,
 	pub active_era: Option<ActiveEraInfo>,
-	pub force_era: Forcing,
+	pub force_era: Option<Forcing>,
 	pub max_staked_rewards: Option<Percent>,
-	pub slash_reward_fraction: Perbill,
-	pub canceled_slash_payout: Balance,
-	pub current_planned_session: SessionIndex,
+	pub slash_reward_fraction: Option<Perbill>,
+	pub canceled_slash_payout: Option<Balance>,
+	pub current_planned_session: Option<SessionIndex>,
 	pub chill_threshold: Option<Percent>,
 }
 
@@ -445,21 +445,25 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 		use pallet_staking::*;
 
 		StakingValues {
-			validator_count: ValidatorCount::<T>::take(),
-			min_validator_count: MinimumValidatorCount::<T>::take(),
-			min_nominator_bond: MinNominatorBond::<T>::take(),
-			min_validator_bond: MinValidatorBond::<T>::take(),
-			min_active_stake: MinimumActiveStake::<T>::take(),
-			min_commission: MinCommission::<T>::take(),
+			validator_count: ValidatorCount::<T>::exists().then(ValidatorCount::<T>::take),
+			min_validator_count: MinimumValidatorCount::<T>::exists()
+				.then(MinimumValidatorCount::<T>::take),
+			min_nominator_bond: MinNominatorBond::<T>::exists().then(MinNominatorBond::<T>::take),
+			min_validator_bond: MinValidatorBond::<T>::exists().then(MinValidatorBond::<T>::take),
+			min_active_stake: MinimumActiveStake::<T>::exists().then(MinimumActiveStake::<T>::take),
+			min_commission: MinCommission::<T>::exists().then(MinCommission::<T>::take),
 			max_validators_count: MaxValidatorsCount::<T>::take(),
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
 			active_era: ActiveEra::<T>::take(),
-			force_era: ForceEra::<T>::take(),
+			force_era: ForceEra::<T>::exists().then(ForceEra::<T>::take),
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
-			slash_reward_fraction: SlashRewardFraction::<T>::take(),
-			canceled_slash_payout: CanceledSlashPayout::<T>::take(),
-			current_planned_session: CurrentPlannedSession::<T>::take(),
+			slash_reward_fraction: SlashRewardFraction::<T>::exists()
+				.then(SlashRewardFraction::<T>::take),
+			canceled_slash_payout: CanceledSlashPayout::<T>::exists()
+				.then(CanceledSlashPayout::<T>::take),
+			current_planned_session: CurrentPlannedSession::<T>::exists()
+				.then(CurrentPlannedSession::<T>::take),
 			chill_threshold: ChillThreshold::<T>::take(),
 		}
 	}
@@ -469,24 +473,27 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 	pub fn put_values(values: AhStakingValuesOf<T>) {
 		use pallet_staking_async::*;
 
-		ValidatorCount::<T>::put(&values.validator_count);
+		values.validator_count.map(ValidatorCount::<T>::put);
 		// MinimumValidatorCount is not migrated
-		MinNominatorBond::<T>::put(&values.min_nominator_bond);
-		MinValidatorBond::<T>::put(&values.min_validator_bond);
-		MinimumActiveStake::<T>::put(&values.min_active_stake);
-		MinCommission::<T>::put(&values.min_commission);
-		MaxValidatorsCount::<T>::set(values.max_validators_count);
-		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		let active_era = values.active_era.map(pallet_staking::ActiveEraInfo::intoAh);
-
-		ActiveEra::<T>::set(active_era.clone());
-		CurrentEra::<T>::set(active_era.map(|a| a.index));
-		ForceEra::<T>::put(pallet_staking::Forcing::intoAh(values.force_era));
-		MaxStakedRewards::<T>::set(values.max_staked_rewards);
-		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
-		CanceledSlashPayout::<T>::set(values.canceled_slash_payout);
+		values.min_nominator_bond.map(MinNominatorBond::<T>::put);
+		values.min_validator_bond.map(MinValidatorBond::<T>::put);
+		values.min_active_stake.map(MinimumActiveStake::<T>::put);
+		values.min_commission.map(MinCommission::<T>::put);
+		values.max_validators_count.map(MaxValidatorsCount::<T>::put);
+		values.max_nominators_count.map(MaxNominatorsCount::<T>::put);
+		values.active_era.map(|active_era| {
+			let active_era = pallet_staking::ActiveEraInfo::intoAh(active_era);
+			ActiveEra::<T>::put(active_era);
+			CurrentEra::<T>::put(active_era.map(|a| a.index));
+		});
+		values.force_era.map(|force_era| {
+			ForceEra::<T>::put(pallet_staking::Forcing::intoAh(force_era));
+		});
+		values.max_staked_rewards.map(MaxStakedRewards::<T>::put);
+		values.slash_reward_fraction.map(SlashRewardFraction::<T>::put);
+		values.canceled_slash_payout.map(CanceledSlashPayout::<T>::put);
 		// CurrentPlannedSession is not migrated
-		ChillThreshold::<T>::set(values.chill_threshold);
+		values.chill_threshold.map(ChillThreshold::<T>::put);
 	}
 }
 

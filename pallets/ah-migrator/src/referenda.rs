@@ -211,7 +211,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_referenda_values(
-		referendum_count: u32,
+		referendum_count: Option<u32>,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	) -> Result<(), Error<T>> {
@@ -221,14 +221,20 @@ impl<T: Config> Pallet<T> {
 			count: 1,
 		});
 
-		ReferendumCount::<T, ()>::put(referendum_count);
-		deciding_count.iter().for_each(|(track_id, count)| {
-			DecidingCount::<T, ()>::insert(track_id, count);
-		});
-		track_queue.into_iter().for_each(|(track_id, queue)| {
-			let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
-			TrackQueue::<T, ()>::insert(track_id, queue);
-		});
+		if let Some(referendum_count) = referendum_count {
+			ReferendumCount::<T, ()>::put(referendum_count);
+		}
+		if deciding_count.len() > 0 {
+			deciding_count.iter().for_each(|(track_id, count)| {
+				DecidingCount::<T, ()>::insert(track_id, count);
+			});
+		}
+		if track_queue.len() > 0 {
+			track_queue.into_iter().for_each(|(track_id, queue)| {
+				let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
+				TrackQueue::<T, ()>::insert(track_id, queue);
+			});
+		}
 
 		Self::deposit_event(Event::BatchProcessed {
 			pallet: PalletEventName::ReferendaValues,

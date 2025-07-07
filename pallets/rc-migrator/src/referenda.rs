@@ -21,8 +21,18 @@ use pallet_referenda::{
 };
 
 /// The stages of the referenda pallet migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum ReferendaStage {
 	#[default]
 	StorageValues,
@@ -64,7 +74,10 @@ impl<T: Config> ReferendaMigrator<T> {
 	fn migrate_values(weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Migrating referenda values");
 
-		let referendum_count = ReferendumCount::<T, ()>::take();
+		let referendum_count =
+			ReferendumCount::<T, ()>::exists().then(ReferendumCount::<T, ()>::take);
+
+		// expected tracks count.
 		const TRACKS_COUNT: usize = 16;
 
 		// track_id, count
@@ -80,6 +93,14 @@ impl<T: Config> ReferendaMigrator<T> {
 			.map(|(track_id, queue)| (track_id, queue.into_inner()))
 			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
+
+		if referendum_count.is_none() && deciding_count.is_empty() && track_queue.is_empty() {
+			log::info!(
+				target: LOG_TARGET,
+				"Referenda values are empty. Skipping referenda values migration.",
+			);
+			return Ok(());
+		}
 
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		batch.push((referendum_count, deciding_count, track_queue));

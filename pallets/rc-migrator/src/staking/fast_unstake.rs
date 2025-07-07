@@ -19,8 +19,17 @@
 use crate::{types::*, *};
 use alias::UnstakeRequest;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum FastUnstakeStage<AccountId> {
 	StorageValues,
 	Queue(Option<AccountId>),
@@ -30,6 +39,7 @@ pub enum FastUnstakeStage<AccountId> {
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
 	RuntimeDebugNoBound,
@@ -39,7 +49,6 @@ pub enum FastUnstakeStage<AccountId> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 	StorageValues { values: FastUnstakeStorageValues<T> },
 	Queue { member: (T::AccountId, alias::BalanceOf<T>) },
@@ -49,6 +58,7 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
 	CloneNoBound,
@@ -58,23 +68,31 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub head: Option<UnstakeRequest<T>>,
-	pub eras_to_check_per_block: u32,
+	pub eras_to_check_per_block: Option<u32>,
+}
+
+impl<T: pallet_fast_unstake::Config> FastUnstakeStorageValues<T> {
+	pub fn is_empty(&self) -> bool {
+		self.head.is_none() && self.eras_to_check_per_block.is_none()
+	}
 }
 
 impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T> {
 	pub fn take_values() -> FastUnstakeStorageValues<T> {
 		FastUnstakeStorageValues {
 			head: alias::Head::<T>::take(),
-			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::take(),
+			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::exists()
+				.then(pallet_fast_unstake::ErasToCheckPerBlock::<T>::take),
 		}
 	}
 
 	pub fn put_values(values: FastUnstakeStorageValues<T>) {
-		alias::Head::<T>::set(values.head);
-		pallet_fast_unstake::ErasToCheckPerBlock::<T>::put(values.eras_to_check_per_block);
+		values.head.map(alias::Head::<T>::put);
+		values
+			.eras_to_check_per_block
+			.map(pallet_fast_unstake::ErasToCheckPerBlock::<T>::put);
 	}
 }
 
@@ -122,7 +140,15 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 			inner_key = match inner_key {
 				FastUnstakeStage::StorageValues => {
 					let values = Self::take_values();
-					messages.push(RcFastUnstakeMessage::StorageValues { values });
+					if !values.is_empty() {
+						messages.push(RcFastUnstakeMessage::StorageValues { values });
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Fast unstake storage values are empty. Skipping fast unstake values \
+								migration.",
+						);
+					}
 					FastUnstakeStage::Queue(None)
 				},
 				FastUnstakeStage::Queue(queue_iter) => {
@@ -217,6 +243,7 @@ pub mod alias {
 	#[derive(
 		Encode,
 		Decode,
+		DecodeWithMemTracking,
 		EqNoBound,
 		PartialEqNoBound,
 		CloneNoBound,
@@ -225,7 +252,6 @@ pub mod alias {
 		MaxEncodedLen,
 	)]
 	#[scale_info(skip_type_params(T))]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct UnstakeRequest<T: pallet_fast_unstake::Config> {
 		/// This list of stashes are being processed in this request, and their corresponding
 		/// deposit.

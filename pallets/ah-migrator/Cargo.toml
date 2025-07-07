@@ -155,6 +155,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
@@ -185,14 +186,4 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-]
-
-ahm-kusama = [
-	"pallet-rc-migrator/ahm-kusama",
-]
-stable2503 = [
-	"pallet-rc-migrator/stable2503",
-]
-ahm-staking-migration = [
-	"pallet-rc-migrator/ahm-staking-migration",
 ]

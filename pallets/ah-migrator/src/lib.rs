@@ -54,7 +54,10 @@ pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
-	types::{ForceSetHead, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority},
+	types::{
+		ExceptResponseFor, ForceSetHead, LeftOrRight, MaxOnIdleOrInner,
+		QueuePriority as DmpQueuePriority, RouteInnerWithException,
+	},
 	weights_ah,
 };
 pub use weights_ah::WeightInfo;
@@ -124,10 +127,20 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	VersionedLocatableAsset,
 	VersionedLocation,
 	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
+	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber,
 >;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
@@ -157,16 +170,24 @@ pub enum PalletEventName {
 }
 
 /// The migration stage on the Asset Hub.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum MigrationStage {
 	/// The migration has not started but will start in the future.
 	#[default]
 	Pending,
 	/// Migrating data from the Relay Chain.
 	DataMigrationOngoing,
-	/// Migrating data from the Relay Chain is completed.
-	DataMigrationDone,
 	/// The migration is done.
 	MigrationDone,
 }
@@ -188,8 +209,18 @@ impl MigrationStage {
 }
 
 /// Helper struct storing certain balances before the migration.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub struct BalancesBefore<Balance: Default> {
 	pub checking_account: Balance,
 	pub total_issuance: Balance,
@@ -208,13 +239,16 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
-		+ pallet_proxy::Config
+		+ pallet_proxy::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_preimage::Config<Hash = H256>
-		+ pallet_referenda::Config<Votes = u128>
-		+ pallet_nomination_pools::Config
-		+ pallet_fast_unstake::Config
+		+ pallet_referenda::Config<
+			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
+			Votes = u128,
+		> + pallet_nomination_pools::Config<
+			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
+		> + pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
-		+ pallet_scheduler::Config
+		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
@@ -275,7 +309,7 @@ pub mod pallet {
 		/// Some part of the Relay Chain origins used in Governance.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcPalletsOrigin: Parameter + Default;
+		type RcPalletsOrigin: Parameter + Default + DecodeWithMemTracking;
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
@@ -316,14 +350,6 @@ pub mod pallet {
 
 		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
-
-		/// Messaging type that the staking migration uses.
-		///
-		/// We need to inject this here to be able to convert it. The message type is require to
-		/// also be able to convert messages from Relay to Asset Hub format.
-		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter
-			+ IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
 		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
@@ -446,6 +472,10 @@ pub mod pallet {
 			/// The new priority pattern.
 			new: DmpQueuePriority<BlockNumberFor<T>>,
 		},
+		/// The balances before the migration were recorded.
+		BalancesBeforeRecordSet { checking_account: T::Balance, total_issuance: T::Balance },
+		/// The balances before the migration were consumed.
+		BalancesBeforeRecordConsumed { checking_account: T::Balance, total_issuance: T::Balance },
 	}
 
 	#[pallet::pallet]
@@ -604,9 +634,13 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_referenda_values())]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
+			// we accept a vector here only to satisfy the signature of the
+			// `pallet_rc_migrator::Pallet::send_chunked_xcm_and_track` function and avoid
+			// introducing a send function for non-vector data or rewriting the referenda pallet
+			// migration.
 			mut values: Vec<(
 				// referendum_count
-				u32,
+				Option<u32>,
 				// deciding_count (track_id, count)
 				Vec<(TrackIdOf<T, ()>, u32)>,
 				// track_queue (referendum_id, votes)
@@ -868,11 +902,15 @@ pub mod pallet {
 		/// Finish the migration.
 		///
 		/// This is typically called by the Relay Chain to signal the migration has finished.
+		///
+		/// The `data` parameter might be `None` if we are running the migration for a second time
+		/// for some pallets and have already performed the checking account balance correction,
+		/// so we do not need to do it this time.
 		#[pallet::call_index(110)]
 		#[pallet::weight(T::AhWeightInfo::finish_migration())]
 		pub fn finish_migration(
 			origin: OriginFor<T>,
-			data: MigrationFinishedData<T::Balance>,
+			data: Option<MigrationFinishedData<T::Balance>>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 
@@ -920,7 +958,12 @@ pub mod pallet {
 				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
 				balances_before.checking_account, balances_before.total_issuance
 			);
-			AhBalancesBefore::<T>::put(balances_before);
+			AhBalancesBefore::<T>::put(&balances_before);
+
+			Self::deposit_event(Event::BalancesBeforeRecordSet {
+				checking_account: balances_before.checking_account,
+				total_issuance: balances_before.total_issuance,
+			});
 
 			Self::transition(MigrationStage::DataMigrationOngoing);
 			Ok(())
@@ -928,11 +971,13 @@ pub mod pallet {
 
 		/// Auxiliary logic to be done after the migration finishes.
 		pub fn migration_finish_hook(
-			data: MigrationFinishedData<T::Balance>,
+			data: Option<MigrationFinishedData<T::Balance>>,
 		) -> Result<(), Error<T>> {
 			// Accounts
-			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				defensive!("Account migration failed: {:?}", err);
+			if let Some(data) = data {
+				if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+					defensive!("Account migration failed: {:?}", err);
+				}
 			}
 
 			// We have to go into the Done state, otherwise the chain will be blocked
@@ -983,11 +1028,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Xcm,
-					#[cfg(feature = "stable2503")]
-					fallback_max_weight: None,
-					#[cfg(not(feature = "stable2503"))]
-					// TODO: just big enough weight to work for all calls; remove with xcm5
-					require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
+					fallback_max_weight: None, // TODO @muharem: please check
 					call: call.encode().into(),
 				},
 			]);

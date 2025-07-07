@@ -25,11 +25,18 @@ pub type BalanceOf<T> = <<T as pallet_vesting::Config>::Currency as Currency<
 >>::Balance;
 
 #[derive(
-	Encode, Decode, CloneNoBound, PartialEqNoBound, EqNoBound, TypeInfo, MaxEncodedLen, DebugNoBound,
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+	TypeInfo,
+	MaxEncodedLen,
+	DebugNoBound,
 )]
 #[codec(mel_bound(T: pallet_vesting::Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcVestingSchedule<T: pallet_vesting::Config> {
 	pub who: <T as frame_system::Config>::AccountId,
 	pub schedules: BoundedVec<

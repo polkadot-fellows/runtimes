@@ -28,8 +28,17 @@ use sp_core::ByteArray;
 use sp_runtime::{traits::Zero, BoundedVec};
 
 /// Account type meant to transfer data between RC and AH.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// The account address
 	pub who: AccountId,
@@ -97,8 +106,17 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 }
 
 /// The state for the Relay Chain accounts.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum AccountState<Balance> {
 	/// The account should be migrated to AH and removed on RC.
 	Migrate,
@@ -185,8 +203,18 @@ pub type AccountFor<T> = Account<
 >;
 
 /// Helper struct tracking total balance kept on RC and total migrated.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub struct MigratedBalances<Balance: Default> {
 	pub kept: Balance,
 	pub migrated: Balance,
@@ -471,6 +499,16 @@ impl<T: Config> AccountsMigrator<T> {
 		);
 		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
 
+		if teleport_total.is_zero() {
+			log::info!(
+				target: LOG_TARGET,
+				"Nothing to migrate for account: {:?}; state: {:?}",
+				who.to_ss58check(),
+				account_state,
+			);
+			return Ok(None);
+		}
+
 		let burned = match <T as Config>::Currency::burn_from(
 			&who,
 			teleport_total,
@@ -647,6 +685,11 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
+		if RcAccounts::<T>::count() > 0 {
+			log::info!(target: LOG_TARGET, "Init accounts migration already ran, skipping");
+			return T::DbWeight::get().reads(1);
+		}
+
 		let mut weight = Weight::zero();
 		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
 		let mut update_reserves = |id, deposit| {

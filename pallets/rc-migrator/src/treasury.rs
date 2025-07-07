@@ -18,8 +18,18 @@ use crate::*;
 use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 
 /// Stage of the scheduler pallet migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum TreasuryStage {
 	#[default]
 	ProposalCount,
@@ -29,15 +39,13 @@ pub enum TreasuryStage {
 	Approvals,
 	SpendCount,
 	Spends(Option<SpendIndex>),
-	// TODO: migrate with new sdk version
-	// LastSpendPeriod,
+	LastSpendPeriod,
 	Funds,
 	Finished,
 }
 
 /// Message that is being sent to the AH Migrator.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
 pub enum RcTreasuryMessage<
 	AccountId,
 	Balance,
@@ -46,6 +54,7 @@ pub enum RcTreasuryMessage<
 	AssetKind,
 	Beneficiary,
 	PaymentId,
+	TreasuryBlockNumber,
 > {
 	ProposalCount(ProposalIndex),
 	Proposals((ProposalIndex, Proposal<AccountId, Balance>)),
@@ -55,10 +64,10 @@ pub enum RcTreasuryMessage<
 		id: SpendIndex,
 		status: alias::SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId>,
 	},
-	// TODO: migrate with new sdk version
-	// LastSpendPeriod(BlockNumber),
+	LastSpendPeriod(Option<TreasuryBlockNumber>),
 	Funds,
 }
+use sp_runtime::traits::BlockNumberProvider;
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -67,6 +76,7 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as pallet_treasury::Config>::AssetKind,
 	<T as pallet_treasury::Config>::Beneficiary,
 	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
+	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber,
 >;
 
 pub struct TreasuryMigrator<T> {
@@ -112,8 +122,10 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 
 			last_key = match last_key {
 				TreasuryStage::ProposalCount => {
-					let count = pallet_treasury::ProposalCount::<T>::take();
-					messages.push(RcTreasuryMessage::ProposalCount(count));
+					if pallet_treasury::ProposalCount::<T>::exists() {
+						let count = pallet_treasury::ProposalCount::<T>::take();
+						messages.push(RcTreasuryMessage::ProposalCount(count));
+					}
 					TreasuryStage::Proposals(None)
 				},
 				TreasuryStage::Proposals(last_key) => {
@@ -132,13 +144,17 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					}
 				},
 				TreasuryStage::Approvals => {
-					let approvals = pallet_treasury::Approvals::<T>::take();
-					messages.push(RcTreasuryMessage::Approvals(approvals.into_inner()));
+					if pallet_treasury::Approvals::<T>::exists() {
+						let approvals = pallet_treasury::Approvals::<T>::take();
+						messages.push(RcTreasuryMessage::Approvals(approvals.into_inner()));
+					}
 					TreasuryStage::SpendCount
 				},
 				TreasuryStage::SpendCount => {
-					let count = alias::SpendCount::<T>::take();
-					messages.push(RcTreasuryMessage::SpendCount(count));
+					if alias::SpendCount::<T>::exists() {
+						let count = alias::SpendCount::<T>::take();
+						messages.push(RcTreasuryMessage::SpendCount(count));
+					}
 					TreasuryStage::Spends(None)
 				},
 				TreasuryStage::Spends(last_key) => {
@@ -153,16 +169,16 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 							messages.push(RcTreasuryMessage::Spends { id: key, status: value });
 							TreasuryStage::Spends(Some(key))
 						},
-						// TODO: TreasuryStage::LastSpendPeriod
-						None => TreasuryStage::Funds,
+						None => TreasuryStage::LastSpendPeriod,
 					}
 				},
-				// TODO: with new sdk version
-				// TreasuryStage::LastSpendPeriod => {
-				//     let last_spend_period = pallet_treasury::LastSpendPeriod::<T>::take();
-				// 	messages.push(RcTreasuryMessage::LastSpendPeriod(last_spend_period));
-				// 	TreasuryStage::Funds
-				// },
+				TreasuryStage::LastSpendPeriod => {
+					if pallet_treasury::LastSpendPeriod::<T>::exists() {
+						let last_spend_period = pallet_treasury::LastSpendPeriod::<T>::take();
+						messages.push(RcTreasuryMessage::LastSpendPeriod(last_spend_period));
+					}
+					TreasuryStage::Funds
+				},
 				TreasuryStage::Funds => {
 					messages.push(RcTreasuryMessage::Funds);
 					TreasuryStage::Finished
@@ -225,7 +241,9 @@ pub mod alias {
 	///
 	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L181
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo)]
+	#[derive(
+		Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo,
+	)]
 	pub struct SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId> {
 		// The kind of asset to be spent.
 		pub asset_kind: AssetKind,

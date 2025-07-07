@@ -30,7 +30,7 @@ pub use sp_runtime::traits::Dispatchable;
 // Polkadot
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v4::{self, Error, NetworkId::Polkadot as PolkadotId},
+	v5::{self, Error, NetworkId::Polkadot as PolkadotId},
 };
 pub use xcm_executor::traits::TransferType;
 

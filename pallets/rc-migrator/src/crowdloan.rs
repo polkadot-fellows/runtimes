@@ -21,7 +21,17 @@ pub struct CrowdloanMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 	/// Reserve for some slot leases.
 	LeaseReserve {
@@ -79,8 +89,17 @@ pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 pub type RcCrowdloanMessageOf<T> =
 	RcCrowdloanMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>;
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub enum CrowdloanStage {
 	Setup,
 	LeaseReserve { last_key: Option<ParaId> },
@@ -236,7 +255,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 						let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
 						let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
-							// We directly remove so that we dont have to store a cursor:
+						// We directly remove so that we dont have to store a cursor:
 						pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 
 						log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
