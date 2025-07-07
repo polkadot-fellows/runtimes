@@ -7924,7 +7924,6 @@ dependencies = [
  "collectives-polkadot-runtime-constants",
  "cumulus-primitives-core",
  "frame-benchmarking",
- "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "hex",

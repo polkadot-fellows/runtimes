@@ -420,8 +420,6 @@ pub mod pallet {
 		DmpQueuePriorityAlreadySet,
 		/// Invalid parameter.
 		InvalidParameter,
-		/// Failed to insert node into bags list structure.
-		FailedToInsertIntoBagsList,
 	}
 
 	#[pallet::event]
