@@ -152,6 +152,17 @@ impl<T: Config> Pallet<T> {
 			frame_system::Pallet::<T>::inc_providers(&who);
 		}
 
+		let final_total_balance = <T as pallet::Config>::Currency::total_balance(&who);
+		if final_total_balance < total_balance {
+			log::warn!(
+				target: LOG_TARGET,
+				"Dusting Alert! Account {} has less total balance {} than its migrated total balance {}",
+				who.to_ss58check(),
+				final_total_balance,
+				total_balance
+			);
+		}
+
 		Ok(())
 	}
 
