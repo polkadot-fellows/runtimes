@@ -697,7 +697,6 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 	set_trust_reserve_on_penpal();
 	register_assets_on_penpal();
 	fund_on_penpal();
-	//set_up_eth_and_dot_pool_on_penpal();
 
 	PenpalB::execute_with(|| {
 		type RuntimeOrigin = <PenpalB as Chain>::RuntimeOrigin;

@@ -1,6 +1,7 @@
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+use std::i8::MIN;
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -47,8 +48,7 @@ use sp_io::hashing::blake2_256;
 use sp_runtime::MultiAddress;
 use xcm::opaque::latest::AssetTransferFilter::ReserveDeposit;
 use xcm_executor::traits::ConvertLocation;
-
-const TOKEN_AMOUNT: u128 = 100_000_000_000;
+use crate::tests::snowbridge_common::TOKEN_AMOUNT;
 
 /// Calculates the XCM prologue fee for sending an XCM to AH.
 const INITIAL_FUND: u128 = 5_000_000_000_000;
@@ -204,7 +204,7 @@ fn send_token_v2() {
 			assets,
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
-			value: 100_000_000_000_000u128,
+			value: TOKEN_AMOUNT.into(),
 			execution_fee: 1_500_000_000_000u128,
 			relayer_fee: relayer_reward,
 		};
@@ -289,7 +289,7 @@ fn send_weth_v2() {
 	let claimer = Location::new(0, AccountId32 { network: None, id: claimer_acc_id.into() });
 	let claimer_bytes = claimer.encode();
 
-	let token_transfer_value = 2_000_000_000_000u128;
+	let token_transfer_value = TOKEN_AMOUNT;
 
 	let assets = vec![
 		// the token being transferred
@@ -314,7 +314,7 @@ fn send_weth_v2() {
 			assets,
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
-			value: 3_500_000_000_000u128,
+			value: TOKEN_AMOUNT,
 			execution_fee: 1_500_000_000_000u128,
 			relayer_fee: relayer_reward,
 		};
@@ -406,19 +406,20 @@ fn register_and_send_multiple_tokens_v2() {
 
 	set_up_eth_and_dot_pool();
 
-	let token_transfer_value = 2_000_000_000_000u128;
-	let weth_transfer_value = 2_500_000_000_000u128;
+	let token_transfer_value = TOKEN_AMOUNT;
+	let weth_transfer_value = TOKEN_AMOUNT;
+	let eth_token_deposit = 9_000_000_000_000u128;
 
 	let dot_asset = Location::new(1, Here);
 	let dot_fee: xcm::prelude::Asset =
 		(dot_asset, bp_asset_hub_polkadot::CreateForeignAssetDeposit::get()).into();
 
 	// Used to pay the asset creation deposit.
-	let eth_asset_value = 9_000_000_000_000u128;
-	let asset_deposit: xcm::prelude::Asset = (eth_location(), eth_asset_value).into();
+	let eth_asset_value = eth_token_deposit + (MIN_ETHER_BALANCE * 100);
+	let asset_deposit: xcm::prelude::Asset = (eth_location(), eth_token_deposit).into();
 
 	let assets = vec![
-		NativeTokenERC20 { token_id: WETH.into(), value: 2_800_000_000_000u128 },
+		NativeTokenERC20 { token_id: WETH.into(), value: weth_transfer_value },
 		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
 	];
 
@@ -445,8 +446,8 @@ fn register_and_send_multiple_tokens_v2() {
 					.into(),
 			},
 			ExpectTransactStatus(MaybeErrorCode::Success),
-			RefundSurplus,
 			// deposit new token, weth and leftover ether fees to beneficiary.
+			RefundSurplus,
 			DepositAsset { assets: Wild(AllCounted(3)), beneficiary: beneficiary.clone() },
 		];
 		let xcm: Xcm<()> = instructions.into();
@@ -460,8 +461,8 @@ fn register_and_send_multiple_tokens_v2() {
 			assets,
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
-			value: 3_500_000_000_000u128,
-			execution_fee: 1_500_000_000_000u128,
+			value: eth_asset_value,
+			execution_fee: MIN_ETHER_BALANCE * 2,
 			relayer_fee: relayer_reward,
 		};
 
@@ -515,9 +516,10 @@ fn register_and_send_multiple_tokens_v2() {
 			token_transfer_value
 		);
 
+
 		// Beneficiary received the weth transfer value
 		assert!(
-			ForeignAssets::balance(weth_location(), AccountId::from(beneficiary_acc_bytes)) >
+			ForeignAssets::balance(weth_location(), AccountId::from(beneficiary_acc_bytes)) >=
 				weth_transfer_value
 		);
 
