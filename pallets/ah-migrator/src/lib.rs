@@ -127,6 +127,7 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	VersionedLocatableAsset,
 	VersionedLocation,
 	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
+	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber,
 >;
 
 #[derive(

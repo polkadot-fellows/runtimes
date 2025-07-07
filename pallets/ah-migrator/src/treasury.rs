@@ -91,10 +91,9 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {:?}", spend);
 				treasury_alias::Spends::<T>::insert(spend_index, spend);
 			},
-			// TODO: migrate with new sdk version
-			// RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
-			// 	pallet_treasury::LastSpendPeriod::<T>::put(last_spend_period);
-			// },
+			RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
+				pallet_treasury::LastSpendPeriod::<T>::set(last_spend_period);
+			},
 			RcTreasuryMessage::Funds => {
 				Self::migrate_treasury_funds();
 			},
