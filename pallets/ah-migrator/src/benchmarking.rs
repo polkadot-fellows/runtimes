@@ -373,7 +373,7 @@ pub mod benchmarks {
 		}
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, vec![(referendum_count, deciding_count, track_queue)]);
+		_(RawOrigin::Root, vec![(Some(referendum_count), deciding_count, track_queue)]);
 
 		assert_last_event::<T>(
 			Event::BatchProcessed {
@@ -925,7 +925,7 @@ pub mod benchmarks {
 	fn finish_migration() {
 		AhMigrationStage::<T>::put(&MigrationStage::DataMigrationOngoing);
 		#[extrinsic_call]
-		_(RawOrigin::Root, MigrationFinishedData { rc_balance_kept: 100 });
+		_(RawOrigin::Root, Some(MigrationFinishedData { rc_balance_kept: 100 }));
 
 		assert_last_event::<T>(
 			Event::StageTransition {

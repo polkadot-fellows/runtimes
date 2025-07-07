@@ -91,10 +91,9 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {:?}", spend);
 				treasury_alias::Spends::<T>::insert(spend_index, spend);
 			},
-			// TODO: migrate with new sdk version
-			// RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
-			// 	pallet_treasury::LastSpendPeriod::<T>::put(last_spend_period);
-			// },
+			RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
+				pallet_treasury::LastSpendPeriod::<T>::set(last_spend_period);
+			},
 			RcTreasuryMessage::Funds => {
 				Self::migrate_treasury_funds();
 			},
@@ -120,6 +119,16 @@ impl<T: Config> Pallet<T> {
 				Preservation::Expendable,
 				Fortitude::Polite,
 			);
+
+			if reducible.is_zero() {
+				log::info!(
+					target: LOG_TARGET,
+					"Treasury old asset account is empty. asset: {:?}, old_account_id: {:?}",
+					asset,
+					old_account_id,
+				);
+				continue;
+			}
 
 			match T::Assets::transfer(
 				asset.clone(),
@@ -158,30 +167,38 @@ impl<T: Config> Pallet<T> {
 			Fortitude::Polite,
 		);
 
-		match <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
-			&old_account_id,
-			&account_id,
-			reducible,
-			Preservation::Expendable,
-		) {
-			Ok(_) => log::info!(
+		if reducible.is_zero() {
+			log::info!(
 				target: LOG_TARGET,
-				"Transferred treasury native asset funds from old account {:?} \
-				to new account {:?} amount: {:?}",
+				"Treasury old native asset account is empty. old_account_id: {:?}",
 				old_account_id,
-				account_id,
-				reducible
-			),
-			Err(e) => log::error!(
-				target: LOG_TARGET,
-				"Failed to transfer treasury funds from new account {:?} \
-				to old account {:?} amount: {:?}, error: {:?}",
-				account_id,
-				old_account_id,
+			);
+		} else {
+			match <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
+				&old_account_id,
+				&account_id,
 				reducible,
-				e
-			),
-		};
+				Preservation::Expendable,
+			) {
+				Ok(_) => log::info!(
+					target: LOG_TARGET,
+					"Transferred treasury native asset funds from old account {:?} \
+					to new account {:?} amount: {:?}",
+					old_account_id,
+					account_id,
+					reducible
+				),
+				Err(e) => log::error!(
+					target: LOG_TARGET,
+					"Failed to transfer treasury funds from new account {:?} \
+					to old account {:?} amount: {:?}, error: {:?}",
+					account_id,
+					old_account_id,
+					reducible,
+					e
+				),
+			};
+		}
 	}
 }
 

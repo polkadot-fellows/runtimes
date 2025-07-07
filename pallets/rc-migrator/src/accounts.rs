@@ -499,6 +499,16 @@ impl<T: Config> AccountsMigrator<T> {
 		);
 		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
 
+		if teleport_total.is_zero() {
+			log::info!(
+				target: LOG_TARGET,
+				"Nothing to migrate for account: {:?}; state: {:?}",
+				who.to_ss58check(),
+				account_state,
+			);
+			return Ok(None);
+		}
+
 		let burned = match <T as Config>::Currency::burn_from(
 			&who,
 			teleport_total,
@@ -675,6 +685,11 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
+		if RcAccounts::<T>::count() > 0 {
+			log::info!(target: LOG_TARGET, "Init accounts migration already ran, skipping");
+			return T::DbWeight::get().reads(1);
+		}
+
 		let mut weight = Weight::zero();
 		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
 		let mut update_reserves = |id, deposit| {

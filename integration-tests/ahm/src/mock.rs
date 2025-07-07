@@ -289,9 +289,12 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 // The `Scheduled` stage is tested separately by the `scheduled_migration_works` test.
 pub fn set_initial_migration_stage(
 	relay_chain: &mut TestExternalities,
+	maybe_stage: Option<RcMigrationStageOf<Polkadot>>,
 ) -> RcMigrationStageOf<Polkadot> {
 	let stage = relay_chain.execute_with(|| {
-		let stage = if let Ok(stage) = std::env::var("START_STAGE") {
+		let stage = if let Some(stage) = maybe_stage {
+			stage
+		} else if let Ok(stage) = std::env::var("START_STAGE") {
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {

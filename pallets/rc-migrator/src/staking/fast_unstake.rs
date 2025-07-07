@@ -70,20 +70,29 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 #[scale_info(skip_type_params(T))]
 pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub head: Option<UnstakeRequest<T>>,
-	pub eras_to_check_per_block: u32,
+	pub eras_to_check_per_block: Option<u32>,
+}
+
+impl<T: pallet_fast_unstake::Config> FastUnstakeStorageValues<T> {
+	pub fn is_empty(&self) -> bool {
+		self.head.is_none() && self.eras_to_check_per_block.is_none()
+	}
 }
 
 impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T> {
 	pub fn take_values() -> FastUnstakeStorageValues<T> {
 		FastUnstakeStorageValues {
 			head: alias::Head::<T>::take(),
-			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::take(),
+			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::exists()
+				.then(pallet_fast_unstake::ErasToCheckPerBlock::<T>::take),
 		}
 	}
 
 	pub fn put_values(values: FastUnstakeStorageValues<T>) {
-		alias::Head::<T>::set(values.head);
-		pallet_fast_unstake::ErasToCheckPerBlock::<T>::put(values.eras_to_check_per_block);
+		values.head.map(alias::Head::<T>::put);
+		values
+			.eras_to_check_per_block
+			.map(pallet_fast_unstake::ErasToCheckPerBlock::<T>::put);
 	}
 }
 
@@ -131,7 +140,15 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 			inner_key = match inner_key {
 				FastUnstakeStage::StorageValues => {
 					let values = Self::take_values();
-					messages.push(RcFastUnstakeMessage::StorageValues { values });
+					if !values.is_empty() {
+						messages.push(RcFastUnstakeMessage::StorageValues { values });
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Fast unstake storage values are empty. Skipping fast unstake values \
+								migration.",
+						);
+					}
 					FastUnstakeStage::Queue(None)
 				},
 				FastUnstakeStage::Queue(queue_iter) => {

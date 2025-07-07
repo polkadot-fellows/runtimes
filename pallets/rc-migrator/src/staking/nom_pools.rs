@@ -71,14 +71,27 @@ pub enum NomPoolsStage<AccountId> {
 	MaxEncodedLen,
 )]
 pub struct NomPoolsStorageValues<Balance> {
-	pub total_value_locked: Balance,
-	pub min_join_bond: Balance,
-	pub min_create_bond: Balance,
+	pub total_value_locked: Option<Balance>,
+	pub min_join_bond: Option<Balance>,
+	pub min_create_bond: Option<Balance>,
 	pub max_pools: Option<u32>,
 	pub max_pool_members: Option<u32>,
 	pub max_pool_members_per_pool: Option<u32>,
 	pub global_max_commission: Option<Perbill>,
-	pub last_pool_id: u32,
+	pub last_pool_id: Option<u32>,
+}
+
+impl<Balance> NomPoolsStorageValues<Balance> {
+	pub fn is_empty(&self) -> bool {
+		self.total_value_locked.is_none() &&
+			self.min_join_bond.is_none() &&
+			self.min_create_bond.is_none() &&
+			self.max_pools.is_none() &&
+			self.max_pool_members.is_none() &&
+			self.max_pool_members_per_pool.is_none() &&
+			self.global_max_commission.is_none() &&
+			self.last_pool_id.is_none()
+	}
 }
 
 /// A message from RC to AH to migrate some nomination pools data.
@@ -160,7 +173,15 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 			inner_key = match inner_key {
 				NomPoolsStage::StorageValues => {
 					let values = Self::take_values();
-					messages.push(RcNomPoolsMessage::StorageValues { values });
+					if !values.is_empty() {
+						messages.push(RcNomPoolsMessage::StorageValues { values });
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"Nomination pools storage values are empty. Skipping nomination pools \
+								values migration.",
+						);
+					}
 					NomPoolsStage::<T::AccountId>::PoolMembers(None)
 				},
 				// Bunch of copy & paste code
@@ -330,14 +351,14 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 		use pallet_nomination_pools::*;
 
 		NomPoolsStorageValues {
-			total_value_locked: TotalValueLocked::<T>::take(),
-			min_join_bond: MinJoinBond::<T>::take(),
-			min_create_bond: MinCreateBond::<T>::take(),
+			total_value_locked: TotalValueLocked::<T>::exists().then(TotalValueLocked::<T>::take),
+			min_join_bond: MinJoinBond::<T>::exists().then(MinJoinBond::<T>::take),
+			min_create_bond: MinCreateBond::<T>::exists().then(MinCreateBond::<T>::take),
 			max_pools: MaxPools::<T>::take(),
 			max_pool_members: MaxPoolMembers::<T>::take(),
 			max_pool_members_per_pool: MaxPoolMembersPerPool::<T>::take(),
 			global_max_commission: GlobalMaxCommission::<T>::take(),
-			last_pool_id: LastPoolId::<T>::take(),
+			last_pool_id: LastPoolId::<T>::exists().then(LastPoolId::<T>::take),
 		}
 	}
 
@@ -347,14 +368,15 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 	pub fn put_values(values: NomPoolsStorageValuesOf<T>) {
 		use pallet_nomination_pools::*;
 
-		TotalValueLocked::<T>::put(values.total_value_locked);
-		MinJoinBond::<T>::put(values.min_join_bond);
-		MinCreateBond::<T>::put(values.min_create_bond);
-		MaxPools::<T>::set(values.max_pools);
-		MaxPoolMembers::<T>::set(values.max_pool_members);
-		MaxPoolMembersPerPool::<T>::set(values.max_pool_members_per_pool);
-		GlobalMaxCommission::<T>::set(values.global_max_commission);
-		LastPoolId::<T>::put(values.last_pool_id);
+		// Only put values if they exist
+		values.total_value_locked.map(TotalValueLocked::<T>::put);
+		values.min_join_bond.map(MinJoinBond::<T>::put);
+		values.min_create_bond.map(MinCreateBond::<T>::put);
+		values.max_pools.map(MaxPools::<T>::put);
+		values.max_pool_members.map(MaxPoolMembers::<T>::put);
+		values.max_pool_members_per_pool.map(MaxPoolMembersPerPool::<T>::put);
+		values.global_max_commission.map(GlobalMaxCommission::<T>::put);
+		values.last_pool_id.map(LastPoolId::<T>::put);
 	}
 }
 
@@ -460,14 +482,14 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 
 		// Collect storage values
 		let values = NomPoolsStorageValues {
-			total_value_locked: pallet_nomination_pools::TotalValueLocked::<T>::get(),
-			min_join_bond: pallet_nomination_pools::MinJoinBond::<T>::get(),
-			min_create_bond: pallet_nomination_pools::MinCreateBond::<T>::get(),
+			total_value_locked: pallet_nomination_pools::TotalValueLocked::<T>::try_get().ok(),
+			min_join_bond: pallet_nomination_pools::MinJoinBond::<T>::try_get().ok(),
+			min_create_bond: pallet_nomination_pools::MinCreateBond::<T>::try_get().ok(),
 			max_pools: pallet_nomination_pools::MaxPools::<T>::get(),
 			max_pool_members: pallet_nomination_pools::MaxPoolMembers::<T>::get(),
 			max_pool_members_per_pool: pallet_nomination_pools::MaxPoolMembersPerPool::<T>::get(),
 			global_max_commission: pallet_nomination_pools::GlobalMaxCommission::<T>::get(),
-			last_pool_id: pallet_nomination_pools::LastPoolId::<T>::get(),
+			last_pool_id: pallet_nomination_pools::LastPoolId::<T>::try_get().ok(),
 		};
 		messages.push(tests::GenericNomPoolsMessage::StorageValues { values });
 
