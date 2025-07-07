@@ -184,14 +184,13 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		// Assert storage 'Bounties::Bounties::ah_post::length'
 		// Check RC alias storage length since that's where we store the migrated bounties
 		assert_eq!(
-			pallet_rc_migrator::bounties::alias::Bounties::<T>::iter_keys().count() as u32,
-			rc_bounties.len() as u32,
+			pallet_bounties::Bounties::<T>::iter_keys().count(),
+			rc_bounties.len(),
 			"Bounties map length in RC alias storage on Asset Hub should match the RC value"
 		);
 
 		// Verify that bounties were migrated successfully by checking the keys match
-		let ah_bounty_keys: Vec<_> =
-			pallet_rc_migrator::bounties::alias::Bounties::<T>::iter_keys().collect();
+		let ah_bounty_keys: Vec<_> = pallet_bounties::Bounties::<T>::iter_keys().collect();
 		let rc_bounty_keys: Vec<_> = rc_bounties.iter().map(|(index, _)| *index).collect();
 		assert_eq!(
 			ah_bounty_keys, rc_bounty_keys,
