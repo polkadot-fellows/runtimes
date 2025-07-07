@@ -33,7 +33,7 @@ impl<T: Config> Pallet<T> {
 
 		// Use direct translation instead of rebuilding to preserve exact structure.
 		// Rebuilding with SortedListProvider::on_insert changes the insertion order within bags
-		// (nodes are added to tail), creating different prev/next relationships even with 
+		// (nodes are added to tail), creating different prev/next relationships even with
 		// identical scores. This breaks post-check validation which expects structural match.
 		for message in messages {
 			match Self::do_receive_bags_list_message(message) {
@@ -116,8 +116,10 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 					GenericBagsListMessage::Node { id, node } => {
 						let translated_id = Pallet::<T>::translate_account_rc_to_ah(id);
 						let translated_node_id = Pallet::<T>::translate_account_rc_to_ah(node.id);
-						let translated_prev = node.prev.map(Pallet::<T>::translate_account_rc_to_ah);
-						let translated_next = node.next.map(Pallet::<T>::translate_account_rc_to_ah);
+						let translated_prev =
+							node.prev.map(Pallet::<T>::translate_account_rc_to_ah);
+						let translated_next =
+							node.next.map(Pallet::<T>::translate_account_rc_to_ah);
 
 						GenericBagsListMessage::Node {
 							id: translated_id,
