@@ -26,6 +26,7 @@ use frame_support::{
 	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
+pub use pallet_rc_migrator::xcm_config::{AssetHubLocation, CollectivesLocation};
 use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
@@ -40,14 +41,12 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
 	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
-	OriginToPluralityVoice, SendXcmFeeToAccount, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, LocationAsSuperuser,
+	MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	XcmFeeManagerFromComponents,
 };
-
-use pallets_common::LocationAsSuperuser;
-pub use pallet_rc_migrator::xcm_config::{AssetHubLocation, CollectivesLocation};
 
 parameter_types! {
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this

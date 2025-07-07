@@ -620,8 +620,6 @@ where
 	D::RuntimeCall: Encode + From<frame_system::Call<D::Runtime>>,
 {
 	let code_hash = [1u8; 32].into();
-	// TODO: calculate real weight
-	let weight = Weight::from_parts(5_000_000_000, 500_000);
 
 	let transact_call: D::RuntimeCall = frame_system::Call::authorize_upgrade { code_hash }.into();
 
@@ -631,7 +629,7 @@ where
 			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 			Transact {
 				origin_kind: OriginKind::Superuser,
-				require_weight_at_most: weight,
+				fallback_max_weight: None,
 				call: transact_call.encode().into(),
 			}
 		]))),

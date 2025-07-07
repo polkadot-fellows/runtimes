@@ -23,7 +23,7 @@ use integration_tests_helpers::{
 	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
 	dispatch_whitelisted_call_with_preimage,
 };
-use polkadot_runtime::governance::pallet_custom_origins::Origin;
+use polkadot_runtime::{governance::pallet_custom_origins::Origin, Dmp};
 use polkadot_system_emulated_network::{
 	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
 	CoretimePolkadotPara as CoretimePolkadot, PeoplePolkadotPara as PeoplePolkadot,
@@ -101,6 +101,14 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	type PolkadotRuntime = <Polkadot as Chain>::Runtime;
 	type PolkadotRuntimeCall = <Polkadot as Chain>::RuntimeCall;
 	type PolkadotRuntimeOrigin = <Polkadot as Chain>::RuntimeOrigin;
+
+	Polkadot::execute_with(|| {
+		Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
+		Dmp::make_parachain_reachable(BridgeHubPolkadot::para_id());
+		Dmp::make_parachain_reachable(CollectivesPolkadot::para_id());
+		Dmp::make_parachain_reachable(CoretimePolkadot::para_id());
+		Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
+	});
 
 	let authorize_upgrade =
 		PolkadotRuntimeCall::Utility(pallet_utility::Call::<PolkadotRuntime>::force_batch {

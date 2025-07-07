@@ -46,7 +46,7 @@ pub fn collectives_send_whitelist(
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::Xcm,
-					require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
+					fallback_max_weight: None,
 					call: encoded_whitelist_call().into(),
 				}
 			]))),
