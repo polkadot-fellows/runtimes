@@ -76,11 +76,12 @@ impl<T: Config> Pallet<T> {
 				alias::Signing::<T>::insert(who, statement_kind);
 			},
 			RcClaimsMessage::Preclaims((who, address)) => {
-				if alias::Preclaims::<T>::contains_key(&who) {
+				let translated_who = Self::translate_account_rc_to_ah(who);
+				if alias::Preclaims::<T>::contains_key(&translated_who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims {:?}", who);
-				alias::Preclaims::<T>::insert(who, address);
+				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims {:?}", translated_who);
+				alias::Preclaims::<T>::insert(translated_who, address);
 			},
 		}
 		Ok(())
@@ -121,6 +122,24 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let rc_pre_translated: Vec<RcClaimsMessageOf<T>> = rc_pre_payload
+			.into_iter()
+			.map(|message| {
+				match message {
+					RcClaimsMessage::Preclaims((who, address)) => {
+						let who_encoded = who.encode();
+						let translated_encoded =
+							Pallet::<T>::translate_encoded_account_rc_to_ah(who_encoded);
+						let translated_who = T::AccountId::decode(&mut &translated_encoded[..])
+							.expect("Account decoding should never fail");
+						RcClaimsMessage::Preclaims((translated_who, address))
+					},
+					// All other variants don't contain AccountIds
+					other => other,
+				}
+			})
+			.collect();
+
 		let mut ah_messages = Vec::new();
 
 		// Collect current state
@@ -164,7 +183,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 		// Assert storage "Claims::Total::ah_post::consistent"
 		// Assert storage "Claims::Total::ah_post::correct"
 		assert_eq!(
-			rc_pre_payload, ah_messages,
+			rc_pre_translated, ah_messages,
 			"Claims data mismatch: Asset Hub schedules differ from original Relay Chain schedules"
 		);
 	}
