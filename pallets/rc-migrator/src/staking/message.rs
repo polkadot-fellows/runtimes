@@ -446,52 +446,24 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 
 		StakingValues {
 			validator_count: ValidatorCount::<T>::exists().then(ValidatorCount::<T>::take),
-			min_validator_count: if MinimumValidatorCount::<T>::exists() {
-				Some(MinimumValidatorCount::<T>::take())
-			} else {
-				None
-			},
-			min_nominator_bond: if MinNominatorBond::<T>::exists() {
-				Some(MinNominatorBond::<T>::take())
-			} else {
-				None
-			},
-			min_validator_bond: if MinValidatorBond::<T>::exists() {
-				Some(MinValidatorBond::<T>::take())
-			} else {
-				None
-			},
-			min_active_stake: if MinimumActiveStake::<T>::exists() {
-				Some(MinimumActiveStake::<T>::take())
-			} else {
-				None
-			},
-			min_commission: if MinCommission::<T>::exists() {
-				Some(MinCommission::<T>::take())
-			} else {
-				None
-			},
+			min_validator_count: MinimumValidatorCount::<T>::exists()
+				.then(MinimumValidatorCount::<T>::take),
+			min_nominator_bond: MinNominatorBond::<T>::exists().then(MinNominatorBond::<T>::take),
+			min_validator_bond: MinValidatorBond::<T>::exists().then(MinValidatorBond::<T>::take),
+			min_active_stake: MinimumActiveStake::<T>::exists().then(MinimumActiveStake::<T>::take),
+			min_commission: MinCommission::<T>::exists().then(MinCommission::<T>::take),
 			max_validators_count: MaxValidatorsCount::<T>::take(),
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
 			active_era: ActiveEra::<T>::take(),
-			force_era: if ForceEra::<T>::exists() { Some(ForceEra::<T>::take()) } else { None },
+			force_era: ForceEra::<T>::exists().then(ForceEra::<T>::take),
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
-			slash_reward_fraction: if SlashRewardFraction::<T>::exists() {
-				Some(SlashRewardFraction::<T>::take())
-			} else {
-				None
-			},
-			canceled_slash_payout: if CanceledSlashPayout::<T>::exists() {
-				Some(CanceledSlashPayout::<T>::take())
-			} else {
-				None
-			},
-			current_planned_session: if CurrentPlannedSession::<T>::exists() {
-				Some(CurrentPlannedSession::<T>::take())
-			} else {
-				None
-			},
+			slash_reward_fraction: SlashRewardFraction::<T>::exists()
+				.then(SlashRewardFraction::<T>::take),
+			canceled_slash_payout: CanceledSlashPayout::<T>::exists()
+				.then(CanceledSlashPayout::<T>::take),
+			current_planned_session: CurrentPlannedSession::<T>::exists()
+				.then(CurrentPlannedSession::<T>::take),
 			chill_threshold: ChillThreshold::<T>::take(),
 		}
 	}
@@ -501,49 +473,27 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 	pub fn put_values(values: AhStakingValuesOf<T>) {
 		use pallet_staking_async::*;
 
-		if let Some(validator_count) = values.validator_count {
-			ValidatorCount::<T>::put(validator_count);
-		}
+		values.validator_count.map(ValidatorCount::<T>::put);
 		// MinimumValidatorCount is not migrated
-		if let Some(min_nominator_bond) = values.min_nominator_bond {
-			MinNominatorBond::<T>::put(min_nominator_bond);
-		}
-		if let Some(min_validator_bond) = values.min_validator_bond {
-			MinValidatorBond::<T>::put(min_validator_bond);
-		}
-		if let Some(min_active_stake) = values.min_active_stake {
-			MinimumActiveStake::<T>::put(min_active_stake);
-		}
-		if let Some(min_commission) = values.min_commission {
-			MinCommission::<T>::put(min_commission);
-		}
-		if let Some(max_validators_count) = values.max_validators_count {
-			MaxValidatorsCount::<T>::put(max_validators_count);
-		}
-		if let Some(max_nominators_count) = values.max_nominators_count {
-			MaxNominatorsCount::<T>::put(max_nominators_count);
-		}
-		if let Some(active_era) = values.active_era {
+		values.min_nominator_bond.map(MinNominatorBond::<T>::put);
+		values.min_validator_bond.map(MinValidatorBond::<T>::put);
+		values.min_active_stake.map(MinimumActiveStake::<T>::put);
+		values.min_commission.map(MinCommission::<T>::put);
+		values.max_validators_count.map(MaxValidatorsCount::<T>::put);
+		values.max_nominators_count.map(MaxNominatorsCount::<T>::put);
+		values.active_era.map(|active_era| {
 			let active_era = pallet_staking::ActiveEraInfo::intoAh(active_era);
 			ActiveEra::<T>::put(active_era);
 			CurrentEra::<T>::put(active_era.map(|a| a.index));
-		}
-		if let Some(force_era) = values.force_era {
+		});
+		values.force_era.map(|force_era| {
 			ForceEra::<T>::put(pallet_staking::Forcing::intoAh(force_era));
-		}
-		if let Some(max_staked_rewards) = values.max_staked_rewards {
-			MaxStakedRewards::<T>::put(max_staked_rewards);
-		}
-		if let Some(slash_reward_fraction) = values.slash_reward_fraction {
-			SlashRewardFraction::<T>::put(slash_reward_fraction);
-		}
-		if let Some(canceled_slash_payout) = values.canceled_slash_payout {
-			CanceledSlashPayout::<T>::put(canceled_slash_payout);
-		}
+		});
+		values.max_staked_rewards.map(MaxStakedRewards::<T>::put);
+		values.slash_reward_fraction.map(SlashRewardFraction::<T>::put);
+		values.canceled_slash_payout.map(CanceledSlashPayout::<T>::put);
 		// CurrentPlannedSession is not migrated
-		if let Some(chill_threshold) = values.chill_threshold {
-			ChillThreshold::<T>::put(chill_threshold);
-		}
+		values.chill_threshold.map(ChillThreshold::<T>::put);
 	}
 }
 

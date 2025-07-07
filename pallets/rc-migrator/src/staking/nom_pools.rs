@@ -351,30 +351,14 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 		use pallet_nomination_pools::*;
 
 		NomPoolsStorageValues {
-			total_value_locked: if TotalValueLocked::<T>::exists() {
-				Some(TotalValueLocked::<T>::take())
-			} else {
-				None
-			},
-			min_join_bond: if MinJoinBond::<T>::exists() {
-				Some(MinJoinBond::<T>::take())
-			} else {
-				None
-			},
-			min_create_bond: if MinCreateBond::<T>::exists() {
-				Some(MinCreateBond::<T>::take())
-			} else {
-				None
-			},
+			total_value_locked: TotalValueLocked::<T>::exists().then(TotalValueLocked::<T>::take),
+			min_join_bond: MinJoinBond::<T>::exists().then(MinJoinBond::<T>::take),
+			min_create_bond: MinCreateBond::<T>::exists().then(MinCreateBond::<T>::take),
 			max_pools: MaxPools::<T>::take(),
 			max_pool_members: MaxPoolMembers::<T>::take(),
 			max_pool_members_per_pool: MaxPoolMembersPerPool::<T>::take(),
 			global_max_commission: GlobalMaxCommission::<T>::take(),
-			last_pool_id: if LastPoolId::<T>::exists() {
-				Some(LastPoolId::<T>::take())
-			} else {
-				None
-			},
+			last_pool_id: LastPoolId::<T>::exists().then(LastPoolId::<T>::take),
 		}
 	}
 
@@ -385,30 +369,14 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 		use pallet_nomination_pools::*;
 
 		// Only put values if they exist
-		if let Some(value) = values.total_value_locked {
-			TotalValueLocked::<T>::put(value);
-		}
-		if let Some(value) = values.min_join_bond {
-			MinJoinBond::<T>::put(value);
-		}
-		if let Some(value) = values.min_create_bond {
-			MinCreateBond::<T>::put(value);
-		}
-		if let Some(value) = values.max_pools {
-			MaxPools::<T>::put(value);
-		}
-		if let Some(value) = values.max_pool_members {
-			MaxPoolMembers::<T>::put(value);
-		}
-		if let Some(value) = values.max_pool_members_per_pool {
-			MaxPoolMembersPerPool::<T>::put(value);
-		}
-		if let Some(value) = values.global_max_commission {
-			GlobalMaxCommission::<T>::put(value);
-		}
-		if let Some(value) = values.last_pool_id {
-			LastPoolId::<T>::put(value);
-		}
+		values.total_value_locked.map(TotalValueLocked::<T>::put);
+		values.min_join_bond.map(MinJoinBond::<T>::put);
+		values.min_create_bond.map(MinCreateBond::<T>::put);
+		values.max_pools.map(MaxPools::<T>::put);
+		values.max_pool_members.map(MaxPoolMembers::<T>::put);
+		values.max_pool_members_per_pool.map(MaxPoolMembersPerPool::<T>::put);
+		values.global_max_commission.map(GlobalMaxCommission::<T>::put);
+		values.last_pool_id.map(LastPoolId::<T>::put);
 	}
 }
 

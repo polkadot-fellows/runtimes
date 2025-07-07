@@ -74,11 +74,8 @@ impl<T: Config> ReferendaMigrator<T> {
 	fn migrate_values(weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Migrating referenda values");
 
-		let referendum_count = if ReferendumCount::<T, ()>::exists() {
-			Some(ReferendumCount::<T, ()>::take())
-		} else {
-			None
-		};
+		let referendum_count =
+			ReferendumCount::<T, ()>::exists().then(ReferendumCount::<T, ()>::take);
 
 		// expected tracks count.
 		const TRACKS_COUNT: usize = 16;

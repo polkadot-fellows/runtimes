@@ -83,21 +83,16 @@ impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T> {
 	pub fn take_values() -> FastUnstakeStorageValues<T> {
 		FastUnstakeStorageValues {
 			head: alias::Head::<T>::take(),
-			eras_to_check_per_block: if pallet_fast_unstake::ErasToCheckPerBlock::<T>::exists() {
-				Some(pallet_fast_unstake::ErasToCheckPerBlock::<T>::take())
-			} else {
-				None
-			},
+			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::exists()
+				.then(pallet_fast_unstake::ErasToCheckPerBlock::<T>::take),
 		}
 	}
 
 	pub fn put_values(values: FastUnstakeStorageValues<T>) {
-		if let Some(head) = values.head {
-			alias::Head::<T>::put(head);
-		}
-		if let Some(eras_to_check_per_block) = values.eras_to_check_per_block {
-			pallet_fast_unstake::ErasToCheckPerBlock::<T>::put(eras_to_check_per_block);
-		}
+		values.head.map(alias::Head::<T>::put);
+		values
+			.eras_to_check_per_block
+			.map(pallet_fast_unstake::ErasToCheckPerBlock::<T>::put);
 	}
 }
 
