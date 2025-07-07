@@ -182,7 +182,6 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		);
 
 		// Assert storage 'Bounties::Bounties::ah_post::length'
-		// Check RC alias storage length since that's where we store the migrated bounties
 		assert_eq!(
 			pallet_bounties::Bounties::<T>::iter_keys().count(),
 			rc_bounties.len(),
