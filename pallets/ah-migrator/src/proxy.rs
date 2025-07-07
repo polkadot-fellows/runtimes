@@ -58,12 +58,11 @@ impl<T: Config> Pallet<T> {
 				// TODO unreserve deposit
 				return None;
 			};
-			let delay = T::RcToAhDelay::convert(p.delay);
 
 			log::info!(target: LOG_TARGET, "Proxy type: {:?} delegate: {:?}", proxy_type, p.delegate.to_polkadot_ss58());
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: p.delegate,
-				delay,
+				delay: p.delay,
 				proxy_type,
 			})
 		})
