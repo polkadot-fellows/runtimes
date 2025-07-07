@@ -52,7 +52,7 @@ impl<T: Config> Pallet<T> {
 			RcBagsListMessage::Node { id, node } => {
 				let translated_id = Self::translate_account_rc_to_ah(id);
 				debug_assert!(!alias::ListNodes::<T>::contains_key(&translated_id));
-				
+
 				// Translate all AccountId fields in the node structure
 				let translated_node = alias::Node {
 					id: Self::translate_account_rc_to_ah(node.id),
@@ -61,19 +61,19 @@ impl<T: Config> Pallet<T> {
 					bag_upper: node.bag_upper,
 					score: node.score,
 				};
-				
+
 				alias::ListNodes::<T>::insert(&translated_id, &translated_node);
 				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &translated_id);
 			},
 			RcBagsListMessage::Bag { score, bag } => {
 				debug_assert!(!alias::ListBags::<T>::contains_key(&score));
-				
+
 				// Translate all AccountId fields in the bag structure
 				let translated_bag = alias::Bag {
 					head: bag.head.map(|account| Self::translate_account_rc_to_ah(account)),
 					tail: bag.tail.map(|account| Self::translate_account_rc_to_ah(account)),
 				};
-				
+
 				alias::ListBags::<T>::insert(&score, &translated_bag);
 				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
 			},
@@ -104,37 +104,21 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
-		
+
 		let rc_pre_translated: Vec<GenericBagsListMessage<T::AccountId, T::Score>> = rc_pre_payload
 			.into_iter()
 			.map(|message| {
 				match message {
 					GenericBagsListMessage::Node { id, node } => {
-						// Translate all AccountId fields in the node
-						let id_encoded = id.encode();
-						let translated_id_encoded = Pallet::<T>::translate_encoded_account_rc_to_ah(id_encoded);
-						let translated_id = T::AccountId::decode(&mut &translated_id_encoded[..])
-							.expect("Account decoding should never fail");
-						
-						let node_id_encoded = node.id.encode();
-						let translated_node_id_encoded = Pallet::<T>::translate_encoded_account_rc_to_ah(node_id_encoded);
-						let translated_node_id = T::AccountId::decode(&mut &translated_node_id_encoded[..])
-							.expect("Account decoding should never fail");
-						
-						let translated_prev = node.prev.map(|account| {
-							let account_encoded = account.encode();
-							let translated_encoded = Pallet::<T>::translate_encoded_account_rc_to_ah(account_encoded);
-							T::AccountId::decode(&mut &translated_encoded[..])
-								.expect("Account decoding should never fail")
-						});
-						
-						let translated_next = node.next.map(|account| {
-							let account_encoded = account.encode();
-							let translated_encoded = Pallet::<T>::translate_encoded_account_rc_to_ah(account_encoded);
-							T::AccountId::decode(&mut &translated_encoded[..])
-								.expect("Account decoding should never fail")
-						});
-						
+						let translated_id = Pallet::<T>::translate_account_rc_to_ah(id);
+						let translated_node_id = Pallet::<T>::translate_account_rc_to_ah(node.id);
+						let translated_prev = node
+							.prev
+							.map(|account| Pallet::<T>::translate_account_rc_to_ah(account));
+						let translated_next = node
+							.next
+							.map(|account| Pallet::<T>::translate_account_rc_to_ah(account));
+
 						GenericBagsListMessage::Node {
 							id: translated_id,
 							node: alias::Node {
@@ -147,27 +131,18 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 						}
 					},
 					GenericBagsListMessage::Bag { score, bag } => {
-						// Translate all AccountId fields in the bag
-						let translated_head = bag.head.map(|account| {
-							let account_encoded = account.encode();
-							let translated_encoded = Pallet::<T>::translate_encoded_account_rc_to_ah(account_encoded);
-							T::AccountId::decode(&mut &translated_encoded[..])
-								.expect("Account decoding should never fail")
-						});
-						
-						let translated_tail = bag.tail.map(|account| {
-							let account_encoded = account.encode();
-							let translated_encoded = Pallet::<T>::translate_encoded_account_rc_to_ah(account_encoded);
-							T::AccountId::decode(&mut &translated_encoded[..])
-								.expect("Account decoding should never fail")
-						});
-						
+						// Directly translate all AccountId fields - no need for encode/decode
+						// cycles
+						let translated_head = bag
+							.head
+							.map(|account| Pallet::<T>::translate_account_rc_to_ah(account));
+						let translated_tail = bag
+							.tail
+							.map(|account| Pallet::<T>::translate_account_rc_to_ah(account));
+
 						GenericBagsListMessage::Bag {
 							score,
-							bag: alias::Bag {
-								head: translated_head,
-								tail: translated_tail,
-							},
+							bag: alias::Bag { head: translated_head, tail: translated_tail },
 						}
 					},
 				}
