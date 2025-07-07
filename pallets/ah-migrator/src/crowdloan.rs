@@ -273,12 +273,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					..
 				} => {
 					// Translate contributor account from RC to AH
-					let contributor_encoded = contributor.encode();
-					let translated_encoded =
-						Pallet::<T>::translate_encoded_account_rc_to_ah(contributor_encoded);
-					let translated_contributor =
-						AccountIdOf::<T>::decode(&mut &translated_encoded[..])
-							.expect("Account decoding should never fail");
+					let translated_contributor = Pallet::<T>::translate_account_rc_to_ah(contributor);
 
 					rc_contributions
 						.entry((para_id, withdraw_block, translated_contributor))
@@ -287,11 +282,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 				},
 				PreCheckMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
 					// Translate account from RC to AH
-					let account_encoded = account.encode();
-					let translated_encoded =
-						Pallet::<T>::translate_encoded_account_rc_to_ah(account_encoded);
-					let translated_account = AccountIdOf::<T>::decode(&mut &translated_encoded[..])
-						.expect("Account decoding should never fail");
+					let translated_account = Pallet::<T>::translate_account_rc_to_ah(account);
 
 					rc_lease_reserves.entry(para_id).or_insert_with(Vec::new).push((
 						unreserve_block,
@@ -306,12 +297,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					amount,
 				} => {
 					// Translate depositor account from RC to AH
-					let depositor_encoded = depositor.encode();
-					let translated_encoded =
-						Pallet::<T>::translate_encoded_account_rc_to_ah(depositor_encoded);
-					let translated_depositor =
-						AccountIdOf::<T>::decode(&mut &translated_encoded[..])
-							.expect("Account decoding should never fail");
+					let translated_depositor = Pallet::<T>::translate_account_rc_to_ah(depositor);
 
 					rc_crowdloan_reserves.entry(para_id).or_insert_with(Vec::new).push((
 						unreserve_block,

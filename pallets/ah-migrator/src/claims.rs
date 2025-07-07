@@ -127,11 +127,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 			.map(|message| {
 				match message {
 					RcClaimsMessage::Preclaims((who, address)) => {
-						let who_encoded = who.encode();
-						let translated_encoded =
-							Pallet::<T>::translate_encoded_account_rc_to_ah(who_encoded);
-						let translated_who = T::AccountId::decode(&mut &translated_encoded[..])
-							.expect("Account decoding should never fail");
+						let translated_who = Pallet::<T>::translate_account_rc_to_ah(who);
 						RcClaimsMessage::Preclaims((translated_who, address))
 					},
 					// All other variants don't contain AccountIds
