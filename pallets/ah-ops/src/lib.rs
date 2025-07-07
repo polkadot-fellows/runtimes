@@ -41,6 +41,7 @@ pub use pallet::*;
 pub use weights::WeightInfo;
 
 use codec::DecodeAll;
+use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
@@ -64,7 +65,6 @@ pub const LOG_TARGET: &str = "runtime::ah-ops";
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 pub type DerivationIndex = u16;
-pub type ParaId = u16;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -322,8 +322,7 @@ pub mod pallet {
 		///
 		/// Callable by any signed origin.
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(15, 15)
-					.saturating_add(Weight::from_parts(0, 50_000)))]
+		#[pallet::weight(<T as Config>::WeightInfo::migrate_parachain_sovereign_acc())]
 		pub fn migrate_parachain_sovereign_acc(
 			origin: OriginFor<T>,
 			from: T::AccountId,
@@ -341,8 +340,7 @@ pub mod pallet {
 		///
 		/// Callable by any signed origin.
 		#[pallet::call_index(5)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(15, 15)
-					.saturating_add(Weight::from_parts(0, 50_000)))]
+		#[pallet::weight(<T as Config>::WeightInfo::migrate_parachain_sovereign_derived_acc())]
 		pub fn migrate_parachain_sovereign_derived_acc(
 			origin: OriginFor<T>,
 			from: T::AccountId,
@@ -619,7 +617,7 @@ pub mod pallet {
 			ah_raw[0..4].copy_from_slice(b"sibl");
 			ah_raw[4..6].copy_from_slice(&para_id.encode());
 
-			Ok((ah_raw.into(), para_id))
+			Ok((ah_raw.into(), ParaId::from(para_id as u32)))
 		}
 
 		/// Same as `try_translate_rc_sovereign_to_ah` but for derived accounts.

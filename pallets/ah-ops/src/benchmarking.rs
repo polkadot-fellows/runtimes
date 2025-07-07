@@ -28,7 +28,7 @@ pub mod benchmarks {
 		let _ = T::Currency::deposit_creating(&sender, ed + ed);
 		let _ = T::Currency::reserve(&sender, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
-		let para_id = ParaId::from(1u16);
+		let para_id = ParaId::from(1u32);
 		RcLeaseReserve::<T>::insert((block, para_id, &sender), ed);
 
 		assert_eq!(T::Currency::reserved_balance(&sender), ed);
@@ -47,7 +47,7 @@ pub mod benchmarks {
 		let _ = T::Currency::deposit_creating(&pot, ed + ed);
 		let _ = T::Currency::reserve(&pot, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
-		let para_id = ParaId::from(1u16);
+		let para_id = ParaId::from(1u32);
 		RcLeaseReserve::<T>::insert((block, para_id, &pot), ed);
 
 		let sender = account("sender", 0, 0);
@@ -70,7 +70,7 @@ pub mod benchmarks {
 		let _ = T::Currency::deposit_creating(&sender, ed + ed);
 		let _ = T::Currency::reserve(&sender, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
-		let para_id = ParaId::from(1u16);
+		let para_id = ParaId::from(1u32);
 		RcCrowdloanReserve::<T>::insert((block, para_id, &sender), ed);
 
 		assert_eq!(T::Currency::reserved_balance(&sender), ed);
@@ -87,13 +87,13 @@ pub mod benchmarks {
 		// Bifrost accs
 		let from = AccountId32::from(
 			array_bytes::hex2array(
-				"adcea185416af2d3e8df8c1c8ee8a634bf1c3275b3820cb6d935300d42c73b2a",
+				"70617261ee070000000000000000000000000000000000000000000000000000",
 			)
 			.unwrap(),
 		);
 		let to = AccountId32::from(
 			array_bytes::hex2array(
-				"69f880852768f2d00acfa7824533aa4378e48d1b9fbc6b44500e8b98debeaccd",
+				"7369626cee070000000000000000000000000000000000000000000000000000",
 			)
 			.unwrap(),
 		);
@@ -107,8 +107,13 @@ pub mod benchmarks {
 
 		assert!(T::Currency::free_balance(&to) > 0);
 		assert_last_event::<T>(
-			Event::<T>::SovereignMigrated { para_id: 2030, from, to, derivation_index: None }
-				.into(),
+			Event::<T>::SovereignMigrated {
+				para_id: 2030u32.into(),
+				from,
+				to,
+				derivation_index: None,
+			}
+			.into(),
 		);
 	}
 
@@ -116,7 +121,7 @@ pub mod benchmarks {
 	fn migrate_parachain_sovereign_derived_acc() {
 		let parent = AccountId32::from(
 			array_bytes::hex2array(
-				"adcea185416af2d3e8df8c1c8ee8a634bf1c3275b3820cb6d935300d42c73b2a",
+				"70617261ee070000000000000000000000000000000000000000000000000000",
 			)
 			.unwrap(),
 		);
@@ -142,8 +147,13 @@ pub mod benchmarks {
 
 		assert!(T::Currency::free_balance(&to) > 0);
 		assert_last_event::<T>(
-			Event::<T>::SovereignMigrated { para_id: 2030, from, to, derivation_index: Some(0) }
-				.into(),
+			Event::<T>::SovereignMigrated {
+				para_id: 2030u32.into(),
+				from,
+				to,
+				derivation_index: Some(0),
+			}
+			.into(),
 		);
 	}
 
@@ -171,12 +181,15 @@ pub mod benchmarks {
 	pub fn test_migrate_parachain_sovereign_derived_acc<T: Config>() {
 		_migrate_parachain_sovereign_derived_acc::<T>(true)
 	}
+
+	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Runtime);
 }
 
 fn touch<T: Config>(acc: &AccountId32) {
 	let ed = <T::Currency as Currency<_>>::minimum_balance();
 	let _ = T::Currency::deposit_creating(acc, ed);
 }
+
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }

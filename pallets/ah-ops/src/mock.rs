@@ -18,7 +18,10 @@ use crate as pallet_ah_ops;
 use crate::*;
 use frame_support::derive_impl;
 use sp_core::H256;
-use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
+use sp_runtime::{
+	traits::{BlakeTwo256, IdentityLookup},
+	BuildStorage,
+};
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
@@ -76,4 +79,9 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type RcBlockNumberProvider = System; // Wrong but unused
 	type WeightInfo = ();
+}
+
+pub fn new_test_ext() -> sp_io::TestExternalities {
+	let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	sp_io::TestExternalities::new(t)
 }
