@@ -32,6 +32,34 @@ use sp_runtime::{
 	Saturating,
 };
 
+/// Macro to generate account translation logic for bonded pool structures.
+///
+/// This macro works with two different pool types that share the same field structure:
+/// 1. `BondedPoolInner<T>` - The actual runtime pallet type used during migration
+/// 2. `tests::GenericBondedPoolInner<Balance, AccountId, BlockNumber>` - Generic test type used for
+///    verification
+macro_rules! translate_bonded_pool_accounts {
+	($pool:expr, $translate_fn:expr) => {{
+		// Translate accounts in pool roles
+		$pool.roles.depositor = $translate_fn($pool.roles.depositor.clone());
+		$pool.roles.root = $pool.roles.root.clone().map($translate_fn);
+		$pool.roles.nominator = $pool.roles.nominator.clone().map($translate_fn);
+		$pool.roles.bouncer = $pool.roles.bouncer.clone().map($translate_fn);
+
+		// Translate commission accounts
+		if let Some(ref mut claim_permission) = $pool.commission.claim_permission {
+			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
+				claim_permission
+			{
+				*account = $translate_fn(account.clone());
+			}
+		}
+		if let Some((rate, ref mut account)) = $pool.commission.current {
+			$pool.commission.current = Some((rate, $translate_fn(account.clone())));
+		}
+	}};
+}
+
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_nom_pools_messages(
 		messages: Vec<RcNomPoolsMessage<T>>,
@@ -75,7 +103,8 @@ impl<T: Config> Pallet<T> {
 			BondedPools { pool } => {
 				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(pool.0));
 				log::debug!(target: LOG_TARGET, "Integrating NomPoolsBondedPool: {}", &pool.0);
-				let translated_pool = Self::translate_bonded_pool_accounts(pool.1);
+				let mut translated_pool = pool.1;
+				translate_bonded_pool_accounts!(translated_pool, Self::translate_account_rc_to_ah);
 				pallet_nomination_pools::BondedPools::<T>::insert(
 					pool.0,
 					Self::rc_to_ah_bonded_pool(translated_pool),
@@ -117,58 +146,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	/// Translate accounts in bonded pool roles from RC to AH format
-	fn translate_bonded_pool_accounts(mut pool: BondedPoolInner<T>) -> BondedPoolInner<T> {
-		// Translate accounts in pool roles using functional approach
-		pool.roles.depositor = Self::translate_account_rc_to_ah(pool.roles.depositor);
-		pool.roles.root = pool.roles.root.map(|acc| Self::translate_account_rc_to_ah(acc));
-		pool.roles.nominator =
-			pool.roles.nominator.map(|acc| Self::translate_account_rc_to_ah(acc));
-		pool.roles.bouncer = pool.roles.bouncer.map(|acc| Self::translate_account_rc_to_ah(acc));
-
-		// Translate commission accounts
-		if let Some(ref mut claim_permission) = pool.commission.claim_permission {
-			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
-				claim_permission
-			{
-				*account = Self::translate_account_rc_to_ah(account.clone());
-			}
-		}
-		if let Some((rate, ref mut account)) = pool.commission.current {
-			pool.commission.current =
-				Some((rate, Self::translate_account_rc_to_ah(account.clone())));
-		}
-
-		pool
-	}
-
-	/// Translate accounts in a generic bonded pool structure
-	#[cfg(feature = "std")]
-	fn translate_generic_bonded_pool_accounts(
-		mut pool: tests::GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>>,
-	) -> tests::GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>> {
-		// Translate accounts in pool roles using functional approach
-		pool.roles.depositor = Self::translate_account_rc_to_ah(pool.roles.depositor);
-		pool.roles.root = pool.roles.root.map(|acc| Self::translate_account_rc_to_ah(acc));
-		pool.roles.nominator =
-			pool.roles.nominator.map(|acc| Self::translate_account_rc_to_ah(acc));
-		pool.roles.bouncer = pool.roles.bouncer.map(|acc| Self::translate_account_rc_to_ah(acc));
-
-		// Translate commission accounts
-		if let Some(ref mut claim_permission) = pool.commission.claim_permission {
-			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
-				claim_permission
-			{
-				*account = Self::translate_account_rc_to_ah(account.clone());
-			}
-		}
-		if let Some((rate, ref mut account)) = pool.commission.current {
-			pool.commission.current =
-				Some((rate, Self::translate_account_rc_to_ah(account.clone())));
-		}
-
-		pool
-	}
 
 	/// Translate a bonded RC pool to an AH one.
 	pub fn rc_to_ah_bonded_pool(mut pool: BondedPoolInner<T>) -> BondedPoolInner<T> {
@@ -309,8 +286,8 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 						PoolMembers { member: (translated_account, member.clone()) }
 					},
 					BondedPools { pool: (pool_id, pool) } => {
-						let translated_pool =
-							Pallet::<T>::translate_generic_bonded_pool_accounts(pool.clone());
+						let mut translated_pool = pool.clone();
+						translate_bonded_pool_accounts!(translated_pool, Pallet::<T>::translate_account_rc_to_ah);
 						BondedPools { pool: (*pool_id, translated_pool) }
 					},
 					RewardPools { rewards } => RewardPools { rewards: rewards.clone() },

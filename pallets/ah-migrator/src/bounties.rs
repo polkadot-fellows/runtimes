@@ -191,6 +191,8 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		// Verify that bounties were migrated successfully by checking the keys match
 		let ah_bounty_keys: Vec<_> = pallet_bounties::Bounties::<T>::iter_keys().collect();
 		let rc_bounty_keys: Vec<_> = rc_bounties.iter().map(|(index, _)| *index).collect();
+		// Assert storage 'Bounties::Bounties::ah_post::correct'
+		// Assert storage 'Bounties::Bounties::ah_post::consistent'
 		assert_eq!(
 			ah_bounty_keys, rc_bounty_keys,
 			"Bounty keys in RC alias storage on Asset Hub should match the RC keys"

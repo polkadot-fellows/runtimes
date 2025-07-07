@@ -951,6 +951,13 @@ pub mod pallet {
 		/// TODO: The current signature suggests that the function is intended to be infallible and
 		/// always return a valid account. This should be revisited when we replace the mock
 		/// implementation with the real one.
+		/// TODO: introduce different accountId types for RC and AH e.g something like
+		/// ```rust
+		/// trait IntoAhTranslated<AhAccountId> {
+		///     fn into_ah_translated(self) -> AhAccountId;
+		/// }
+		/// ```
+		/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
 		pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
 			// Mock implementation - return unchanged for now
 			account

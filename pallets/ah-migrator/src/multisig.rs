@@ -64,7 +64,9 @@ impl<T: Config> Pallet<T> {
 		// Translate the creator account from RC to AH format
 		let translated_creator = Self::translate_account_rc_to_ah(multisig.creator.clone());
 
-		// Translate the details account (derived multisig account) if present
+		// Translate the details account (derived multisig account) if present.
+		// NOTE: There are instances where we expect the translation to be a no-op. It's acceptable
+		// to retain it for now and remove it later if we determine it is consistently a no-op.
 		let translated_details = multisig
 			.details
 			.as_ref()

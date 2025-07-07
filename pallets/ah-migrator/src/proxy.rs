@@ -245,8 +245,8 @@ where
 						// work
 						let k = translated.encode().get(0).cloned();
 						assert!(
-							k == Some(7) || k == Some(9), /* TODO @ggwpez make all work and add
-							                               * legacy variants */
+							k == Some(7) || k == Some(9), /* FAIL-CI @ggwpez make all work and
+							                               * add legacy variants */
 							"Must translate all proxy Kinds except Auction and ParaRegistration"
 						);
 						continue;
