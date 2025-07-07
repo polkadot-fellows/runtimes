@@ -1,7 +1,5 @@
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
-
-use std::i8::MIN;
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -49,12 +47,10 @@ use sp_runtime::MultiAddress;
 use xcm::opaque::latest::AssetTransferFilter::ReserveDeposit;
 use xcm_executor::traits::ConvertLocation;
 use crate::tests::snowbridge_common::TOKEN_AMOUNT;
+use crate::tests::snowbridge_common::TOKEN_ID;
 
 /// Calculates the XCM prologue fee for sending an XCM to AH.
 const INITIAL_FUND: u128 = 5_000_000_000_000;
-
-/// An ERC-20 token to be registered and sent.
-const TOKEN_ID: [u8; 20] = hex!("8daebade922df735c38c80c7ebd708af50815faa");
 
 #[test]
 fn register_token_v2() {

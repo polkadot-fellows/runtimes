@@ -22,6 +22,7 @@ mod send_xcm;
 mod snowbridge;
 mod snowbridge_common;
 mod snowbridge_v2_inbound;
+mod snowbridge_v2_inbound_to_kusama;
 mod snowbridge_v2_outbound;
 mod teleport;
 

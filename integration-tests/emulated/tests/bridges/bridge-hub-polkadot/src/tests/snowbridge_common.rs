@@ -39,6 +39,8 @@ pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 6_000_000_000_000_000;
 pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
 pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
 const AH_BASE_FEE_V2: u128 = 100_000_000_000;
+/// An ERC-20 token to be registered and sent.
+pub const TOKEN_ID: [u8; 20] = hex!("8daebade922df735c38c80c7ebd708af50815faa");
 
 pub fn beneficiary() -> Location {
 	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }])
@@ -395,12 +397,20 @@ pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
 }
 
 pub(crate) fn set_up_eth_and_dot_pool_on_kusama() {
-	let sa_of_wah_on_rah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
+	let sa_of_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		NetworkId::Polkadot,
 		AssetHubPolkadot::para_id(),
 	);
-	AssetHubKusama::fund_accounts(vec![(sa_of_wah_on_rah.clone(), INITIAL_FUND)]);
-	create_pool_with_native_on!(AssetHubKusama, eth_location(), true, sa_of_wah_on_rah.clone());
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
+			eth_location().try_into().unwrap(),
+			&sa_of_pah_on_kah.clone(),
+			500_000_000_000_000,
+		));
+	});
+	AssetHubKusama::fund_accounts(vec![(sa_of_pah_on_kah.clone(), INITIAL_FUND)]);
+	create_pool_with_native_on!(AssetHubKusama, eth_location(), true, sa_of_pah_on_kah.clone(), 100_000_000_000,
+		100_000_000_000_000);
 }
 
 pub fn register_pal_on_bh() {
@@ -463,12 +473,9 @@ pub fn erc20_token_location(token_id: H160) -> Location {
 	)
 }
 
-// ROC and wROC
-pub(crate) fn roc_at_ah_rococo() -> Location {
-	Parent.into()
-}
-pub(crate) fn bridged_roc_at_ah_polkadot() -> Location {
-	Location::new(2, [GlobalConsensus(ByGenesis(ROCOCO_GENESIS_HASH))])
+// KSM
+pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
+	Location::new(2, [GlobalConsensus(Kusama)])
 }
 
 pub(crate) fn create_foreign_on_ah_polkadot(id: xcm::opaque::v5::Location, sufficient: bool) {
@@ -539,15 +546,15 @@ pub(crate) fn set_up_pool_with_wnd_on_ah_polkadot(
 	});
 }
 
-pub fn register_roc_on_bh() {
+pub fn register_ksm_on_bh() {
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
 
-		// Register ROC on BH
+		// Register KSM on BH
 		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
 			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::from(bridged_roc_at_ah_polkadot())),
+			Box::new(VersionedLocation::from(bridged_ksm_at_ah_polkadot())),
 			AssetMetadata {
 				name: "roc".as_bytes().to_vec().try_into().unwrap(),
 				symbol: "roc".as_bytes().to_vec().try_into().unwrap(),
@@ -561,11 +568,11 @@ pub fn register_roc_on_bh() {
 	});
 }
 
-pub(crate) fn asset_hub_polkadot_global_location() -> Location {
+pub(crate) fn asset_hub_polkadot_location() -> Location {
 	Location::new(
 		2,
 		[
-			GlobalConsensus(ByGenesis(WESTEND_GENESIS_HASH)),
+			GlobalConsensus(NetworkId::Polkadot),
 			Parachain(AssetHubPolkadot::para_id().into()),
 		],
 	)
@@ -574,7 +581,7 @@ pub(crate) fn bridge_hub_polkadot_location() -> Location {
 	Location::new(
 		2,
 		[
-			GlobalConsensus(ByGenesis(WESTEND_GENESIS_HASH)),
+			GlobalConsensus(NetworkId::Polkadot),
 			Parachain(BridgeHubPolkadot::para_id().into()),
 		],
 	)

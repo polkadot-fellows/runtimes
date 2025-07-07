@@ -29,7 +29,6 @@ use snowbridge_pallet_outbound_queue_v2::Error;
 use sp_core::H256;
 use xcm::v5::AssetTransferFilter;
 use frame_support::BoundedVec;
-use frame_support::traits::fungibles::Mutate;
 
 #[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
 pub enum EthereumSystemFrontendCall {
