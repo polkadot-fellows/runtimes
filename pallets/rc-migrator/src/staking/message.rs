@@ -445,11 +445,7 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 		use pallet_staking::*;
 
 		StakingValues {
-			validator_count: if ValidatorCount::<T>::exists() {
-				Some(ValidatorCount::<T>::take())
-			} else {
-				None
-			},
+			validator_count: ValidatorCount::<T>::exists().then(ValidatorCount::<T>::take),
 			min_validator_count: if MinimumValidatorCount::<T>::exists() {
 				Some(MinimumValidatorCount::<T>::take())
 			} else {
