@@ -85,7 +85,7 @@ fn register_token_v2() {
 			claimer: Some(claimer_bytes),
 			// Used to pay the asset creation deposit.
 			value: 9_000_000_000_000u128,
-			execution_fee: 1_500_000_000_000u128,
+			execution_fee: MIN_ETHER_BALANCE * 2,
 			relayer_fee: relayer_reward,
 		};
 
@@ -556,7 +556,9 @@ fn send_token_to_penpal_v2() {
 	let claimer_bytes = claimer.encode();
 
 	// To pay fees on Penpal.
-	let eth_fee_penpal_ah: xcm::prelude::Asset = (eth_location(), 3_000_000_000_000u128).into();
+	let eth_fee_penpal_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
+
+	register_foreign_asset(token_location.clone());
 
 	let snowbridge_sovereign = snowbridge_sovereign();
 
@@ -625,7 +627,7 @@ fn send_token_to_penpal_v2() {
 	set_up_eth_and_dot_pool();
 	set_up_eth_and_dot_pool_on_penpal();
 
-	let token_transfer_value = 2_000_000_000_000u128;
+	let token_transfer_value = TOKEN_AMOUNT;
 
 	let assets = vec![
 		// the token being transferred
@@ -649,7 +651,7 @@ fn send_token_to_penpal_v2() {
 					// Refund unspent fees
 					RefundSurplus,
 					// Deposit assets to beneficiary.
-					DepositAsset { assets: Wild(AllCounted(3)), beneficiary: beneficiary.clone() },
+					DepositAsset { assets: Wild(AllCounted(2)), beneficiary: beneficiary.clone() },
 					SetTopic(H256::random().into()),
 				]
 				.into(),
@@ -671,10 +673,12 @@ fn send_token_to_penpal_v2() {
 			assets,
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
-			value: 3_500_000_000_000u128,
-			execution_fee: 1_500_000_000_000u128,
+			value: TOKEN_AMOUNT * 2,
+			execution_fee: MIN_ETHER_BALANCE * 2,
 			relayer_fee: relayer_reward,
 		};
+		// 3_000_000_000_000
+		//15_000_000_000_000
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
 
@@ -798,7 +802,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 	let asset_id_after_reanchored = Location::new(
 		1,
 		[
-			GlobalConsensus(ByGenesis(POLKADOT_GENESIS_HASH)),
+			GlobalConsensus(NetworkId::Polkadot),
 			Parachain(AssetHubPolkadot::para_id().into()),
 		],
 	)
@@ -991,7 +995,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 	let beneficiary_acc: [u8; 32] = H256::random().into();
 	let beneficiary = Location::new(0, AccountId32 { network: None, id: beneficiary_acc.into() });
 
-	let token_transfer_value = 2_000_000_000_000u128;
+	let token_transfer_value = TOKEN_AMOUNT;
 
 	let assets = vec![
 		// the token being transferred
@@ -1020,7 +1024,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 			// Set an invalid claimer
 			claimer: Some(hex!("2b7ce7bc7e87e4d6619da21487c7a53f").to_vec()),
 			value: 1_500_000_000_000u128,
-			execution_fee: 1_500_000_000_000u128,
+			execution_fee: MIN_ETHER_BALANCE * 2,
 			relayer_fee: relayer_reward,
 		};
 
