@@ -273,7 +273,8 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					..
 				} => {
 					// Translate contributor account from RC to AH
-					let translated_contributor = Pallet::<T>::translate_account_rc_to_ah(contributor);
+					let translated_contributor =
+						Pallet::<T>::translate_account_rc_to_ah(contributor);
 
 					rc_contributions
 						.entry((para_id, withdraw_block, translated_contributor))
