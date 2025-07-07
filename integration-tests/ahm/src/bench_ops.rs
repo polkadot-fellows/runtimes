@@ -57,3 +57,17 @@ fn test_bench_unreserve_crowdloan_reserve() {
 		test_unreserve_crowdloan_reserve::<AssetHub>();
 	});
 }
+
+#[test]
+fn test_bench_migrate_parachain_sovereign_acc() {
+	new_test_ext().execute_with(|| {
+		test_migrate_parachain_sovereign_acc::<AssetHub>();
+	});
+}
+
+#[test]
+fn test_bench_migrate_parachain_sovereign_derived_acc() {
+	new_test_ext().execute_with(|| {
+		test_migrate_parachain_sovereign_derived_acc::<AssetHub>();
+	});
+}

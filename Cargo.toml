@@ -74,6 +74,10 @@ version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
 branch = "oty-2503-paseo"
 
+[workspace.dependencies.array-bytes]
+version = "6.2.2"
+default-features = false
+
 [workspace.dependencies.assets-common]
 version = "*"
 default-features = false

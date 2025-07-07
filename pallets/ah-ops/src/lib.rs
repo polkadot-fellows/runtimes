@@ -354,21 +354,6 @@ pub mod pallet {
 			Self::do_migrate_parachain_sovereign_derived_acc(&from, &to, Some(derivation))
 				.map_err(Into::into)
 		}
-
-		/// Force unreserve a named or unnamed reserve.
-		#[pallet::call_index(4)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(10, 10)
-					.saturating_add(Weight::from_parts(0, 50_000)))]
-		pub fn force_unreserve(
-			origin: OriginFor<T>,
-			account: T::AccountId,
-			amount: BalanceOf<T>,
-			reason: Option<T::RuntimeHoldReason>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_force_unreserve(account, amount, reason).map_err(Into::into)
-		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -593,29 +578,6 @@ pub mod pallet {
 				to: to.clone(),
 				derivation_index: index,
 			});
-
-			Ok(())
-		}
-
-		pub fn do_force_unreserve(
-			account: T::AccountId,
-			amount: BalanceOf<T>,
-			reason: Option<T::RuntimeHoldReason>,
-		) -> Result<(), Error<T>> {
-			if let Some(reason) = reason {
-				<T as Config>::Currency::release(&reason, &account, amount, Precision::Exact)
-					.map_err(|_| Error::<T>::FailedToReleaseHold)?;
-				Self::deposit_event(Event::HoldReleased {
-					account: account.clone(),
-					amount,
-					reason,
-				});
-			} else {
-				let remaining = <T as Config>::Currency::unreserve(&account, amount);
-				if remaining > 0 {
-					return Err(Error::<T>::CannotUnreserve);
-				}
-			}
 
 			Ok(())
 		}
