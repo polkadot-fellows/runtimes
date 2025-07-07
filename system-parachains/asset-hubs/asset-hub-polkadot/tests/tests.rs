@@ -397,7 +397,7 @@ fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
 	}
 }
 
-/* FIXME @karol
+/* FIXME @karol FAIL-CI
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<

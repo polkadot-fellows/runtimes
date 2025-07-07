@@ -14,8 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-/*
-FIXME v4 -> v5 broke it
+
 use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::{
@@ -51,7 +50,7 @@ use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, Track
 use pallet_treasury::PaymentState;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
-use xcm::
+use xcm::v4::{Junction, Location};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -361,11 +360,11 @@ pub mod benchmarks {
 		let mut track_queue = vec![];
 
 		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
-		for (i, (id, _)) in tracks.iter().enumerate() {
-			deciding_count.push((id.clone(), (i as u32).into()));
+		for (i, track) in tracks.enumerate() {
+			deciding_count.push((track.id.clone(), (i as u32).into()));
 
 			track_queue.push((
-				id.clone(),
+				track.id.clone(),
 				vec![
 					(i as u32, (i as u32).into());
 					<T as pallet_referenda::Config>::MaxQueued::get() as usize
@@ -392,8 +391,8 @@ pub mod benchmarks {
 	fn receive_single_active_referendums(m: Linear<1, 4000000>) {
 		let create_referendum_info = |m: u32| -> (u32, RcReferendumInfoOf<T, ()>) {
 			let id = m;
-			let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
-			let track_id = tracks.iter().next().unwrap().0;
+			let mut tracks = <T as pallet_referenda::Config>::Tracks::tracks();
+			let track_id = tracks.next().unwrap().id;
 			let deposit = Deposit { who: [1; 32].into(), amount: m.into() };
 			let call: <T as frame_system::Config>::RuntimeCall =
 				frame_system::Call::remark { remark: vec![1u8; m as usize] }.into();
@@ -720,17 +719,20 @@ pub mod benchmarks {
 				id: n.into(),
 				status: SpendStatus {
 					asset_kind: VersionedLocatableAsset::V4 {
-						location: Location::new(0, [Parachain(1000)]),
+						location: Location::new(0, [xcm::v4::Junction::Parachain(1000)]),
 						asset_id: Location::new(
 							0,
-							[PalletInstance(n.into()), GeneralIndex(n.into())],
+							[
+								xcm::v4::Junction::PalletInstance(n.into()),
+								xcm::v4::Junction::GeneralIndex(n.into()),
+							],
 						)
 						.into(),
 					},
 					amount: n.into(),
 					beneficiary: VersionedLocation::V4(Location::new(
 						0,
-						[xcm::latest::Junction::AccountId32 { network: None, id: [n; 32].into() }],
+						[xcm::v4::Junction::AccountId32 { network: None, id: [n; 32].into() }],
 					)),
 					valid_from: n.into(),
 					expire_at: n.into(),
@@ -1251,4 +1253,3 @@ pub mod benchmarks {
 		_set_dmp_queue_priority::<T>(true)
 	}
 }
-*/

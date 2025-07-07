@@ -128,8 +128,6 @@ fn test_send_to_rc_from_ah() {
 	});
 }
 
-/*
-FIXME v4 -> v5 broke it
 #[test]
 fn test_send_to_ah_from_rc() {
 	let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<RcRuntime>::default()
@@ -165,6 +163,9 @@ fn test_send_to_ah_from_rc() {
 		runtime_parachains::configuration::ActiveConfig::<RcRuntime>::mutate(|config| {
 			config.max_downward_message_size = 51200;
 		});
+
+		polkadot_runtime::Dmp::make_parachain_reachable(1000);
+		polkadot_runtime::Dmp::make_parachain_reachable(1001);
 
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
@@ -228,4 +229,4 @@ fn test_send_to_ah_from_rc() {
 
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
-}*/
+}

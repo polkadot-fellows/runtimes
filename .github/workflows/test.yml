@@ -328,6 +328,7 @@ jobs:
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
             FEATURES="--features=metadata-hash"
           fi
+
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
           cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked

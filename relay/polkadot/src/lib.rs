@@ -76,9 +76,9 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
-		ProcessMessage, ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Equals, Everything, FromContains,
+		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade,
+		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -1581,13 +1581,6 @@ parameter_types! {
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
-pub struct ContainsAssetHub;
-impl Contains<Location> for ContainsAssetHub {
-	fn contains(loc: &Location) -> bool {
-		*loc == AssetHubLocation::get()
-	}
-}
-
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
@@ -1597,7 +1590,7 @@ impl pallet_rc_migrator::Config for Runtime {
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
-			EnsureXcm<ContainsAssetHub, Location>,
+			EnsureXcm<Equals<AssetHubLocation>, Location>,
 		>,
 	>;
 	type Currency = Balances;
@@ -1918,7 +1911,10 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
 		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
-		// FAIL-CI check migrations restore_corrupt_ledger_2::Migrate,
+		pallet_session::migrations::v1::MigrateV0ToV1<
+			Runtime,
+			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
