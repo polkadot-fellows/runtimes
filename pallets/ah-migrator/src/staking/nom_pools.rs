@@ -280,23 +280,6 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 				.push(tests::GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
 		}
 
-		let ah_filtered: Vec<_> = ah_messages
-			.into_iter()
-			.map(|msg| match msg {
-				// If the message is of type BondedPools, we remove the throttle_from value
-				// from the commission. This is necessary because in AssetHub, the value of
-				// throttle_from is calculated dynamically using block_number(),
-				// and it cannot be correctly obtained during the postcheck. By removing
-				// this value, we avoid conflicts and ensure that the AH system functions as
-				// intended.
-				tests::GenericNomPoolsMessage::BondedPools { pool: (id, mut inner) } => {
-					inner.commission.throttle_from = None;
-					tests::GenericNomPoolsMessage::BondedPools { pool: (id, inner) }
-				},
-				other => other,
-			})
-			.collect();
-
 		// Assert storage "NominationPools::TotalValueLocked::ah_post::correct"
 		// Assert storage "NominationPools::TotalValueLocked::ah_post::consistent"
 		// Assert storage "NominationPools::MinJoinBond::ah_post::correct"
@@ -328,7 +311,7 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::correct"
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::consistent"
 		assert_eq!(
-			rc_pre_payload, ah_filtered,
+			rc_pre_payload, ah_messages,
 			"Assert storage 'NominationPools::Metadata::ah_post::correct'"
 		);
 	}
