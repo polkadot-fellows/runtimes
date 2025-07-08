@@ -13,9 +13,9 @@
 // limitations under the License.
 use crate::{
 	tests::snowbridge_common::{
-		erc20_token_location, eth_location,
-		register_foreign_asset, set_up_eth_and_dot_pool, set_up_eth_and_dot_pool_on_penpal,
-		snowbridge_sovereign, weth_location,
+		erc20_token_location, eth_location, register_foreign_asset, set_up_eth_and_dot_pool,
+		set_up_eth_and_dot_pool_on_penpal, snowbridge_sovereign, weth_location, TOKEN_AMOUNT,
+		TOKEN_ID,
 	},
 	*,
 };
@@ -27,14 +27,10 @@ use bridge_hub_polkadot_runtime::{
 	EthereumInboundQueueV2,
 };
 use codec::Encode;
-use frame_support::assert_ok;
-use pallet_bridge_relayers;
-// Polkadot genesis hash
-const POLKADOT_GENESIS_HASH: [u8; 32] =
-	hex!("91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3");
 use emulated_integration_tests_common::RESERVABLE_ASSET_ID;
-use frame_support::{traits::fungibles::Mutate, BoundedVec};
+use frame_support::{assert_ok, traits::fungibles::Mutate, BoundedVec};
 use hex_literal::hex;
+use pallet_bridge_relayers;
 use polkadot_system_emulated_network::penpal_emulated_chain::PARA_ID_B;
 use snowbridge_core::{AssetMetadata, TokenIdOf};
 use snowbridge_inbound_queue_primitives::v2::{
@@ -46,8 +42,6 @@ use sp_io::hashing::blake2_256;
 use sp_runtime::MultiAddress;
 use xcm::opaque::latest::AssetTransferFilter::ReserveDeposit;
 use xcm_executor::traits::ConvertLocation;
-use crate::tests::snowbridge_common::TOKEN_AMOUNT;
-use crate::tests::snowbridge_common::TOKEN_ID;
 
 /// Calculates the XCM prologue fee for sending an XCM to AH.
 const INITIAL_FUND: u128 = 5_000_000_000_000;
@@ -512,7 +506,6 @@ fn register_and_send_multiple_tokens_v2() {
 			token_transfer_value
 		);
 
-
 		// Beneficiary received the weth transfer value
 		assert!(
 			ForeignAssets::balance(weth_location(), AccountId::from(beneficiary_acc_bytes)) >=
@@ -797,10 +790,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 
 	let asset_id_after_reanchored = Location::new(
 		1,
-		[
-			GlobalConsensus(NetworkId::Polkadot),
-			Parachain(AssetHubPolkadot::para_id().into()),
-		],
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
 	)
 	.appended_with(asset_id.clone().interior)
 	.unwrap();

@@ -20,10 +20,10 @@ use crate::{
 	},
 	*,
 };
-use asset_hub_polkadot_runtime::{xcm_config::{
+use asset_hub_polkadot_runtime::xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,
-}};
+};
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,

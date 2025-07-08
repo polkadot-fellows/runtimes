@@ -20,9 +20,10 @@ use crate::{
 			asset_hub_polkadot_location, bridged_ksm_at_ah_polkadot, create_foreign_on_ah_polkadot,
 			erc20_token_location, eth_location, register_foreign_asset, register_ksm_on_bh,
 			set_up_eth_and_dot_pool, set_up_eth_and_dot_pool_on_kusama,
-			set_up_pool_with_wnd_on_ah_polkadot, snowbridge_sovereign, TOKEN_AMOUNT,
+			set_up_pool_with_wnd_on_ah_polkadot, snowbridge_sovereign, TOKEN_AMOUNT, TOKEN_ID,
 		},
 	},
+	*,
 };
 use asset_hub_polkadot_runtime::ForeignAssets;
 use bridge_hub_polkadot_runtime::{
@@ -30,7 +31,7 @@ use bridge_hub_polkadot_runtime::{
 	EthereumInboundQueueV2,
 };
 use codec::Encode;
-use hex_literal::hex;
+use frame_support::BoundedVec;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
 	EthereumAsset::{ForeignTokenERC20, NativeTokenERC20},
@@ -39,9 +40,6 @@ use snowbridge_inbound_queue_primitives::v2::{
 use sp_core::{H160, H256};
 use xcm::opaque::latest::AssetTransferFilter::{ReserveDeposit, ReserveWithdraw};
 use xcm_executor::traits::ConvertLocation;
-use crate::*;
-use frame_support::BoundedVec;
-use crate::tests::snowbridge_common::TOKEN_ID;
 
 /// Calculates the XCM prologue fee for sending an XCM to AH.
 const INITIAL_FUND: u128 = 500_000_000_000_000;
@@ -114,13 +112,7 @@ fn send_token_to_kusama_v2() {
 			// Send message to Kusama AH
 			InitiateTransfer {
 				// Kusama
-				destination: Location::new(
-					2,
-					[
-						GlobalConsensus(Kusama),
-						Parachain(1000u32),
-					],
-				),
+				destination: Location::new(2, [GlobalConsensus(Kusama), Parachain(1000u32)]),
 				remote_fees: Some(ReserveDeposit(Definite(vec![eth_fee_kusama_ah.clone()].into()))),
 				preserve_origin: false,
 				assets: BoundedVec::truncate_from(vec![ReserveDeposit(Definite(
@@ -153,7 +145,7 @@ fn send_token_to_kusama_v2() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
-			execution_fee: MIN_ETHER_BALANCE *3,
+			execution_fee: MIN_ETHER_BALANCE * 3,
 			relayer_fee: relayer_reward,
 		};
 
@@ -264,7 +256,7 @@ fn send_ether_to_kusama_v2() {
 
 	// To pay fees on Kusama.
 	let eth_fee_kusama_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE).into();
-	let ether_asset_ah: xcm::prelude::Asset = (eth_location(),  TOKEN_AMOUNT).into();
+	let ether_asset_ah: xcm::prelude::Asset = (eth_location(), TOKEN_AMOUNT).into();
 
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
@@ -276,13 +268,7 @@ fn send_ether_to_kusama_v2() {
 			// Send message to Kusama AH
 			InitiateTransfer {
 				// Kusama
-				destination: Location::new(
-					2,
-					[
-						GlobalConsensus(Kusama),
-						Parachain(1000u32),
-					],
-				),
+				destination: Location::new(2, [GlobalConsensus(Kusama), Parachain(1000u32)]),
 				remote_fees: Some(ReserveDeposit(Definite(vec![eth_fee_kusama_ah.clone()].into()))),
 				preserve_origin: false,
 				assets: BoundedVec::truncate_from(vec![ReserveDeposit(Definite(
@@ -467,13 +453,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 			// Send message to Kusama AH
 			InitiateTransfer {
 				// Kusama
-				destination: Location::new(
-					2,
-					[
-						GlobalConsensus(Kusama),
-						Parachain(1000u32),
-					],
-				),
+				destination: Location::new(2, [GlobalConsensus(Kusama), Parachain(1000u32)]),
 				remote_fees: Some(ReserveDeposit(Definite(vec![eth_fee_kusama_ah.clone()].into()))),
 				preserve_origin: false,
 				assets: BoundedVec::truncate_from(vec![ReserveWithdraw(Definite(

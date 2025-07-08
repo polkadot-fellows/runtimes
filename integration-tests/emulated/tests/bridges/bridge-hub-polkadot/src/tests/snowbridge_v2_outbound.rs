@@ -14,26 +14,26 @@
 // limitations under the License.
 
 use crate::{
-	*,
 	tests::{snowbridge_common::*, usdt_at_ah_polkadot},
+	*,
 };
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumOutboundQueueV2,
 };
 use emulated_integration_tests_common::{impls::Decode, PenpalBTeleportableAssetLocation};
-use frame_support::{assert_err_ignore_postinfo, pallet_prelude::TypeInfo};
+use frame_support::{assert_err_ignore_postinfo, pallet_prelude::TypeInfo, BoundedVec};
 use polkadot_system_emulated_network::penpal_emulated_chain::penpal_runtime::xcm_config::LocalTeleportableToAssetHub;
 use snowbridge_core::{AssetMetadata, BasicOperatingMode};
 use snowbridge_outbound_queue_primitives::v2::{ContractCall, DeliveryReceipt};
 use snowbridge_pallet_outbound_queue_v2::Error;
 use sp_core::H256;
 use xcm::v5::AssetTransferFilter;
-use frame_support::BoundedVec;
 
 #[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
 pub enum EthereumSystemFrontendCall {
 	#[codec(index = 1)]
-	//RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset }, // TODO when upgraded
+	//RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset
+	// }, // TODO when upgraded
 	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata },
 }
 
@@ -170,7 +170,6 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
@@ -577,10 +576,7 @@ fn register_token_from_penpal() {
 		1,
 		[
 			Parachain(PenpalB::para_id().into()),
-			AccountId32 {
-				network: Some(NetworkId::Polkadot),
-				id: PenpalBSender::get().into(),
-			},
+			AccountId32 { network: Some(NetworkId::Polkadot), id: PenpalBSender::get().into() },
 		],
 	);
 	let asset_location_on_penpal = PenpalBTeleportableAssetLocation::get();
@@ -749,8 +745,7 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 					// b. AH is configured to trust asset teleport from sibling chain
 					AssetTransferFilter::Teleport(Definite(pna.clone().into())),
 				]),
-				remote_xcm: Xcm(vec![
-					InitiateTransfer {
+				remote_xcm: Xcm(vec![InitiateTransfer {
 					destination: ethereum(),
 					remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 						remote_fee_asset_on_ethereum.clone().into(),
@@ -771,10 +766,8 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 							fallback_max_weight: None,
 							call: transact_info.encode().into(),
 						},
-					]
-					),
-					}
-				]),
+					]),
+				}]),
 			},
 		]));
 

@@ -14,7 +14,9 @@
 // limitations under the License.
 
 use crate::{tests::snowbridge::CHAIN_ID, *};
-use asset_hub_polkadot_runtime::xcm_config::LocationToAccountId;
+use asset_hub_polkadot_runtime::xcm_config::{
+	bridging::to_ethereum::BridgeHubEthereumBaseFeeV2, LocationToAccountId,
+};
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use emulated_integration_tests_common::PenpalBTeleportableAssetLocation;
 use frame_support::traits::fungibles::Mutate;
@@ -26,10 +28,8 @@ use polkadot_system_emulated_network::penpal_emulated_chain::{
 };
 use snowbridge_core::AssetMetadata;
 use sp_core::H160;
-use xcm::opaque::latest::{ROCOCO_GENESIS_HASH, WESTEND_GENESIS_HASH};
 use xcm_builder::ExternalConsensusLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFeeV2;
 
 pub const INITIAL_FUND: u128 = 50000_000_000_000_0000;
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
@@ -409,8 +409,14 @@ pub(crate) fn set_up_eth_and_dot_pool_on_kusama() {
 		));
 	});
 	AssetHubKusama::fund_accounts(vec![(sa_of_pah_on_kah.clone(), INITIAL_FUND)]);
-	create_pool_with_native_on!(AssetHubKusama, eth_location(), true, sa_of_pah_on_kah.clone(), 100_000_000_000,
-		100_000_000_000_000);
+	create_pool_with_native_on!(
+		AssetHubKusama,
+		eth_location(),
+		true,
+		sa_of_pah_on_kah.clone(),
+		100_000_000_000,
+		100_000_000_000_000
+	);
 }
 
 pub fn register_pal_on_bh() {
@@ -571,19 +577,13 @@ pub fn register_ksm_on_bh() {
 pub(crate) fn asset_hub_polkadot_location() -> Location {
 	Location::new(
 		2,
-		[
-			GlobalConsensus(NetworkId::Polkadot),
-			Parachain(AssetHubPolkadot::para_id().into()),
-		],
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
 	)
 }
 pub(crate) fn bridge_hub_polkadot_location() -> Location {
 	Location::new(
 		2,
-		[
-			GlobalConsensus(NetworkId::Polkadot),
-			Parachain(BridgeHubPolkadot::para_id().into()),
-		],
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(BridgeHubPolkadot::para_id().into())],
 	)
 }
 
