@@ -190,20 +190,8 @@ pub mod pallet {
 		InternalError,
 		/// The migrated account would get reaped in the process.
 		WouldReap,
-		/// Failed to put a hold on an account.
-		FailedToPutHold,
-		/// Failed to release a hold from an account.
-		FailedToReleaseHold,
-		/// Failed to thaw a frozen balance.
-		FailedToThaw,
-		/// Failed to set a freeze on an account.
-		FailedToSetFreeze,
 		/// Failed to transfer a balance.
 		FailedToTransfer,
-		/// Failed to reserve a balance.
-		FailedToReserve,
-		/// Failed to unreserve the full balance.
-		CannotUnreserve,
 		/// The from and to accounts are identical.
 		AccountIdentical,
 	}
