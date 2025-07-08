@@ -99,12 +99,3 @@ pub mod benchmarks {
 
 	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Runtime);
 }
-
-fn touch<T: Config>(acc: &AccountId32) {
-	let ed = <T::Currency as Currency<_>>::minimum_balance();
-	let _ = T::Currency::deposit_creating(acc, ed);
-}
-
-fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
-	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
-}

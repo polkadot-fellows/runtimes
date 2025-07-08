@@ -481,12 +481,3 @@ pub fn derivative_account_id<AccountId: Encode + Decode>(who: AccountId, index: 
 	Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
 		.expect("infinite length input; no invalid inputs for type; qed")
 }
-
-/// Backward mapping from <https://github.com/paritytech/polkadot-sdk/blob/74a5e1a242274ddaadac1feb3990fc95c8612079/substrate/frame/balances/src/types.rs#L38>
-pub fn map_lock_reason(reasons: LockReasons) -> LockWithdrawReasons {
-	match reasons {
-		LockReasons::All => LockWithdrawReasons::TRANSACTION_PAYMENT | LockWithdrawReasons::RESERVE,
-		LockReasons::Fee => LockWithdrawReasons::TRANSACTION_PAYMENT,
-		LockReasons::Misc => LockWithdrawReasons::TIP,
-	}
-}
