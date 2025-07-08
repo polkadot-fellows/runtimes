@@ -49,8 +49,12 @@ pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
 pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
 /// The base cost for transfers to Ethereum, for Snowbridge V2.
 const AH_BASE_FEE_V2: u128 = 100_000_000_000;
+/// Amount of native to be provided for pool creation.
 const DOT_POOL_AMOUNT: u128 = 900_000_000_000;
+/// Amount of ether to be provided for pool creation.
 const ETH_POOL_AMOUNT: u128 = 100_000_000_000_000;
+/// The reward allocated to the relayer for relaying the message.
+pub const RELAYER_REWARD_IN_ETHER: u128 = 1_500_000_000_000u128;
 
 pub fn beneficiary() -> Location {
 	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }])
@@ -133,9 +137,9 @@ pub fn snowbridge_sovereign() -> sp_runtime::AccountId32 {
 pub fn register_ksm_as_native_polkadot_asset_on_snowbridge() {
 	register_asset_native_polkadot_asset_on_snowbridge(
 		bridged_ksm_at_ah_polkadot(),
-		String::from("roc"),
-		String::from("ROC"),
-		10,
+		String::from("ksm"),
+		String::from("KSM"),
+		12,
 	);
 }
 
@@ -145,7 +149,7 @@ pub fn register_relay_token_on_polkadot_bh() {
 		Location::parent(),
 		String::from("dot"),
 		String::from("DOT"),
-		12,
+		10,
 	);
 }
 
@@ -494,5 +498,53 @@ pub fn set_trust_reserve_on_penpal() {
 				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
 			)],
 		));
+	});
+}
+
+/// Check that no assets were trapped on Polkadot AssetHub.
+pub fn ensure_no_assets_trapped_on_pah() {
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		let events = AssetHubPolkadot::events();
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
+			)),
+			"Assets were trapped on Polkadot AssetHub, should not happen."
+		);
+	});
+}
+
+/// Check that no assets were trapped on Kusama AssetHub.
+pub fn ensure_no_assets_trapped_on_kah() {
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+
+		let events = AssetHubKusama::events();
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
+			)),
+			"Assets were trapped on Kusama AssetHub, should not happen."
+		);
+	});
+}
+
+/// Check that no assets were trapped on Penpal B.
+pub fn ensure_no_assets_trapped_on_penpal_b() {
+	PenpalB::execute_with(|| {
+		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
+
+		let events = PenpalB::events();
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
+			)),
+			"Assets were trapped on PenpalB, should not happen."
+		);
 	});
 }

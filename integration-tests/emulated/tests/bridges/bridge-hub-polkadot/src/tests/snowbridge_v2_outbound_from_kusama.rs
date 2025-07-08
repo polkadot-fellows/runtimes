@@ -280,14 +280,14 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 #[test]
 fn register_kusama_asset_on_ethereum_from_rah() {
 	const XCM_FEE: u128 = 4_000_000_000_000;
-	let sa_of_rah_on_wah =
+	let sa_of_kah_on_pah =
 		AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
 			Kusama,
 			AssetHubKusama::para_id(),
 		);
 
 	// Kusama Asset Hub asset when bridged to Polkadot Asset Hub.
-	let bridged_asset_at_wah = Location::new(
+	let bridged_asset_at_pah = Location::new(
 		2,
 		[
 			GlobalConsensus(Kusama),
@@ -298,8 +298,8 @@ fn register_kusama_asset_on_ethereum_from_rah() {
 	);
 
 	AssetHubPolkadot::force_create_foreign_asset(
-		bridged_asset_at_wah.clone(),
-		sa_of_rah_on_wah.clone(),
+		bridged_asset_at_pah.clone(),
+		sa_of_kah_on_pah.clone(),
 		true,
 		ASSET_MIN_BALANCE,
 		vec![],
@@ -307,7 +307,7 @@ fn register_kusama_asset_on_ethereum_from_rah() {
 
 	let call =
 		EthereumSystemFrontend::EthereumSystemFrontend(EthereumSystemFrontendCall::RegisterToken {
-			asset_id: Box::new(VersionedLocation::from(bridged_asset_at_wah.clone())),
+			asset_id: Box::new(VersionedLocation::from(bridged_asset_at_pah.clone())),
 			metadata: Default::default(),
 		})
 		.encode();
@@ -316,18 +316,18 @@ fn register_kusama_asset_on_ethereum_from_rah() {
 	let fee_amount = XCM_FEE;
 	let fees = (Parent, fee_amount).into();
 
-	let xcm = xcm_transact_paid_execution(call.into(), origin_kind, fees, sa_of_rah_on_wah.clone());
+	let xcm = xcm_transact_paid_execution(call.into(), origin_kind, fees, sa_of_kah_on_pah.clone());
 
 	// SA-of-RAH-on-WAH needs to have balance to pay for fees and asset creation deposit
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location().try_into().unwrap(),
-			&sa_of_rah_on_wah,
+			&sa_of_kah_on_pah,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::force_set_balance(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
-			sa_of_rah_on_wah.into(),
+			sa_of_kah_on_pah.into(),
 			INITIAL_FUND
 		));
 	});

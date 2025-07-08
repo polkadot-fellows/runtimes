@@ -42,7 +42,6 @@ const INITIAL_FUND: u128 = 5_000_000_000_000;
 #[test]
 fn register_token_v2() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 	let receiver = AssetHubPolkadotReceiver::get();
 	let bridge_owner = snowbridge_sovereign();
 	BridgeHubPolkadot::fund_accounts(vec![(relayer_account.clone(), INITIAL_FUND)]);
@@ -67,9 +66,9 @@ fn register_token_v2() {
 			xcm: XcmPayload::CreateAsset { token, network: Network::Polkadot },
 			claimer: Some(claimer_bytes),
 			// Used to pay the asset creation deposit.
-			value: 9_000_000_000_000u128,
+			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 2,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -82,7 +81,7 @@ fn register_token_v2() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -110,23 +109,14 @@ fn register_token_v2() {
 				},
 			]
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]
 fn send_token_v2() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let token: H160 = TOKEN_ID.into();
 	let token_location = erc20_token_location(token);
@@ -140,29 +130,19 @@ fn send_token_v2() {
 	let beneficiary =
 		Location::new(0, AccountId32 { network: None, id: beneficiary_acc_id.into() });
 
-	let token_transfer_value = 2_000_000_000_000u128;
-
 	let snowbridge_sovereign = snowbridge_sovereign();
 
 	// To satisfy ED
 	AssetHubPolkadot::fund_accounts(vec![(
 		sp_runtime::AccountId32::from(beneficiary_acc_bytes),
-		3_000_000_000_000,
+		INITIAL_FUND,
 	)]);
 
 	register_foreign_asset(token_location.clone(), snowbridge_sovereign.clone(), false);
 
-	AssetHubPolkadot::execute_with(|| {
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
-			&snowbridge_sovereign,
-			500_000_000_000_000,
-		));
-	});
-
 	let assets = vec![
 		// the token being transferred
-		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
+		NativeTokenERC20 { token_id: token.into(), value: TOKEN_AMOUNT },
 	];
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
@@ -195,7 +175,7 @@ fn send_token_v2() {
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT.into(),
 			execution_fee: 1_500_000_000_000u128,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message.clone()).unwrap();
@@ -209,7 +189,7 @@ fn send_token_v2() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 				RuntimeEvent::EthereumInboundQueueV2(snowbridge_pallet_inbound_queue_v2::Event::MessageReceived { message_id, .. }) => {
 					message_id: *message_id == topic_id,
@@ -247,27 +227,18 @@ fn send_token_v2() {
 		// Beneficiary received the token transfer value
 		assert_eq!(
 			ForeignAssets::balance(token_location, AccountId::from(beneficiary_acc_bytes)),
-			token_transfer_value
+			TOKEN_AMOUNT
 		);
 		// Claimer received eth refund for fees paid
 		assert!(ForeignAssets::balance(eth_location(), receiver) > 0);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]
 fn send_weth_v2() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let beneficiary_acc_id: H256 = H256::random();
 	let beneficiary_acc_bytes: [u8; 32] = beneficiary_acc_id.into();
@@ -305,7 +276,7 @@ fn send_weth_v2() {
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: 1_500_000_000_000u128,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -318,7 +289,7 @@ fn send_weth_v2() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -355,23 +326,14 @@ fn send_weth_v2() {
 
 		// Claimer received eth refund for fees paid
 		assert!(ForeignAssets::balance(eth_location(), AccountId::from(beneficiary_acc_bytes)) > 0);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]
 fn register_and_send_multiple_tokens_v2() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let token: H160 = TOKEN_ID.into();
 	let token_location = erc20_token_location(token);
@@ -452,7 +414,7 @@ fn register_and_send_multiple_tokens_v2() {
 			claimer: Some(claimer_bytes),
 			value: eth_asset_value,
 			execution_fee: MIN_ETHER_BALANCE * 2,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -465,7 +427,7 @@ fn register_and_send_multiple_tokens_v2() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -511,25 +473,16 @@ fn register_and_send_multiple_tokens_v2() {
 				weth_transfer_value
 		);
 
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
-
 		// Beneficiary received eth refund for fees paid
 		assert!(ForeignAssets::balance(eth_location(), AccountId::from(beneficiary_acc_bytes)) > 0);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]
 fn send_token_to_penpal_v2() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let token: H160 = TOKEN_ID.into();
 	let token_location = erc20_token_location(token);
@@ -666,7 +619,7 @@ fn send_token_to_penpal_v2() {
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT * 2,
 			execution_fee: MIN_ETHER_BALANCE * 2,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -679,7 +632,7 @@ fn send_token_to_penpal_v2() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -713,17 +666,9 @@ fn send_token_to_penpal_v2() {
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 
 	PenpalB::execute_with(|| {
 		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
@@ -753,23 +698,14 @@ fn send_token_to_penpal_v2() {
 			ForeignAssets::balance(token_location, AccountId::from(beneficiary_acc_bytes)),
 			token_transfer_value
 		);
-
-		let events = PenpalB::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped on Penpal, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_penpal_b();
 }
 
 #[test]
 fn send_foreign_erc20_token_back_to_polkadot() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let claimer = AccountId32 { network: None, id: H256::random().into() };
 	let claimer_bytes = claimer.encode();
@@ -847,7 +783,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 			claimer: Some(claimer_bytes),
 			value: 1_500_000_000_000u128,
 			execution_fee: 3_500_000_000_000u128,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -860,7 +796,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -891,23 +827,14 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 				},
 			]
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]
 fn invalid_xcm_traps_funds_on_ah() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let token: H160 = TOKEN_ID.into();
 	let claimer = AccountId32 { network: None, id: H256::random().into() };
@@ -943,7 +870,7 @@ fn invalid_xcm_traps_funds_on_ah() {
 			claimer: Some(claimer_bytes),
 			value: 1_500_000_000_000u128,
 			execution_fee: 1_500_000_000_000u128,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -956,7 +883,7 @@ fn invalid_xcm_traps_funds_on_ah() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -976,7 +903,6 @@ fn invalid_xcm_traps_funds_on_ah() {
 #[test]
 fn invalid_claimer_does_not_fail_the_message() {
 	let relayer_account = BridgeHubPolkadotSender::get();
-	let relayer_reward = 1_500_000_000_000u128;
 
 	let beneficiary_acc: [u8; 32] = H256::random().into();
 	let beneficiary = Location::new(0, AccountId32 { network: None, id: beneficiary_acc.into() });
@@ -1011,7 +937,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 			claimer: Some(hex!("2b7ce7bc7e87e4d6619da21487c7a53f").to_vec()),
 			value: 1_500_000_000_000u128,
 			execution_fee: MIN_ETHER_BALANCE * 2,
-			relayer_fee: relayer_reward,
+			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
@@ -1024,7 +950,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 				RuntimeEvent::BridgeRelayers(pallet_bridge_relayers::Event::RewardRegistered { relayer, reward_kind, reward_balance }) => {
 					relayer: *relayer == relayer_account,
 					reward_kind: *reward_kind == BridgeReward::Snowbridge,
-					reward_balance: *reward_balance == relayer_reward,
+					reward_balance: *reward_balance == RELAYER_REWARD_IN_ETHER,
 				},
 			]
 		);
@@ -1055,17 +981,9 @@ fn invalid_claimer_does_not_fail_the_message() {
 			ForeignAssets::balance(weth_location(), AccountId::from(beneficiary_acc)),
 			token_transfer_value
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]

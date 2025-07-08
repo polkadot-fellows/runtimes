@@ -14,10 +14,9 @@
 // limitations under the License.
 use crate::{
 	tests::{
-		snowbridge_common::*,
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
 		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
-		dot_at_ah_polkadot,
+		dot_at_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };

@@ -177,17 +177,9 @@ fn send_token_to_kusama_v2() {
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 
 	assert_bridge_hub_polkadot_message_accepted(true);
 
@@ -221,17 +213,9 @@ fn send_token_to_kusama_v2() {
 			ForeignAssets::balance(token_location, AccountId::from(beneficiary_acc_bytes)),
 			token_transfer_value
 		);
-
-		let events = AssetHubKusama::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped on Kusama AssetHub, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }
 
 #[test]
@@ -333,17 +317,9 @@ fn send_ether_to_kusama_v2() {
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 
 	assert_bridge_hub_polkadot_message_accepted(true);
 
@@ -366,17 +342,9 @@ fn send_ether_to_kusama_v2() {
 				},
 			]
 		);
-
-		let events = AssetHubKusama::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped on Kusama AssetHub, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_kah();
 }
 
 #[test]
@@ -509,17 +477,9 @@ fn send_ksm_from_ethereum_to_kusama() {
 				) => {},
 			]
 		);
-
-		let events = AssetHubPolkadot::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 
 	assert_bridge_hub_polkadot_message_accepted(true);
 
@@ -548,15 +508,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 				) => {},
 			]
 		);
-
-		let events = AssetHubKusama::events();
-		// Check that no assets were trapped
-		assert!(
-			!events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
-			)),
-			"Assets were trapped on Kusama AssetHub, should not happen."
-		);
 	});
+
+	ensure_no_assets_trapped_on_pah();
 }

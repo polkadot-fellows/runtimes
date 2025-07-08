@@ -204,9 +204,9 @@ pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 				RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
 				bx!(VersionedLocation::from(Location { parents: 1, interior: [].into() })),
 				AssetMetadata {
-					name: "wnd".as_bytes().to_vec().try_into().unwrap(),
-					symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),
-					decimals: 12,
+					name: "dot".as_bytes().to_vec().try_into().unwrap(),
+					symbol: "DOT".as_bytes().to_vec().try_into().unwrap(),
+					decimals: 10,
 				},
 			),
 			BadOrigin
