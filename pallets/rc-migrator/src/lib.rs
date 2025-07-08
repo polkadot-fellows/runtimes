@@ -119,9 +119,9 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 
 /// Soft limit on the DMP message size.
 ///
-/// The hard limit should be about 64KiB (TODO test) which means that we stay well below that to
-/// avoid any trouble. We can raise this as final preparation for the migration once everything is
-/// confirmed to work.
+/// The hard limit should be about 64KiB (TODO: @ggwpez test) which means that we stay well below
+/// that to avoid any trouble. We can raise this as final preparation for the migration once
+/// everything is confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
 
 /// Out of weight Error. Can be converted to a pallet error for convenience.
@@ -254,7 +254,7 @@ pub enum MigrationStage<
 
 	PreimageMigrationInit,
 	PreimageMigrationChunksOngoing {
-		// TODO type
+		// TODO: @ggwpez type
 		last_key: Option<((H256, u32), u32)>,
 	},
 	PreimageMigrationChunksDone,
@@ -1715,10 +1715,18 @@ pub mod pallet {
 					Self::transition(MigrationStage::SignalMigrationFinish);
 				},
 				MigrationStage::SignalMigrationFinish => {
+					weight_counter.consume(
+						// 1 read and 1 write for `staking::on_migration_end`;
+						// 1 read and 1 write for `RcMigratedBalance` storage item;
+						// plus one xcm send;
+						T::DbWeight::get().reads_writes(1, 1)
+							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
+					);
+
 					#[cfg(feature = "ahm-staking-migration")]
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 
-					// Send finish message to AH, TODO: weight
+					// Send finish message to AH.
 					let data = if RcMigratedBalance::<T>::exists() {
 						let tracker = if cfg!(feature = "std") {
 							// we should keep this value for the tests.

@@ -81,7 +81,7 @@ pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 		para_id: ParaId,
 		/// Amount that was reserved to create the crowdloan.
 		///
-		/// Normally this is 500 DOT. TODO: Should sanity check.
+		/// Normally this is 500 DOT. TODO: @ggwpez Should sanity check.
 		amount: Balance,
 	},
 }
@@ -265,7 +265,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
 				},
 				CrowdloanStage::CrowdloanReserve => {
-					// TODO: not much slower without last_key?
+					// TODO: @muharem not much slower without last_key?
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
 							inner_key = CrowdloanStage::CrowdloanReserve;

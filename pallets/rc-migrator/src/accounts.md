@@ -57,10 +57,6 @@ migrating amount.
 For more details about the checking account migration and mint authority changes, please refer to
 the sections below.
 
-TODO: Consider a dedicated migration stage for updating the teleport/reserve location, adjusting
-total issuance and checking account balances. This approach prevents XCM teleport locking during the
-entire migration and requires only a two-block lock for the switch.
-
 ### Provider and Consumer References
 
 After inspecting the state, it’s clear that fully correcting all reference counts is nearly
@@ -122,10 +118,10 @@ accounts, and a decrease without a prior increase will not cause any issues.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
 
-- session (P/K/W): TODO session set keys moving to AH
+- session (P/K/W): TODO: @muharem session set keys moving to AH
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
 
-- staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant. TODO: confirm with @Ank4n
+- staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant. TODO: @muharem confirm with @Ank4n
 
 - assets, contracts, nfts, uniques, revive (//): Not relevant for RC and AH runtimes.
 
