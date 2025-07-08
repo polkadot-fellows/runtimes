@@ -15,7 +15,6 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Types copied from the SDK nomination pools pallet.
-//! TODO delete once we integrated the changes into the SDK.
 
 use crate::*;
 use pallet_nomination_pools::{BalanceOf, PoolId, TotalUnbondingPools};

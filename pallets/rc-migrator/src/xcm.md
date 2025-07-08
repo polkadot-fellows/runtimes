@@ -18,7 +18,7 @@ is discussed in detail in [accounts.md](./accounts.md) document.
    - removed `LocalPlurality` from the list,
    - kept System Parachains and local Root (which continue to get free delivery).
 3. Did NOT change the destination/beneficiary of XCM delivery/transport fees. They will continue to go
-to the local Treasury account, even if the Treasury moves to Asset Hub. See 2nd TODO above for details.
+to the local Treasury account, even if the Treasury moves to Asset Hub. See 2nd TODO @acatangiu above for details.
 
 ## User Impact (on RC)
 

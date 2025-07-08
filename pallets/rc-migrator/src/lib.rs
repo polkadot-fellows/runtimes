@@ -1775,7 +1775,7 @@ pub mod pallet {
 					unconfirmed,
 					unprocessed_buffer
 				);
-				// TODO: make it possible to reset the counts with an extrinsic.
+				// TODO: @muharem make it possible to reset the counts with an extrinsic.
 				return true;
 			}
 			log::debug!(
@@ -1874,7 +1874,7 @@ pub mod pallet {
 					},
 					Instruction::Transact {
 						origin_kind: OriginKind::Superuser,
-						fallback_max_weight: None, // TODO @muharem: is this what you meant?
+						fallback_max_weight: None,
 						call: call.encode().into(),
 					},
 					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
@@ -1917,7 +1917,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Superuser,
-					fallback_max_weight: None, // TODO @muharem: is this what you meant?
+					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
 			]);

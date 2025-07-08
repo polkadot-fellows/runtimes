@@ -122,7 +122,7 @@ pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	/// Entry of the `Metadata` map.
 	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>) },
 	/// Entry of the `ReversePoolIdLookup` map.
-	// TODO check if inserting None into an option map is the same as deleting the key
+	// TODO: @ggwpez check if inserting None into an option map is the same as deleting the key
 	ReversePoolIdLookup { lookups: (T::AccountId, PoolId) },
 	/// Entry of the `ClaimPermissions` map.
 	ClaimPermissions { perms: (T::AccountId, ClaimPermission) },
