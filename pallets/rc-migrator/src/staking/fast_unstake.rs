@@ -177,11 +177,9 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveFastUnstakeMessages { messages },
-				|len| T::AhWeightInfo::receive_fast_unstake_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveFastUnstakeMessages { messages }
+			})?;
 		}
 
 		if inner_key == FastUnstakeStage::Finished {

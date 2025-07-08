@@ -922,7 +922,7 @@ pub mod pallet {
 							}
 								*/ // FAIL-CI staking check
 
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
 							},
@@ -1745,7 +1745,7 @@ pub mod pallet {
 						None
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
-					if let Err(err) = Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
+					if let Err(err) = Self::send_xcm(call) {
 						defensive!("Failed to send FinishMigration message to AH, \
 								retry with the next block: {:?}", err);
 					}
@@ -1835,15 +1835,12 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - items - data items to batch and send with the `create_call`
 		/// - create_call - function to create the call from the items
-		/// - weight_at_most - function to calculate the weight limit on AH for the call with `n`
-		///   elements from `items`
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm_and_track<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
-			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {
 			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
@@ -1901,11 +1898,7 @@ pub mod pallet {
 		///
 		/// ### Parameters:
 		/// - call - the call to send
-		/// - weight_at_most - the weight limit for the call on AH
-		pub fn send_xcm(
-			call: types::AhMigratorCall<T>,
-			weight_at_most: Weight,
-		) -> Result<(), Error<T>> {
+		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
 			log::info!(target: LOG_TARGET, "Sending XCM message");
 
 			let call = types::AssetHubPalletConfig::<T>::AhmController(call);

@@ -294,7 +294,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveCrowdloanMessages { messages },
-				|len| T::AhWeightInfo::receive_crowdloan_messages(len),
 			)?;
 		}
 
