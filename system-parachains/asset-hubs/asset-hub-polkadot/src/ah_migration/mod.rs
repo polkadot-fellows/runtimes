@@ -90,8 +90,7 @@ impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
-	// TODO: integrate with the related sdk upgrade and remove two last variants.
-	// DelegatedStaking,
+	// TODO: @muharem map this once pallet-staking-async is integrated
 	// Staking,
 	#[codec(index = 98)]
 	StateTrieMigration(pallet_state_trie_migration::HoldReason),
@@ -102,6 +101,17 @@ pub enum RcHoldReason {
 impl Default for RcHoldReason {
 	fn default() -> Self {
 		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
+
+pub struct RcToAhHoldReason;
+impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
+	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
+		match rc_hold_reason {
+			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
+			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
+			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
+		}
 	}
 }
 
@@ -125,17 +135,6 @@ pub enum RcFreezeReason {
 impl Default for RcFreezeReason {
 	fn default() -> Self {
 		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
-	}
-}
-
-pub struct RcToAhHoldReason;
-impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
-		match rc_hold_reason {
-			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
-			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
-			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
-		}
 	}
 }
 
@@ -216,9 +215,9 @@ impl TryConvert<RcPalletsOrigin, OriginCaller> for RcToAhPalletsOrigin {
 /// Relay Chain Runtime Call.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcRuntimeCall {
-	// TODO: variant set code for Relay Chain
-	// TODO: variant set code for Parachains
-	// TODO: whitelisted caller
+	// TODO: @muharem variant set code for Relay Chain
+	// TODO: @muharem variant set code for Parachains
+	// TODO: @muharem whitelisted caller
 	#[codec(index = 0u8)]
 	System(frame_system::Call<Runtime>),
 	#[codec(index = 19u8)]
