@@ -497,9 +497,7 @@ pub mod pallet {
 			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
 				T::AhWeightInfo::receive_liquid_accounts
 			} else {
-				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where 
-				// `require_weight_at_most` not required
-				T::AhWeightInfo::receive_liquid_accounts
+				T::AhWeightInfo::receive_accounts
 			};
 			for account in accounts.iter() {
 				let weight = if total.is_zero() {
@@ -561,15 +559,17 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight({1})]
-		// TODO use with xcm v5
-		// #[pallet::weight({
-		// 	let mut total = Weight::zero();
-		// 	for chunk in chunks.iter() {
-		// 		total = total.saturating_add(T::AhWeightInfo::receive_preimage_chunk(chunk.
-		// chunk_byte_offset / chunks::CHUNK_SIZE)); 	}
-		// 	total
-		// })]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for chunk in chunks.iter() {
+				total = total.saturating_add(
+					T::AhWeightInfo::receive_preimage_chunk(
+						chunk.chunk_byte_offset / chunks::CHUNK_SIZE,
+					),
+				);
+			}
+			total
+		})]
 		pub fn receive_preimage_chunks(
 			origin: OriginFor<T>,
 			chunks: Vec<RcPreimageChunk>,
@@ -665,31 +665,29 @@ pub mod pallet {
 
 		/// Receive referendums from the Relay Chain.
 		#[pallet::call_index(11)]
-		#[pallet::weight(T::AhWeightInfo::receive_complete_referendums(referendums.len() as u32))]
-		// TODO: use with xcm v5
-		// #[pallet::weight({
-		// 	let mut total = Weight::zero();
-		// 	for (_, info) in referendums.iter() {
-		// 		let weight = match info {
-		// 			ReferendumInfo::Ongoing(status) => {
-		// 				let len = status.proposal.len().defensive_unwrap_or(
-		// 					// should not happen, but we pick some sane call length.
-		// 					512,
-		// 				);
-		// 				T::AhWeightInfo::receive_single_active_referendums(len)
-		// 			},
-		// 			_ =>
-		// 				if total.is_zero() {
-		// 					T::AhWeightInfo::receive_complete_referendums(1)
-		// 				} else {
-		// 					T::AhWeightInfo::receive_complete_referendums(1)
-		// 						.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
-		// 				},
-		// 		};
-		// 		total = total.saturating_add(weight);
-		// 	}
-		// 	total
-		// })]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for (_, info) in referendums.iter() {
+				let weight = match info {
+					pallet_referenda::ReferendumInfo::Ongoing(status) => {
+						let len = status.proposal.len().defensive_unwrap_or(
+							// should not happen, but we pick some sane call length.
+							512,
+						);
+						T::AhWeightInfo::receive_single_active_referendums(len)
+					},
+					_ =>
+						if total.is_zero() {
+							T::AhWeightInfo::receive_complete_referendums(1)
+						} else {
+							T::AhWeightInfo::receive_complete_referendums(1)
+								.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
+						},
+				};
+				total = total.saturating_add(weight);
+			}
+			total
+		})]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -806,25 +804,24 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(22)]
-		#[pallet::weight({1})]
-		// TODO: use with xcm v5
-		// #[pallet::weight({
-		// 	let mut total = Weight::zero();
-		// 	for (_, agenda) in messages.iter() {
-		// 		for maybe_task in agenda {
-		// 			let Some(task) = maybe_task else {
-		// 				continue;
-		// 			};
-		// 			let preimage_len = task.call.len().defensive_unwrap_or(
-		// 				// should not happen, but we assume some sane call length.
-		// 				512,
-		// 			);
-		// 			total =
-		// total.saturating_add(T::AhWeightInfo::receive_single_scheduler_agenda(preimage_len));
-		// 		}
-		// 	}
-		// 	total
-		// })]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for (_, agenda) in messages.iter() {
+				for maybe_task in agenda {
+					let Some(task) = maybe_task else {
+						continue;
+					};
+					let preimage_len = task.call.len().defensive_unwrap_or(
+						// should not happen, but we assume some sane call length.
+						512,
+					);
+					total = total.saturating_add(
+						T::AhWeightInfo::receive_single_scheduler_agenda(preimage_len),
+					);
+				}
+			}
+			total
+		})]
 		pub fn receive_scheduler_agenda_messages(
 			origin: OriginFor<T>,
 			messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::RcScheduledOf<T>>>)>,
