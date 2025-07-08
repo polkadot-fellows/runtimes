@@ -82,81 +82,6 @@ pub mod benchmarks {
 		assert_eq!(RcCrowdloanReserve::<T>::get((block, para_id, &sender)), None);
 	}
 
-	#[benchmark]
-	fn migrate_parachain_sovereign_acc() {
-		// Bifrost accs
-		let from = AccountId32::from(
-			array_bytes::hex2array(
-				"70617261ee070000000000000000000000000000000000000000000000000000",
-			)
-			.unwrap(),
-		);
-		let to = AccountId32::from(
-			array_bytes::hex2array(
-				"7369626cee070000000000000000000000000000000000000000000000000000",
-			)
-			.unwrap(),
-		);
-
-		// Create the from account
-		touch::<T>(&from);
-
-		// Migrate the account
-		#[extrinsic_call]
-		_(RawOrigin::Root, from.clone(), to.clone());
-
-		assert!(T::Currency::free_balance(&to) > 0);
-		assert_last_event::<T>(
-			Event::<T>::SovereignMigrated {
-				para_id: 2030u32.into(),
-				from,
-				to,
-				derivation_index: None,
-			}
-			.into(),
-		);
-	}
-
-	#[benchmark]
-	fn migrate_parachain_sovereign_derived_acc() {
-		let parent = AccountId32::from(
-			array_bytes::hex2array(
-				"70617261ee070000000000000000000000000000000000000000000000000000",
-			)
-			.unwrap(),
-		);
-		let from = AccountId32::from(
-			array_bytes::hex2array(
-				"adcea185416af2d3e8df8c1c8ee8a634bf1c3275b3820cb6d935300d42c73b2a",
-			)
-			.unwrap(),
-		);
-		let to = AccountId32::from(
-			array_bytes::hex2array(
-				"69f880852768f2d00acfa7824533aa4378e48d1b9fbc6b44500e8b98debeaccd",
-			)
-			.unwrap(),
-		);
-
-		// Create the from account
-		touch::<T>(&from);
-
-		// Migrate the account
-		#[extrinsic_call]
-		_(RawOrigin::Root, from.clone(), to.clone(), (parent.clone(), 0u16));
-
-		assert!(T::Currency::free_balance(&to) > 0);
-		assert_last_event::<T>(
-			Event::<T>::SovereignMigrated {
-				para_id: 2030u32.into(),
-				from,
-				to,
-				derivation_index: Some(0),
-			}
-			.into(),
-		);
-	}
-
 	#[cfg(feature = "std")]
 	pub fn test_unreserve_lease_deposit<T: Config>() {
 		_unreserve_lease_deposit::<T>(true)
@@ -170,16 +95,6 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_unreserve_crowdloan_reserve<T: Config>() {
 		_unreserve_crowdloan_reserve::<T>(true)
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_migrate_parachain_sovereign_acc<T: Config>() {
-		_migrate_parachain_sovereign_acc::<T>(true)
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_migrate_parachain_sovereign_derived_acc<T: Config>() {
-		_migrate_parachain_sovereign_derived_acc::<T>(true)
 	}
 
 	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Runtime);

@@ -314,44 +314,6 @@ pub mod pallet {
 
 			Self::do_unreserve_crowdloan_reserve(block, depositor, para_id).map_err(Into::into)
 		}
-
-		/// Try to migrate a parachain sovereign child account to its respective sibling.
-		///
-		/// Takes the old and new account and migrates it only if they are as expected. An event of
-		/// `SovereignMigrated` will be emitted if the account was migrated successfully.
-		///
-		/// Callable by any signed origin.
-		#[pallet::call_index(3)]
-		#[pallet::weight(<T as Config>::WeightInfo::migrate_parachain_sovereign_acc())]
-		pub fn migrate_parachain_sovereign_acc(
-			origin: OriginFor<T>,
-			from: T::AccountId,
-			to: T::AccountId,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_migrate_parachain_sovereign_derived_acc(&from, &to, None).map_err(Into::into)
-		}
-
-		/// Try to migrate a parachain sovereign child account to its respective sibling.
-		///
-		/// Takes the old and new account and migrates it only if they are as expected. An event of
-		/// `SovereignMigrated` will be emitted if the account was migrated successfully.
-		///
-		/// Callable by any signed origin.
-		#[pallet::call_index(5)]
-		#[pallet::weight(<T as Config>::WeightInfo::migrate_parachain_sovereign_derived_acc())]
-		pub fn migrate_parachain_sovereign_derived_acc(
-			origin: OriginFor<T>,
-			from: T::AccountId,
-			to: T::AccountId,
-			derivation: (T::AccountId, DerivationIndex),
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_migrate_parachain_sovereign_derived_acc(&from, &to, Some(derivation))
-				.map_err(Into::into)
-		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -442,144 +404,6 @@ pub mod pallet {
 			contrib_iter.next().is_none()
 		}
 
-		pub fn do_migrate_parachain_sovereign_derived_acc(
-			from: &T::AccountId,
-			to: &T::AccountId,
-			derivation: Option<(T::AccountId, DerivationIndex)>,
-		) -> Result<(), Error<T>> {
-			if frame_system::Account::<T>::get(from) == Default::default() {
-				// Nothing to do if the account does not exist
-				return Ok(());
-			}
-			if from == to {
-				return Err(Error::<T>::AccountIdentical);
-			}
-			pallet_balances::Pallet::<T>::ensure_upgraded(from); // prevent future headache
-
-			let (translated_acc, para_id, index) = if let Some((parent, index)) = derivation {
-				let (parent_translated, para_id) =
-					Self::try_rc_sovereign_derived_to_ah(from, &parent, index)?;
-				(parent_translated, para_id, Some(index))
-			} else {
-				let (translated_acc, para_id) = Self::try_translate_rc_sovereign_to_ah(from)?;
-				(translated_acc, para_id, None)
-			};
-			ensure!(translated_acc == *to, Error::<T>::WrongSovereignTranslation);
-
-			// Release all locks
-			let locks: Vec<BalanceLock<T::Balance>> =
-				pallet_balances::Locks::<T>::get(from).into_inner();
-			for lock in &locks {
-				let () = <T as Config>::Currency::remove_lock(lock.id, from);
-			}
-
-			// Thaw all the freezes
-			let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
-				pallet_balances::Freezes::<T>::get(from).into();
-
-			for freeze in &freezes {
-				let () = <T as Config>::Currency::thaw(&freeze.id, from)
-					.map_err(|_| Error::<T>::FailedToThaw)?;
-			}
-
-			// Release all holds
-			let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
-				pallet_balances::Holds::<T>::get(from).into();
-
-			for IdAmount { id, amount } in &holds {
-				let _ = <T as Config>::Currency::release(id, from, *amount, Precision::Exact)
-					.map_err(|_| Error::<T>::FailedToReleaseHold)?;
-				Self::deposit_event(Event::HoldReleased {
-					account: from.clone(),
-					amount: *amount,
-					reason: *id,
-				});
-			}
-
-			// Unreserve unnamed reserves
-			let unnamed_reserve = <T as Config>::Currency::reserved_balance(from);
-			let missing = <T as Config>::Currency::unreserve(from, unnamed_reserve);
-			defensive_assert!(missing == 0, "Should have unreserved the full amount");
-
-			// Set consumer refs to zero
-			let consumers = frame_system::Pallet::<T>::consumers(from);
-			frame_system::Account::<T>::mutate(from, |acc| {
-				acc.consumers = 0;
-			});
-			// We dont handle sufficients and there should be none
-			ensure!(frame_system::Pallet::<T>::sufficients(from) == 0, Error::<T>::InternalError);
-
-			// Sanity check
-			let total = <T as Config>::Currency::total_balance(from);
-			let reducible = <T as Config>::Currency::reducible_balance(
-				from,
-				Preservation::Expendable,
-				Fortitude::Polite,
-			);
-			defensive_assert!(
-				total >= <T as Config>::Currency::minimum_balance(),
-				"Must have at least ED"
-			);
-			defensive_assert!(total == reducible, "Total balance should be reducible");
-
-			// Now the actual balance transfer to the new account
-			<T as Config>::Currency::transfer(from, to, total, Preservation::Expendable)
-				.defensive()
-				.map_err(|_| Error::<T>::FailedToTransfer)?;
-
-			// Apply consumer refs
-			frame_system::Account::<T>::mutate(to, |acc| {
-				acc.consumers += consumers;
-			});
-
-			// Reapply the holds
-			for hold in &holds {
-				<T as Config>::Currency::hold(&hold.id, to, hold.amount)
-					.map_err(|_| Error::<T>::FailedToPutHold)?;
-				// Somehow there are no events for this being emitted... so we emit our own.
-				Self::deposit_event(Event::HoldPlaced {
-					account: to.clone(),
-					amount: hold.amount,
-					reason: hold.id,
-				});
-			}
-
-			// Reapply the reserve
-			<T as Config>::Currency::reserve(to, unnamed_reserve)
-				.defensive()
-				.map_err(|_| Error::<T>::FailedToReserve)?;
-
-			// Reapply the locks
-			for lock in &locks {
-				let reasons = map_lock_reason(lock.reasons);
-				<T as Config>::Currency::set_lock(lock.id, to, lock.amount, reasons);
-			}
-			// Reapply the freezes
-			for freeze in &freezes {
-				<T as Config>::Currency::set_freeze(&freeze.id, to, freeze.amount)
-					.map_err(|_| Error::<T>::FailedToSetFreeze)?;
-			}
-
-			defensive_assert!(
-				frame_system::Account::<T>::get(from) == Default::default(),
-				"Must reap old account"
-			);
-			// If new account would die from this, then lets rather not do it and check it manually.
-			ensure!(
-				frame_system::Account::<T>::get(to) != Default::default(),
-				Error::<T>::WouldReap
-			);
-
-			Self::deposit_event(Event::SovereignMigrated {
-				para_id,
-				from: from.clone(),
-				to: to.clone(),
-				derivation_index: index,
-			});
-
-			Ok(())
-		}
-
 		/// Try to translate a Parachain sovereign account to the Parachain AH sovereign account.
 		///
 		/// Returns:
@@ -621,6 +445,10 @@ pub mod pallet {
 		}
 
 		/// Same as `try_translate_rc_sovereign_to_ah` but for derived accounts.
+		///
+		/// The `from` and `to` arguments are the final account IDs that will be migrated. The
+		/// `index` acts as witness for the function to verify the translation. It must be set to
+		/// the `child` account and the matching derivation index.
 		pub fn try_rc_sovereign_derived_to_ah(
 			from: &AccountId32,
 			parent: &AccountId32,
