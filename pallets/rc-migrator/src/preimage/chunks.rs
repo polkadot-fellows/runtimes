@@ -168,7 +168,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			// set the offset of the next_key
 			next_key = Some((next_key_inner, last_offset));
 
-			// TODO weight tracking
+			// TODO: @muharem weight tracking
 			if batch.len() >= 10 {
 				break next_key;
 			}

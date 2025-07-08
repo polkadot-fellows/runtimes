@@ -118,10 +118,10 @@ accounts, and a decrease without a prior increase will not cause any issues.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
 
-- session (P/K/W): TODO: @muharem session set keys moving to AH
+- session (P/K/W): TODO: @Ank4n session set keys moving to AH
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
 
-- staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant. TODO: @muharem confirm with @Ank4n
+- staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant.
 
 - assets, contracts, nfts, uniques, revive (//): Not relevant for RC and AH runtimes.
 

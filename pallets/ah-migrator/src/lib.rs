@@ -847,7 +847,7 @@ pub mod pallet {
 
 		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
-		#[pallet::weight({1})] // TODO: weight
+		#[pallet::weight({1})] // TODO: @ggwpez weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
 			messages: Vec<T::RcStakingMessage>,
