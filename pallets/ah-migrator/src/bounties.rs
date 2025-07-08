@@ -185,7 +185,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		assert_eq!(
 			pallet_bounties::Bounties::<T>::iter_keys().count(),
 			rc_bounties.len(),
-			"Bounties map length in RC alias storage on Asset Hub should match the RC value"
+			"Bounties map length on Asset Hub should match the RC value"
 		);
 
 		// Verify that bounties were migrated successfully by checking the keys match
@@ -195,7 +195,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		// Assert storage 'Bounties::Bounties::ah_post::consistent'
 		assert_eq!(
 			ah_bounty_keys, rc_bounty_keys,
-			"Bounty keys in RC alias storage on Asset Hub should match the RC keys"
+			"Bounties map value on Asset Hub should match the RC value"
 		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::length'
