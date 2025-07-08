@@ -140,7 +140,7 @@ impl<T: Config> Pallet<T> {
 			"Integrating account: {}", who.to_ss58check(),
 		);
 
-		// TODO run some post-migration sanity checks
+		// TODO @ggwpez run some post-migration sanity checks
 
 		// Apply all additional consumers that were excluded from the balance stuff above:
 		for _ in 0..account.consumers {

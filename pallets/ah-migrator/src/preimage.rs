@@ -353,10 +353,10 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 						);
 					},
 					alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
-						// TODO: preimages that store referendums calls will be unrequested since
-						// the call of the preimage is mapped and a new preimage of the mapped call
-						// is noted. The unrequested preimage can be deletes since not needed
-						// anymore.
+						// TODO: @re-gius preimages that store referendums calls will be unrequested
+						// since the call of the preimage is mapped and a new preimage of the
+						// mapped call is noted. The unrequested preimage can be deletes since
+						// not needed anymore.
 						//
 						// assert!(
 						// 	requested,

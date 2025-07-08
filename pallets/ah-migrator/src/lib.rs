@@ -1033,7 +1033,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Xcm,
-					fallback_max_weight: None, // TODO @muharem: please check
+					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
 			]);
