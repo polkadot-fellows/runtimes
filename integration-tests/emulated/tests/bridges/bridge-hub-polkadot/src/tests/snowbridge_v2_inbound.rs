@@ -27,7 +27,7 @@ use bridge_hub_polkadot_runtime::{
 	EthereumInboundQueueV2,
 };
 use codec::Encode;
-use emulated_integration_tests_common::RESERVABLE_ASSET_ID;
+use emulated_integration_tests_common::{PENPAL_B_ID, RESERVABLE_ASSET_ID};
 use frame_support::{assert_ok, traits::fungibles::Mutate, BoundedVec};
 use hex_literal::hex;
 use pallet_bridge_relayers;
@@ -149,9 +149,15 @@ fn send_token_v2() {
 
 	let token_transfer_value = 2_000_000_000_000u128;
 
-	register_foreign_asset(token_location.clone());
-
 	let snowbridge_sovereign = snowbridge_sovereign();
+
+	// To satisfy ED
+	AssetHubPolkadot::fund_accounts(vec![(
+		sp_runtime::AccountId32::from(beneficiary_acc_bytes),
+		3_000_000_000_000,
+	)]);
+
+	register_foreign_asset(token_location.clone(), snowbridge_sovereign.clone(), false);
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
@@ -547,9 +553,12 @@ fn send_token_to_penpal_v2() {
 	// To pay fees on Penpal.
 	let eth_fee_penpal_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
-	register_foreign_asset(token_location.clone());
-
 	let snowbridge_sovereign = snowbridge_sovereign();
+
+	// To satisfy ED
+	AssetHubPolkadot::fund_para_sovereign(PENPAL_B_ID.into(), 3_000_000_000_000);
+
+	register_foreign_asset(token_location.clone(), snowbridge_sovereign.clone(), false);
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
@@ -666,8 +675,6 @@ fn send_token_to_penpal_v2() {
 			execution_fee: MIN_ETHER_BALANCE * 2,
 			relayer_fee: relayer_reward,
 		};
-		// 3_000_000_000_000
-		//15_000_000_000_000
 
 		EthereumInboundQueueV2::process_message(relayer_account.clone(), message).unwrap();
 

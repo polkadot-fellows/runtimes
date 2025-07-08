@@ -54,25 +54,110 @@ pub fn bridge_hub() -> Location {
 	Location::new(1, Parachain(BridgeHubPolkadot::para_id().into()))
 }
 
+pub(crate) fn asset_hub_polkadot_location() -> Location {
+	Location::new(
+		2,
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
+	)
+}
+pub(crate) fn bridge_hub_polkadot_location() -> Location {
+	Location::new(
+		2,
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(BridgeHubPolkadot::para_id().into())],
+	)
+}
+
 pub fn fund_on_bh() {
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(asset_hub());
 	BridgeHubPolkadot::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
 }
 
-pub fn register_assets_on_ah() {}
-pub fn register_relay_token_on_bh() {
+pub fn weth_location() -> Location {
+	erc20_token_location(WETH.into())
+}
+
+pub fn eth_location() -> Location {
+	Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })])
+}
+
+pub fn erc20_token_location(token_id: H160) -> Location {
+	Location::new(
+		2,
+		[
+			GlobalConsensus(EthereumNetwork::get().into()),
+			AccountKey20 { network: None, key: token_id.into() },
+		],
+	)
+}
+
+pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
+	Location::new(2, [GlobalConsensus(Kusama)])
+}
+
+pub fn penpal_root_sovereign() -> sp_runtime::AccountId32 {
+	let penpal_root_sovereign: AccountId = PenpalB::execute_with(|| {
+		use polkadot_system_emulated_network::penpal_emulated_chain::penpal_runtime::xcm_config;
+		xcm_config::LocationToAccountId::convert_location(&xcm_config::RootLocation::get())
+			.unwrap()
+			.into()
+	});
+	penpal_root_sovereign
+}
+
+pub fn snowbridge_sovereign() -> sp_runtime::AccountId32 {
+	use asset_hub_polkadot_runtime::xcm_config::UniversalLocation as AssetHubPolkadotUniversalLocation;
+	AssetHubPolkadot::execute_with(|| {
+		ExternalConsensusLocationsConverterFor::<
+			AssetHubPolkadotUniversalLocation,
+			[u8; 32],
+		>::convert_location(&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		))
+			.unwrap()
+			.into()
+	})
+}
+
+/// Registers KSM as a native Polkadot asset on Snowbridge.
+pub fn register_ksm_as_native_polkadot_asset_on_snowbridge() {
+	register_asset_native_polkadot_asset_on_snowbridge(
+		bridged_ksm_at_ah_polkadot(),
+		String::from("roc"),
+		String::from("ROC"),
+		10,
+	);
+}
+
+/// Registers DOT as a native Polkadot asset on Snowbridge.
+pub fn register_relay_token_on_polkadot_bh() {
+	register_asset_native_polkadot_asset_on_snowbridge(
+		Location::parent(),
+		String::from("dot"),
+		String::from("DOT"),
+		12,
+	);
+}
+
+/// Method to register a native asset on Snowbridge.
+pub fn register_asset_native_polkadot_asset_on_snowbridge(
+	asset_location: Location,
+	name: String,
+	symbol: String,
+	decimals: u8,
+) {
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
 
-		// Register WND on BH
+		// Register KSM on BH
 		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
 			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::from(Location::parent())),
+			Box::new(VersionedLocation::from(asset_location)),
 			AssetMetadata {
-				name: "wnd".as_bytes().to_vec().try_into().unwrap(),
-				symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),
-				decimals: 12,
+				name: name.as_bytes().to_vec().try_into().unwrap(),
+				symbol: symbol.as_bytes().to_vec().try_into().unwrap(),
+				decimals,
 			},
 		));
 		assert_expected_events!(
@@ -82,7 +167,8 @@ pub fn register_relay_token_on_bh() {
 	});
 }
 
-pub fn register_assets_on_penpal() {
+/// Register Ether and Weth on Penpal B.
+pub fn register_ethereum_assets_on_penpal() {
 	let ethereum_sovereign: AccountId = snowbridge_sovereign();
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
@@ -94,7 +180,7 @@ pub fn register_assets_on_penpal() {
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
 			<PenpalB as Chain>::RuntimeOrigin::root(),
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			ethereum_sovereign.into(),
 			true,
 			1,
@@ -102,26 +188,11 @@ pub fn register_assets_on_penpal() {
 	});
 }
 
-pub fn register_foreign_asset(token_location: Location) {
-	let bridge_owner = snowbridge_sovereign();
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
-			RuntimeOrigin::root(),
-			token_location.clone().try_into().unwrap(),
-			bridge_owner.into(),
-			true,
-			1000,
-		));
-
-		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
-			token_location.clone().try_into().unwrap(),
-		));
-	});
+pub fn register_foreign_asset(id: Location, owner: AccountId, sufficient: bool) {
+	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
-pub fn register_pal_on_ah() {
+pub fn register_pal_on_polkadot_ah() {
 	// Create PAL(i.e. native asset for penpal) on AH.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -153,14 +224,25 @@ pub fn register_pal_on_ah() {
 	});
 }
 
-pub fn penpal_root_sovereign() -> sp_runtime::AccountId32 {
-	let penpal_root_sovereign: AccountId = PenpalB::execute_with(|| {
-		use polkadot_system_emulated_network::penpal_emulated_chain::penpal_runtime::xcm_config;
-		xcm_config::LocationToAccountId::convert_location(&xcm_config::RootLocation::get())
-			.unwrap()
-			.into()
+pub fn register_pal_on_polkadot_bh() {
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
+			RuntimeOrigin::root(),
+			Box::new(VersionedLocation::from(PenpalBTeleportableAssetLocation::get())),
+			AssetMetadata {
+				name: "pal".as_bytes().to_vec().try_into().unwrap(),
+				symbol: "pal".as_bytes().to_vec().try_into().unwrap(),
+				decimals: 12,
+			},
+		));
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::RegisterToken { .. }) => {},]
+		);
 	});
-	penpal_root_sovereign
 }
 
 pub fn fund_on_penpal() {
@@ -222,31 +304,19 @@ pub fn fund_on_penpal() {
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&PenpalBReceiver::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&PenpalBSender::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&sudo_account,
 			INITIAL_FUND,
-		));
-	});
-}
-
-pub fn set_trust_reserve_on_penpal() {
-	PenpalB::execute_with(|| {
-		assert_ok!(<PenpalB as Chain>::System::set_storage(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			vec![(
-				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
-				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
-			)],
 		));
 	});
 }
@@ -290,22 +360,22 @@ pub fn fund_on_ah() {
 		));
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&penpal_sovereign,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&penpal_user_sovereign,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&AssetHubPolkadotReceiver::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&AssetHubPolkadotSender::get(),
 			INITIAL_FUND,
 		));
@@ -345,7 +415,7 @@ pub fn create_pools_on_ah() {
 	);
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
-		ethereum(),
+		eth_location(),
 		true,
 		ethereum_sovereign.clone(),
 		900_000_000_000,
@@ -419,76 +489,6 @@ pub(crate) fn set_up_eth_and_dot_pool_on_kusama() {
 	);
 }
 
-pub fn register_pal_on_bh() {
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
-
-		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
-			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::from(PenpalBTeleportableAssetLocation::get())),
-			AssetMetadata {
-				name: "pal".as_bytes().to_vec().try_into().unwrap(),
-				symbol: "pal".as_bytes().to_vec().try_into().unwrap(),
-				decimals: 12,
-			},
-		));
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::RegisterToken { .. }) => {},]
-		);
-	});
-}
-
-pub fn snowbridge_sovereign() -> sp_runtime::AccountId32 {
-	use asset_hub_polkadot_runtime::xcm_config::UniversalLocation as AssetHubPolkadotUniversalLocation;
-	let ethereum_sovereign: AccountId = AssetHubPolkadot::execute_with(|| {
-		ExternalConsensusLocationsConverterFor::<
-			AssetHubPolkadotUniversalLocation,
-			[u8; 32],
-		>::convert_location(&Location::new(
-				2,
-				[xcm::v5::Junction::GlobalConsensus(EthereumNetwork::get())],
-			))
-			.unwrap()
-			.into()
-	});
-
-	ethereum_sovereign
-}
-
-pub fn weth_location() -> Location {
-	erc20_token_location(WETH.into())
-}
-
-pub fn eth_location() -> Location {
-	Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })])
-}
-
-pub fn ethereum() -> Location {
-	eth_location()
-}
-
-pub fn erc20_token_location(token_id: H160) -> Location {
-	Location::new(
-		2,
-		[
-			GlobalConsensus(EthereumNetwork::get().into()),
-			AccountKey20 { network: None, key: token_id.into() },
-		],
-	)
-}
-
-// KSM
-pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
-	Location::new(2, [GlobalConsensus(Kusama)])
-}
-
-pub(crate) fn create_foreign_on_ah_polkadot(id: xcm::opaque::v5::Location, sufficient: bool) {
-	let owner = AssetHubPolkadot::account_id_of(ALICE);
-	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
-}
-
 // set up pool
 pub(crate) fn set_up_pool_with_wnd_on_ah_polkadot(
 	asset: Location,
@@ -552,49 +552,29 @@ pub(crate) fn set_up_pool_with_wnd_on_ah_polkadot(
 	});
 }
 
-pub fn register_ksm_on_bh() {
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
-
-		// Register KSM on BH
-		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
-			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::from(bridged_ksm_at_ah_polkadot())),
-			AssetMetadata {
-				name: "roc".as_bytes().to_vec().try_into().unwrap(),
-				symbol: "roc".as_bytes().to_vec().try_into().unwrap(),
-				decimals: 12,
-			},
-		));
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::RegisterToken { .. }) => {},]
-		);
-	});
-}
-
-pub(crate) fn asset_hub_polkadot_location() -> Location {
-	Location::new(
-		2,
-		[GlobalConsensus(NetworkId::Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
-	)
-}
-pub(crate) fn bridge_hub_polkadot_location() -> Location {
-	Location::new(
-		2,
-		[GlobalConsensus(NetworkId::Polkadot), Parachain(BridgeHubPolkadot::para_id().into())],
-	)
-}
-
+/// Set the BridgeHubEthereumBaseFeeV2 storage item in the Polkadot AssetHub xcm config.
+/// This is the minimum fee to send transactions from Polkadot AH to Ethereum.
 pub fn set_bridge_hub_ethereum_base_fee() {
-	// Set base transfer fee to Ethereum on AH.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
 		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
 			RuntimeOrigin::root(),
 			vec![(BridgeHubEthereumBaseFeeV2::key().to_vec(), AH_BASE_FEE_V2.encode())],
+		));
+	});
+}
+
+/// Set the PenpalCustomizableAssetFromSystemAssetHub storage item to trust assets from
+/// Ethereum.
+pub fn set_trust_reserve_on_penpal() {
+	PenpalB::execute_with(|| {
+		assert_ok!(<PenpalB as Chain>::System::set_storage(
+			<PenpalB as Chain>::RuntimeOrigin::root(),
+			vec![(
+				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
+				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
+			)],
 		));
 	});
 }

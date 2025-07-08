@@ -15,13 +15,7 @@
 use crate::{
 	tests::{
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
-		asset_hub_kusama_location,
-		snowbridge_common::{
-			asset_hub_polkadot_location, bridged_ksm_at_ah_polkadot, create_foreign_on_ah_polkadot,
-			erc20_token_location, eth_location, register_foreign_asset, register_ksm_on_bh,
-			set_up_eth_and_dot_pool, set_up_eth_and_dot_pool_on_kusama,
-			set_up_pool_with_wnd_on_ah_polkadot, snowbridge_sovereign, TOKEN_AMOUNT, TOKEN_ID,
-		},
+		asset_hub_kusama_location, create_foreign_on_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };
@@ -31,6 +25,7 @@ use bridge_hub_polkadot_runtime::{
 	EthereumInboundQueueV2,
 };
 use codec::Encode;
+use emulated_integration_tests_common::PENPAL_B_ID;
 use frame_support::BoundedVec;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
@@ -93,7 +88,15 @@ fn send_token_to_kusama_v2() {
 			token_location.clone().try_into().unwrap(),
 		));
 	});
-	register_foreign_asset(token_location.clone());
+
+	// To satisfy ED
+	let sov_ahw_on_ahr = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
+		NetworkId::Kusama,
+		AssetHubKusama::para_id(),
+	);
+	AssetHubPolkadot::fund_accounts(vec![(sov_ahw_on_ahr.clone(), INITIAL_FUND)]);
+
+	register_foreign_asset(token_location.clone(), snowbridge_sovereign, false);
 
 	set_up_eth_and_dot_pool();
 	set_up_eth_and_dot_pool_on_kusama();
@@ -397,7 +400,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 
 	let ethereum_sovereign: AccountId = snowbridge_sovereign();
 	let bridged_roc_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
-	create_foreign_on_ah_polkadot(bridged_roc_at_asset_hub_polkadot.clone(), true);
+	create_foreign_on_ah_polkadot(bridged_roc_at_asset_hub_polkadot.clone(), true, vec![]);
 	set_up_pool_with_wnd_on_ah_polkadot(
 		bridged_roc_at_asset_hub_polkadot.clone(),
 		true,
@@ -407,7 +410,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), initial_fund);
 	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaSender::get(), initial_fund)]);
-	register_ksm_on_bh();
+	register_ksm_as_native_polkadot_asset_on_snowbridge();
 
 	set_up_eth_and_dot_pool();
 	set_up_eth_and_dot_pool_on_kusama();
@@ -440,7 +443,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 		));
 	});
 
-	// fund the AHW's SA on AHR with the ROC tokens held in reserve
+	// fund the AHP's SA on AHK with the KSM tokens held in reserve
 	let sov_ahw_on_ahr = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		NetworkId::Polkadot,
 		AssetHubPolkadot::para_id(),

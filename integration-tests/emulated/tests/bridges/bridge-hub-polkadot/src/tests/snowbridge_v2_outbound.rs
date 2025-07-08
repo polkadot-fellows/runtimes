@@ -47,11 +47,7 @@ pub enum EthereumSystemFrontend {
 #[test]
 fn send_weth_from_asset_hub_to_ethereum() {
 	fund_on_bh();
-
-	register_assets_on_ah();
-
 	fund_on_ah();
-
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
@@ -61,7 +57,7 @@ fn send_weth_from_asset_hub_to_ethereum() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let reserve_asset = Asset { id: AssetId(weth_location()), fun: Fungible(TOKEN_AMOUNT) };
 
@@ -71,7 +67,7 @@ fn send_weth_from_asset_hub_to_ethereum() {
 			WithdrawAsset(assets.clone().into()),
 			PayFees { asset: local_fee_asset.clone() },
 			InitiateTransfer {
-				destination: ethereum(),
+				destination: eth_location(),
 				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 					remote_fee_asset.clone().into(),
 				))),
@@ -131,7 +127,6 @@ fn send_weth_from_asset_hub_to_ethereum() {
 #[test]
 pub fn register_relay_token_from_asset_hub_with_sudo() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
@@ -163,7 +158,6 @@ pub fn register_relay_token_from_asset_hub_with_sudo() {
 #[test]
 pub fn register_usdt_from_owner_on_asset_hub() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 	set_up_eth_and_dot_pool();
@@ -201,8 +195,7 @@ fn transfer_relay_token_from_ah() {
 	// a. register_relay_token_on_bh();
 	// b. register_relay_token_from_asset_hub_with_sudo();
 	// c. register_relay_token_from_asset_hub_user_origin();
-	register_relay_token_on_bh();
-	register_assets_on_ah();
+	register_relay_token_on_polkadot_bh();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
@@ -214,7 +207,7 @@ fn transfer_relay_token_from_ah() {
 		let local_fee_asset =
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 		let remote_fee_asset =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let assets = vec![
 			Asset {
@@ -228,7 +221,7 @@ fn transfer_relay_token_from_ah() {
 			WithdrawAsset(assets.clone().into()),
 			PayFees { asset: local_fee_asset.clone() },
 			InitiateTransfer {
-				destination: ethereum(),
+				destination: eth_location(),
 				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 					remote_fee_asset.clone().into(),
 				))),
@@ -300,8 +293,7 @@ fn transfer_relay_token_from_ah() {
 #[test]
 fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 	fund_on_bh();
-	register_relay_token_on_bh();
-	register_assets_on_ah();
+	register_relay_token_on_polkadot_bh();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
@@ -311,7 +303,7 @@ fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 		let local_fee_asset =
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 		let remote_fee_asset =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let weth_asset = Asset { id: weth_location().into(), fun: Fungible(TOKEN_AMOUNT) };
 
@@ -328,7 +320,7 @@ fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 			WithdrawAsset(assets.clone().into()),
 			PayFees { asset: local_fee_asset.clone() },
 			InitiateTransfer {
-				destination: ethereum(),
+				destination: eth_location(),
 				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 					remote_fee_asset.clone().into(),
 				))),
@@ -386,7 +378,6 @@ fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 fn transact_with_agent_from_asset_hub() {
 	let weth_asset_location: Location = weth_location();
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
@@ -397,7 +388,7 @@ fn transact_with_agent_from_asset_hub() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let reserve_asset =
 			Asset { id: AssetId(weth_asset_location.clone()), fun: Fungible(TOKEN_AMOUNT) };
@@ -419,7 +410,7 @@ fn transact_with_agent_from_asset_hub() {
 			WithdrawAsset(assets.clone().into()),
 			PayFees { asset: local_fee_asset.clone() },
 			InitiateTransfer {
-				destination: ethereum(),
+				destination: eth_location(),
 				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 					remote_fee_asset.clone().into(),
 				))),
@@ -479,7 +470,6 @@ fn transact_with_agent_from_asset_hub() {
 #[test]
 fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
@@ -490,7 +480,7 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let assets = vec![local_fee_asset.clone(), remote_fee_asset.clone()];
 
@@ -504,7 +494,7 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 			WithdrawAsset(assets.clone().into()),
 			PayFees { asset: local_fee_asset.clone() },
 			InitiateTransfer {
-				destination: ethereum(),
+				destination: eth_location(),
 				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 					remote_fee_asset.clone().into(),
 				))),
@@ -562,13 +552,12 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 #[test]
 fn register_token_from_penpal() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	create_pools_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
 	set_trust_reserve_on_penpal();
-	register_assets_on_penpal();
+	register_ethereum_assets_on_penpal();
 	fund_on_penpal();
 	set_up_eth_and_dot_pool_on_penpal();
 
@@ -591,10 +580,10 @@ fn register_token_from_penpal() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(ethereum()), fun: Fungible(600_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(600_000_000_00000) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(ethereum()), fun: Fungible(600_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(600_000_000_00000) };
 
 		let call = EthereumSystemFrontend::EthereumSystemFrontend(
 			EthereumSystemFrontendCall::RegisterToken {
@@ -682,15 +671,14 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 	// bh
 	fund_on_bh();
 	// ah
-	register_assets_on_ah();
 	create_pools_on_ah();
-	register_pal_on_ah();
-	register_pal_on_bh();
+	register_pal_on_polkadot_ah();
+	register_pal_on_polkadot_bh();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 	// penpal
 	set_trust_reserve_on_penpal();
-	register_assets_on_penpal();
+	register_ethereum_assets_on_penpal();
 	fund_on_penpal();
 
 	PenpalB::execute_with(|| {
@@ -700,10 +688,10 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(ethereum()), fun: Fungible(60000_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(60000_000_000_00000) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(ethereum()), fun: Fungible(60000_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(60000_000_000_00000) };
 
 		let pna =
 			Asset { id: AssetId(LocalTeleportableToAssetHub::get()), fun: Fungible(TOKEN_AMOUNT) };
@@ -746,7 +734,7 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 					AssetTransferFilter::Teleport(Definite(pna.clone().into())),
 				]),
 				remote_xcm: Xcm(vec![InitiateTransfer {
-					destination: ethereum(),
+					destination: eth_location(),
 					remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 						remote_fee_asset_on_ethereum.clone().into(),
 					))),
@@ -842,7 +830,6 @@ fn invalid_nonce_for_delivery_receipt_fails() {
 #[test]
 fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
 
@@ -863,7 +850,7 @@ fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode()
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let reserve_asset = Asset { id: AssetId(weth_location()), fun: Fungible(TOKEN_AMOUNT) };
 
@@ -873,7 +860,7 @@ fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode()
 			WithdrawAsset(assets.clone().into()),
 			PayFees { asset: local_fee_asset.clone() },
 			InitiateTransfer {
-				destination: ethereum(),
+				destination: eth_location(),
 				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
 					remote_fee_asset.clone().into(),
 				))),

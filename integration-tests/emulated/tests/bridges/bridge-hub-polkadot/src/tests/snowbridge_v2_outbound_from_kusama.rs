@@ -167,21 +167,21 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::start_destroy(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(previous_owner),
-			ethereum()
+			eth_location()
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::finish_destroy(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadot::account_id_of(
 				ALICE
 			)),
-			ethereum()
+			eth_location()
 		));
 	});
-	create_foreign_on_ah_polkadot(ethereum(), true);
-	set_up_pool_with_dot_on_ah_polkadot(ethereum(), true, initial_fund, initial_liquidity);
+	create_foreign_on_ah_polkadot(eth_location(), true);
+	set_up_pool_with_dot_on_ah_polkadot(eth_location(), true, initial_fund, initial_liquidity);
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), initial_fund);
 	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaSender::get(), initial_fund)]);
 	fund_on_bh();
-	register_ksm_on_bh();
+	register_ksm_as_native_polkadot_asset_on_snowbridge();
 
 	// set XCM versions
 	AssetHubKusama::force_xcm_version(asset_hub_polkadot_location(), XCM_VERSION);
@@ -218,14 +218,15 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 				// swap some dot to ether
 				ExchangeAsset {
 					give: Definite((Parent, dot_amount_to_swap).into()),
-					want: (ethereum(), ether_fee_amount).into(),
+					want: (eth_location(), ether_fee_amount).into(),
 					maximal: true,
 				},
 				PayFees { asset: (Parent, dot_fee_amount).into() },
 				InitiateTransfer {
-					destination: ethereum(),
+					destination: eth_location(),
 					remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
-						Asset { id: AssetId(ethereum()), fun: Fungible(ether_fee_amount) }.into(),
+						Asset { id: AssetId(eth_location()), fun: Fungible(ether_fee_amount) }
+							.into(),
 					))),
 					preserve_origin: true,
 					assets: BoundedVec::truncate_from(vec![AssetTransferFilter::ReserveDeposit(
@@ -320,7 +321,7 @@ fn register_kusama_asset_on_ethereum_from_rah() {
 	// SA-of-RAH-on-WAH needs to have balance to pay for fees and asset creation deposit
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			ethereum().try_into().unwrap(),
+			eth_location().try_into().unwrap(),
 			&sa_of_rah_on_wah,
 			INITIAL_FUND,
 		));

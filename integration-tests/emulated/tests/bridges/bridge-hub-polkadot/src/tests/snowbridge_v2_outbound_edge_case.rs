@@ -31,11 +31,10 @@ use xcm::v5::AssetTransferFilter;
 #[test]
 fn register_penpal_a_asset_from_penpal_b_will_fail() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	create_pools_on_ah();
 	set_trust_reserve_on_penpal();
-	register_assets_on_penpal();
+	register_ethereum_assets_on_penpal();
 	fund_on_penpal();
 	let penpal_user_location = Location::new(
 		1,
@@ -55,10 +54,10 @@ fn register_penpal_a_asset_from_penpal_b_will_fail() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(ethereum()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let call = EthereumSystemFrontend::EthereumSystemFrontend(
 			EthereumSystemFrontendCall::RegisterToken {
@@ -173,7 +172,6 @@ fn export_from_non_system_parachain_will_fail() {
 #[test]
 pub fn register_usdt_not_from_owner_on_asset_hub_will_fail() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -197,7 +195,6 @@ pub fn register_usdt_not_from_owner_on_asset_hub_will_fail() {
 #[test]
 pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 	fund_on_bh();
-	register_assets_on_ah();
 	fund_on_ah();
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
