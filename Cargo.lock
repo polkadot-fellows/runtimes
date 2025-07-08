@@ -7975,7 +7975,6 @@ dependencies = [
 name = "pallet-ah-ops"
 version = "0.1.0"
 dependencies = [
- "array-bytes",
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
