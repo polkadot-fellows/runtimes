@@ -25,7 +25,7 @@ use frame_support::{assert_ok, traits::fungibles::Mutate, BoundedVec};
 use hex_literal::hex;
 use pallet_bridge_relayers;
 use polkadot_system_emulated_network::penpal_emulated_chain::PARA_ID_B;
-use snowbridge_core::{AssetMetadata, TokenIdOf};
+use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
 	EthereumAsset::{ForeignTokenERC20, NativeTokenERC20},
 	Message, Network, XcmPayload,
@@ -35,9 +35,6 @@ use sp_io::hashing::blake2_256;
 use sp_runtime::MultiAddress;
 use xcm::opaque::latest::AssetTransferFilter::ReserveDeposit;
 use xcm_executor::traits::ConvertLocation;
-
-/// Calculates the XCM prologue fee for sending an XCM to AH.
-const INITIAL_FUND: u128 = 5_000_000_000_000;
 
 #[test]
 fn register_token_v2() {
@@ -67,7 +64,7 @@ fn register_token_v2() {
 			claimer: Some(claimer_bytes),
 			// Used to pay the asset creation deposit.
 			value: TOKEN_AMOUNT,
-			execution_fee: MIN_ETHER_BALANCE * 2,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -174,7 +171,7 @@ fn send_token_v2() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT.into(),
-			execution_fee: 1_500_000_000_000u128,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -275,7 +272,7 @@ fn send_weth_v2() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
-			execution_fee: 1_500_000_000_000u128,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -348,7 +345,7 @@ fn register_and_send_multiple_tokens_v2() {
 	// To satisfy ED
 	AssetHubPolkadot::fund_accounts(vec![(
 		sp_runtime::AccountId32::from(beneficiary_acc_bytes),
-		3_000_000_000_000,
+		INITIAL_FUND,
 	)]);
 
 	let claimer_acc_id = H256::random();
@@ -362,12 +359,12 @@ fn register_and_send_multiple_tokens_v2() {
 	let eth_token_deposit = 9_000_000_000_000u128;
 
 	let dot_asset = Location::new(1, Here);
-	let dot_fee: xcm::prelude::Asset =
+	let dot_fee: Asset =
 		(dot_asset, bp_asset_hub_polkadot::CreateForeignAssetDeposit::get()).into();
 
 	// Used to pay the asset creation deposit.
-	let eth_asset_value = eth_token_deposit + (MIN_ETHER_BALANCE * 100);
-	let asset_deposit: xcm::prelude::Asset = (eth_location(), eth_token_deposit).into();
+	let eth_asset_value = eth_token_deposit + TOKEN_AMOUNT;
+	let asset_deposit: Asset = (eth_location(), eth_token_deposit).into();
 
 	let assets = vec![
 		NativeTokenERC20 { token_id: WETH.into(), value: weth_transfer_value },
@@ -413,7 +410,7 @@ fn register_and_send_multiple_tokens_v2() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: eth_asset_value,
-			execution_fee: MIN_ETHER_BALANCE * 2,
+			execution_fee: EXECUTION_IN_ETHER * 10, // Since this is a more expensive operation
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -497,7 +494,7 @@ fn send_token_to_penpal_v2() {
 	let claimer_bytes = claimer.encode();
 
 	// To pay fees on Penpal.
-	let eth_fee_penpal_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
+	let eth_fee_penpal_ah: Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
 	let snowbridge_sovereign = snowbridge_sovereign();
 
@@ -510,75 +507,28 @@ fn send_token_to_penpal_v2() {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location().try_into().unwrap(),
 			&snowbridge_sovereign,
-			500_000_000_000_000,
+			INITIAL_FUND,
 		));
 	});
 
 	// To satisfy ED
 	PenpalB::fund_accounts(vec![(
 		sp_runtime::AccountId32::from(beneficiary_acc_bytes),
-		3_000_000_000_000,
+		INITIAL_FUND,
 	)]);
 
-	PenpalB::execute_with(|| {
-		type RuntimeOrigin = <PenpalB as Chain>::RuntimeOrigin;
-
-		// Register token on Penpal
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
-			RuntimeOrigin::root(),
-			token_location.clone().try_into().unwrap(),
-			snowbridge_sovereign.clone().into(),
-			true,
-			1000,
-		));
-
-		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(
-			token_location.clone().try_into().unwrap(),
-		));
-
-		// Register eth on Penpal
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
-			RuntimeOrigin::root(),
-			eth_location().try_into().unwrap(),
-			snowbridge_sovereign.clone().into(),
-			true,
-			1000,
-		));
-
-		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(
-			eth_location().try_into().unwrap(),
-		));
-
-		assert_ok!(<PenpalB as Chain>::System::set_storage(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			vec![(
-				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
-				Location::new(
-					2,
-					[GlobalConsensus(Ethereum { chain_id: crate::tests::snowbridge::CHAIN_ID })]
-				)
-				.encode(),
-			)],
-		));
-
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
-			&snowbridge_sovereign,
-			500_000_000_000_000,
-		));
-	});
-
+	register_ethereum_assets_on_penpal();
+	register_foreign_asset_on_penpal(token_location.clone(), snowbridge_sovereign.clone(), true);
+	set_trust_reserve_on_penpal();
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_penpal();
 
-	let token_transfer_value = TOKEN_AMOUNT;
-
 	let assets = vec![
 		// the token being transferred
-		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
+		NativeTokenERC20 { token_id: token.into(), value: TOKEN_AMOUNT },
 	];
 
-	let token_asset_ah: xcm::prelude::Asset = (token_location.clone(), token_transfer_value).into();
+	let token_asset_ah: Asset = (token_location.clone(), TOKEN_AMOUNT).into();
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		let instructions = vec![
@@ -618,7 +568,7 @@ fn send_token_to_penpal_v2() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT * 2,
-			execution_fee: MIN_ETHER_BALANCE * 2,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -696,7 +646,7 @@ fn send_token_to_penpal_v2() {
 		// Beneficiary received the token transfer value
 		assert_eq!(
 			ForeignAssets::balance(token_location, AccountId::from(beneficiary_acc_bytes)),
-			token_transfer_value
+			TOKEN_AMOUNT
 		);
 	});
 
@@ -732,20 +682,13 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 	.unwrap();
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
-	// Register token
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
 
-		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
-			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::from(asset_id_in_bh.clone())),
-			AssetMetadata {
-				name: "ah_asset".as_bytes().to_vec().try_into().unwrap(),
-				symbol: "ah_asset".as_bytes().to_vec().try_into().unwrap(),
-				decimals: 12,
-			},
-		));
-	});
+	register_asset_native_polkadot_asset_on_snowbridge(
+		asset_id_in_bh.clone(),
+		String::from("ah_asset"),
+		String::from("ah_asset"),
+		12,
+	);
 
 	let ethereum_sovereign: AccountId = snowbridge_sovereign();
 
@@ -782,7 +725,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: 1_500_000_000_000u128,
-			execution_fee: 3_500_000_000_000u128,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -839,12 +782,6 @@ fn invalid_xcm_traps_funds_on_ah() {
 	let token: H160 = TOKEN_ID.into();
 	let claimer = AccountId32 { network: None, id: H256::random().into() };
 	let claimer_bytes = claimer.encode();
-	let beneficiary_acc_bytes: [u8; 32] = H256::random().into();
-
-	AssetHubPolkadot::fund_accounts(vec![(
-		sp_runtime::AccountId32::from(beneficiary_acc_bytes),
-		3_000_000_000_000,
-	)]);
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 
@@ -868,8 +805,8 @@ fn invalid_xcm_traps_funds_on_ah() {
 			assets,
 			xcm: XcmPayload::Raw(instructions.to_vec()),
 			claimer: Some(claimer_bytes),
-			value: 1_500_000_000_000u128,
-			execution_fee: 1_500_000_000_000u128,
+			value: EXECUTION_IN_ETHER,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -907,11 +844,9 @@ fn invalid_claimer_does_not_fail_the_message() {
 	let beneficiary_acc: [u8; 32] = H256::random().into();
 	let beneficiary = Location::new(0, AccountId32 { network: None, id: beneficiary_acc.into() });
 
-	let token_transfer_value = TOKEN_AMOUNT;
-
 	let assets = vec![
 		// the token being transferred
-		NativeTokenERC20 { token_id: WETH.into(), value: token_transfer_value },
+		NativeTokenERC20 { token_id: WETH.into(), value: TOKEN_AMOUNT },
 	];
 
 	let origin = H160::random();
@@ -935,8 +870,8 @@ fn invalid_claimer_does_not_fail_the_message() {
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			// Set an invalid claimer
 			claimer: Some(hex!("2b7ce7bc7e87e4d6619da21487c7a53f").to_vec()),
-			value: 1_500_000_000_000u128,
-			execution_fee: MIN_ETHER_BALANCE * 2,
+			value: TOKEN_AMOUNT,
+			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
 
@@ -979,7 +914,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 		// Beneficiary received the token transfer value
 		assert_eq!(
 			ForeignAssets::balance(weth_location(), AccountId::from(beneficiary_acc)),
-			token_transfer_value
+			TOKEN_AMOUNT
 		);
 	});
 

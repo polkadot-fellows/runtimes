@@ -47,14 +47,16 @@ pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 6_000_000_000_000_000;
 pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
 /// Execution weight provided as limited for XCM execute.
 pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
+/// The execution fee (in Ether) for execution on AssetHub.
+pub const EXECUTION_IN_ETHER: u128 = 1_500_000_000_000;
+/// The reward allocated to the relayer for relaying the message.
+pub const RELAYER_REWARD_IN_ETHER: u128 = 1_500_000_000_000;
 /// The base cost for transfers to Ethereum, for Snowbridge V2.
 const AH_BASE_FEE_V2: u128 = 100_000_000_000;
 /// Amount of native to be provided for pool creation.
 const DOT_POOL_AMOUNT: u128 = 900_000_000_000;
 /// Amount of ether to be provided for pool creation.
 const ETH_POOL_AMOUNT: u128 = 100_000_000_000_000;
-/// The reward allocated to the relayer for relaying the message.
-pub const RELAYER_REWARD_IN_ETHER: u128 = 1_500_000_000_000u128;
 
 pub fn beneficiary() -> Location {
 	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }])
@@ -164,7 +166,6 @@ pub fn register_asset_native_polkadot_asset_on_snowbridge(
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
 
-		// Register KSM on BH
 		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
 			RuntimeOrigin::root(),
 			Box::new(VersionedLocation::from(asset_location)),
@@ -184,22 +185,13 @@ pub fn register_asset_native_polkadot_asset_on_snowbridge(
 /// Register Ether and Weth on Penpal B.
 pub fn register_ethereum_assets_on_penpal() {
 	let ethereum_sovereign: AccountId = snowbridge_sovereign();
-	PenpalB::execute_with(|| {
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			weth_location().try_into().unwrap(),
-			ethereum_sovereign.clone().into(),
-			true,
-			1,
-		));
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			eth_location().try_into().unwrap(),
-			ethereum_sovereign.into(),
-			true,
-			1,
-		));
-	});
+	register_foreign_asset_on_penpal(weth_location(), ethereum_sovereign.clone(), true);
+	register_foreign_asset_on_penpal(eth_location(), ethereum_sovereign, true);
+}
+
+/// Register a foreign asset on PenpalB.
+pub fn register_foreign_asset_on_penpal(id: Location, owner: AccountId, sufficient: bool) {
+	PenpalB::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
 /// Registers a foreign asset on Polkadot AssetHub.

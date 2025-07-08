@@ -58,7 +58,7 @@ fn send_token_to_kusama_v2() {
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
 	// To pay fees on Kusama.
-	let eth_fee_kusama_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
+	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
 	// To satisfy ED
 	AssetHubKusama::fund_accounts(vec![(
@@ -93,7 +93,6 @@ fn send_token_to_kusama_v2() {
 	AssetHubPolkadot::fund_accounts(vec![(sov_ahw_on_ahr.clone(), INITIAL_FUND)]);
 
 	register_foreign_asset(token_location.clone(), snowbridge_sovereign, false);
-
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_ksm_pool_on_kusama_asset_hub();
 
@@ -104,7 +103,7 @@ fn send_token_to_kusama_v2() {
 		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
 	];
 
-	let token_asset_ah: xcm::prelude::Asset = (token_location.clone(), token_transfer_value).into();
+	let token_asset_ah: Asset = (token_location.clone(), token_transfer_value).into();
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		let instructions = vec![
@@ -180,9 +179,7 @@ fn send_token_to_kusama_v2() {
 	});
 
 	ensure_no_assets_trapped_on_pah();
-
 	assert_bridge_hub_polkadot_message_accepted(true);
-
 	assert_bridge_hub_kusama_message_received();
 
 	AssetHubKusama::execute_with(|| {
@@ -238,8 +235,8 @@ fn send_ether_to_kusama_v2() {
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
 	// To pay fees on Kusama.
-	let eth_fee_kusama_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE).into();
-	let ether_asset_ah: xcm::prelude::Asset = (eth_location(), TOKEN_AMOUNT).into();
+	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE).into();
+	let ether_asset_ah: Asset = (eth_location(), TOKEN_AMOUNT).into();
 
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
@@ -320,9 +317,7 @@ fn send_ether_to_kusama_v2() {
 	});
 
 	ensure_no_assets_trapped_on_pah();
-
 	assert_bridge_hub_polkadot_message_accepted(true);
-
 	assert_bridge_hub_kusama_message_received();
 
 	AssetHubKusama::execute_with(|| {
@@ -480,9 +475,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 	});
 
 	ensure_no_assets_trapped_on_pah();
-
 	assert_bridge_hub_polkadot_message_accepted(true);
-
 	assert_bridge_hub_kusama_message_received();
 
 	AssetHubKusama::execute_with(|| {
