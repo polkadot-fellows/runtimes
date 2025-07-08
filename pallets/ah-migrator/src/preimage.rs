@@ -56,7 +56,7 @@ impl<T: Config> Pallet<T> {
 			Some(preimage) => {
 				if preimage.len() != chunk.chunk_byte_offset as usize {
 					defensive!("Preimage chunk missing");
-					return Err(Error::<T>::TODO);
+					return Err(Error::<T>::PreimageChunkMissing);
 				}
 
 				match preimage.try_mutate(|p| {
@@ -68,14 +68,14 @@ impl<T: Config> Pallet<T> {
 					},
 					None => {
 						defensive!("Preimage too big");
-						return Err(Error::<T>::TODO);
+						return Err(Error::<T>::PreimageTooBig);
 					},
 				}
 			},
 			None => {
 				if chunk.chunk_byte_offset != 0 {
 					defensive!("Preimage chunk missing");
-					return Err(Error::<T>::TODO);
+					return Err(Error::<T>::PreimageChunkMissing);
 				}
 
 				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
@@ -136,7 +136,7 @@ impl<T: Config> Pallet<T> {
 			.any(|(key_hash, _)| key_hash == request_status.hash)
 		{
 			log::error!("Missing preimage for request status hash {:?}", request_status.hash);
-			return Err(Error::<T>::TODO);
+			return Err(Error::<T>::PreimageMissing);
 		}
 
 		let new_ticket = match request_status.request_status {

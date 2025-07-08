@@ -90,11 +90,10 @@ impl<T: Config> Pallet<T> {
 			proxies.truncate(max_proxies);
 		}
 
-		let Ok(bounded_proxies) =
-			BoundedSlice::try_from(proxies.as_slice()).defensive_proof("Proxies should fit")
-		else {
-			return Err(Error::TODO);
-		};
+		let bounded_proxies =
+			BoundedSlice::<_, <T as pallet_proxy::Config>::MaxProxies>::defensive_truncate_from(
+				proxies.as_slice(),
+			);
 
 		// Add the proxies
 		pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));

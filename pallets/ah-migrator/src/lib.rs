@@ -398,8 +398,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The error that should to be replaced by something meaningful.
-		TODO,
+		/// Failed to unreserve deposit.
 		FailedToUnreserveDeposit,
 		/// Failed to process an account data from RC.
 		FailedToProcessAccount,
@@ -425,6 +424,12 @@ pub mod pallet {
 		DmpQueuePriorityAlreadySet,
 		/// Invalid parameter.
 		InvalidParameter,
+		/// Preimage missing.
+		PreimageMissing,
+		/// Preimage too big.
+		PreimageTooBig,
+		/// Preimage chunk missing.
+		PreimageChunkMissing,
 	}
 
 	#[pallet::event]
