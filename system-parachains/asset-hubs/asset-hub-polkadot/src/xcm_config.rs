@@ -47,10 +47,10 @@ use sp_runtime::traits::{AccountIdConversion, TryConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
-	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, ExternalConsensusLocationsConverterFor, FrameTransactionalProcessor,
+	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
+	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+	AllowTopLevelPaidExecutionFrom,  ExternalConsensusLocationsConverterFor, DenyReserveTransferToRelayChain, DenyThenTry,
+	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
 	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
 	IsConcrete, LocalMint, MatchedConvertedConcreteId, NoChecking, ParentAsSuperuser,
 	ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative,
@@ -397,8 +397,21 @@ pub type TrustedTeleporters = (
 	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
 );
 
-/// We allow locations to alias into their own child locations.
-pub type Aliasers = AliasChildLocation;
+/// Defines all global consensus locations that the asset hub is allowed to alias into.
+pub struct KusamaGlobalConsensus;
+impl Contains<Location> for KusamaGlobalConsensus {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (2, [GlobalConsensus(network_id)]) | (2, [GlobalConsensus(network_id), ..])
+				if matches!(*network_id, NetworkId::Kusama))
+	}
+}
+/// Defines origin aliasing rules for this chain.
+pub type TrustedAliasers = (
+	// Allow any origin to alias into a child sub-location (equivalent to DescendOrigin).
+	AliasChildLocation,
+	// Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
+	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -463,7 +476,7 @@ impl xcm_executor::Config for XcmConfig {
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Aliasers;
+	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
