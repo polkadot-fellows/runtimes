@@ -89,57 +89,14 @@ impl<T: Config> Pallet<T> {
 
 	/// Translate junctions in the latest XCM format
 	fn translate_junctions_latest(junctions: Junctions) -> Result<Junctions, Error<T>> {
-		let mut translated = Vec::new();
-		for junction in junctions.iter() {
-			translated.push(Self::translate_junction_latest(junction.clone())?);
-		}
-
-		// Convert Vec<Junction> to Junctions using proper construction pattern
-		let result = match translated.len() {
-			0 => Junctions::Here,
-			1 => {
-				let [j0] = translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0].into()
-			},
-			2 => {
-				let [j0, j1] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1].into()
-			},
-			3 => {
-				let [j0, j1, j2] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1, j2].into()
-			},
-			4 => {
-				let [j0, j1, j2, j3] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1, j2, j3].into()
-			},
-			5 => {
-				let [j0, j1, j2, j3, j4] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1, j2, j3, j4].into()
-			},
-			6 => {
-				let [j0, j1, j2, j3, j4, j5] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1, j2, j3, j4, j5].into()
-			},
-			7 => {
-				let [j0, j1, j2, j3, j4, j5, j6] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1, j2, j3, j4, j5, j6].into()
-			},
-			8 => {
-				let [j0, j1, j2, j3, j4, j5, j6, j7] =
-					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
-				[j0, j1, j2, j3, j4, j5, j6, j7].into()
-			},
-			_ => return Err(Error::<T>::FailedToConvertType), // Too many junctions (>8)
-		};
-
-		Ok(result)
+		junctions
+			.iter()
+			.map(|junction| Self::translate_junction_latest(junction.clone()))
+			.try_fold(Junctions::Here, |mut acc, translated_junction| {
+				let junction = translated_junction?;
+				acc.push(junction).map_err(|_| Error::<T>::FailedToConvertType)?;
+				Ok(acc)
+			})
 	}
 
 	/// Translate a single junction in the latest XCM format
