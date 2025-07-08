@@ -117,12 +117,7 @@ impl<T: Config> Pallet<T> {
 		let referendum: AhReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
 				let cancel_referendum = |id, status: RcReferendumStatusOf<T, ()>| {
-					if let Some((_, last_alarm)) = status.alarm {
-						// TODO: scheduler migrated first?
-						let _ = T::Scheduler::cancel(last_alarm);
-					}
-					// TODO: use referenda block provider
-					let now = frame_system::Pallet::<T>::block_number();
+					let now = <T as Config>::RcBlockNumberProvider::current_block_number();
 					ReferendumInfoFor::<T, ()>::insert(
 						id,
 						ReferendumInfo::Cancelled(
@@ -131,6 +126,7 @@ impl<T: Config> Pallet<T> {
 							status.decision_deposit,
 						),
 					);
+					Self::deposit_event(Event::ReferendumCanceled { id });
 					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
 				};
 
@@ -260,8 +256,6 @@ pub mod alias {
 		AhReferendumInfoOf<T, ()>,
 	>;
 }
-// TODO: shift referendums' time block by the time of the migration
-// TODO: schedule `one_fewer_deciding` for referendums canceled during migration
 
 // (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
 #[derive(Decode)]

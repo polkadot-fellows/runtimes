@@ -481,6 +481,8 @@ pub mod pallet {
 		BalancesBeforeRecordSet { checking_account: T::Balance, total_issuance: T::Balance },
 		/// The balances before the migration were consumed.
 		BalancesBeforeRecordConsumed { checking_account: T::Balance, total_issuance: T::Balance },
+		/// A referendum was cancelled because it could not be mapped.
+		ReferendumCanceled { id: u32 },
 	}
 
 	#[pallet::pallet]
