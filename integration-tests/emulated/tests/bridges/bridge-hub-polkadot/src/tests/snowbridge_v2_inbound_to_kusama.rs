@@ -25,7 +25,6 @@ use bridge_hub_polkadot_runtime::{
 	EthereumInboundQueueV2,
 };
 use codec::Encode;
-use emulated_integration_tests_common::PENPAL_B_ID;
 use frame_support::BoundedVec;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
@@ -35,9 +34,6 @@ use snowbridge_inbound_queue_primitives::v2::{
 use sp_core::{H160, H256};
 use xcm::opaque::latest::AssetTransferFilter::{ReserveDeposit, ReserveWithdraw};
 use xcm_executor::traits::ConvertLocation;
-
-/// Calculates the XCM prologue fee for sending an XCM to AH.
-const INITIAL_FUND: u128 = 500_000_000_000_000;
 
 #[test]
 fn send_token_to_kusama_v2() {
@@ -91,14 +87,14 @@ fn send_token_to_kusama_v2() {
 
 	// To satisfy ED
 	let sov_ahw_on_ahr = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
-		NetworkId::Kusama,
+		Kusama,
 		AssetHubKusama::para_id(),
 	);
 	AssetHubPolkadot::fund_accounts(vec![(sov_ahw_on_ahr.clone(), INITIAL_FUND)]);
 
 	register_foreign_asset(token_location.clone(), snowbridge_sovereign, false);
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_kusama();
 
 	let token_transfer_value = TOKEN_AMOUNT;
@@ -263,7 +259,7 @@ fn send_ether_to_kusama_v2() {
 
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_kusama();
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -386,8 +382,6 @@ fn send_ether_to_kusama_v2() {
 #[test]
 fn send_ksm_from_ethereum_to_kusama() {
 	let initial_fund: u128 = 200_000_000_000_000;
-	let initial_liquidity: u128 = initial_fund / 2;
-
 	let relayer_account = BridgeHubPolkadotSender::get();
 	let relayer_reward = 1_500_000_000_000u128;
 
@@ -401,18 +395,12 @@ fn send_ksm_from_ethereum_to_kusama() {
 	let ethereum_sovereign: AccountId = snowbridge_sovereign();
 	let bridged_roc_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
 	create_foreign_on_ah_polkadot(bridged_roc_at_asset_hub_polkadot.clone(), true, vec![]);
-	set_up_pool_with_wnd_on_ah_polkadot(
-		bridged_roc_at_asset_hub_polkadot.clone(),
-		true,
-		initial_fund,
-		initial_liquidity,
-	);
 
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), initial_fund);
 	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaSender::get(), initial_fund)]);
 	register_ksm_as_native_polkadot_asset_on_snowbridge();
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_kusama();
 
 	// set XCM versions

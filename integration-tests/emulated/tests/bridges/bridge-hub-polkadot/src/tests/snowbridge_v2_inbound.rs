@@ -11,14 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::{
-	tests::snowbridge_common::{
-		erc20_token_location, eth_location, register_foreign_asset, set_up_eth_and_dot_pool,
-		set_up_eth_and_dot_pool_on_penpal, snowbridge_sovereign, weth_location, TOKEN_AMOUNT,
-		TOKEN_ID,
-	},
-	*,
-};
+use crate::{tests::snowbridge_common::*, *};
 use asset_hub_polkadot_runtime::ForeignAssets;
 use bp_asset_hub_polkadot;
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
@@ -55,7 +48,7 @@ fn register_token_v2() {
 	BridgeHubPolkadot::fund_accounts(vec![(relayer_account.clone(), INITIAL_FUND)]);
 	AssetHubPolkadot::fund_accounts(vec![(bridge_owner.clone(), INITIAL_FUND)]);
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 
 	let claimer = Location::new(0, AccountId32 { network: None, id: receiver.clone().into() });
 	let claimer_bytes = claimer.encode();
@@ -172,7 +165,7 @@ fn send_token_v2() {
 		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
 	];
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	let topic_id = BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		let instructions = vec![
@@ -292,7 +285,7 @@ fn send_weth_v2() {
 		NativeTokenERC20 { token_id: WETH.into(), value: token_transfer_value },
 	];
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		let instructions = vec![
@@ -400,7 +393,7 @@ fn register_and_send_multiple_tokens_v2() {
 	let claimer = Location::new(0, AccountId32 { network: None, id: claimer_acc_id.into() });
 	let claimer_bytes = claimer.encode();
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 
 	let token_transfer_value = TOKEN_AMOUNT;
 	let weth_transfer_value = TOKEN_AMOUNT;
@@ -622,7 +615,7 @@ fn send_token_to_penpal_v2() {
 		));
 	});
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_penpal();
 
 	let token_transfer_value = TOKEN_AMOUNT;
@@ -802,7 +795,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 	.appended_with(asset_id.clone().interior)
 	.unwrap();
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	// Register token
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
@@ -926,7 +919,7 @@ fn invalid_xcm_traps_funds_on_ah() {
 		3_000_000_000_000,
 	)]);
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 
 	let assets = vec![
 		// to transfer assets
@@ -997,7 +990,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 
 	let origin = H160::random();
 
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		let instructions = vec![

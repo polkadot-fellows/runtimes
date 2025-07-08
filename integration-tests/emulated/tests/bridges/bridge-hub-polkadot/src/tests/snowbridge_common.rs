@@ -31,16 +31,26 @@ use sp_core::H160;
 use xcm_builder::ExternalConsensusLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
 
-pub const INITIAL_FUND: u128 = 50000_000_000_000_0000;
+/// Initial fund in DOT to be used to prefund test and sovereign accounts.
+pub const INITIAL_FUND: u128 = 50_000_000_000_000_000;
+/// A beneficiary address on Ethereum.
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
+/// Agent on Ethereum address.
 pub const AGENT_ADDRESS: [u8; 20] = hex!("90A987B944Cb1dCcE5564e5FDeCD7a54D3de27Fe");
-pub const TOKEN_AMOUNT: u128 = 10_000_000_000_000_000;
-pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 6_000_000_000_000_000;
-pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
-pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
-const AH_BASE_FEE_V2: u128 = 100_000_000_000;
-/// An ERC-20 token to be registered and sent.
+/// A test ERC-20 token to be registered and sent.
 pub const TOKEN_ID: [u8; 20] = hex!("8daebade922df735c38c80c7ebd708af50815faa");
+/// ERC-20 token amount to be transferred.
+pub const TOKEN_AMOUNT: u128 = 10_000_000_000_000_000;
+/// The fee in ether to be sent
+pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 6_000_000_000_000_000;
+/// Local execution fee in DOT.
+pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
+/// Execution weight provided as limited for XCM execute.
+pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
+/// The base cost for transfers to Ethereum, for Snowbridge V2.
+const AH_BASE_FEE_V2: u128 = 100_000_000_000;
+const DOT_POOL_AMOUNT: u128 = 900_000_000_000;
+const ETH_POOL_AMOUNT: u128 = 100_000_000_000_000;
 
 pub fn beneficiary() -> Location {
 	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }])
@@ -188,12 +198,13 @@ pub fn register_ethereum_assets_on_penpal() {
 	});
 }
 
+/// Registers a foreign asset on Polkadot AssetHub.
 pub fn register_foreign_asset(id: Location, owner: AccountId, sufficient: bool) {
 	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
+/// Create PAL (native asset for penpal) on AH.
 pub fn register_pal_on_polkadot_ah() {
-	// Create PAL(i.e. native asset for penpal) on AH.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 		let penpal_asset_id = Location::new(1, Parachain(PenpalB::para_id().into()));
@@ -386,83 +397,50 @@ pub fn fund_on_ah() {
 	AssetHubPolkadot::fund_accounts(vec![(penpal_user_sovereign.clone(), INITIAL_FUND)]);
 }
 
-pub fn create_pools_on_ah() {
-	// We create a pool between DOT and ETH in AssetHub to support paying for fees with ETH.
-	let ethereum_sovereign = snowbridge_sovereign();
-	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
-	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+/// Create a pool between DOT and ETH on Polkadot AssetHub to support paying for fees with ETH.
+pub(crate) fn set_up_eth_and_dot_pool_on_polkadot_asset_hub() {
+	set_up_foreign_asset_and_dot_pool_on_polkadot_asset_hub(eth_location());
+}
+
+/// Create a pool between DOT and a foreign asset on Polkadot AssetHub.
+pub(crate) fn set_up_foreign_asset_and_dot_pool_on_polkadot_asset_hub(asset: Location) {
+	let snowbridge_sovereign = snowbridge_sovereign();
+	AssetHubPolkadot::fund_accounts(vec![(snowbridge_sovereign.clone(), INITIAL_FUND)]);
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
-			&ethereum_sovereign.clone(),
-			50000_000_000_000_0000,
-		));
-	});
-	AssetHubPolkadot::execute_with(|| {
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
-			&ethereum_sovereign.clone(),
-			50000_000_000_000_0000,
+			asset.clone(),
+			&snowbridge_sovereign.clone(),
+			INITIAL_FUND,
 		));
 	});
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
-		weth_location(),
+		asset,
 		true,
-		ethereum_sovereign.clone(),
-		900_000_000_000,
-		100_000_000_000_0000
-	);
-	create_pool_with_native_on!(
-		AssetHubPolkadot,
-		eth_location(),
-		true,
-		ethereum_sovereign.clone(),
-		900_000_000_000,
-		100_000_000_000_0000
+		snowbridge_sovereign.clone(),
+		DOT_POOL_AMOUNT,
+		ETH_POOL_AMOUNT
 	);
 }
 
-pub(crate) fn set_up_eth_and_dot_pool() {
-	// We create a pool between DOT and WETH in AssetHub to support paying for fees with WETH.
-	let ethereum_sovereign = snowbridge_sovereign();
-	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
-	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
-	AssetHubPolkadot::execute_with(|| {
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
-			&ethereum_sovereign.clone(),
-			500_000_000_000_000,
-		));
-	});
-	create_pool_with_native_on!(
-		AssetHubPolkadot,
-		eth_location(),
-		true,
-		ethereum_sovereign.clone(),
-		100_000_000_000,
-		100_000_000_000_000
-	);
-}
-
+/// Create a pool between DOT and ETH on Penpal to support paying for fees with ETH.
 pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
-	let ethereum_sovereign = snowbridge_sovereign();
-	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), 100_000_000_000_000)]);
-	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	let snowbridge_sovereign = snowbridge_sovereign();
+	PenpalB::fund_accounts(vec![(snowbridge_sovereign.clone(), INITIAL_FUND)]);
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
 			eth_location().try_into().unwrap(),
-			&ethereum_sovereign.clone(),
-			500_000_000_000_000,
+			&snowbridge_sovereign.clone(),
+			INITIAL_FUND,
 		));
 	});
 	create_pool_with_native_on!(
 		PenpalB,
 		eth_location(),
 		true,
-		ethereum_sovereign.clone(),
-		100_000_000_000,
-		100_000_000_000_000
+		snowbridge_sovereign.clone(),
+		DOT_POOL_AMOUNT,
+		ETH_POOL_AMOUNT
 	);
 }
 
@@ -475,7 +453,7 @@ pub(crate) fn set_up_eth_and_dot_pool_on_kusama() {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location().try_into().unwrap(),
 			&sa_of_pah_on_kah.clone(),
-			500_000_000_000_000,
+			INITIAL_FUND,
 		));
 	});
 	AssetHubKusama::fund_accounts(vec![(sa_of_pah_on_kah.clone(), INITIAL_FUND)]);
@@ -484,72 +462,9 @@ pub(crate) fn set_up_eth_and_dot_pool_on_kusama() {
 		eth_location(),
 		true,
 		sa_of_pah_on_kah.clone(),
-		100_000_000_000,
-		100_000_000_000_000
+		DOT_POOL_AMOUNT,
+		ETH_POOL_AMOUNT
 	);
-}
-
-// set up pool
-pub(crate) fn set_up_pool_with_wnd_on_ah_polkadot(
-	asset: Location,
-	is_foreign: bool,
-	initial_fund: u128,
-	initial_liquidity: u128,
-) {
-	let wnd: Location = Parent.into();
-	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotSender::get(), initial_fund)]);
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-		let owner = AssetHubPolkadotSender::get();
-		let signed_owner = <AssetHubPolkadot as Chain>::RuntimeOrigin::signed(owner.clone());
-
-		if is_foreign {
-			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
-				signed_owner.clone(),
-				asset.clone().into(),
-				owner.clone().into(),
-				initial_fund,
-			));
-		} else {
-			let asset_id = match asset.interior.last() {
-				Some(GeneralIndex(id)) => *id as u32,
-				_ => unreachable!(),
-			};
-			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
-				signed_owner.clone(),
-				asset_id.into(),
-				owner.clone().into(),
-				initial_fund,
-			));
-		}
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
-			signed_owner.clone(),
-			Box::new(wnd.clone()),
-			Box::new(asset.clone()),
-		));
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![
-				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
-			]
-		);
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
-			signed_owner.clone(),
-			Box::new(wnd),
-			Box::new(asset),
-			initial_liquidity,
-			initial_liquidity,
-			1,
-			1,
-			owner.into()
-		));
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![
-				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {..}) => {},
-			]
-		);
-	});
 }
 
 /// Set the BridgeHubEthereumBaseFeeV2 storage item in the Polkadot AssetHub xcm config.

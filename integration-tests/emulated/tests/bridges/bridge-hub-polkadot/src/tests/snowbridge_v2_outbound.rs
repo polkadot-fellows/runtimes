@@ -160,7 +160,7 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 	fund_on_bh();
 	fund_on_ah();
 	set_bridge_hub_ethereum_base_fee();
-	set_up_eth_and_dot_pool();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -553,7 +553,7 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 fn register_token_from_penpal() {
 	fund_on_bh();
 	fund_on_ah();
-	create_pools_on_ah();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	set_trust_reserve_on_penpal();
@@ -671,7 +671,7 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 	// bh
 	fund_on_bh();
 	// ah
-	create_pools_on_ah();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	register_pal_on_polkadot_ah();
 	register_pal_on_polkadot_bh();
 	fund_on_ah();

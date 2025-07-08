@@ -32,7 +32,7 @@ use xcm::v5::AssetTransferFilter;
 fn register_penpal_a_asset_from_penpal_b_will_fail() {
 	fund_on_bh();
 	fund_on_ah();
-	create_pools_on_ah();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_trust_reserve_on_penpal();
 	register_ethereum_assets_on_penpal();
 	fund_on_penpal();
