@@ -225,12 +225,6 @@ pub mod pallet {
 			/// Set if this account was derived from a para sovereign account.
 			derivation_index: Option<DerivationIndex>,
 		},
-
-		/// An amount of fungible balance was put on hold.
-		HoldPlaced { account: T::AccountId, amount: BalanceOf<T>, reason: T::RuntimeHoldReason },
-
-		/// An amount of fungible balance was released from its hold.
-		HoldReleased { account: T::AccountId, amount: BalanceOf<T>, reason: T::RuntimeHoldReason },
 	}
 
 	#[pallet::pallet]
