@@ -8,7 +8,6 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-array-bytes = { workspace = true }
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
 frame-support = { workspace = true }
