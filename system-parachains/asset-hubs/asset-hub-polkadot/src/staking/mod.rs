@@ -21,21 +21,19 @@
 pub mod bags_thresholds;
 pub mod nom_pools;
 
-use crate::*;
+use crate::{governance::StakingAdmin, *};
+use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::traits::tokens::imbalance::ResolveTo;
-use pallet_treasury::TreasuryAccountId;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
-use pallet_staking_async_rc_client as rc_client;
-use sp_runtime::transaction_validity::TransactionPriority;
-use sp_arithmetic::FixedU128;
-use frame_election_provider_support::ElectionDataProvider;
-use frame_election_provider_support::SequentialPhragmen;
-use sp_staking::SessionIndex;
-use crate::governance::StakingAdmin;
 use pallet_staking_async::UseValidatorsMap;
+use pallet_staking_async_rc_client as rc_client;
+use pallet_treasury::TreasuryAccountId;
+use sp_arithmetic::FixedU128;
+use sp_runtime::{
+	transaction_validity::TransactionPriority, FixedPointNumber, SaturatedConversion,
+};
+use sp_staking::SessionIndex;
 use xcm::v5::prelude::*;
-use sp_runtime::FixedPointNumber;
-use sp_runtime::SaturatedConversion;
 
 parameter_types! {
 	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots

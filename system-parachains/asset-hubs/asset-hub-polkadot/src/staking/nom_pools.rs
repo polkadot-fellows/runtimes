@@ -16,12 +16,11 @@
 
 //! Config for the nomination pools.
 
-use crate::*;
+use crate::{staking::StakingAdmin, *};
+use frame_support::traits::Nothing;
 use pallet_nomination_pools::{adapter, BondType};
 use sp_runtime::{DispatchError, DispatchResult, FixedU128};
 use sp_staking::{EraIndex, Stake, StakingUnchecked};
-use crate::staking::StakingAdmin;
-use frame_support::traits::Nothing;
 
 parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
