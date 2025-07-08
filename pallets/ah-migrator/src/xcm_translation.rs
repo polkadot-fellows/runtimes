@@ -259,10 +259,11 @@ impl<T: Config> Pallet<T> {
 	{
 		match junction.get_account_id32() {
 			Some((id, network)) => {
-				let account_id = T::AccountId::decode(&mut &id[..])
-					.expect("Account decoding should never fail");
+				let account_id =
+					T::AccountId::decode(&mut &id[..]).expect("Account decoding should never fail");
 				let translated_account = Self::translate_account_rc_to_ah(account_id);
-				let translated_id: [u8; 32] = translated_account.encode()
+				let translated_id: [u8; 32] = translated_account
+					.encode()
 					.try_into()
 					.expect("Account encoding should never fail");
 
