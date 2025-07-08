@@ -1575,7 +1575,7 @@ parameter_types! {
 	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
 	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
 	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
-	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO set the actual max weight
+	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO: @muharem set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
@@ -3307,7 +3307,7 @@ mod multiplier_tests {
 		let mut fees_paid = 0;
 
 		frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
-		// TODO: Find out if this test is correct, since we're not yet considering
+		// TODO: @ggwpez Find out if this test is correct, since we're not yet considering
 		// `extension_weight`
 		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
 
