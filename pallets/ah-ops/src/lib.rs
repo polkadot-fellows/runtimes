@@ -180,8 +180,6 @@ pub mod pallet {
 		NotYet,
 		/// Not all contributions are withdrawn.
 		ContributionsRemaining,
-		/// Passed account IDs are not matching unmigrated child and sibling accounts.
-		WrongSovereignTranslation,
 		/// The account is not a derived account.
 		WrongDerivedTranslation,
 		/// Account cannot be migrated since it is not a sovereign parachain account.
