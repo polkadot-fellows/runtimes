@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
+- Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging. [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
 
 ## [1.6.1] 24.06.2025
 

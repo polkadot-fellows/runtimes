@@ -45,7 +45,7 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(
 		if is_foreign {
 			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
 				signed_owner.clone(),
-				asset.clone().into(),
+				asset.clone(),
 				owner.clone().into(),
 				initial_fund,
 			));
@@ -80,7 +80,7 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(
 			initial_liquidity,
 			1,
 			1,
-			owner.into()
+			owner
 		));
 		assert_expected_events!(
 			AssetHubPolkadot,
@@ -142,7 +142,7 @@ pub(crate) fn assert_bridge_hub_polkadot_message_received() {
 
 #[test]
 fn send_ksm_from_asset_hub_kusama_to_ethereum() {
-	let initial_fund: u128 = 200_000_000_000_00000;
+	let initial_fund: u128 = 20_000_000_000_000_000;
 	let initial_liquidity: u128 = initial_fund / 2;
 	let amount: u128 = initial_fund;
 	let ksm_fee_amount: u128 = initial_liquidity / 2;
@@ -197,7 +197,7 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 		(bridged_ksm_at_asset_hub_polkadot.clone(), (amount - ksm_fee_amount * 2) / 2).into();
 
 	let xcm = VersionedXcm::from(Xcm(vec![
-		WithdrawAsset(assets.clone().into()),
+		WithdrawAsset(assets.clone()),
 		PayFees { asset: local_fee_asset.clone() },
 		InitiateTransfer {
 			destination: asset_hub_polkadot_location(),
@@ -321,7 +321,7 @@ fn register_kusama_asset_on_ethereum_from_rah() {
 	// SA-of-RAH-on-WAH needs to have balance to pay for fees and asset creation deposit
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&sa_of_kah_on_pah,
 			INITIAL_FUND,
 		));

@@ -44,9 +44,9 @@ pub const TOKEN_AMOUNT: u128 = 10_000_000_000_000_000;
 /// The fee in ether to be sent
 pub const REMOTE_FEE_AMOUNT_IN_ETHER: u128 = 6_000_000_000_000_000;
 /// Local execution fee in DOT.
-pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 800_000_000_00000;
+pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 80_000_000_000_000;
 /// Execution weight provided as limited for XCM execute.
-pub const EXECUTION_WEIGHT: u64 = 80_000_000_0000;
+pub const EXECUTION_WEIGHT: u64 = 800_000_000_000;
 /// The execution fee (in Ether) for execution on AssetHub.
 pub const EXECUTION_IN_ETHER: u128 = 1_500_000_000_000;
 /// The reward allocated to the relayer for relaying the message.
@@ -59,7 +59,7 @@ const DOT_POOL_AMOUNT: u128 = 900_000_000_000;
 const ETH_POOL_AMOUNT: u128 = 100_000_000_000_000;
 
 pub fn beneficiary() -> Location {
-	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }])
+	Location::new(0, [AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }])
 }
 
 pub fn asset_hub() -> Location {
@@ -100,7 +100,7 @@ pub fn erc20_token_location(token_id: H160) -> Location {
 	Location::new(
 		2,
 		[
-			GlobalConsensus(EthereumNetwork::get().into()),
+			GlobalConsensus(EthereumNetwork::get()),
 			AccountKey20 { network: None, key: token_id.into() },
 		],
 	)
@@ -113,9 +113,7 @@ pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
 pub fn penpal_root_sovereign() -> sp_runtime::AccountId32 {
 	let penpal_root_sovereign: AccountId = PenpalB::execute_with(|| {
 		use polkadot_system_emulated_network::penpal_emulated_chain::penpal_runtime::xcm_config;
-		xcm_config::LocationToAccountId::convert_location(&xcm_config::RootLocation::get())
-			.unwrap()
-			.into()
+		xcm_config::LocationToAccountId::convert_location(&xcm_config::RootLocation::get()).unwrap()
 	});
 	penpal_root_sovereign
 }
@@ -297,32 +295,32 @@ pub fn prefund_accounts_on_penpal_b() {
 	});
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&PenpalBReceiver::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&PenpalBSender::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&sudo_account,
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&PenpalBReceiver::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&PenpalBSender::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&sudo_account,
 			INITIAL_FUND,
 		));
@@ -348,43 +346,43 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&penpal_sovereign,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&penpal_user_sovereign,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&AssetHubPolkadotReceiver::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			weth_location().try_into().unwrap(),
+			weth_location(),
 			&AssetHubPolkadotSender::get(),
 			INITIAL_FUND,
 		));
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&penpal_sovereign,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&penpal_user_sovereign,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&AssetHubPolkadotReceiver::get(),
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&AssetHubPolkadotSender::get(),
 			INITIAL_FUND,
 		));
@@ -427,7 +425,7 @@ pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
 	PenpalB::fund_accounts(vec![(snowbridge_sovereign.clone(), INITIAL_FUND)]);
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&snowbridge_sovereign.clone(),
 			INITIAL_FUND,
 		));
@@ -450,7 +448,7 @@ pub(crate) fn set_up_eth_and_ksm_pool_on_kusama_asset_hub() {
 	);
 	AssetHubKusama::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&sa_of_pah_on_kah.clone(),
 			INITIAL_FUND,
 		));

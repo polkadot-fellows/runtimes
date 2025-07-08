@@ -13,7 +13,6 @@
 // limitations under the License.
 use crate::{tests::snowbridge_common::*, *};
 use asset_hub_polkadot_runtime::ForeignAssets;
-use bp_asset_hub_polkadot;
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
 	bridge_common_config::BridgeReward, bridge_to_ethereum_config::EthereumGatewayAddress,
@@ -23,7 +22,6 @@ use codec::Encode;
 use emulated_integration_tests_common::{PENPAL_B_ID, RESERVABLE_ASSET_ID};
 use frame_support::{assert_ok, traits::fungibles::Mutate, BoundedVec};
 use hex_literal::hex;
-use pallet_bridge_relayers;
 use polkadot_system_emulated_network::penpal_emulated_chain::PARA_ID_B;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
@@ -102,7 +100,7 @@ fn register_token_v2() {
 				// Check that excess fees were paid to the claimer
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
 					asset_id: *asset_id == eth_location(),
-					owner: *owner == receiver.clone().into(),
+					owner: *owner == receiver.clone(),
 				},
 			]
 		);
@@ -139,7 +137,7 @@ fn send_token_v2() {
 
 	let assets = vec![
 		// the token being transferred
-		NativeTokenERC20 { token_id: token.into(), value: TOKEN_AMOUNT },
+		NativeTokenERC20 { token_id: token, value: TOKEN_AMOUNT },
 	];
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
@@ -170,7 +168,7 @@ fn send_token_v2() {
 			assets,
 			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
-			value: TOKEN_AMOUNT.into(),
+			value: TOKEN_AMOUNT,
 			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
@@ -216,7 +214,7 @@ fn send_token_v2() {
 				// Check that excess fees were paid to the claimer, which was set by the UX
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
 					asset_id: *asset_id == eth_location(),
-					owner: *owner == receiver.clone().into(),
+					owner: *owner == receiver.clone(),
 				},
 			]
 		);
@@ -368,7 +366,7 @@ fn register_and_send_multiple_tokens_v2() {
 
 	let assets = vec![
 		NativeTokenERC20 { token_id: WETH.into(), value: weth_transfer_value },
-		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
+		NativeTokenERC20 { token_id: token, value: token_transfer_value },
 	];
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -443,7 +441,7 @@ fn register_and_send_multiple_tokens_v2() {
 				// Check that the token was created as a foreign asset on AssetHub
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Created { asset_id, owner, .. }) => {
 					asset_id: *asset_id == token_location.clone(),
-					owner: *owner == bridge_owner.clone().into(),
+					owner: *owner == bridge_owner.clone(),
 				},
 				// Check that the token was received and issued as a foreign asset on AssetHub
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
@@ -505,7 +503,7 @@ fn send_token_to_penpal_v2() {
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
-			eth_location().try_into().unwrap(),
+			eth_location(),
 			&snowbridge_sovereign,
 			INITIAL_FUND,
 		));
@@ -525,7 +523,7 @@ fn send_token_to_penpal_v2() {
 
 	let assets = vec![
 		// the token being transferred
-		NativeTokenERC20 { token_id: token.into(), value: TOKEN_AMOUNT },
+		NativeTokenERC20 { token_id: token, value: TOKEN_AMOUNT },
 	];
 
 	let token_asset_ah: Asset = (token_location.clone(), TOKEN_AMOUNT).into();
@@ -706,7 +704,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 
 	let assets = vec![
 		// the token being transferred
-		ForeignTokenERC20 { token_id: token_id.into(), value: TOKEN_AMOUNT },
+		ForeignTokenERC20 { token_id, value: TOKEN_AMOUNT },
 	];
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -762,7 +760,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 				) => {},
 				// Check that the native token burnt from some reserved account
 				RuntimeEvent::Assets(pallet_assets::Event::Burned { owner, .. }) => {
-					owner: *owner == ethereum_sovereign.clone().into(),
+					owner: *owner == ethereum_sovereign.clone(),
 				},
 				// Check that the token was minted to beneficiary
 				RuntimeEvent::Assets(pallet_assets::Event::Issued { owner, .. }) => {
@@ -789,7 +787,7 @@ fn invalid_xcm_traps_funds_on_ah() {
 		// to transfer assets
 		NativeTokenERC20 { token_id: WETH.into(), value: 2_800_000_000_000u128 },
 		// the token being transferred
-		NativeTokenERC20 { token_id: token.into(), value: 2_000_000_000_000u128 },
+		NativeTokenERC20 { token_id: token, value: 2_000_000_000_000u128 },
 	];
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -842,7 +840,7 @@ fn invalid_claimer_does_not_fail_the_message() {
 	let relayer_account = BridgeHubPolkadotSender::get();
 
 	let beneficiary_acc: [u8; 32] = H256::random().into();
-	let beneficiary = Location::new(0, AccountId32 { network: None, id: beneficiary_acc.into() });
+	let beneficiary = Location::new(0, AccountId32 { network: None, id: beneficiary_acc });
 
 	let assets = vec![
 		// the token being transferred

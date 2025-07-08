@@ -130,7 +130,7 @@ fn export_from_non_system_parachain_will_fail() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(1_000_000_000_000) };
 
 		let weth_location_reanchored =
-			Location::new(0, [AccountKey20 { network: None, key: WETH.into() }]);
+			Location::new(0, [AccountKey20 { network: None, key: WETH }]);
 
 		let weth_asset =
 			Asset { id: AssetId(weth_location_reanchored.clone()), fun: Fungible(TOKEN_AMOUNT) };

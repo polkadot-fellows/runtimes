@@ -19,8 +19,8 @@ extern crate alloc;
 
 use alloc::{vec, vec::Vec};
 use asset_hub_polkadot_runtime::xcm_config::bridging::{
-	to_ethereum::{BridgeHubEthereumBaseFee, BridgeTable, EthereumNetwork},
-	SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
+	to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
+	BridgeTable, SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
 };
 use sp_core::H160;
 use xcm::latest::prelude::*;

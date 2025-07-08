@@ -395,8 +395,7 @@ fn transact_with_agent_from_asset_hub() {
 
 		let assets = vec![reserve_asset.clone(), local_fee_asset.clone(), remote_fee_asset.clone()];
 
-		let beneficiary =
-			Location::new(0, [AccountKey20 { network: None, key: AGENT_ADDRESS.into() }]);
+		let beneficiary = Location::new(0, [AccountKey20 { network: None, key: AGENT_ADDRESS }]);
 
 		let transact_info = ContractCall::V1 {
 			target: Default::default(),
@@ -484,8 +483,7 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 
 		let assets = vec![local_fee_asset.clone(), remote_fee_asset.clone()];
 
-		let beneficiary =
-			Location::new(0, [AccountKey20 { network: None, key: AGENT_ADDRESS.into() }]);
+		let beneficiary = Location::new(0, [AccountKey20 { network: None, key: AGENT_ADDRESS }]);
 
 		let transact_info =
 			ContractCall::V1 { target: Default::default(), calldata: vec![], gas: 40000, value: 0 };
@@ -580,16 +578,15 @@ fn register_token_from_penpal() {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(eth_location()), fun: Fungible(600_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(eth_location()), fun: Fungible(600_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let call = EthereumSystemFrontend::EthereumSystemFrontend(
 			EthereumSystemFrontendCall::RegisterToken {
 				asset_id: Box::new(VersionedLocation::from(foreign_asset_at_asset_hub)),
 				metadata: Default::default(),
-				//fee_asset: remote_fee_asset_on_ethereum.clone(),
 			},
 		);
 
@@ -688,10 +685,10 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
 
 		let remote_fee_asset_on_ah =
-			Asset { id: AssetId(eth_location()), fun: Fungible(60000_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let remote_fee_asset_on_ethereum =
-			Asset { id: AssetId(eth_location()), fun: Fungible(60000_000_000_00000) };
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
 		let pna =
 			Asset { id: AssetId(LocalTeleportableToAssetHub::get()), fun: Fungible(TOKEN_AMOUNT) };

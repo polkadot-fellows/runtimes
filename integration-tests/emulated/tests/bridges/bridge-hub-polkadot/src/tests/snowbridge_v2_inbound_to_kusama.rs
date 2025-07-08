@@ -74,14 +74,14 @@ fn send_token_to_kusama_v2() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::force_create(
 			RuntimeOrigin::root(),
-			token_location.clone().try_into().unwrap(),
+			token_location.clone(),
 			snowbridge_sovereign.clone().into(),
 			true,
 			1000,
 		));
 
 		assert!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::asset_exists(
-			token_location.clone().try_into().unwrap(),
+			token_location.clone(),
 		));
 	});
 
@@ -100,7 +100,7 @@ fn send_token_to_kusama_v2() {
 
 	let assets = vec![
 		// the token being transferred
-		NativeTokenERC20 { token_id: token.into(), value: token_transfer_value },
+		NativeTokenERC20 { token_id: token, value: token_transfer_value },
 	];
 
 	let token_asset_ah: Asset = (token_location.clone(), token_transfer_value).into();
@@ -381,14 +381,14 @@ fn send_ksm_from_ethereum_to_kusama() {
 
 	let assets = vec![
 		// the token being transferred
-		ForeignTokenERC20 { token_id: token_id.into(), value: TOKEN_AMOUNT },
+		ForeignTokenERC20 { token_id, value: TOKEN_AMOUNT },
 	];
 
 	AssetHubPolkadot::execute_with(|| {
 		// Mint the asset into the bridge sovereign account, to mimic locked funds
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotAssetOwner::get()),
-			bridged_roc_at_asset_hub_polkadot.clone().into(),
+			bridged_roc_at_asset_hub_polkadot.clone(),
 			ethereum_sovereign.clone().into(),
 			TOKEN_AMOUNT,
 		));
