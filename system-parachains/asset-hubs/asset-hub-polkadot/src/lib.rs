@@ -53,7 +53,7 @@
 //! as other local assets.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -837,6 +837,8 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = ();
+	type Currency = Balances;
+	type KeyDeposit = (); // TODO review
 }
 
 impl pallet_aura::Config for Runtime {
@@ -1258,10 +1260,16 @@ construct_runtime!(
 		StateTrieMigration: pallet_state_trie_migration = 70,
 
 		// Staking in the 80s
+		Staking: pallet_staking_async = 89,
 		NominationPools: pallet_nomination_pools = 80,
 		FastUnstake: pallet_fast_unstake = 81,
 		VoterList: pallet_bags_list::<Instance1> = 82,
 		DelegatedStaking: pallet_delegated_staking = 83,
+		StakingRcClient: pallet_staking_async_rc_client = 84,
+		MultiBlockElection: pallet_election_provider_multi_block = 85,
+		MultiBlockElectionVerifier: pallet_election_provider_multi_block::verifier = 86,
+		MultiBlockElectionUnsigned: pallet_election_provider_multi_block::unsigned = 87,
+		MultiBlockElectionSigned: pallet_election_provider_multi_block::signed = 88,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
