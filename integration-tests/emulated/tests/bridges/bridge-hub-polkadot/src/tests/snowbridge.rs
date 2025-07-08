@@ -14,6 +14,7 @@
 // limitations under the License.
 use crate::{
 	tests::{
+		snowbridge_common::*,
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
 		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
 		dot_at_ah_polkadot,
@@ -155,15 +156,7 @@ fn send_token_from_ethereum_to_penpal() {
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
-	PenpalB::execute_with(|| {
-		assert_ok!(<PenpalB as Chain>::System::set_storage(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			vec![(
-				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
-				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
-			)],
-		));
-	});
+	set_trust_reserve_on_penpal();
 
 	// Create asset on the Penpal parachain.
 	PenpalB::execute_with(|| {

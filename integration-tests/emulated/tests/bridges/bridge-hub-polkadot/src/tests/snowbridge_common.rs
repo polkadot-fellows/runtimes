@@ -204,7 +204,7 @@ pub fn register_foreign_asset(id: Location, owner: AccountId, sufficient: bool) 
 }
 
 /// Create PAL (native asset for penpal) on AH.
-pub fn register_pal_on_polkadot_ah() {
+pub fn register_pal_on_polkadot_asset_hub() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 		let penpal_asset_id = Location::new(1, Parachain(PenpalB::para_id().into()));
@@ -256,7 +256,8 @@ pub fn register_pal_on_polkadot_bh() {
 	});
 }
 
-pub fn fund_on_penpal() {
+/// Fund all the accounts that need to funded for tests, on Penpal B.
+pub fn prefund_accounts_on_penpal_b() {
 	let sudo_account = penpal_root_sovereign();
 	PenpalB::fund_accounts(vec![
 		(PenpalBReceiver::get(), INITIAL_FUND),
@@ -332,7 +333,8 @@ pub fn fund_on_penpal() {
 	});
 }
 
-pub fn fund_on_ah() {
+/// Fund all the accounts that need to funded for tests, on Polkadot AssetHub.
+pub fn prefund_accounts_on_polkadot_asset_hub() {
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotSender::get(), INITIAL_FUND)]);
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
@@ -444,7 +446,8 @@ pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
 	);
 }
 
-pub(crate) fn set_up_eth_and_dot_pool_on_kusama() {
+/// Setup KSM and Ether pool on Kusama to pay for fees.
+pub(crate) fn set_up_eth_and_ksm_pool_on_kusama_asset_hub() {
 	let sa_of_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		NetworkId::Polkadot,
 		AssetHubPolkadot::para_id(),

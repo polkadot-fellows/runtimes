@@ -95,7 +95,7 @@ fn send_token_to_kusama_v2() {
 	register_foreign_asset(token_location.clone(), snowbridge_sovereign, false);
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
-	set_up_eth_and_dot_pool_on_kusama();
+	set_up_eth_and_ksm_pool_on_kusama_asset_hub();
 
 	let token_transfer_value = TOKEN_AMOUNT;
 
@@ -260,7 +260,7 @@ fn send_ether_to_kusama_v2() {
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
-	set_up_eth_and_dot_pool_on_kusama();
+	set_up_eth_and_ksm_pool_on_kusama_asset_hub();
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		let instructions = vec![
@@ -401,19 +401,19 @@ fn send_ksm_from_ethereum_to_kusama() {
 	register_ksm_as_native_polkadot_asset_on_snowbridge();
 
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
-	set_up_eth_and_dot_pool_on_kusama();
+	set_up_eth_and_ksm_pool_on_kusama_asset_hub();
 
 	// set XCM versions
 	BridgeHubPolkadot::force_xcm_version(asset_hub_polkadot_location(), XCM_VERSION);
 	BridgeHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
-	let eth_fee_kusama_ah: xcm::prelude::Asset = (eth_location(), MIN_ETHER_BALANCE).into();
+	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE).into();
 
 	let ksm = Location::new(1, [GlobalConsensus(Kusama)]);
 	let token_id = TokenIdOf::convert_location(&ksm).unwrap();
 
-	let ksm_reachored: xcm::prelude::Asset =
+	let ksm_reachored: Asset =
 		(Location::new(2, [GlobalConsensus(NetworkId::Kusama)]), TOKEN_AMOUNT).into();
 
 	let assets = vec![

@@ -47,7 +47,7 @@ pub enum EthereumSystemFrontend {
 #[test]
 fn send_weth_from_asset_hub_to_ethereum() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
@@ -127,7 +127,7 @@ fn send_weth_from_asset_hub_to_ethereum() {
 #[test]
 pub fn register_relay_token_from_asset_hub_with_sudo() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
@@ -158,7 +158,7 @@ pub fn register_relay_token_from_asset_hub_with_sudo() {
 #[test]
 pub fn register_usdt_from_owner_on_asset_hub() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 
@@ -196,7 +196,7 @@ fn transfer_relay_token_from_ah() {
 	// b. register_relay_token_from_asset_hub_with_sudo();
 	// c. register_relay_token_from_asset_hub_user_origin();
 	register_relay_token_on_polkadot_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	// Send token to Ethereum
@@ -294,7 +294,7 @@ fn transfer_relay_token_from_ah() {
 fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 	fund_on_bh();
 	register_relay_token_on_polkadot_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
@@ -378,7 +378,7 @@ fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 fn transact_with_agent_from_asset_hub() {
 	let weth_asset_location: Location = weth_location();
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
@@ -470,7 +470,7 @@ fn transact_with_agent_from_asset_hub() {
 #[test]
 fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {
@@ -552,13 +552,13 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 #[test]
 fn register_token_from_penpal() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	set_trust_reserve_on_penpal();
 	register_ethereum_assets_on_penpal();
-	fund_on_penpal();
+	prefund_accounts_on_penpal_b();
 	set_up_eth_and_dot_pool_on_penpal();
 
 	let penpal_user_location = Location::new(
@@ -672,14 +672,14 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 	fund_on_bh();
 	// ah
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
-	register_pal_on_polkadot_ah();
+	register_pal_on_polkadot_asset_hub();
 	register_pal_on_polkadot_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 	// penpal
 	set_trust_reserve_on_penpal();
 	register_ethereum_assets_on_penpal();
-	fund_on_penpal();
+	prefund_accounts_on_penpal_b();
 
 	PenpalB::execute_with(|| {
 		type RuntimeOrigin = <PenpalB as Chain>::RuntimeOrigin;
@@ -830,7 +830,7 @@ fn invalid_nonce_for_delivery_receipt_fails() {
 #[test]
 fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
 
 	AssetHubPolkadot::execute_with(|| {

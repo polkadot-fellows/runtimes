@@ -31,11 +31,11 @@ use xcm::v5::AssetTransferFilter;
 #[test]
 fn register_penpal_a_asset_from_penpal_b_will_fail() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_trust_reserve_on_penpal();
 	register_ethereum_assets_on_penpal();
-	fund_on_penpal();
+	prefund_accounts_on_penpal_b();
 	let penpal_user_location = Location::new(
 		1,
 		[
@@ -172,7 +172,7 @@ fn export_from_non_system_parachain_will_fail() {
 #[test]
 pub fn register_usdt_not_from_owner_on_asset_hub_will_fail() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
@@ -195,7 +195,7 @@ pub fn register_usdt_not_from_owner_on_asset_hub_will_fail() {
 #[test]
 pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 	fund_on_bh();
-	fund_on_ah();
+	prefund_accounts_on_polkadot_asset_hub();
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
