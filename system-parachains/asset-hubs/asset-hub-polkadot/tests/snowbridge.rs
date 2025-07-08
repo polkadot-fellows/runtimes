@@ -18,13 +18,12 @@
 extern crate alloc;
 
 use alloc::{vec, vec::Vec};
-use asset_hub_polkadot_runtime::xcm_config::bridging::{
-	to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
-	BridgeTable, SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
-};
+use frame_support::parameter_types;
+use asset_hub_polkadot_runtime::xcm_config::bridging::{to_ethereum, to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork}, BridgeTable, SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId};
 use sp_core::H160;
 use xcm::latest::prelude::*;
-use xcm_builder::{ExporterFor, NetworkExportTable};
+use xcm_builder::{ExporterFor, NetworkExportTable, NetworkExportTableItem};
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetworkExportTable;
 
 #[test]
 fn network_export_table_works() {
@@ -57,8 +56,15 @@ fn network_export_table_works() {
 				None,
 			),
 			// From Ethereum with the Sepolia chain ID instead of Mainnet, not matched.
-			(NetworkId::Ethereum { chain_id: 11155111 }, Here, None),
+			(Ethereum { chain_id: 11155111 }, Here, None),
 		];
+
+		parameter_types! {
+		pub BridgeTable: Vec<NetworkExportTableItem> =
+			Vec::new().into_iter()
+			.chain(to_ethereum::EthereumBridgeTable::get())
+			.collect();
+	}
 
 		for (network, remote_location, expected_result) in test_data {
 			assert_eq!(
