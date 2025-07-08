@@ -30,9 +30,22 @@ macro_rules! translate_junction {
 	};
 }
 
-/// Macro to handle V3 junction translation patterns
-macro_rules! translate_v3_junctions {
-	($interior:expr) => {
+/// Helper macro to translate Arc-based junctions for V4/V5
+macro_rules! translate_arc_junction_array {
+	($junctions:expr, $junction_type:ty, $junctions_type:ty, $count:expr, $variant:ident) => {{
+		let translated: Result<Vec<$junction_type>, &'static str> =
+			$junctions.iter().map(|j| Self::translate_junction(j.clone())).collect();
+		let translated = translated.map_err(|_| TranslationError)?;
+		let array: [$junction_type; $count] =
+			translated.try_into().map_err(|_| TranslationError)?;
+		<$junctions_type>::$variant(Arc::from(array))
+	}};
+}
+
+/// Macro to handle junction translation for all XCM versions (V3, V4, V5)
+macro_rules! translate_junctions {
+	// V3 variant - uses direct junction parameters
+	(v3, $interior:expr) => {
 		match $interior {
 			xcm::v3::Junctions::Here => xcm::v3::Junctions::Here,
 			xcm::v3::Junctions::X1(j1) => xcm::v3::Junctions::X1(translate_junction!(j1)),
@@ -85,20 +98,130 @@ macro_rules! translate_v3_junctions {
 			),
 		}
 	};
-}
-
-/// Macro to translate Arc-based junctions for V4/V5
-macro_rules! translate_arc_junctions {
-	($junctions:expr, $junction_type:ty, $count:expr) => {{
-		let translated: Result<Vec<$junction_type>, &'static str> =
-			$junctions.iter().map(|j| Self::translate_junction(j.clone())).collect();
-		let translated = translated.map_err(|_| TranslationError)?;
-
-		// Convert Vec to fixed-size array
-		let array: [$junction_type; $count] =
-			translated.try_into().map_err(|_| TranslationError)?;
-		Ok(Arc::from(array))
-	}};
+	// V4 variant - uses Arc-based junction arrays
+	(v4, $interior:expr) => {
+		Ok(match $interior {
+			xcm::v4::Junctions::Here => xcm::v4::Junctions::Here,
+			xcm::v4::Junctions::X1(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				1,
+				X1
+			),
+			xcm::v4::Junctions::X2(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				2,
+				X2
+			),
+			xcm::v4::Junctions::X3(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				3,
+				X3
+			),
+			xcm::v4::Junctions::X4(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				4,
+				X4
+			),
+			xcm::v4::Junctions::X5(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				5,
+				X5
+			),
+			xcm::v4::Junctions::X6(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				6,
+				X6
+			),
+			xcm::v4::Junctions::X7(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				7,
+				X7
+			),
+			xcm::v4::Junctions::X8(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v4::Junction,
+				xcm::v4::Junctions,
+				8,
+				X8
+			),
+		})
+	};
+	// V5 variant - uses Arc-based junction arrays
+	(v5, $interior:expr) => {
+		Ok(match $interior {
+			xcm::v5::Junctions::Here => xcm::v5::Junctions::Here,
+			xcm::v5::Junctions::X1(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				1,
+				X1
+			),
+			xcm::v5::Junctions::X2(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				2,
+				X2
+			),
+			xcm::v5::Junctions::X3(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				3,
+				X3
+			),
+			xcm::v5::Junctions::X4(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				4,
+				X4
+			),
+			xcm::v5::Junctions::X5(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				5,
+				X5
+			),
+			xcm::v5::Junctions::X6(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				6,
+				X6
+			),
+			xcm::v5::Junctions::X7(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				7,
+				X7
+			),
+			xcm::v5::Junctions::X8(junctions) => translate_arc_junction_array!(
+				junctions,
+				xcm::v5::Junction,
+				xcm::v5::Junctions,
+				8,
+				X8
+			),
+		})
+	};
 }
 
 /// Macro to handle versioned location translation with error handling
@@ -189,7 +312,7 @@ impl<T: Config> Pallet<T> {
 	fn translate_v3_location(
 		location: xcm::v3::MultiLocation,
 	) -> Result<xcm::v3::MultiLocation, TranslationError> {
-		let translated_junctions = translate_v3_junctions!(location.interior);
+		let translated_junctions = translate_junctions!(v3, location.interior);
 
 		Ok(xcm::v3::MultiLocation { parents: location.parents, interior: translated_junctions })
 	}
@@ -198,27 +321,7 @@ impl<T: Config> Pallet<T> {
 	fn translate_v4_location_impl(
 		location: xcm::v4::Location,
 	) -> Result<xcm::v4::Location, TranslationError> {
-		use xcm::v4::Junctions;
-
-		let translated_junctions = match location.interior {
-			Junctions::Here => Junctions::Here,
-			Junctions::X1(junctions) =>
-				Junctions::X1(translate_arc_junctions!(junctions, xcm::v4::Junction, 1)?),
-			Junctions::X2(junctions) =>
-				Junctions::X2(translate_arc_junctions!(junctions, xcm::v4::Junction, 2)?),
-			Junctions::X3(junctions) =>
-				Junctions::X3(translate_arc_junctions!(junctions, xcm::v4::Junction, 3)?),
-			Junctions::X4(junctions) =>
-				Junctions::X4(translate_arc_junctions!(junctions, xcm::v4::Junction, 4)?),
-			Junctions::X5(junctions) =>
-				Junctions::X5(translate_arc_junctions!(junctions, xcm::v4::Junction, 5)?),
-			Junctions::X6(junctions) =>
-				Junctions::X6(translate_arc_junctions!(junctions, xcm::v4::Junction, 6)?),
-			Junctions::X7(junctions) =>
-				Junctions::X7(translate_arc_junctions!(junctions, xcm::v4::Junction, 7)?),
-			Junctions::X8(junctions) =>
-				Junctions::X8(translate_arc_junctions!(junctions, xcm::v4::Junction, 8)?),
-		};
+		let translated_junctions = translate_junctions!(v4, location.interior)?;
 
 		Ok(xcm::v4::Location { parents: location.parents, interior: translated_junctions })
 	}
@@ -227,27 +330,7 @@ impl<T: Config> Pallet<T> {
 	fn translate_v5_location_impl(
 		location: xcm::v5::Location,
 	) -> Result<xcm::v5::Location, TranslationError> {
-		use xcm::v5::Junctions;
-
-		let translated_junctions = match location.interior {
-			Junctions::Here => Junctions::Here,
-			Junctions::X1(junctions) =>
-				Junctions::X1(translate_arc_junctions!(junctions, xcm::v5::Junction, 1)?),
-			Junctions::X2(junctions) =>
-				Junctions::X2(translate_arc_junctions!(junctions, xcm::v5::Junction, 2)?),
-			Junctions::X3(junctions) =>
-				Junctions::X3(translate_arc_junctions!(junctions, xcm::v5::Junction, 3)?),
-			Junctions::X4(junctions) =>
-				Junctions::X4(translate_arc_junctions!(junctions, xcm::v5::Junction, 4)?),
-			Junctions::X5(junctions) =>
-				Junctions::X5(translate_arc_junctions!(junctions, xcm::v5::Junction, 5)?),
-			Junctions::X6(junctions) =>
-				Junctions::X6(translate_arc_junctions!(junctions, xcm::v5::Junction, 6)?),
-			Junctions::X7(junctions) =>
-				Junctions::X7(translate_arc_junctions!(junctions, xcm::v5::Junction, 7)?),
-			Junctions::X8(junctions) =>
-				Junctions::X8(translate_arc_junctions!(junctions, xcm::v5::Junction, 8)?),
-		};
+		let translated_junctions = translate_junctions!(v5, location.interior)?;
 
 		Ok(xcm::v5::Location { parents: location.parents, interior: translated_junctions })
 	}
