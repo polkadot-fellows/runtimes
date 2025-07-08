@@ -188,12 +188,6 @@ pub mod pallet {
 		NotSovereign,
 		/// Internal error, please bug report.
 		InternalError,
-		/// The migrated account would get reaped in the process.
-		WouldReap,
-		/// Failed to transfer a balance.
-		FailedToTransfer,
-		/// The from and to accounts are identical.
-		AccountIdentical,
 	}
 
 	#[pallet::event]
