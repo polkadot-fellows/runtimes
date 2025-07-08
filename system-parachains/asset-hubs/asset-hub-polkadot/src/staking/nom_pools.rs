@@ -44,7 +44,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type WeightInfo = (); // FAIL-CI weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EnsureRoot<AccountId>; // FAIL-CI EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 	type Filter = (); // FAIl-CI pallet_staking::AllStakers<Runtime>;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 // Mocks to make it compile, can be deleted once we have the Staking pallet migrated:

@@ -507,18 +507,12 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 
 		// Collect bonded pools
 		for (pool_id, mut pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
-			if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
-				{
-					change_rate.min_delay = change_rate.min_delay / 2u32.into();
-				}
-				change_rate.min_delay = change_rate.min_delay.saturating_add(tests::One::one());
-			}
 			let generic_pool = tests::GenericBondedPoolInner {
 				commission: tests::GenericCommission {
 					current: pool.commission.current,
 					max: pool.commission.max,
 					change_rate: pool.commission.change_rate,
-					throttle_from: None, // None to avoid discrepancies during the AH postcheck
+					throttle_from: pool.commission.throttle_from,
 					claim_permission: pool.commission.claim_permission,
 				},
 				member_counter: pool.member_counter,
