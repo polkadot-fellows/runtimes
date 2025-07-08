@@ -16,341 +16,144 @@
 
 use crate::*;
 use codec::{Decode, Encode};
-use sp_std::{sync::Arc, vec::Vec};
-use xcm::VersionedLocation;
+use sp_std::vec::Vec;
+use xcm::{latest::prelude::*, VersionedLocation};
 
-/// Error type for translation operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TranslationError;
-
-/// Helper macro to translate a single junction with error handling
-macro_rules! translate_junction {
-	($junction:expr) => {
-		Self::translate_junction($junction).map_err(|_| TranslationError)?
-	};
+/// Helper trait for AccountId32 junction operations on latest XCM version
+trait AccountId32JunctionOps {
+	fn get_account_id32(&self) -> Option<[u8; 32]>;
+	fn with_account_id32(self, id: [u8; 32]) -> Self;
 }
 
-/// Helper macro to translate Arc-based junctions for V4/V5
-macro_rules! translate_arc_junction_array {
-	($junctions:expr, $junction_type:ty, $junctions_type:ty, $count:expr, $variant:ident) => {{
-		let translated: Result<Vec<$junction_type>, &'static str> =
-			$junctions.iter().map(|j| Self::translate_junction(j.clone())).collect();
-		let translated = translated.map_err(|_| TranslationError)?;
-		let array: [$junction_type; $count] =
-			translated.try_into().map_err(|_| TranslationError)?;
-		<$junctions_type>::$variant(Arc::from(array))
-	}};
-}
-
-/// Macro to handle junction translation for all XCM versions (V3, V4, V5)
-macro_rules! translate_junctions {
-	// V3 variant - uses direct junction parameters
-	(v3, $interior:expr) => {
-		match $interior {
-			xcm::v3::Junctions::Here => xcm::v3::Junctions::Here,
-			xcm::v3::Junctions::X1(j1) => xcm::v3::Junctions::X1(translate_junction!(j1)),
-			xcm::v3::Junctions::X2(j1, j2) =>
-				xcm::v3::Junctions::X2(translate_junction!(j1), translate_junction!(j2)),
-			xcm::v3::Junctions::X3(j1, j2, j3) => xcm::v3::Junctions::X3(
-				translate_junction!(j1),
-				translate_junction!(j2),
-				translate_junction!(j3),
-			),
-			xcm::v3::Junctions::X4(j1, j2, j3, j4) => xcm::v3::Junctions::X4(
-				translate_junction!(j1),
-				translate_junction!(j2),
-				translate_junction!(j3),
-				translate_junction!(j4),
-			),
-			xcm::v3::Junctions::X5(j1, j2, j3, j4, j5) => xcm::v3::Junctions::X5(
-				translate_junction!(j1),
-				translate_junction!(j2),
-				translate_junction!(j3),
-				translate_junction!(j4),
-				translate_junction!(j5),
-			),
-			xcm::v3::Junctions::X6(j1, j2, j3, j4, j5, j6) => xcm::v3::Junctions::X6(
-				translate_junction!(j1),
-				translate_junction!(j2),
-				translate_junction!(j3),
-				translate_junction!(j4),
-				translate_junction!(j5),
-				translate_junction!(j6),
-			),
-			xcm::v3::Junctions::X7(j1, j2, j3, j4, j5, j6, j7) => xcm::v3::Junctions::X7(
-				translate_junction!(j1),
-				translate_junction!(j2),
-				translate_junction!(j3),
-				translate_junction!(j4),
-				translate_junction!(j5),
-				translate_junction!(j6),
-				translate_junction!(j7),
-			),
-			xcm::v3::Junctions::X8(j1, j2, j3, j4, j5, j6, j7, j8) => xcm::v3::Junctions::X8(
-				translate_junction!(j1),
-				translate_junction!(j2),
-				translate_junction!(j3),
-				translate_junction!(j4),
-				translate_junction!(j5),
-				translate_junction!(j6),
-				translate_junction!(j7),
-				translate_junction!(j8),
-			),
-		}
-	};
-	// V4 variant - uses Arc-based junction arrays
-	(v4, $interior:expr) => {
-		Ok(match $interior {
-			xcm::v4::Junctions::Here => xcm::v4::Junctions::Here,
-			xcm::v4::Junctions::X1(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				1,
-				X1
-			),
-			xcm::v4::Junctions::X2(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				2,
-				X2
-			),
-			xcm::v4::Junctions::X3(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				3,
-				X3
-			),
-			xcm::v4::Junctions::X4(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				4,
-				X4
-			),
-			xcm::v4::Junctions::X5(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				5,
-				X5
-			),
-			xcm::v4::Junctions::X6(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				6,
-				X6
-			),
-			xcm::v4::Junctions::X7(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				7,
-				X7
-			),
-			xcm::v4::Junctions::X8(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v4::Junction,
-				xcm::v4::Junctions,
-				8,
-				X8
-			),
-		})
-	};
-	// V5 variant - uses Arc-based junction arrays
-	(v5, $interior:expr) => {
-		Ok(match $interior {
-			xcm::v5::Junctions::Here => xcm::v5::Junctions::Here,
-			xcm::v5::Junctions::X1(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				1,
-				X1
-			),
-			xcm::v5::Junctions::X2(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				2,
-				X2
-			),
-			xcm::v5::Junctions::X3(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				3,
-				X3
-			),
-			xcm::v5::Junctions::X4(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				4,
-				X4
-			),
-			xcm::v5::Junctions::X5(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				5,
-				X5
-			),
-			xcm::v5::Junctions::X6(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				6,
-				X6
-			),
-			xcm::v5::Junctions::X7(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				7,
-				X7
-			),
-			xcm::v5::Junctions::X8(junctions) => translate_arc_junction_array!(
-				junctions,
-				xcm::v5::Junction,
-				xcm::v5::Junctions,
-				8,
-				X8
-			),
-		})
-	};
-}
-
-/// Macro to handle versioned location translation with error handling
-macro_rules! translate_versioned_location {
-	($version:ident, $location:expr, $translate_fn:ident, $version_name:literal) => {
-		match Self::$translate_fn($location.clone()) {
-			Ok(translated) => Ok(VersionedLocation::$version(translated)),
-			Err(_) => {
-				log::error!(
-					target: LOG_TARGET,
-					"Failed to translate {} location for treasury spend beneficiary",
-					$version_name
-				);
-				Err(Error::<T>::FailedToConvertType)
-			},
-		}
-	};
-}
-
-/// Trait to enable generic AccountId32 junction translation
-trait AccountId32Junction {
-	fn get_account_id32(&self) -> Option<([u8; 32], Option<xcm::v3::NetworkId>)>;
-	fn from_account_id32(id: [u8; 32], network: Option<xcm::v3::NetworkId>) -> Self;
-}
-
-/// Macro to generate AccountId32Junction trait implementations
-macro_rules! impl_account_id32_junction {
-	($junction_type:ty) => {
-		impl AccountId32Junction for $junction_type {
-			fn get_account_id32(&self) -> Option<([u8; 32], Option<xcm::v3::NetworkId>)> {
-				match self {
-					Self::AccountId32 { network: _, id } => Some((*id, None)),
-					_ => None,
-				}
-			}
-
-			fn from_account_id32(id: [u8; 32], _network: Option<xcm::v3::NetworkId>) -> Self {
-				Self::AccountId32 { network: None, id }
-			}
-		}
-	};
-}
-
-// Implement for each XCM version
-impl AccountId32Junction for xcm::v3::Junction {
-	fn get_account_id32(&self) -> Option<([u8; 32], Option<xcm::v3::NetworkId>)> {
+impl AccountId32JunctionOps for Junction {
+	fn get_account_id32(&self) -> Option<[u8; 32]> {
 		match self {
-			xcm::v3::Junction::AccountId32 { network, id } => Some((*id, *network)),
+			Junction::AccountId32 { id, .. } => Some(*id),
 			_ => None,
 		}
 	}
 
-	fn from_account_id32(id: [u8; 32], network: Option<xcm::v3::NetworkId>) -> Self {
-		xcm::v3::Junction::AccountId32 { network, id }
+	fn with_account_id32(self, new_id: [u8; 32]) -> Self {
+		match self {
+			Junction::AccountId32 { network, .. } => Junction::AccountId32 { network, id: new_id },
+			other => other,
+		}
 	}
 }
-
-// Implement for V4 and V5 using the macro
-impl_account_id32_junction!(xcm::v4::Junction);
-impl_account_id32_junction!(xcm::v5::Junction);
 
 impl<T: Config> Pallet<T> {
 	/// Translate AccountId32 junctions in a VersionedLocation from RC format to AH format.
 	///
-	/// This function handles all supported XCM versions (V3, V4, V5) and applies account
-	/// translation to any AccountId32 junctions found within the location structure.
-	/// All other junction types are preserved unchanged.
+	/// This function leverages the XCM SDK's built-in version conversion infrastructure
+	/// to handle all supported XCM versions (V3, V4, V5) by converting to the latest
+	/// version for processing, then converting back to the original version.
 	///
-	/// Returns an error if the translation fails, following the same strict error handling
-	/// pattern used in referenda migration for correctness.
+	/// Returns an error if version conversion or translation fails.
 	pub fn translate_beneficiary_location(
 		location: VersionedLocation,
 	) -> Result<VersionedLocation, Error<T>> {
-		match location {
-			VersionedLocation::V3(v3_location) => {
-				translate_versioned_location!(V3, v3_location, translate_v3_location, "V3")
-			},
-			VersionedLocation::V4(v4_location) => {
-				translate_versioned_location!(V4, v4_location, translate_v4_location_impl, "V4")
-			},
-			VersionedLocation::V5(v5_location) => {
-				translate_versioned_location!(V5, v5_location, translate_v5_location_impl, "V5")
-			},
+		// Convert to latest version for unified processing
+		let latest_location: Location = location.clone().try_into().map_err(|_| {
+			log::error!(
+				target: LOG_TARGET,
+				"Failed to convert VersionedLocation to latest version"
+			);
+			Error::<T>::FailedToConvertType
+		})?;
+
+		// Apply account translation to latest version
+		let translated_latest = Self::translate_location_latest(latest_location)?;
+
+		// Convert back to original version
+		let original_version = location.identify_version();
+		VersionedLocation::from(translated_latest)
+			.into_version(original_version)
+			.map_err(|_| {
+				log::error!(
+					target: LOG_TARGET,
+					"Failed to convert back to original XCM version {}",
+					original_version
+				);
+				Error::<T>::FailedToConvertType
+			})
+	}
+
+	/// Translate AccountId32 junctions in the latest XCM Location format.
+	///
+	/// This function handles the actual account translation logic on the latest
+	/// XCM version, eliminating the need for version-specific implementations.
+	fn translate_location_latest(location: Location) -> Result<Location, Error<T>> {
+		let translated_junctions = Self::translate_junctions_latest(location.interior)?;
+		Ok(Location { parents: location.parents, interior: translated_junctions })
+	}
+
+	/// Translate junctions in the latest XCM format
+	fn translate_junctions_latest(junctions: Junctions) -> Result<Junctions, Error<T>> {
+		let mut translated = Vec::new();
+		for junction in junctions.iter() {
+			translated.push(Self::translate_junction_latest(junction.clone())?);
 		}
+
+		// Convert Vec<Junction> to Junctions using proper construction pattern
+		let result = match translated.len() {
+			0 => Junctions::Here,
+			1 => {
+				let [j0] = translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0].into()
+			},
+			2 => {
+				let [j0, j1] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1].into()
+			},
+			3 => {
+				let [j0, j1, j2] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1, j2].into()
+			},
+			4 => {
+				let [j0, j1, j2, j3] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1, j2, j3].into()
+			},
+			5 => {
+				let [j0, j1, j2, j3, j4] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1, j2, j3, j4].into()
+			},
+			6 => {
+				let [j0, j1, j2, j3, j4, j5] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1, j2, j3, j4, j5].into()
+			},
+			7 => {
+				let [j0, j1, j2, j3, j4, j5, j6] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1, j2, j3, j4, j5, j6].into()
+			},
+			8 => {
+				let [j0, j1, j2, j3, j4, j5, j6, j7] =
+					translated.try_into().map_err(|_| Error::<T>::FailedToConvertType)?;
+				[j0, j1, j2, j3, j4, j5, j6, j7].into()
+			},
+			_ => return Err(Error::<T>::FailedToConvertType), // Too many junctions (>8)
+		};
+
+		Ok(result)
 	}
 
-	/// Translate AccountId32 junctions in XCM v3 MultiLocation.
-	fn translate_v3_location(
-		location: xcm::v3::MultiLocation,
-	) -> Result<xcm::v3::MultiLocation, TranslationError> {
-		let translated_junctions = translate_junctions!(v3, location.interior);
-
-		Ok(xcm::v3::MultiLocation { parents: location.parents, interior: translated_junctions })
-	}
-
-	/// Implementation for V4 location translation
-	fn translate_v4_location_impl(
-		location: xcm::v4::Location,
-	) -> Result<xcm::v4::Location, TranslationError> {
-		let translated_junctions = translate_junctions!(v4, location.interior)?;
-
-		Ok(xcm::v4::Location { parents: location.parents, interior: translated_junctions })
-	}
-
-	/// Implementation for V5 location translation
-	fn translate_v5_location_impl(
-		location: xcm::v5::Location,
-	) -> Result<xcm::v5::Location, TranslationError> {
-		let translated_junctions = translate_junctions!(v5, location.interior)?;
-
-		Ok(xcm::v5::Location { parents: location.parents, interior: translated_junctions })
-	}
-
-	/// Generic junction translation for all XCM versions using trait bounds
-	fn translate_junction<J>(junction: J) -> Result<J, &'static str>
-	where
-		J: AccountId32Junction + Clone,
-	{
+	/// Translate a single junction in the latest XCM format
+	fn translate_junction_latest(junction: Junction) -> Result<Junction, Error<T>> {
 		match junction.get_account_id32() {
-			Some((id, network)) => {
-				let account_id =
-					T::AccountId::decode(&mut &id[..]).expect("Account decoding should never fail");
+			Some(id) => {
+				let account_id = T::AccountId::decode(&mut &id[..])
+					.map_err(|_| Error::<T>::FailedToConvertType)?;
 				let translated_account = Self::translate_account_rc_to_ah(account_id);
 				let translated_id: [u8; 32] = translated_account
 					.encode()
 					.try_into()
-					.expect("Account encoding should never fail");
-
-				Ok(J::from_account_id32(translated_id, network))
+					.map_err(|_| Error::<T>::FailedToConvertType)?;
+				Ok(junction.with_account_id32(translated_id))
 			},
 			None => Ok(junction), // Non-AccountId32 junctions pass through unchanged
 		}
