@@ -80,6 +80,7 @@ use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
+use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::{
 	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
@@ -106,9 +107,7 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
-pub use types::{
-	ForceSetHead, MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority,
-};
+pub use types::{MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority};
 use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;

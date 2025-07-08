@@ -1191,8 +1191,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
 	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
-	// TODO: set actual message queue instance when upgraded to sdk/2503
-	type MessageQueue = ();
+	type MessageQueue = MessageQueue;
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 

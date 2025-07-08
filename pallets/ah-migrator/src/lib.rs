@@ -55,8 +55,8 @@ pub mod xcm_config;
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{
-		ExceptResponseFor, ForceSetHead, LeftOrRight, MaxOnIdleOrInner,
-		QueuePriority as DmpQueuePriority, RouteInnerWithException,
+		ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority,
+		RouteInnerWithException,
 	},
 	weights_ah,
 };
@@ -82,6 +82,7 @@ use pallet_rc_migrator::{
 };
 
 use cumulus_primitives_core::AggregateMessageOrigin;
+use pallet_message_queue::ForceSetHead;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,

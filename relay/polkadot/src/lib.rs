@@ -1607,8 +1607,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type OnDemandPalletId = OnDemandPalletId;
 	type UnprocessedMsgBuffer = ConstU32<5>;
 	type XcmResponseTimeout = XcmResponseTimeout;
-	// TODO: set actual message queue instance when upgraded to sdk/2503
-	type MessageQueue = ();
+	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
 }
 

@@ -8877,6 +8877,7 @@ dependencies = [
  "pallet-delegated-staking",
  "pallet-fast-unstake",
  "pallet-indices",
+ "pallet-message-queue",
  "pallet-multisig",
  "pallet-nomination-pools",
  "pallet-preimage",
