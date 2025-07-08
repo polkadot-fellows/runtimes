@@ -1379,7 +1379,8 @@ fn xcm_payment_api_works() {
 		RuntimeOrigin,
 		Block,
 	>();
-	// TODO: uncomment when migrated to the XCMv5 or patched `xcm_payment_api_with_pools_works`
+	// TODO: @ggwpez uncomment when migrated to the XCMv5 or patched
+	// `xcm_payment_api_with_pools_works`
 	// asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
 	// 	Runtime,
 	// 	RuntimeCall,

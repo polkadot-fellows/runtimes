@@ -278,7 +278,7 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 		//assert!(
 		//	RcAccounts::<T>::iter().next().is_none(),
 		//	"Failed accounts should not remain in storage after migration"
-		//); FAIL-CI fails
+		//); FAIL-CI: @re-gius fails
 
 		// TODO: Giuseppe @re-gius
 		//   run post migration sanity checks like:

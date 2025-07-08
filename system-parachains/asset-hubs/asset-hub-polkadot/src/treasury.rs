@@ -55,7 +55,7 @@ impl pallet_treasury::Config for Runtime {
 	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayArguments<
 		xcm_config::TrustBackedAssetsPalletIndex,
 	>;
-	type BlockNumberProvider = System; // FAIL-CI check
+	type BlockNumberProvider = System; // FAIL-CI: @muharem check
 }
 
 parameter_types! {

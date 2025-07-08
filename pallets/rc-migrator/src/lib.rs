@@ -919,7 +919,7 @@ pub mod pallet {
 								Self::transition(MigrationStage::Pending);
 								return weight_counter.consumed();
 							}
-								*/ // FAIL-CI staking check
+								*/ // FAIL-CI: @muharem staking check
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {

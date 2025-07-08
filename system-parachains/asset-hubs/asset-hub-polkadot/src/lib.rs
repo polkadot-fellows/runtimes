@@ -462,7 +462,7 @@ impl pallet_indices::Config for Runtime {
 	type Currency = Balances;
 	type Deposit = IndexDeposit;
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO weights::pallet_indices::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO: @muharem weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -551,7 +551,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					//RuntimeCall::Bounties(..) | # TODO more
+					//RuntimeCall::Bounties(..) | # TODO: @ggwpez more
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
@@ -648,7 +648,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			),
 
 			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			// TODO: Uncomment once all these pallets are deployed.
+			// TODO: @ggwpez Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
 				RuntimeCall::Treasury(..) |
@@ -708,7 +708,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI: @muharem check
 }
 
 parameter_types! {
@@ -1122,7 +1122,7 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	}
 }
 
-// TODO: should be set with Relay Chain Block Number Provider
+// TODO: @muharem should be set with Relay Chain Block Number Provider
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
@@ -1136,7 +1136,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI: @muharem check
 }
 
 parameter_types! {
@@ -1418,11 +1418,11 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
-		// FIXME [pallet_ah_migrator, AhMigrator]
+		// TODO: @muharem [pallet_ah_migrator, AhMigrator]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
-		// TODO: [pallet_bags_list, VoterList]
-		// TODO: [pallet_fast_unstake, FastUnstake]
+		// TODO: @ggwpez [pallet_bags_list, VoterList]
+		// TODO: @ggwpez [pallet_fast_unstake, FastUnstake]
 
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]

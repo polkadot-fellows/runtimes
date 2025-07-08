@@ -548,7 +548,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
-		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI
+		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI: @muharem
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -1105,7 +1105,7 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
-		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI
+		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI: @muharem
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)

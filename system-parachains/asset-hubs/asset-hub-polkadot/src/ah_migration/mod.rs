@@ -173,7 +173,7 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 
 /// Convert a Relay Chain Proxy Delay to a local AH one.
 // NOTE we assume Relay Chain and AH to have the same block type
-// TODO: remove before migration, we will use Relay Chain block number provider.
+// TODO: @muharem remove before migration, we will use Relay Chain block number provider.
 pub struct RcToAhDelay;
 impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToAhDelay {
 	fn convert(rc: BlockNumberFor<Runtime>) -> BlockNumberFor<Runtime> {

@@ -34,17 +34,18 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = polkadot_runtime_common::BalanceToU256;
 	type U256ToBalance = polkadot_runtime_common::U256ToBalance;
-	type StakeAdapter = MockStakeAdapter; // FAIL-CI pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
+	type StakeAdapter = MockStakeAdapter; // FAIL-CI: @ggwpez pallet_nomination_pools::adapter::DelegateStake<Self, Staking,
+									   // DelegatedStaking>;
 	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
-	type MaxUnbonding = ConstU32<32>; // FAIL-CI <Self as pallet_staking::Config>::MaxUnlockingChunks;
+	type MaxUnbonding = ConstU32<32>; // FAIL-CI: @ggwpez <Self as pallet_staking::Config>::MaxUnlockingChunks;
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
-	type WeightInfo = (); // FAIL-CI weights::pallet_nomination_pools::WeightInfo<Self>;
-	type AdminOrigin = EnsureRoot<AccountId>; // FAIL-CI EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type Filter = (); // FAIl-CI pallet_staking::AllStakers<Runtime>;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type WeightInfo = (); // FAIL-CI: @ggwpez weights::pallet_nomination_pools::WeightInfo<Self>;
+	type AdminOrigin = EnsureRoot<AccountId>; // FAIL-CI: @ggwpez EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
+	type Filter = (); // FAIl-CI: @ggwpez pallet_staking::AllStakers<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI: @muharem check
 }
 
 // Mocks to make it compile, can be deleted once we have the Staking pallet migrated:
@@ -152,7 +153,8 @@ impl sp_staking::StakingInterface for StakingMock {
 	}
 
 	fn bonding_duration() -> EraIndex {
-		28 // TODO FAIL-CI this is wrong, but we need it to decode the incoming nom-pool messages
+		28 // TODO: @ggwpez FAIL-CI this is wrong, but we need it to decode the incoming nom-pool
+		 // messages
 	}
 
 	fn status(
@@ -253,7 +255,7 @@ impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
 		unimplemented!()
 	}
 
-	/* TODO frame_election_provider_support::runtime_benchmarks_or_std_enabled! {
+	/* TODO: @ggwpez frame_election_provider_support::runtime_benchmarks_or_std_enabled! {
 		fn set_score_of(id: &AccountId, weight: Self::Score) {
 			unimplemented!()
 		}
@@ -262,7 +264,7 @@ impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
 
 impl StakingUnchecked for StakingMock {
 	fn migrate_to_virtual_staker(_who: &Self::AccountId) -> DispatchResult {
-		unimplemented!("FAIL-CI")
+		unimplemented!("FAIL-CI") // TODO: @ggwpez
 	}
 
 	fn virtual_bond(
@@ -270,11 +272,11 @@ impl StakingUnchecked for StakingMock {
 		_value: Self::Balance,
 		_payee: &Self::AccountId,
 	) -> DispatchResult {
-		unimplemented!("FAIL-CI")
+		unimplemented!("FAIL-CI") // TODO: @ggwpez
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn migrate_to_direct_staker(_who: &Self::AccountId) {
-		unimplemented!("FAIL-CI")
+		unimplemented!("FAIL-CI") // TODO: @ggwpez
 	}
 }
