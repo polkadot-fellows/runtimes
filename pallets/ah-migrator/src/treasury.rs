@@ -80,7 +80,14 @@ impl<T: Config> Pallet<T> {
 				} = spend;
 
 				// Apply account translation to beneficiary before type conversion
-				let translated_beneficiary = Self::translate_beneficiary_location(beneficiary);
+				let translated_beneficiary = Self::translate_beneficiary_location(beneficiary)
+					.map_err(|_| {
+						defensive!(
+							"Failed to translate treasury spend beneficiary for spend: {:?}",
+							spend_index
+						);
+						Error::FailedToConvertType
+					})?;
 
 				let (asset_kind, beneficiary) =
 					T::RcToAhTreasurySpend::convert((asset_kind, translated_beneficiary)).map_err(
