@@ -48,7 +48,27 @@ impl<T: Config> Pallet<T> {
 	/// to handle all supported XCM versions (V3, V4, V5) by converting to the latest
 	/// version for processing, then converting back to the original version.
 	///
-	/// Returns an error if version conversion or translation fails.
+	/// TODO: Three options to evaluate.
+	/// 1. Should we translate ALL AccountId32 junctions within any VersionedLocation used as
+	/// treasury spend beneficiaries as we are doing now?
+	/// 2. Should we not translate any location at all if we assume that the only use case is
+	/// `beneficiary: Location::new(1, Parachain(2030))` ?
+	/// 3. Should we go for some pattern whitelisting  e.g. if we assume that the other relevant use
+	///    case is the following:
+	/// ```text
+	/// TreasurySpend {
+	///      beneficiary: Location::new(0, AccountId32 {
+	///          network: None,
+	///          id: [/* Direct bytes of para2030 sovereign account */]
+	///          // 13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm
+	///      }),
+	///      amount: 1000_DOT,
+	///  }
+	/// ```
+	///  Are there more cases to whitelist in case?
+	///
+	/// Returns an error if version conversion or translation
+	/// fails.
 	pub fn translate_beneficiary_location(
 		location: VersionedLocation,
 	) -> Result<VersionedLocation, Error<T>> {
