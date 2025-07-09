@@ -486,6 +486,8 @@ impl_opaque_keys! {
 }
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = (); // TODO
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
 	type ValidatorIdOf = ConvertInto;
@@ -496,8 +498,6 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
-	type Currency = Balances;
-	type KeyDeposit = (); // TODO
 }
 
 impl pallet_session::historical::Config for Runtime {
