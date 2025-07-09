@@ -46,5 +46,5 @@ impl pallet_nomination_pools::Config for Runtime {
 	type WeightInfo = (); // FAIL-CI weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 	type Filter = Nothing;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }

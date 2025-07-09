@@ -1,5 +1,3 @@
-// This file is part of Substrate.
-
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -33,29 +31,40 @@
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 pub mod weights;
 
 pub use pallet::*;
 pub use weights::WeightInfo;
 
+use codec::DecodeAll;
 use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
-		tokens::Preservation,
-		Defensive, LockableCurrency, ReservableCurrency,
+		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		tokens::{Fortitude, IdAmount, Precision, Preservation},
+		Defensive, LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
-use pallet_balances::AccountData;
-use sp_runtime::{traits::BlockNumberProvider, AccountId32};
+use pallet_balances::{AccountData, BalanceLock, Reasons as LockReasons};
+use sp_application_crypto::ByteArray;
+use sp_core::blake2_256;
+use sp_runtime::{
+	traits::{BlockNumberProvider, TrailingZeroInput},
+	AccountId32,
+};
 use sp_std::prelude::*;
 
 /// The log target of this pallet.
-pub const LOG_TARGET: &str = "runtime::ah-migrator";
+pub const LOG_TARGET: &str = "runtime::ah-ops";
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
+pub type DerivationIndex = u16;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -171,6 +180,12 @@ pub mod pallet {
 		NotYet,
 		/// Not all contributions are withdrawn.
 		ContributionsRemaining,
+		/// The account is not a derived account.
+		WrongDerivedTranslation,
+		/// Account cannot be migrated since it is not a sovereign parachain account.
+		NotSovereign,
+		/// Internal error, please bug report.
+		InternalError,
 	}
 
 	#[pallet::event]
@@ -188,6 +203,19 @@ pub mod pallet {
 			depositor: T::AccountId,
 			para_id: ParaId,
 			remaining: BalanceOf<T>,
+		},
+
+		/// A sovereign parachain account has been migrated from its child to sibling
+		/// representation.
+		SovereignMigrated {
+			/// The parachain ID that had its account migrated.
+			para_id: ParaId,
+			/// The old account that was migrated out of.
+			from: T::AccountId,
+			/// The new account that was migrated into.
+			to: T::AccountId,
+			/// Set if this account was derived from a para sovereign account.
+			derivation_index: Option<DerivationIndex>,
 		},
 	}
 
@@ -349,5 +377,81 @@ pub mod pallet {
 			let mut contrib_iter = RcCrowdloanContribution::<T>::iter_prefix((block, para_id));
 			contrib_iter.next().is_none()
 		}
+
+		/// Try to translate a Parachain sovereign account to the Parachain AH sovereign account.
+		///
+		/// Returns:
+		/// - `Ok(None)` if the account is not a Parachain sovereign account
+		/// - `Ok(Some((ah_account, para_id)))` with the translated account and the para id
+		/// - `Err(())` otherwise
+		///
+		/// The way that this normally works is through the configured
+		/// `SiblingParachainConvertsVia`: <https://github.com/polkadot-fellows/runtimes/blob/7b096c14c2b16cc81ca4e2188eea9103f120b7a4/system-parachains/asset-hubs/asset-hub-polkadot/src/xcm_config.rs#L93-L94>
+		/// it passes the `Sibling` type into it which has type-ID `sibl`:
+		/// <https://github.com/paritytech/polkadot-sdk/blob/c10e25aaa8b8afd8665b53f0a0b02e4ea44caa77/polkadot/parachain/src/primitives.rs#L272-L274>
+		/// This type-ID gets used by the converter here:
+		/// <https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/polkadot/xcm/xcm-builder/src/location_conversion.rs#L314>
+		/// and eventually ends up in the encoding here
+		/// <https://github.com/paritytech/polkadot-sdk/blob/cdf107de700388a52a17b2fb852c98420c78278e/substrate/primitives/runtime/src/traits/mod.rs#L1997-L1999>
+		/// The `para` conversion is likewise with `ChildParachainConvertsVia` and the `para`
+		/// type-ID <https://github.com/paritytech/polkadot-sdk/blob/c10e25aaa8b8afd8665b53f0a0b02e4ea44caa77/polkadot/parachain/src/primitives.rs#L162-L164>
+		pub fn try_translate_rc_sovereign_to_ah(
+			from: &AccountId32,
+		) -> Result<(AccountId32, ParaId), Error<T>> {
+			let raw = from.to_raw_vec();
+
+			// Must start with "para"
+			let Some(raw) = raw.strip_prefix(b"para") else {
+				return Err(Error::<T>::NotSovereign);
+			};
+			// Must end with 26 zero bytes
+			let Some(raw) = raw.strip_suffix(&[0u8; 26]) else {
+				return Err(Error::<T>::NotSovereign);
+			};
+			let para_id = u16::decode_all(&mut &raw[..]).map_err(|_| Error::<T>::InternalError)?;
+
+			// Translate to AH sibling account
+			let mut ah_raw = [0u8; 32];
+			ah_raw[0..4].copy_from_slice(b"sibl");
+			ah_raw[4..6].copy_from_slice(&para_id.encode());
+
+			Ok((ah_raw.into(), ParaId::from(para_id as u32)))
+		}
+
+		/// Same as `try_translate_rc_sovereign_to_ah` but for derived accounts.
+		///
+		/// The `from` and `to` arguments are the final account IDs that will be migrated. The
+		/// `index` acts as witness for the function to verify the translation. It must be set to
+		/// the `child` account and the matching derivation index.
+		pub fn try_rc_sovereign_derived_to_ah(
+			from: &AccountId32,
+			parent: &AccountId32,
+			index: DerivationIndex,
+		) -> Result<(AccountId32, ParaId), Error<T>> {
+			// check the derivation proof
+			{
+				let derived = derivative_account_id(parent.clone(), index);
+				ensure!(derived == *from, Error::<T>::WrongDerivedTranslation);
+			}
+
+			let (parent_translated, para_id) = Self::try_translate_rc_sovereign_to_ah(parent)?;
+			let parent_translated_derived = derivative_account_id(parent_translated, index);
+			Ok((parent_translated_derived, para_id))
+		}
 	}
+}
+
+// Copied from https://github.com/paritytech/polkadot-sdk/blob/436b4935b52562f79a83b6ecadeac7dcbc1c2367/substrate/frame/utility/src/lib.rs#L627-L639
+/// Derive a derivative account ID from the owner account and the sub-account index.
+///
+/// The derived account with `index` of `who` is defined as:
+/// `b2b256("modlpy/utilisuba" ++ who ++ index)` where index is encoded as fixed size SCALE u16, the
+/// prefix string as SCALE u8 vector and `who` by its canonical SCALE encoding. The resulting
+/// account ID is then decoded from the hash with trailing zero bytes in case that the AccountId
+/// type is longer than 32 bytes. Note that this *could* lead to collisions when using AccountId
+/// types that are shorter than 32 bytes, especially in testing environments that are using u64.
+pub fn derivative_account_id<AccountId: Encode + Decode>(who: AccountId, index: u16) -> AccountId {
+	let entropy = (b"modlpy/utilisuba", who, index).using_encoded(blake2_256);
+	Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
+		.expect("infinite length input; no invalid inputs for type; qed")
 }

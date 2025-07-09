@@ -121,8 +121,7 @@ impl<T: Config> Pallet<T> {
 						// TODO: scheduler migrated first?
 						let _ = T::Scheduler::cancel(last_alarm);
 					}
-					// TODO: use referenda block provider
-					let now = frame_system::Pallet::<T>::block_number();
+					let now = <T as Config>::RcBlockNumberProvider::current_block_number();
 					ReferendumInfoFor::<T, ()>::insert(
 						id,
 						ReferendumInfo::Cancelled(
