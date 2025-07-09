@@ -286,32 +286,59 @@ pub mod benchmark_helpers {
 	use super::{EthereumGatewayAddress, RelayTreasuryPalletAccount, Runtime};
 	use crate::{Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;
-	use frame_support::traits::fungible;
+	use frame_support::{parameter_types, traits::fungible};
 	use hex_literal::hex;
 	use snowbridge_beacon_primitives::BeaconHeader;
 	use snowbridge_pallet_inbound_queue::BenchmarkHelper;
 	use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
 	use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
-	use sp_core::H256;
+	use sp_core::{H160, H256};
 	use xcm::latest::{Assets, Location, SendError, SendResult, SendXcm, Xcm, XcmHash};
+
+	parameter_types! {
+		// The benchmark fixture test data in the Polkadot SDK relies on these gateway addressed,
+		// which is validated in the pallets.
+		pub EthereumGatewayAddressV1: H160 = hex!["eda338e4dc46038493b885327842fd3e301cab39"].into();
+		pub EthereumGatewayAddressV2: H160 = hex!["b1185ede04202fe62d38f5db72f71e38ff3e8305"].into();
+	}
 
 	impl<T: snowbridge_pallet_ethereum_client::Config> BenchmarkHelper<T> for Runtime {
 		fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
-			EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
-			EthereumGatewayAddress::set(&hex!["EDa338E4dC46038493b885327842fD3E301CaB39"].into());
+			initialize_storage_for_benchmarks(
+				EthereumGatewayAddressV1::get(),
+				beacon_header,
+				block_roots_root,
+			);
 		}
 	}
 
 	impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
 		fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
-			EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+			initialize_storage_for_benchmarks(
+				EthereumGatewayAddressV2::get(),
+				beacon_header,
+				block_roots_root,
+			);
 		}
 	}
 
 	impl<T: snowbridge_pallet_outbound_queue_v2::Config> OutboundQueueBenchmarkHelperV2<T> for Runtime {
 		fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
-			EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+			initialize_storage_for_benchmarks(
+				EthereumGatewayAddressV2::get(),
+				beacon_header,
+				block_roots_root,
+			);
 		}
+	}
+
+	fn initialize_storage_for_benchmarks(
+		gateway_address: H160,
+		beacon_header: BeaconHeader,
+		block_roots_root: H256,
+	) {
+		EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+		EthereumGatewayAddress::set(&gateway_address);
 	}
 
 	pub struct DoNothingRouter;
