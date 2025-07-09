@@ -1,5 +1,3 @@
-// This file is part of Substrate.
-
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -30,7 +28,7 @@ pub mod benchmarks {
 		let _ = T::Currency::deposit_creating(&sender, ed + ed);
 		let _ = T::Currency::reserve(&sender, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
-		let para_id = ParaId::from(1);
+		let para_id = ParaId::from(1u32);
 		RcLeaseReserve::<T>::insert((block, para_id, &sender), ed);
 
 		assert_eq!(T::Currency::reserved_balance(&sender), ed);
@@ -49,7 +47,7 @@ pub mod benchmarks {
 		let _ = T::Currency::deposit_creating(&pot, ed + ed);
 		let _ = T::Currency::reserve(&pot, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
-		let para_id = ParaId::from(1);
+		let para_id = ParaId::from(1u32);
 		RcLeaseReserve::<T>::insert((block, para_id, &pot), ed);
 
 		let sender = account("sender", 0, 0);
@@ -72,7 +70,7 @@ pub mod benchmarks {
 		let _ = T::Currency::deposit_creating(&sender, ed + ed);
 		let _ = T::Currency::reserve(&sender, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
-		let para_id = ParaId::from(1);
+		let para_id = ParaId::from(1u32);
 		RcCrowdloanReserve::<T>::insert((block, para_id, &sender), ed);
 
 		assert_eq!(T::Currency::reserved_balance(&sender), ed);
@@ -98,4 +96,6 @@ pub mod benchmarks {
 	pub fn test_unreserve_crowdloan_reserve<T: Config>() {
 		_unreserve_crowdloan_reserve::<T>(true)
 	}
+
+	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Runtime);
 }

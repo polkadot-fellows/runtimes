@@ -248,7 +248,8 @@ fn sovereign_account_translation() {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 		let ah_acc = AccountId32::from_str(ah_acc).unwrap();
 
-		let (translated, _para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+		let (translated, _para_id) =
+			pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc).unwrap();
 		assert_eq!(translated, ah_acc);
 	}
 
@@ -264,8 +265,9 @@ fn sovereign_account_translation() {
 	for rc_acc in bad_cases {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 
-		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap();
-		assert!(translated.is_none());
+		let translated =
+			pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc);
+		assert!(translated.is_err());
 	}
 }
 
@@ -278,16 +280,23 @@ async fn print_sovereign_account_translation() {
 
 	rc.execute_with(|| {
 		for para_id in paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>() {
-			let rc_acc = xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(&Location::new(0, Junction::Parachain(para_id.into()))).unwrap();
+			let rc_acc =
+				xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
+					&Location::new(0, Junction::Parachain(para_id.into())),
+				)
+				.unwrap();
 
-			let (ah_acc, para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc.clone()).unwrap().unwrap();
+			let (ah_acc, para_id) =
+				pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc)
+					.unwrap();
 			rc_to_ah.insert(rc_acc, (ah_acc, para_id));
 		}
 
 		for account in frame_system::Account::<Polkadot>::iter_keys() {
-			let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(account.clone()).unwrap();
+			let translated =
+				pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&account);
 
-			if let Some((ah_acc, para_id)) = translated {
+			if let Ok((ah_acc, para_id)) = translated {
 				if !rc_to_ah.contains_key(&account) {
 					println!("Account belongs to an unregistered para {}: {}", para_id, account);
 					rc_to_ah.insert(account, (ah_acc, para_id));
