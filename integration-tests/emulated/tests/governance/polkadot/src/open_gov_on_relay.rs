@@ -15,14 +15,15 @@
 use crate::*;
 use codec::Encode;
 use emulated_integration_tests_common::{
+	assert_whitelisted,
 	impls::RelayChain,
 	xcm_emulator::{Chain, Parachain, TestExt},
+	xcm_helpers::{
+		build_xcm_send_authorize_upgrade_call, call_hash_of,
+		dispatch_whitelisted_call_with_preimage,
+	},
 };
 use frame_support::assert_err;
-use integration_tests_helpers::{
-	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
-	dispatch_whitelisted_call_with_preimage,
-};
 use polkadot_runtime::{governance::pallet_custom_origins::Origin, Dmp};
 use polkadot_system_emulated_network::{
 	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
