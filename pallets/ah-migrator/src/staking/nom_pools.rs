@@ -16,10 +16,7 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::{
-	traits::{ConstU32, DefensiveSaturating},
-	BoundedVec,
-};
+use frame_support::{traits::ConstU32, BoundedVec};
 use pallet_nomination_pools::BondedPoolInner;
 #[cfg(feature = "std")]
 use pallet_rc_migrator::staking::nom_pools::tests;
@@ -27,10 +24,7 @@ use pallet_rc_migrator::{
 	staking::nom_pools::{BalanceOf, NomPoolsMigrator, NomPoolsStorageValues},
 	types::ToPolkadotSs58,
 };
-use sp_runtime::{
-	traits::{CheckedSub, One},
-	Saturating,
-};
+use sp_runtime::{traits::One, Saturating};
 
 /// Macro to generate account translation logic for bonded pool structures.
 ///
@@ -153,41 +147,24 @@ impl<T: Config> Pallet<T> {
 			// would like to enact commission rate changes immediately.
 			*throttle_from = Self::rc_to_ah_timepoint(*throttle_from).saturating_add(One::one());
 		}
-		if let Some(ref mut change_rate) = pool.commission.change_rate {
-			// We cannot assume how this conversion works, but adding one will ensure that we err on
-			// the side of pool-member safety in case of rounding.
-			change_rate.min_delay =
-				T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
-		}
-
+		// NOTE: With RcBlockNumberProvider, we can use delays as-is.
 		pool
 	}
 
 	/// Convert an absolute RC time point to an AH one.
 	///
-	/// This works by re-anchoring the time point to. For example:
-	///
-	/// - RC now: 100
-	/// - AH now: 75
-	/// - RC time point: 50
-	/// - Result: 75 - (100 - 50) / 2 = 50
-	///
-	/// Other example:
-	///
-	/// - RC now: 100
-	/// - AH now: 75
-	/// - RC time point: 150
-	/// - Result: 75 + (150 - 100) / 2 = 100
+	/// With RcBlockNumberProvider, both chains reference the same underlying time system,
+	/// so we can use RC timepoints directly on AH. We just need to ensure the timepoint
+	/// is reasonable relative to the current AH block number.
 	pub fn rc_to_ah_timepoint(rc_timepoint: BlockNumberFor<T>) -> BlockNumberFor<T> {
-		let rc_now = <T as crate::Config>::RcBlockNumberProvider::current_block_number();
 		let ah_now = frame_system::Pallet::<T>::block_number();
 
-		if let Some(rc_since) = rc_now.checked_sub(&rc_timepoint) {
-			ah_now.saturating_sub(T::RcToAhDelay::convert(rc_since)) // TODO rename
+		// Use the RC timepoint as-is, but ensure it's not in the past relative to AH's current
+		// block If the RC timepoint is in the past, use current AH block + 1 for safety
+		if rc_timepoint <= ah_now {
+			ah_now.saturating_add(One::one())
 		} else {
-			ah_now.saturating_add(T::RcToAhDelay::convert(
-				rc_timepoint.defensive_saturating_sub(rc_now),
-			))
+			rc_timepoint
 		}
 	}
 }
@@ -290,6 +267,13 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 							translated_pool,
 							Pallet::<T>::translate_account_rc_to_ah
 						);
+						// Apply timepoint transformation to match what rc_to_ah_bonded_pool does
+						if let Some(ref mut throttle_from) =
+							translated_pool.commission.throttle_from
+						{
+							*throttle_from = Pallet::<T>::rc_to_ah_timepoint(*throttle_from)
+								.saturating_add(One::one());
+						}
 						BondedPools { pool: (*pool_id, translated_pool) }
 					},
 					RewardPools { rewards } => RewardPools { rewards: rewards.clone() },

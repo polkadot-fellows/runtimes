@@ -66,7 +66,6 @@ impl<T: Config> Pallet<T> {
 				// with the `poke_deposit` dispatchable call.
 				return None;
 			};
-			let delay = T::RcToAhDelay::convert(p.delay);
 			// Translate the delegate account from RC to AH format
 			let translated_delegate = Self::translate_account_rc_to_ah(p.delegate.clone());
 
@@ -77,7 +76,7 @@ impl<T: Config> Pallet<T> {
 			);
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: translated_delegate,
-				delay,
+				delay: p.delay,
 				proxy_type,
 			})
 		})

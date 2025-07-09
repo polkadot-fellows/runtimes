@@ -16,7 +16,6 @@
 
 use crate::*;
 use codec::{Decode, Encode};
-use sp_std::vec::Vec;
 use xcm::{latest::prelude::*, VersionedLocation};
 
 /// Helper trait for AccountId32 junction operations on latest XCM version
