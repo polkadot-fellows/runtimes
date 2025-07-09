@@ -92,7 +92,7 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::RcBagsListMessage, delegated_staking::RcDelegatedStakingMessageOf,
-		fast_unstake::RcFastUnstakeMessage, nom_pools::*, *,
+		fast_unstake::RcFastUnstakeMessage, nom_pools::*,
 	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
@@ -939,29 +939,78 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Translate account from RC format to AH format.
+		/// Translates an account from RC to AH context.
 		///
-		/// Currently returns the input account unchanged (mock implementation).
-		/// TODO: Will be extended to handle various translation scenarios:
-		/// - Sovereign accounts (para -> sibl)
-		/// - Sovereign derived accounts
-		/// - General derived accounts
-		/// - ...and more
+		/// This function translates account identifiers from the Relay Chain (RC) to the Asset Hub
+		/// (AH) context. It specifically handles sovereign accounts by converting "para" prefixed
+		/// accounts to "sibl" prefixed accounts, preserving the para_id and maintaining the same
+		/// account format.
 		///
-		/// TODO: Will also be responsible to emit a translation event.
-		/// TODO: The current signature suggests that the function is intended to be infallible and
-		/// always return a valid account. This should be revisited when we replace the mock
-		/// implementation with the real one.
-		/// TODO: introduce different accountId types for RC and AH e.g something like
-		/// ```rust
-		/// trait IntoAhTranslated<AhAccountId> {
-		///     fn into_ah_translated(self) -> AhAccountId;
-		/// }
-		/// ```
-		/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
+		/// # Account Translation Rules
+		///
+		/// - **Sovereign accounts**: `para{para_id}{zeros}` → `sibl{para_id}{zeros}`
+		/// - **XCM derived accounts**: AccountId32 junctions are processed by this function via XCM
+		///   translation
+		/// - **Other accounts**: Returned unchanged (keyed accounts, utility derivatives, pure
+		///   proxies)
+		///   - Utility derivatives and pure proxies are hashed accounts, cryptographically
+		///     indistinguishable from sovereign accounts by pattern matching, but this is
+		///     acceptable since they remain unchanged
+		///
+		/// # Format Details
+		///
+		/// Sovereign accounts follow the format: `[TYPE_ID(4 bytes)][para_id(2 bytes)][zeros(26
+		/// bytes)]`
+		/// - RC uses TYPE_ID `b"para"` (0x70617261)
+		/// - AH uses TYPE_ID `b"sibl"` (0x7369626c)
+		///
+		/// # Error Handling
+		///
+		/// This function is infallible and will return the original account unchanged if:
+		/// - The account is not a sovereign account
+		/// - The sovereign account format is invalid
+		/// - The para_id cannot be decoded
+		///
+		/// TODO: Decide on event emission strategy for account translations.
 		pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
-			// Mock implementation - return unchanged for now
-			account
+			use codec::{DecodeAll, Encode};
+			use sp_core::ByteArray;
+
+			let raw = account.to_raw_vec();
+
+			// Check if this is a sovereign account (starts with "para")
+			let Some(raw) = raw.strip_prefix(b"para") else {
+				// Not a sovereign account, return unchanged
+				// This covers: keyed accounts, utility derivatives, pure proxies, and XCM derived
+				// accounts which are either cryptographically indistinguishable or already
+				// chain-agnostic
+				return account;
+			};
+
+			// Must end with 26 zero bytes for valid sovereign account
+			let Some(raw) = raw.strip_suffix(&[0u8; 26]) else {
+				// Invalid sovereign account format, return unchanged
+				return account;
+			};
+
+			// Decode para_id
+			let Ok(para_id) = u16::decode_all(&mut &raw[..]) else {
+				// Invalid para_id encoding, return unchanged
+				return account;
+			};
+
+			// Translate to AH sibling account
+			let mut ah_raw = [0u8; 32];
+			ah_raw[0..4].copy_from_slice(b"sibl");
+			ah_raw[4..6].copy_from_slice(&para_id.encode());
+
+			let translated_account = ah_raw.try_into().unwrap_or(account.clone());
+
+			// TODO: Decide on event emission strategy - should we emit an event each time we
+			// translate? Should we include more context (e.g. which pallet triggered the
+			// translation)? For now, skip event emission until we clarify the requirements.
+
+			translated_account
 		}
 
 		/// Helper function for migration post-check validation.
