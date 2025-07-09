@@ -2634,7 +2634,6 @@ dependencies = [
 name = "collectives-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -2914,7 +2913,6 @@ dependencies = [
 name = "coretime-kusama-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -3022,7 +3020,6 @@ dependencies = [
 name = "coretime-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -4194,7 +4191,6 @@ dependencies = [
 name = "encointer-kusama-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -10252,7 +10248,6 @@ dependencies = [
 name = "people-kusama-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -10363,7 +10358,6 @@ dependencies = [
 name = "people-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",

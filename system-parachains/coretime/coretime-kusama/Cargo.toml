@@ -79,7 +79,6 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 
 [dev-dependencies]
-asset-test-utils = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]

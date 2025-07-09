@@ -19,7 +19,6 @@ use crate::{
 	xcm_config::LocationToAccountId,
 	GovernanceLocation, *,
 };
-use asset_test_utils::GovernanceOrigin;
 use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
@@ -32,7 +31,7 @@ use frame_support::{
 };
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
-use parachains_runtimes_test_utils::ExtBuilder;
+use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::AccountIdConversion, Either};
 use xcm_runtime_apis::conversions::LocationToAccountHelper;

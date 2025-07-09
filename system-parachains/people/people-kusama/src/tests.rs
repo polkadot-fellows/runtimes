@@ -23,8 +23,8 @@ use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
-use asset_test_utils::GovernanceOrigin;
 use frame_support::{assert_err, assert_ok};
+use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_runtime::Either;
 
 const ALICE: [u8; 32] = [1u8; 32];

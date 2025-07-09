@@ -78,7 +78,6 @@ parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
-asset-test-utils = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]
