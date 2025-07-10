@@ -436,8 +436,8 @@ impl<T: Config> AccountsMigrator<T> {
 
 			if let Err(_) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
 				defensive!(
-					"There is not enough reserved balance to release the hold for account: {:?}",
-					who.to_ss58check()
+					"There is not enough reserved balance to release the hold for (account, hold id, amount) {:?}",
+					(who.to_ss58check(), id.clone(), amount)
 				);
 				return Err(Error::FailedToWithdrawAccount);
 			}
