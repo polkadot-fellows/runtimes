@@ -65,7 +65,7 @@ frame-benchmarking = { version = "40.2.0", default-features = false }
 frame-election-provider-support = { version = "40.1.1", default-features = false }
 frame-executive = { version = "40.0.1", default-features = false }
 frame-support = { version = "40.1.0", default-features = false }
-frame-system = { version = "40.1.0", default-features = false }
+frame-system = { version = "40.2.0", default-features = false }
 frame-system-benchmarking = { version = "40.0.0", default-features = false }
 frame-system-rpc-runtime-api = { version = "36.0.0", default-features = false }
 frame-try-runtime = { version = "0.46.0", default-features = false }
@@ -193,8 +193,8 @@ primitive-types = { version = "0.12.2", default-features = false }
 frame-metadata-hash-extension = { version = "0.8.0", default-features = false }
 remote-externalities = { version = "0.50.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "19.2.0", default-features = false, package = "polkadot-runtime-parachains" }
-sc-chain-spec = { version = "42.0.0" }
-sc-network = { version = "0.49.2" }
+sc-chain-spec = { version = "43.0.0" }
+sc-network = { version = "0.50.0" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
