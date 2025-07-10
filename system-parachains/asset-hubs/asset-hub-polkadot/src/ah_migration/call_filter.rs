@@ -86,10 +86,10 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		ForeignAssets(..) => ON,
 		Indices(..) => OFF,
 		MessageQueue(..) => ON, // TODO think about this
-		MultiBlockElection(..) => ON,
-		MultiBlockElectionSigned(..) => ON,
-		MultiBlockElectionUnsigned(..) => ON,
-		MultiBlockElectionVerifier(..) => ON,
+		MultiBlockElection(..) => OFF,
+		MultiBlockElectionSigned(..) => OFF,
+		MultiBlockElectionUnsigned(..) => OFF,
+		MultiBlockElectionVerifier(..) => OFF,
 		Multisig(..) => OFF,
 		Nfts(..) => ON,
 		NominationPools(..) => OFF,
@@ -103,7 +103,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Scheduler(..) => ON,
 		Session(..) => OFF,
 		Staking(..) => OFF,
-		StakingRcClient(..) => ON,     // TODO check
+		StakingRcClient(..) => ON,
 		StateTrieMigration(..) => OFF, // Deprecated
 		System(..) => ON,
 		Timestamp(..) => ON,

@@ -39,45 +39,54 @@ parameter_types! {
 	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots
 	pub Pages: u32 = 32;
 
-	/// Compatible with Polkadot, we allow up to 22_500 nominators to be considered for election
-	pub MaxElectingVoters: u32 = 22_500;
+	/// Verify 8 solutions at most.
+	pub storage SignedValidationPhase: u32 = prod_or_fast!(Pages::get() * 8, Pages::get());
 
-	/// Maximum number of validators that we may want to elect. 1000 is the end target.
-	pub const MaxValidatorSet: u32 = 1000;
+	/// 20 mins for signed phase.
+	pub storage SignedPhase: u32 = prod_or_fast!(
+		20 * MINUTES,
+		4 * MINUTES
+	);
+
+	/// Offchain miner shall mine at most 4 pages.
+	pub storage MinerPages: u32 = 4;
+
+	/// 30m for unsigned phase.
+	pub storage UnsignedPhase: u32 = prod_or_fast!(
+		30 * MINUTES,
+		(1 * MINUTES)
+	);
+
+	/// Allow OCW miner to at most run 4 times in the entirety of the 10m Unsigned Phase.
+	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
+
+	/// Compatible with Polkadot, we allow up to 22_500 nominators to be considered for election
+	pub storage MaxElectingVoters: u32 = 22_500;
+
+	/// Always equal to `staking.maxValidatorCount`.
+	pub storage TargetSnapshotPerBlock: u32 = 2000;
 
 	/// Number of nominators per page of the snapshot, and consequently number of backers in the solution.
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get() / Pages::get();
 
-	/// Number of validators per page of the snapshot.
-	pub TargetSnapshotPerBlock: u32 = MaxValidatorSet::get();
-
-	// 10 mins for each pages
-	pub storage SignedPhase: u32 = prod_or_fast!(
-		10 * MINUTES,
-		4 * MINUTES
-	);
-	pub storage UnsignedPhase: u32 = prod_or_fast!(
-		10 * MINUTES,
-		(1 * MINUTES)
-	);
-
-	/// validate up to 4 signed solution. Each solution.
-	pub storage SignedValidationPhase: u32 = prod_or_fast!(Pages::get() * 4, Pages::get());
+	/// Maximum number of validators that we may want to elect. 1000 is the end target.
+	pub const MaxValidatorSet: u32 = 1000;
 
 	/// In each page, we may observe up to all of the validators.
 	pub MaxWinnersPerPage: u32 = MaxValidatorSet::get();
 
 	/// In each page of the election, we allow up to all of the nominators of that page to be present.
+	///
+	/// Translates to "no limit" as of now.
 	pub MaxBackersPerWinner: u32 = VoterSnapshotPerBlock::get();
 
 	/// Total number of backers per winner across all pages.
+	///
+	/// Translates to "no limit" as of now.
 	pub MaxBackersPerWinnerFinal: u32 = MaxElectingVoters::get();
 
 	/// Size of the exposures. This should be small enough to make the reward payouts feasible.
 	pub MaxExposurePageSize: u32 = 64;
-
-	/// Each solution is considered "better" if it is 0.01% better.
-	pub SolutionImprovementThreshold: Perbill = Perbill::from_rational(1u32, 10_000);
 }
 
 frame_election_provider_support::generate_solution_type!(
@@ -93,7 +102,6 @@ frame_election_provider_support::generate_solution_type!(
 );
 
 ord_parameter_types! {
-	// FAIL-CI TODO @ankan do we need this? Address is from Westend
 	pub const PolkadotStakingMiner: AccountId = AccountId::from(hex_literal::hex!("b65991822483a6c3bd24b1dcf6afd3e270525da1f9c8c22a4373d1e1079e236a"));
 }
 
@@ -125,7 +133,8 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	type MaxAutoRebagPerBlock = (); // TODO
+	// only for paseo, use 0 for Polkadot.
+	type MaxAutoRebagPerBlock = ConstU32<5>;
 }
 
 parameter_types! {
@@ -177,7 +186,7 @@ impl multi_block::Config for Runtime {
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
 	type AdminOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<PolkadotStakingMiner, AccountId>>; // FAIL-CI TODO should probably be EnsureSigned
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<PolkadotStakingMiner, AccountId>>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
 	type Verifier = MultiBlockElectionVerifier;
@@ -189,7 +198,8 @@ impl multi_block::Config for Runtime {
 	// Revert back to signed phase if nothing is submitted and queued, so we prolong the election.
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	type OnRoundRotation = multi_block::CleanRound<Self>;
-	type WeightInfo = (); // TODO multi_block::weights::westend::MultiBlockWeightInfo<Self>;
+	// Note: these pallets are currently not "easily" benchmark-able in CIs. They provide a set of weights for polkadot/kusama/westend. Using the polkadot-variant is good enough for now.
+	type WeightInfo = multi_block::weights::polkadot::MultiBlockWeightInfo<Self>;
 }
 
 impl multi_block::verifier::Config for Runtime {
@@ -198,17 +208,17 @@ impl multi_block::verifier::Config for Runtime {
 	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type MaxBackersPerWinnerFinal = MaxBackersPerWinnerFinal;
 	type SolutionDataProvider = MultiBlockElectionSigned;
-	type SolutionImprovementThreshold = SolutionImprovementThreshold;
-	type WeightInfo = (); // TODO multi_block::weights::westend::MultiBlockVerifierWeightInfo<Self>;
+	type SolutionImprovementThreshold = ();
+	type WeightInfo = multi_block::weights::polkadot::MultiBlockVerifierWeightInfo<Self>;
 }
 
 parameter_types! {
-	pub BailoutGraceRatio: Perbill = Perbill::from_percent(50);
-	pub EjectGraceRatio: Perbill = Perbill::from_percent(50);
+	pub MaxSubmissions: u32 = 8;
 	pub DepositBase: Balance = 5 * UNITS;
 	pub DepositPerPage: Balance = 1 * UNITS;
+	pub BailoutGraceRatio: Perbill = Perbill::from_percent(50);
+	pub EjectGraceRatio: Perbill = Perbill::from_percent(50);
 	pub RewardBase: Balance = 10 * UNITS;
-	pub MaxSubmissions: u32 = 8;
 }
 
 impl multi_block::signed::Config for Runtime {
@@ -222,15 +232,12 @@ impl multi_block::signed::Config for Runtime {
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSubmissions;
 	type EstimateCallFee = TransactionPayment;
-	type WeightInfo = (); // TODO multi_block::weights::westend::MultiBlockSignedWeightInfo<Self>;
+	type WeightInfo = multi_block::weights::polkadot::MultiBlockSignedWeightInfo<Self>;
 }
 
 parameter_types! {
 	/// Priority of the offchain miner transactions.
 	pub MinerTxPriority: TransactionPriority = TransactionPriority::max_value() / 2;
-	/// Try and run the OCW miner 4 times during the unsigned phase.
-	pub OffchainRepeat: BlockNumber = UnsignedPhase::get() / 4;
-	pub storage MinerPages: u32 = 2;
 }
 
 impl multi_block::unsigned::Config for Runtime {
@@ -239,7 +246,7 @@ impl multi_block::unsigned::Config for Runtime {
 	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>>;
 	type MinerTxPriority = MinerTxPriority;
 	type OffchainRepeat = OffchainRepeat;
-	type WeightInfo = (); // TODO multi_block::weights::westend::MultiBlockUnsignedWeightInfo<Self>;
+	type WeightInfo = multi_block::weights::polkadot::MultiBlockUnsignedWeightInfo<Self>;
 }
 
 parameter_types! {
@@ -306,7 +313,6 @@ parameter_types! {
 	pub const MaxControllersInDeprecationBatch: u32 = 751;
 	// alias for 16, which is the max nominations per nominator in the runtime.
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
-	pub storage PlanningEraOffset: u32 = prod_or_fast!(2, 1);
 	pub const MaxEraDuration: u64 = RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64;
 }
 
@@ -338,7 +344,8 @@ impl pallet_staking_async::Config for Runtime {
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type WeightInfo = (); // TODO weights::pallet_staking_async::WeightInfo<Runtime>;
 	type MaxInvulnerables = frame_support::traits::ConstU32<20>;
-	type PlanningEraOffset = PlanningEraOffset;
+	type PlanningEraOffset =
+		pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;
 	type RcClientInterface = StakingRcClient;
 	type MaxEraDuration = MaxEraDuration;
 }
@@ -361,7 +368,7 @@ pub enum RelayChainRuntimePallets {
 #[derive(Encode, Decode)]
 pub enum AhClientCalls {
 	// index of `fn validator_set` in `staking-async-ah-client`. It has only one call.
-	#[codec(index = 0)] // FAIL-CI wrong?
+	#[codec(index = 0)]
 	ValidatorSet(rc_client::ValidatorSetReport<AccountId>),
 }
 

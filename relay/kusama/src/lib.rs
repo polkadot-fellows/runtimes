@@ -666,7 +666,7 @@ parameter_types! {
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
-	type MaxAutoRebagPerBlock = ConstU32<101>; // Wrong but unused FAIL-CI
+	type MaxAutoRebagPerBlock = ConstU32<5>;
 	type RuntimeEvent = RuntimeEvent;
 	type ScoreProvider = Staking;
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
@@ -849,7 +849,7 @@ parameter_types! {
 }
 
 impl pallet_staking::Config for Runtime {
-	type MaxValidatorSet = ConstU32<0>; // Wrong but unused FAIL-CI
+	type MaxValidatorSet = MaxActiveValidators;
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;

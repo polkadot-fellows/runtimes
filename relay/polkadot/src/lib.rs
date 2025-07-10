@@ -487,7 +487,7 @@ impl_opaque_keys! {
 
 impl pallet_session::Config for Runtime {
 	type Currency = Balances;
-	type KeyDeposit = (); // TODO
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
 	type ValidatorIdOf = ConvertInto;
@@ -560,7 +560,7 @@ generate_solution_type!(
 
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
-	type Sort = ConstBool<true>; // TODO
+	type Sort = ConstBool<true>;
 	type System = Runtime;
 	type Solver =
 		SequentialPhragmen<AccountId, polkadot_runtime_common::elections::OnChainAccuracy>;
@@ -643,7 +643,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
-	pub const AutoRebagNumber: u32 = 10; // TODO
 }
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
@@ -653,7 +652,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	type MaxAutoRebagPerBlock = AutoRebagNumber;
+	type MaxAutoRebagPerBlock = ConstU32<5>;
 }
 
 /// Defines how much should the inflation be for an era given its duration.
