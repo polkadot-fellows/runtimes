@@ -188,7 +188,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 
 		// Run bags-list pallet integrity check
 		#[cfg(feature = "try-runtime")]
-		<pallet_bags_list::Pallet<T> as frame_election_provider_support::SortedListProvider<
+		<pallet_bags_list::Pallet<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<
 			T::AccountId,
 		>>::try_state()
 		.expect("Bags list integrity check failed");
