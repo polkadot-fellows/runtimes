@@ -41,33 +41,18 @@ impl AccountId32JunctionOps for Junction {
 }
 
 impl<T: Config> Pallet<T> {
-	/// Translate AccountId32 junctions in a VersionedLocation from RC format to AH format.
+	/// Translate beneficiary location for treasury spends from RC format to AH format.
 	///
-	/// This function leverages the XCM SDK's built-in version conversion infrastructure
-	/// to handle all supported XCM versions (V3, V4, V5) by converting to the latest
-	/// version for processing, then converting back to the original version.
+	/// This function ONLY translates locations that match the pattern X1(Junction::AccountId32).
+	/// All other location patterns are returned unchanged, as they are assumed to be
+	/// destinations like `Location::new(1, Parachain(2030))` which don't require translation.
 	///
-	/// TODO: Three options to evaluate.
-	/// 1. Should we translate ALL AccountId32 junctions within any VersionedLocation used as
-	/// treasury spend beneficiaries as we are doing now?
-	/// 2. Should we not translate any location at all if we assume that the only use case is
-	/// `beneficiary: Location::new(1, Parachain(2030))` ?
-	/// 3. Should we go for some pattern whitelisting  e.g. if we assume that the other relevant use
-	///    case is the following:
-	/// ```text
-	/// TreasurySpend {
-	///      beneficiary: Location::new(0, AccountId32 {
-	///          network: None,
-	///          id: [/* Direct bytes of para2030 sovereign account */]
-	///          // 13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm
-	///      }),
-	///      amount: 1000_DOT,
-	///  }
-	/// ```
-	///  Are there more cases to whitelist in case?
+	/// The rationale is that the only AccountId32 locations that need translation are those
+	/// referring to direct account addresses on the relay chain, which need to be translated
+	/// to their corresponding addresses on Asset Hub.
 	///
-	/// Returns an error if version conversion or translation
-	/// fails.
+	/// Returns the location unchanged if it doesn't match X1(AccountId32), or returns
+	/// the translated location if it does match.
 	pub fn translate_beneficiary_location(
 		location: VersionedLocation,
 	) -> Result<VersionedLocation, Error<T>> {
@@ -80,58 +65,38 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::FailedToConvertType
 		})?;
 
-		// Apply account translation to latest version
-		let translated_latest = Self::translate_location_latest(latest_location)?;
+		// Check if this is exactly X1(AccountId32) pattern
+		if latest_location.parents == 0 && latest_location.interior.len() == 1 {
+			if let Some(junction) = latest_location.interior.first() {
+				if let Some(id) = junction.get_account_id32() {
+					// This is X1(AccountId32), translate it
+					let account_id = T::AccountId::decode(&mut &id[..])
+						.map_err(|_| Error::<T>::FailedToConvertType)?;
+					let translated_account = Self::translate_account_rc_to_ah(account_id);
+					let translated_id: [u8; 32] = translated_account
+						.encode()
+						.try_into()
+						.map_err(|_| Error::<T>::FailedToConvertType)?;
+					let translated_junction = junction.clone().with_account_id32(translated_id);
+					let translated_location = Location::new(0, translated_junction);
 
-		// Convert back to original version
-		let original_version = location.identify_version();
-		VersionedLocation::from(translated_latest)
-			.into_version(original_version)
-			.map_err(|_| {
-				log::error!(
-					target: LOG_TARGET,
-					"Failed to convert back to original XCM version {}",
-					original_version
-				);
-				Error::<T>::FailedToConvertType
-			})
-	}
-
-	/// Translate AccountId32 junctions in the latest XCM Location format.
-	///
-	/// This function handles the actual account translation logic on the latest
-	/// XCM version, eliminating the need for version-specific implementations.
-	fn translate_location_latest(location: Location) -> Result<Location, Error<T>> {
-		let translated_junctions = Self::translate_junctions_latest(location.interior)?;
-		Ok(Location { parents: location.parents, interior: translated_junctions })
-	}
-
-	/// Translate junctions in the latest XCM format
-	fn translate_junctions_latest(junctions: Junctions) -> Result<Junctions, Error<T>> {
-		junctions
-			.iter()
-			.map(|junction| Self::translate_junction_latest(junction.clone()))
-			.try_fold(Junctions::Here, |mut acc, translated_junction| {
-				let junction = translated_junction?;
-				acc.push(junction).map_err(|_| Error::<T>::FailedToConvertType)?;
-				Ok(acc)
-			})
-	}
-
-	/// Translate a single junction in the latest XCM format
-	fn translate_junction_latest(junction: Junction) -> Result<Junction, Error<T>> {
-		match junction.get_account_id32() {
-			Some(id) => {
-				let account_id = T::AccountId::decode(&mut &id[..])
-					.map_err(|_| Error::<T>::FailedToConvertType)?;
-				let translated_account = Self::translate_account_rc_to_ah(account_id);
-				let translated_id: [u8; 32] = translated_account
-					.encode()
-					.try_into()
-					.map_err(|_| Error::<T>::FailedToConvertType)?;
-				Ok(junction.with_account_id32(translated_id))
-			},
-			None => Ok(junction), // Non-AccountId32 junctions pass through unchanged
+					// Convert back to original version
+					let original_version = location.identify_version();
+					return VersionedLocation::from(translated_location)
+						.into_version(original_version)
+						.map_err(|_| {
+							log::error!(
+								target: LOG_TARGET,
+								"Failed to convert back to original XCM version {}",
+								original_version
+							);
+							Error::<T>::FailedToConvertType
+						});
+				}
+			}
 		}
+
+		// Not X1(AccountId32), return unchanged
+		Ok(location)
 	}
 }

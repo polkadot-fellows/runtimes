@@ -81,7 +81,7 @@ pub type AhReferendumStatusOf<T, I> = ReferendumStatus<
 >;
 
 impl<T: Config> Pallet<T> {
-	pub fn translate_referendum_info(
+	pub fn translate_referendum_accounts(
 		referendum: RcReferendumInfoOf<T, ()>,
 	) -> RcReferendumInfoOf<T, ()> {
 		match referendum {
@@ -153,7 +153,7 @@ impl<T: Config> Pallet<T> {
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for (id, referendum) in referendums {
-			let translated_referendum = Self::translate_referendum_info(referendum);
+			let translated_referendum = Self::translate_referendum_accounts(referendum);
 			match Self::do_receive_referendum(id, translated_referendum) {
 				Ok(()) => count_good += 1,
 				Err(_) => count_bad += 1,
@@ -440,7 +440,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		fn convert_rc_to_ah_referendum<T: Config>(
 			rc_info: RcReferendumInfoOf<T, ()>,
 		) -> AhReferendumInfoOf<T, ()> {
-			let translated_rc_info = crate::Pallet::<T>::translate_referendum_info(rc_info);
+			let translated_rc_info = crate::Pallet::<T>::translate_referendum_accounts(rc_info);
 
 			match translated_rc_info {
 				ReferendumInfo::Ongoing(rc_status) => {

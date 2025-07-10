@@ -73,7 +73,12 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Translate any delegate accounts within the voting structure if it's delegating
-		let translated_voting = Self::translate_voting_accounts(voting);
+		let mut translated_voting = voting;
+		if let pallet_conviction_voting::Voting::Delegating(ref mut delegating) = translated_voting
+		{
+			// Translate the delegate target account
+			delegating.target = Self::translate_account_rc_to_ah(delegating.target.clone());
+		}
 
 		alias::VotingFor::<T>::insert(translated_account, class, translated_voting);
 	}
@@ -95,15 +100,6 @@ impl<T: Config> Pallet<T> {
 				balance_per_class,
 			);
 		pallet_conviction_voting::ClassLocksFor::<T>::insert(translated_account, balance_per_class);
-	}
-
-	/// Translate delegate accounts within voting structure if it's delegating
-	fn translate_voting_accounts(mut voting: alias::VotingOf<T>) -> alias::VotingOf<T> {
-		if let pallet_conviction_voting::Voting::Delegating(ref mut delegating) = voting {
-			// Translate the delegate target account
-			delegating.target = Self::translate_account_rc_to_ah(delegating.target.clone());
-		}
-		voting
 	}
 }
 
@@ -134,7 +130,14 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 					let translated_account =
 						Pallet::<T>::translate_account_rc_to_ah(account_id.clone());
 					// Translate delegate accounts in the voting structure
-					let translated_voting = Pallet::<T>::translate_voting_accounts(voting.clone());
+					let mut translated_voting = voting.clone();
+					if let pallet_conviction_voting::Voting::Delegating(ref mut delegating) =
+						translated_voting
+					{
+						// Translate the delegate target account
+						delegating.target =
+							Pallet::<T>::translate_account_rc_to_ah(delegating.target.clone());
+					}
 
 					RcConvictionVotingMessage::VotingFor(
 						translated_account,

@@ -72,8 +72,7 @@ impl<T: Config> Pallet<T> {
 			.as_ref()
 			.map(|details_account| Self::translate_account_rc_to_ah(details_account.clone()));
 
-		log::debug!(target: LOG_TARGET, "Integrating multisig {} -> {}, deposit: {:?}, details: {:?} -> {:?}",
-			multisig.creator.to_ss58check(),
+		log::trace!(target: LOG_TARGET, "Integrating multisig {}, deposit: {:?}, details: {:?} -> {:?}",
 			translated_creator.to_ss58check(),
 			multisig.deposit,
 			multisig.details.as_ref().map(|d| d.to_ss58check()),
@@ -89,8 +88,7 @@ impl<T: Config> Pallet<T> {
 			if KNOWN_BAD_MULTISIGS.contains(&multisig.creator) {
 				log::warn!(
 					target: LOG_TARGET,
-					"Failed to unreserve deposit for known bad multisig {} -> {}, missing: {:?}, account: {:?}",
-					multisig.creator.to_ss58check(),
+					"Failed to unreserve deposit for known bad multisig {}, missing: {:?}, account: {:?}",
 					translated_creator.to_ss58check(),
 					missing,
 					frame_system::Account::<T>::get(&translated_creator)
@@ -98,8 +96,7 @@ impl<T: Config> Pallet<T> {
 			} else {
 				log::error!(
 					target: LOG_TARGET,
-					"Failed to unreserve deposit for multisig {} -> {}, missing: {:?}, details: {:?} -> {:?}",
-					multisig.creator.to_ss58check(),
+					"Failed to unreserve deposit for multisig {}, missing: {:?}, details: {:?} -> {:?}",
 					translated_creator.to_ss58check(),
 					missing,
 					multisig.details.as_ref().map(|d| d.to_ss58check()),
