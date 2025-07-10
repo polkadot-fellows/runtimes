@@ -185,5 +185,12 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 			rc_pre_translated, ah_messages,
 			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"
 		);
+
+		// Run bags-list pallet integrity check
+		#[cfg(feature = "try-runtime")]
+		<pallet_bags_list::Pallet<T> as frame_election_provider_support::SortedListProvider<
+			T::AccountId,
+		>>::try_state()
+		.expect("Bags list integrity check failed");
 	}
 }
