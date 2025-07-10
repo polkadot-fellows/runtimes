@@ -489,12 +489,19 @@ impl<T: Config> AccountsMigrator<T> {
 			.checked_sub(account_state.get_rc_free())
 			.defensive_unwrap_or_default();
 
-		// This is a debug assertion because it is expected to be true for many accounts.
+		// This is common for many accounts.
 		// The RC migration of nomination pools to delegated-staking holds in the past caused
-		// many accounts to have less than the RC existential deposit free balance. When these
-		// accounts are migrated to AH, their free balance will be dusted if less than the AH
-		// existential deposit.
-		debug_assert!(teleport_free >= ah_ed, "teleport_free >= ah_ed");
+		// many accounts to have zero free balance or just less the RC existential deposit free
+		// balance.
+		if teleport_free < ah_ed {
+			log::warn!(
+				target: LOG_TARGET,
+				"Migrated account {:?} has teleported free balance < AH existential deposit: {:?} < {:?}",
+				who.to_ss58check(),
+				teleport_free,
+				ah_ed
+			);
+		}
 		defensive_assert!(
 			teleport_total ==
 				total_balance - account_state.get_rc_free() - account_state.get_rc_reserved()
