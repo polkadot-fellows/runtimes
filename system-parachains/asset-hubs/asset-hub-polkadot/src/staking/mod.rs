@@ -198,7 +198,8 @@ impl multi_block::Config for Runtime {
 	// Revert back to signed phase if nothing is submitted and queued, so we prolong the election.
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	type OnRoundRotation = multi_block::CleanRound<Self>;
-	// Note: these pallets are currently not "easily" benchmark-able in CIs. They provide a set of weights for polkadot/kusama/westend. Using the polkadot-variant is good enough for now.
+	// Note: these pallets are currently not "easily" benchmark-able in CIs. They provide a set of
+	// weights for polkadot/kusama/westend. Using the polkadot-variant is good enough for now.
 	type WeightInfo = multi_block::weights::polkadot::MultiBlockWeightInfo<Self>;
 }
 
