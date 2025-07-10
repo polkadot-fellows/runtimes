@@ -86,7 +86,7 @@ parameter_types! {
 	pub MaxBackersPerWinnerFinal: u32 = MaxElectingVoters::get();
 
 	/// Size of the exposures. This should be small enough to make the reward payouts feasible.
-	pub MaxExposurePageSize: u32 = 64;
+	pub MaxExposurePageSize: u32 = 512;
 }
 
 frame_election_provider_support::generate_solution_type!(
@@ -301,15 +301,14 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
+// See:
+// https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/src/lib.rs#L662
+// https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/constants/src/lib.rs#L49
 parameter_types! {
-	// Six sessions in an era (6 hours).
-	pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 2);
-	/// Duration of a relay session in our blocks. Needs to be hardcoded per-runtime.
-	pub const RelaySessionDuration: BlockNumber = 1 * HOURS;
-	// 2 eras for unbonding (12 hours).
-	pub const BondingDuration: sp_staking::EraIndex = 2;
-	// 1 era in which slashes can be cancelled (6 hours).
-	pub const SlashDeferDuration: sp_staking::EraIndex = 1;
+	pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
+	pub const RelaySessionDuration: BlockNumber = prod_or_fast!(1 * HOURS, 1 * MINUTES);
+	pub const BondingDuration: sp_staking::EraIndex = 28;
+	pub const SlashDeferDuration: sp_staking::EraIndex = 27;
 	pub const MaxControllersInDeprecationBatch: u32 = 751;
 	// alias for 16, which is the max nominations per nominator in the runtime.
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
