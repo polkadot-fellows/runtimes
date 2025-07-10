@@ -20,7 +20,7 @@
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, GovernanceLocation,
+		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf,
 		LocationToAccountId, RelayTreasuryLocation, StakingPot, TrustBackedAssetsPalletLocation,
 		XcmConfig,
 	},
@@ -53,6 +53,11 @@ use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
+
+frame_support::parameter_types! {
+	// Local OpenGov
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Origin(RuntimeOrigin::root());
+}
 
 type AssetIdForTrustBackedAssetsConvertLatest =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
@@ -592,7 +597,7 @@ fn change_xcm_bridge_hub_router_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+        Governance::get(),
 		|| {
 			log::error!(
 				target: "bridges::estimate",
@@ -624,7 +629,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+        Governance::get(),
 		|| {
 			(
 				bridging::XcmBridgeHubRouterByteFee::key().to_vec(),
@@ -650,7 +655,7 @@ fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+        Governance::get(),
 		|| {
 			(
 				bridging::to_ethereum::BridgeHubEthereumBaseFee::key().to_vec(),

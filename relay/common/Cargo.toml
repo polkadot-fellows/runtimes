@@ -16,7 +16,6 @@ sp-runtime = { workspace = true }
 polkadot-primitives = { workspace = true }
 pallet-staking-reward-fn = { workspace = true }
 
-
 [features]
 default = ["std"]
 std = [

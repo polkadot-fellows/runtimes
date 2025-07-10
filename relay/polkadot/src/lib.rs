@@ -76,9 +76,9 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Equals, Everything, FromContains,
-		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade,
-		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
+		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -1282,6 +1282,7 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
+	// TODO: review - GeneralAdmin propagation from AssetHub?
 	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type Currency = Balances;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active

@@ -2156,6 +2156,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -2679,6 +2680,7 @@ dependencies = [
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -3055,6 +3057,7 @@ dependencies = [
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -5067,6 +5070,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "kusama-system-emulated-network",
+ "pallet-utility",
+ "pallet-whitelist",
+ "parity-scale-codec",
+ "people-kusama-runtime",
+ "sp-runtime 39.0.5",
+ "staging-kusama-runtime",
+]
+
+[[package]]
+name = "governance-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-polkadot-runtime",
+ "collectives-polkadot-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "pallet-utility",
+ "pallet-whitelist",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-system-emulated-network",
+ "sp-runtime 39.0.5",
+ "staging-xcm",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5946,11 +5987,16 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
  "hex-literal",
  "pallet-balances",
  "pallet-message-queue",
+ "pallet-preimage",
+ "pallet-whitelist",
  "pallet-xcm",
  "paste",
+ "sp-core 34.0.0",
+ "sp-runtime 39.0.5",
  "staging-xcm",
  "xcm-emulator",
 ]
@@ -9411,6 +9457,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallets-common"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "staging-xcm",
+ "staging-xcm-executor",
+]
+
+[[package]]
 name = "parachains-common"
 version = "21.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=oty-2503-paseo#4e69aee8e82f110b654ce3f85ed668f20c7481a0"
@@ -9894,6 +9953,7 @@ dependencies = [
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -10246,6 +10306,7 @@ dependencies = [
  "pallet-whitelist",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives",
