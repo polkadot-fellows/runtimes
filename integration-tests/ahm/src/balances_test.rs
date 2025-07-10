@@ -100,23 +100,12 @@ impl AhMigrationCheck for BalancesCrossChecker {
 			.lock()
 			.unwrap()
 			.expect("rc_kept_after should be set by RcMigrationCheck::post_check");
-		// `checking_balance` = ah_check_before + rc_check_before
-		let checking_balance = rc_checking_balance_before + ah_checking_balance_before;
 
 		// ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
-		assert_eq!(
-			ah_checking_balance_after,
-			rc_checking_balance_before - ah_total_issuance_before + rc_kept_after,
-			"Checking balance on asset hub after migration is incorrect"
-		);
-
-		// ah_check_after = `checking_balance` + rc_balance_kept - ah_total_before - ah_check_before
 		// explanation [here](https://github.com/polkadot-fellows/runtimes/blob/dev-asset-hub-migration/pallets/rc-migrator/src/accounts.md#tracking-total-issuance-post-migration)
 		assert_eq!(
 			ah_checking_balance_after,
-			checking_balance + rc_kept_after -
-				ah_total_issuance_before -
-				ah_checking_balance_before,
+			rc_checking_balance_before - ah_total_issuance_before + rc_kept_after,
 			"Checking balance on asset hub after migration is incorrect"
 		);
 

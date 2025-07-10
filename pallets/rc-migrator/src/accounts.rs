@@ -489,6 +489,11 @@ impl<T: Config> AccountsMigrator<T> {
 			.checked_sub(account_state.get_rc_free())
 			.defensive_unwrap_or_default();
 
+		// This is a debug assertion because it is expected to be true for many accounts.
+		// The RC migration of nomination pools to delegated-staking holds in the past caused
+		// many accounts to have less than the RC existential deposit free balance. When these
+		// accounts are migrated to AH, their free balance will be dusted if less than the AH
+		// existential deposit.
 		debug_assert!(teleport_free >= ah_ed, "teleport_free >= ah_ed");
 		defensive_assert!(
 			teleport_total ==
@@ -840,25 +845,6 @@ pub mod tests {
 	use super::*;
 	use std::collections::BTreeMap;
 
-	#[derive(Debug, PartialEq, Eq, Clone)]
-	pub enum HoldReason {
-		Preimage,
-		Staking,
-		DelegatedStaking,
-	}
-
-	#[derive(Debug, PartialEq, Eq, Clone)]
-	pub enum FreezeReason {
-		NominationPools,
-	}
-
-	#[derive(Debug, PartialEq, Eq, Clone)]
-	pub enum LockReason {
-		Staking,
-		Vesting,
-		ConvictionVoting,
-	}
-
 	// Balance summary of an account of the Relay chain.
 	#[derive(Default, Clone, PartialEq, Eq, Debug)]
 	pub struct BalanceSummary {
@@ -868,17 +854,12 @@ pub mod tests {
 		pub migrated_reserved: u128,
 		// Locks + Freezes
 		pub frozen: u128,
-		// Each hold: (lock id enum as u8, amount)
-		pub holds: Vec<(HoldReason, u128)>,
-		// Each freeze: (freeze id enum as u8, amount).
-		pub freezes: Vec<(FreezeReason, u128)>,
-		// Each lock: (lock id enum as u8, amount, reasons as u8)
-		pub locks: Vec<(LockReason, u128, u8)>,
-	}
-
-	pub enum ChainType {
-		RC,
-		AH,
+		// Each hold: (hold id encoded, amount)
+		pub holds: Vec<(Vec<u8>, u128)>,
+		// Each freeze: (freeze id encoded, amount).
+		pub freezes: Vec<(Vec<u8>, u128)>,
+		// Each lock: (lock id, amount, reasons as u8)
+		pub locks: Vec<([u8; 8], u128, u8)>,
 	}
 
 	// For each account that is fully or partially kept on the relay chain, this structure contains
@@ -978,74 +959,30 @@ pub mod tests {
 	pub struct AccountsMigrationChecker<T>(sp_std::marker::PhantomData<T>);
 
 	impl<T> AccountsMigrationChecker<T> {
-		// Translate the lock id to enum for both RC and AH using the different encodings for easier
-		// comparison. Lock Ids type is  `LockIdentifier = [u8; 8]` on Polkadot.
-		pub fn lock_id_encoding(
-			lock_id: [u8; 8],
-			_chain_type: tests::ChainType,
-		) -> tests::LockReason {
-			match lock_id.as_slice() {
-				b"staking " => tests::LockReason::Staking,
-				b"vesting " => tests::LockReason::Vesting,
-				b"pyconvot" => tests::LockReason::ConvictionVoting,
-				_ => panic!("Unknown lock id: {:?}", lock_id),
+		// Translate the RC freeze id encoding to the corresponding AH freeze id encoding.
+		// TODO: implement mapping for Kusama and Paseo
+		pub fn rc_freeze_id_encoding_to_ah(freeze_id: Vec<u8>) -> Vec<u8> {
+			match freeze_id.as_slice() {
+				// Nomination pools pallet indexes on Polkadot RC => AH
+				[39, 0] => [80, 0].to_vec(),
+				_ => panic!("Unknown freeze id: {:?}", freeze_id),
 			}
 		}
 
-		// Translate the freeze id to enum for both RC and AH using the different encodings for
-		// easier comparison. Freeze Ids type is enum `RuntimeFreezeReason` on Polkadot. Here we
-		// use the encoded enum.
-		pub fn freeze_id_encoding(
-			freeze_id: Vec<u8>,
-			chain_type: tests::ChainType,
-		) -> tests::FreezeReason {
-			// TODO: implement mapping for Kusama and Paseo
-			let nomination_pools_encoding = match chain_type {
-				tests::ChainType::RC => [39, 0], // 39 = nom pools pallet index on Polkadot
-				tests::ChainType::AH => [80, 0], // 80 = nom pools pallet index on Asset Hub
-			};
-			if freeze_id.as_slice() == nomination_pools_encoding {
-				return tests::FreezeReason::NominationPools;
-			} else {
-				panic!("Unknown freeze id: {:?}", freeze_id);
-			}
-		}
-
-		// Translate the hold id to enum for both RC and AH using the different encodings for easier
-		// comparison. Hold Ids type is enum `RuntimeHoldReason` on Polkadot. Here we use the
-		// encoded enum.
-		pub fn hold_id_encoding(
-			hold_id: Vec<u8>,
-			chain_type: tests::ChainType,
-		) -> tests::HoldReason {
-			// TODO: implement mapping for Kusama and Paseo
-			let preimage_encoding: [u8; 2] = match chain_type {
-				tests::ChainType::RC => [10, 0], // 10 = preimage pallet index on Polkadot RC
-				tests::ChainType::AH => [5, 0],  // 5 = preimage pallet index on Polkadot Asset Hub
-			};
-			let staking_encoding: [u8; 2] = match chain_type {
-				tests::ChainType::RC => [7, 0], // 7 = staking pallet index on Polkadot RC
+		// Translate the RC hold id encoding to the corresponding AH hold id encoding.
+		// TODO: implement mapping for Kusama and Paseo
+		pub fn rc_hold_id_encoding_to_ah(hold_id: Vec<u8>) -> Vec<u8> {
+			match hold_id.as_slice() {
+				// Preimage pallet indexes on Polkadot RC => AH
+				[10, 0] => [5, 0].to_vec(),
+				// Pallet staking indexes on Polkadot RC => AH
 				// TODO: change to the correct encoding when Staking holds are correctly re-created
 				// on Asset Hub in pallet-staking-async, so when we add pallet-staking-async to
 				// Asset Hub.
-				tests::ChainType::AH => [5, 0], // ? = staking async pallet index on Polkadot AH
-			};
-			let delegated_staking_encoding: [u8; 2] = match chain_type {
-				tests::ChainType::RC => [41, 0], /* 42 = delegated-staking pallet index on */
-				// Polkadot RC
-				tests::ChainType::AH => [83, 0], /* 81 = delegated-staking pallet index on
-				                                  * Polkadot AH */
-			};
-			if hold_id.as_slice() == preimage_encoding {
-				return tests::HoldReason::Preimage;
-			} else if hold_id.as_slice() == staking_encoding {
-				// TODO: change to tests::HoldReason::Staking when Staking holds are correctly
-				// re-created on Asset Hub in pallet-staking-async
-				return tests::HoldReason::Preimage;
-			} else if hold_id.as_slice() == delegated_staking_encoding {
-				return tests::HoldReason::DelegatedStaking;
-			} else {
-				panic!("Unknown hold id: {:?}", hold_id);
+				[7, 0] => [5, 0].to_vec(),
+				// Pallet delegated-staking indexes on Polkadot RC => AH
+				[41, 0] => [83, 0].to_vec(),
+				_ => panic!("Unknown hold id: {:?}", hold_id),
 			}
 		}
 
@@ -1056,8 +993,7 @@ pub mod tests {
 				// Preimage deposits are divided by 100 when migrated to Asset Hub.
 				[10, 0] => hold_amount.saturating_div(100),
 				// TODO: change to correct amounts for Staking if we decide to adjust deposits
-				// during migration. Also use Self::hold_id_encoding to get the correct hold
-				// reason when the function is fixed.
+				// during migration.
 				_ => hold_amount,
 			}
 		}
@@ -1113,25 +1049,18 @@ pub mod tests {
 
 				let mut locks_enc = Vec::new();
 				for lock in pallet_balances::Locks::<T>::get(&who) {
-					locks_enc.push((
-						Self::lock_id_encoding(lock.id, tests::ChainType::RC),
-						lock.amount,
-						lock.reasons as u8,
-					));
+					locks_enc.push((lock.id, lock.amount, lock.reasons as u8));
 					frozen += lock.amount;
 				}
 				let mut freezes_enc = Vec::new();
 				for freeze in pallet_balances::Freezes::<T>::get(&who) {
-					freezes_enc.push((
-						Self::freeze_id_encoding(freeze.id.encode(), tests::ChainType::RC),
-						freeze.amount,
-					));
+					freezes_enc.push((freeze.id.encode(), freeze.amount));
 					frozen += freeze.amount;
 				}
 				let mut holds_enc = Vec::new();
 				for hold in pallet_balances::Holds::<T>::get(&who) {
 					holds_enc.push((
-						Self::hold_id_encoding(hold.id.encode(), tests::ChainType::RC),
+						hold.id.encode(),
 						Self::ah_hold_amount_from_rc(hold.id.encode(), hold.amount),
 					));
 				}

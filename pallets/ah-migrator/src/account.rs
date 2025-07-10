@@ -225,9 +225,7 @@ impl<T: Config> Pallet<T> {
 #[cfg(feature = "std")]
 pub mod tests {
 	use super::*;
-	use pallet_rc_migrator::accounts::tests::{
-		AccountsMigrationChecker, BalanceSummary, ChainType,
-	};
+	use pallet_rc_migrator::accounts::tests::{AccountsMigrationChecker, BalanceSummary};
 
 	use std::collections::BTreeMap;
 
@@ -307,28 +305,18 @@ pub mod tests {
 					ah_pre_payload.get(&who).copied().unwrap_or((0, 0));
 
 				let mut frozen = 0;
-				let mut holds_enc = Vec::new();
+				let mut ah_holds = Vec::new();
 				for hold in pallet_balances::Holds::<T>::get(&who) {
-					holds_enc.push((
-						Self::hold_id_encoding(hold.id.encode(), ChainType::AH),
-						hold.amount,
-					));
+					ah_holds.push((hold.id.encode(), hold.amount));
 				}
-				let mut freezes_enc = Vec::new();
+				let mut ah_freezes = Vec::new();
 				for freeze in pallet_balances::Freezes::<T>::get(&who) {
-					freezes_enc.push((
-						Self::freeze_id_encoding(freeze.id.encode(), ChainType::AH),
-						freeze.amount,
-					));
+					ah_freezes.push((freeze.id.encode(), freeze.amount));
 					frozen += freeze.amount;
 				}
 				let mut locks_enc = Vec::new();
 				for lock in pallet_balances::Locks::<T>::get(&who) {
-					locks_enc.push((
-						Self::lock_id_encoding(lock.id, ChainType::AH),
-						lock.amount,
-						lock.reasons as u8,
-					));
+					locks_enc.push((lock.id, lock.amount, lock.reasons as u8));
 					frozen += lock.amount;
 				}
 
@@ -373,24 +361,17 @@ pub mod tests {
 					who.to_ss58check()
 				);
 
-				// Holds migrated from RC may be merged on AH after migration. Therefore, we need to
-				// check that, for each hold reason, the sum of the hold amounts on AH after
-				// migration is the same as the sum of the hold amounts on RC before migration.
-				for (hold_id, hold_amount) in holds_enc {
-					let mut rc_hold_amount_for_id: u128 = 0;
-					for (id, amount) in summary.holds.clone() {
-						if id == hold_id {
-							rc_hold_amount_for_id = rc_hold_amount_for_id.saturating_add(amount);
-						}
-					}
-					assert_eq!(
-						rc_hold_amount_for_id,
-						hold_amount,
-						"Hold amount mismatch for account {:?} and hold id {:?} between RC pre-migration and AH post-migration",
-						who.to_ss58check(),
-						hold_id
-					);
-				}
+				let rc_holds = summary
+					.holds
+					.iter()
+					.map(|(id, amount)| (Self::rc_hold_id_encoding_to_ah(id.clone()), *amount))
+					.collect::<Vec<(Vec<u8>, u128)>>();
+				// Check that all holds from RC are present on AH post-migration.
+				assert!(
+					ah_holds.iter().all(|(id, amount)| rc_holds.contains(&(id.clone(), *amount))),
+					"Holds mismatch for account {:?} between RC pre-migration and AH post-migration",
+					who.to_ss58check()
+				);
 
 				// There should be no locks on AH before the migration so we just need to check that
 				// the locks on AH after migration are the same as on RC before migration.
@@ -401,12 +382,17 @@ pub mod tests {
 					who.to_ss58check()
 				);
 
+				let rc_freezes = summary
+					.freezes
+					.iter()
+					.map(|(id, amount)| (Self::rc_freeze_id_encoding_to_ah(id.clone()), *amount))
+					.collect::<Vec<(Vec<u8>, u128)>>();
 				// There should be no freezes on AH before the migration so we just need to check
 				// that the freezes on AH after migration are the same as on RC before
 				// migration.
 				assert_eq!(
-					summary.freezes,
-					freezes_enc,
+					rc_freezes,
+					ah_freezes,
 					"Freezes mismatch for account {:?} between RC pre-migration and AH post-migration",
 					who.to_ss58check()
 				);
