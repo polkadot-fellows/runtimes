@@ -942,11 +942,6 @@ pub mod pallet {
 		/// Translate account from RC format to AH format.
 		///
 		/// Currently returns the input account unchanged (mock implementation).
-		/// TODO: Will be extended to handle various translation scenarios:
-		/// - Sovereign accounts (para -> sibl)
-		/// - Sovereign derived accounts
-		/// - General derived accounts
-		/// - ...and more
 		///
 		/// TODO: Will also be responsible to emit a translation event.
 		/// TODO: The current signature suggests that the function is intended to be infallible and
