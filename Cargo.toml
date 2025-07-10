@@ -1,7 +1,7 @@
 # AUTO-GENERATED FILE. DO NOT EDIT.
 # Check backup Cargo.toml.bak for the original file.
 # Script at https://github.com/ggwpez/substrate-scripts/blob/master/diener-git.py 
-# > python3 diener-git.py --sdk ../polkadot-sdk --sdk-git https://github.com/paritytech/polkadot-sdk --sdk-branch oty-tmp2 --runtimes ../runtimes
+# > python3 diener-git.py --sdk ../polkadot-sdk --sdk-git https://github.com/paritytech/polkadot-sdk --sdk-branch oty-2503-paseo --runtimes ../runtimes
 
 
 [workspace]
@@ -72,40 +72,40 @@ path = "system-parachains/asset-hubs/asset-hub-polkadot"
 [workspace.dependencies.asset-test-utils]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.assets-common]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.authority-discovery-primitives]
 version = "*"
 default-features = false
 package = "sp-authority-discovery"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.babe-primitives]
 version = "*"
 default-features = false
 package = "sp-consensus-babe"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.beefy-primitives]
 version = "*"
 default-features = false
 package = "sp-consensus-beefy"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.binary-merkle-tree]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-asset-hub-kusama]
 path = "system-parachains/asset-hubs/asset-hub-kusama/primitives"
@@ -119,7 +119,7 @@ default-features = false
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-bridge-hub-kusama]
 path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives"
@@ -133,55 +133,55 @@ default-features = false
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-messages]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-parachains]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-polkadot-core]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-relayers]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-runtime]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-xcm-bridge-hub]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bp-xcm-bridge-hub-router]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bridge-hub-common]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bridge-hub-kusama-emulated-chain]
 path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama"
@@ -198,13 +198,13 @@ path = "system-parachains/bridge-hubs/bridge-hub-polkadot"
 [workspace.dependencies.bridge-hub-test-utils]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.bridge-runtime-common]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.clap]
 version = "4.5.0"
@@ -239,72 +239,72 @@ path = "system-parachains/coretime/coretime-polkadot"
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-pallet-parachain-system]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-pallet-session-benchmarking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-pallet-xcm]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-pallet-xcmp-queue]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-primitives-aura]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-primitives-core]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.cumulus-primitives-utility]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-staking-async]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-staking-async-rc-client]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-election-provider-multi-block]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.emulated-integration-tests-common]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.enumflags2]
 version = "0.7.7"
@@ -313,49 +313,49 @@ version = "0.7.7"
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-election-provider-support]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-executive]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-support]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-system]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-system-benchmarking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-system-rpc-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.frame-try-runtime]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.glutton-kusama-runtime]
 path = "system-parachains/gluttons/glutton-kusama"
@@ -364,7 +364,7 @@ path = "system-parachains/gluttons/glutton-kusama"
 version = "*"
 package = "sc-consensus-grandpa"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.hex-literal]
 version = "0.4.1"
@@ -397,319 +397,319 @@ default-features = false
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-asset-conversion]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-asset-conversion-tx-payment]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-asset-rate]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-asset-tx-payment]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-assets]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-aura]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-authority-discovery]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-authorship]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-babe]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-bags-list]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-balances]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-beefy]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-beefy-mmr]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-bounties]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-bridge-grandpa]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-bridge-messages]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-bridge-parachains]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-bridge-relayers]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-broker]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-child-bounties]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-collator-selection]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-collective]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-conviction-voting]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-core-fellowship]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-election-provider-multi-phase]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-election-provider-support-benchmarking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-fast-unstake]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-glutton]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-grandpa]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-identity]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-indices]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-insecure-randomness-collective-flip]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-membership]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-message-queue]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-mmr]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-multisig]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nft-fractionalization]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nfts]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nfts-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nis]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-migrations]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nomination-pools]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nomination-pools-benchmarking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-nomination-pools-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-offences]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-offences-benchmarking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-parameters]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-preimage]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-proxy]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-ranked-collective]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-recovery]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-referenda]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-remote-proxy]
 path = "pallets/remote-proxy"
@@ -719,168 +719,168 @@ default-features = false
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-salary]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-scheduler]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-session]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-session-benchmarking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-society]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-staking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-delegated-staking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-staking-reward-curve]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-staking-reward-fn]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-staking-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-state-trie-migration]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-sudo]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-timestamp]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-transaction-payment]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-transaction-payment-rpc-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-treasury]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-uniques]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-utility]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-vesting]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-whitelist]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-xcm]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-xcm-benchmarks]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-xcm-bridge-hub]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.pallet-xcm-bridge-hub-router]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.parachain-info]
 version = "*"
 default-features = false
 package = "staging-parachain-info"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.parachains-common]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.parachains-runtimes-test-utils]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.paste]
 version = "1.0.14"
@@ -891,7 +891,7 @@ path = "integration-tests/emulated/chains/parachains/testing/penpal"
 [workspace.dependencies.penpal-runtime]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.people-kusama-emulated-chain]
 path = "integration-tests/emulated/chains/parachains/people/people-kusama"
@@ -909,7 +909,7 @@ path = "system-parachains/people/people-polkadot"
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.polkadot-emulated-chain]
 path = "integration-tests/emulated/chains/relays/polkadot"
@@ -918,13 +918,13 @@ path = "integration-tests/emulated/chains/relays/polkadot"
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.polkadot-primitives]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.polkadot-runtime]
 path = "relay/polkadot"
@@ -933,7 +933,7 @@ path = "relay/polkadot"
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.polkadot-runtime-constants]
 path = "relay/polkadot/constants"
@@ -950,30 +950,30 @@ default-features = false
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.remote-externalities]
 version = "*"
 package = "frame-remote-externalities"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.runtime-parachains]
 version = "*"
 default-features = false
 package = "polkadot-runtime-parachains"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sc-chain-spec]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sc-network]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.scale-info]
 version = "2.10.0"
@@ -996,236 +996,236 @@ version = "1.13.1"
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-core]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-merkle-tree]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-outbound-queue-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-outbound-queue-primitives]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-ethereum-client]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-inbound-queue]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-inbound-queue-fixtures]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-ethereum-client-fixtures]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-outbound-queue]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-system]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-inbound-queue-primitives]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-runtime-common]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-runtime-test-common]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-system-runtime-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-api]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-application-crypto]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-arithmetic]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-block-builder]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-consensus-aura]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-core]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-debug-derive]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-genesis-builder]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-inherents]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-io]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-keyring]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-npos-elections]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-offchain]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-runtime]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-session]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-staking]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-std]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-state-machine]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-storage]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-tracing]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-transaction-pool]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-trie]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-version]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.sp-weights]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.substrate-wasm-builder]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.system-parachains-constants]
 path = "system-parachains/constants"
@@ -1239,32 +1239,32 @@ version = "*"
 default-features = false
 package = "staging-xcm"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.xcm-builder]
 version = "*"
 default-features = false
 package = "staging-xcm-builder"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.xcm-emulator]
 version = "*"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.xcm-executor]
 version = "*"
 default-features = false
 package = "staging-xcm-executor"
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.xcm-runtime-apis]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"
-branch = "oty-tmp2"
+branch = "oty-2503-paseo"
 
 [workspace.dependencies.anyhow]
 version = "1.0.82"
