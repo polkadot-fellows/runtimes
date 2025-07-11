@@ -67,8 +67,7 @@ impl<T: Config> Pallet<T> {
 		// Translate the voter account from RC to AH format
 		let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
 
-		log::debug!(target: LOG_TARGET, "Processing VotingFor record for: {} -> {}",
-			account_id.to_polkadot_ss58(),
+		log::debug!(target: LOG_TARGET, "Processing VotingFor record for {}",
 			translated_account.to_polkadot_ss58()
 		);
 
@@ -90,8 +89,7 @@ impl<T: Config> Pallet<T> {
 		// Translate the account from RC to AH format
 		let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
 
-		log::debug!(target: LOG_TARGET, "Processing ClassLocksFor record for: {} -> {}",
-			account_id.to_polkadot_ss58(),
+		log::debug!(target: LOG_TARGET, "Processing ClassLocksFor record for {}",
 			translated_account.to_polkadot_ss58()
 		);
 

@@ -57,13 +57,16 @@ impl<T: Config> Pallet<T> {
 		location: VersionedLocation,
 	) -> Result<VersionedLocation, Error<T>> {
 		// Convert to latest version for unified processing
-		let latest_location: Location = location.clone().try_into().map_err(|_| {
-			log::error!(
-				target: LOG_TARGET,
-				"Failed to convert VersionedLocation to latest version"
-			);
-			Error::<T>::FailedToConvertType
-		})?;
+		let latest_location: Location = match location.clone().try_into() {
+			Ok(loc) => loc,
+			Err(_) => {
+				log::error!(
+					target: LOG_TARGET,
+					"Failed to convert VersionedLocation to latest version, returning original location"
+				);
+				return Ok(location);
+			},
+		};
 
 		// Check if this is exactly X1(AccountId32) pattern
 		if latest_location.parents == 0 && latest_location.interior.len() == 1 {
@@ -72,26 +75,39 @@ impl<T: Config> Pallet<T> {
 					// This is X1(AccountId32), translate it
 					let account_id = T::AccountId::decode(&mut &id[..])
 						.map_err(|_| Error::<T>::FailedToConvertType)?;
-					let translated_account = Self::translate_account_rc_to_ah(account_id);
-					let translated_id: [u8; 32] = translated_account
-						.encode()
-						.try_into()
-						.map_err(|_| Error::<T>::FailedToConvertType)?;
+					let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
+					// If translated account is equal to the original, we can return early
+					if translated_account == account_id {
+						return Ok(location);
+					}
+					let translated_id: [u8; 32] = match translated_account.encode().try_into() {
+						Ok(id) => id,
+						Err(_) => {
+							log::error!(
+								target: LOG_TARGET,
+								"Failed to encode translated account, returning original location"
+							);
+							return Ok(location);
+						},
+					};
 					let translated_junction = junction.clone().with_account_id32(translated_id);
 					let translated_location = Location::new(0, translated_junction);
 
 					// Convert back to original version
 					let original_version = location.identify_version();
-					return VersionedLocation::from(translated_location)
+					return match VersionedLocation::from(translated_location)
 						.into_version(original_version)
-						.map_err(|_| {
+					{
+						Ok(versioned_location) => Ok(versioned_location),
+						Err(_) => {
 							log::error!(
 								target: LOG_TARGET,
-								"Failed to convert back to original XCM version {}",
+								"Failed to convert back to original XCM version {}, returning original location",
 								original_version
 							);
-							Error::<T>::FailedToConvertType
-						});
+							Ok(location)
+						},
+					};
 				}
 			}
 		}

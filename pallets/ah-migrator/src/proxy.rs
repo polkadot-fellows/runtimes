@@ -51,8 +51,7 @@ impl<T: Config> Pallet<T> {
 		// Translate the delegator account from RC to AH format
 		let translated_delegator = Self::translate_account_rc_to_ah(proxy.delegator.clone());
 
-		log::info!(target: LOG_TARGET, "Integrating proxy {} -> {}, deposit {:?}",
-			proxy.delegator.to_polkadot_ss58(),
+		log::info!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}",
 			translated_delegator.to_polkadot_ss58(),
 			proxy.deposit
 		);
@@ -69,9 +68,8 @@ impl<T: Config> Pallet<T> {
 			// Translate the delegate account from RC to AH format
 			let translated_delegate = Self::translate_account_rc_to_ah(p.delegate.clone());
 
-			log::info!(target: LOG_TARGET, "Proxy type: {:?} delegate: {} -> {}",
+			log::info!(target: LOG_TARGET, "Proxy type: {:?} delegate: {}",
 				proxy_type,
-				p.delegate.to_polkadot_ss58(),
 				translated_delegate.to_polkadot_ss58()
 			);
 			Some(pallet_proxy::ProxyDefinition {
@@ -150,8 +148,7 @@ impl<T: Config> Pallet<T> {
 		// Translate the depositor account from RC to AH format
 		let translated_depositor = Self::translate_account_rc_to_ah(announcement.depositor.clone());
 
-		log::debug!(target: LOG_TARGET, "Unreserving proxy announcement deposit for {} -> {}, amount {:?}",
-			announcement.depositor.to_polkadot_ss58(),
+		log::debug!(target: LOG_TARGET, "Unreserving proxy announcement deposit for {}, amount {:?}",
 			translated_depositor.to_polkadot_ss58(),
 			announcement.deposit
 		);
@@ -164,8 +161,7 @@ impl<T: Config> Pallet<T> {
 		let unreserved = announcement.deposit.saturating_sub(missing);
 
 		if !missing.is_zero() {
-			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {} -> {}, unreserved {:?} / {:?} since account had {:?} reserved",
-				announcement.depositor.to_polkadot_ss58(),
+			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {}, unreserved {:?} / {:?} since account had {:?} reserved",
 				translated_depositor.to_polkadot_ss58(),
 				unreserved, &announcement.deposit, before.data.reserved);
 		}
