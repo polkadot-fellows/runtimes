@@ -1732,7 +1732,7 @@ construct_runtime! {
 	}
 }
 
-#[cfg(feature = "zombie-bite-sudo")] // FAIL-CI
+#[cfg(feature = "zombie-bite-sudo")] // FAIL-CI @pepoviola
 construct_runtime! {
 	pub enum Runtime
 	{

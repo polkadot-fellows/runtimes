@@ -1417,6 +1417,7 @@ mod benches {
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
 		// TODO: @muharem [pallet_ah_migrator, AhMigrator]
+		// TODO: @muharem [pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
 		// TODO: @ggwpez [pallet_bags_list, VoterList]

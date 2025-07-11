@@ -140,8 +140,6 @@ impl<T: Config> Pallet<T> {
 			"Integrating account: {}", who.to_ss58check(),
 		);
 
-		// TODO: @ggwpez run some post-migration sanity checks
-
 		// Apply all additional consumers that were excluded from the balance stuff above:
 		for _ in 0..account.consumers {
 			if let Err(e) = frame_system::Pallet::<T>::inc_consumers(&who) {
