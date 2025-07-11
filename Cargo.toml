@@ -214,6 +214,10 @@ package = "parity-scale-codec"
 version = "3.6.9"
 default-features = false
 
+[workspace.dependencies.parity-scale-codec]
+version = "3.6.9"
+default-features = false
+
 [workspace.dependencies.collectives-polkadot-emulated-chain]
 path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot"
 
@@ -1051,6 +1055,12 @@ git = "https://github.com/paritytech/polkadot-sdk"
 branch = "oty-2503-paseo"
 
 [workspace.dependencies.snowbridge-pallet-system]
+version = "*"
+default-features = false
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "oty-2503-paseo"
+
+[workspace.dependencies.pallet-staking-async-ah-client]
 version = "*"
 default-features = false
 git = "https://github.com/paritytech/polkadot-sdk"

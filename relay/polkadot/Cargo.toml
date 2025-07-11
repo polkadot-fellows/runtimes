@@ -51,6 +51,8 @@ pallet-bounties = { workspace = true }
 pallet-broker = { workspace = true }
 pallet-child-bounties = { workspace = true }
 pallet-delegated-staking = { workspace = true }
+pallet-staking-async-ah-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-conviction-voting = { workspace = true }
@@ -112,9 +114,6 @@ sp-debug-derive = { workspace = true }
 
 # just for the coretime migration
 polkadot-parachain-primitives = { workspace = true }
-
-# just for use with zombie-bite to test migration
-pallet-sudo = { workspace = true, optional = true }
 
 [dev-dependencies]
 approx = { workspace = true }
@@ -188,7 +187,6 @@ std = [
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
-	"pallet-sudo?/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -230,6 +228,8 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-staking-async-ah-client/std",
+	"pallet-staking-async-rc-client/std"
 ]
 runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
@@ -268,7 +268,6 @@ runtime-benchmarks = [
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
-	"pallet-sudo?/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
@@ -289,6 +288,8 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-staking-async-ah-client/runtime-benchmarks",
+	"pallet-staking-async-rc-client/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",
@@ -328,7 +329,6 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
-	"pallet-sudo?/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
@@ -339,6 +339,8 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-staking-async-ah-client/try-runtime",
+	"pallet-staking-async-rc-client/try-runtime"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
@@ -355,5 +357,3 @@ fast-runtime = []
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
 force-debug = ["sp-debug-derive/force-debug"]
-
-zombie-bite-sudo = ["dep:pallet-sudo"]
