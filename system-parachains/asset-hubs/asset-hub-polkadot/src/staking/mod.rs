@@ -367,8 +367,8 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 #[derive(Encode, Decode)]
 // Call indices taken from westend-next runtime.
 pub enum RelayChainRuntimePallets {
-	// Audit: index of `AssetHubStakingClient` in westend.
-	#[codec(index = 67)] // FAIL-CI wrong
+	// Audit: index of `StakingAhClient` on the Relay Chain.
+	#[codec(index = 42)]
 	AhClient(AhClientCalls),
 }
 

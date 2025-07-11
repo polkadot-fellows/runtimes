@@ -652,7 +652,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
+	#[cfg(feature = "paseo")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
+	#[cfg(not(feature = "paseo"))]
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 /// Defines how much should the inflation be for an era given its duration.
@@ -1802,20 +1805,13 @@ construct_runtime! {
 		Bounties: pallet_bounties = 34,
 		ChildBounties: pallet_child_bounties = 38,
 
-		// Election pallet. Only works with staking, but placed here to maintain indices.
+		// Staking 36-40s, see also Staking, Offences, Historical and Session
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 36,
-
-		// Provides a semi-sorted list of nominators for staking.
 		VoterList: pallet_bags_list::<Instance1> = 37,
-
-		// Nomination pools: extension to staking.
 		NominationPools: pallet_nomination_pools = 39,
-
-		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 40,
-
-		// Staking extension for delegation
 		DelegatedStaking: pallet_delegated_staking = 41,
+		StakingAhClient: pallet_staking_async_ah_client = 42,
 
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
