@@ -34,14 +34,16 @@ use bridge_hub_kusama_runtime::{
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, GovernanceOrigin, SlotDurations};
 use codec::{Decode, Encode};
-use frame_support::{dispatch::GetDispatchInfo, parameter_types, traits::ConstU8};
+use frame_support::{
+	assert_err, assert_ok, dispatch::GetDispatchInfo, parameter_types, traits::ConstU8,
+};
 use parachains_common::{AccountId, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::Sr25519Keyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
-	AccountId32, Perbill,
+	AccountId32, Either, Perbill,
 };
 use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
@@ -562,4 +564,36 @@ fn xcm_payment_api_works() {
 		RuntimeOrigin,
 		Block,
 	>();
+}
+
+#[test]
+fn governance_authorize_upgrade_works() {
+	use kusama_runtime_constants::system_parachain::ASSET_HUB_ID;
+
+	// no - random para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(XcmError::Barrier)
+	);
+	// no - AssetHub
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
+		Either::Right(XcmError::Barrier)
+	);
+
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(Location::parent())));
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(GovernanceLocation::get())));
 }

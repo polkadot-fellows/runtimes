@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
+
 ### Changed
 
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
