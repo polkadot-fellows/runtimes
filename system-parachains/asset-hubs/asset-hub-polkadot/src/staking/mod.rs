@@ -281,7 +281,8 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
 
-// FAIL-CI wrong use the one from the relay
+// We cannot re-use the one from the relay since that is for pallet-staking and will be removed soon
+// anyway.
 pub struct EraPayout;
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
