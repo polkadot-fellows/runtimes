@@ -72,7 +72,7 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveReferendaValues {
 		values: Vec<(
 			// referendum_count
-			u32,
+			Option<u32>,
 			// deciding_count (track_id, count)
 			Vec<(TrackIdOf<T, ()>, u32)>,
 			// track_queue (referendum_id, votes)
@@ -120,7 +120,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]
-	FinishMigration { data: MigrationFinishedData<BalanceOf<T>> },
+	FinishMigration { data: Option<MigrationFinishedData<BalanceOf<T>>> },
 
 	#[codec(index = 255)]
 	#[cfg(feature = "runtime-benchmarks")]

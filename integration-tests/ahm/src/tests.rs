@@ -152,7 +152,7 @@ async fn pallet_migration_works() {
 	let (mut rc, mut ah) = load_externalities().await.unwrap();
 
 	// Set the initial migration stage from env var if set.
-	set_initial_migration_stage(&mut rc);
+	set_initial_migration_stage(&mut rc, None);
 
 	// Pre-checks on the Relay
 	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
@@ -251,7 +251,8 @@ fn sovereign_account_translation() {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 		let ah_acc = AccountId32::from_str(ah_acc).unwrap();
 
-		let (translated, _para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+		let (translated, _para_id) =
+			pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc).unwrap();
 		assert_eq!(translated, ah_acc);
 	}
 
@@ -267,8 +268,9 @@ fn sovereign_account_translation() {
 	for rc_acc in bad_cases {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 
-		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap();
-		assert!(translated.is_none());
+		let translated =
+			pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc);
+		assert!(translated.is_err());
 	}
 }
 
@@ -281,16 +283,23 @@ async fn print_sovereign_account_translation() {
 
 	rc.execute_with(|| {
 		for para_id in paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>() {
-			let rc_acc = xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(&Location::new(0, Junction::Parachain(para_id.into()))).unwrap();
+			let rc_acc =
+				xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
+					&Location::new(0, Junction::Parachain(para_id.into())),
+				)
+				.unwrap();
 
-			let (ah_acc, para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc.clone()).unwrap().unwrap();
+			let (ah_acc, para_id) =
+				pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc)
+					.unwrap();
 			rc_to_ah.insert(rc_acc, (ah_acc, para_id));
 		}
 
 		for account in frame_system::Account::<Polkadot>::iter_keys() {
-			let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(account.clone()).unwrap();
+			let translated =
+				pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&account);
 
-			if let Some((ah_acc, para_id)) = translated {
+			if let Ok((ah_acc, para_id)) = translated {
 				if !rc_to_ah.contains_key(&account) {
 					println!("Account belongs to an unregistered para {}: {}", para_id, account);
 					rc_to_ah.insert(account, (ah_acc, para_id));
@@ -386,8 +395,86 @@ fn ah_account_migration_weight() {
 async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
+	let migrate = |ah_block_start: u32, rc: &mut TestExternalities, ah: &mut TestExternalities| {
+		// we push first message to be popped for the first RC block and the second one to delay the
+		// ump messages from the first AH block, since with async backing and full blocks we
+		// generally expect the AH+0 block to be backed at RC+2 block, where RC+0 is its parent RC
+		// block. Hence the only RC+2 block will receive and process the messages from the AH+0
+		// block.
+		let mut ump_messages: VecDeque<(Vec<UpwardMessage>, BlockNumberFor<AssetHub>)> =
+			vec![(vec![], ah_block_start - 1), (vec![], ah_block_start)].into();
+		// AH generally builds the blocks on every new RC block, therefore every DMP message
+		// received and processed immediately without delay.
+		let mut dmp_messages: VecDeque<(Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)> =
+			vec![].into();
+
+		// finish the loop when the migration is done.
+		while ah.execute_with(|| AhMigrationStageStorage::<AssetHub>::get()) !=
+			AhMigrationStage::MigrationDone
+		{
+			// with async backing having three unincluded segments, we expect the Asset Hub block
+			// to typically be backed not in the immediate next block, but in the block after that.
+			// therefore, the queue should always contain at least two messages: one from the most
+			// recent Asset Hub block and one from the previous block.
+			assert!(
+				ump_messages.len() > 1,
+				"ump_messages queue should contain at least two messages"
+			);
+
+			// enqueue UMP messages from AH to RC.
+			rc.execute_with(|| {
+				enqueue_ump(
+					ump_messages
+						.pop_front()
+						.expect("should contain at least empty message package"),
+				);
+			});
+
+			// execute next RC block.
+			rc.execute_with(|| {
+				next_block_rc();
+			});
+
+			// read dmp messages sent to AH.
+			dmp_messages.push_back(rc.execute_with(|| {
+				(
+					DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID),
+					frame_system::Pallet::<Polkadot>::block_number(),
+				)
+			}));
+
+			// end of RC cycle.
+			rc.commit_all().unwrap();
+
+			// enqueue DMP messages from RC to AH.
+			ah.execute_with(|| {
+				enqueue_dmp(
+					dmp_messages
+						.pop_front()
+						.expect("should contain at least empty message package"),
+				);
+			});
+
+			// execute next AH block.
+			ah.execute_with(|| {
+				next_block_ah();
+			});
+
+			// collect UMP messages from AH generated by the current block execution.
+			ump_messages.push_back(ah.execute_with(|| {
+				(
+					PendingUpwardMessages::<AssetHub>::take(),
+					frame_system::Pallet::<AssetHub>::block_number(),
+				)
+			}));
+
+			// end of AH cycle.
+			ah.commit_all().unwrap();
+		}
+	};
+
 	// Set the initial migration stage from env var if set.
-	set_initial_migration_stage(&mut rc);
+	set_initial_migration_stage(&mut rc, None);
 
 	// Pre-checks on the Relay
 	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
@@ -398,73 +485,9 @@ async fn migration_works_time() {
 	let rc_block_start = rc.execute_with(|| frame_system::Pallet::<Polkadot>::block_number());
 	let ah_block_start = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
 
-	// we push first message to be popped for the first RC block and the second one to delay the ump
-	// messages from the first AH block, since with async backing and full blocks we generally
-	// expect the AH+0 block to be backed at RC+2 block, where RC+0 is its parent RC block. Hence
-	// the only RC+2 block will receive and process the messages from the AH+0 block.
-	let mut ump_messages: VecDeque<(Vec<UpwardMessage>, BlockNumberFor<AssetHub>)> =
-		vec![(vec![], ah_block_start - 1), (vec![], ah_block_start)].into();
-	// AH generally builds the blocks on every new RC block, therefore every DMP message received
-	// and processed immediately without delay.
-	let mut dmp_messages: VecDeque<(Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)> =
-		vec![].into();
+	log::info!("Running the migration first time");
 
-	// finish the loop when the migration is done.
-	while ah.execute_with(|| AhMigrationStageStorage::<AssetHub>::get()) !=
-		AhMigrationStage::MigrationDone
-	{
-		// with async backing having three unincluded segments, we expect the Asset Hub block
-		// to typically be backed not in the immediate next block, but in the block after that.
-		// therefore, the queue should always contain at least two messages: one from the most
-		// recent Asset Hub block and one from the previous block.
-		assert!(ump_messages.len() > 1, "ump_messages queue should contain at least two messages");
-
-		// enqueue UMP messages from AH to RC.
-		rc.execute_with(|| {
-			enqueue_ump(
-				ump_messages.pop_front().expect("should contain at least empty message package"),
-			);
-		});
-
-		// execute next RC block.
-		rc.execute_with(|| {
-			next_block_rc();
-		});
-
-		// read dmp messages sent to AH.
-		dmp_messages.push_back(rc.execute_with(|| {
-			(
-				DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID),
-				frame_system::Pallet::<Polkadot>::block_number(),
-			)
-		}));
-
-		// end of RC cycle.
-		rc.commit_all().unwrap();
-
-		// enqueue DMP messages from RC to AH.
-		ah.execute_with(|| {
-			enqueue_dmp(
-				dmp_messages.pop_front().expect("should contain at least empty message package"),
-			);
-		});
-
-		// execute next AH block.
-		ah.execute_with(|| {
-			next_block_ah();
-		});
-
-		// collect UMP messages from AH generated by the current block execution.
-		ump_messages.push_back(ah.execute_with(|| {
-			(
-				PendingUpwardMessages::<AssetHub>::take(),
-				frame_system::Pallet::<AssetHub>::block_number(),
-			)
-		}));
-
-		// end of AH cycle.
-		ah.commit_all().unwrap();
-	}
+	migrate(ah_block_start, &mut rc, &mut ah);
 
 	let rc_block_end = rc.execute_with(|| frame_system::Pallet::<Polkadot>::block_number());
 	let ah_block_end = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
@@ -473,13 +496,38 @@ async fn migration_works_time() {
 	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
 
 	// Post-checks on the Asset Hub
-	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+	run_check(|| AhChecks::post_check(rc_pre.clone().unwrap(), ah_pre.clone().unwrap()), &mut ah);
 
 	println!(
 		"Migration done in {} RC blocks, {} AH blocks",
 		rc_block_end - rc_block_start,
 		ah_block_end - ah_block_start
 	);
+
+	// run the migration again to check its idempotent
+
+	// Set the initial migration stage from env var if set.
+	set_initial_migration_stage(
+		&mut rc,
+		Some(RcMigrationStage::AccountsMigrationOngoing { last_key: None }),
+	);
+	ah.execute_with(|| {
+		AhMigrationStageStorage::<AssetHub>::put(AhMigrationStage::DataMigrationOngoing);
+	});
+
+	let ah_block_start = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
+
+	log::info!("Running the migration second time");
+
+	migrate(ah_block_start, &mut rc, &mut ah);
+
+	// run post checks with the pre checks data from the first migration
+
+	// Post-checks on the Relay
+	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
+
+	// Post-checks on the Asset Hub
+	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 }
 
 #[tokio::test]

@@ -7924,6 +7924,7 @@ dependencies = [
  "collectives-polkadot-runtime-constants",
  "cumulus-primitives-core",
  "frame-benchmarking",
+ "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "hex",
@@ -7984,6 +7985,9 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
+ "sp-application-crypto",
+ "sp-core 36.1.0",
+ "sp-io",
  "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=oty-2503-paseo)",
 ]

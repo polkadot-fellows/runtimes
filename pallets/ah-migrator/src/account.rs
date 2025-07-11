@@ -178,8 +178,19 @@ impl<T: Config> Pallet<T> {
 
 	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {
 		use frame_support::traits::Currency;
+		let balances_before = if AhBalancesBefore::<T>::exists() {
+			let balances_before = AhBalancesBefore::<T>::take();
+			Self::deposit_event(Event::<T>::BalancesBeforeRecordConsumed {
+				checking_account: balances_before.checking_account,
+				total_issuance: balances_before.total_issuance,
+			});
+			balances_before
+		} else {
+			log::info!(target: LOG_TARGET, "Balances before were already consumed, skipping");
+			return Ok(());
+		};
+
 		let checking_account = T::CheckingAccount::get();
-		let balances_before = AhBalancesBefore::<T>::get();
 		// current value is the AH checking balance + migrated checking balance of RC
 		let checking_balance =
 			<<T as pallet::Config>::Currency as Currency<_>>::total_balance(&checking_account);

@@ -305,7 +305,7 @@ impl pallet_vesting::Config for Runtime {
 	/// block number of the Relay Chain, not the parachain. This is because with Coretime and Async
 	/// Backing, parachain block numbers may not be a good proxy for time. Vesting schedules should
 	/// be set accordingly.
-	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
@@ -708,7 +708,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -921,7 +921,7 @@ impl pallet_uniques::Config for Runtime {
 
 parameter_types! {
 	pub NftsPalletFeatures: PalletFeatures = PalletFeatures::all_enabled();
-	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
+	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 30 * RC_DAYS;
 	// re-use the Uniques deposits
 	pub const NftsCollectionDeposit: Balance = system_para_deposit(1, 130);
 	pub const NftsItemDeposit: Balance = system_para_deposit(1, 164) / 40;
@@ -957,7 +957,7 @@ impl pallet_nfts::Config for Runtime {
 	type WeightInfo = weights::pallet_nfts::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 /// XCM router instance to BridgeHub with bridging capabilities for `Kusama` global
@@ -1122,7 +1122,6 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	}
 }
 
-// TODO: should be set with Relay Chain Block Number Provider
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
@@ -1136,7 +1135,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -1179,7 +1178,6 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = ah_migration::RcProxyType;
 	type RcToProxyType = ah_migration::RcToProxyType;
-	type RcToAhDelay = ah_migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type RcToAhCall = ah_migration::RcToAhCall;
 	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
