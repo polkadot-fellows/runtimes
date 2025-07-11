@@ -137,6 +137,7 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
+paseo = [] # For Paseo AHM
 runtime-benchmarks = [
 	"pallet-ah-migrator/runtime-benchmarks",
 

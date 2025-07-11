@@ -101,8 +101,9 @@ frame_election_provider_support::generate_solution_type!(
 	>(16)
 );
 
+#[cfg(feature = "paseo")]
 ord_parameter_types! {
-	pub const PolkadotStakingMiner: AccountId = AccountId::from(hex_literal::hex!("b65991822483a6c3bd24b1dcf6afd3e270525da1f9c8c22a4373d1e1079e236a"));
+	pub const StakingMiner: AccountId = AccountId::from(hex_literal::hex!("b65991822483a6c3bd24b1dcf6afd3e270525da1f9c8c22a4373d1e1079e236a"));
 }
 
 parameter_types! {
@@ -133,8 +134,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	// only for paseo, use 0 for Polkadot.
+	#[cfg(feature = "paseo")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
+	#[cfg(not(feature = "paseo"))]
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 parameter_types! {
@@ -185,8 +188,11 @@ impl multi_block::Config for Runtime {
 	type SignedValidationPhase = SignedValidationPhase;
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
+	#[cfg(feature = "paseo")]
 	type AdminOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<PolkadotStakingMiner, AccountId>>;
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<StakingMiner, AccountId>>;
+	#[cfg(not(feature = "paseo"))]
+	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
 	type Verifier = MultiBlockElectionVerifier;
