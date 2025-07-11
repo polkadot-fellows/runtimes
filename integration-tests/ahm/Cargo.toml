@@ -54,7 +54,7 @@ pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
-rand = { workspace = true, default-feature = true }
+rand = { workspace = true }
 
 [features]
 default = ["std"]

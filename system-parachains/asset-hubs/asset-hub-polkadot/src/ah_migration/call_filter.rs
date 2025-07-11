@@ -70,8 +70,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 	const OFF: bool = false;
 
 	let during_migration = match call {
-		AhOps(..) => OFF,
 		AhMigrator(..) => ON,
+		AhOps(..) => OFF,
 		AssetConversion(..) => OFF,
 		AssetRate(..) => OFF,
 		Assets(..) => OFF,
@@ -86,9 +86,13 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		ForeignAssets(..) => ON,
 		Indices(..) => OFF,
 		MessageQueue(..) => ON, // TODO think about this
+		MultiBlockElection(..) => OFF,
+		MultiBlockElectionSigned(..) => OFF,
+		MultiBlockElectionUnsigned(..) => OFF,
+		MultiBlockElectionVerifier(..) => OFF,
 		Multisig(..) => OFF,
-		NominationPools(..) => OFF,
 		Nfts(..) => ON,
+		NominationPools(..) => OFF,
 		ParachainInfo(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
 		ParachainSystem(..) => ON, // Only inherent and root calls
 		PolkadotXcm(..) => ON,
@@ -98,6 +102,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Referenda(..) => OFF,
 		Scheduler(..) => ON,
 		Session(..) => OFF,
+		Staking(..) => OFF,
+		StakingRcClient(..) => ON,
 		StateTrieMigration(..) => OFF, // Deprecated
 		System(..) => ON,
 		Timestamp(..) => ON,

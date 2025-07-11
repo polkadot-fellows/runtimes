@@ -93,10 +93,10 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 	fn service_task_fetched(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `179 + s * (1 ±0)`
-		//  Estimated: `4197809`
+		//  Estimated: `4094` FAIL-CI rerun
 		// Minimum execution time: 23_109_000 picoseconds.
 		Weight::from_parts(23_310_000, 0)
-			.saturating_add(Weight::from_parts(0, 4197809))
+			.saturating_add(Weight::from_parts(0, 4096))
 			// Standard Error: 0
 			.saturating_add(Weight::from_parts(1_119, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
