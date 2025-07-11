@@ -17,8 +17,11 @@
 use crate::*;
 use frame_support::traits::{ClassCountOf, DefensiveTruncateFrom};
 use pallet_conviction_voting::TallyOf;
-use pallet_rc_migrator::conviction_voting::{
-	alias, ConvictionVotingMigrator, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
+use pallet_rc_migrator::{
+	conviction_voting::{
+		alias, ConvictionVotingMigrator, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
+	},
+	types::ToPolkadotSs58,
 };
 
 impl<T: Config> Pallet<T> {
@@ -61,20 +64,40 @@ impl<T: Config> Pallet<T> {
 		class: alias::ClassOf<T>,
 		voting: alias::VotingOf<T>,
 	) {
-		log::debug!(target: LOG_TARGET, "Processing VotingFor record for: {:?}", &account_id);
-		alias::VotingFor::<T>::insert(account_id, class, voting);
+		// Translate the voter account from RC to AH format
+		let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
+
+		log::debug!(target: LOG_TARGET, "Processing VotingFor record for {}",
+			translated_account.to_polkadot_ss58()
+		);
+
+		// Translate any delegate accounts within the voting structure if it's delegating
+		let mut translated_voting = voting;
+		if let pallet_conviction_voting::Voting::Delegating(ref mut delegating) = translated_voting
+		{
+			// Translate the delegate target account
+			delegating.target = Self::translate_account_rc_to_ah(delegating.target.clone());
+		}
+
+		alias::VotingFor::<T>::insert(translated_account, class, translated_voting);
 	}
 
 	pub fn do_process_class_locks_for(
 		account_id: T::AccountId,
 		balance_per_class: Vec<(alias::ClassOf<T>, alias::BalanceOf<T>)>,
 	) {
-		log::debug!(target: LOG_TARGET, "Processing ClassLocksFor record for: {:?}", &account_id);
+		// Translate the account from RC to AH format
+		let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
+
+		log::debug!(target: LOG_TARGET, "Processing ClassLocksFor record for {}",
+			translated_account.to_polkadot_ss58()
+		);
+
 		let balance_per_class =
 			BoundedVec::<_, ClassCountOf<T::Polls, TallyOf<T, ()>>>::defensive_truncate_from(
 				balance_per_class,
 			);
-		pallet_conviction_voting::ClassLocksFor::<T>::insert(account_id, balance_per_class);
+		pallet_conviction_voting::ClassLocksFor::<T>::insert(translated_account, balance_per_class);
 	}
 }
 
@@ -95,33 +118,70 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
-		let mut ah_messages = Vec::new();
 
-		for (account_id, class, voting) in alias::VotingFor::<T>::iter() {
-			ah_messages.push(RcConvictionVotingMessage::VotingFor(account_id, class, voting));
-		}
+		// Build expected data by applying account translation to RC pre-payload data
+		let expected_ah_messages: Vec<_> = rc_pre_payload
+			.iter()
+			.map(|message| match message {
+				RcConvictionVotingMessage::VotingFor(account_id, class, voting) => {
+					// Translate the voter account
+					let translated_account =
+						Pallet::<T>::translate_account_rc_to_ah(account_id.clone());
+					// Translate delegate accounts in the voting structure
+					let mut translated_voting = voting.clone();
+					if let pallet_conviction_voting::Voting::Delegating(ref mut delegating) =
+						translated_voting
+					{
+						// Translate the delegate target account
+						delegating.target =
+							Pallet::<T>::translate_account_rc_to_ah(delegating.target.clone());
+					}
 
-		for (account_id, balance_per_class) in pallet_conviction_voting::ClassLocksFor::<T>::iter()
-		{
-			let balance_per_class: Vec<_> = balance_per_class.into_iter().collect();
-			ah_messages
-				.push(RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class));
-		}
+					RcConvictionVotingMessage::VotingFor(
+						translated_account,
+						class.clone(),
+						translated_voting,
+					)
+				},
+				RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class) => {
+					// Translate the account
+					let translated_account =
+						Pallet::<T>::translate_account_rc_to_ah(account_id.clone());
+
+					RcConvictionVotingMessage::ClassLocksFor(
+						translated_account,
+						balance_per_class.clone(),
+					)
+				},
+			})
+			.collect();
+
+		// Collect actual data from AH storage
+		let voting_messages = alias::VotingFor::<T>::iter().map(|(account_id, class, voting)| {
+			RcConvictionVotingMessage::VotingFor(account_id, class, voting)
+		});
+		let class_locks_messages = pallet_conviction_voting::ClassLocksFor::<T>::iter().map(
+			|(account_id, balance_per_class)| {
+				let balance_per_class: Vec<_> = balance_per_class.into_iter().collect();
+				RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class)
+			},
+		);
+		let actual_ah_messages: Vec<_> = voting_messages.chain(class_locks_messages).collect();
 
 		// Assert storage "ConvictionVoting::VotingFor::ah_post::length"
 		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::length"
 		assert_eq!(
-            rc_pre_payload.len(), ah_messages.len(),
-            "Conviction voting length mismatch: Asset Hub length differs from original Relay Chain data"
-        );
+			expected_ah_messages.len(), actual_ah_messages.len(),
+			"Conviction voting length mismatch: Asset Hub length differs from translated Relay Chain data"
+		);
 
 		// Assert storage "ConvictionVoting::VotingFor::ah_post::correct"
 		// Assert storage "ConvictionVoting::VotingFor::ah_post::consistent"
 		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::correct"
 		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::consistent"
 		assert_eq!(
-            rc_pre_payload, ah_messages,
-            "Conviction voting data mismatch: Asset Hub data differs from original Relay Chain data"
-        );
+			expected_ah_messages, actual_ah_messages,
+			"Conviction voting data mismatch: Asset Hub data differs from translated Relay Chain data"
+		);
 	}
 }

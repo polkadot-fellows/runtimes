@@ -31,6 +31,10 @@ impl<T: Config> Pallet<T> {
 			count: messages.len() as u32,
 		});
 
+		// Use direct translation instead of rebuilding to preserve exact structure.
+		// Rebuilding with SortedListProvider::on_insert changes the insertion order within bags
+		// (nodes are added to tail), creating different prev/next relationships even with
+		// identical scores. This breaks post-check validation which expects structural match.
 		for message in messages {
 			match Self::do_receive_bags_list_message(message) {
 				Ok(_) => good += 1,
@@ -50,13 +54,31 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_bags_list_message(message: RcBagsListMessage<T>) -> Result<(), Error<T>> {
 		match message {
 			RcBagsListMessage::Node { id, node } => {
-				debug_assert!(!alias::ListNodes::<T>::contains_key(&id));
-				alias::ListNodes::<T>::insert(&id, &node);
-				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &id);
+				let translated_id = Self::translate_account_rc_to_ah(id);
+				debug_assert!(!alias::ListNodes::<T>::contains_key(&translated_id));
+
+				// Translate all AccountId fields in the node structure
+				let translated_node = alias::Node {
+					id: Self::translate_account_rc_to_ah(node.id),
+					prev: node.prev.map(Self::translate_account_rc_to_ah),
+					next: node.next.map(Self::translate_account_rc_to_ah),
+					bag_upper: node.bag_upper,
+					score: node.score,
+				};
+
+				alias::ListNodes::<T>::insert(&translated_id, &translated_node);
+				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &translated_id);
 			},
 			RcBagsListMessage::Bag { score, bag } => {
 				debug_assert!(!alias::ListBags::<T>::contains_key(&score));
-				alias::ListBags::<T>::insert(&score, &bag);
+
+				// Translate all AccountId fields in the bag structure
+				let translated_bag = alias::Bag {
+					head: bag.head.map(Self::translate_account_rc_to_ah),
+					tail: bag.tail.map(Self::translate_account_rc_to_ah),
+				};
+
+				alias::ListBags::<T>::insert(&score, &translated_bag);
 				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
 			},
 		}
@@ -86,6 +108,45 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
+
+		let rc_pre_translated: Vec<GenericBagsListMessage<T::AccountId, T::Score>> = rc_pre_payload
+			.into_iter()
+			.map(|message| {
+				match message {
+					GenericBagsListMessage::Node { id, node } => {
+						let translated_id = Pallet::<T>::translate_account_rc_to_ah(id);
+						let translated_node_id = Pallet::<T>::translate_account_rc_to_ah(node.id);
+						let translated_prev =
+							node.prev.map(Pallet::<T>::translate_account_rc_to_ah);
+						let translated_next =
+							node.next.map(Pallet::<T>::translate_account_rc_to_ah);
+
+						GenericBagsListMessage::Node {
+							id: translated_id,
+							node: alias::Node {
+								id: translated_node_id,
+								prev: translated_prev,
+								next: translated_next,
+								bag_upper: node.bag_upper,
+								score: node.score,
+							},
+						}
+					},
+					GenericBagsListMessage::Bag { score, bag } => {
+						// Directly translate all AccountId fields - no need for encode/decode
+						// cycles
+						let translated_head = bag.head.map(Pallet::<T>::translate_account_rc_to_ah);
+						let translated_tail = bag.tail.map(Pallet::<T>::translate_account_rc_to_ah);
+
+						GenericBagsListMessage::Bag {
+							score,
+							bag: alias::Bag { head: translated_head, tail: translated_tail },
+						}
+					},
+				}
+			})
+			.collect();
+
 		let mut ah_messages = Vec::new();
 
 		// Collect current state
@@ -112,7 +173,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 		// Assert storage "VoterList::ListBags::ah_post::length"
 		// Assert storage "VoterList::ListBags::ah_post::length"
 		assert_eq!(
-			rc_pre_payload.len(), ah_messages.len(),
+			rc_pre_translated.len(), ah_messages.len(),
 			"Bags list length mismatch: Asset Hub data length differs from original Relay Chain data"
 		);
 
@@ -121,8 +182,15 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 		// Assert storage "VoterList::ListBags::ah_post::correct"
 		// Assert storage "VoterList::ListBags::ah_post::consistent"
 		assert_eq!(
-			rc_pre_payload, ah_messages,
+			rc_pre_translated, ah_messages,
 			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"
 		);
+
+		// Run bags-list pallet integrity check
+		#[cfg(feature = "try-runtime")]
+		<pallet_bags_list::Pallet<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<
+			T::AccountId,
+		>>::try_state()
+		.expect("Bags list integrity check failed");
 	}
 }

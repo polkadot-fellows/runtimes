@@ -51,6 +51,7 @@ pub mod treasury;
 pub mod types;
 pub mod vesting;
 pub mod xcm_config;
+pub mod xcm_translation;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
@@ -487,7 +488,7 @@ pub mod pallet {
 			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
 				T::AhWeightInfo::receive_liquid_accounts
 			} else {
-				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where 
+			        // TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where
 				// `require_weight_at_most` not required
 				T::AhWeightInfo::receive_liquid_accounts
 			};
@@ -938,6 +939,37 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Translate account from RC format to AH format.
+		///
+		/// Currently returns the input account unchanged (mock implementation).
+		///
+		/// TODO: Will also be responsible to emit a translation event.
+		/// TODO: The current signature suggests that the function is intended to be infallible and
+		/// always return a valid account. This should be revisited when we replace the mock
+		/// implementation with the real one.
+		/// TODO: introduce different accountId types for RC and AH e.g something like
+		/// ```rust
+		/// trait IntoAhTranslated<AhAccountId> {
+		///     fn into_ah_translated(self) -> AhAccountId;
+		/// }
+		/// ```
+		/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
+		pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
+			// Mock implementation - return unchanged for now
+			account
+		}
+
+		/// Helper function for migration post-check validation.
+		///
+		/// Should be used to apply account translation to RC pre-check data for consistent
+		/// comparison with AH post-state.
+		pub fn translate_encoded_account_rc_to_ah(who_encoded: Vec<u8>) -> Vec<u8> {
+			use codec::Decode;
+			let original_account = T::AccountId::decode(&mut &who_encoded[..])
+				.expect("Account decoding should never fail");
+			Self::translate_account_rc_to_ah(original_account).encode()
+		}
+
 		/// Auxiliary logic to be done before the migration starts.
 		pub fn migration_start_hook() -> Result<(), Error<T>> {
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
