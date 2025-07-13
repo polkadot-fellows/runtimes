@@ -143,8 +143,8 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
 parameter_types! {
-	pub const BridgeKusamaMessagesPalletName: &'static str = "BridgeKusamaMessages";
-	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+	pub const EthereumSystemPalletName: &'static str = "EthereumSystem";
+	pub const NativeToForeignIdKey: &'static str = "NativeToForeignId";
 }
 
 /// Migrations to apply on runtime upgrade.
@@ -154,7 +154,11 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
-	snowbridge_pallet_system::migration::FeePerGasMigrationV0ToV1<Runtime>,
+	frame_support::migrations::RemoveStorage<
+		EthereumSystemPalletName,
+		NativeToForeignIdKey,
+		RocksDbWeight,
+	>,
 	pallet_session::migrations::v1::MigrateV0ToV1<
 		Runtime,
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
@@ -190,7 +194,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-polkadot"),
 	impl_name: Cow::Borrowed("bridge-hub-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_006_000,
+	spec_version: 1_006_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
