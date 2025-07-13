@@ -70,8 +70,8 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, ReservableCurrency,
-		VariantCount,
+		Contains, Defensive, DefensiveTruncateFrom, EnqueueMessage, LockableCurrency,
+		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 	PalletId,
@@ -514,7 +514,8 @@ pub mod pallet {
 		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
 
 		/// Means to force a next queue within the UMPs from different parachains.
-		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>
+			+ EnqueueMessage<AggregateMessageOrigin>;
 
 		/// The priority pattern for AH UMP queue processing during migration
 		/// [Config::MessageQueue].

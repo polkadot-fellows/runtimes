@@ -82,6 +82,7 @@ use pallet_rc_migrator::{
 };
 
 use cumulus_primitives_core::AggregateMessageOrigin;
+use frame_support::traits::EnqueueMessage;
 use pallet_message_queue::ForceSetHead;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
@@ -348,7 +349,8 @@ pub mod pallet {
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
 		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
-		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>
+			+ EnqueueMessage<AggregateMessageOrigin>;
 
 		/// The priority pattern for DMP queue processing during migration [Config::MessageQueue].
 		///
@@ -927,7 +929,7 @@ pub mod pallet {
 				weight = weight.saturating_add(T::AhWeightInfo::force_dmp_queue_priority());
 			}
 
-			weight.saturating_add(T::AhWeightInfo::on_finalize())
+			weight
 		}
 
 		fn on_finalize(now: BlockNumberFor<T>) {

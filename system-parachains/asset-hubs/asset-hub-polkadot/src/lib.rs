@@ -462,7 +462,7 @@ impl pallet_indices::Config for Runtime {
 	type Currency = Balances;
 	type Deposit = IndexDeposit;
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO: @muharem weights::pallet_indices::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1416,8 +1416,8 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
-		// TODO: @muharem [pallet_ah_migrator, AhMigrator]
-		// TODO: @muharem [pallet_indices, Indices]
+		[pallet_ah_migrator, AhMigrator]
+		[pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
 		// TODO: @ggwpez [pallet_bags_list, VoterList]
