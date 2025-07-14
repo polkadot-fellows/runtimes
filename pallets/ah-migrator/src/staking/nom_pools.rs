@@ -16,15 +16,164 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::traits::DefensiveSaturating;
+use frame_support::{traits::ConstU32, BoundedVec};
 use pallet_nomination_pools::BondedPoolInner;
 #[cfg(feature = "std")]
 use pallet_rc_migrator::staking::nom_pools::tests;
-use pallet_rc_migrator::staking::nom_pools::{BalanceOf, NomPoolsMigrator};
-use sp_runtime::{
-	traits::{CheckedSub, One},
-	Saturating,
+use pallet_rc_migrator::{
+	staking::nom_pools::{BalanceOf, NomPoolsMigrator, NomPoolsStorageValues},
+	types::ToPolkadotSs58,
 };
+
+/// Trait to provide account translation logic for bonded pool structures.
+///
+/// This trait works with two different pool types that share the same field structure:
+/// 1. `BondedPoolInner<T>` - The actual runtime pallet type used during migration
+/// 2. `tests::GenericBondedPoolInner<Balance, AccountId, BlockNumber>` - Generic test type used for
+///    verification
+trait TranslateBondedPoolAccounts<AccountId> {
+	fn translate_bonded_pool_accounts<F>(&mut self, translate_fn: F)
+	where
+		F: Fn(AccountId) -> AccountId;
+}
+
+impl<T: Config> TranslateBondedPoolAccounts<T::AccountId> for BondedPoolInner<T> {
+	fn translate_bonded_pool_accounts<F>(&mut self, translate_fn: F)
+	where
+		F: Fn(T::AccountId) -> T::AccountId,
+	{
+		// Translate accounts in pool roles
+		self.roles.depositor = translate_fn(self.roles.depositor.clone());
+		self.roles.root = self.roles.root.clone().map(&translate_fn);
+		self.roles.nominator = self.roles.nominator.clone().map(&translate_fn);
+		self.roles.bouncer = self.roles.bouncer.clone().map(&translate_fn);
+
+		// Translate commission accounts
+		if let Some(ref mut claim_permission) = self.commission.claim_permission {
+			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
+				claim_permission
+			{
+				*account = translate_fn(account.clone());
+			}
+		}
+		if let Some((rate, ref mut account)) = self.commission.current {
+			self.commission.current = Some((rate, translate_fn(account.clone())));
+		}
+	}
+}
+
+#[cfg(feature = "std")]
+impl<Balance, AccountId, BlockNumber> TranslateBondedPoolAccounts<AccountId>
+	for tests::GenericBondedPoolInner<Balance, AccountId, BlockNumber>
+where
+	AccountId: Clone + core::fmt::Debug,
+	Balance: core::fmt::Debug,
+	BlockNumber: core::fmt::Debug,
+{
+	fn translate_bonded_pool_accounts<F>(&mut self, translate_fn: F)
+	where
+		F: Fn(AccountId) -> AccountId,
+	{
+		// Translate accounts in pool roles
+		self.roles.depositor = translate_fn(self.roles.depositor.clone());
+		self.roles.root = self.roles.root.clone().map(&translate_fn);
+		self.roles.nominator = self.roles.nominator.clone().map(&translate_fn);
+		self.roles.bouncer = self.roles.bouncer.clone().map(&translate_fn);
+
+		// Translate commission accounts
+		if let Some(ref mut claim_permission) = self.commission.claim_permission {
+			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
+				claim_permission
+			{
+				*account = translate_fn(account.clone());
+			}
+		}
+		if let Some((rate, ref mut account)) = self.commission.current {
+			self.commission.current = Some((rate, translate_fn(account.clone())));
+		}
+	}
+}
+
+/// Trait for nom pools message types that can have their accounts translated.
+trait TranslateNomPoolsMessage<AccountId, Balance, RewardCounter, BlockNumber> {
+	fn translate_accounts<F>(self, translate_fn: F) -> Self
+	where
+		F: Fn(AccountId) -> AccountId;
+}
+
+impl<T: Config>
+	TranslateNomPoolsMessage<T::AccountId, BalanceOf<T>, T::RewardCounter, BlockNumberFor<T>>
+	for RcNomPoolsMessage<T>
+{
+	fn translate_accounts<F>(self, translate_fn: F) -> Self
+	where
+		F: Fn(T::AccountId) -> T::AccountId,
+	{
+		use RcNomPoolsMessage::*;
+		match self {
+			StorageValues { values } => StorageValues { values },
+			PoolMembers { member: (account_id, member_data) } => {
+				let translated_account = translate_fn(account_id);
+				PoolMembers { member: (translated_account, member_data) }
+			},
+			BondedPools { pool: (pool_id, mut pool_data) } => {
+				pool_data.translate_bonded_pool_accounts(&translate_fn);
+				BondedPools { pool: (pool_id, pool_data) }
+			},
+			RewardPools { rewards } => RewardPools { rewards },
+			SubPoolsStorage { sub_pools } => SubPoolsStorage { sub_pools },
+			Metadata { meta } => Metadata { meta },
+			ReversePoolIdLookup { lookups: (account_id, pool_id) } => {
+				let translated_account = translate_fn(account_id);
+				ReversePoolIdLookup { lookups: (translated_account, pool_id) }
+			},
+			ClaimPermissions { perms: (account_id, permissions) } => {
+				let translated_account = translate_fn(account_id);
+				ClaimPermissions { perms: (translated_account, permissions) }
+			},
+		}
+	}
+}
+
+#[cfg(feature = "std")]
+impl<Balance, RewardCounter, AccountId, BlockNumber>
+	TranslateNomPoolsMessage<AccountId, Balance, RewardCounter, BlockNumber>
+	for tests::GenericNomPoolsMessage<Balance, RewardCounter, AccountId, BlockNumber>
+where
+	AccountId: Clone + core::fmt::Debug + PartialEq,
+	Balance: Clone + core::fmt::Debug + PartialEq,
+	RewardCounter: Clone + core::fmt::Debug + PartialEq,
+	BlockNumber: Clone + core::fmt::Debug + PartialEq,
+{
+	fn translate_accounts<F>(self, translate_fn: F) -> Self
+	where
+		F: Fn(AccountId) -> AccountId,
+	{
+		use tests::GenericNomPoolsMessage::*;
+		match self {
+			StorageValues { values } => StorageValues { values },
+			PoolMembers { member: (account_id, member_data) } => {
+				let translated_account = translate_fn(account_id);
+				PoolMembers { member: (translated_account, member_data) }
+			},
+			BondedPools { pool: (pool_id, mut pool_data) } => {
+				pool_data.translate_bonded_pool_accounts(&translate_fn);
+				BondedPools { pool: (pool_id, pool_data) }
+			},
+			RewardPools { rewards } => RewardPools { rewards },
+			SubPoolsStorage { sub_pools } => SubPoolsStorage { sub_pools },
+			Metadata { meta } => Metadata { meta },
+			ReversePoolIdLookup { lookups: (account_id, pool_id) } => {
+				let translated_account = translate_fn(account_id);
+				ReversePoolIdLookup { lookups: (translated_account, pool_id) }
+			},
+			ClaimPermissions { perms: (account_id, permissions) } => {
+				let translated_account = translate_fn(account_id);
+				ClaimPermissions { perms: (translated_account, permissions) }
+			},
+		}
+	}
+}
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_nom_pools_messages(
@@ -51,21 +200,28 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_nom_pools_message(message: RcNomPoolsMessage<T>) {
+		// First translate the message
+		let translated_message = message.translate_accounts(Self::translate_account_rc_to_ah);
+
+		// Then process the translated message
 		use RcNomPoolsMessage::*;
-		match message {
+		match translated_message {
 			StorageValues { values } => {
 				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::put_values(values);
 				log::debug!(target: LOG_TARGET, "Integrating NomPoolsStorageValues");
 			},
-			PoolMembers { member } => {
-				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(&member.0));
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsPoolMember: {:?}", &member.0);
-				pallet_nomination_pools::PoolMembers::<T>::insert(member.0, member.1);
+			PoolMembers { member: (account_id, member_data) } => {
+				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(
+					&account_id
+				));
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsPoolMember: {}",
+					account_id.to_polkadot_ss58());
+				pallet_nomination_pools::PoolMembers::<T>::insert(account_id, member_data);
 			},
-			BondedPools { pool } => {
-				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(pool.0));
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsBondedPool: {}", &pool.0);
-				pallet_nomination_pools::BondedPools::<T>::insert(pool.0, pool.1);
+			BondedPools { pool: (pool_id, pool_data) } => {
+				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(pool_id));
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsBondedPool: {}", &pool_id);
+				pallet_nomination_pools::BondedPools::<T>::insert(pool_id, pool_data);
 			},
 			RewardPools { rewards } => {
 				log::debug!(target: LOG_TARGET, "Integrating NomPoolsRewardPool: {:?}", &rewards.0);
@@ -85,13 +241,15 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating NomPoolsMetadata: {:?}", &meta.0);
 				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
 			},
-			ReversePoolIdLookup { lookups } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
-				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(lookups.0, lookups.1);
+			ReversePoolIdLookup { lookups: (account_id, pool_id) } => {
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsReversePoolIdLookup: {}",
+					account_id.to_polkadot_ss58());
+				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(account_id, pool_id);
 			},
-			ClaimPermissions { perms } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsClaimPermissions: {:?}", &perms.0);
-				pallet_nomination_pools::ClaimPermissions::<T>::insert(perms.0, perms.1);
+			ClaimPermissions { perms: (account_id, permissions) } => {
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsClaimPermissions: {}",
+					account_id.to_polkadot_ss58());
+				pallet_nomination_pools::ClaimPermissions::<T>::insert(account_id, permissions);
 			},
 		}
 	}
@@ -177,6 +335,12 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		// Build expected data by applying account translation to RC pre-payload data
+		let expected_ah_messages: Vec<_> = rc_pre_payload
+			.into_iter()
+			.map(|message| message.translate_accounts(Pallet::<T>::translate_account_rc_to_ah))
+			.collect();
+
 		let mut ah_messages = Vec::new();
 
 		// Collect storage values from AH
@@ -311,8 +475,8 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::correct"
 		// Assert storage "NominationPools::ClaimPermissions::ah_post::consistent"
 		assert_eq!(
-			rc_pre_payload, ah_messages,
-			"Assert storage 'NominationPools::Metadata::ah_post::correct'"
+			expected_ah_messages, ah_messages,
+			"Nomination pools data mismatch: Asset Hub data differs from translated Relay Chain data"
 		);
 	}
 }

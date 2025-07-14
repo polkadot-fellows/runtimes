@@ -54,7 +54,13 @@ impl<T: Config> Pallet<T> {
 				pallet_treasury::ProposalCount::<T>::put(proposal_count);
 			},
 			RcTreasuryMessage::Proposals((proposal_index, proposal)) => {
-				pallet_treasury::Proposals::<T>::insert(proposal_index, proposal);
+				let translated_proposal = pallet_treasury::Proposal {
+					proposer: Self::translate_account_rc_to_ah(proposal.proposer),
+					value: proposal.value,
+					beneficiary: Self::translate_account_rc_to_ah(proposal.beneficiary),
+					bond: proposal.bond,
+				};
+				pallet_treasury::Proposals::<T>::insert(proposal_index, translated_proposal);
 			},
 			RcTreasuryMessage::Approvals(approvals) => {
 				let approvals = BoundedVec::<_, <T as pallet_treasury::Config>::MaxApprovals>::defensive_truncate_from(approvals);
@@ -72,14 +78,27 @@ impl<T: Config> Pallet<T> {
 					expire_at,
 					status,
 				} = spend;
-				let (asset_kind, beneficiary) =
-					T::RcToAhTreasurySpend::convert((asset_kind, beneficiary)).map_err(|_| {
+
+				// Apply account translation to beneficiary before type conversion
+				let translated_beneficiary = Self::translate_beneficiary_location(beneficiary)
+					.map_err(|_| {
 						defensive!(
-							"Failed to convert RC treasury spend to AH treasury spend: {:?}",
+							"Failed to translate treasury spend beneficiary for spend: {:?}",
 							spend_index
 						);
 						Error::FailedToConvertType
 					})?;
+
+				let (asset_kind, beneficiary) =
+					T::RcToAhTreasurySpend::convert((asset_kind, translated_beneficiary)).map_err(
+						|_| {
+							defensive!(
+								"Failed to convert RC treasury spend to AH treasury spend: {:?}",
+								spend_index
+							);
+							Error::FailedToConvertType
+						},
+					)?;
 				let spend = treasury_alias::SpendStatus {
 					asset_kind,
 					amount,
@@ -204,9 +223,18 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
-	// (proposals ids, historical proposals count, approvals ids, spends, historical spends count)
-	type RcPrePayload =
-		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
+	// (proposals with ids, data, historical proposals count, approvals ids, spends, historical
+	// spends count)
+	type RcPrePayload = (
+		Vec<(
+			ProposalIndex,
+			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,
+		)>,
+		u32,
+		Vec<ProposalIndex>,
+		Vec<(SpendIndex, RcSpendStatusOf<T>)>,
+		u32,
+	);
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -271,10 +299,30 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 
 		// Assert storage 'Treasury::Proposals::ah_post::consistent'
 		// Assert storage 'Treasury::Proposals::ah_post::correct'
+		let rc_proposals_translated: Vec<(
+			ProposalIndex,
+			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,
+		)> = proposals
+			.into_iter()
+			.map(|(proposal_index, proposal)| {
+				let translated_proposal = pallet_treasury::Proposal {
+					proposer: Pallet::<T>::translate_account_rc_to_ah(proposal.proposer),
+					value: proposal.value,
+					beneficiary: Pallet::<T>::translate_account_rc_to_ah(proposal.beneficiary),
+					bond: proposal.bond,
+				};
+				(proposal_index, translated_proposal)
+			})
+			.collect();
+
+		let ah_proposals: Vec<(
+			ProposalIndex,
+			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,
+		)> = pallet_treasury::Proposals::<T>::iter().collect();
+
 		assert_eq!(
-			proposals,
-			pallet_treasury::Proposals::<T>::iter_keys().collect::<Vec<_>>(),
-			"Proposals IDs on Asset Hub should match Relay Chain proposal IDs"
+			rc_proposals_translated, ah_proposals,
+			"Proposals on Asset Hub should match translated Relay Chain proposals"
 		);
 
 		// Assert storage 'Treasury::Approvals::ah_post::correct'
