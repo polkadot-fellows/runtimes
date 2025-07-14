@@ -64,7 +64,7 @@ parameter_types! {
 	pub storage MaxElectingVoters: u32 = 22_500;
 
 	/// Always equal to `staking.maxValidatorCount`.
-	pub storage TargetSnapshotPerBlock: u32 = MaxValidatorSet::get(); // TODO @kianenigma I changed this from 2000
+	pub storage TargetSnapshotPerBlock: u32 = 2000;
 
 	/// Number of nominators per page of the snapshot, and consequently number of backers in the solution.
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get() / Pages::get();
