@@ -1445,9 +1445,9 @@ mod benches {
 		// DelegatedStaking has no calls
 		// TODO @ggwpez [pallet_staking_async_rc_client, StakingRcClient]
 		[pallet_election_provider_multi_block, MultiBlockElection]
-		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
-		[pallet_election_provider_multi_block::unsigned, MultiBlockElectionUnsigned]
-		[pallet_election_provider_multi_block::signed, MultiBlockElectionSigned]
+		[pallet_election_provider_multi_block_verifier, MultiBlockElectionVerifier]
+		[pallet_election_provider_multi_block_unsigned, MultiBlockElectionUnsigned]
+		[pallet_election_provider_multi_block_signed, MultiBlockElectionSigned]
 	);
 
 	use frame_benchmarking::BenchmarkError;
