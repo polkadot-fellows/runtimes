@@ -119,7 +119,7 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	// TODO: use weights::pallet_fast_unstake::WeightInfo<Runtime> instead of ()
+	// We use a special weight info here for the migration to allow us to pause the `on_idle` logic of the `fast_unstake` pallet by setting the idle weight to zero.
 	type WeightInfo = pallet_ah_migrator::MaxOnIdleOrInner<AhMigrator, ()>;
 }
 
