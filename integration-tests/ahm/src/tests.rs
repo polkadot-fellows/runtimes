@@ -47,8 +47,8 @@ use cumulus_primitives_core::{BlockT, InboundDownwardMessage, Junction, Location
 use frame_support::{
 	assert_err,
 	traits::{
-		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement,
-		ReservableCurrency,
+		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
+		OnInitialize, ReservableCurrency,
 	},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
@@ -66,7 +66,7 @@ use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::crypto::Ss58Codec;
 use sp_io::TestExternalities;
-use sp_runtime::{AccountId32, DispatchError, TokenError};
+use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
 use std::{
 	collections::{BTreeMap, VecDeque},
 	str::FromStr,
@@ -830,5 +830,186 @@ fn test_account_references() {
 		assert_eq!(PalletBalances::reserved_balance(&who), ed);
 		assert_eq!(PalletSystem::consumers(&who), 1);
 		assert_eq!(PalletSystem::providers(&who), 1);
+	});
+}
+
+#[test]
+fn test_control_flow() {
+	let mut rc: sp_io::TestExternalities = frame_system::GenesisConfig::<RcRuntime>::default()
+		.build_storage()
+		.unwrap()
+		.into();
+	let mut ah: sp_io::TestExternalities = frame_system::GenesisConfig::<AhRuntime>::default()
+		.build_storage()
+		.unwrap()
+		.into();
+
+	let mut rc_now = 0;
+	let mut ah_now = 0;
+
+	// prepare the RC to send XCM messages to AH and Collectives.
+	rc.execute_with(|| {
+		rc_now = rc_now + 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
+
+		// setup default XCM version
+		let result =
+			RcRuntimeCall::XcmPallet(pallet_xcm::Call::<RcRuntime>::force_default_xcm_version {
+				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
+			})
+			.dispatch(RcRuntimeOrigin::root());
+
+		runtime_parachains::configuration::ActiveConfig::<RcRuntime>::mutate(|config| {
+			config.max_downward_message_size = 51200;
+		});
+
+		polkadot_runtime::Dmp::make_parachain_reachable(1000);
+
+		assert!(result.is_ok(), "fails with error: {:?}", result.err());
+
+		assert_eq!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::count(), 0);
+	});
+
+	// prepare the AH to send XCM messages to RC and Collectives.
+	ah.execute_with(|| {
+		ah_now = ah_now + 1;
+		frame_system::Pallet::<AhRuntime>::reset_events();
+		frame_system::Pallet::<AhRuntime>::set_block_number(ah_now);
+
+		// setup default XCM version
+		let result =
+			AhRuntimeCall::PolkadotXcm(pallet_xcm::Call::<AhRuntime>::force_default_xcm_version {
+				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
+			})
+			.dispatch(AhRuntimeOrigin::root());
+		assert!(result.is_ok(), "fails with error: {:?}", result.err());
+	});
+
+	let dmp_messages = rc.execute_with(|| {
+		rc_now = rc_now + 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
+
+		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
+		batch.push((None, vec![], vec![]));
+		// adding a second item; this will cause the dispatchable on AH to fail.
+		batch.push((None, vec![], vec![]));
+
+		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(
+			batch,
+			|batch| {
+				pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
+					values: batch,
+				}
+			},
+			|_| Weight::from_all(1),
+		)
+		.expect("failed to send XCM messages");
+
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(0).is_some());
+
+		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
+		assert_eq!(dmp_messages.len(), 1);
+
+		dmp_messages
+	});
+
+	let ump_messages = ah.execute_with(|| {
+		ah_now = ah_now + 1;
+		frame_system::Pallet::<AhRuntime>::reset_events();
+		frame_system::Pallet::<AhRuntime>::set_block_number(ah_now);
+
+		enqueue_dmp((dmp_messages, 0u32.into()));
+
+		<asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(ah_now);
+		<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(ah_now);
+
+		let ump_messages = PendingUpwardMessages::<AhRuntime>::take();
+		assert_eq!(ump_messages.len(), 1);
+
+		ump_messages
+	});
+
+	rc.execute_with(|| {
+		rc_now = rc_now + 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
+
+		enqueue_ump((ump_messages, 0u32.into()));
+
+		<polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(rc_now);
+		<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(rc_now);
+
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(0).is_some());
+	});
+
+	let dmp_messages = rc.execute_with(|| {
+		rc_now = rc_now + 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
+
+		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
+		batch.push((None, vec![], vec![]));
+
+		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(
+			batch,
+			|batch| {
+				pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
+					values: batch,
+				}
+			},
+			|_| Weight::from_all(1),
+		)
+		.expect("failed to send XCM messages");
+
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(1).is_some());
+
+		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
+		assert_eq!(dmp_messages.len(), 1);
+
+		// setup default XCM version
+		let result = RcRuntimeCall::RcMigrator(pallet_rc_migrator::Call::<RcRuntime>::resend_xcm {
+			query_id: 1,
+		})
+		.dispatch(RcRuntimeOrigin::root());
+
+		assert!(result.is_ok(), "fails with error: {:?}", result.err());
+
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(2).is_some());
+
+		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
+		assert_eq!(dmp_messages.len(), 1);
+
+		dmp_messages
+	});
+
+	let ump_messages = ah.execute_with(|| {
+		ah_now = ah_now + 1;
+		frame_system::Pallet::<AhRuntime>::reset_events();
+		frame_system::Pallet::<AhRuntime>::set_block_number(ah_now);
+
+		enqueue_dmp((dmp_messages, 0u32.into()));
+
+		<asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(ah_now);
+		<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(ah_now);
+
+		let ump_messages = PendingUpwardMessages::<AhRuntime>::take();
+		assert_eq!(ump_messages.len(), 1);
+
+		ump_messages
+	});
+
+	rc.execute_with(|| {
+		rc_now = rc_now + 1;
+		frame_system::Pallet::<RcRuntime>::reset_events();
+		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
+
+		enqueue_ump((ump_messages, 0u32.into()));
+
+		<polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(rc_now);
+		<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(rc_now);
+
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(2).is_none());
 	});
 }
