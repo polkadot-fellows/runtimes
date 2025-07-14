@@ -64,7 +64,7 @@ parameter_types! {
 	pub storage MaxElectingVoters: u32 = 22_500;
 
 	/// Always equal to `staking.maxValidatorCount`.
-	pub storage TargetSnapshotPerBlock: u32 = 2000;
+	pub storage TargetSnapshotPerBlock: u32 = MaxValidatorSet::get(); // TODO @kianenigma I changed this from 2000
 
 	/// Number of nominators per page of the snapshot, and consequently number of backers in the solution.
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get() / Pages::get();
@@ -134,9 +134,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	#[cfg(feature = "paseo")]
+	// We have to enable it for benchmarks since the benchmark otherwise panics.
+	#[cfg(any(feature = "paseo", feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
-	#[cfg(not(feature = "paseo"))]
+	#[cfg(not(any(feature = "paseo", feature = "runtime-benchmarks")))]
 	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 

@@ -1428,8 +1428,6 @@ mod benches {
 		// FIXME [pallet_ah_migrator, AhMigrator]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
-		// TODO: [pallet_bags_list, VoterList]
-		// TODO: [pallet_fast_unstake, FastUnstake]
 
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
@@ -1438,6 +1436,18 @@ mod benches {
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
+
+		// Staking
+		[pallet_staking_async, Staking]
+		// TODO @ggwpez [pallet_nomination_pools, NominationPools]
+		[pallet_fast_unstake, FastUnstake]
+		[pallet_bags_list, VoterList]
+		// DelegatedStaking has no calls
+		// TODO @ggwpez [pallet_staking_async_rc_client, StakingRcClient]
+		[pallet_election_provider_multi_block, MultiBlockElection]
+		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
+		[pallet_election_provider_multi_block::unsigned, MultiBlockElectionUnsigned]
+		[pallet_election_provider_multi_block::signed, MultiBlockElectionSigned]
 	);
 
 	use frame_benchmarking::BenchmarkError;
