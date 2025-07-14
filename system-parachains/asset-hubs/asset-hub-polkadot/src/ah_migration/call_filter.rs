@@ -103,7 +103,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Scheduler(..) => ON,
 		Session(..) => OFF,
 		Staking(..) => OFF,
-		StakingRcClient(..) => ON, // Keep on for incoming RC calls over XCM
+		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
 		System(..) => ON,
 		Timestamp(..) => ON,
