@@ -1527,7 +1527,10 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = ConstU32<1>;
+	#[cfg(feature = "paseo")]
+	type MinimumValidatorSetSize = ConstU32<50>;
+	#[cfg(not(feature = "paseo"))]
+	type MinimumValidatorSetSize = ConstU32<400>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<50>;
