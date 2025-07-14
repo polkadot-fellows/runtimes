@@ -814,14 +814,41 @@ pub mod pallet {
 
 			let xcm = PendingXcmMessages::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
 
-			if let Err(err) = send_xcm::<T::SendXcm>(Location::new(0, Parachain(1000)), xcm) {
+			let asset_hub_location = Location::new(0, Parachain(1000));
+			let receive_notification_call =
+				Call::<T>::receive_query_response { query_id: 0, response: Default::default() };
+
+			let new_query_id = pallet_xcm::Pallet::<T>::new_notify_query(
+				asset_hub_location.clone(),
+				<T as Config>::RuntimeCall::from(receive_notification_call),
+				frame_system::Pallet::<T>::block_number() + T::XcmResponseTimeout::get(),
+				Location::here(),
+			);
+
+			let xcm_with_report = {
+				let mut xcm = xcm.clone();
+				xcm.inner_mut().push(SetAppendix(Xcm(vec![ReportTransactStatus(
+					QueryResponseInfo {
+						destination: Location::parent(),
+						query_id: new_query_id,
+						max_weight: T::RcWeightInfo::receive_query_response(),
+					},
+				)])));
+				xcm
+			};
+
+			if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, xcm_with_report) {
 				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
-					query_id,
+					query_id: new_query_id,
 					send_error: Some(err),
 				});
 			} else {
-				Self::deposit_event(Event::<T>::XcmResendAttempt { query_id, send_error: None });
+				PendingXcmMessages::<T>::insert(new_query_id, xcm);
+				Self::deposit_event(Event::<T>::XcmResendAttempt {
+					query_id: new_query_id,
+					send_error: None,
+				});
 			}
 
 			Ok(Pays::No.into())
@@ -1859,7 +1886,7 @@ pub mod pallet {
 				);
 
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
-				let message = Xcm(vec![
+				let message = vec![
 					Instruction::UnpaidExecution {
 						weight_limit: WeightLimit::Unlimited,
 						check_origin: None,
@@ -1869,18 +1896,25 @@ pub mod pallet {
 						fallback_max_weight: None, // TODO @muharem: is this what you meant?
 						call: call.encode().into(),
 					},
-					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
+				];
+
+				let message_with_report = {
+					let mut m = message.clone();
+					m.push(SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
 						destination: Location::parent(),
 						query_id,
 						max_weight: T::RcWeightInfo::receive_query_response(),
-					})])),
-				]);
+					})])));
+					m
+				};
 
-				if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, message.clone()) {
+				if let Err(err) =
+					send_xcm::<T::SendXcm>(asset_hub_location, Xcm(message_with_report))
+				{
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 					return Err(Error::XcmError);
 				} else {
-					PendingXcmMessages::<T>::insert(query_id, message);
+					PendingXcmMessages::<T>::insert(query_id, Xcm(message));
 					batch_count += 1;
 				}
 			}

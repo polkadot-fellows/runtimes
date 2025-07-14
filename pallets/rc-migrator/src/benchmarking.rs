@@ -152,7 +152,8 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn resend_xcm() {
-		let query_id = 1;
+		let query_id = 10;
+		let next_query_id = 0;
 		let xcm = Xcm(vec![Instruction::UnpaidExecution {
 			weight_limit: WeightLimit::Unlimited,
 			check_origin: None,
@@ -164,7 +165,10 @@ pub mod benchmarks {
 		_(RawOrigin::Root, query_id);
 
 		assert!(PendingXcmMessages::<T>::get(query_id).is_some());
-		assert_last_event::<T>(Event::XcmResendAttempt { query_id, send_error: None }.into());
+		assert!(PendingXcmMessages::<T>::get(next_query_id).is_some());
+		assert_last_event::<T>(
+			Event::XcmResendAttempt { query_id: next_query_id, send_error: None }.into(),
+		);
 	}
 
 	#[benchmark]
