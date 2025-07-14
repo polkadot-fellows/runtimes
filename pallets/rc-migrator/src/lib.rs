@@ -912,15 +912,19 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
-/* let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-							// ensure new era is not planned when starting migration.
-							if current_era > active_era {
-								defensive!("New era is planned, migration cannot start until it is completed");
-								Self::transition(MigrationStage::Pending);
-								return weight_counter.consumed();
-							}
-								*/ // FAIL-CI: @muharem staking check
+						// TODO: @ggwpez staking check; how long it will take, should we just shift
+						// the start time? also we have cool-off period, may be this not the best place?
+
+						/*
+						let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+						let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+						// ensure new era is not planned when starting migration.
+						if current_era > active_era {
+							defensive!("New era is planned, migration cannot start until it is completed");
+							Self::transition(MigrationStage::Pending);
+							return weight_counter.consumed();
+						}
+						*/
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
@@ -1775,7 +1779,6 @@ pub mod pallet {
 					unconfirmed,
 					unprocessed_buffer
 				);
-				// TODO: @muharem make it possible to reset the counts with an extrinsic.
 				return true;
 			}
 			log::debug!(

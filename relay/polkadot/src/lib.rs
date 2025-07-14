@@ -1564,6 +1564,7 @@ impl OnSwap for SwapLeases {
 	}
 }
 
+// TODO: @muharem adjust when async backing enabled for Polkadot Asset Hub
 // Derived from `polkadot_asset_hub_runtime::RuntimeBlockWeights`.
 const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
@@ -1574,8 +1575,8 @@ parameter_types! {
 	// Exvivalent to `polkadot_asset_hub_runtime::MessageQueueServiceWeight`.
 	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
 	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
-	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
-	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO: @muharem set the actual max weight
+	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get();
+	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(60) * BlockWeights::get().max_block;
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);

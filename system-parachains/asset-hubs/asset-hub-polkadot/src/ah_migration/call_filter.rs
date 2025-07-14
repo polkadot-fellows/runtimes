@@ -75,7 +75,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		AssetConversion(..) => OFF,
 		AssetRate(..) => OFF,
 		Assets(..) => OFF,
-		Balances(..) => OFF, // FAIL-CI: @muharem enable
+		Balances(..) => OFF, // TODO: @muharem enable
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
 		Claims(..) => OFF,
