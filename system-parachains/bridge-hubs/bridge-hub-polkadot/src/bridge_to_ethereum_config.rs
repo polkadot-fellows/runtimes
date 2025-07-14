@@ -66,11 +66,9 @@ parameter_types! {
 	pub AssetHubFromEthereum: Location = Location::new(1,[GlobalConsensus(RelayNetwork::get()),Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)]);
 	pub EthereumUniversalLocation: InteriorLocation = [GlobalConsensus(EthereumNetwork::get())].into();
 	pub AssetHubUniversalLocation: InteriorLocation = [GlobalConsensus(RelayNetwork::get()), Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)].into();
-	pub AssetHubLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)]);
 	pub InboundQueueV2Location: InteriorLocation = [PalletInstance(InboundQueueV2PalletInstance::get())].into();
-	pub SnowbridgeFrontendLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID), PalletInstance(SystemFrontendPalletInstance::get())]);
-	pub AssetHubXCMFee: u128 = 1_000_000_000_000u128;
 	pub const SnowbridgeReward: BridgeReward = BridgeReward::Snowbridge;
+	pub SnowbridgeFrontendLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID), PalletInstance(SystemFrontendPalletInstance::get())]);
 }
 
 impl snowbridge_pallet_inbound_queue::Config for Runtime {
@@ -264,7 +262,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type Hashing = Keccak256;
 	type MessageQueue = MessageQueue;
 	// Maximum payload size for outbound messages.
-	type MaxMessagePayloadSize = ConstU32<2048>;
+	type MaxMessagePayloadSize = ConstU32<{ u32::MAX }>;
 	// Maximum number of outbound messages that can be committed per block.
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeterV2;

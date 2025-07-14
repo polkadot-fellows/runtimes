@@ -84,7 +84,6 @@ parameter_types! {
 				EthereumNetwork::get().into(),
 			],
 	);
-	pub storage DeliveryFee: Asset = (Location::parent(), 80_000_000_000u128).into();
 	pub BridgeHubLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::BRIDGE_HUB_ID)]);
 	pub SystemFrontendPalletLocation: InteriorLocation = [PalletInstance(SystemFrontendPalletInstance::get())].into();
 	pub const RootLocation: Location = Location::here();
