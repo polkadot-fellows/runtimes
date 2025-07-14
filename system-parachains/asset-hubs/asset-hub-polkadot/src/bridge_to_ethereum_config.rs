@@ -78,6 +78,7 @@ pub mod benchmark_helpers {
 }
 
 parameter_types! {
+	/// Fee asset for the execution cost on ethereum
 	pub storage FeeAsset: Location = Location::new(
 			2,
 			[
