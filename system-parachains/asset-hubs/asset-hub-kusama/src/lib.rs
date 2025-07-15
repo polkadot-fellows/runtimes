@@ -39,7 +39,7 @@ use assets_common::{
 	matching::FromSiblingParachain,
 	AssetIdForTrustBackedAssetsConvert,
 };
-use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
@@ -268,7 +268,7 @@ impl pallet_vesting::Config for Runtime {
 	/// block number of the Relay Chain, not the parachain. This is because with Coretime and Async
 	/// Backing, parachain block numbers may not be a good proxy for time. Vesting schedules should
 	/// be set accordingly.
-	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
@@ -682,7 +682,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -957,7 +957,7 @@ impl pallet_nfts::Config for Runtime {
 	type WeightInfo = weights::pallet_nfts::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 /// XCM router instance to BridgeHub with bridging capabilities for `Polkadot` global
