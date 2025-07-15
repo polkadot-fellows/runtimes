@@ -43,7 +43,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type MaxUnbonding = <Self as pallet_staking_async::Config>::MaxUnlockingChunks;
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
-	type WeightInfo = (); // TODO @ggwpez cannot do this until the nomination pools pallet is fixed to be benchmarkable with pallet-staking-async.
+	type WeightInfo = (); // TODO @ggwpez cannot do this until the nomination pools pallet is fixed to be benchmarkable
+					   // with pallet-staking-async.
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 	type Filter = Nothing;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
