@@ -53,13 +53,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_multisigs(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3 + n * (135 ±0)`
+		//  Measured:  `0 + n * (135 ±0)`
 		//  Estimated: `990 + n * (2603 ±0)`
-		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(41_921_625, 0)
+		// Minimum execution time: 39_711_000 picoseconds.
+		Weight::from_parts(13_858_435, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 248_423
-			.saturating_add(Weight::from_parts(12_534_313, 0).saturating_mul(n.into()))
+			// Standard Error: 34_208
+			.saturating_add(Weight::from_parts(21_193_429, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
@@ -75,13 +75,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_accounts(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3 + n * (135 ±0)`
+		//  Measured:  `0 + n * (135 ±0)`
 		//  Estimated: `990 + n * (3774 ±0)`
-		// Minimum execution time: 98_000_000 picoseconds.
-		Weight::from_parts(67_993_130, 0)
+		// Minimum execution time: 165_419_000 picoseconds.
+		Weight::from_parts(166_250_000, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 496_413
-			.saturating_add(Weight::from_parts(81_859_379, 0).saturating_mul(n.into()))
+			// Standard Error: 80_620
+			.saturating_add(Weight::from_parts(147_305_828, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((4_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((4_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3774).saturating_mul(n.into()))
@@ -91,13 +91,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_liquid_accounts(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3 + n * (135 ±0)`
+		//  Measured:  `0 + n * (135 ±0)`
 		//  Estimated: `990 + n * (2603 ±0)`
-		// Minimum execution time: 37_000_000 picoseconds.
-		Weight::from_parts(3_574_192, 0)
+		// Minimum execution time: 57_810_000 picoseconds.
+		Weight::from_parts(58_811_000, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 153_493
-			.saturating_add(Weight::from_parts(21_072_694, 0).saturating_mul(n.into()))
+			// Standard Error: 23_717
+			.saturating_add(Weight::from_parts(36_274_916, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
@@ -109,11 +109,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `43`
 		//  Estimated: `990 + n * (2531 ±0)`
-		// Minimum execution time: 20_000_000 picoseconds.
-		Weight::from_parts(20_118_359, 0)
+		// Minimum execution time: 25_310_000 picoseconds.
+		Weight::from_parts(15_714_979, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 38_527
-			.saturating_add(Weight::from_parts(1_976_736, 0).saturating_mul(n.into()))
+			// Standard Error: 7_092
+			.saturating_add(Weight::from_parts(4_116_899, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2531).saturating_mul(n.into()))
@@ -125,11 +125,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `990 + n * (3716 ±0)`
-		// Minimum execution time: 127_000_000 picoseconds.
-		Weight::from_parts(1_354_656_670, 0)
+		// Minimum execution time: 164_640_000 picoseconds.
+		Weight::from_parts(92_329_131, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 88_901_549
-			.saturating_add(Weight::from_parts(607_950_574, 0).saturating_mul(n.into()))
+			// Standard Error: 621_598
+			.saturating_add(Weight::from_parts(217_221_317, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3716).saturating_mul(n.into()))
@@ -139,13 +139,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_proxy_announcements(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3 + n * (135 ±0)`
+		//  Measured:  `0 + n * (135 ±0)`
 		//  Estimated: `990 + n * (2603 ±0)`
-		// Minimum execution time: 29_000_000 picoseconds.
-		Weight::from_parts(2_929_429, 0)
+		// Minimum execution time: 38_960_000 picoseconds.
+		Weight::from_parts(48_049_000, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 453_646
-			.saturating_add(Weight::from_parts(13_924_534, 0).saturating_mul(n.into()))
+			// Standard Error: 18_500
+			.saturating_add(Weight::from_parts(23_088_851, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
@@ -159,11 +159,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `166`
 		//  Estimated: `990 + n * (3532 ±0)`
-		// Minimum execution time: 20_000_000 picoseconds.
-		Weight::from_parts(48_426_062, 0)
+		// Minimum execution time: 34_699_000 picoseconds.
+		Weight::from_parts(6_502_944, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 126_361
-			.saturating_add(Weight::from_parts(3_339_921, 0).saturating_mul(n.into()))
+			// Standard Error: 13_255
+			.saturating_add(Weight::from_parts(7_572_772, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
@@ -178,11 +178,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `231`
 		//  Estimated: `1489 + n * (3672 ±0)`
-		// Minimum execution time: 27_000_000 picoseconds.
-		Weight::from_parts(19_218_730, 0)
+		// Minimum execution time: 35_099_000 picoseconds.
+		Weight::from_parts(44_939_181, 0)
 			.saturating_add(Weight::from_parts(0, 1489))
-			// Standard Error: 78_075
-			.saturating_add(Weight::from_parts(4_658_552, 0).saturating_mul(n.into()))
+			// Standard Error: 23_849
+			.saturating_add(Weight::from_parts(9_484_279, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -198,11 +198,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `42`
 		//  Estimated: `1489 + n * (2531 ±0)`
-		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(21_683_815, 0)
+		// Minimum execution time: 28_291_000 picoseconds.
+		Weight::from_parts(26_243_070, 0)
 			.saturating_add(Weight::from_parts(0, 1489))
-			// Standard Error: 47_917
-			.saturating_add(Weight::from_parts(2_889_625, 0).saturating_mul(n.into()))
+			// Standard Error: 11_721
+			.saturating_add(Weight::from_parts(5_270_398, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -219,8 +219,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 55_000_000 picoseconds.
-		Weight::from_parts(60_000_000, 0)
+		// Minimum execution time: 111_180_000 picoseconds.
+		Weight::from_parts(132_090_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(33))
 	}
@@ -237,13 +237,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `144 + m * (1 ±0)`
 		//  Estimated: `3609 + m * (1 ±0)`
-		// Minimum execution time: 21_000_000 picoseconds.
-		Weight::from_parts(21_000_000, 0)
+		// Minimum execution time: 50_220_000 picoseconds.
+		Weight::from_parts(191_640_762, 0)
 			.saturating_add(Weight::from_parts(0, 3609))
-			// Standard Error: 43
-			.saturating_add(Weight::from_parts(2_761, 0).saturating_mul(m.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
+			// Standard Error: 10
+			.saturating_add(Weight::from_parts(4_217, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
 	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:255)
@@ -253,11 +253,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 16_000_000 picoseconds.
-		Weight::from_parts(18_549_009, 0)
+		// Minimum execution time: 25_230_000 picoseconds.
+		Weight::from_parts(20_167_732, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 24_958
-			.saturating_add(Weight::from_parts(1_393_816, 0).saturating_mul(n.into()))
+			// Standard Error: 10_350
+			.saturating_add(Weight::from_parts(2_856_446, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
@@ -273,13 +273,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `144 + m * (1 ±0)`
 		//  Estimated: `3609 + m * (1 ±0)`
-		// Minimum execution time: 18_000_000 picoseconds.
-		Weight::from_parts(18_000_000, 0)
+		// Minimum execution time: 37_330_000 picoseconds.
+		Weight::from_parts(204_161_240, 0)
 			.saturating_add(Weight::from_parts(0, 3609))
-			// Standard Error: 224
-			.saturating_add(Weight::from_parts(3_236, 0).saturating_mul(m.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
+			// Standard Error: 10
+			.saturating_add(Weight::from_parts(4_203, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
 	/// Storage: `Scheduler::Lookup` (r:0 w:255)
@@ -289,11 +289,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 17_000_000 picoseconds.
-		Weight::from_parts(7_619_445, 0)
+		// Minimum execution time: 24_770_000 picoseconds.
+		Weight::from_parts(20_395_864, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 122_158
-			.saturating_add(Weight::from_parts(1_477_904, 0).saturating_mul(n.into()))
+			// Standard Error: 4_360
+			.saturating_add(Weight::from_parts(2_489_624, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `VoterList::ListNodes` (r:255 w:255)
@@ -305,11 +305,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `147`
 		//  Estimated: `1489 + n * (2629 ±0)`
-		// Minimum execution time: 27_000_000 picoseconds.
-		Weight::from_parts(8_728_227, 0)
+		// Minimum execution time: 30_450_000 picoseconds.
+		Weight::from_parts(21_466_902, 0)
 			.saturating_add(Weight::from_parts(0, 1489))
-			// Standard Error: 120_955
-			.saturating_add(Weight::from_parts(3_596_173, 0).saturating_mul(n.into()))
+			// Standard Error: 9_709
+			.saturating_add(Weight::from_parts(6_294_436, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -323,11 +323,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `990 + n * (2544 ±0)`
-		// Minimum execution time: 18_000_000 picoseconds.
-		Weight::from_parts(21_925_963, 0)
+		// Minimum execution time: 25_030_000 picoseconds.
+		Weight::from_parts(19_955_027, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 61_977
-			.saturating_add(Weight::from_parts(2_388_903, 0).saturating_mul(n.into()))
+			// Standard Error: 6_687
+			.saturating_add(Weight::from_parts(4_670_838, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2544).saturating_mul(n.into()))
@@ -339,11 +339,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 51_000_000 picoseconds.
-		Weight::from_parts(51_000_000, 0)
+		// Minimum execution time: 34_549_000 picoseconds.
+		Weight::from_parts(38_699_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 467_808
-			.saturating_add(Weight::from_parts(26_827_008, 0).saturating_mul(n.into()))
+			// Standard Error: 14_986
+			.saturating_add(Weight::from_parts(18_082_943, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `Bounties::Bounties` (r:0 w:255)
@@ -353,11 +353,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 17_000_000 picoseconds.
-		Weight::from_parts(15_521_960, 0)
+		// Minimum execution time: 21_870_000 picoseconds.
+		Weight::from_parts(21_724_575, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 13_438
-			.saturating_add(Weight::from_parts(1_195_752, 0).saturating_mul(n.into()))
+			// Standard Error: 4_988
+			.saturating_add(Weight::from_parts(2_592_987, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `AssetRate::ConversionRateToNative` (r:0 w:255)
@@ -367,11 +367,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 18_000_000 picoseconds.
-		Weight::from_parts(16_665_429, 0)
+		// Minimum execution time: 27_590_000 picoseconds.
+		Weight::from_parts(25_780_062, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 60_916
-			.saturating_add(Weight::from_parts(3_060_615, 0).saturating_mul(n.into()))
+			// Standard Error: 15_097
+			.saturating_add(Weight::from_parts(5_597_018, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `AhOps::RcCrowdloanContribution` (r:255 w:255)
@@ -381,11 +381,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `80`
 		//  Estimated: `990 + n * (2587 ±0)`
-		// Minimum execution time: 35_000_000 picoseconds.
-		Weight::from_parts(13_568_312, 0)
+		// Minimum execution time: 67_741_000 picoseconds.
+		Weight::from_parts(92_116_141, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 3_433_254
-			.saturating_add(Weight::from_parts(29_942_254, 0).saturating_mul(n.into()))
+			// Standard Error: 66_530
+			.saturating_add(Weight::from_parts(27_035_967, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2587).saturating_mul(n.into()))
@@ -397,11 +397,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 16_000_000 picoseconds.
-		Weight::from_parts(15_263_215, 0)
+		// Minimum execution time: 24_800_000 picoseconds.
+		Weight::from_parts(26_342_055, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 11_191
-			.saturating_add(Weight::from_parts(1_155_852, 0).saturating_mul(n.into()))
+			// Standard Error: 4_661
+			.saturating_add(Weight::from_parts(2_387_129, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `Treasury::Spends` (r:0 w:255)
@@ -411,11 +411,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 19_000_000 picoseconds.
-		Weight::from_parts(21_523_250, 0)
+		// Minimum execution time: 33_579_000 picoseconds.
+		Weight::from_parts(32_032_960, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 73_047
-			.saturating_add(Weight::from_parts(4_269_018, 0).saturating_mul(n.into()))
+			// Standard Error: 20_884
+			.saturating_add(Weight::from_parts(9_103_294, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
@@ -427,11 +427,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `142`
 		//  Estimated: `3607 + n * (2475 ±0)`
-		// Minimum execution time: 21_000_000 picoseconds.
-		Weight::from_parts(49_091_840, 0)
+		// Minimum execution time: 32_430_000 picoseconds.
+		Weight::from_parts(21_865_473, 0)
 			.saturating_add(Weight::from_parts(0, 3607))
-			// Standard Error: 86_870
-			.saturating_add(Weight::from_parts(3_074_123, 0).saturating_mul(n.into()))
+			// Standard Error: 14_880
+			.saturating_add(Weight::from_parts(6_148_068, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -443,13 +443,13 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_preimage_legacy_status(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3 + n * (135 ±0)`
+		//  Measured:  `0 + n * (135 ±0)`
 		//  Estimated: `990 + n * (2603 ±0)`
-		// Minimum execution time: 29_000_000 picoseconds.
-		Weight::from_parts(29_311_295, 0)
+		// Minimum execution time: 41_160_000 picoseconds.
+		Weight::from_parts(41_931_000, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 221_048
-			.saturating_add(Weight::from_parts(12_490_115, 0).saturating_mul(n.into()))
+			// Standard Error: 20_626
+			.saturating_add(Weight::from_parts(21_118_166, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
@@ -461,11 +461,11 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `57 + n * (47 ±0)`
 		//  Estimated: `990 + n * (2566 ±0)`
-		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(101_887_477, 0)
+		// Minimum execution time: 38_020_000 picoseconds.
+		Weight::from_parts(3_159_011, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 487_654
-			.saturating_add(Weight::from_parts(7_713_264, 0).saturating_mul(n.into()))
+			// Standard Error: 134_892
+			.saturating_add(Weight::from_parts(11_295_156, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2566).saturating_mul(n.into()))
 	}
@@ -475,15 +475,15 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 	fn receive_preimage_chunk(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0 + m * (49900 ±0)`
-		//  Estimated: `3469 + m * (49010 ±128)`
-		// Minimum execution time: 37_000_000 picoseconds.
-		Weight::from_parts(13_922_973, 0)
+		//  Estimated: `3469 + m * (48969 ±24)`
+		// Minimum execution time: 68_630_000 picoseconds.
+		Weight::from_parts(39_413_050, 0)
 			.saturating_add(Weight::from_parts(0, 3469))
-			// Standard Error: 2_707_593
-			.saturating_add(Weight::from_parts(50_050_549, 0).saturating_mul(m.into()))
+			// Standard Error: 170_021
+			.saturating_add(Weight::from_parts(60_537_298, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
-			.saturating_add(Weight::from_parts(0, 49010).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(0, 48969).saturating_mul(m.into()))
 	}
 	/// Storage: `AhMigrator::AhMigrationStage` (r:1 w:1)
 	/// Proof: `AhMigrator::AhMigrationStage` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
@@ -491,8 +491,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `1486`
-		// Minimum execution time: 15_000_000 picoseconds.
-		Weight::from_parts(21_000_000, 0)
+		// Minimum execution time: 22_250_000 picoseconds.
+		Weight::from_parts(23_379_000, 0)
 			.saturating_add(Weight::from_parts(0, 1486))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -515,8 +515,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `185`
 		//  Estimated: `3650`
-		// Minimum execution time: 48_000_000 picoseconds.
-		Weight::from_parts(57_000_000, 0)
+		// Minimum execution time: 56_180_000 picoseconds.
+		Weight::from_parts(58_840_000, 0)
 			.saturating_add(Weight::from_parts(0, 3650))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -529,8 +529,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `133`
 		//  Estimated: `1517`
-		// Minimum execution time: 19_000_000 picoseconds.
-		Weight::from_parts(26_000_000, 0)
+		// Minimum execution time: 26_900_000 picoseconds.
+		Weight::from_parts(30_160_000, 0)
 			.saturating_add(Weight::from_parts(0, 1517))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -545,8 +545,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `302`
 		//  Estimated: `3517`
-		// Minimum execution time: 12_000_000 picoseconds.
-		Weight::from_parts(14_000_000, 0)
+		// Minimum execution time: 15_350_000 picoseconds.
+		Weight::from_parts(16_360_000, 0)
 			.saturating_add(Weight::from_parts(0, 3517))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -557,8 +557,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `1494`
-		// Minimum execution time: 8_000_000 picoseconds.
-		Weight::from_parts(10_000_000, 0)
+		// Minimum execution time: 10_420_000 picoseconds.
+		Weight::from_parts(11_341_000, 0)
 			.saturating_add(Weight::from_parts(0, 1494))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
