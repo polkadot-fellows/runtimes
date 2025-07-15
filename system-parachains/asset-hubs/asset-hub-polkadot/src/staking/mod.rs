@@ -121,7 +121,10 @@ impl pallet_fast_unstake::Config for Runtime {
 	type MaxErasToCheckPerBlock = ConstU32<1>;
 	// We use a special weight info here for the migration to allow us to pause the `on_idle` logic
 	// of the `fast_unstake` pallet by setting the idle weight to zero.
-	type WeightInfo = pallet_ah_migrator::MaxOnIdleOrInner<AhMigrator, ()>;
+	type WeightInfo = pallet_ah_migrator::MaxOnIdleOrInner<
+		AhMigrator,
+		weights::pallet_fast_unstake::WeightInfo<Runtime>,
+	>;
 }
 
 parameter_types! {
@@ -132,7 +135,7 @@ type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ScoreProvider = Staking;
-	type WeightInfo = (); // TODO weights::pallet_bags_list::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 	// We have to enable it for benchmarks since the benchmark otherwise panics.
@@ -351,7 +354,7 @@ impl pallet_staking_async::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = MaxControllersInDeprecationBatch;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	type WeightInfo = (); // TODO weights::pallet_staking_async::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
 	type MaxInvulnerables = frame_support::traits::ConstU32<20>;
 	type PlanningEraOffset =
 		pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;

@@ -1044,6 +1044,7 @@ dependencies = [
  "pallet-nfts",
  "pallet-nfts-runtime-api",
  "pallet-nomination-pools",
+ "pallet-nomination-pools-benchmarking",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-referenda",

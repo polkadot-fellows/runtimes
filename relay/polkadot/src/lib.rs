@@ -485,9 +485,13 @@ impl_opaque_keys! {
 	}
 }
 
+parameter_types! {
+	pub const SessionKeyDeposit: Balance = 1 * DOLLARS;
+}
+
 impl pallet_session::Config for Runtime {
 	type Currency = Balances;
-	type KeyDeposit = ();
+	type KeyDeposit = SessionKeyDeposit;
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
 	type ValidatorIdOf = ConvertInto;

@@ -462,7 +462,7 @@ impl pallet_indices::Config for Runtime {
 	type Currency = Balances;
 	type Deposit = IndexDeposit;
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO weights::pallet_indices::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1403,6 +1403,7 @@ mod benches {
 		[pallet_asset_conversion, AssetConversion]
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]
 		[pallet_balances, Balances]
+		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
@@ -1439,7 +1440,7 @@ mod benches {
 
 		// Staking
 		[pallet_staking_async, Staking]
-		// TODO @ggwpez [pallet_nomination_pools, NominationPools]
+		// TODO @ggwpez [pallet_nomination_pools, NominationPools] Does not work since it depends on pallet-staking being deployed, but we only have pallet-staking-async :(
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_bags_list, VoterList]
 		// DelegatedStaking has no calls

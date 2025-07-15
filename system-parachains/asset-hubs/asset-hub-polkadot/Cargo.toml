@@ -61,6 +61,7 @@ pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
+pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
 pallet-staking-async-rc-client = { workspace = true }
 pallet-election-provider-multi-block = { workspace = true }
@@ -140,7 +141,7 @@ default = ["std"]
 paseo = [] # For Paseo AHM
 runtime-benchmarks = [
 	"pallet-ah-migrator/runtime-benchmarks",
-
+	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
 	"bp-asset-hub-polkadot/runtime-benchmarks",
@@ -209,7 +210,6 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
-
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
