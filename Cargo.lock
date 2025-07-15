@@ -10922,6 +10922,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-staking-async-ah-client"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d512cc55ea398a05c0d2fef6b6463a18bbb72240f987dc4473970d8a47444794"
+dependencies = [
+ "frame-support 41.0.0",
+ "frame-system 41.0.0",
+ "log",
+ "pallet-authorship 41.0.0",
+ "pallet-session 41.0.0",
+ "pallet-staking-async-rc-client",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core 37.0.0",
+ "sp-runtime 42.0.0",
+ "sp-staking 39.0.0",
+]
+
+[[package]]
+name = "pallet-staking-async-rc-client"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1fa0116a253463e54bf5a62711081de3b0205d6b9ece991ee6a676a6b67e884"
+dependencies = [
+ "frame-support 41.0.0",
+ "frame-system 41.0.0",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 37.0.0",
+ "sp-runtime 42.0.0",
+ "sp-staking 39.0.0",
+ "staging-xcm 17.0.0",
+]
+
+[[package]]
 name = "pallet-staking-reward-curve"
 version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12265,6 +12303,8 @@ dependencies = [
  "pallet-session 41.0.0",
  "pallet-session-benchmarking",
  "pallet-staking 41.0.0",
+ "pallet-staking-async-ah-client",
+ "pallet-staking-async-rc-client",
  "pallet-staking-reward-curve",
  "pallet-staking-reward-fn 23.0.0",
  "pallet-staking-runtime-api",
