@@ -262,7 +262,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type Hashing = Keccak256;
 	type MessageQueue = MessageQueue;
 	// Maximum payload size for outbound messages.
-	type MaxMessagePayloadSize = ConstU32<{ u32::MAX }>;
+	type MaxMessagePayloadSize = ConstU32<2048>;
 	// Maximum number of outbound messages that can be committed per block.
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeterV2;
