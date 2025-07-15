@@ -31,7 +31,7 @@ use bridge_hub_polkadot_runtime::{
 };
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::{pallet_prelude::TypeInfo, traits::Get};
 use hex_literal::hex;
 use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{
@@ -52,7 +52,6 @@ use snowbridge_pallet_system::PricingParametersOf;
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
 use system_parachains_constants::polkadot::currency::UNITS;
-use frame_support::traits::Get;
 
 pub const CHAIN_ID: u64 = 1;
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
