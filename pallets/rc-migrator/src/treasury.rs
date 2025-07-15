@@ -190,11 +190,9 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 		}
 
 		if messages.len() > 0 {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages },
-				|len| T::AhWeightInfo::receive_treasury_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages }
+			})?;
 		}
 
 		if last_key == TreasuryStage::Finished {
@@ -276,13 +274,19 @@ pub type RcSpendStatusOf<T> = RcSpendStatus<
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
-	// (proposals ids, historicalproposals count, approvals ids, spends, historical spends count)
-	type RcPrePayload =
-		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
+	// (proposals with data, historical proposals count, approvals ids, spends, historical spends
+	// count)
+	type RcPrePayload = (
+		Vec<(ProposalIndex, Proposal<T::AccountId, pallet_treasury::BalanceOf<T, ()>>)>,
+		u32,
+		Vec<ProposalIndex>,
+		Vec<(SpendIndex, RcSpendStatusOf<T>)>,
+		u32,
+	);
 
 	fn pre_check() -> Self::RcPrePayload {
 		// Store the counts and approvals before migration
-		let proposals = pallet_treasury::Proposals::<T>::iter_keys().collect::<Vec<_>>();
+		let proposals = pallet_treasury::Proposals::<T>::iter().collect::<Vec<_>>();
 		let proposals_count = pallet_treasury::ProposalCount::<T>::get();
 		let approvals = pallet_treasury::Approvals::<T>::get().into_inner();
 		let spends = alias::Spends::<T>::iter()

@@ -120,11 +120,12 @@ pub mod benchmarks {
 
 		#[block]
 		{
-			let res = Pallet::<T>::send_chunked_xcm_and_track(
-				batches,
-				|batch| types::AhMigratorCall::<T>::TestCall { data: batch },
-				|_| Weight::from_all(1),
-			);
+			let res =
+				Pallet::<T>::send_chunked_xcm_and_track(batches, |batch| types::AhMigratorCall::<
+					T,
+				>::TestCall {
+					data: batch,
+				});
 			assert_eq!(res.unwrap(), 1);
 		}
 	}
@@ -181,6 +182,12 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn force_ah_ump_queue_priority() {
+		use frame_support::BoundedSlice;
+
+		T::MessageQueue::enqueue_message(
+			BoundedSlice::defensive_truncate_from(&[1]),
+			AggregateMessageOrigin::Ump(UmpQueueId::Para(1000.into())),
+		);
 		let now = BlockNumberFor::<T>::from(1u32);
 		let priority_blocks = BlockNumberFor::<T>::from(10u32);
 		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);

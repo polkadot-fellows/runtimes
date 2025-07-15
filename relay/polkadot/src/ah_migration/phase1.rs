@@ -81,7 +81,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		System(..) => (ON, ON),
 		Scheduler(..) => (OFF, OFF),
 		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON), // TODO double check
+		Babe(..) => (ON, ON), // TODO: @muharem double check
 		Timestamp(..) => (ON, ON),
 		Indices(..) => (OFF, OFF),
 		Balances(..) => (OFF, ON),
@@ -92,7 +92,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// Offences has no calls
 		// Historical has no calls
 		Session(..) => (OFF, ON),
-		Grandpa(..) => (ON, ON), // TODO double check
+		Grandpa(..) => (ON, ON), // TODO: @muharem double check
 		// AuthorityDiscovery has no calls
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
@@ -122,8 +122,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// Dmp has no calls and deprecated
 		Hrmp(..) => (OFF, ON),
 		// ParaSessionInfo has no calls
-		ParasDisputes(..) => (OFF, ON), // TODO check with security
-		ParasSlashing(..) => (OFF, ON), // TODO check with security
+		ParasDisputes(..) => (OFF, ON), // TODO: @muharem check with security
+		ParasSlashing(..) => (OFF, ON), // TODO: @muharem check with security
 		OnDemand(..) => (OFF, ON),
 		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
@@ -139,7 +139,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Coretime(..) => (ON, ON),
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
 		XcmPallet(..) => (ON, ON),
-		MessageQueue(..) => (ON, ON), // TODO think about this
+		MessageQueue(..) => (ON, ON), // TODO: @muharem think about this
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
 		RcMigrator(..) => (ON, ON),

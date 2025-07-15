@@ -11,6 +11,7 @@ repository.workspace = true
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
+frame-election-provider-support = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
@@ -69,6 +70,7 @@ std = [
 	"codec/std",
 	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
+	"frame-election-provider-support/std",
 	"frame-support/std",
 	"frame-system/std",
 	"hex/std",
@@ -121,6 +123,7 @@ runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
@@ -159,6 +162,7 @@ runtime-benchmarks = [
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
+	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-ah-ops/try-runtime",

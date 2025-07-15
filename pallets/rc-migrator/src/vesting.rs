@@ -101,11 +101,9 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::ReceiveVestingSchedules { messages },
-				|len| T::AhWeightInfo::receive_vesting_schedules(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::ReceiveVestingSchedules { messages }
+			})?;
 		}
 
 		Ok(inner_key)

@@ -61,7 +61,7 @@ impl RcMigrationCheck for MultisigStillWork {
 
 		for i in 0..100 {
 			//let num_signatories = rng.gen_range(1..=10);
-			//let signatories = TODO
+			//let signatories = TODO @ggwpez
 		}
 
 		multisigs

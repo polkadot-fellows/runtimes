@@ -18,9 +18,26 @@
 //! Fast unstake migration logic.
 
 use crate::*;
-use pallet_rc_migrator::staking::fast_unstake::{alias, FastUnstakeMigrator, RcFastUnstakeMessage};
+use pallet_rc_migrator::staking::fast_unstake::{
+	alias, FastUnstakeMigrator, FastUnstakeStorageValues, RcFastUnstakeMessage,
+};
 
 impl<T: Config> Pallet<T> {
+	pub fn translate_fast_unstake_storage_values(
+		values: FastUnstakeStorageValues<T>,
+	) -> FastUnstakeStorageValues<T> {
+		let translated_head = values.head.map(|mut request| {
+			request.stashes.iter_mut().for_each(|(account, _)| {
+				*account = Self::translate_account_rc_to_ah(account.clone());
+			});
+			request
+		});
+		FastUnstakeStorageValues {
+			head: translated_head,
+			eras_to_check_per_block: values.eras_to_check_per_block,
+		}
+	}
+
 	pub fn do_receive_fast_unstake_messages(
 		messages: Vec<RcFastUnstakeMessage<T>>,
 	) -> Result<(), Error<T>> {
@@ -52,13 +69,16 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		match message {
 			RcFastUnstakeMessage::StorageValues { values } => {
-				FastUnstakeMigrator::<T>::put_values(values);
+				FastUnstakeMigrator::<T>::put_values(Self::translate_fast_unstake_storage_values(
+					values,
+				));
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeStorageValues");
 			},
 			RcFastUnstakeMessage::Queue { member } => {
-				debug_assert!(!pallet_fast_unstake::Queue::<T>::contains_key(&member.0));
-				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeQueueMember: {:?}", &member.0);
-				pallet_fast_unstake::Queue::<T>::insert(member.0, member.1);
+				let translated_member = (Self::translate_account_rc_to_ah(member.0), member.1);
+				debug_assert!(!pallet_fast_unstake::Queue::<T>::contains_key(&translated_member.0));
+				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeQueueMember: {:?}", &translated_member.0);
+				pallet_fast_unstake::Queue::<T>::insert(translated_member.0, translated_member.1);
 			},
 		}
 
@@ -111,8 +131,10 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 		// Assert storage "FastUnstake::Queue::ah_post::correct"
 		// Assert storage "FastUnstake::Queue::ah_post::consistent"
 		for (pre_entry, post_entry) in queue.iter().zip(ah_queue.iter()) {
+			let translated_pre_entry =
+				(Pallet::<T>::translate_account_rc_to_ah(pre_entry.0.clone()), pre_entry.1.clone());
 			assert_eq!(
-				pre_entry, post_entry,
+				translated_pre_entry, *post_entry,
 				"Assert storage 'FastUnstake::Queue::ah_post::correct'"
 			);
 		}

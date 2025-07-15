@@ -192,11 +192,11 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| types::AhMigratorCall::<
+				T,
+			>::ReceiveClaimsMessages {
 				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveClaimsMessages { messages },
-				|n| T::AhWeightInfo::receive_claims(n),
-			)?;
+			})?;
 		}
 
 		if inner_key == ClaimsStage::Finished {

@@ -52,7 +52,6 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for `pallet_ah_migrator`.
 pub trait WeightInfo {
-	fn on_finalize() -> Weight;
 	fn receive_multisigs(n: u32, ) -> Weight;
 	fn receive_accounts(n: u32, ) -> Weight;
 	fn receive_liquid_accounts(n: u32, ) -> Weight;
@@ -105,25 +104,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 			.saturating_add(Weight::from_parts(0, 48976).saturating_mul(m.into()))
-	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
-	/// Proof: `ParachainSystem::UpwardDeliveryFeeFactor` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `PolkadotXcm::SupportedVersion` (r:1 w:0)
-	/// Proof: `PolkadotXcm::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::HostConfiguration` (r:1 w:0)
-	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
-	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn on_finalize() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `217`
-		//  Estimated: `3682`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(34_000_000, 3682)
-			.saturating_add(T::DbWeight::get().reads(5_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -547,8 +527,25 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
+	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
+	/// Proof: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
+	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc578adc36325155ecc312db8d05535c572` (r:1 w:1)
+	/// Proof: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc578adc36325155ecc312db8d05535c572` (r:1 w:1)
+	/// The range of component `n` is `[1, 255]`.
 	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
-		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `3607 + n * (2475 ±0)`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(49_091_840, 0)
+			.saturating_add(Weight::from_parts(0, 3607))
+			// Standard Error: 86_870
+			.saturating_add(Weight::from_parts(3_074_123, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(T::DbWeight::get().writes(1))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 2475).saturating_mul(n.into()))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -636,11 +633,33 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
-	fn set_dmp_queue_priority() -> Weight {
-		Weight::from_parts(1, 1)
-	}
+	/// Storage: `AhMigrator::DmpQueuePriorityConfig` (r:1 w:0)
+	/// Proof: `AhMigrator::DmpQueuePriorityConfig` (`max_values`: Some(1), `max_size`: Some(9), added: 504, mode: `MaxEncodedLen`)
+	/// Storage: `MessageQueue::BookStateFor` (r:1 w:0)
+	/// Proof: `MessageQueue::BookStateFor` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `MessageQueue::ServiceHead` (r:0 w:1)
+	/// Proof: `MessageQueue::ServiceHead` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `MaxEncodedLen`)
 	fn force_dmp_queue_priority() -> Weight {
-		Weight::from_parts(1, 1)
+		// Proof Size summary in bytes:
+		//  Measured:  `302`
+		//  Estimated: `3517`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(14_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3517))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `AhMigrator::DmpQueuePriorityConfig` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpQueuePriorityConfig` (`max_values`: Some(1), `max_size`: Some(9), added: 504, mode: `MaxEncodedLen`)
+	fn set_dmp_queue_priority() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `1494`
+		// Minimum execution time: 8_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1494))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
 }
 
@@ -662,25 +681,6 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
 			.saturating_add(Weight::from_parts(0, 48976).saturating_mul(m.into()))
-	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
-	/// Proof: `ParachainSystem::UpwardDeliveryFeeFactor` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `PolkadotXcm::SupportedVersion` (r:1 w:0)
-	/// Proof: `PolkadotXcm::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::HostConfiguration` (r:1 w:0)
-	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
-	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn on_finalize() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `217`
-		//  Estimated: `3682`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(34_000_000, 3682)
-			.saturating_add(RocksDbWeight::get().reads(5_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -1104,8 +1104,25 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
+	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
+	/// Proof: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
+	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc578adc36325155ecc312db8d05535c572` (r:1 w:1)
+	/// Proof: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc578adc36325155ecc312db8d05535c572` (r:1 w:1)
+	/// The range of component `n` is `[1, 255]`.
 	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
-		Weight::from_parts(1_000_000, 1_1000) // FAIL-CI
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `3607 + n * (2475 ±0)`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(49_091_840, 0)
+			.saturating_add(Weight::from_parts(0, 3607))
+			// Standard Error: 86_870
+			.saturating_add(Weight::from_parts(3_074_123, 0).saturating_mul(n.into()))
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(RocksDbWeight::get().writes(1))
+			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 2475).saturating_mul(n.into()))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -1193,10 +1210,32 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
-	fn set_dmp_queue_priority() -> Weight {
-		Weight::from_parts(1, 1)
-	}
+	/// Storage: `AhMigrator::DmpQueuePriorityConfig` (r:1 w:0)
+	/// Proof: `AhMigrator::DmpQueuePriorityConfig` (`max_values`: Some(1), `max_size`: Some(9), added: 504, mode: `MaxEncodedLen`)
+	/// Storage: `MessageQueue::BookStateFor` (r:1 w:0)
+	/// Proof: `MessageQueue::BookStateFor` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `MessageQueue::ServiceHead` (r:0 w:1)
+	/// Proof: `MessageQueue::ServiceHead` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `MaxEncodedLen`)
 	fn force_dmp_queue_priority() -> Weight {
-		Weight::from_parts(1, 1)
+		// Proof Size summary in bytes:
+		//  Measured:  `302`
+		//  Estimated: `3517`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(14_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3517))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	/// Storage: `AhMigrator::DmpQueuePriorityConfig` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpQueuePriorityConfig` (`max_values`: Some(1), `max_size`: Some(9), added: 504, mode: `MaxEncodedLen`)
+	fn set_dmp_queue_priority() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `1494`
+		// Minimum execution time: 8_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1494))
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 }

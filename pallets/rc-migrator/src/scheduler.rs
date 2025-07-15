@@ -136,11 +136,9 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveSchedulerMessages { messages },
-				|len| T::AhWeightInfo::receive_scheduler_lookup(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveSchedulerMessages { messages }
+			})?;
 		}
 
 		if last_key == SchedulerStage::Finished {
@@ -230,11 +228,9 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 		};
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages },
-				|_| Weight::from_all(1),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages }
+			})?;
 		}
 
 		Ok(last_key)

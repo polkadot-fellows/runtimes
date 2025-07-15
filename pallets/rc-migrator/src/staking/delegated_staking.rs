@@ -206,11 +206,9 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 		}
 
 		if messages.len() > 0 {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveDelegatedStakingMessages { messages },
-				|len| T::AhWeightInfo::receive_delegated_staking_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveDelegatedStakingMessages { messages }
+			})?;
 		}
 
 		if last_key == DelegatedStakingStage::Finished {

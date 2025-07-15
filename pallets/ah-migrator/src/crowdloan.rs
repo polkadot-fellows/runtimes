@@ -53,19 +53,20 @@ impl<T: Config> Pallet<T> {
 	pub fn do_process_crowdloan_message(message: RcCrowdloanMessageOf<T>) -> Result<(), Error<T>> {
 		match message {
 			RcCrowdloanMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
+				let translated_account = Self::translate_account_rc_to_ah(account);
 				// Leases are not removed from the RC when migrated, so we need to check if it's
 				// already migrated and skip it if so.
 				if pallet_ah_ops::RcLeaseReserve::<T>::contains_key((
 					unreserve_block,
 					para_id,
-					&account,
+					&translated_account,
 				)) {
 					log::info!(
 						target: LOG_TARGET,
 						"Lease reserve already migrated (skipping) for para_id: {:?}, \
 							account: {:?}, amount: {:?}, unreserve_block: {:?}",
 						&para_id,
-						&account,
+						&translated_account,
 						&amount,
 						&unreserve_block
 					);
@@ -75,13 +76,13 @@ impl<T: Config> Pallet<T> {
 						"Integrating lease reserve for para_id: {:?}, account: {:?}, \
 							amount: {:?}, unreserve_block: {:?}",
 						&para_id,
-						&account,
+						&translated_account,
 						&amount,
 						&unreserve_block
 					);
 
 					pallet_ah_ops::RcLeaseReserve::<T>::insert(
-						(unreserve_block, para_id, &account),
+						(unreserve_block, para_id, &translated_account),
 						amount,
 					);
 				}
@@ -93,20 +94,14 @@ impl<T: Config> Pallet<T> {
 				amount,
 				crowdloan_account,
 			} => {
-				log::info!(
-					target: LOG_TARGET,
-					"Integrating crowdloan contribution for para_id: {:?}, contributor: {:?}, \
-						amount: {:?}, crowdloan_account: {:?}, withdraw_block: {:?}",
-					&para_id,
-					&contributor,
-					&amount,
-					&crowdloan_account,
-					&withdraw_block
-				);
+				let translated_contributor = Self::translate_account_rc_to_ah(contributor);
+				let translated_crowdloan_account =
+					Self::translate_account_rc_to_ah(crowdloan_account);
+				log::info!(target: LOG_TARGET, "Integrating crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, crowdloan_account: {:?}, withdraw_block: {:?}", &para_id, &translated_contributor, &amount, &translated_crowdloan_account, &withdraw_block);
 				defensive_assert!(!pallet_ah_ops::RcCrowdloanContribution::<T>::contains_key((
 					withdraw_block,
 					para_id,
-					&contributor
+					&translated_contributor
 				)));
 
 				// Deactivate the amount since it cannot be used for Gov.
@@ -114,8 +109,8 @@ impl<T: Config> Pallet<T> {
 				<T as Config>::Currency::deactivate(amount);
 
 				pallet_ah_ops::RcCrowdloanContribution::<T>::insert(
-					(withdraw_block, para_id, &contributor),
-					(crowdloan_account, amount),
+					(withdraw_block, para_id, &translated_contributor),
+					(translated_crowdloan_account, amount),
 				);
 			},
 			RcCrowdloanMessage::CrowdloanReserve {
@@ -124,21 +119,16 @@ impl<T: Config> Pallet<T> {
 				amount,
 				depositor,
 			} => {
-				log::info!(
-					target: LOG_TARGET,
-					"Integrating crowdloan reserve for para_id: {:?}, amount: {:?}, depositor: {:?}",
-					&para_id,
-					&amount,
-					&depositor
-				);
+				let translated_depositor = Self::translate_account_rc_to_ah(depositor);
+				log::info!(target: LOG_TARGET, "Integrating crowdloan reserve for para_id: {:?}, amount: {:?}, depositor: {:?}", &para_id, &amount, &translated_depositor);
 				defensive_assert!(!pallet_ah_ops::RcCrowdloanReserve::<T>::contains_key((
 					unreserve_block,
 					para_id,
-					&depositor
+					&translated_depositor
 				)));
 
 				pallet_ah_ops::RcCrowdloanReserve::<T>::insert(
-					(unreserve_block, para_id, &depositor),
+					(unreserve_block, para_id, &translated_depositor),
 					amount,
 				);
 			},
@@ -282,15 +272,22 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					amount,
 					..
 				} => {
+					// Translate contributor account from RC to AH
+					let translated_contributor =
+						Pallet::<T>::translate_account_rc_to_ah(contributor);
+
 					rc_contributions
-						.entry((para_id, withdraw_block, contributor))
+						.entry((para_id, withdraw_block, translated_contributor))
 						.and_modify(|e| *e = e.saturating_add(amount))
 						.or_insert(amount);
 				},
 				PreCheckMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
+					// Translate account from RC to AH
+					let translated_account = Pallet::<T>::translate_account_rc_to_ah(account);
+
 					rc_lease_reserves.entry(para_id).or_insert_with(Vec::new).push((
 						unreserve_block,
-						account,
+						translated_account,
 						amount,
 					));
 				},
@@ -300,9 +297,12 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					para_id,
 					amount,
 				} => {
+					// Translate depositor account from RC to AH
+					let translated_depositor = Pallet::<T>::translate_account_rc_to_ah(depositor);
+
 					rc_crowdloan_reserves.entry(para_id).or_insert_with(Vec::new).push((
 						unreserve_block,
-						depositor,
+						translated_depositor,
 						amount,
 					));
 				},
