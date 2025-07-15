@@ -782,7 +782,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 					vec![
 						// Amount deposited in KAH's sovereign account
 						RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
-							who: *who == sov_kah_on_pah.clone().into(),
+							who: *who == sov_kah_on_pah.clone(),
 						},
 						RuntimeEvent::XcmpQueue(
 							cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
@@ -1024,7 +1024,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	// balances before
 	let sender_ksm_before = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone().into(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
 	});
 	let receiver_ksm_before = PenpalA::execute_with(|| {
 		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
@@ -1120,7 +1120,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 				RuntimeEvent::Balances(
 					pallet_balances::Event::Burned { who, .. }
 				) => {
-					who: *who == sov_pah_on_kah.clone().into(),
+					who: *who == sov_pah_on_kah.clone(),
 				},
 				// sent message to sibling Penpal
 				RuntimeEvent::XcmpQueue(
@@ -1139,7 +1139,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 
 	let sender_ksm_after = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.into(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &sender)
 	});
 	let receiver_ksm_after = PenpalA::execute_with(|| {
 		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
@@ -1213,7 +1213,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	// balances before
 	let sender_ksm_before = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone().into(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
 	});
 	let receiver_ksm_before = <Kusama as Chain>::account_data_of(receiver.clone()).free;
 
@@ -1306,7 +1306,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 				RuntimeEvent::Balances(
 					pallet_balances::Event::Burned { who, .. }
 				) => {
-					who: *who == sov_pah_on_kah.clone().into(),
+					who: *who == sov_pah_on_kah.clone(),
 				},
 				// sent message to Kusama Relay
 				RuntimeEvent::ParachainSystem(
@@ -1322,7 +1322,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 
 	let sender_ksm_after = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.into(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &sender)
 	});
 	let receiver_ksm_after = <Kusama as Chain>::account_data_of(receiver.clone()).free;
 
