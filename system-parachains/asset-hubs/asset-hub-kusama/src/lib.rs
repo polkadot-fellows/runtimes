@@ -1449,9 +1449,7 @@ mod benches {
 	impl pallet_xcm_benchmarks::Config for Runtime {
 		type XcmConfig = xcm_config::XcmConfig;
 		type AccountIdConverter = xcm_config::LocationToAccountId;
-		// TODO: Switch to polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper
-		//       when up to date with polkadot-sdk that contains proper deposits
-		type DeliveryHelper = system_parachains_common::xcm_sender::ToParachainDeliveryHelper<
+		type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 			xcm_config::XcmConfig,
 			ExistentialDepositAsset,
 			PriceForSiblingParachainDelivery,
