@@ -122,7 +122,7 @@ pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	/// Entry of the `Metadata` map.
 	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>) },
 	/// Entry of the `ReversePoolIdLookup` map.
-	// TODO check if inserting None into an option map is the same as deleting the key
+	// TODO: @ggwpez check if inserting None into an option map is the same as deleting the key
 	ReversePoolIdLookup { lookups: (T::AccountId, PoolId) },
 	/// Entry of the `ClaimPermissions` map.
 	ClaimPermissions { perms: (T::AccountId, ClaimPermission) },
@@ -326,11 +326,9 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages },
-				|len| T::AhWeightInfo::receive_nom_pools_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages }
+			})?;
 		}
 
 		if inner_key == NomPoolsStage::Finished {

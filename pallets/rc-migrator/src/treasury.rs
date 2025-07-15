@@ -190,11 +190,9 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 		}
 
 		if messages.len() > 0 {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages },
-				|len| T::AhWeightInfo::receive_treasury_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages }
+			})?;
 		}
 
 		if last_key == TreasuryStage::Finished {

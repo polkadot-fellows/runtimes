@@ -282,24 +282,6 @@ impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querie
 	}
 }
 
-// TODO: replace by pallet_message_queue::ForceSetHead once the 2503 merged from master.
-/// Allows to force the processing head to a specific queue.
-pub trait ForceSetHead<O> {
-	/// Set the `ServiceHead` to `origin`.
-	///
-	/// This function:
-	/// - `Err`: Queue did not exist, not enough weight or other error.
-	/// - `Ok(true)`: The service head was updated.
-	/// - `Ok(false)`: The service head was not updated since the queue is empty.
-	fn force_set_head(weight: &mut WeightMeter, origin: &O) -> Result<bool, ()>;
-}
-
-impl<O> ForceSetHead<O> for () {
-	fn force_set_head(_weight: &mut WeightMeter, _origin: &O) -> Result<bool, ()> {
-		Ok(true)
-	}
-}
-
 /// The priority of the DMP/UMP queue during migration.
 ///
 /// Controls how the DMP (Downward Message Passing) or UMP (Upward Message Passing) queue is

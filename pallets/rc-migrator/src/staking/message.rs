@@ -415,7 +415,7 @@ where
 					slash: pallet_staking_async::UnappliedSlash {
 						validator: slash.validator,
 						own: slash.own,
-						// TODO defensive truncate
+						// TODO: @ggwpez defensive truncate
 						others: WeakBoundedVec::force_from(slash.others, None),
 						payout: slash.payout,
 						reporter: slash.reporters.first().cloned(),

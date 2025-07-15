@@ -324,11 +324,9 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch },
-				|n| T::AhWeightInfo::receive_liquid_accounts(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch }
+			})?;
 		}
 
 		Ok(maybe_last_key)
@@ -617,9 +615,7 @@ impl<T: Config> AccountsMigrator<T> {
 		let weight_of = if account.is_liquid() {
 			T::AhWeightInfo::receive_liquid_accounts
 		} else {
-			// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where
-			// `require_weight_at_most` not required
-			T::AhWeightInfo::receive_liquid_accounts
+			T::AhWeightInfo::receive_accounts
 		};
 		item_weight_of(weight_of, batch_len)
 	}

@@ -1,10 +1,7 @@
 # XCM configuration changes for AHM
 
 ## TODOs:
--[ ] Consider a dedicated migration stage for updating the teleport/reserve location, adjusting total
-issuance and checking account balances. This approach prevents XCM teleport locking during the 
-entire migration and requires only a two-block lock for the switch.
--[ ] Post migration we need to switch all system chains XCM transport fees beneficiary from
+-[ ] TODO: @acatangiu. Post migration we need to switch all system chains XCM transport fees beneficiary from
 `RelayTreasuryLocation` to the new `AssetHubTreasuryLocation`. Does not necessarily need to be done
 _synchronously during AHM_, so let's do it after the migration ends successfully. Besides the
 configuration change to use sovereign account of AH Treasury, we will also move the funds to the new
@@ -18,7 +15,7 @@ is discussed in detail in [accounts.md](./accounts.md) document.
    - removed `LocalPlurality` from the list,
    - kept System Parachains and local Root (which continue to get free delivery).
 3. Did NOT change the destination/beneficiary of XCM delivery/transport fees. They will continue to go
-to the local Treasury account, even if the Treasury moves to Asset Hub. See 2nd TODO above for details.
+to the local Treasury account, even if the Treasury moves to Asset Hub. See 2nd TODO: @acatangiu above for details.
 
 ## User Impact (on RC)
 

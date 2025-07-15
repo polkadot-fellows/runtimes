@@ -70,8 +70,8 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, ReservableCurrency,
-		VariantCount,
+		Contains, Defensive, DefensiveTruncateFrom, EnqueueMessage, LockableCurrency,
+		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 	PalletId,
@@ -80,6 +80,7 @@ use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
+use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::{
 	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
@@ -106,9 +107,7 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
-pub use types::{
-	ForceSetHead, MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority,
-};
+pub use types::{MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority};
 use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
@@ -119,9 +118,9 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 
 /// Soft limit on the DMP message size.
 ///
-/// The hard limit should be about 64KiB (TODO test) which means that we stay well below that to
-/// avoid any trouble. We can raise this as final preparation for the migration once everything is
-/// confirmed to work.
+/// The hard limit should be about 64KiB (TODO: @ggwpez test) which means that we stay well below
+/// that to avoid any trouble. We can raise this as final preparation for the migration once
+/// everything is confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
 
 /// Out of weight Error. Can be converted to a pallet error for convenience.
@@ -254,7 +253,7 @@ pub enum MigrationStage<
 
 	PreimageMigrationInit,
 	PreimageMigrationChunksOngoing {
-		// TODO type
+		// TODO: @ggwpez type
 		last_key: Option<((H256, u32), u32)>,
 	},
 	PreimageMigrationChunksDone,
@@ -515,7 +514,8 @@ pub mod pallet {
 		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
 
 		/// Means to force a next queue within the UMPs from different parachains.
-		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>
+			+ EnqueueMessage<AggregateMessageOrigin>;
 
 		/// The priority pattern for AH UMP queue processing during migration
 		/// [Config::MessageQueue].
@@ -912,17 +912,21 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
-/* let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-							// ensure new era is not planned when starting migration.
-							if current_era > active_era {
-								defensive!("New era is planned, migration cannot start until it is completed");
-								Self::transition(MigrationStage::Pending);
-								return weight_counter.consumed();
-							}
-								*/ // FAIL-CI staking check
+						// TODO: @ggwpez staking check; how long it will take, should we just shift
+						// the start time? also we have cool-off period, may be this not the best place?
 
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
+						/*
+						let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+						let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+						// ensure new era is not planned when starting migration.
+						if current_era > active_era {
+							defensive!("New era is planned, migration cannot start until it is completed");
+							Self::transition(MigrationStage::Pending);
+							return weight_counter.consumed();
+						}
+						*/
+
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
 							},
@@ -1715,10 +1719,18 @@ pub mod pallet {
 					Self::transition(MigrationStage::SignalMigrationFinish);
 				},
 				MigrationStage::SignalMigrationFinish => {
+					weight_counter.consume(
+						// 1 read and 1 write for `staking::on_migration_end`;
+						// 1 read and 1 write for `RcMigratedBalance` storage item;
+						// plus one xcm send;
+						T::DbWeight::get().reads_writes(1, 1)
+							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
+					);
+
 					#[cfg(feature = "ahm-staking-migration")]
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 
-					// Send finish message to AH, TODO: weight
+					// Send finish message to AH.
 					let data = if RcMigratedBalance::<T>::exists() {
 						let tracker = if cfg!(feature = "std") {
 							// we should keep this value for the tests.
@@ -1737,7 +1749,7 @@ pub mod pallet {
 						None
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
-					if let Err(err) = Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
+					if let Err(err) = Self::send_xcm(call) {
 						defensive!("Failed to send FinishMigration message to AH, \
 								retry with the next block: {:?}", err);
 					}
@@ -1767,7 +1779,6 @@ pub mod pallet {
 					unconfirmed,
 					unprocessed_buffer
 				);
-				// TODO: make it possible to reset the counts with an extrinsic.
 				return true;
 			}
 			log::debug!(
@@ -1827,15 +1838,12 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - items - data items to batch and send with the `create_call`
 		/// - create_call - function to create the call from the items
-		/// - weight_at_most - function to calculate the weight limit on AH for the call with `n`
-		///   elements from `items`
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm_and_track<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
-			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {
 			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
@@ -1866,7 +1874,7 @@ pub mod pallet {
 					},
 					Instruction::Transact {
 						origin_kind: OriginKind::Superuser,
-						fallback_max_weight: None, // TODO @muharem: is this what you meant?
+						fallback_max_weight: None,
 						call: call.encode().into(),
 					},
 					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
@@ -1893,11 +1901,7 @@ pub mod pallet {
 		///
 		/// ### Parameters:
 		/// - call - the call to send
-		/// - weight_at_most - the weight limit for the call on AH
-		pub fn send_xcm(
-			call: types::AhMigratorCall<T>,
-			weight_at_most: Weight,
-		) -> Result<(), Error<T>> {
+		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
 			log::info!(target: LOG_TARGET, "Sending XCM message");
 
 			let call = types::AssetHubPalletConfig::<T>::AhmController(call);
@@ -1909,7 +1913,7 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Superuser,
-					fallback_max_weight: None, // TODO @muharem: is this what you meant?
+					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
 			]);

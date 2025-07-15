@@ -163,11 +163,9 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch },
-				|n| T::AhWeightInfo::receive_multisigs(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch }
+			})?;
 		}
 
 		Ok(last_key)

@@ -141,11 +141,9 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages },
-				|len| T::AhWeightInfo::receive_bags_list_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages }
+			})?;
 		}
 
 		if inner_key == BagsListStage::Finished {

@@ -462,7 +462,7 @@ impl pallet_indices::Config for Runtime {
 	type Currency = Balances;
 	type Deposit = IndexDeposit;
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO weights::pallet_indices::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -551,7 +551,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					//RuntimeCall::Bounties(..) | # TODO more
+					//RuntimeCall::Bounties(..) | # TODO: @ggwpez more
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
@@ -648,7 +648,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			),
 
 			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			// TODO: Uncomment once all these pallets are deployed.
+			// TODO: @ggwpez Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
 				RuntimeCall::Treasury(..) |
@@ -1189,8 +1189,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
 	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
-	// TODO: set actual message queue instance when upgraded to sdk/2503
-	type MessageQueue = ();
+	type MessageQueue = MessageQueue;
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 
@@ -1417,11 +1416,12 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
-		// FIXME [pallet_ah_migrator, AhMigrator]
+		[pallet_ah_migrator, AhMigrator]
+		[pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
-		// TODO: [pallet_bags_list, VoterList]
-		// TODO: [pallet_fast_unstake, FastUnstake]
+		// TODO: @ggwpez [pallet_bags_list, VoterList]
+		// TODO: @ggwpez [pallet_fast_unstake, FastUnstake]
 
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
