@@ -28,11 +28,10 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
-use parachains_common::xcm_config::AliasAccountId32FromSiblingSystemChain;
 use parachains_common::{
 	xcm_config::{
-		AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
-		RelayOrOtherSystemParachains,
+		AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
+		ConcreteAssetFromSystem, ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 	},
 	TREASURY_PALLET_ID,
 };
