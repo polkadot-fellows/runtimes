@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub use TreasuryAccount as RelayTreasuryPalletAccount;
+
 use super::{
 	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
 	CollatorSelection, ForeignAssets, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm,
