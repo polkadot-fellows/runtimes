@@ -7,12 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-
 - Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
+- Add Secretary Salary Pay Test Over XCM ([https://github.com/polkadot-fellows/runtimes/pull/778](https://github.com/polkadot-fellows/runtimes/pull/778))
 
 ### Changed
 
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
+- Configure block providers for pallets requiring block context ([polkadot-fellows/runtimes/pull/813](https://github.com/polkadot-fellows/runtimes/pull/813)):
+  - vesting: keep using Relay Chain block provider
+  - multisig: switch to local block provider (for unique multisig IDs)
+  - proxy: use Relay Chain block provider (for delayed announcements)
+  - nfts: use Relay Chain block provider (for minting start/end blocks)
 
 ## [1.6.1] 24.06.2025
 
