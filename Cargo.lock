@@ -965,8 +965,8 @@ dependencies = [
  "polkadot-parachain-primitives 17.0.0",
  "sp-core 37.0.0",
  "sp-keyring 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
 ]
 
 [[package]]
@@ -995,8 +995,8 @@ dependencies = [
  "polkadot-runtime-common 20.0.0",
  "sp-runtime 42.0.0",
  "staging-kusama-runtime",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
 ]
@@ -1080,10 +1080,10 @@ dependencies = [
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
  "sp-weights 32.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -1105,7 +1105,7 @@ dependencies = [
  "snowbridge-inbound-queue-primitives 0.3.0",
  "sp-core 37.0.0",
  "sp-keyring 42.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
 ]
 
 [[package]]
@@ -1134,8 +1134,8 @@ dependencies = [
  "polkadot-runtime-common 20.0.0",
  "polkadot-system-emulated-network",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
 ]
@@ -1218,10 +1218,10 @@ dependencies = [
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
  "sp-weights 32.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -1790,7 +1790,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-core 37.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
  "system-parachains-constants",
 ]
 
@@ -1803,7 +1803,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-core 37.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
  "system-parachains-constants",
 ]
 
@@ -1857,7 +1857,7 @@ dependencies = [
  "sp-api 37.0.0",
  "sp-runtime 42.0.0",
  "sp-std",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
  "system-parachains-constants",
 ]
 
@@ -2245,7 +2245,7 @@ dependencies = [
  "parachains-common 22.0.0",
  "sp-core 37.0.0",
  "sp-keyring 42.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
 ]
 
 [[package]]
@@ -2279,8 +2279,8 @@ dependencies = [
  "snowbridge-pallet-system",
  "sp-core 37.0.0",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
 ]
@@ -2365,10 +2365,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "tuplex",
@@ -2387,7 +2387,7 @@ dependencies = [
  "parachains-common 22.0.0",
  "sp-core 37.0.0",
  "sp-keyring 42.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
 ]
 
 [[package]]
@@ -2423,8 +2423,8 @@ dependencies = [
  "snowbridge-pallet-system",
  "sp-core 37.0.0",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
 ]
@@ -2523,10 +2523,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "tuplex",
@@ -2958,8 +2958,8 @@ dependencies = [
  "polkadot-system-emulated-network",
  "sp-core 37.0.0",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
 ]
@@ -3034,10 +3034,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -3244,11 +3244,11 @@ dependencies = [
  "parachains-common 22.0.0",
  "parity-scale-codec",
  "polkadot-runtime-common 20.0.0",
- "polkadot-runtime-parachains 19.2.0",
+ "polkadot-runtime-parachains 20.0.0",
  "sp-runtime 42.0.0",
  "staging-kusama-runtime",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "xcm-runtime-apis 0.8.0",
 ]
 
@@ -3311,10 +3311,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -3351,11 +3351,11 @@ dependencies = [
  "polkadot-runtime",
  "polkadot-runtime-common 20.0.0",
  "polkadot-runtime-constants",
- "polkadot-runtime-parachains 19.2.0",
+ "polkadot-runtime-parachains 20.0.0",
  "polkadot-system-emulated-network",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "xcm-runtime-apis 0.8.0",
 ]
 
@@ -3419,10 +3419,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -4787,10 +4787,10 @@ dependencies = [
  "sp-session 39.0.0",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -5475,9 +5475,9 @@ dependencies = [
 
 [[package]]
 name = "frame-remote-externalities"
-version = "0.50.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f1fb2624e631b55e6533af3190650ef0634ba711b259f66de859b46caa14cb3"
+checksum = "7978eefc8e497c779bcf0519237a78be2ba405583ef64e41412c15cce6fc775e"
 dependencies = [
  "futures",
  "indicatif",
@@ -5485,11 +5485,11 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "serde",
- "sp-core 36.1.0",
+ "sp-core 37.0.0",
  "sp-crypto-hashing",
- "sp-io 40.0.1",
- "sp-runtime 41.1.0",
- "sp-state-machine 0.45.0",
+ "sp-io 41.0.0",
+ "sp-runtime 42.0.0",
+ "sp-state-machine 0.46.0",
  "spinners",
  "substrate-rpc-client",
  "tokio",
@@ -6056,10 +6056,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
 ]
@@ -6099,7 +6099,7 @@ dependencies = [
  "polkadot-runtime",
  "polkadot-system-emulated-network",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
 ]
 
 [[package]]
@@ -6974,7 +6974,7 @@ dependencies = [
  "pallet-message-queue 44.0.0",
  "pallet-xcm 20.0.0",
  "paste",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
  "xcm-emulator",
 ]
 
@@ -7459,10 +7459,10 @@ dependencies = [
  "kusama-runtime-constants",
  "parachains-common 22.0.0",
  "polkadot-primitives 19.0.0",
- "sc-consensus-grandpa 0.34.0",
- "sp-authority-discovery 36.0.0",
- "sp-consensus-babe 0.42.1",
- "sp-consensus-beefy 24.1.0",
+ "sc-consensus-grandpa 0.36.0",
+ "sp-authority-discovery 37.0.0",
+ "sp-consensus-babe 0.43.0",
+ "sp-consensus-beefy 25.0.0",
  "sp-core 37.0.0",
  "staging-kusama-runtime",
 ]
@@ -7496,7 +7496,7 @@ dependencies = [
  "sp-runtime 42.0.0",
  "sp-trie 40.0.0",
  "sp-weights 32.0.0",
- "staging-xcm-builder 20.1.1",
+ "staging-xcm-builder 21.0.0",
 ]
 
 [[package]]
@@ -11660,7 +11660,7 @@ dependencies = [
  "polkadot-emulated-chain",
  "sp-core 37.0.0",
  "sp-keyring 42.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
 ]
 
 [[package]]
@@ -11766,8 +11766,8 @@ dependencies = [
  "polkadot-runtime-common 20.0.0",
  "sp-runtime 42.0.0",
  "staging-kusama-runtime",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "xcm-runtime-apis 0.8.0",
 ]
 
@@ -11832,10 +11832,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -11876,8 +11876,8 @@ dependencies = [
  "polkadot-runtime-constants",
  "polkadot-system-emulated-network",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-executor 20.0.0",
  "xcm-runtime-apis 0.8.0",
 ]
 
@@ -11941,10 +11941,10 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool 37.0.0",
  "sp-version 40.0.0",
- "staging-parachain-info 0.20.0",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-parachain-info 0.21.0",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "system-parachains-constants",
  "xcm-runtime-apis 0.8.0",
@@ -12113,10 +12113,10 @@ dependencies = [
  "polkadot-primitives 19.0.0",
  "polkadot-runtime",
  "polkadot-runtime-constants",
- "sc-consensus-grandpa 0.34.0",
- "sp-authority-discovery 36.0.0",
- "sp-consensus-babe 0.42.1",
- "sp-consensus-beefy 24.1.0",
+ "sc-consensus-grandpa 0.36.0",
+ "sp-authority-discovery 37.0.0",
+ "sp-consensus-babe 0.43.0",
+ "sp-consensus-beefy 25.0.0",
  "sp-core 37.0.0",
  "sp-runtime 42.0.0",
 ]
@@ -12283,7 +12283,7 @@ dependencies = [
  "polkadot-primitives 19.0.0",
  "polkadot-runtime-common 20.0.0",
  "polkadot-runtime-constants",
- "polkadot-runtime-parachains 19.2.0",
+ "polkadot-runtime-parachains 20.0.0",
  "relay-common",
  "scale-info",
  "separator",
@@ -12291,10 +12291,10 @@ dependencies = [
  "sp-api 37.0.0",
  "sp-application-crypto 41.0.0",
  "sp-arithmetic 27.0.0",
- "sp-authority-discovery 36.0.0",
+ "sp-authority-discovery 37.0.0",
  "sp-block-builder 37.0.0",
- "sp-consensus-babe 0.42.1",
- "sp-consensus-beefy 24.1.0",
+ "sp-consensus-babe 0.43.0",
+ "sp-consensus-beefy 25.0.0",
  "sp-core 37.0.0",
  "sp-debug-derive",
  "sp-genesis-builder 0.18.0",
@@ -12312,9 +12312,9 @@ dependencies = [
  "sp-trie 40.0.0",
  "sp-version 40.0.0",
  "ss58-registry",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "tokio",
  "xcm-runtime-apis 0.8.0",
@@ -12437,7 +12437,7 @@ dependencies = [
  "sp-runtime 42.0.0",
  "sp-trie 40.0.0",
  "sp-weights 32.0.0",
- "staging-xcm-builder 20.1.1",
+ "staging-xcm-builder 21.0.0",
 ]
 
 [[package]]
@@ -12509,7 +12509,6 @@ dependencies = [
  "sp-session 38.1.0",
  "sp-staking 38.0.0",
  "sp-std",
- "sp-tracing",
  "staging-xcm 16.2.0",
  "staging-xcm-executor 19.1.2",
  "static_assertions",
@@ -12559,6 +12558,7 @@ dependencies = [
  "sp-session 39.0.0",
  "sp-staking 39.0.0",
  "sp-std",
+ "sp-tracing",
  "staging-xcm 17.0.0",
  "staging-xcm-executor 20.0.0",
  "static_assertions",
@@ -14152,30 +14152,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-chain-spec"
-version = "42.0.0"
+name = "sc-block-builder"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1ca4ca82a725cc03078839d823ed0f999507ffd0b9a3b24a5f21cf10f24e2e0"
+checksum = "d3f7a3c6e169920a2ae584e05aa2e25dd3e93ca85abcef3d2b7246d92629246b"
 dependencies = [
- "array-bytes 6.2.3",
- "docify",
- "memmap2",
  "parity-scale-codec",
- "sc-chain-spec-derive",
- "sc-client-api 39.0.0",
- "sc-executor 0.42.0",
- "sc-network 0.49.2",
- "sc-telemetry 28.1.0",
- "serde",
- "serde_json",
- "sp-blockchain 39.0.0",
- "sp-core 36.1.0",
- "sp-crypto-hashing",
- "sp-genesis-builder 0.17.0",
- "sp-io 40.0.1",
- "sp-runtime 41.1.0",
- "sp-state-machine 0.45.0",
- "sp-tracing",
+ "sp-api 37.0.0",
+ "sp-block-builder 37.0.0",
+ "sp-blockchain 40.0.0",
+ "sp-core 37.0.0",
+ "sp-inherents 37.0.0",
+ "sp-runtime 42.0.0",
+ "sp-trie 40.0.0",
 ]
 
 [[package]]
@@ -14300,30 +14289,6 @@ dependencies = [
 
 [[package]]
 name = "sc-consensus"
-version = "0.48.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15adbad0ca8f3312ff19ec97ef75bce5809518ff4725121e7885d42bb8de5fea"
-dependencies = [
- "async-trait",
- "futures",
- "log",
- "mockall",
- "parking_lot 0.12.4",
- "sc-client-api 39.0.0",
- "sc-network-types 0.15.5",
- "sc-utils 18.0.1",
- "serde",
- "sp-blockchain 39.0.0",
- "sp-consensus 0.42.0",
- "sp-core 36.1.0",
- "sp-runtime 41.1.0",
- "sp-state-machine 0.45.0",
- "substrate-prometheus-endpoint",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "sc-consensus"
 version = "0.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52f56b45b0dfd53de9474c52e16da653463310cf0e7c9ea6f11f0774162bdafc"
@@ -14347,46 +14312,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-consensus-grandpa"
-version = "0.34.0"
+name = "sc-consensus"
+version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c338eea1825f212308cc89c5d7db38810cac042da942347fa889e27fd7d8d8d"
+checksum = "1b3e547a4b5e78fa06e899553df83b92e42f6413c3be205608fd8a2d6a1dc627"
 dependencies = [
- "ahash",
- "array-bytes 6.2.3",
  "async-trait",
- "dyn-clone",
- "finality-grandpa",
- "fork-tree",
  "futures",
- "futures-timer",
  "log",
- "parity-scale-codec",
+ "mockall",
  "parking_lot 0.12.4",
- "rand 0.8.5",
- "sc-block-builder",
- "sc-chain-spec 42.0.0",
- "sc-client-api 39.0.0",
- "sc-consensus 0.48.0",
- "sc-network 0.49.2",
- "sc-network-common 0.48.0",
- "sc-network-gossip 0.49.0",
- "sc-network-sync 0.48.0",
- "sc-network-types 0.15.5",
- "sc-telemetry 28.1.0",
- "sc-transaction-pool-api 39.0.0",
- "sc-utils 18.0.1",
- "serde_json",
- "sp-api 36.0.1",
- "sp-application-crypto 40.1.0",
- "sp-arithmetic 26.1.0",
- "sp-blockchain 39.0.0",
- "sp-consensus 0.42.0",
- "sp-consensus-grandpa 23.1.0",
- "sp-core 36.1.0",
- "sp-crypto-hashing",
- "sp-keystore 0.42.0",
- "sp-runtime 41.1.0",
+ "sc-client-api 40.0.0",
+ "sc-network-types 0.17.0",
+ "sc-utils 19.0.0",
+ "serde",
+ "sp-blockchain 40.0.0",
+ "sp-consensus 0.43.0",
+ "sp-core 37.0.0",
+ "sp-runtime 42.0.0",
+ "sp-state-machine 0.46.0",
  "substrate-prometheus-endpoint",
  "thiserror 1.0.69",
 ]
@@ -14409,7 +14353,7 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.4",
  "rand 0.8.5",
- "sc-block-builder",
+ "sc-block-builder 0.44.0",
  "sc-chain-spec 43.0.0",
  "sc-client-api 39.0.0",
  "sc-consensus 0.49.0",
@@ -14432,6 +14376,51 @@ dependencies = [
  "sp-crypto-hashing",
  "sp-keystore 0.42.0",
  "sp-runtime 41.1.0",
+ "substrate-prometheus-endpoint",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sc-consensus-grandpa"
+version = "0.36.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f727caed762bd2feda49c00f244a919beca4542d685b44d93a5d1fd682493773"
+dependencies = [
+ "ahash",
+ "array-bytes 6.2.3",
+ "async-trait",
+ "dyn-clone",
+ "finality-grandpa",
+ "fork-tree",
+ "futures",
+ "futures-timer",
+ "log",
+ "parity-scale-codec",
+ "parking_lot 0.12.4",
+ "rand 0.8.5",
+ "sc-block-builder 0.45.0",
+ "sc-chain-spec 44.0.0",
+ "sc-client-api 40.0.0",
+ "sc-consensus 0.50.0",
+ "sc-network 0.51.0",
+ "sc-network-common 0.49.0",
+ "sc-network-gossip 0.51.0",
+ "sc-network-sync 0.50.0",
+ "sc-network-types 0.17.0",
+ "sc-telemetry 29.0.0",
+ "sc-transaction-pool-api 40.0.0",
+ "sc-utils 19.0.0",
+ "serde_json",
+ "sp-api 37.0.0",
+ "sp-application-crypto 41.0.0",
+ "sp-arithmetic 27.0.0",
+ "sp-blockchain 40.0.0",
+ "sp-consensus 0.43.0",
+ "sp-consensus-grandpa 24.0.0",
+ "sp-core 37.0.0",
+ "sp-crypto-hashing",
+ "sp-keystore 0.43.0",
+ "sp-runtime 42.0.0",
  "substrate-prometheus-endpoint",
  "thiserror 1.0.69",
 ]
@@ -14572,9 +14561,9 @@ dependencies = [
 
 [[package]]
 name = "sc-mixnet"
-version = "0.19.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a4fd83a76b5a6a715a2567b762637cbc26c2f1199c8698e0603242069a6ef60"
+checksum = "49cf0f69fe91307e892204e76f692042b96706996e850c2d8f3691ce9948e568"
 dependencies = [
  "array-bytes 6.2.3",
  "arrayvec 0.7.6",
@@ -14586,68 +14575,17 @@ dependencies = [
  "mixnet",
  "parity-scale-codec",
  "parking_lot 0.12.4",
- "sc-client-api 39.0.0",
- "sc-network 0.49.2",
- "sc-network-types 0.15.5",
- "sc-transaction-pool-api 39.0.0",
- "sp-api 36.0.1",
- "sp-consensus 0.42.0",
- "sp-core 36.1.0",
- "sp-keystore 0.42.0",
+ "sc-client-api 40.0.0",
+ "sc-network 0.51.0",
+ "sc-network-types 0.17.0",
+ "sc-transaction-pool-api 40.0.0",
+ "sp-api 37.0.0",
+ "sp-consensus 0.43.0",
+ "sp-core 37.0.0",
+ "sp-keystore 0.43.0",
  "sp-mixnet",
- "sp-runtime 41.1.0",
+ "sp-runtime 42.0.0",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "sc-network"
-version = "0.49.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad6a716a158c92e43bf9081ab5a5bf73fccfd0bcd82ba65660d5481b4a49b427"
-dependencies = [
- "array-bytes 6.2.3",
- "async-channel 1.9.0",
- "async-trait",
- "asynchronous-codec 0.6.2",
- "bytes",
- "cid 0.9.0",
- "either",
- "fnv",
- "futures",
- "futures-timer",
- "ip_network",
- "libp2p",
- "linked_hash_set",
- "litep2p",
- "log",
- "mockall",
- "parity-scale-codec",
- "parking_lot 0.12.4",
- "partial_sort",
- "pin-project",
- "prost 0.12.6",
- "prost-build",
- "rand 0.8.5",
- "sc-client-api 39.0.0",
- "sc-network-common 0.48.0",
- "sc-network-types 0.15.5",
- "sc-utils 18.0.1",
- "schnellru",
- "serde",
- "serde_json",
- "smallvec",
- "sp-arithmetic 26.1.0",
- "sp-blockchain 39.0.0",
- "sp-core 36.1.0",
- "sp-runtime 41.1.0",
- "substrate-prometheus-endpoint",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "unsigned-varint 0.7.2",
- "void",
- "wasm-timer",
- "zeroize",
 ]
 
 [[package]]
@@ -14776,26 +14714,6 @@ dependencies = [
 
 [[package]]
 name = "sc-network-gossip"
-version = "0.49.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1827988c88bc075995ec11bdd0ca9f928909cbf5fef5abb33a4cdffa1f99cdb"
-dependencies = [
- "ahash",
- "futures",
- "futures-timer",
- "log",
- "sc-network 0.49.2",
- "sc-network-common 0.48.0",
- "sc-network-sync 0.48.0",
- "sc-network-types 0.15.5",
- "schnellru",
- "sp-runtime 41.1.0",
- "substrate-prometheus-endpoint",
- "tracing",
-]
-
-[[package]]
-name = "sc-network-gossip"
 version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7685fcc9a1413196232a09509732cd6b09d6b77e989eedf6f5e59e5e75ae4516"
@@ -14815,39 +14733,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-network-sync"
-version = "0.48.0"
+name = "sc-network-gossip"
+version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d22f0e1c117901ac5ba27df45a34928ff485741b8300809e2fdd812208020eb"
+checksum = "2bc29763481d2a8b385d76e4303bbfbfa7980a1536cda22f7fd17273ab566c77"
 dependencies = [
- "array-bytes 6.2.3",
- "async-channel 1.9.0",
- "async-trait",
- "fork-tree",
+ "ahash",
  "futures",
+ "futures-timer",
  "log",
- "mockall",
- "parity-scale-codec",
- "prost 0.12.6",
- "prost-build",
- "sc-client-api 39.0.0",
- "sc-consensus 0.48.0",
- "sc-network 0.49.2",
- "sc-network-common 0.48.0",
- "sc-network-types 0.15.5",
- "sc-utils 18.0.1",
+ "sc-network 0.51.0",
+ "sc-network-common 0.49.0",
+ "sc-network-sync 0.50.0",
+ "sc-network-types 0.17.0",
  "schnellru",
- "smallvec",
- "sp-arithmetic 26.1.0",
- "sp-blockchain 39.0.0",
- "sp-consensus 0.42.0",
- "sp-consensus-grandpa 23.1.0",
- "sp-core 36.1.0",
- "sp-runtime 41.1.0",
+ "sp-runtime 42.0.0",
  "substrate-prometheus-endpoint",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
+ "tracing",
 ]
 
 [[package]]
@@ -14887,21 +14789,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-network-types"
-version = "0.15.5"
+name = "sc-network-sync"
+version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5432f4f7d0b9608be6650cb35c04dd8db3a982ce63fb643df974e2ec088dccda"
+checksum = "2ae94e1d2003a4d6e069c95765005720aacca8c4e9fc9109cecbca281fd09848"
 dependencies = [
- "bs58",
- "ed25519-dalek",
- "libp2p-identity",
- "litep2p",
+ "array-bytes 6.2.3",
+ "async-channel 1.9.0",
+ "async-trait",
+ "fork-tree",
+ "futures",
  "log",
- "multiaddr 0.18.2",
- "multihash 0.19.3",
- "rand 0.8.5",
+ "mockall",
+ "parity-scale-codec",
+ "prost 0.12.6",
+ "prost-build",
+ "sc-client-api 40.0.0",
+ "sc-consensus 0.50.0",
+ "sc-network 0.51.0",
+ "sc-network-common 0.49.0",
+ "sc-network-types 0.17.0",
+ "sc-utils 19.0.0",
+ "schnellru",
+ "smallvec",
+ "sp-arithmetic 27.0.0",
+ "sp-blockchain 40.0.0",
+ "sp-consensus 0.43.0",
+ "sp-consensus-grandpa 24.0.0",
+ "sp-core 37.0.0",
+ "sp-runtime 42.0.0",
+ "substrate-prometheus-endpoint",
  "thiserror 1.0.69",
- "zeroize",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
@@ -14948,22 +14868,22 @@ dependencies = [
 
 [[package]]
 name = "sc-rpc-api"
-version = "0.48.0"
+version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ed810a156f70cf5f7ab8fb5d9cf818999a72821c570aba4f4699aa4eea59e01"
+checksum = "ebfebc8edeb4b0b10e9548843b31fd5774911ef9c51216ac8aca01bfe1f3000a"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
- "sc-chain-spec 42.0.0",
+ "sc-chain-spec 44.0.0",
  "sc-mixnet",
- "sc-transaction-pool-api 39.0.0",
+ "sc-transaction-pool-api 40.0.0",
  "scale-info",
  "serde",
  "serde_json",
- "sp-core 36.1.0",
+ "sp-core 37.0.0",
  "sp-rpc",
- "sp-runtime 41.1.0",
- "sp-version 39.0.0",
+ "sp-runtime 42.0.0",
+ "sp-version 40.0.0",
  "thiserror 1.0.69",
 ]
 
@@ -17348,14 +17268,14 @@ dependencies = [
 
 [[package]]
 name = "sp-mixnet"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e65fb51d9ff444789b3c7771a148d7b685ec3c02498792fd0ecae0f1e00218f"
+checksum = "940c798bf2e049985c9191664be88e9115b874d722b5da9b5340170e246830b4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-api 36.0.1",
- "sp-application-crypto 40.1.0",
+ "sp-api 37.0.0",
+ "sp-application-crypto 41.0.0",
 ]
 
 [[package]]
@@ -17456,13 +17376,13 @@ dependencies = [
 
 [[package]]
 name = "sp-rpc"
-version = "34.0.0"
+version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0acde213e9f08065dcc407a934e9ffd5388bef51347326195405efb62c7a0e4a"
+checksum = "e7192c98c5f4cd80466b7c2ea7489cbceef20e8073b09ca60829332bf269a30e"
 dependencies = [
  "rustc-hash 1.1.0",
  "serde",
- "sp-core 36.1.0",
+ "sp-core 37.0.0",
 ]
 
 [[package]]
@@ -18069,7 +17989,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives 19.0.0",
  "polkadot-runtime-common 20.0.0",
- "polkadot-runtime-parachains 19.2.0",
+ "polkadot-runtime-parachains 20.0.0",
  "relay-common",
  "scale-info",
  "separator",
@@ -18077,10 +17997,10 @@ dependencies = [
  "sp-api 37.0.0",
  "sp-application-crypto 41.0.0",
  "sp-arithmetic 27.0.0",
- "sp-authority-discovery 36.0.0",
+ "sp-authority-discovery 37.0.0",
  "sp-block-builder 37.0.0",
- "sp-consensus-babe 0.42.1",
- "sp-consensus-beefy 24.1.0",
+ "sp-consensus-babe 0.43.0",
+ "sp-consensus-beefy 25.0.0",
  "sp-core 37.0.0",
  "sp-debug-derive",
  "sp-genesis-builder 0.18.0",
@@ -18098,9 +18018,9 @@ dependencies = [
  "sp-trie 40.0.0",
  "sp-version 40.0.0",
  "ss58-registry",
- "staging-xcm 16.2.0",
- "staging-xcm-builder 20.1.1",
- "staging-xcm-executor 19.1.2",
+ "staging-xcm 17.0.0",
+ "staging-xcm-builder 21.0.0",
+ "staging-xcm-executor 20.0.0",
  "substrate-wasm-builder 27.0.0",
  "tokio",
  "xcm-runtime-apis 0.8.0",
@@ -18392,16 +18312,16 @@ dependencies = [
 
 [[package]]
 name = "substrate-rpc-client"
-version = "0.48.0"
+version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbf475a3ec6f1bb4d4ecb305bdd2255d2010ed768d0d19ee85aeb0cc426303af"
+checksum = "4db5716c0f44139e6056a0b30f1fbc223d7b5a7a009a1fb141f554744afdf752"
 dependencies = [
  "async-trait",
  "jsonrpsee",
  "log",
  "sc-rpc-api",
  "serde",
- "sp-runtime 41.1.0",
+ "sp-runtime 42.0.0",
 ]
 
 [[package]]
@@ -18934,7 +18854,7 @@ dependencies = [
  "smallvec",
  "sp-core 37.0.0",
  "sp-runtime 42.0.0",
- "staging-xcm 16.2.0",
+ "staging-xcm 17.0.0",
 ]
 
 [[package]]

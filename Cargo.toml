@@ -14,9 +14,9 @@ asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
 asset-test-utils = { version = "23.0.0" }
 assets-common = { version = "0.21.0", default-features = false }
-authority-discovery-primitives = { version = "36.0.0", default-features = false, package = "sp-authority-discovery" }
-babe-primitives = { version = "0.42.1", default-features = false, package = "sp-consensus-babe" }
-beefy-primitives = { version = "24.1.0", default-features = false, package = "sp-consensus-beefy" }
+authority-discovery-primitives = { version = "37.0.0", default-features = false, package = "sp-authority-discovery" }
+babe-primitives = { version = "0.43.0", default-features = false, package = "sp-consensus-babe" }
+beefy-primitives = { version = "25.0.0", default-features = false, package = "sp-consensus-beefy" }
 binary-merkle-tree = { version = "16.0.0", default-features = false }
 bp-asset-hub-kusama = { path = "system-parachains/asset-hubs/asset-hub-kusama/primitives", default-features = false }
 bp-asset-hub-polkadot = { path = "system-parachains/asset-hubs/asset-hub-polkadot/primitives", default-features = false }
@@ -70,7 +70,7 @@ frame-system-benchmarking = { version = "41.0.0", default-features = false }
 frame-system-rpc-runtime-api = { version = "37.0.0", default-features = false }
 frame-try-runtime = { version = "0.47.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
-grandpa = { version = "0.34.0", package = "sc-consensus-grandpa" }
+grandpa = { version = "0.36.0", package = "sc-consensus-grandpa" }
 hex-literal = "1.0.0"
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
@@ -171,7 +171,7 @@ pallet-xcm = { version = "20.0.0", default-features = false }
 pallet-xcm-benchmarks = { version = "21.0.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.17.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.19.0", default-features = false }
-parachain-info = { version = "0.20.0", default-features = false, package = "staging-parachain-info" }
+parachain-info = { version = "0.21.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "22.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "22.0.0" }
 paste = { version = "1.0.14" }
@@ -191,8 +191,8 @@ polkadot-runtime-constants = { path = "relay/polkadot/constants", default-featur
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
 primitive-types = { version = "0.13.1", default-features = false }
 frame-metadata-hash-extension = { version = "0.9.0", default-features = false }
-remote-externalities = { version = "0.50.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "19.2.0", default-features = false, package = "polkadot-runtime-parachains" }
+remote-externalities = { version = "0.52.0", package = "frame-remote-externalities" }
+runtime-parachains = { version = "20.0.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = "44.0.0"
 sc-network = "0.51.0"
 scale-info = { version = "2.10.0", default-features = false }
@@ -242,10 +242,10 @@ sp-weights = { version = "32.0.0", default-features = false }
 substrate-wasm-builder = "27.0.0"
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
-xcm = { version = "16.2.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "20.1.1", default-features = false, package = "staging-xcm-builder" }
+xcm = { version = "17.0.0", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "21.0.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.19.3" }
-xcm-executor = { version = "19.1.2", default-features = false, package = "staging-xcm-executor" }
+xcm-executor = { version = "20.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.8.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = "0.42.1"
