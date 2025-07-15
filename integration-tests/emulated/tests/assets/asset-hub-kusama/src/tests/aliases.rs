@@ -19,12 +19,15 @@ use crate::*;
 use emulated_integration_tests_common::{macros::AccountId, test_cross_chain_alias};
 use frame_support::{traits::ContainsPair, BoundedVec};
 use xcm::latest::Junctions::*;
+use AssetHubKusamaXcmConfig as XcmConfig;
 
 const ALLOWED: bool = true;
 const DENIED: bool = false;
 
 const TELEPORT_FEES: bool = true;
 const RESERVE_TRANSFER_FEES: bool = false;
+
+const ETHEREUM_BOB: [u8; 20] = hex_literal::hex!("11b0b11000011b0b11000011b0b11000011b0b11");
 
 #[test]
 fn account_on_sibling_syschain_aliases_into_same_local_account() {
@@ -178,7 +181,6 @@ fn authorized_cross_chain_aliases() {
 #[test]
 fn aliasing_child_locations() {
 	AssetHubKusama::execute_with(|| {
-		use AssetHubKusamaXcmConfig as XcmConfig;
 		// Allows aliasing descendant of origin.
 		let origin = Location::new(1, X1([PalletInstance(8)].into()));
 		let target = Location::new(1, X2([PalletInstance(8), GeneralIndex(9)].into()));
@@ -219,7 +221,6 @@ fn aliasing_child_locations() {
 #[test]
 fn asset_hub_root_aliases_anything() {
 	AssetHubKusama::execute_with(|| {
-		use AssetHubKusamaXcmConfig as XcmConfig;
 		// Does not allow local/AH root to alias other locations.
 		let origin = Location::new(1, X1([Parachain(1000)].into()));
 
@@ -269,6 +270,88 @@ fn asset_hub_root_aliases_anything() {
 		let origin = Location::new(1, X1([Parachain(1001)].into()));
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let origin = Location::new(1, X1([Parachain(1002)].into()));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+	});
+}
+
+#[test]
+fn asset_hub_polkadot_root_aliases_into_polkadot_origins() {
+	AssetHubKusama::execute_with(|| {
+		let origin = Location::new(2, X2([GlobalConsensus(Polkadot), Parachain(1000)].into()));
+
+		let target = Location::new(2, X2([GlobalConsensus(Polkadot), Parachain(2000)].into()));
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(
+			2,
+			X3([
+				GlobalConsensus(Polkadot),
+				Parachain(2000),
+				AccountId32Junction { network: None, id: AssetHubKusamaSender::get().into() },
+			]
+			.into()),
+		);
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(
+			2,
+			X4([GlobalConsensus(Polkadot), Parachain(2000), PalletInstance(8), GeneralIndex(9)]
+				.into()),
+		);
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+	});
+}
+
+#[test]
+fn asset_hub_polkadot_root_aliases_into_ethereum_mainnet_origins() {
+	AssetHubKusama::execute_with(|| {
+		let origin = Location::new(2, X2([GlobalConsensus(Polkadot), Parachain(1000)].into()));
+
+		let target = Location::new(2, X1([GlobalConsensus(Ethereum { chain_id: 1 })].into()));
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(2, X1([GlobalConsensus(Ethereum { chain_id: 2 })].into()));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(
+			2,
+			X2([
+				GlobalConsensus(Ethereum { chain_id: 1 }),
+				AccountKey20 { network: None, key: ETHEREUM_BOB },
+			]
+			.into()),
+		);
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+	});
+}
+
+#[test]
+fn asset_hub_polkadot_root_does_not_alias_into_asset_hub_kusama_origins() {
+	AssetHubKusama::execute_with(|| {
+		let origin = Location::new(2, X2([GlobalConsensus(Polkadot), Parachain(1000)].into()));
+
+		let target = Location::new(2, X1([GlobalConsensus(Kusama)].into()));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(2, X2([GlobalConsensus(Kusama), Parachain(2000)].into()));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(
+			2,
+			X3([
+				GlobalConsensus(Kusama),
+				Parachain(2000),
+				AccountId32Junction { network: None, id: AssetHubKusamaSender::get().into() },
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
+
+		let target = Location::new(
+			2,
+			X4([GlobalConsensus(Kusama), Parachain(2000), PalletInstance(8), GeneralIndex(9)]
+				.into()),
+		);
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 	});
 }

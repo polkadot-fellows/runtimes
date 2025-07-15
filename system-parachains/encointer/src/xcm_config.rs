@@ -49,6 +49,8 @@ use xcm_builder::{
 };
 use xcm_executor::XcmExecutor;
 
+pub use system_parachains_constants::kusama::locations::GovernanceLocation;
+
 parameter_types! {
 	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
