@@ -853,17 +853,19 @@ fn test_control_flow() {
 		frame_system::Pallet::<RcRuntime>::reset_events();
 		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
 
-		// setup default XCM version
+		// prepare the RC to send XCM messages to AH.
 		let result =
 			RcRuntimeCall::XcmPallet(pallet_xcm::Call::<RcRuntime>::force_default_xcm_version {
 				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
 			})
 			.dispatch(RcRuntimeOrigin::root());
 
+		// set the max downward message size to 51200.
 		runtime_parachains::configuration::ActiveConfig::<RcRuntime>::mutate(|config| {
 			config.max_downward_message_size = 51200;
 		});
 
+		// make the Asset Hub from RC reachable.
 		polkadot_runtime::Dmp::make_parachain_reachable(1000);
 
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
@@ -886,6 +888,7 @@ fn test_control_flow() {
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 
+	// send invalid XCM message from RC to AH via rc-migrator.
 	let dmp_messages = rc.execute_with(|| {
 		rc_now = rc_now + 1;
 		frame_system::Pallet::<RcRuntime>::reset_events();
@@ -907,14 +910,17 @@ fn test_control_flow() {
 		)
 		.expect("failed to send XCM messages");
 
+		// make sure the message buffered in the rc migrator.
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(0).is_some());
 
+		// take the message from the queue to feed it later to the AH message processor.
 		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
 		assert_eq!(dmp_messages.len(), 1);
 
 		dmp_messages
 	});
 
+	// process the message in the AH.
 	let ump_messages = ah.execute_with(|| {
 		ah_now = ah_now + 1;
 		frame_system::Pallet::<AhRuntime>::reset_events();
@@ -925,12 +931,14 @@ fn test_control_flow() {
 		<asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(ah_now);
 		<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(ah_now);
 
+		// take the acknowledgement message from the AH.
 		let ump_messages = PendingUpwardMessages::<AhRuntime>::take();
 		assert_eq!(ump_messages.len(), 1);
 
 		ump_messages
 	});
 
+	// process the acknowledgement message from AH in the RC.
 	rc.execute_with(|| {
 		rc_now = rc_now + 1;
 		frame_system::Pallet::<RcRuntime>::reset_events();
@@ -941,9 +949,11 @@ fn test_control_flow() {
 		<polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(rc_now);
 		<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(rc_now);
 
+		// make sure the message is still buffered since the message failed to be processed on AH.
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(0).is_some());
 	});
 
+	// send valid XCM message from RC to AH via rc-migrator.
 	let dmp_messages = rc.execute_with(|| {
 		rc_now = rc_now + 1;
 		frame_system::Pallet::<RcRuntime>::reset_events();
@@ -963,12 +973,15 @@ fn test_control_flow() {
 		)
 		.expect("failed to send XCM messages");
 
+		// make sure the second message buffered in the rc migrator.
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(1).is_some());
 
+		// take the message from the queue and drop it to make sure AH will not process and
+		// acknowledge it.
 		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
 		assert_eq!(dmp_messages.len(), 1);
 
-		// setup default XCM version
+		// resend the buffered message via rc-migrator.
 		let result = RcRuntimeCall::RcMigrator(pallet_rc_migrator::Call::<RcRuntime>::resend_xcm {
 			query_id: 1,
 		})
@@ -976,14 +989,18 @@ fn test_control_flow() {
 
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 
+		// make sure rc-migrator created a new query response request and buffered the message
+		// again with the new query id.
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(2).is_some());
 
+		// take the message from the queue to feed it later to the AH message processor.
 		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
 		assert_eq!(dmp_messages.len(), 1);
 
 		dmp_messages
 	});
 
+	// process the message in the AH.
 	let ump_messages = ah.execute_with(|| {
 		ah_now = ah_now + 1;
 		frame_system::Pallet::<AhRuntime>::reset_events();
@@ -994,12 +1011,14 @@ fn test_control_flow() {
 		<asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(ah_now);
 		<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(ah_now);
 
+		// take the acknowledgement message from the AH.
 		let ump_messages = PendingUpwardMessages::<AhRuntime>::take();
 		assert_eq!(ump_messages.len(), 1);
 
 		ump_messages
 	});
 
+	// process the acknowledgement message from AH in the RC.
 	rc.execute_with(|| {
 		rc_now = rc_now + 1;
 		frame_system::Pallet::<RcRuntime>::reset_events();
@@ -1010,6 +1029,8 @@ fn test_control_flow() {
 		<polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(rc_now);
 		<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(rc_now);
 
+		// make sure the message is not buffered since the acknowledgement of successful processing
+		// received from AH.
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(2).is_none());
 	});
 }
