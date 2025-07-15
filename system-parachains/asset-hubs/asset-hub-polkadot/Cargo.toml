@@ -311,6 +311,7 @@ std = [
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
+	"pallet-nomination-pools-benchmarking?/std",
 	"pallet-nomination-pools/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
@@ -365,7 +366,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-nomination-pools-benchmarking?/std"
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
