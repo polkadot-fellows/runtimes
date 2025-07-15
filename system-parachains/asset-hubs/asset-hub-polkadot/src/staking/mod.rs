@@ -152,7 +152,7 @@ impl pallet_delegated_staking::Config for Runtime {
 	type PalletId = DelegatedStakingPalletId;
 	type Currency = Balances;
 	// slashes are sent to the treasury.
-	type OnSlash = ResolveTo<TreasuryAccountId<Self>, Balances>;
+	type OnSlash = ResolveTo<xcm_config::TreasuryAccount, Balances>;
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
@@ -333,8 +333,8 @@ impl pallet_staking_async::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
-	type RewardRemainder = ResolveTo<TreasuryAccountId<Self>, Balances>;
-	type Slash = ResolveTo<TreasuryAccountId<Self>, Balances>;
+	type RewardRemainder = ResolveTo<xcm_config::TreasuryAccount, Balances>;
+	type Slash = ResolveTo<xcm_config::TreasuryAccount, Balances>;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
