@@ -68,6 +68,7 @@ use core::cmp::Ordering;
 use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
 };
+use frame_support::traits::AsEnsureOriginWithArg;
 use frame_support::{
 	construct_runtime,
 	genesis_builder_helper::{build_state, get_preset},
@@ -76,7 +77,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
@@ -93,6 +94,7 @@ use pallet_staking::UseValidatorsMap;
 use pallet_staking_async_ah_client as ah_client;
 use pallet_staking_async_rc_client as rc_client;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
@@ -1331,6 +1333,13 @@ impl parachains_paras::Config for Runtime {
 	// Per day the cooldown is removed earlier, it should cost 1000.
 	// FAIL-CI: @bkchr what is this cost here? what would be a good value for Polkadot?
 	type CooldownRemovalMultiplier = ConstUint<{ 1000 * UNITS / DAYS as u128 }>;
+	type AuthorizeCurrentCodeOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		// Collectives DDay plurality mapping.
+		AsEnsureOriginWithArg<
+			EnsureXcm<IsVoiceOfBody<xcm_config::CollectivesLocation, xcm_config::DDayBodyId>>,
+		>,
+	>;
 }
 
 parameter_types! {
