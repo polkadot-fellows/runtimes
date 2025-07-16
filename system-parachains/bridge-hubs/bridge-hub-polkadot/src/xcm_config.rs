@@ -17,9 +17,9 @@
 use crate::XcmOverBridgeHubKusama;
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balance, Balances,
-	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
-	Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, CollatorSelection, ParachainInfo, ParachainSystem,
+	PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
@@ -42,17 +42,14 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowHrmpNotificationsFromRelayChain,
 	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter, HandleFee, HashedDescription,
-	IsConcrete, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
+	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{
-	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export},
-	XcmExecutor,
-};
+use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
 
