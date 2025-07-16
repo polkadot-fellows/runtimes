@@ -553,7 +553,7 @@ macro_rules! test_chain_can_claim_assets {
 	};
 }
 
-/// note: $asset needs to be prefunded outside this function
+/// NOTE: $asset needs to be prefunded outside this function
 /// Remove when SDK is upgraded to include: https://github.com/paritytech/polkadot-sdk/blob/ee6d22b94d9a93ac5989d4cce2f20a604b86214b/prdoc/pr_8289.prdoc#L1
 #[macro_export]
 macro_rules! create_pool_with_native_on {
