@@ -287,4 +287,12 @@ impl<T: frame_system::Config> runtime_parachains :: paras::WeightInfo for Weight
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+
+	fn remove_upgrade_cooldown() -> Weight {
+		// FAIL-CI: JUST COPIED AND WILL BE UPDATED NEXT TIME
+		Weight::from_parts(107_759_000, 0)
+			.saturating_add(Weight::from_parts(0, 30171))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

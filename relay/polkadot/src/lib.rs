@@ -1327,6 +1327,10 @@ impl parachains_paras::Config for Runtime {
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
 	type AssignCoretime = CoretimeAssignmentProvider;
+	type Fungible = Balances;
+	// Per day the cooldown is removed earlier, it should cost 1000.
+	// FAIL-CI: @bkchr what is this cost here? what would be a good value for Polkadot?
+	type CooldownRemovalMultiplier = ConstUint<{ 1000 * UNITS / DAYS as u128 }>;
 }
 
 parameter_types! {
