@@ -12,15 +12,15 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "23.0.0" }
-assets-common = { version = "0.21.0", default-features = false }
+asset-test-utils = { version = "24.0.0" }
+assets-common = { version = "0.22.0", default-features = false }
 authority-discovery-primitives = { version = "37.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.43.0", default-features = false, package = "sp-consensus-babe" }
 beefy-primitives = { version = "25.0.0", default-features = false, package = "sp-consensus-beefy" }
 binary-merkle-tree = { version = "16.0.0", default-features = false }
 bp-asset-hub-kusama = { path = "system-parachains/asset-hubs/asset-hub-kusama/primitives", default-features = false }
 bp-asset-hub-polkadot = { path = "system-parachains/asset-hubs/asset-hub-polkadot/primitives", default-features = false }
-bp-bridge-hub-cumulus = { version = "0.21.0", default-features = false }
+bp-bridge-hub-cumulus = { version = "0.22.0", default-features = false }
 bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
 bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
 bp-header-chain = { version = "0.21.0", default-features = false }
@@ -36,8 +36,8 @@ bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/p
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
 bridge-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot" }
 bridge-hub-polkadot-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-test-utils = { version = "0.22.0" }
-bridge-runtime-common = { version = "0.21.0", default-features = false }
+bridge-hub-test-utils = { version = "0.23.0" }
+bridge-runtime-common = { version = "0.22.0", default-features = false }
 clap = { version = "4.5.0" }
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
 collectives-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot" }
@@ -55,7 +55,7 @@ cumulus-pallet-xcmp-queue = { version = "0.21.0", default-features = false }
 cumulus-primitives-aura = { version = "0.18.0", default-features = false }
 cumulus-primitives-core = { version = "0.19.0", default-features = false }
 cumulus-primitives-utility = { version = "0.21.0", default-features = false }
-emulated-integration-tests-common = { version = "21.0.0" }
+emulated-integration-tests-common = { version = "22.1.0" }
 encointer-balances-tx-payment = { version = "~16.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~16.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
