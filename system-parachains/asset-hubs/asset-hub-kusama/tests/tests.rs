@@ -27,11 +27,10 @@ use asset_hub_kusama_runtime::{
 		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
-	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
-	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
-	SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
+	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
+	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
 };
 use asset_test_utils::{
 	include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works,
@@ -42,7 +41,6 @@ use asset_test_utils::{
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
 use codec::{Decode, Encode};
-use core::ops::Mul;
 use frame_support::{assert_err, assert_ok, traits::fungibles::InspectEnumerable};
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
@@ -791,7 +789,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 	// no - AssetHub
 	assert_err!(
@@ -799,7 +797,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 
 	// ok - relaychain
