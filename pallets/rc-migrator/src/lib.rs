@@ -96,7 +96,7 @@ use runtime_parachains::{
 };
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
-	traits::{BadOrigin, One, Zero},
+	traits::{BadOrigin, Hash, One, Zero},
 	AccountId32,
 };
 use sp_std::prelude::*;
@@ -651,16 +651,23 @@ pub mod pallet {
 	/// The pending XCM messages.
 	///
 	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
-	/// The `QueryId` is the identifier from the [`pallet_xcm`] query handler registry. The XCM
-	/// pallet will notify about the status of the message by calling the
-	/// [`Pallet::receive_query_response`] function with the `QueryId` and the
-	/// response.
 	///
 	/// Unconfirmed messages can be resent by calling the [`Pallet::resend_xcm`] function.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
-		CountedStorageMap<_, Twox64Concat, QueryId, Xcm<()>, OptionQuery>;
+		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+
+	/// The pending XCM response queries and their XCM hash referencing the message in the
+	/// [`PendingXcmMessages`] storage.
+	///
+	/// The `QueryId` is the identifier from the [`pallet_xcm`] query handler registry. The XCM
+	/// pallet will notify about the status of the message by calling the
+	/// [`Pallet::receive_query_response`] function with the `QueryId` and the
+	/// response.
+	#[pallet::storage]
+	pub type PendingXcmQueries<T: Config> =
+		StorageMap<_, Twox64Concat, QueryId, T::Hash, OptionQuery>;
 
 	/// The DMP queue priority.
 	#[pallet::storage]
@@ -780,6 +787,9 @@ pub mod pallet {
 				},
 			}
 
+			let message_hash =
+				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+
 			let response = match response {
 				Response::DispatchResult(maybe_error) => maybe_error,
 				_ => return Err(Error::<T>::InvalidQueryResponse.into()),
@@ -791,7 +801,8 @@ pub mod pallet {
 					"Received success response for query id: {}",
 					query_id
 				);
-				PendingXcmMessages::<T>::remove(query_id);
+				PendingXcmMessages::<T>::remove(message_hash);
+				PendingXcmQueries::<T>::remove(query_id);
 			} else {
 				log::error!(
 					target: LOG_TARGET,
@@ -812,7 +823,10 @@ pub mod pallet {
 		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 
-			let xcm = PendingXcmMessages::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+			let message_hash =
+				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+			let xcm =
+				PendingXcmMessages::<T>::get(message_hash).ok_or(Error::<T>::QueryNotFound)?;
 
 			let asset_hub_location = Location::new(0, Parachain(1000));
 			let receive_notification_call =
@@ -844,7 +858,7 @@ pub mod pallet {
 					send_error: Some(err),
 				});
 			} else {
-				PendingXcmMessages::<T>::insert(new_query_id, xcm);
+				PendingXcmQueries::<T>::insert(new_query_id, message_hash);
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
 					query_id: new_query_id,
 					send_error: None,
@@ -1906,6 +1920,8 @@ pub mod pallet {
 					},
 				];
 
+				let message_hash = T::Hashing::hash_of(&message);
+
 				let message_with_report = {
 					let mut m = message.clone();
 					m.push(SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
@@ -1922,7 +1938,8 @@ pub mod pallet {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 					return Err(Error::XcmError);
 				} else {
-					PendingXcmMessages::<T>::insert(query_id, Xcm(message));
+					PendingXcmMessages::<T>::insert(message_hash, Xcm(message));
+					PendingXcmQueries::<T>::insert(query_id, message_hash);
 					batch_count += 1;
 				}
 			}

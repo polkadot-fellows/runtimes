@@ -869,8 +869,6 @@ fn test_control_flow() {
 		polkadot_runtime::Dmp::make_parachain_reachable(1000);
 
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
-
-		assert_eq!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::count(), 0);
 	});
 
 	// prepare the AH to send XCM messages to RC and Collectives.
@@ -888,6 +886,12 @@ fn test_control_flow() {
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 
+	let (first_query_id, second_query_id, third_query_id) = rc.execute_with(|| {
+		assert_eq!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::count(), 0);
+		// the query ids are incremented by 1 for each message.
+		(0, 1, 2)
+	});
+
 	// send invalid XCM message from RC to AH via rc-migrator.
 	let dmp_messages = rc.execute_with(|| {
 		rc_now = rc_now + 1;
@@ -899,19 +903,17 @@ fn test_control_flow() {
 		// adding a second item; this will cause the dispatchable on AH to fail.
 		batch.push((None, vec![], vec![]));
 
-		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(
-			batch,
-			|batch| {
-				pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
-					values: batch,
-				}
-			},
-			|_| Weight::from_all(1),
-		)
+		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(batch, |batch| {
+			pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
+				values: batch,
+			}
+		})
 		.expect("failed to send XCM messages");
 
 		// make sure the message buffered in the rc migrator.
-		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(0).is_some());
+		let message_hash = pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(first_query_id)
+			.expect("query id not found");
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(message_hash).is_some());
 
 		// take the message from the queue to feed it later to the AH message processor.
 		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
@@ -950,7 +952,9 @@ fn test_control_flow() {
 		<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(rc_now);
 
 		// make sure the message is still buffered since the message failed to be processed on AH.
-		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(0).is_some());
+		let message_hash = pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(first_query_id)
+			.expect("query id not found");
+		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(message_hash).is_some());
 	});
 
 	// send valid XCM message from RC to AH via rc-migrator.
@@ -962,19 +966,20 @@ fn test_control_flow() {
 		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
 		batch.push((None, vec![], vec![]));
 
-		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(
-			batch,
-			|batch| {
-				pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
-					values: batch,
-				}
-			},
-			|_| Weight::from_all(1),
-		)
+		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(batch, |batch| {
+			pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
+				values: batch,
+			}
+		})
 		.expect("failed to send XCM messages");
 
 		// make sure the second message buffered in the rc migrator.
-		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(1).is_some());
+		let second_message_hash =
+			pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(second_query_id)
+				.expect("query id not found");
+		assert!(
+			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(second_message_hash).is_some()
+		);
 
 		// take the message from the queue and drop it to make sure AH will not process and
 		// acknowledge it.
@@ -991,7 +996,10 @@ fn test_control_flow() {
 
 		// make sure rc-migrator created a new query response request and buffered the message
 		// again with the new query id.
-		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(2).is_some());
+		assert!(pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(third_query_id).is_some());
+		assert!(
+			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(second_message_hash).is_some()
+		);
 
 		// take the message from the queue to feed it later to the AH message processor.
 		let dmp_messages = DownwardMessageQueues::<RcRuntime>::take(AH_PARA_ID);
@@ -1031,6 +1039,20 @@ fn test_control_flow() {
 
 		// make sure the message is not buffered since the acknowledgement of successful processing
 		// received from AH.
-		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(2).is_none());
+		let second_message_hash =
+			pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(second_query_id)
+				.expect("query id not found");
+		assert!(
+			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(second_message_hash).is_none()
+		);
+		assert!(pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(third_query_id).is_none());
+
+		// make sure the first message is still buffered.
+		let first_message_hash =
+			pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(first_query_id)
+				.expect("query id not found");
+		assert!(
+			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(first_message_hash).is_some()
+		);
 	});
 }
