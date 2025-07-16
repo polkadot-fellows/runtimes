@@ -55,6 +55,7 @@ pub use system_parachains_constants::kusama::locations::GovernanceLocation;
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const KsmRelayLocation: Location = Location::parent();
+	pub AssetHubKusamaLocation: Location = Location::new(1, [Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID)]);
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
@@ -151,6 +152,7 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowExplicitUnpaidExecutionFrom<(
 						ParentOrParentsPlurality,
 						Equals<RelayTreasuryLocation>,
+						Equals<AssetHubKusamaLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
