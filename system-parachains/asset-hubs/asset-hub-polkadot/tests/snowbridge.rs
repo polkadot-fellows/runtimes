@@ -65,7 +65,7 @@ fn network_export_table_works() {
 		parameter_types! {
 			pub BridgeTable: Vec<NetworkExportTableItem> =
 				Vec::new().into_iter()
-				.chain(to_ethereum::EthereumBridgeTable::get())
+				.chain(to_ethereum::EthereumBridgeTableV1::get())
 				.collect();
 		}
 
