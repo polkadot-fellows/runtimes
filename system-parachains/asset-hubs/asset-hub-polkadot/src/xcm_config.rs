@@ -515,7 +515,7 @@ pub type XcmRouter = WithUniqueTopic<(
 		SovereignPaidRemoteExporter<
 			(
 				bridging::to_ethereum::EthereumNetworkExportTableV2,
-				bridging::to_ethereum::EthereumNetworkExportTable,
+				bridging::to_ethereum::EthereumNetworkExportTableV1,
 			),
 			XcmpQueue,
 			UniversalLocation,
