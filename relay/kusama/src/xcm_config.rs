@@ -236,6 +236,8 @@ parameter_types! {
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	// `GeneralAdmin` pluralistic body.
 	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
+	// DDay pluralistic body.
+	pub const DDayBodyId: BodyId = BodyId::Moniker([b'd', b'd', b'a', b'y']);
 }
 
 /// Type to convert an `Origin` type value into a `Location` value which represents an interior

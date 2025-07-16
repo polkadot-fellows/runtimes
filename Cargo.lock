@@ -18016,6 +18016,8 @@ dependencies = [
  "pallet-session-benchmarking",
  "pallet-society",
  "pallet-staking 41.0.0",
+ "pallet-staking-async-ah-client",
+ "pallet-staking-async-rc-client",
  "pallet-staking-runtime-api",
  "pallet-timestamp 40.0.0",
  "pallet-transaction-payment 41.0.0",

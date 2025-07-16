@@ -287,7 +287,6 @@ impl<T: frame_system::Config> runtime_parachains :: paras::WeightInfo for Weight
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-
 	fn remove_upgrade_cooldown() -> Weight {
 		// FAIL-CI: JUST COPIED AND NEEDS BENCHMARK
 		Weight::from_parts(107_759_000, 0)
@@ -295,7 +294,6 @@ impl<T: frame_system::Config> runtime_parachains :: paras::WeightInfo for Weight
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-
 	/// Storage: `Paras::AuthorizedCodeHash` (r:0 w:1)
 	/// Proof: `Paras::AuthorizedCodeHash` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	fn authorize_force_set_current_code_hash() -> Weight {
