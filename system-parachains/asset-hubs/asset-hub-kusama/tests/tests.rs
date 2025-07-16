@@ -51,7 +51,10 @@ use sp_runtime::{traits::MaybeEquivalence, Either, TryRuntimeError};
 use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
 };
-use xcm::latest::prelude::{Assets as XcmAssets, *};
+use xcm::latest::{
+	prelude::{Assets as XcmAssets, *},
+	WESTEND_GENESIS_HASH,
+};
 use xcm_builder::WithLatestLocationConverter;
 use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
@@ -81,52 +84,6 @@ fn slot_durations() -> SlotDurations {
 		relay: SlotDuration::from_millis(RELAY_CHAIN_SLOT_DURATION_MILLIS.into()),
 		para: SlotDuration::from_millis(SLOT_DURATION),
 	}
-}
-
-fn setup_pool_for_paying_fees_with_foreign_assets(
-	(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
-		AccountId,
-		Location,
-		Balance,
-	),
-) {
-	let existential_deposit = ExistentialDeposit::get();
-
-	// setup a pool to pay fees with `foreign_asset_id_location` tokens
-	let pool_owner: AccountId = [14u8; 32].into();
-	let native_asset = Location::parent();
-	let pool_liquidity: Balance =
-		existential_deposit.max(foreign_asset_id_minimum_balance).mul(100_000);
-
-	let _ = Balances::force_set_balance(
-		RuntimeOrigin::root(),
-		pool_owner.clone().into(),
-		(existential_deposit + pool_liquidity).mul(2),
-	);
-
-	assert_ok!(ForeignAssets::mint(
-		RuntimeOrigin::signed(foreign_asset_owner),
-		foreign_asset_id_location.clone(),
-		pool_owner.clone().into(),
-		(foreign_asset_id_minimum_balance + pool_liquidity).mul(2),
-	));
-
-	assert_ok!(AssetConversion::create_pool(
-		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset.clone()),
-		Box::new(foreign_asset_id_location.clone())
-	));
-
-	assert_ok!(AssetConversion::add_liquidity(
-		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset),
-		Box::new(foreign_asset_id_location),
-		pool_liquidity,
-		pool_liquidity,
-		1,
-		1,
-		pool_owner,
-	));
 }
 
 #[test]
@@ -458,7 +415,10 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 		1000000000000,
 		|| {
 			// setup pool for paying fees to touch `SwapFirstAssetTrader`
-			setup_pool_for_paying_fees_with_foreign_assets(foreign_asset_create_params);
+			asset_test_utils::test_cases::setup_pool_for_paying_fees_with_foreign_assets::<
+				Runtime,
+				RuntimeOrigin,
+			>(ExistentialDeposit::get(), foreign_asset_create_params);
 			// staking pot account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
@@ -747,13 +707,23 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
 	asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
 		Runtime,
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
+	asset_test_utils::test_cases::xcm_payment_api_foreign_asset_pool_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		LocationToAccountId,
+		Block,
+		WeightToFee,
+	>(ExistentialDeposit::get(), WESTEND_GENESIS_HASH);
 }
 
 #[test]
