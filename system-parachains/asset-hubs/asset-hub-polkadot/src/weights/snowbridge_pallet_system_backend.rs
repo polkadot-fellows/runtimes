@@ -22,7 +22,7 @@ use frame_support::{traits::Get, weights::Weight};
 use core::marker::PhantomData;
 
 /// Weight functions for `snowbridge_pallet_system_frontend::BackendWeightInfo`.
-/// Copy the weight generated for `fn register_token() -> Weight` from
+/// NOTE: Copy the weight generated for `fn register_token() -> Weight` from
 /// ../../../../bridge-hubs/bridge-hub-westend/src/weights/snowbridge_pallet_system_v2.rs
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> snowbridge_pallet_system_frontend::BackendWeightInfo for WeightInfo<T> {

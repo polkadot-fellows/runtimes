@@ -744,7 +744,7 @@ pub mod bridging {
 
 			/// Set up exporters configuration.
 			/// `Option<MultiAsset>` represents static "base fee" which is used for total delivery fee calculation.
-			pub EthereumBridgeTable: Vec<NetworkExportTableItem> = vec![
+			pub EthereumBridgeTableV1: Vec<NetworkExportTableItem> = vec![
 				NetworkExportTableItem::new(
 					EthereumNetwork::get(),
 					Some(vec![Junctions::Here]),
@@ -783,7 +783,7 @@ pub mod bridging {
 				snowbridge_outbound_queue_primitives::v2::XcmForSnowbridgeV2,
 			>;
 
-		pub type EthereumNetworkExportTable = xcm_builder::NetworkExportTable<EthereumBridgeTable>;
+		pub type EthereumNetworkExportTableV1 = xcm_builder::NetworkExportTable<EthereumBridgeTable>;
 
 		pub type EthereumAssetFromEthereum =
 			IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;

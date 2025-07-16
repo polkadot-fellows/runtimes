@@ -294,7 +294,7 @@ pub mod benchmark_helpers {
 	use xcm::latest::{Assets, Location, SendError, SendResult, SendXcm, Xcm, XcmHash};
 
 	parameter_types! {
-		// The benchmark fixture test data in the Polkadot SDK relies on these gateway addressed,
+		// The fixture data for benchmark tests in the Polkadot SDK relies on these gateway addresses,
 		// which is validated in the pallets.
 		pub EthereumGatewayAddressV1: H160 = hex!["eda338e4dc46038493b885327842fd3e301cab39"].into();
 		pub EthereumGatewayAddressV2: H160 = hex!["b1185ede04202fe62d38f5db72f71e38ff3e8305"].into();
