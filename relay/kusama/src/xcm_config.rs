@@ -308,6 +308,6 @@ impl pallet_xcm::Config for Runtime {
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
 	type AdminOrigin = EnsureRoot<AccountId>;
-	// Aliasing is disabled: xcm_executor::Config::Aliasers allows only `AliasChildLocation`.
+	// Custom aliasing is disabled: xcm_executor::Config::Aliasers allows only `AliasChildLocation`.
 	type AuthorizedAliasConsideration = Disabled;
 }

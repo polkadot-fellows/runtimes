@@ -30,7 +30,7 @@ const RESERVE_TRANSFER_FEES: bool = false;
 const ETHEREUM_BOB: [u8; 20] = hex_literal::hex!("11b0b11000011b0b11000011b0b11000011b0b11");
 
 #[test]
-fn account_on_sibling_syschain_aliases_into_same_local_account() {
+fn account_on_sibling_chain_cannot_alias_into_same_local_account() {
 	// origin and target are the same account on different chains
 	let origin: AccountId = [1; 32].into();
 	let target = origin.clone();
@@ -68,7 +68,7 @@ fn account_on_sibling_syschain_aliases_into_same_local_account() {
 }
 
 #[test]
-fn account_on_sibling_syschain_cannot_alias_into_different_local_account() {
+fn account_on_sibling_chain_cannot_alias_into_different_local_account() {
 	// origin and target are different accounts on different chains
 	let origin: AccountId = [1; 32].into();
 	let target: AccountId = [2; 32].into();
@@ -225,7 +225,7 @@ fn aliasing_child_locations() {
 }
 
 #[test]
-fn asset_hub_root_aliases_anything() {
+fn local_asset_hub_root_cannot_alias_external_locations() {
 	AssetHubPolkadot::execute_with(|| {
 		// Does not allow local/AH root to alias other locations.
 		let origin = Location::new(1, X1([Parachain(1000)].into()));

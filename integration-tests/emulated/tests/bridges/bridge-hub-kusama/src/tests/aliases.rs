@@ -28,7 +28,7 @@ const TELEPORT_FEES: bool = true;
 const RESERVE_TRANSFER_FEES: bool = false;
 
 #[test]
-fn account_on_sibling_syschain_aliases_into_same_local_account() {
+fn account_on_sibling_chain_cannot_alias_into_same_local_account() {
 	// origin and target are the same account on different chains
 	let origin: AccountId = [1; 32].into();
 	let target = origin.clone();
@@ -59,7 +59,7 @@ fn account_on_sibling_syschain_aliases_into_same_local_account() {
 }
 
 #[test]
-fn account_on_sibling_syschain_cannot_alias_into_different_local_account() {
+fn account_on_sibling_chain_cannot_alias_into_different_local_account() {
 	// origin and target are different accounts on different chains
 	let origin: AccountId = [1; 32].into();
 	let target: AccountId = [2; 32].into();
