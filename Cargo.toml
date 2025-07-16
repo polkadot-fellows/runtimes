@@ -208,14 +208,14 @@ snowbridge-merkle-tree = { version = "0.3.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.14.0", default-features = false }
 snowbridge-outbound-queue-primitives = { version = "0.3.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.14.0", default-features = false }
-snowbridge-pallet-inbound-queue = { version = "0.13.2", default-features = false }
+snowbridge-pallet-inbound-queue = { version = "0.14.0", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = "0.22.0"
 snowbridge-pallet-ethereum-client-fixtures = "0.22.0"
-snowbridge-pallet-outbound-queue = { version = "0.13.0", default-features = false }
-snowbridge-pallet-system = { version = "0.13.3", default-features = false }
+snowbridge-pallet-outbound-queue = { version = "0.14.0", default-features = false }
+snowbridge-pallet-system = { version = "0.14.0", default-features = false }
 snowbridge-inbound-queue-primitives = { version = "0.3.0", default-features = false }
-snowbridge-runtime-common = { version = "0.13.0", default-features = false }
-snowbridge-runtime-test-common = { version = "0.15.0" }
+snowbridge-runtime-common = { version = "0.14.0", default-features = false }
+snowbridge-runtime-test-common = "0.16.0"
 snowbridge-system-runtime-api = { version = "0.14.0", default-features = false }
 sp-api = { version = "37.0.0", default-features = false }
 sp-application-crypto = { version = "41.0.0", default-features = false }
@@ -246,7 +246,7 @@ system-parachains-constants = { path = "system-parachains/constants", default-fe
 tokio = { version = "1.36.0" }
 xcm = { version = "17.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "21.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.19.3" }
+xcm-emulator = "0.20.0"
 xcm-executor = { version = "20.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.8.0", default-features = false }
 anyhow = { version = "1.0.82" }
