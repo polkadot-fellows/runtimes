@@ -71,6 +71,7 @@ fn set_identity_cross_chain() {
 						call: set_identity_call.encode().into(),
 						fallback_max_weight: None,
 					},
+					ExpectTransactStatus(MaybeErrorCode::Success),
 					RefundSurplus,
 					DepositAsset {
 						assets: Wild(AllCounted(1)),
@@ -78,7 +79,6 @@ fn set_identity_cross_chain() {
 					},
 				]),
 			},
-			ExpectTransactStatus(MaybeErrorCode::Success),
 			RefundSurplus,
 			DepositAsset {
 				assets: Wild(AllCounted(1)),
