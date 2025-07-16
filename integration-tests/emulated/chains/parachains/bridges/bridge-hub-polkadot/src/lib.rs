@@ -44,6 +44,8 @@ decl_test_parachains! {
 			EthereumSystem: bridge_hub_polkadot_runtime::EthereumSystem,
 			EthereumInboundQueue: bridge_hub_polkadot_runtime::EthereumInboundQueue,
 			EthereumOutboundQueue: bridge_hub_polkadot_runtime::EthereumOutboundQueue,
+			EthereumSystemV2: bridge_hub_polkadot_runtime::EthereumSystemV2,
+			BridgeRelayers: bridge_hub_polkadot_runtime::BridgeRelayers,
 		}
 	},
 }
