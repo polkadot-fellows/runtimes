@@ -386,7 +386,7 @@ pub fn ah_migrate(asset_hub: &mut TestExternalities, dmp_messages: Vec<InboundDo
 
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use
 		// contains some overweight ones.
-		// TODO compare with the number of messages before the migration
+		// TODO: @re-gius compare with the number of messages before the migration
 	});
 	asset_hub.commit_all().unwrap();
 }

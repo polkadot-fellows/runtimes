@@ -16,7 +16,10 @@
 
 use crate::porting_prelude::*;
 use asset_hub_polkadot_runtime::{AhMigrator, BuildStorage};
-use frame_support::traits::OnFinalize;
+use frame_support::{
+	traits::{DefensiveTruncateFrom, OnFinalize},
+	BoundedSlice,
+};
 use pallet_ah_migrator::{
 	AhMigrationStage, DmpQueuePriority, DmpQueuePriorityConfig,
 	Event::DmpQueuePrioritySet as DmpQueuePrioritySetEvent, MigrationStage,
@@ -27,6 +30,7 @@ use pallet_rc_migrator::{
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_runtime::RcMigrator;
+use xcm_emulator::EnqueueMessage;
 
 #[test]
 fn test_force_dmp_queue_priority() {
@@ -34,6 +38,17 @@ fn test_force_dmp_queue_priority() {
 		.build_storage()
 		.unwrap()
 		.into();
+
+	// prioritization is not even attempted if the migration is not ongoing
+	t.execute_with(|| {
+		use asset_hub_polkadot_runtime::MessageQueue;
+		use cumulus_primitives_core::AggregateMessageOrigin;
+
+		MessageQueue::enqueue_message(
+			BoundedSlice::defensive_truncate_from(&[1]),
+			AggregateMessageOrigin::Parent,
+		);
+	});
 
 	// prioritization is not even attempted if the migration is not ongoing
 	t.execute_with(|| {
@@ -192,6 +207,16 @@ fn test_force_ah_ump_queue_priority() {
 		.build_storage()
 		.unwrap()
 		.into();
+
+	t.execute_with(|| {
+		use polkadot_runtime::MessageQueue;
+		use runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
+
+		MessageQueue::enqueue_message(
+			BoundedSlice::defensive_truncate_from(&[1]),
+			AggregateMessageOrigin::Ump(UmpQueueId::Para(1000.into())),
+		);
+	});
 
 	// prioritization is not even attempted if the migration is not ongoing
 	t.execute_with(|| {

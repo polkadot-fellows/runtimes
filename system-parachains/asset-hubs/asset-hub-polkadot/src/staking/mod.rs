@@ -38,7 +38,7 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = nom_pools::StakingMock;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	// TODO: use weights::pallet_fast_unstake::WeightInfo<Runtime> instead of ()
+	// TODO: @ggwpez use weights::pallet_fast_unstake::WeightInfo<Runtime> instead of ()
 	type WeightInfo = pallet_ah_migrator::MaxOnIdleOrInner<AhMigrator, ()>;
 }
 
@@ -50,7 +50,7 @@ type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ScoreProvider = nom_pools::StakingMock;
-	type WeightInfo = (); // TODO weights::pallet_bags_list::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO: @ggwpez weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 }

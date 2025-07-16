@@ -31,7 +31,7 @@ use bridge_hub_polkadot_runtime::{
 };
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::{pallet_prelude::TypeInfo, traits::Get};
 use hex_literal::hex;
 use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{

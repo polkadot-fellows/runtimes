@@ -169,11 +169,9 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages.into_inner(),
-				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
-				|len| T::AhWeightInfo::receive_bounties_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages.into_inner(), |messages| {
+				types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages }
+			})?;
 		}
 
 		if last_key == BountiesStage::Finished {

@@ -457,7 +457,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// TODO: Make upstream public and use that one.
+		// TODO: @ggwpez Make upstream public and use that one.
 		fn do_proxy(
 			def: ProxyDefinition<T::AccountId, T::ProxyType, BlockNumberFor<T>>,
 			real: T::AccountId,

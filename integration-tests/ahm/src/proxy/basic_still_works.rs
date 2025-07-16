@@ -62,7 +62,7 @@ pub struct Proxy {
 	pub permissions: Vec<Permission>,
 	/// Can control `who`.
 	pub delegatee: AccountId32,
-	// TODO also check the delay
+	// TODO: @ggwpez also check the delay
 }
 
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
@@ -187,7 +187,7 @@ impl ProxyBasicWorks {
 			);
 		}
 
-		// TODO add staking etc
+		// TODO: @ggwpez add staking etc
 
 		// Alice cannot transfer
 		assert!(!Self::can_transfer(&alice, &delegator, false), "Alice cannot transfer");
