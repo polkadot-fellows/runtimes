@@ -34,6 +34,7 @@ use bridge_hub_kusama_runtime::{
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, GovernanceOrigin, SlotDurations};
 use codec::{Decode, Encode};
+use cumulus_primitives_core::UpwardMessageSender;
 use frame_support::{
 	assert_err, assert_ok, dispatch::GetDispatchInfo, parameter_types, traits::ConstU8,
 };
@@ -285,38 +286,37 @@ fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
 		)
 }
 
-// FAIL-CI @bkontur please help fix failing test
-// #[test]
-// fn message_dispatch_routing_works() {
-// 	bridge_hub_test_utils::test_cases::message_dispatch_routing_works::<
-// 		Runtime,
-// 		AllPalletsWithoutSystem,
-// 		XcmConfig,
-// 		ParachainSystem,
-// 		WithBridgeHubPolkadotMessagesInstance,
-// 		RelayNetwork,
-// 		PolkadotGlobalConsensusNetwork,
-// 		ConstU8<2>,
-// 	>(
-// 		collator_session_keys(),
-// 		slot_durations(),
-// 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-// 		SIBLING_PARACHAIN_ID,
-// 		Box::new(|runtime_event_encoded: Vec<u8>| {
-// 			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
-// 				Ok(RuntimeEvent::ParachainSystem(event)) => Some(event),
-// 				_ => None,
-// 			}
-// 		}),
-// 		Box::new(|runtime_event_encoded: Vec<u8>| {
-// 			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
-// 				Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
-// 				_ => None,
-// 			}
-// 		}),
-// 		|| (),
-// 	)
-// }
+#[test]
+fn message_dispatch_routing_works() {
+	bridge_hub_test_utils::test_cases::message_dispatch_routing_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		ParachainSystem,
+		WithBridgeHubPolkadotMessagesInstance,
+		RelayNetwork,
+		PolkadotGlobalConsensusNetwork,
+		ConstU8<2>,
+	>(
+		collator_session_keys(),
+		slot_durations(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		SIBLING_PARACHAIN_ID,
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::ParachainSystem(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		|| <ParachainSystem as UpwardMessageSender>::ensure_successful_delivery(),
+	)
+}
 
 #[test]
 fn relayed_incoming_message_works() {
