@@ -39,28 +39,9 @@ use assets_common::{
 	matching::FromSiblingParachain,
 	AssetIdForTrustBackedAssetsConvert,
 };
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
-use pallet_proxy::ProxyDefinition;
-use pallet_revive::evm::runtime::EthExtra;
-use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::{
-	generic, impl_opaque_keys,
-	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		Verify,
-	},
-	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill,
-};
-
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
-use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -78,12 +59,33 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
+use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
+use pallet_assets::precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
+use pallet_proxy::ProxyDefinition;
+use pallet_revive::evm::runtime::EthExtra;
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::{
 	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
 	Header, Nonce, Signature,
 };
-use sp_runtime::RuntimeDebug;
+use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use sp_api::impl_runtime_apis;
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+	generic, impl_opaque_keys,
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
+		Verify,
+	},
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
+};
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
@@ -98,6 +100,7 @@ use system_parachains_constants::{
 		fee::WeightToFee,
 	},
 };
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::prelude::*, Version as XcmVersion, VersionedAssetId, VersionedAssets,
 	VersionedLocation, VersionedXcm,
@@ -111,15 +114,6 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
-
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-
-// Polkadot imports
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-
-use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -1045,7 +1039,12 @@ impl pallet_revive::Config for Runtime {
 	type DepositPerByte = DepositPerByte;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = weights::pallet_revive::WeightInfo<Self>;
-	type Precompiles = ();
+	type Precompiles = (
+		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
+		// FAIL-CI: @PG why not the ForeignAssetsInstance too? can we add it at <0x220>?
+		// ERC20<Self, InlineIdConfig<0x220>, ForeignAssetsInstance>,
+		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
+	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
 	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
