@@ -16,7 +16,7 @@
 
 use crate::{
 	xcm_config::{GovernanceLocation, LocationToAccountId},
-	Block, Runtime, RuntimeCall, RuntimeOrigin,
+	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
 };
 use polkadot_primitives::AccountId;
 use sp_core::crypto::Ss58Codec;
