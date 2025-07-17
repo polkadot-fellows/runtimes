@@ -83,6 +83,7 @@ pub trait WeightInfo {
 	fn receive_preimage_chunk(m: u32, ) -> Weight;
 	fn set_dmp_queue_priority() -> Weight;
 	fn force_dmp_queue_priority() -> Weight;
+	fn set_manager() -> Weight;
 }
 
 /// Weights for `pallet_ah_migrator` using the Substrate node and recommended hardware.
@@ -661,6 +662,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+
+	fn set_manager() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
 }
 
 // For backwards compatibility and tests.
@@ -1237,5 +1242,9 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 1494))
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+
+	fn set_manager() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
 	}
 }

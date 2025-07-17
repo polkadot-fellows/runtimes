@@ -563,4 +563,8 @@ impl<T: frame_system::Config> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+
+	fn set_manager() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+	}
 }

@@ -1717,7 +1717,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeEvent = RuntimeEvent;
-	type ManagerOrigin = EitherOfDiverse<
+	type AdminOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
