@@ -107,7 +107,7 @@ use sp_core::{OpaqueMetadata, H256};
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConstBool, ConvertInto,
 		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
@@ -471,7 +471,7 @@ impl pallet_timestamp::Config for Runtime {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-	type EventHandler = Staking;
+	type EventHandler = StakingAhClient;
 }
 
 impl_opaque_keys! {
@@ -485,13 +485,19 @@ impl_opaque_keys! {
 	}
 }
 
+parameter_types! {
+	pub const SessionKeyDeposit: Balance = 1 * DOLLARS;
+}
+
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = SessionKeyDeposit;
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
-	type ValidatorIdOf = pallet_staking::StashOf<Self>;
+	type ValidatorIdOf = ConvertInto;
 	type ShouldEndSession = Babe;
 	type NextSessionRotation = Babe;
-	type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
+	type SessionManager = session_historical::NoteHistoricalRoot<Self, StakingAhClient>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
@@ -499,6 +505,7 @@ impl pallet_session::Config for Runtime {
 }
 
 impl pallet_session::historical::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
 	type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
 }
@@ -539,6 +546,10 @@ parameter_types! {
 	/// Setup election pallet to support maximum winners upto 1200. This will mean Staking Pallet
 	/// cannot have active validators higher than this count.
 	pub const MaxActiveValidators: u32 = 1200;
+	// One page only, fill the whole page with the `MaxActiveValidators`.
+	pub const MaxWinnersPerPage: u32 = MaxActiveValidators::get();
+	// Unbonded, thus the max backers per winner maps to the max electing voters limit.
+	pub const MaxBackersPerWinner: u32 = MaxElectingVoters::get();
 }
 
 generate_solution_type!(
@@ -553,13 +564,15 @@ generate_solution_type!(
 
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
+	type Sort = ConstBool<true>;
 	type System = Runtime;
 	type Solver =
 		SequentialPhragmen<AccountId, polkadot_runtime_common::elections::OnChainAccuracy>;
 	type DataProvider = Staking;
 	type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
-	type MaxWinners = MaxActiveValidators;
 	type Bounds = ElectionBounds;
+	type MaxBackersPerWinner = MaxBackersPerWinner;
+	type MaxWinnersPerPage = MaxWinnersPerPage;
 }
 
 impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
@@ -567,12 +580,13 @@ impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
 	type MaxLength = OffchainSolutionLengthLimit;
 	type MaxWeight = OffchainSolutionWeightLimit;
 	type Solution = NposCompactSolution16;
+	type MaxBackersPerWinner = MaxBackersPerWinner;
+	type MaxWinners = MaxWinnersPerPage;
 	type MaxVotesPerVoter = <
 		<Self as pallet_election_provider_multi_phase::Config>::DataProvider
 		as
 		frame_election_provider_support::ElectionDataProvider
 	>::MaxVotesPerVoter;
-	type MaxWinners = MaxActiveValidators;
 
 	// The unsigned submissions have to respect the weight of the submit_unsigned call, thus their
 	// weight estimate function is wired to this call's weight.
@@ -606,7 +620,9 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type BetterSignedThreshold = ();
 	type OffchainRepeat = OffchainRepeat;
 	type MinerTxPriority = NposSolutionPriority;
+	type MaxWinners = MaxWinnersPerPage;
 	type DataProvider = Staking;
+	type MaxBackersPerWinner = MaxBackersPerWinner;
 	#[cfg(any(feature = "fast-runtime", feature = "runtime-benchmarks"))]
 	type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
 	#[cfg(not(any(feature = "fast-runtime", feature = "runtime-benchmarks")))]
@@ -614,7 +630,8 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		AccountId,
 		BlockNumber,
 		Staking,
-		MaxActiveValidators,
+		MaxWinnersPerPage,
+		MaxBackersPerWinner,
 	)>;
 	type GovernanceFallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
 	type Solver = SequentialPhragmen<
@@ -625,7 +642,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
-	type MaxWinners = MaxActiveValidators;
 	type ElectionBounds = ElectionBounds;
 }
 
@@ -640,6 +656,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
+	#[cfg(feature = "paseo")]
+	type MaxAutoRebagPerBlock = ConstU32<5>;
+	#[cfg(not(feature = "paseo"))]
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 /// Defines how much should the inflation be for an era given its duration.
@@ -718,6 +738,7 @@ impl pallet_staking::Config for Runtime {
 	type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
 	type VoterList = VoterList;
 	type TargetList = UseValidatorsMap<Self>;
+	type MaxValidatorSet = MaxActiveValidators;
 	type NominationsQuota = pallet_staking::FixedNominationsQuota<{ MaxNominations::get() }>;
 	type MaxUnlockingChunks = ConstU32<32>;
 	type HistoryDepth = ConstU32<84>;
@@ -843,7 +864,7 @@ impl pallet_child_bounties::Config for Runtime {
 impl pallet_offences::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
-	type OnOffenceHandler = Staking;
+	type OnOffenceHandler = StakingAhClient;
 }
 
 impl pallet_authority_discovery::Config for Runtime {
@@ -947,15 +968,6 @@ where
 		let address = <Runtime as frame_system::Config>::Lookup::unlookup(account);
 		let transaction = UncheckedExtrinsic::new_signed(call, address, signature, tx_ext);
 		Some(transaction)
-	}
-}
-
-impl<LocalCall> frame_system::offchain::CreateInherent<LocalCall> for Runtime
-where
-	RuntimeCall: From<LocalCall>,
-{
-	fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
-		UncheckedExtrinsic::new_bare(call)
 	}
 }
 
@@ -1203,7 +1215,8 @@ impl parachains_session_info::Config for Runtime {
 impl parachains_inclusion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type DisputesHandler = ParasDisputes;
-	type RewardValidators = parachains_reward_points::RewardValidatorsWithEraPoints<Runtime>;
+	type RewardValidators =
+		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
 	type MessageQueue = MessageQueue;
 	type WeightInfo = weights::runtime_parachains_inclusion::WeightInfo<Runtime>;
 }
@@ -1363,7 +1376,8 @@ impl parachains_initializer::Config for Runtime {
 
 impl parachains_disputes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type RewardValidators = parachains_reward_points::RewardValidatorsWithEraPoints<Runtime>;
+	type RewardValidators =
+		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
 	type SlashingHandler = parachains_slashing::SlashValidatorsForDisputes<ParasSlashing>;
 	type WeightInfo = weights::runtime_parachains_disputes::WeightInfo<Runtime>;
 }
@@ -1509,6 +1523,122 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
+impl pallet_staking_async_ah_client::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type CurrencyBalance = Balance;
+	type AssetHubOrigin =
+		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
+	type AdminOrigin = EnsureRoot<AccountId>;
+	type SessionInterface = Self;
+	type SendToAssetHub = StakingXcmToAssetHub;
+	#[cfg(feature = "paseo")]
+	type MinimumValidatorSetSize = ConstU32<50>;
+	#[cfg(not(feature = "paseo"))]
+	type MinimumValidatorSetSize = ConstU32<400>;
+	type UnixTime = Timestamp;
+	type PointsPerBlock = ConstU32<20>;
+	type MaxOffenceBatchSize = ConstU32<50>;
+	type Fallback = Staking;
+	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct EnsureAssetHub;
+impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
+	type Success = ();
+	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
+		match <RuntimeOrigin as Into<Result<parachains_origin::Origin, RuntimeOrigin>>>::into(
+			o.clone(),
+		) {
+			Ok(parachains_origin::Origin::Parachain(id))
+				if id == polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into() =>
+				Ok(()),
+			_ => Err(o),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+#[derive(Encode, Decode)]
+enum AssetHubRuntimePallets<AccountId> {
+	// Audit: `StakingRcClient` in asset-hub-westend
+	#[codec(index = 84)]
+	RcClient(RcClientCalls<AccountId>),
+}
+
+#[derive(Encode, Decode)]
+enum RcClientCalls<AccountId> {
+	#[codec(index = 0)]
+	RelaySessionReport(pallet_staking_async_rc_client::SessionReport<AccountId>),
+	#[codec(index = 1)]
+	RelayNewOffence(SessionIndex, Vec<pallet_staking_async_rc_client::Offence<AccountId>>),
+}
+
+pub struct SessionReportToXcm;
+impl sp_runtime::traits::Convert<pallet_staking_async_rc_client::SessionReport<AccountId>, Xcm<()>>
+	for SessionReportToXcm
+{
+	fn convert(a: pallet_staking_async_rc_client::SessionReport<AccountId>) -> Xcm<()> {
+		Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Superuser,
+				fallback_max_weight: None,
+				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelaySessionReport(a))
+					.encode()
+					.into(),
+			},
+		])
+	}
+}
+
+pub struct StakingXcmToAssetHub;
+impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
+	type AccountId = AccountId;
+
+	fn relay_session_report(
+		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
+	) {
+		pallet_staking_async_rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			AssetHubLocation,
+			pallet_staking_async_rc_client::SessionReport<AccountId>,
+			SessionReportToXcm,
+		>::split_then_send(session_report, Some(8));
+	}
+
+	fn relay_new_offence(
+		session_index: SessionIndex,
+		offences: Vec<pallet_staking_async_rc_client::Offence<Self::AccountId>>,
+	) {
+		let message = Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Superuser,
+				fallback_max_weight: None,
+				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelayNewOffence(
+					session_index,
+					offences,
+				))
+				.encode()
+				.into(),
+			},
+		]);
+		if let Err(err) = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message) {
+			log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+		}
+	}
+}
+
 parameter_types! {
 	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
 	pub const MigrationSignedDepositPerItem: Balance = CENTS;
@@ -1612,10 +1742,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
 }
 
-#[cfg(not(feature = "zombie-bite-sudo"))]
 construct_runtime! {
 	pub enum Runtime
-	{
+		{
 		// Basic stuff; balances is uncallable initially.
 		System: frame_system = 0,
 		Scheduler: pallet_scheduler = 1,
@@ -1667,20 +1796,13 @@ construct_runtime! {
 		Bounties: pallet_bounties = 34,
 		ChildBounties: pallet_child_bounties = 38,
 
-		// Election pallet. Only works with staking, but placed here to maintain indices.
+		// Staking 36-40s, see also Staking, Offences, Historical and Session
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 36,
-
-		// Provides a semi-sorted list of nominators for staking.
 		VoterList: pallet_bags_list::<Instance1> = 37,
-
-		// Nomination pools: extension to staking.
 		NominationPools: pallet_nomination_pools = 39,
-
-		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 40,
-
-		// Staking extension for delegation
 		DelegatedStaking: pallet_delegated_staking = 41,
+		StakingAhClient: pallet_staking_async_ah_client = 42,
 
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
@@ -1733,135 +1855,13 @@ construct_runtime! {
 	}
 }
 
-#[cfg(feature = "zombie-bite-sudo")] // FAIL-CI @pepoviola
-construct_runtime! {
-	pub enum Runtime
-	{
-		// Basic stuff; balances is uncallable initially.
-		System: frame_system = 0,
-		Scheduler: pallet_scheduler = 1,
-		Preimage: pallet_preimage = 10,
-
-		// Babe must be before session.
-		Babe: pallet_babe = 2,
-
-		Timestamp: pallet_timestamp = 3,
-		Indices: pallet_indices = 4,
-		Balances: pallet_balances = 5,
-		TransactionPayment: pallet_transaction_payment = 32,
-
-		// Consensus support.
-		// Authorship must be before session in order to note author in the correct session and era
-		// for staking.
-		Authorship: pallet_authorship = 6,
-		Staking: pallet_staking = 7,
-		Offences: pallet_offences = 8,
-		Historical: session_historical = 33,
-
-		Session: pallet_session = 9,
-		Grandpa: pallet_grandpa = 11,
-		AuthorityDiscovery: pallet_authority_discovery = 13,
-
-		// OpenGov stuff.
-		Treasury: pallet_treasury = 19,
-		ConvictionVoting: pallet_conviction_voting = 20,
-		Referenda: pallet_referenda = 21,
-		Origins: pallet_custom_origins = 22,
-		Whitelist: pallet_whitelist = 23,
-
-		// Claims. Usable initially.
-		Claims: claims = 24,
-		// Vesting. Usable initially, but removed once all vesting is finished.
-		Vesting: pallet_vesting = 25,
-		// Cunning utilities. Usable initially.
-		Utility: pallet_utility = 26,
-
-		// Identity: pallet_identity = 28, (removed post 1.2.8)
-
-		// Proxy module. Late addition.
-		Proxy: pallet_proxy = 29,
-
-		// Multisig dispatch. Late addition.
-		Multisig: pallet_multisig = 30,
-
-		// Bounties modules.
-		Bounties: pallet_bounties = 34,
-		ChildBounties: pallet_child_bounties = 38,
-
-		// Election pallet. Only works with staking, but placed here to maintain indices.
-		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 36,
-
-		// Provides a semi-sorted list of nominators for staking.
-		VoterList: pallet_bags_list::<Instance1> = 37,
-
-		// Nomination pools: extension to staking.
-		NominationPools: pallet_nomination_pools = 39,
-
-		// Fast unstake pallet: extension to staking.
-		FastUnstake: pallet_fast_unstake = 40,
-
-		// Staking extension for delegation
-		DelegatedStaking: pallet_delegated_staking = 41,
-
-		// Parachains pallets. Start indices at 50 to leave room.
-		ParachainsOrigin: parachains_origin = 50,
-		Configuration: parachains_configuration = 51,
-		ParasShared: parachains_shared = 52,
-		ParaInclusion: parachains_inclusion = 53,
-		ParaInherent: parachains_paras_inherent = 54,
-		ParaScheduler: parachains_scheduler = 55,
-		Paras: parachains_paras = 56,
-		Initializer: parachains_initializer = 57,
-		Dmp: parachains_dmp = 58,
-		// Ump 59
-		Hrmp: parachains_hrmp = 60,
-		ParaSessionInfo: parachains_session_info = 61,
-		ParasDisputes: parachains_disputes = 62,
-		ParasSlashing: parachains_slashing = 63,
-		OnDemand: parachains_on_demand = 64,
-		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
-
-		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
-		Registrar: paras_registrar = 70,
-		Slots: slots = 71,
-		Auctions: auctions = 72,
-		Crowdloan: crowdloan = 73,
-		Coretime: coretime = 74,
-
-		// State trie migration pallet, only temporary.
-		StateTrieMigration: pallet_state_trie_migration = 98,
-
-		// Pallet for sending XCM.
-		XcmPallet: pallet_xcm = 99,
-
-		// Generalized message queue
-		MessageQueue: pallet_message_queue = 100,
-
-		// Asset rate.
-		AssetRate: pallet_asset_rate = 101,
-
-		// BEEFY Bridges support.
-		Beefy: pallet_beefy = 200,
-		// MMR leaf construction must be after session in order to have a leaf's next_auth_set
-		// refer to block<N>. See issue #160 for details.
-		Mmr: pallet_mmr = 201,
-		BeefyMmrLeaf: pallet_beefy_mmr = 202,
-
-		// AHM
-		Sudo: pallet_sudo = 250,
-
-		// Relay Chain Migrator
-		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
-		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
-		RcMigrator: pallet_rc_migrator = 255,
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_bare(call)
 	}
-}
-
-#[cfg(feature = "zombie-bite-sudo")]
-impl pallet_sudo::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeCall = RuntimeCall;
-	type WeightInfo = ();
 }
 
 /// The address format for describing accounts.

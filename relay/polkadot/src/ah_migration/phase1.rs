@@ -88,6 +88,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// TransactionPayment has no calls
 		// Authorship has no calls
 		Staking(..) => (OFF, OFF),
+		StakingAhClient(..) => (ON, ON),
 		// Offences has no calls
 		// Historical has no calls
 		Session(..) => (OFF, ON),
@@ -142,8 +143,6 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
 		RcMigrator(..) => (ON, ON),
-		#[cfg(feature = "zombie-bite-sudo")]
-		Sudo(..) => (ON, ON),
 		// Exhaustive match. Compiler ensures that we did not miss any.
 	}
 }
