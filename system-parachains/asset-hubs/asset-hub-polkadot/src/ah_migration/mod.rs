@@ -90,8 +90,8 @@ impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
-	// TODO: @muharem map this once pallet-staking-async is integrated
-	// Staking,
+	#[codec(index = 89)]
+	Staking(pallet_staking_async::HoldReason),
 	#[codec(index = 98)]
 	StateTrieMigration(pallet_state_trie_migration::HoldReason),
 	#[codec(index = 41)]
@@ -111,6 +111,7 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
 			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
 			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
+			RcHoldReason::Staking(inner) => RuntimeHoldReason::Staking(inner),
 		}
 	}
 }
