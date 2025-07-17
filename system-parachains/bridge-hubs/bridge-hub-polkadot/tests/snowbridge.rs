@@ -28,10 +28,7 @@ use bridge_hub_polkadot_runtime::{
 };
 use bridge_hub_test_utils::GovernanceOrigin;
 use codec::{Decode, Encode};
-use cumulus_primitives_core::{
-	ParaId,
-	XcmError::FailedToTransactAsset,
-};
+use cumulus_primitives_core::{ParaId, XcmError::FailedToTransactAsset};
 use frame_support::{
 	assert_err, assert_ok, parameter_types,
 	traits::{fungible::Mutate, Contains},
