@@ -981,6 +981,16 @@ pub mod benchmarks {
 		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
 	}
 
+	#[benchmark]
+	fn set_manager() {
+		let old = Manager::<T>::get();
+		let new = Some([0; 32].into());
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::ManagerSet { old, new }.into());
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T>(n: u32)
 	where
@@ -1258,5 +1268,14 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_set_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_manager<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_manager::<T>(true)
 	}
 }

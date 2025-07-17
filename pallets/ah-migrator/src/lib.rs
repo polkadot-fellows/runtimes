@@ -269,7 +269,7 @@ pub mod pallet {
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		///
 		/// This is generally root and Fellows origins.
-		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
@@ -395,6 +395,13 @@ pub mod pallet {
 	pub type DmpQueuePriorityConfig<T: Config> =
 		StorageValue<_, DmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
+	/// An optional account id of a manager.
+	///
+	/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+	/// can not set the manager account id via `set_manager` call.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Failed to unreserve deposit.
@@ -482,6 +489,13 @@ pub mod pallet {
 		BalancesBeforeRecordConsumed { checking_account: T::Balance, total_issuance: T::Balance },
 		/// A referendum was cancelled because it could not be mapped.
 		ReferendumCanceled { id: u32 },
+		/// The manager account id was set.
+		ManagerSet {
+			/// The old manager account id.
+			old: Option<T::AccountId>,
+			/// The new manager account id.
+			new: Option<T::AccountId>,
+		},
 	}
 
 	#[pallet::pallet]
@@ -858,11 +872,12 @@ pub mod pallet {
 		/// Set the migration stage.
 		///
 		/// This call is intended for emergency use only and is guarded by the
-		/// [`Config::ManagerOrigin`].
+		/// [`Config::AdminOrigin`].
 		#[pallet::call_index(100)]
 		#[pallet::weight(T::AhWeightInfo::force_set_stage())]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			Self::transition(stage);
 			Ok(())
 		}
@@ -874,21 +889,22 @@ pub mod pallet {
 		#[pallet::call_index(101)]
 		#[pallet::weight(T::AhWeightInfo::start_migration())]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			Self::migration_start_hook().map_err(Into::into)
 		}
 
 		/// Set the DMP queue priority configuration.
 		///
-		/// Can only be called by the `ManagerOrigin`.
+		/// Can only be called by the `AdminOrigin`.
 		#[pallet::call_index(102)]
 		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
 		pub fn set_dmp_queue_priority(
 			origin: OriginFor<T>,
 			new: DmpQueuePriority<BlockNumberFor<T>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			let old = DmpQueuePriorityConfig::<T>::get();
 			if old == new {
 				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
@@ -899,6 +915,20 @@ pub mod pallet {
 			);
 			DmpQueuePriorityConfig::<T>::put(new.clone());
 			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
+
+		/// Set the manager account id.
+		///
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call.
+		#[pallet::call_index(103)]
+		#[pallet::weight(T::AhWeightInfo::set_manager())]
+		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			let old = Manager::<T>::get();
+			Manager::<T>::set(new.clone());
+			Self::deposit_event(Event::ManagerSet { old, new });
 			Ok(())
 		}
 
@@ -915,7 +945,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			data: Option<MigrationFinishedData<T::Balance>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			Self::migration_finish_hook(data).map_err(Into::into)
 		}
@@ -946,6 +976,17 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
 		/// Translate account from RC format to AH format.
 		///
 		/// Currently returns the input account unchanged (mock implementation).

@@ -265,3 +265,10 @@ fn test_bench_set_dmp_queue_priority() {
 		test_set_dmp_queue_priority::<AssetHub>();
 	});
 }
+
+#[test]
+fn test_bench_set_manager() {
+	new_test_ext().execute_with(|| {
+		test_set_manager::<AssetHub>();
+	});
+}
