@@ -792,8 +792,11 @@ mod benches {
 			Ok((origin, ticket, assets))
 		}
 
-		fn fee_asset() -> Result<Asset, BenchmarkError> {
-			Ok(Asset { id: AssetId(DotRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+		fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
+			Ok((
+				Asset { id: AssetId(DotRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) },
+				Limited(Weight::from_parts(5000, 5000)),
+			))
 		}
 
 		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
