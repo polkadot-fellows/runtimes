@@ -29,14 +29,14 @@ kusama-system-emulated-network = { workspace = true }
 
 [features]
 runtime-benchmarks = [
-    "sp-runtime/runtime-benchmarks",
-    "frame-support/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-    "pallet-whitelist/runtime-benchmarks",
-    "pallet-utility/runtime-benchmarks",
-    "asset-hub-kusama-runtime/runtime-benchmarks",
-    "integration-tests-helpers/runtime-benchmarks",
-    "people-kusama-runtime/runtime-benchmarks",
-    "kusama-runtime/runtime-benchmarks",
-    "kusama-system-emulated-network/runtime-benchmarks",
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
+	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-utility/runtime-benchmarks",
+	"pallet-whitelist/runtime-benchmarks",
+	"people-kusama-runtime/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
 ]
