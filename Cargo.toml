@@ -309,7 +309,7 @@ members = [
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",
-#	"system-parachains/encointer",
+	#	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
