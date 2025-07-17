@@ -803,7 +803,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 				None
 			},
 		};
-		log::debug!(target: "runtime::kusama", "params: {:?}", params);
+		log::debug!(target: "runtime::kusama", "params: {params:?}");
 		relay_common::relay_era_payout(params)
 	}
 }
@@ -1085,7 +1085,7 @@ where
 		);
 		let raw_payload = SignedPayload::new(call, tx_ext)
 			.map_err(|e| {
-				log::warn!("Unable to create signed payload: {:?}", e);
+				log::warn!("Unable to create signed payload: {e:?}");
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
@@ -3030,7 +3030,7 @@ mod multiplier_tests {
 		// the weight is 1/100th bigger than target.
 		run_with_system_weight(target.saturating_mul(101) / 100, || {
 			let next = SlowAdjustingFeeUpdate::<Runtime>::convert(minimum_multiplier);
-			assert!(next > minimum_multiplier, "{:?} !>= {:?}", next, minimum_multiplier);
+			assert!(next > minimum_multiplier, "{next:?} !>= {minimum_multiplier:?}");
 		})
 	}
 
@@ -3085,7 +3085,7 @@ mod multiplier_tests {
 				TransactionPayment::on_finalize(1);
 				let next = TransactionPayment::next_fee_multiplier();
 
-				assert!(next > multiplier, "{:?} !>= {:?}", next, multiplier);
+				assert!(next > multiplier, "{next:?} !>= {multiplier:?}");
 				multiplier = next;
 
 				println!(
@@ -3123,10 +3123,10 @@ mod multiplier_tests {
 				TransactionPayment::on_finalize(1);
 				let next = TransactionPayment::next_fee_multiplier();
 
-				assert!(next < multiplier, "{:?} !>= {:?}", next, multiplier);
+				assert!(next < multiplier, "{next:?} !>= {multiplier:?}");
 				multiplier = next;
 
-				println!("block = {} / multiplier {:?}", blocks, multiplier);
+				println!("block = {blocks} / multiplier {multiplier:?}");
 			});
 			blocks += 1;
 		}
@@ -3229,7 +3229,7 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "total-staked = {:?}", token.amount(total_staked));
 			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
 			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
-			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
 			log::info!(target: LOG_TARGET, "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
 			log::info!(target: LOG_TARGET, "falloff = {:?}", dynamic_params::inflation::Falloff::get());

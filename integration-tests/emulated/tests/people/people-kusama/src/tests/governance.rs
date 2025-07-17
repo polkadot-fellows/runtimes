@@ -343,7 +343,7 @@ fn relay_commands_add_remove_username_authority() {
 		PeopleKusama::execute_with(|| {
 			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
-			println!("setting username {}", usr);
+			println!("setting username {usr}");
 
 			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
 				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
