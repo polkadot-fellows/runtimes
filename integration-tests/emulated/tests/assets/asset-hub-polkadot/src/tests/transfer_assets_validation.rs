@@ -48,7 +48,7 @@ fn transfer_assets_dot_reserve_transfer_para_to_relay_fails() {
 	// Fund PenpalA's sovereign account on Polkadot with the reserve DOT.
 	let penpal_location_as_seen_by_relay = Polkadot::child_location_of(PenpalA::para_id());
 	let sov_penpal_on_relay = Polkadot::sovereign_account_id_of(penpal_location_as_seen_by_relay);
-	Polkadot::fund_accounts(vec![(sov_penpal_on_relay.into(), amount_to_send * 2)]);
+	Polkadot::fund_accounts(vec![(sov_penpal_on_relay, amount_to_send * 2)]);
 
 	PenpalA::execute_with(|| {
 		let result = <PenpalA as PenpalAPallet>::PolkadotXcm::transfer_assets(

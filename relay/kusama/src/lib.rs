@@ -812,7 +812,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 				None
 			},
 		};
-		log::debug!(target: "runtime::kusama", "params: {:?}", params);
+		log::debug!(target: "runtime::kusama", "params: {params:?}");
 		relay_common::relay_era_payout(params)
 	}
 }
@@ -916,7 +916,7 @@ impl<T: SendXcm> ah_client::SendToAssetHub for XcmToAssetHub<T> {
 			Self::mk_asset_hub_call(RcClientCalls::RelaySessionReport(session_report)),
 		]);
 		if let Err(err) = send_xcm::<T>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime", "Failed to send relay session report message: {:?}", err);
+			log::error!(target: "runtime", "Failed to send relay session report message: {err:?}");
 		}
 	}
 
@@ -932,7 +932,7 @@ impl<T: SendXcm> ah_client::SendToAssetHub for XcmToAssetHub<T> {
 			Self::mk_asset_hub_call(RcClientCalls::RelayNewOffence(session_index, offences)),
 		]);
 		if let Err(err) = send_xcm::<T>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime", "Failed to send relay offence message: {:?}", err);
+			log::error!(target: "runtime", "Failed to send relay offence message: {err:?}");
 		}
 	}
 }
@@ -1200,7 +1200,7 @@ where
 		);
 		let raw_payload = SignedPayload::new(call, tx_ext)
 			.map_err(|e| {
-				log::warn!("Unable to create signed payload: {:?}", e);
+				log::warn!("Unable to create signed payload: {e:?}");
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
@@ -3159,7 +3159,7 @@ mod multiplier_tests {
 		// the weight is 1/100th bigger than target.
 		run_with_system_weight(target.saturating_mul(101) / 100, || {
 			let next = SlowAdjustingFeeUpdate::<Runtime>::convert(minimum_multiplier);
-			assert!(next > minimum_multiplier, "{:?} !>= {:?}", next, minimum_multiplier);
+			assert!(next > minimum_multiplier, "{next:?} !>= {minimum_multiplier:?}");
 		})
 	}
 
@@ -3214,7 +3214,7 @@ mod multiplier_tests {
 				TransactionPayment::on_finalize(1);
 				let next = TransactionPayment::next_fee_multiplier();
 
-				assert!(next > multiplier, "{:?} !>= {:?}", next, multiplier);
+				assert!(next > multiplier, "{next:?} !>= {multiplier:?}");
 				multiplier = next;
 
 				println!(
@@ -3252,10 +3252,10 @@ mod multiplier_tests {
 				TransactionPayment::on_finalize(1);
 				let next = TransactionPayment::next_fee_multiplier();
 
-				assert!(next < multiplier, "{:?} !>= {:?}", next, multiplier);
+				assert!(next < multiplier, "{next:?} !>= {multiplier:?}");
 				multiplier = next;
 
-				println!("block = {} / multiplier {:?}", blocks, multiplier);
+				println!("block = {blocks} / multiplier {multiplier:?}");
 			});
 			blocks += 1;
 		}

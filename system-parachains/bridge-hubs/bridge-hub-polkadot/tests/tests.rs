@@ -315,7 +315,7 @@ fn message_dispatch_routing_works() {
 				_ => None,
 			}
 		}),
-		|| <ParachainSystem as UpwardMessageSender>::ensure_successful_delivery(),
+		<ParachainSystem as UpwardMessageSender>::ensure_successful_delivery,
 	)
 }
 

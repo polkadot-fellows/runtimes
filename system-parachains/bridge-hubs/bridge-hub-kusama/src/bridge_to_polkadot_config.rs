@@ -342,13 +342,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bridge_runtime_common::{
-		assert_complete_bridge_types,
-		integrity::{
-			assert_complete_with_parachain_bridge_constants, check_message_lane_weights,
-			AssertChainConstants, AssertCompleteBridgeConstants,
-		},
-	};
+	use bridge_runtime_common::integrity::check_message_lane_weights;
 
 	/// Every additional message in the message delivery transaction boosts its priority.
 	/// So the priority of transaction with `N+1` messages is larger than priority of

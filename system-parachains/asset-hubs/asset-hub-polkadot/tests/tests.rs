@@ -24,7 +24,7 @@ use asset_hub_polkadot_runtime::{
 		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
+	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block,
 	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
 	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, SessionKeys, ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
@@ -39,7 +39,6 @@ use asset_test_utils::{
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
 use codec::{Decode, Encode};
-use core::ops::Mul;
 use frame_support::{assert_err, assert_ok, traits::fungibles::InspectEnumerable};
 use parachains_common::{
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance,
@@ -533,9 +532,7 @@ fn check_sane_weight_report_bridge_status() {
 	let max_weight = bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get();
 	assert!(
 		actual.all_lte(max_weight),
-		"max_weight: {:?} should be adjusted to actual {:?}",
-		max_weight,
-		actual
+		"max_weight: {max_weight:?} should be adjusted to actual {actual:?}"
 	);
 }
 

@@ -12,14 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::{
-	tests::{
-		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
-		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
-		dot_at_ah_polkadot,
-	},
-	*,
-};
+use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,

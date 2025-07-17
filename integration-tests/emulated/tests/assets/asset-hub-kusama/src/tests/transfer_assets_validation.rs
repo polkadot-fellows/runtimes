@@ -48,7 +48,7 @@ fn transfer_assets_ksm_reserve_transfer_para_to_relay_fails() {
 	// Fund PenpalA's sovereign account on Kusama with the reserve KSM.
 	let penpal_location_as_seen_by_relay = Kusama::child_location_of(PenpalA::para_id());
 	let sov_penpal_on_relay = Kusama::sovereign_account_id_of(penpal_location_as_seen_by_relay);
-	Kusama::fund_accounts(vec![(sov_penpal_on_relay.into(), amount_to_send * 2)]);
+	Kusama::fund_accounts(vec![(sov_penpal_on_relay, amount_to_send * 2)]);
 
 	PenpalA::execute_with(|| {
 		let result = <PenpalA as PenpalAPallet>::PolkadotXcm::transfer_assets(

@@ -137,7 +137,7 @@ fn main() -> Result<(), String> {
 		} else {
 			Err(format!(
 				"Unknown chain: '{}', only supported: '{supported}' or a json file",
-				cli.chain
+				cli.chain,
 			))
 		}
 	}
