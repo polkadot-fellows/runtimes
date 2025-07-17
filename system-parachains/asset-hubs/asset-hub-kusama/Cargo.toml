@@ -197,6 +197,7 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"assets-common/try-runtime"
 ]
 std = [
 	"assets-common/std",
