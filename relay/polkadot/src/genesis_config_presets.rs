@@ -16,6 +16,8 @@
 
 //! Genesis configs presets for the Polkadot runtime
 
+extern crate alloc;
+
 use crate::*;
 #[cfg(not(feature = "std"))]
 use alloc::format;
