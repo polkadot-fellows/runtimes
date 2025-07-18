@@ -85,35 +85,17 @@ pub fn transfer_token_to_ethereum_works() {
 	)
 }
 
-// FAIL-CI @clara please help fix failing test
-// #[test]
-// pub fn unpaid_transfer_token_to_ethereum_fails_with_barrier() {
-// 	snowbridge_runtime_test_common::send_unpaid_transfer_token_message::<Runtime, XcmConfig>(
-// 		11155111,
-// 		collator_session_keys(),
-// 		1013,
-// 		1000,
-// 		H160::random(),
-// 		H160::random(),
-// 	)
-// }
-
-// FAIL-CI @clara please help fix failing test
-// #[test]
-// pub fn transfer_token_to_ethereum_fee_not_enough() {
-// 	snowbridge_runtime_test_common::send_transfer_token_message_failure::<Runtime, XcmConfig>(
-// 		1,
-// 		collator_session_keys(),
-// 		1013,
-// 		1000,
-// 		DefaultBridgeHubEthereumBaseFee::get() + 1_000_000_000,
-// 		H160::random(),
-// 		H160::random(),
-// 		// fee not enough
-// 		1_000_000,
-// 		TooExpensive,
-// 	)
-// }
+#[test]
+pub fn unpaid_transfer_token_to_ethereum_should_work() {
+	snowbridge_runtime_test_common::send_unpaid_transfer_token_message::<Runtime, XcmConfig>(
+		1,
+		collator_session_keys(),
+		1013,
+		1000,
+		H160::random(),
+		H160::random(),
+	)
+}
 
 #[test]
 pub fn transfer_token_to_ethereum_insufficient_fund() {
