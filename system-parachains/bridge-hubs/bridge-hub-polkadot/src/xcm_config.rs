@@ -230,7 +230,6 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	// FAIL-CI: @ron, @clara to test this with Snowbridge V1 and verify it still works
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
 		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
