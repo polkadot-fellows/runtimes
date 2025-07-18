@@ -2226,7 +2226,8 @@ mod benches {
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 			let origin = Location::new(0, [Parachain(1000)]);
-			let target = Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
+			let target =
+				Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
 			Ok((origin, target))
 		}
 	}
