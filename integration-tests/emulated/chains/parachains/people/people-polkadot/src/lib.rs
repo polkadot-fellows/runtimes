@@ -23,6 +23,7 @@ use emulated_integration_tests_common::{
 	impl_accounts_helpers_for_parachain, impl_assert_events_helpers_for_parachain,
 	impls::Parachain, xcm_emulator::decl_test_parachains,
 };
+pub use people_polkadot_runtime;
 
 // PeoplePolkadot Parachain declaration
 decl_test_parachains! {

@@ -30,6 +30,7 @@ xcm-runtime-apis = { workspace = true, default-features = true }
 # Cumulus
 emulated-integration-tests-common = { workspace = true }
 parachains-common = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
 
 # Bridges
@@ -59,6 +60,7 @@ runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",

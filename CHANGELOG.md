@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Integrate "Empowered XCM Origins" features to System Chains ([polkadot-fellows/runtimes/pull/799](https://github.com/polkadot-fellows/runtimes/pull/799))
 - Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
 - Add Secretary Salary Pay Test Over XCM ([https://github.com/polkadot-fellows/runtimes/pull/778](https://github.com/polkadot-fellows/runtimes/pull/778))
 
