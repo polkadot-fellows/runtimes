@@ -83,7 +83,7 @@ where
 		);
 
 		if let Err(err) = result {
-			log::warn!("Failed to teleport slashed assets: {:?}", err);
+			log::warn!("Failed to teleport slashed assets: {err:?}");
 		}
 	}
 }
