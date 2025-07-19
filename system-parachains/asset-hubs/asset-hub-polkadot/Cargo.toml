@@ -66,6 +66,7 @@ pallet-staking-async = { workspace = true }
 pallet-staking-async-rc-client = { workspace = true }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
+pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
@@ -105,6 +106,7 @@ pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+pallet-rc-migrator = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }

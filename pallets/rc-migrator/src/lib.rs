@@ -107,6 +107,7 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
+use types::IntoPortable;
 pub use types::{MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority};
 use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
@@ -430,6 +431,7 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<
 			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			FreezeIdentifier = <Self as Config>::RuntimeFreezeReason,
 			Balance = u128,
 		> + hrmp::Config
 		+ paras_registrar::Config
@@ -460,7 +462,15 @@ pub mod pallet {
 		/// The overall runtime call type.
 		type RuntimeCall: From<Call<Self>> + IsType<<Self as pallet_xcm::Config>::RuntimeCall>;
 		/// The runtime hold reasons.
-		type RuntimeHoldReason: Parameter + VariantCount;
+		type RuntimeHoldReason: Parameter
+			+ VariantCount
+			+ IntoPortable<Portable = types::RcHoldReason>;
+
+		/// The runtime freeze reasons.
+		type RuntimeFreezeReason: Parameter
+			+ VariantCount
+			+ IntoPortable<Portable = types::RcFreezeReason>;
+
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
@@ -470,7 +480,7 @@ pub mod pallet {
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
-			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+			+ InspectFreeze<Self::AccountId, Id = <Self as Config>::RuntimeFreezeReason>
 			+ MutateFreeze<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;

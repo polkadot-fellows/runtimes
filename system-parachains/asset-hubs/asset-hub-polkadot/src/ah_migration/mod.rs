@@ -29,6 +29,38 @@ use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
 use xcm::latest::prelude::*;
 
+impl From<pallet_rc_migrator::types::RcHoldReason> for RuntimeHoldReason {
+	fn from(reason: pallet_rc_migrator::types::RcHoldReason) -> Self {
+		use pallet_rc_migrator::types::RcHoldReason;
+		use RuntimeHoldReason::*;
+
+		match reason {
+			RcHoldReason::Preimage(preimage) => Preimage(preimage),
+			RcHoldReason::Staking(staking) => match staking {
+				pallet_staking::HoldReason::Staking =>
+					Staking(pallet_staking_async::HoldReason::Staking),
+			},
+			RcHoldReason::StateTrieMigration(state_trie_migration) =>
+				StateTrieMigration(state_trie_migration),
+			RcHoldReason::DelegatedStaking(delegated_staking) =>
+				DelegatedStaking(delegated_staking),
+			RcHoldReason::Session(session) => Session(session),
+			RcHoldReason::XcmPallet(xcm_pallet) => PolkadotXcm(xcm_pallet),
+		}
+	}
+}
+
+impl From<pallet_rc_migrator::types::RcFreezeReason> for RuntimeFreezeReason {
+	fn from(reason: pallet_rc_migrator::types::RcFreezeReason) -> Self {
+		use pallet_rc_migrator::types::RcFreezeReason;
+
+		match reason {
+			RcFreezeReason::NominationPools(nomination_pools) =>
+				RuntimeFreezeReason::NominationPools(nomination_pools),
+		}
+	}
+}
+
 /// Treasury accounts migrating to the new treasury account address (same account address that was
 /// used on the Relay Chain).
 pub struct TreasuryAccounts;
@@ -72,83 +104,6 @@ impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
 				),
 			],
 		)
-	}
-}
-
-/// Relay Chain Hold Reason
-#[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-)]
-pub enum RcHoldReason {
-	#[codec(index = 10)]
-	Preimage(pallet_preimage::HoldReason),
-	#[codec(index = 89)]
-	Staking(pallet_staking_async::HoldReason),
-	#[codec(index = 98)]
-	StateTrieMigration(pallet_state_trie_migration::HoldReason),
-	#[codec(index = 41)]
-	DelegatedStaking(pallet_delegated_staking::HoldReason),
-}
-
-impl Default for RcHoldReason {
-	fn default() -> Self {
-		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
-	}
-}
-
-pub struct RcToAhHoldReason;
-impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
-		match rc_hold_reason {
-			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
-			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
-			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
-			RcHoldReason::Staking(inner) => RuntimeHoldReason::Staking(inner),
-		}
-	}
-}
-
-/// Relay Chain Freeze Reason
-#[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-)]
-pub enum RcFreezeReason {
-	#[codec(index = 39u8)]
-	NominationPools(pallet_nomination_pools::FreezeReason),
-}
-
-impl Default for RcFreezeReason {
-	fn default() -> Self {
-		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
-	}
-}
-
-pub struct RcToAhFreezeReason;
-impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
-	fn convert(reason: RcFreezeReason) -> RuntimeFreezeReason {
-		match reason {
-			RcFreezeReason::NominationPools(
-				pallet_nomination_pools::FreezeReason::PoolMinBalance,
-			) => RuntimeFreezeReason::NominationPools(
-				pallet_nomination_pools::FreezeReason::PoolMinBalance,
-			),
-		}
 	}
 }
 

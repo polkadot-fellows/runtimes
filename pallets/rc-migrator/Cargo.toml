@@ -37,7 +37,9 @@ pallet-treasury = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-session = { workspace = true }
 pallet-nomination-pools = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
 pallet-xcm = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }

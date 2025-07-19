@@ -20,7 +20,7 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
-use frame_support::traits::ContainsPair;
+use frame_support::traits::{tokens::IdAmount, ContainsPair};
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
@@ -33,6 +33,25 @@ pub trait ToPolkadotSs58 {
 impl ToPolkadotSs58 for AccountId32 {
 	fn to_polkadot_ss58(&self) -> String {
 		self.to_ss58check_with_version(sp_core::crypto::Ss58AddressFormat::custom(0))
+	}
+}
+
+/// Convert a type into its portable format.
+///
+/// The portable format is chain-agnostic. The inverse of this operation is the `IntoLocal` trait.
+/// The flow the following: Convert RC object to portable format, send portable format from AH to
+/// RC, convert portable format to AH object.
+pub trait IntoPortable {
+	type Portable;
+
+	fn into_portable(self) -> Self::Portable;
+}
+
+impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
+	type Portable = IdAmount<Id::Portable, Balance>;
+
+	fn into_portable(self) -> Self::Portable {
+		IdAmount { id: self.id.into_portable(), amount: self.amount }
 	}
 }
 
@@ -544,6 +563,56 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	pub fn batch_count(&self) -> u32 {
 		self.batch.batch_count()
 	}
+}
+
+/// Relay Chain Hold Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum RcHoldReason {
+	Preimage(pallet_preimage::HoldReason),
+	Staking(pallet_staking::HoldReason),
+	StateTrieMigration(pallet_state_trie_migration::HoldReason),
+	DelegatedStaking(pallet_delegated_staking::HoldReason),
+	Session(pallet_session::HoldReason),
+	XcmPallet(pallet_xcm::HoldReason),
+}
+
+/*
+pub struct RcToAhHoldReason;
+impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
+	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
+		match rc_hold_reason {
+			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
+			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
+			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
+			RcHoldReason::Staking(inner) => RuntimeHoldReason::Staking(inner),
+		}
+	}
+}*/
+
+/// Relay Chain Freeze Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum RcFreezeReason {
+	NominationPools(pallet_nomination_pools::FreezeReason),
 }
 
 #[cfg(test)]

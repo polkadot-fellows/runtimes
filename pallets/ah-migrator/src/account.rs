@@ -84,11 +84,9 @@ impl<T: Config> Pallet<T> {
 		debug_assert!(minted == total_balance);
 
 		for hold in account.holds {
-			if let Err(e) = <T as pallet::Config>::Currency::hold(
-				&T::RcToAhHoldReason::convert(hold.id),
-				&who,
-				hold.amount,
-			) {
+			if let Err(e) =
+				<T as pallet::Config>::Currency::hold(&hold.id.into(), &who, hold.amount)
+			{
 				log::error!(
 					target: LOG_TARGET,
 					"Failed to hold into account {}: {:?}",
@@ -110,11 +108,9 @@ impl<T: Config> Pallet<T> {
 		}
 
 		for freeze in account.freezes {
-			if let Err(e) = <T as pallet::Config>::Currency::set_freeze(
-				&T::RcToAhFreezeReason::convert(freeze.id),
-				&who,
-				freeze.amount,
-			) {
+			if let Err(e) =
+				<T as pallet::Config>::Currency::set_freeze(&freeze.id.into(), &who, freeze.amount)
+			{
 				log::error!(
 					target: LOG_TARGET,
 					"Failed to freeze into account {}: {:?}",
