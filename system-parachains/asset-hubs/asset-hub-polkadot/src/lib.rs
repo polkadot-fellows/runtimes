@@ -71,7 +71,6 @@ pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
-use ah_migration::{RcToAhFreezeReason, RcToAhHoldReason};
 use alloc::{borrow::Cow, vec, vec::Vec};
 use assets_common::{
 	foreign_creators::ForeignCreators,
@@ -1166,6 +1165,9 @@ parameter_types! {
 
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type RcHoldReason = pallet_rc_migrator::types::RcHoldReason;
+	type RcFreezeReason = pallet_rc_migrator::types::RcFreezeReason;
 	type RuntimeEvent = RuntimeEvent;
 	type AdminOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
@@ -1174,10 +1176,6 @@ impl pallet_ah_migrator::Config for Runtime {
 	type Currency = Balances;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
-	type RcHoldReason = ah_migration::RcHoldReason;
-	type RcFreezeReason = ah_migration::RcFreezeReason;
-	type RcToAhHoldReason = RcToAhHoldReason;
-	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = ah_migration::RcProxyType;
 	type RcToProxyType = ah_migration::RcToProxyType;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;

@@ -17,6 +17,7 @@
 //! First phase of the Asset Hub Migration.
 
 use crate::*;
+use pallet_rc_migrator::types::RcFreezeReason;
 
 /// Contains all calls that are enabled during the migration.
 pub struct CallsEnabledDuringMigration;
@@ -144,5 +145,33 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
 		RcMigrator(..) => (ON, ON),
 		// Exhaustive match. Compiler ensures that we did not miss any.
+	}
+}
+
+// Type safe mapping of RC hold reason to portable format.
+impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
+	type Portable = pallet_rc_migrator::types::RcHoldReason;
+
+	fn into_portable(self) -> Self::Portable {
+		use pallet_rc_migrator::types::RcHoldReason;
+
+		match self {
+			RuntimeHoldReason::Preimage(inner) => RcHoldReason::Preimage(inner),
+			RuntimeHoldReason::StateTrieMigration(inner) => RcHoldReason::StateTrieMigration(inner),
+			RuntimeHoldReason::DelegatedStaking(inner) => RcHoldReason::DelegatedStaking(inner),
+			RuntimeHoldReason::Staking(inner) => RcHoldReason::Staking(inner),
+			RuntimeHoldReason::Session(inner) => RcHoldReason::Session(inner),
+			RuntimeHoldReason::XcmPallet(inner) => RcHoldReason::XcmPallet(inner),
+		}
+	}
+}
+
+impl pallet_rc_migrator::types::IntoPortable for RuntimeFreezeReason {
+	type Portable = pallet_rc_migrator::types::RcFreezeReason;
+
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			RuntimeFreezeReason::NominationPools(inner) => RcFreezeReason::NominationPools(inner),
+		}
 	}
 }

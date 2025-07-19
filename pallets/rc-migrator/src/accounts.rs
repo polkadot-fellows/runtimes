@@ -200,8 +200,8 @@ pub type AccountStateFor<T> = AccountState<<T as pallet_balances::Config>::Balan
 pub type AccountFor<T> = Account<
 	<T as frame_system::Config>::AccountId,
 	<T as pallet_balances::Config>::Balance,
-	<T as pallet_balances::Config>::RuntimeHoldReason,
-	<T as pallet_balances::Config>::FreezeIdentifier,
+	RcHoldReason,
+	RcFreezeReason,
 >;
 
 /// Helper struct tracking total balance kept on RC and total migrated.
@@ -373,8 +373,8 @@ impl<T: Config> AccountsMigrator<T> {
 			return Ok(None);
 		}
 
-		let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
-			pallet_balances::Freezes::<T>::get(&who).into();
+		let freezes: Vec<IdAmount<<T as pallet::Config>::RuntimeFreezeReason, T::Balance>> =
+			pallet_balances::Freezes::<T>::get(&who).into_inner();
 
 		for freeze in &freezes {
 			if let Err(e) = <T as Config>::Currency::thaw(&freeze.id, &who) {
@@ -392,7 +392,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 		let rc_ed = <T as Config>::Currency::minimum_balance();
 		let ah_ed = T::AhExistentialDeposit::get();
-		let holds: Vec<IdAmount<<T as Config>::RuntimeHoldReason, T::Balance>> =
+		let holds: Vec<IdAmount<<T as pallet_balances::Config>::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {
@@ -544,13 +544,16 @@ impl<T: Config> AccountsMigrator<T> {
 
 		let consumers = Self::get_consumer_count(&who, &account_info);
 		let providers = Self::get_provider_count(&who, &account_info, &holds);
-		let withdrawn_account = Account {
+		let translated_holds = holds.into_iter().map(IntoPortable::into_portable).collect();
+		let translated_freezes = freezes.into_iter().map(IntoPortable::into_portable).collect();
+
+		let withdrawn_account = AccountFor::<T> {
 			who: who.clone(),
 			free: teleport_free,
 			reserved: teleport_reserved,
 			frozen: account_data.frozen,
-			holds: BoundedVec::defensive_truncate_from(holds),
-			freezes: BoundedVec::defensive_truncate_from(freezes),
+			holds: BoundedVec::defensive_truncate_from(translated_holds),
+			freezes: BoundedVec::defensive_truncate_from(translated_freezes),
 			locks: BoundedVec::defensive_truncate_from(locks),
 			unnamed_reserve,
 			consumers,
