@@ -55,6 +55,13 @@ impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
 	}
 }
 
+/// Generate a default instance for benchmarking purposes.
+pub trait BenchmarkingDefault {
+	/// Default for benchmarking purposes only.
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self;
+}
+
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
 /// Asset Hub Pallet list with indexes.
@@ -586,18 +593,12 @@ pub enum RcHoldReason {
 	XcmPallet(pallet_xcm::HoldReason),
 }
 
-/*
-pub struct RcToAhHoldReason;
-impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(rc_hold_reason: RcHoldReason) -> RuntimeHoldReason {
-		match rc_hold_reason {
-			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
-			RcHoldReason::StateTrieMigration(inner) => RuntimeHoldReason::StateTrieMigration(inner),
-			RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
-			RcHoldReason::Staking(inner) => RuntimeHoldReason::Staking(inner),
-		}
+impl BenchmarkingDefault for RcHoldReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
 	}
-}*/
+}
 
 /// Relay Chain Freeze Reason
 #[derive(
@@ -613,6 +614,13 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 )]
 pub enum RcFreezeReason {
 	NominationPools(pallet_nomination_pools::FreezeReason),
+}
+
+impl BenchmarkingDefault for RcFreezeReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
+	}
 }
 
 #[cfg(test)]

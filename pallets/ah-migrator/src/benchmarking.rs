@@ -45,6 +45,7 @@ use pallet_rc_migrator::{
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
+	types::BenchmarkingDefault,
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
@@ -105,11 +106,14 @@ pub mod benchmarks {
 			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
 
 			let hold_amount = ed;
-			let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
+			let holds =
+				vec![IdAmount { id: T::RcHoldReason::benchmarking_default(), amount: hold_amount }];
 
 			let freeze_amount = 2 * ed;
-			let freezes =
-				vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
+			let freezes = vec![IdAmount {
+				id: T::RcFreezeReason::benchmarking_default(),
+				amount: freeze_amount,
+			}];
 
 			let lock_amount = 3 * ed;
 			let locks = vec![pallet_balances::BalanceLock::<u128> {

@@ -56,8 +56,8 @@ pub mod xcm_translation;
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{
-		ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority,
-		RouteInnerWithException,
+		BenchmarkingDefault, ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner,
+		QueuePriority as DmpQueuePriority, RouteInnerWithException,
 	},
 	weights_ah,
 };
@@ -275,8 +275,8 @@ pub mod pallet {
 			+ VariantCount
 			+ MaxEncodedLen
 			+ From<<Self as Config>::RcFreezeReason>;
-		type RcHoldReason: Parameter + MaxEncodedLen;
-		type RcFreezeReason: Parameter + MaxEncodedLen;
+		type RcHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+		type RcFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
