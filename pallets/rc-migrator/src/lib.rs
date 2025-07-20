@@ -464,12 +464,12 @@ pub mod pallet {
 		/// The runtime hold reasons.
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
-			+ IntoPortable<Portable = types::RcHoldReason>;
+			+ IntoPortable<Portable = types::PortableHoldReason>;
 
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
 			+ VariantCount
-			+ IntoPortable<Portable = types::RcFreezeReason>;
+			+ IntoPortable<Portable = types::PortableFreezeReason>;
 
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;

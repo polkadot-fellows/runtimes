@@ -200,8 +200,8 @@ pub type AccountStateFor<T> = AccountState<<T as pallet_balances::Config>::Balan
 pub type AccountFor<T> = Account<
 	<T as frame_system::Config>::AccountId,
 	<T as pallet_balances::Config>::Balance,
-	RcHoldReason,
-	RcFreezeReason,
+	PortableHoldReason,
+	PortableFreezeReason,
 >;
 
 /// Helper struct tracking total balance kept on RC and total migrated.

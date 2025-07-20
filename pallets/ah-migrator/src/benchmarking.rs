@@ -106,12 +106,14 @@ pub mod benchmarks {
 			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
 
 			let hold_amount = ed;
-			let holds =
-				vec![IdAmount { id: T::RcHoldReason::benchmarking_default(), amount: hold_amount }];
+			let holds = vec![IdAmount {
+				id: T::PortableHoldReason::benchmarking_default(),
+				amount: hold_amount,
+			}];
 
 			let freeze_amount = 2 * ed;
 			let freezes = vec![IdAmount {
-				id: T::RcFreezeReason::benchmarking_default(),
+				id: T::PortableFreezeReason::benchmarking_default(),
 				amount: freeze_amount,
 			}];
 

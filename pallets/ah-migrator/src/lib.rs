@@ -119,8 +119,8 @@ pub const LOG_TARGET: &str = "runtime::ah-migrator";
 type RcAccountFor<T> = RcAccount<
 	<T as frame_system::Config>::AccountId,
 	<T as pallet_balances::Config>::Balance,
-	<T as Config>::RcHoldReason,
-	<T as Config>::RcFreezeReason,
+	<T as Config>::PortableHoldReason,
+	<T as Config>::PortableFreezeReason,
 >;
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
@@ -269,13 +269,13 @@ pub mod pallet {
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
 			+ MaxEncodedLen
-			+ From<<Self as Config>::RcHoldReason>;
+			+ From<<Self as Config>::PortableHoldReason>;
 		type RuntimeFreezeReason: Parameter
 			+ VariantCount
 			+ MaxEncodedLen
-			+ From<<Self as Config>::RcFreezeReason>;
-		type RcHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
-		type RcFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+			+ From<<Self as Config>::PortableFreezeReason>;
+		type PortableHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+		type PortableFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.

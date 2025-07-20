@@ -583,7 +583,7 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub enum RcHoldReason {
+pub enum PortableHoldReason {
 	Preimage(pallet_preimage::HoldReason),
 	Staking(pallet_staking::HoldReason),
 	StateTrieMigration(pallet_state_trie_migration::HoldReason),
@@ -592,10 +592,10 @@ pub enum RcHoldReason {
 	XcmPallet(pallet_xcm::HoldReason),
 }
 
-impl BenchmarkingDefault for RcHoldReason {
+impl BenchmarkingDefault for PortableHoldReason {
 	#[cfg(feature = "runtime-benchmarks")]
 	fn benchmarking_default() -> Self {
-		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+		PortableHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
 	}
 }
 
@@ -611,14 +611,14 @@ impl BenchmarkingDefault for RcHoldReason {
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub enum RcFreezeReason {
+pub enum PortableFreezeReason {
 	NominationPools(pallet_nomination_pools::FreezeReason),
 }
 
-impl BenchmarkingDefault for RcFreezeReason {
+impl BenchmarkingDefault for PortableFreezeReason {
 	#[cfg(feature = "runtime-benchmarks")]
 	fn benchmarking_default() -> Self {
-		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
+		PortableFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
 	}
 }
 

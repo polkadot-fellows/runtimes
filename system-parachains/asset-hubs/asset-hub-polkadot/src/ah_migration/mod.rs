@@ -29,33 +29,33 @@ use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
 use xcm::latest::prelude::*;
 
-impl From<pallet_rc_migrator::types::RcHoldReason> for RuntimeHoldReason {
-	fn from(reason: pallet_rc_migrator::types::RcHoldReason) -> Self {
-		use pallet_rc_migrator::types::RcHoldReason;
+impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
+	fn from(reason: pallet_rc_migrator::types::PortableHoldReason) -> Self {
+		use pallet_rc_migrator::types::PortableHoldReason;
 		use RuntimeHoldReason::*;
 
 		match reason {
-			RcHoldReason::Preimage(preimage) => Preimage(preimage),
-			RcHoldReason::Staking(staking) => match staking {
+			PortableHoldReason::Preimage(preimage) => Preimage(preimage),
+			PortableHoldReason::Staking(staking) => match staking {
 				pallet_staking::HoldReason::Staking =>
 					Staking(pallet_staking_async::HoldReason::Staking),
 			},
-			RcHoldReason::StateTrieMigration(state_trie_migration) =>
+			PortableHoldReason::StateTrieMigration(state_trie_migration) =>
 				StateTrieMigration(state_trie_migration),
-			RcHoldReason::DelegatedStaking(delegated_staking) =>
+			PortableHoldReason::DelegatedStaking(delegated_staking) =>
 				DelegatedStaking(delegated_staking),
-			RcHoldReason::Session(session) => Session(session),
-			RcHoldReason::XcmPallet(xcm_pallet) => PolkadotXcm(xcm_pallet),
+			PortableHoldReason::Session(session) => Session(session),
+			PortableHoldReason::XcmPallet(xcm_pallet) => PolkadotXcm(xcm_pallet),
 		}
 	}
 }
 
-impl From<pallet_rc_migrator::types::RcFreezeReason> for RuntimeFreezeReason {
-	fn from(reason: pallet_rc_migrator::types::RcFreezeReason) -> Self {
-		use pallet_rc_migrator::types::RcFreezeReason;
+impl From<pallet_rc_migrator::types::PortableFreezeReason> for RuntimeFreezeReason {
+	fn from(reason: pallet_rc_migrator::types::PortableFreezeReason) -> Self {
+		use pallet_rc_migrator::types::PortableFreezeReason;
 
 		match reason {
-			RcFreezeReason::NominationPools(nomination_pools) =>
+			PortableFreezeReason::NominationPools(nomination_pools) =>
 				RuntimeFreezeReason::NominationPools(nomination_pools),
 		}
 	}

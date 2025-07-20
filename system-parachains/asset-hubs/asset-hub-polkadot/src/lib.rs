@@ -1166,8 +1166,8 @@ parameter_types! {
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type RcHoldReason = pallet_rc_migrator::types::RcHoldReason;
-	type RcFreezeReason = pallet_rc_migrator::types::RcFreezeReason;
+	type PortableHoldReason = pallet_rc_migrator::types::PortableHoldReason;
+	type PortableFreezeReason = pallet_rc_migrator::types::PortableFreezeReason;
 	type RuntimeEvent = RuntimeEvent;
 	type AdminOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,

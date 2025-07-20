@@ -17,7 +17,7 @@
 //! First phase of the Asset Hub Migration.
 
 use crate::*;
-use pallet_rc_migrator::types::RcFreezeReason;
+use pallet_rc_migrator::types::PortableFreezeReason;
 
 /// Contains all calls that are enabled during the migration.
 pub struct CallsEnabledDuringMigration;
@@ -150,28 +150,31 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 
 // Type safe mapping of RC hold reason to portable format.
 impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
-	type Portable = pallet_rc_migrator::types::RcHoldReason;
+	type Portable = pallet_rc_migrator::types::PortableHoldReason;
 
 	fn into_portable(self) -> Self::Portable {
-		use pallet_rc_migrator::types::RcHoldReason;
+		use pallet_rc_migrator::types::PortableHoldReason;
 
 		match self {
-			RuntimeHoldReason::Preimage(inner) => RcHoldReason::Preimage(inner),
-			RuntimeHoldReason::StateTrieMigration(inner) => RcHoldReason::StateTrieMigration(inner),
-			RuntimeHoldReason::DelegatedStaking(inner) => RcHoldReason::DelegatedStaking(inner),
-			RuntimeHoldReason::Staking(inner) => RcHoldReason::Staking(inner),
-			RuntimeHoldReason::Session(inner) => RcHoldReason::Session(inner),
-			RuntimeHoldReason::XcmPallet(inner) => RcHoldReason::XcmPallet(inner),
+			RuntimeHoldReason::Preimage(inner) => PortableHoldReason::Preimage(inner),
+			RuntimeHoldReason::StateTrieMigration(inner) =>
+				PortableHoldReason::StateTrieMigration(inner),
+			RuntimeHoldReason::DelegatedStaking(inner) =>
+				PortableHoldReason::DelegatedStaking(inner),
+			RuntimeHoldReason::Staking(inner) => PortableHoldReason::Staking(inner),
+			RuntimeHoldReason::Session(inner) => PortableHoldReason::Session(inner),
+			RuntimeHoldReason::XcmPallet(inner) => PortableHoldReason::XcmPallet(inner),
 		}
 	}
 }
 
 impl pallet_rc_migrator::types::IntoPortable for RuntimeFreezeReason {
-	type Portable = pallet_rc_migrator::types::RcFreezeReason;
+	type Portable = pallet_rc_migrator::types::PortableFreezeReason;
 
 	fn into_portable(self) -> Self::Portable {
 		match self {
-			RuntimeFreezeReason::NominationPools(inner) => RcFreezeReason::NominationPools(inner),
+			RuntimeFreezeReason::NominationPools(inner) =>
+				PortableFreezeReason::NominationPools(inner),
 		}
 	}
 }
