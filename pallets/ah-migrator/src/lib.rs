@@ -110,7 +110,6 @@ use sp_runtime::{
 	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
-use types::IntoLocal;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
 

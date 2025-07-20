@@ -544,16 +544,16 @@ impl<T: Config> AccountsMigrator<T> {
 
 		let consumers = Self::get_consumer_count(&who, &account_info);
 		let providers = Self::get_provider_count(&who, &account_info, &holds);
-		let translated_holds = holds.into_iter().map(IntoPortable::into_portable).collect();
-		let translated_freezes = freezes.into_iter().map(IntoPortable::into_portable).collect();
+		let portable_holds = holds.into_iter().map(IntoPortable::into_portable).collect();
+		let portable_freezes = freezes.into_iter().map(IntoPortable::into_portable).collect();
 
 		let withdrawn_account = AccountFor::<T> {
 			who: who.clone(),
 			free: teleport_free,
 			reserved: teleport_reserved,
 			frozen: account_data.frozen,
-			holds: BoundedVec::defensive_truncate_from(translated_holds),
-			freezes: BoundedVec::defensive_truncate_from(translated_freezes),
+			holds: BoundedVec::defensive_truncate_from(portable_holds),
+			freezes: BoundedVec::defensive_truncate_from(portable_freezes),
 			locks: BoundedVec::defensive_truncate_from(locks),
 			unnamed_reserve,
 			consumers,

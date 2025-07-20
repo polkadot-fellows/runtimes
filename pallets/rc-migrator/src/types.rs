@@ -38,9 +38,8 @@ impl ToPolkadotSs58 for AccountId32 {
 
 /// Convert a type into its portable format.
 ///
-/// The portable format is chain-agnostic. The inverse of this operation is the `IntoLocal` trait.
-/// The flow the following: Convert RC object to portable format, send portable format from AH to
-/// RC, convert portable format to AH object.
+/// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
+/// format, send portable format from AH to RC, convert portable format to AH object.
 pub trait IntoPortable {
 	type Portable;
 
