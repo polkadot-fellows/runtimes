@@ -955,6 +955,21 @@ fn test_control_flow() {
 		let message_hash = pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(first_query_id)
 			.expect("query id not found");
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(message_hash).is_some());
+
+		// RC migrator has received the response from the AH indicating that the message failed to
+		// be processed.
+		assert!(frame_system::Pallet::<Polkadot>::events().first().map_or(false, |record| {
+			match &record.event {
+				RcRuntimeEvent::RcMigrator(pallet_rc_migrator::Event::QueryResponseReceived {
+					query_id,
+					response: MaybeErrorCode::Error(..),
+				}) => *query_id == first_query_id,
+				_ => {
+					println!("actual event: {:?}", &record.event);
+					false
+				},
+			}
+		}));
 	});
 
 	// send valid XCM message from RC to AH via rc-migrator.
@@ -988,7 +1003,7 @@ fn test_control_flow() {
 
 		// resend the buffered message via rc-migrator.
 		let result = RcRuntimeCall::RcMigrator(pallet_rc_migrator::Call::<RcRuntime>::resend_xcm {
-			query_id: 1,
+			query_id: second_query_id,
 		})
 		.dispatch(RcRuntimeOrigin::root());
 
@@ -1036,6 +1051,21 @@ fn test_control_flow() {
 
 		<polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(rc_now);
 		<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(rc_now);
+
+		// RC migrator has received the response from the AH indicating that the message was
+		// successfully processed.
+		assert!(frame_system::Pallet::<Polkadot>::events().first().map_or(false, |record| {
+			match &record.event {
+				RcRuntimeEvent::RcMigrator(pallet_rc_migrator::Event::QueryResponseReceived {
+					query_id,
+					response: MaybeErrorCode::Success,
+				}) => *query_id == third_query_id,
+				_ => {
+					println!("actual event: {:?}", &record.event);
+					false
+				},
+			}
+		}));
 
 		// make sure the message is not buffered since the acknowledgement of successful processing
 		// received from AH.
