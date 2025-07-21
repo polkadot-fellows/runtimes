@@ -21,7 +21,9 @@ use crate::*;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_accounts(
-		accounts: Vec<RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>>,
+		accounts: Vec<
+			RcAccount<T::AccountId, T::Balance, T::PortableHoldReason, T::PortableFreezeReason>,
+		>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Integrating {} accounts", accounts.len());
 
@@ -61,7 +63,12 @@ impl<T: Config> Pallet<T> {
 
 	/// MAY CHANGED STORAGE ON ERROR RETURN
 	pub fn do_receive_account(
-		account: RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>,
+		account: RcAccount<
+			T::AccountId,
+			T::Balance,
+			T::PortableHoldReason,
+			T::PortableFreezeReason,
+		>,
 	) -> Result<(), Error<T>> {
 		if !Self::has_existential_deposit(&account) {
 			frame_system::Pallet::<T>::inc_providers(&account.who);
@@ -84,11 +91,9 @@ impl<T: Config> Pallet<T> {
 		debug_assert!(minted == total_balance);
 
 		for hold in account.holds {
-			if let Err(e) = <T as pallet::Config>::Currency::hold(
-				&T::RcToAhHoldReason::convert(hold.id),
-				&who,
-				hold.amount,
-			) {
+			if let Err(e) =
+				<T as pallet::Config>::Currency::hold(&hold.id.into(), &who, hold.amount)
+			{
 				log::error!(
 					target: LOG_TARGET,
 					"Failed to hold into account {}: {:?}",
@@ -110,11 +115,9 @@ impl<T: Config> Pallet<T> {
 		}
 
 		for freeze in account.freezes {
-			if let Err(e) = <T as pallet::Config>::Currency::set_freeze(
-				&T::RcToAhFreezeReason::convert(freeze.id),
-				&who,
-				freeze.amount,
-			) {
+			if let Err(e) =
+				<T as pallet::Config>::Currency::set_freeze(&freeze.id.into(), &who, freeze.amount)
+			{
 				log::error!(
 					target: LOG_TARGET,
 					"Failed to freeze into account {}: {:?}",
@@ -167,7 +170,12 @@ impl<T: Config> Pallet<T> {
 	/// Returns true if the account has an existential deposit and it does not need an extra
 	/// provider reference to exist.
 	pub fn has_existential_deposit(
-		account: &RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>,
+		account: &RcAccount<
+			T::AccountId,
+			T::Balance,
+			T::PortableHoldReason,
+			T::PortableFreezeReason,
+		>,
 	) -> bool {
 		frame_system::Pallet::<T>::providers(&account.who) > 0 ||
 			<T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free) >=

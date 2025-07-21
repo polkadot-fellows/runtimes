@@ -20,7 +20,7 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
-use frame_support::traits::ContainsPair;
+use frame_support::traits::{tokens::IdAmount, ContainsPair};
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
@@ -34,6 +34,31 @@ impl ToPolkadotSs58 for AccountId32 {
 	fn to_polkadot_ss58(&self) -> String {
 		self.to_ss58check_with_version(sp_core::crypto::Ss58AddressFormat::custom(0))
 	}
+}
+
+/// Convert a type into its portable format.
+///
+/// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
+/// format, send portable format from AH to RC, convert portable format to AH object.
+pub trait IntoPortable {
+	type Portable;
+
+	fn into_portable(self) -> Self::Portable;
+}
+
+impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
+	type Portable = IdAmount<Id::Portable, Balance>;
+
+	fn into_portable(self) -> Self::Portable {
+		IdAmount { id: self.id.into_portable(), amount: self.amount }
+	}
+}
+
+/// Generate a default instance for benchmarking purposes.
+pub trait BenchmarkingDefault {
+	/// Default for benchmarking purposes only.
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self;
 }
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -543,6 +568,57 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	/// The count of batches
 	pub fn batch_count(&self) -> u32 {
 		self.batch.batch_count()
+	}
+}
+
+/// Relay Chain Hold Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableHoldReason {
+	Preimage(pallet_preimage::HoldReason),
+	Staking(pallet_staking::HoldReason),
+	StateTrieMigration(pallet_state_trie_migration::HoldReason),
+	DelegatedStaking(pallet_delegated_staking::HoldReason),
+	Session(pallet_session::HoldReason),
+	XcmPallet(pallet_xcm::HoldReason),
+}
+
+impl BenchmarkingDefault for PortableHoldReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		PortableHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
+
+/// Relay Chain Freeze Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableFreezeReason {
+	NominationPools(pallet_nomination_pools::FreezeReason),
+}
+
+impl BenchmarkingDefault for PortableFreezeReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		PortableFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
 	}
 }
 

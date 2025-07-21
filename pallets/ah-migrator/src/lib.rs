@@ -56,8 +56,8 @@ pub mod xcm_translation;
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{
-		ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority,
-		RouteInnerWithException,
+		BenchmarkingDefault, ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner,
+		QueuePriority as DmpQueuePriority, RouteInnerWithException,
 	},
 	weights_ah,
 };
@@ -119,8 +119,8 @@ pub const LOG_TARGET: &str = "runtime::ah-migrator";
 type RcAccountFor<T> = RcAccount<
 	<T as frame_system::Config>::AccountId,
 	<T as pallet_balances::Config>::Balance,
-	<T as Config>::RcHoldReason,
-	<T as Config>::RcFreezeReason,
+	<T as Config>::PortableHoldReason,
+	<T as Config>::PortableFreezeReason,
 >;
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
@@ -240,8 +240,11 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
-		+ pallet_balances::Config<Balance = u128>
-		+ pallet_multisig::Config
+		+ pallet_balances::Config<
+			Balance = u128,
+			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			RuntimeFreezeReason = <Self as Config>::RuntimeFreezeReason,
+		> + pallet_multisig::Config
 		+ pallet_proxy::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<
@@ -263,7 +266,16 @@ pub mod pallet {
 		+ pallet_treasury::Config
 		+ pallet_delegated_staking::Config
 	{
-		type RuntimeHoldReason: Parameter + VariantCount;
+		type RuntimeHoldReason: Parameter
+			+ VariantCount
+			+ MaxEncodedLen
+			+ From<<Self as Config>::PortableHoldReason>;
+		type RuntimeFreezeReason: Parameter
+			+ VariantCount
+			+ MaxEncodedLen
+			+ From<<Self as Config>::PortableFreezeReason>;
+		type PortableHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+		type PortableFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
@@ -273,7 +285,7 @@ pub mod pallet {
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
-			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+			+ InspectFreeze<Self::AccountId, Id = <Self as Config>::RuntimeFreezeReason>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
@@ -284,18 +296,6 @@ pub mod pallet {
 		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
-		/// Relay Chain Hold Reasons.
-		///
-		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcHoldReason: Parameter + Default + MaxEncodedLen;
-		/// Relay Chain Freeze Reasons.
-		///
-		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcFreezeReason: Parameter + Default + MaxEncodedLen;
-		/// Relay Chain to Asset Hub Hold Reasons mapping.
-		type RcToAhHoldReason: Convert<Self::RcHoldReason, <Self as Config>::RuntimeHoldReason>;
-		/// Relay Chain to Asset Hub Freeze Reasons mapping.
-		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.

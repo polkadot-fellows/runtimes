@@ -37,7 +37,9 @@ pallet-treasury = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-session = { workspace = true }
 pallet-nomination-pools = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
 pallet-xcm = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
@@ -74,7 +76,9 @@ std = [
 	"pallet-proxy/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
+	"pallet-session/std",
 	"pallet-staking/std",
+	"pallet-state-trie-migration/std",
 	"pallet-treasury/std",
 	"pallet-vesting/std",
 	"pallet-xcm/std",
@@ -117,6 +121,7 @@ runtime-benchmarks = [
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
@@ -149,7 +154,9 @@ try-runtime = [
 	"pallet-proxy/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
+	"pallet-session/try-runtime",
 	"pallet-staking/try-runtime",
+	"pallet-state-trie-migration/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-xcm/try-runtime",
