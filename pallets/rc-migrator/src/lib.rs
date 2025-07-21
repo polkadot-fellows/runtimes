@@ -449,12 +449,13 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
-		+ pallet_staking::Config
+		+ pallet_staking::Config<CurrencyBalance = u128>
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
 		+ pallet_delegated_staking::Config
 		+ pallet_xcm::Config
+		+ pallet_staking_async_ah_client::Config
 	{
 		/// The overall runtime origin type.
 		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>

@@ -36,6 +36,8 @@ impl ToPolkadotSs58 for AccountId32 {
 	}
 }
 
+
+
 /// Convert a type into its portable format.
 ///
 /// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
@@ -51,6 +53,18 @@ impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
 
 	fn into_portable(self) -> Self::Portable {
 		IdAmount { id: self.id.into_portable(), amount: self.amount }
+	}
+}
+
+/// Defensively truncate a value and convert it into its bounded form.
+pub trait DefensiveTruncateInto<T> {
+	/// Defensively truncate a value and convert it into its bounded form.
+	fn defensive_truncate_into(self) -> T;
+}
+
+impl<T, U: DefensiveTruncateFrom<T>> DefensiveTruncateInto<U> for T {
+	fn defensive_truncate_into(self) -> U {
+		U::defensive_truncate_from(self)
 	}
 }
 
@@ -141,7 +155,7 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 30)]
 	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
-	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
+	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]

@@ -8917,6 +8917,8 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-staking",
+ "pallet-staking-async",
+ "pallet-staking-async-ah-client",
  "pallet-state-trie-migration",
  "pallet-treasury",
  "pallet-vesting",

@@ -32,11 +32,13 @@ pallet-proxy = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-staking-async = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-staking-async-ah-client = { workspace = true }
 pallet-session = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
@@ -54,6 +56,8 @@ frame-election-provider-support = { workspace = true }
 
 [features]
 default = ["std"]
+ahm-staking-migration = []
+
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
@@ -99,6 +103,8 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"pallet-staking-async/std",
+	"pallet-staking-async-ah-client/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -134,6 +140,8 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
+	"pallet-staking-async-ah-client/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -163,4 +171,6 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-staking-async/try-runtime",
+	"pallet-staking-async-ah-client/try-runtime"
 ]

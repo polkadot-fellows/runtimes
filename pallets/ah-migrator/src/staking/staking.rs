@@ -17,7 +17,7 @@
 //! Pallet staking migration.
 
 use crate::*;
-use frame_support::traits::DefensiveTruncateInto;
+use crate::types::DefensiveTruncateInto;
 use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
@@ -25,7 +25,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn staking_migration_finish_hook() {}
 
-	pub fn do_receive_staking_messages(messages: Vec<T::RcStakingMessage>) -> Result<(), Error<T>> {
+	pub fn do_receive_staking_messages(messages: Vec<T::PortableStakingMessage>) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} StakingMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -34,7 +34,7 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for message in messages {
-			let translated = T::RcStakingMessage::intoAh(message);
+			let translated = T::PortableStakingMessage::intoAh(message);
 			match Self::do_receive_staking_message(translated) {
 				Ok(_) => good += 1,
 				Err(_) => bad += 1,
@@ -53,7 +53,7 @@ impl<T: Config> Pallet<T> {
 	fn do_receive_staking_message(
 		message: AhEquivalentStakingMessageOf<T>,
 	) -> Result<(), Error<T>> {
-		use RcStakingMessage::*;
+		use PortableStakingMessage::*;
 
 		match message {
 			Values(values) => {

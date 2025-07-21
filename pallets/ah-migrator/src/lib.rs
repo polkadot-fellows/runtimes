@@ -862,7 +862,7 @@ pub mod pallet {
 		#[pallet::weight({1})] // TODO: @ggwpez weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
-			messages: Vec<T::RcStakingMessage>,
+			messages: Vec<T::PortableStakingMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
