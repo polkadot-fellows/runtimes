@@ -45,6 +45,7 @@ use pallet_rc_migrator::{
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
+	types::BenchmarkingDefault,
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
@@ -105,11 +106,16 @@ pub mod benchmarks {
 			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
 
 			let hold_amount = ed;
-			let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
+			let holds = vec![IdAmount {
+				id: T::PortableHoldReason::benchmarking_default(),
+				amount: hold_amount,
+			}];
 
 			let freeze_amount = 2 * ed;
-			let freezes =
-				vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
+			let freezes = vec![IdAmount {
+				id: T::PortableFreezeReason::benchmarking_default(),
+				amount: freeze_amount,
+			}];
 
 			let lock_amount = 3 * ed;
 			let locks = vec![pallet_balances::BalanceLock::<u128> {
@@ -981,6 +987,16 @@ pub mod benchmarks {
 		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
 	}
 
+	#[benchmark]
+	fn set_manager() {
+		let old = Manager::<T>::get();
+		let new = Some([0; 32].into());
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::ManagerSet { old, new }.into());
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T>(n: u32)
 	where
@@ -1258,5 +1274,14 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_set_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_manager<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_manager::<T>(true)
 	}
 }

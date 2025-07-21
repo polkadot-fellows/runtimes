@@ -17,6 +17,7 @@
 //! First phase of the Asset Hub Migration.
 
 use crate::*;
+use pallet_rc_migrator::types::PortableFreezeReason;
 
 /// Contains all calls that are enabled during the migration.
 pub struct CallsEnabledDuringMigration;
@@ -88,6 +89,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// TransactionPayment has no calls
 		// Authorship has no calls
 		Staking(..) => (OFF, OFF),
+		StakingAhClient(..) => (ON, ON),
 		// Offences has no calls
 		// Historical has no calls
 		Session(..) => (OFF, ON),
@@ -142,8 +144,37 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
 		RcMigrator(..) => (ON, ON),
-		#[cfg(feature = "zombie-bite-sudo")]
-		Sudo(..) => (ON, ON),
 		// Exhaustive match. Compiler ensures that we did not miss any.
+	}
+}
+
+// Type safe mapping of RC hold reason to portable format.
+impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
+	type Portable = pallet_rc_migrator::types::PortableHoldReason;
+
+	fn into_portable(self) -> Self::Portable {
+		use pallet_rc_migrator::types::PortableHoldReason;
+
+		match self {
+			RuntimeHoldReason::Preimage(inner) => PortableHoldReason::Preimage(inner),
+			RuntimeHoldReason::StateTrieMigration(inner) =>
+				PortableHoldReason::StateTrieMigration(inner),
+			RuntimeHoldReason::DelegatedStaking(inner) =>
+				PortableHoldReason::DelegatedStaking(inner),
+			RuntimeHoldReason::Staking(inner) => PortableHoldReason::Staking(inner),
+			RuntimeHoldReason::Session(inner) => PortableHoldReason::Session(inner),
+			RuntimeHoldReason::XcmPallet(inner) => PortableHoldReason::XcmPallet(inner),
+		}
+	}
+}
+
+impl pallet_rc_migrator::types::IntoPortable for RuntimeFreezeReason {
+	type Portable = pallet_rc_migrator::types::PortableFreezeReason;
+
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			RuntimeFreezeReason::NominationPools(inner) =>
+				PortableFreezeReason::NominationPools(inner),
+		}
 	}
 }

@@ -107,6 +107,7 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
+use types::IntoPortable;
 pub use types::{MigrationStatus, PalletMigration, QueuePriority as AhUmpQueuePriority};
 use vesting::VestingMigrator;
 use weights_ah::WeightInfo as AhWeightInfo;
@@ -430,6 +431,7 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<
 			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			FreezeIdentifier = <Self as Config>::RuntimeFreezeReason,
 			Balance = u128,
 		> + hrmp::Config
 		+ paras_registrar::Config
@@ -460,17 +462,25 @@ pub mod pallet {
 		/// The overall runtime call type.
 		type RuntimeCall: From<Call<Self>> + IsType<<Self as pallet_xcm::Config>::RuntimeCall>;
 		/// The runtime hold reasons.
-		type RuntimeHoldReason: Parameter + VariantCount;
+		type RuntimeHoldReason: Parameter
+			+ VariantCount
+			+ IntoPortable<Portable = types::PortableHoldReason>;
+
+		/// The runtime freeze reasons.
+		type RuntimeFreezeReason: Parameter
+			+ VariantCount
+			+ IntoPortable<Portable = types::PortableFreezeReason>;
+
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		///
 		/// This is generally root, Asset Hub and Fellows origins.
-		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
-			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+			+ InspectFreeze<Self::AccountId, Id = <Self as Config>::RuntimeFreezeReason>
 			+ MutateFreeze<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
@@ -626,6 +636,13 @@ pub mod pallet {
 		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
 		/// The RC kept balance was consumed.
 		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
+		/// The manager account id was set.
+		ManagerSet {
+			/// The old manager account id.
+			old: Option<T::AccountId>,
+			/// The new manager account id.
+			new: Option<T::AccountId>,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -683,6 +700,13 @@ pub mod pallet {
 	pub type AhUmpQueuePriorityConfig<T: Config> =
 		StorageValue<_, AhUmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
+	/// An optional account id of a manager.
+	///
+	/// This account id has the similar to [`Config::AdminOrigin`] privileges except that it
+	/// can not set the manager account id via `set_manager` call.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	/// Alias for `Paras` from `paras_registrar`.
 	///
 	/// The fields of the type stored in the original storage item are private, so we define the
@@ -706,14 +730,15 @@ pub mod pallet {
 		/// Set the migration stage.
 		///
 		/// This call is intended for emergency use only and is guarded by the
-		/// [`Config::ManagerOrigin`].
+		/// [`Config::AdminOrigin`].
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::RcWeightInfo::force_set_stage())]
 		pub fn force_set_stage(
 			origin: OriginFor<T>,
 			stage: Box<MigrationStageOf<T>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			Self::transition(*stage);
 			Ok(())
 		}
@@ -732,7 +757,8 @@ pub mod pallet {
 			start: DispatchTime<BlockNumberFor<T>>,
 			cool_off_end: DispatchTime<BlockNumberFor<T>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			let now = frame_system::Pallet::<T>::block_number();
 			let start = start.evaluate(now);
 			let cool_off_end = cool_off_end.evaluate(now);
@@ -749,7 +775,8 @@ pub mod pallet {
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			let cool_off_end = match RcMigrationStage::<T>::get() {
 				MigrationStage::WaitingForAh { cool_off_end } => cool_off_end,
 				stage => {
@@ -769,9 +796,9 @@ pub mod pallet {
 			query_id: QueryId,
 			response: Response,
 		) -> DispatchResult {
-			match <T as Config>::ManagerOrigin::ensure_origin(origin.clone()) {
+			match Self::ensure_admin_or_manager(origin.clone()) {
 				Ok(_) => {
-					// Origin is valid [`Config::ManagerOrigin`].
+					// Origin is valid [`Config::AdminOrigin`] or [`Manager`].
 				},
 				Err(_) => {
 					match <T as Config>::RuntimeOrigin::from(origin.clone()).into() {
@@ -821,7 +848,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::RcWeightInfo::resend_xcm())]
 		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			let message_hash =
 				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
@@ -877,7 +904,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			new: Option<u32>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			let old = Self::get_unprocessed_msg_buffer_size();
 			UnprocessedMsgBuffer::<T>::set(new);
 			let new = Self::get_unprocessed_msg_buffer_size();
@@ -887,14 +915,15 @@ pub mod pallet {
 
 		/// Set the AH UMP queue priority configuration.
 		///
-		/// Can only be called by the `ManagerOrigin`.
+		/// Can only be called by the `AdminOrigin`.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::RcWeightInfo::set_ah_ump_queue_priority())]
 		pub fn set_ah_ump_queue_priority(
 			origin: OriginFor<T>,
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			let old = AhUmpQueuePriorityConfig::<T>::get();
 			if old == new {
 				return Err(Error::<T>::AhUmpQueuePriorityAlreadySet.into());
@@ -905,6 +934,20 @@ pub mod pallet {
 			);
 			AhUmpQueuePriorityConfig::<T>::put(new.clone());
 			Self::deposit_event(Event::AhUmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
+
+		/// Set the manager account id.
+		///
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call.
+		#[pallet::call_index(7)]
+		#[pallet::weight(T::RcWeightInfo::set_manager())]
+		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			let old = Manager::<T>::get();
+			Manager::<T>::set(new.clone());
+			Self::deposit_event(Event::ManagerSet { old, new });
 			Ok(())
 		}
 	}
@@ -1805,6 +1848,17 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
 		/// Returns `true` if the migration is ongoing and the Asset Hub has not confirmed
 		/// processing the same number of XCM messages as we have sent to it.
 		fn has_excess_unconfirmed_dmp(current: &MigrationStageOf<T>) -> bool {

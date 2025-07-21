@@ -106,3 +106,10 @@ fn test_bench_force_ah_ump_queue_priority() {
 		test_force_ah_ump_queue_priority::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_set_manager() {
+	new_test_ext().execute_with(|| {
+		test_set_manager::<RelayChain>();
+	});
+}

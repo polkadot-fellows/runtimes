@@ -56,8 +56,8 @@ pub mod xcm_translation;
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{
-		ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner, QueuePriority as DmpQueuePriority,
-		RouteInnerWithException,
+		BenchmarkingDefault, ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner,
+		QueuePriority as DmpQueuePriority, RouteInnerWithException,
 	},
 	weights_ah,
 };
@@ -119,8 +119,8 @@ pub const LOG_TARGET: &str = "runtime::ah-migrator";
 type RcAccountFor<T> = RcAccount<
 	<T as frame_system::Config>::AccountId,
 	<T as pallet_balances::Config>::Balance,
-	<T as Config>::RcHoldReason,
-	<T as Config>::RcFreezeReason,
+	<T as Config>::PortableHoldReason,
+	<T as Config>::PortableFreezeReason,
 >;
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
@@ -240,8 +240,11 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
-		+ pallet_balances::Config<Balance = u128>
-		+ pallet_multisig::Config
+		+ pallet_balances::Config<
+			Balance = u128,
+			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			RuntimeFreezeReason = <Self as Config>::RuntimeFreezeReason,
+		> + pallet_multisig::Config
 		+ pallet_proxy::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<
@@ -263,17 +266,26 @@ pub mod pallet {
 		+ pallet_treasury::Config
 		+ pallet_delegated_staking::Config
 	{
-		type RuntimeHoldReason: Parameter + VariantCount;
+		type RuntimeHoldReason: Parameter
+			+ VariantCount
+			+ MaxEncodedLen
+			+ From<<Self as Config>::PortableHoldReason>;
+		type RuntimeFreezeReason: Parameter
+			+ VariantCount
+			+ MaxEncodedLen
+			+ From<<Self as Config>::PortableFreezeReason>;
+		type PortableHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+		type PortableFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		///
 		/// This is generally root and Fellows origins.
-		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
-			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+			+ InspectFreeze<Self::AccountId, Id = <Self as Config>::RuntimeFreezeReason>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
@@ -284,18 +296,6 @@ pub mod pallet {
 		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
-		/// Relay Chain Hold Reasons.
-		///
-		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcHoldReason: Parameter + Default + MaxEncodedLen;
-		/// Relay Chain Freeze Reasons.
-		///
-		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcFreezeReason: Parameter + Default + MaxEncodedLen;
-		/// Relay Chain to Asset Hub Hold Reasons mapping.
-		type RcToAhHoldReason: Convert<Self::RcHoldReason, <Self as Config>::RuntimeHoldReason>;
-		/// Relay Chain to Asset Hub Freeze Reasons mapping.
-		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
@@ -395,6 +395,13 @@ pub mod pallet {
 	pub type DmpQueuePriorityConfig<T: Config> =
 		StorageValue<_, DmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
+	/// An optional account id of a manager.
+	///
+	/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+	/// can not set the manager account id via `set_manager` call.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Failed to unreserve deposit.
@@ -482,6 +489,13 @@ pub mod pallet {
 		BalancesBeforeRecordConsumed { checking_account: T::Balance, total_issuance: T::Balance },
 		/// A referendum was cancelled because it could not be mapped.
 		ReferendumCanceled { id: u32 },
+		/// The manager account id was set.
+		ManagerSet {
+			/// The old manager account id.
+			old: Option<T::AccountId>,
+			/// The new manager account id.
+			new: Option<T::AccountId>,
+		},
 	}
 
 	#[pallet::pallet]
@@ -858,11 +872,12 @@ pub mod pallet {
 		/// Set the migration stage.
 		///
 		/// This call is intended for emergency use only and is guarded by the
-		/// [`Config::ManagerOrigin`].
+		/// [`Config::AdminOrigin`].
 		#[pallet::call_index(100)]
 		#[pallet::weight(T::AhWeightInfo::force_set_stage())]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			Self::transition(stage);
 			Ok(())
 		}
@@ -874,21 +889,22 @@ pub mod pallet {
 		#[pallet::call_index(101)]
 		#[pallet::weight(T::AhWeightInfo::start_migration())]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			Self::migration_start_hook().map_err(Into::into)
 		}
 
 		/// Set the DMP queue priority configuration.
 		///
-		/// Can only be called by the `ManagerOrigin`.
+		/// Can only be called by the `AdminOrigin`.
 		#[pallet::call_index(102)]
 		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
 		pub fn set_dmp_queue_priority(
 			origin: OriginFor<T>,
 			new: DmpQueuePriority<BlockNumberFor<T>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
+
 			let old = DmpQueuePriorityConfig::<T>::get();
 			if old == new {
 				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
@@ -899,6 +915,20 @@ pub mod pallet {
 			);
 			DmpQueuePriorityConfig::<T>::put(new.clone());
 			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
+
+		/// Set the manager account id.
+		///
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call.
+		#[pallet::call_index(103)]
+		#[pallet::weight(T::AhWeightInfo::set_manager())]
+		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			let old = Manager::<T>::get();
+			Manager::<T>::set(new.clone());
+			Self::deposit_event(Event::ManagerSet { old, new });
 			Ok(())
 		}
 
@@ -915,7 +945,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			data: Option<MigrationFinishedData<T::Balance>>,
 		) -> DispatchResult {
-			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			Self::migration_finish_hook(data).map_err(Into::into)
 		}
@@ -946,6 +976,17 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
 		/// Translate account from RC format to AH format.
 		///
 		/// Currently returns the input account unchanged (mock implementation).
