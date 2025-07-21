@@ -17,7 +17,8 @@
 //! Pallet staking migration.
 
 use crate::*;
-use crate::types::DefensiveTruncateInto;
+use pallet_rc_migrator::types::DefensiveTruncateInto;
+use pallet_rc_migrator::staking::PortableStakingMessage;
 use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
@@ -25,7 +26,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn staking_migration_finish_hook() {}
 
-	pub fn do_receive_staking_messages(messages: Vec<T::PortableStakingMessage>) -> Result<(), Error<T>> {
+	pub fn do_receive_staking_messages(messages: Vec<PortableStakingMessage>) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} StakingMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -34,8 +35,7 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for message in messages {
-			let translated = T::PortableStakingMessage::intoAh(message);
-			match Self::do_receive_staking_message(translated) {
+			match Self::do_receive_staking_message(message) {
 				Ok(_) => good += 1,
 				Err(_) => bad += 1,
 			}
@@ -51,7 +51,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_receive_staking_message(
-		message: AhEquivalentStakingMessageOf<T>,
+		message: PortableStakingMessage,
 	) -> Result<(), Error<T>> {
 		use PortableStakingMessage::*;
 
@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating StakingValues");
 				pallet_rc_migrator::staking::StakingMigrator::<T>::put_values(values);
 			},
-			Invulnerables(invulnerables) => {
+			/*Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
 				let bounded = BoundedVec::truncate_from(invulnerables);
 				pallet_staking_async::Invulnerables::<T>::put(bounded);
@@ -148,7 +148,8 @@ impl<T: Config> Pallet<T> {
 			SpanSlash { account, span, slash } => {
 				log::debug!(target: LOG_TARGET, "Integrating SpanSlash {:?}/{:?}", account, span);
 				pallet_staking_async::SpanSlash::<T>::insert((account, span), slash);
-			},
+			},*/
+			_ => todo!(),
 		}
 
 		Ok(())

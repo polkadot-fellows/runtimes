@@ -28,8 +28,7 @@ use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
 use crate::types::DefensiveTruncateInto;
 use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
+	slashing::{SlashingSpans, SpanIndex, SpanRecord}, EraRewardPoints, Nominations, RewardDestination, StakingLedger,
 	ValidatorPrefs,
 };
 use sp_runtime::{Perbill, Percent};
@@ -120,8 +119,8 @@ pub enum PortableStakingMessage
 	NominatorSlashInEra {
 		era: EraIndex,
 		validator: AccountId32,
-		slash: (Perbill, u128),
-	}
+		slash: u128,
+	},
 }
 
 #[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
@@ -135,8 +134,8 @@ pub struct StakingValues<Balance> {
 	pub max_validators_count: Option<u32>,
 	pub max_nominators_count: Option<u32>,
 	pub current_era: Option<EraIndex>,
-	pub active_era: Option<ActiveEraInfo>,
-	pub force_era: Option<Forcing>,
+	pub active_era: Option<PortableActiveEraInfo>,
+	pub force_era: Option<PortableForcing>,
 	pub max_staked_rewards: Option<Percent>,
 	pub slash_reward_fraction: Option<Perbill>,
 	pub canceled_slash_payout: Option<Balance>,
@@ -160,8 +159,8 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 			max_validators_count: MaxValidatorsCount::<T>::take(),
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
-			active_era: ActiveEra::<T>::take(),
-			force_era: ForceEra::<T>::exists().then(ForceEra::<T>::take),
+			active_era: ActiveEra::<T>::take().map(IntoPortable::into_portable),
+			force_era: ForceEra::<T>::exists().then(ForceEra::<T>::take).map(IntoPortable::into_portable),
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
 			slash_reward_fraction: SlashRewardFraction::<T>::exists()
 				.then(SlashRewardFraction::<T>::take),
@@ -174,7 +173,121 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 	}
 }
 
+impl<T: pallet_staking_async::Config> StakingMigrator<T> {
+	pub fn put_values(values: StakingValues<pallet_staking_async::BalanceOf<T>>) {
+		use pallet_staking_async::*;
+
+		values.validator_count.map(ValidatorCount::<T>::put);
+		// MinimumValidatorCount is not migrated
+		values.min_nominator_bond.map(MinNominatorBond::<T>::put);
+		values.min_validator_bond.map(MinValidatorBond::<T>::put);
+		values.min_active_stake.map(MinimumActiveStake::<T>::put);
+		values.min_commission.map(MinCommission::<T>::put);
+		values.max_validators_count.map(MaxValidatorsCount::<T>::put);
+		values.max_nominators_count.map(MaxNominatorsCount::<T>::put);
+		values.active_era.map(|active_era| {
+			let active_era: pallet_staking_async::ActiveEraInfo = active_era.into();
+			ActiveEra::<T>::put(&active_era);
+			CurrentEra::<T>::put(active_era.index);
+		});
+		values.force_era.map(|force_era| {
+			let force_era: pallet_staking_async::Forcing = force_era.into();
+			ForceEra::<T>::put(force_era);
+		});
+		values.max_staked_rewards.map(MaxStakedRewards::<T>::put);
+		values.slash_reward_fraction.map(SlashRewardFraction::<T>::put);
+		values.canceled_slash_payout.map(CanceledSlashPayout::<T>::put);
+		// CurrentPlannedSession is not migrated
+		values.chill_threshold.map(ChillThreshold::<T>::put);
+	}
+}
+
 pub type PortableStakingValues = StakingValues<u128>;
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct PortableActiveEraInfo {
+	/// Index of era.
+	pub index: EraIndex,
+	/// Moment of start expressed as millisecond from `$UNIX_EPOCH`.
+	///
+	/// Start can be none if start hasn't been set for the era yet,
+	/// Start is set on the first on_finalize of the era to guarantee usage of `Time`.
+	pub start: Option<u64>,
+}
+
+impl IntoPortable for pallet_staking::ActiveEraInfo {
+	type Portable = PortableActiveEraInfo;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortableActiveEraInfo { index: self.index, start: self.start }
+	}
+}
+
+impl Into<pallet_staking_async::ActiveEraInfo> for PortableActiveEraInfo {
+	fn into(self) -> pallet_staking_async::ActiveEraInfo {
+		pallet_staking_async::ActiveEraInfo { index: self.index, start: self.start }
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableForcing {
+	/// Not forcing anything - just let whatever happen.
+	NotForcing,
+	/// Force a new era, then reset to `NotForcing` as soon as it is done.
+	/// Note that this will force to trigger an election until a new era is triggered, if the
+	/// election failed, the next session end will trigger a new election again, until success.
+	ForceNew,
+	/// Avoid a new era indefinitely.
+	ForceNone,
+	/// Force a new era at the end of all sessions indefinitely.
+	ForceAlways,
+}
+
+// Forcing: RC -> Portable
+impl IntoPortable for pallet_staking::Forcing {
+	type Portable = PortableForcing;
+	
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			pallet_staking::Forcing::NotForcing => PortableForcing::NotForcing,
+			pallet_staking::Forcing::ForceNew => PortableForcing::ForceNew,
+			pallet_staking::Forcing::ForceNone => PortableForcing::ForceNone,
+			pallet_staking::Forcing::ForceAlways => PortableForcing::ForceAlways,
+		}
+	}
+}
+
+// Forcing: Portable -> AH
+impl Into<pallet_staking_async::Forcing> for PortableForcing {
+	fn into(self) -> pallet_staking_async::Forcing {
+		match self {
+			PortableForcing::NotForcing => pallet_staking_async::Forcing::NotForcing,
+			PortableForcing::ForceNew => pallet_staking_async::Forcing::ForceNew,
+			PortableForcing::ForceNone => pallet_staking_async::Forcing::ForceNone,
+			PortableForcing::ForceAlways => pallet_staking_async::Forcing::ForceAlways,
+		}
+	}
+}
 
 #[derive(
 	PartialEq,
@@ -268,9 +381,23 @@ pub struct PortableUnappliedSlash {
 	/// All other slashed stakers and amounts.
 	pub others: BoundedVec<(AccountId32, u128), ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
 	/// Reporters of the offence; bounty payout recipients.
-	pub reporter: Option<AccountId32>,
+	pub reporters: BoundedVec<AccountId32, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
 	/// The amount of payout.
 	pub payout: u128,
+}
+
+impl IntoPortable for pallet_staking::UnappliedSlash<AccountId32, u128> {
+	type Portable = PortableUnappliedSlash;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortableUnappliedSlash {
+			validator: self.validator,
+			own: self.own,
+			others: self.others.defensive_truncate_into(),
+			reporters: self.reporters.defensive_truncate_into(),
+			payout: self.payout,
+		}
+	}
 }
 
 #[derive(
@@ -386,7 +513,18 @@ pub struct PortableExposurePage {
 	/// The total balance of this chunk/page.
 	pub page_total: u128,
 	/// The portions of nominators stashes that are exposed.
-	pub others: Vec<PortableIndividualExposure>,
+	pub others: BoundedVec<PortableIndividualExposure, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+}
+
+impl IntoPortable for sp_staking::ExposurePage<AccountId32, u128> {
+	type Portable = PortableExposurePage;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortableExposurePage {
+			page_total: self.page_total,
+			others: self.others.into_iter().map(IntoPortable::into_portable).collect::<Vec<_>>().defensive_truncate_into(),
+		}
+	}
 }
 
 #[derive(
@@ -408,6 +546,14 @@ pub struct PortableIndividualExposure {
 	pub value: u128,
 }
 
+impl IntoPortable for sp_staking::IndividualExposure<AccountId32, u128> {
+	type Portable = PortableIndividualExposure;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortableIndividualExposure { who: self.who, value: self.value }
+	}
+}
+
 #[derive(
 	PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen, DecodeWithMemTracking,
 )]
@@ -416,4 +562,21 @@ pub struct PortableEraRewardPoints {
 	pub total: u32,
 	/// The reward points earned by a given validator.
 	pub individual: BoundedBTreeMap<AccountId32, u32, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+}
+
+impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
+	type Portable = PortableEraRewardPoints;
+
+	fn into_portable(self) -> Self::Portable {
+		// TODO @ggwpez
+		if self.individual.len() > 100 {
+			defensive!("EraRewardPoints truncated");
+		}
+		let individual = self.individual.into_iter().take(100).collect::<BTreeMap<_, _>>();
+
+		PortableEraRewardPoints {
+			total: self.total,
+			individual: BoundedBTreeMap::try_from(individual).defensive().unwrap_or_default(),
+		}
+	}
 }

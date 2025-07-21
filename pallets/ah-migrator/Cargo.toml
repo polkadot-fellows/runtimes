@@ -35,6 +35,7 @@ pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-async = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
@@ -120,6 +121,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"pallet-staking-async/std"
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
@@ -162,6 +164,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks"
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
@@ -193,4 +196,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-staking-async/try-runtime"
 ]

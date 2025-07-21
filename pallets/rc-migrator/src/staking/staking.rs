@@ -27,6 +27,7 @@ use pallet_staking::{
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
 	ValidatorPrefs,
 };
+use codec::{FullCodec, FullEncode};
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
 
@@ -256,7 +257,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 						None => StakingStage::ErasStakersPaged(None),
 					}
 				},
-				/*StakingStage::ErasStakersPaged(progress) => {
+				StakingStage::ErasStakersPaged(progress) => {
 					let mut iter = if let Some(progress) = progress {
 						pallet_staking::ErasStakersPaged::<T>::iter_from(
 							pallet_staking::ErasStakersPaged::<T>::hashed_key_for(progress),
@@ -274,7 +275,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 								era,
 								validator: validator.clone(),
 								page,
-								exposure,
+								exposure: exposure.into_portable(),
 							});
 							StakingStage::ErasStakersPaged(Some((era, validator, page)))
 						},
@@ -347,7 +348,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, points)) => {
 							pallet_staking::ErasRewardPoints::<T>::remove(&era);
-							messages.push(PortableStakingMessage::ErasRewardPoints { era, points });
+							messages.push(PortableStakingMessage::ErasRewardPoints { era, points: points.into_portable() });
 							StakingStage::ErasRewardPoints(Some(era))
 						},
 						None => StakingStage::ErasTotalStake(None),
@@ -379,7 +380,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
 							for slash in slashes.into_iter().take(1000) {
 								// First 1000 slashes should be enough, just to avoid unbound loop
-								messages.push(PortableStakingMessage::UnappliedSlashes { era, slash });
+								messages.push(PortableStakingMessage::UnappliedSlashes { era, slash: slash.into_portable() });
 							}
 							StakingStage::UnappliedSlashes(Some(era))
 						},
@@ -445,10 +446,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((account, spans)) => {
 							pallet_staking::SlashingSpans::<T>::remove(&account);
-							messages.push(PortableStakingMessage::SlashingSpans {
-								account: account.clone(),
-								spans,
-							});
+							// We do not migrate them. TODO @kianenigma review
 							StakingStage::SlashingSpans(Some(account))
 						},
 						None => StakingStage::SpanSlash(None),
@@ -460,11 +458,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some(((account, span), slash)) => {
 							pallet_staking::SpanSlash::<T>::remove((&account, &span));
-							messages.push(PortableStakingMessage::SpanSlash {
-								account: account.clone(),
-								span,
-								slash,
-							});
+							// We do not migrate them. TODO @kianenigma review
 							StakingStage::SpanSlash(Some((account, span)))
 						},
 						None => StakingStage::Finished,
@@ -472,8 +466,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				},
 				StakingStage::Finished => {
 					break;
-				},*/
-				_ => todo!(),
+				},
 			};
 		}
 
@@ -493,7 +486,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 	}
 }
 
-use codec::{FullCodec, FullEncode};
+/// Resume a storage map iterator from a key or start from the beginning if None.
 fn resume<Map: frame_support::IterableStorageMap<K, V>, K: FullEncode, V: FullCodec>(
 	key: Option<K>,
 ) -> impl Iterator<Item = (K, V)> {
