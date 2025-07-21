@@ -20,7 +20,7 @@ extern crate alloc;
 
 use crate::{
 	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
-	*,
+	*, types::{defensive_vector_truncate, defensive_vector_translate},
 };
 use alloc::collections::BTreeMap;
 use codec::{EncodeLike, HasCompact};
@@ -35,6 +35,9 @@ use pallet_staking::{
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, Page, SessionIndex};
 
+/// Portable staking migration message.
+///
+/// It is portable since it does not have any generic type parameters.
 #[derive(
 	Encode,
 	Decode,
@@ -202,6 +205,24 @@ pub struct PortableStakingLedger {
 	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
 }
 
+impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
+	type Portable = PortableStakingLedger;
+	
+	fn into_portable(self) -> Self::Portable {
+		// TODO @kianenigma what to do with `legacy_claimed_rewards`?
+		defensive_assert!(self.legacy_claimed_rewards.is_empty());
+		
+		PortableStakingLedger {
+			stash: self.stash,
+			total: self.total,
+			active: self.active,
+			unlocking: defensive_vector_translate(self.unlocking),
+			// TODO @kianenigma controller is ignored, right?
+			// self.controller,
+		}
+	}
+}
+
 #[derive(
 	PartialEq,
 	Eq,
@@ -218,6 +239,14 @@ pub struct PortableUnlockChunk {
 	pub value: u128,
 	/// Era number at which point it'll be unlocked.
 	pub era: EraIndex,
+}
+
+impl IntoPortable for pallet_staking::UnlockChunk<u128> {
+	type Portable = PortableUnlockChunk;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortableUnlockChunk { value: self.value, era: self.era }
+	}
 }
 
 #[derive(
@@ -260,14 +289,28 @@ pub enum PortableRewardDestination {
 	Staked,
 	/// Pay into the stash account, not increasing the amount at stake.
 	Stash,
-	#[deprecated(
-		note = "`Controller` will be removed after January 2024. Use `Account(controller)` instead."
-	)]
+	/// Deprecated
 	Controller,
 	/// Pay into a specified account.
 	Account(AccountId32),
 	/// Receive no reward.
 	None,
+}
+
+impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
+	type Portable = PortableRewardDestination;
+	
+	fn into_portable(self) -> Self::Portable {
+		use PortableRewardDestination::*;
+		
+		match self {
+			RewardDestination::Staked => Staked,
+			RewardDestination::Stash => Stash,
+			RewardDestination::Controller => Controller,
+			RewardDestination::Account(account) => Account(account),
+			RewardDestination::None => None,
+		}
+	}
 }
 
 #[derive(
@@ -285,6 +328,18 @@ pub struct PortableNominations {
 	///
 	/// NOTE: this for future proofing and is thus far not used.
 	pub suppressed: bool,
+}
+
+impl<T: Config> IntoPortable for pallet_staking::Nominations<T> {
+	type Portable = PortableNominations;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortableNominations {
+			targets: defensive_vector_truncate(self.targets),
+			submitted_in: self.submitted_in,
+			suppressed: self.suppressed,
+		}
+	}
 }
 
 #[derive(
@@ -310,6 +365,19 @@ pub struct PortablePagedExposureMetadata {
 	pub nominator_count: u32,
 	/// Number of pages of nominators.
 	pub page_count: Page,
+}
+
+impl IntoPortable for sp_staking::PagedExposureMetadata<u128> {
+	type Portable = PortablePagedExposureMetadata;
+	
+	fn into_portable(self) -> Self::Portable {
+		PortablePagedExposureMetadata {
+			total: self.total,
+			own: self.own,
+			nominator_count: self.nominator_count,
+			page_count: self.page_count,
+		}
+	}
 }
 
 /// A snapshot of the stake backing a single validator in the system.

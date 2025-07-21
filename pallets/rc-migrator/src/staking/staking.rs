@@ -116,7 +116,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					messages.push(PortableStakingMessage::Invulnerables(invulnerables));
 					StakingStage::Bonded(None)
 				},
-				/*StakingStage::Bonded(who) => {
+				StakingStage::Bonded(who) => {
 					let mut iter = if let Some(who) = who {
 						pallet_staking::Bonded::<T>::iter_from_key(who)
 					} else {
@@ -147,7 +147,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							pallet_staking::Ledger::<T>::remove(&controller);
 							messages.push(PortableStakingMessage::Ledger {
 								controller: controller.clone(),
-								ledger,
+								ledger: ledger.into_portable(),
 							});
 							StakingStage::Ledger(Some(controller))
 						},
@@ -165,7 +165,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 						Some((stash, payment)) => {
 							pallet_staking::Payee::<T>::remove(&stash);
 							messages
-								.push(PortableStakingMessage::Payee { stash: stash.clone(), payment });
+								.push(PortableStakingMessage::Payee { stash: stash.clone(), payment: payment.into_portable() });
 							StakingStage::Payee(Some(stash))
 						},
 						None => StakingStage::Validators(None),
@@ -206,7 +206,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							pallet_staking::Nominators::<T>::remove(&stash);
 							messages.push(PortableStakingMessage::Nominators {
 								stash: stash.clone(),
-								nominations,
+								nominations: nominations.into_portable(),
 							});
 							StakingStage::Nominators(Some(stash))
 						},
@@ -249,14 +249,14 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							messages.push(PortableStakingMessage::ErasStakersOverview {
 								era,
 								validator: validator.clone(),
-								exposure,
+								exposure: exposure.into_portable(),
 							});
 							StakingStage::ErasStakersOverview(Some((era, validator)))
 						},
 						None => StakingStage::ErasStakersPaged(None),
 					}
 				},
-				StakingStage::ErasStakersPaged(progress) => {
+				/*StakingStage::ErasStakersPaged(progress) => {
 					let mut iter = if let Some(progress) = progress {
 						pallet_staking::ErasStakersPaged::<T>::iter_from(
 							pallet_staking::ErasStakersPaged::<T>::hashed_key_for(progress),

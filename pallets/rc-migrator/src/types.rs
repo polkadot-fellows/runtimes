@@ -36,8 +36,6 @@ impl ToPolkadotSs58 for AccountId32 {
 	}
 }
 
-
-
 /// Convert a type into its portable format.
 ///
 /// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
@@ -66,6 +64,15 @@ impl<T, U: DefensiveTruncateFrom<T>> DefensiveTruncateInto<U> for T {
 	fn defensive_truncate_into(self) -> U {
 		U::defensive_truncate_from(self)
 	}
+}
+
+/// Translate and truncate the elements of a bounded vector defensively.
+pub fn defensive_vector_translate<V: IntoPortable, As: Get<u32>, Bs: Get<u32>>(vec: BoundedVec<V, As>) -> BoundedVec<V::Portable, Bs> {
+	vec.into_iter().map(|e| e.into_portable()).collect::<Vec<_>>().defensive_truncate_into()
+}
+
+pub fn defensive_vector_truncate<V, As: Get<u32>, Bs: Get<u32>>(vec: BoundedVec<V, As>) -> BoundedVec<V, Bs> {
+	vec.into_iter().collect::<Vec<_>>().defensive_truncate_into()
 }
 
 /// Generate a default instance for benchmarking purposes.
