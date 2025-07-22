@@ -258,6 +258,18 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					_ => (), // Fine, we only check Transacts
 				}
 			},
+		VersionedXcm::V5(inner) =>
+			for instruction in inner.0 {
+				match instruction {
+					xcm::v5::Instruction::Transact { call, .. } => {
+						// Interesting part here: ensure that the receiving runtime can decode the
+						// call
+						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+							.expect("Must decode DMP XCM call");
+					},
+					_ => (), // Fine, we only check Transacts
+				}
+			},
 		_ => panic!("Wrong XCM version: {:?}", xcm),
 	};
 }
