@@ -49,10 +49,10 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		AsEnsureOriginWithArg, ConstU32, ConstU8, ConstUint, Contains, Currency, EitherOf,
-		EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, EverythingBut, FromContains,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, PrivilegeCmp,
-		ProcessMessage, ProcessMessageError, StorageMapShim, WithdrawReasons,
+		ConstU32, ConstU8, ConstUint, Contains, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
+		EnsureOriginWithArg, EverythingBut, FromContains, InstanceFilter, KeyOwnerProofSystem,
+		LinearStoragePrice, OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		StorageMapShim, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -73,7 +73,6 @@ use pallet_staking_async_ah_client as ah_client;
 use pallet_staking_async_rc_client as rc_client;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
@@ -1544,13 +1543,7 @@ impl parachains_paras::Config for Runtime {
 	// Per day the cooldown is removed earlier, it should cost 1000.
 	// FAIL-CI: @bkchr what is this cost here? what would be a good value for Kusama?
 	type CooldownRemovalMultiplier = ConstUint<{ 1000 * UNITS / DAYS as u128 }>;
-	type AuthorizeCurrentCodeOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		// Collectives DDay plurality mapping.
-		AsEnsureOriginWithArg<
-			EnsureXcm<IsVoiceOfBody<xcm_config::RootLocation, xcm_config::DDayBodyId>>,
-		>,
-	>;
+	type AuthorizeCurrentCodeOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
