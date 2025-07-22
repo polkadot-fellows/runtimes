@@ -15,11 +15,15 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod bags_list;
+#[cfg(feature = "std")]
+pub mod checks;
 pub mod delegated_staking;
 pub mod fast_unstake;
+pub mod message;
 pub mod nom_pools;
 pub mod nom_pools_alias;
-
-pub mod message;
 pub mod staking;
+
+#[cfg(feature = "std")]
+pub use checks::*;
 pub use staking::*;

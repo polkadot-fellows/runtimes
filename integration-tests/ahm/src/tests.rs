@@ -57,7 +57,7 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
-	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	staking::StakingMigratedCorrectly, types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
@@ -107,6 +107,7 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
+	StakingMigratedCorrectly<Polkadot>,
 );
 
 type AhChecks = (
@@ -144,6 +145,7 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	ProxyWhaleWatching,
+	StakingMigratedCorrectly<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
