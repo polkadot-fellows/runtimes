@@ -23,10 +23,3 @@ pub mod nom_pools_alias;
 pub mod message;
 pub mod staking;
 pub use staking::*;
-
-// Copy&paster of Convert trait so that we can implement it here on external types
-/// Infallible conversion trait. Generic over both source and destination types.
-pub trait IntoAh<A, B> {
-	/// Make conversion.
-	fn intoAh(a: A) -> B;
-}

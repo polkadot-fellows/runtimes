@@ -17,7 +17,7 @@
 //! Pallet staking migration.
 
 pub use crate::staking::message::PortableStakingMessage;
-use crate::{staking::IntoAh, types::DefensiveTruncateInto, *};
+use crate::{types::DefensiveTruncateInto, *};
 use codec::{EncodeLike, FullCodec, FullEncode, HasCompact};
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;

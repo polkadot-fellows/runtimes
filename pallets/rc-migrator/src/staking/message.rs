@@ -19,8 +19,8 @@
 extern crate alloc;
 
 use crate::{
-	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
-	types::{defensive_vector_translate, defensive_vector_truncate, DefensiveTruncateInto},
+	staking::{AccountIdOf, BalanceOf, StakingMigrator},
+	types::DefensiveTruncateInto,
 	*,
 };
 use alloc::collections::BTreeMap;
@@ -307,7 +307,12 @@ impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
 			stash: self.stash,
 			total: self.total,
 			active: self.active,
-			unlocking: defensive_vector_translate(self.unlocking),
+			unlocking: self
+				.unlocking
+				.into_iter()
+				.map(IntoPortable::into_portable)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
 			// TODO @kianenigma controller is ignored, right?
 			// self.controller,
 		}
@@ -451,6 +456,7 @@ pub enum PortableRewardDestination {
 impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
 	type Portable = PortableRewardDestination;
 
+	#[allow(deprecated)]
 	fn into_portable(self) -> Self::Portable {
 		use PortableRewardDestination::*;
 
@@ -502,7 +508,7 @@ impl<T: Config> IntoPortable for pallet_staking::Nominations<T> {
 
 	fn into_portable(self) -> Self::Portable {
 		PortableNominations {
-			targets: defensive_vector_truncate(self.targets),
+			targets: self.targets.into_inner().defensive_truncate_into(),
 			submitted_in: self.submitted_in,
 			suppressed: self.suppressed,
 		}
@@ -674,7 +680,7 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 pub struct PortableEraRewardPoints {
 	pub total: u32,
 	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, /* 100 is an upper bound
-	                                                                   * TODO @kianenigma review */
+	                                                                * TODO @kianenigma review */
 }
 
 // EraRewardPoints: RC -> Portable
@@ -682,12 +688,10 @@ impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
 	type Portable = PortableEraRewardPoints;
 
 	fn into_portable(self) -> Self::Portable {
-		let individual: BoundedVec<_, ConstU32<600>> = self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into();
+		let individual: BoundedVec<_, ConstU32<600>> =
+			self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into();
 
-		PortableEraRewardPoints {
-			total: self.total,
-			individual,
-		}
+		PortableEraRewardPoints { total: self.total, individual }
 	}
 }
 
@@ -698,14 +702,16 @@ impl<
 	> Into<pallet_staking_async::EraRewardPoints<T>> for PortableEraRewardPoints
 {
 	fn into(self) -> pallet_staking_async::EraRewardPoints<T> {
-		let individual =
-			self.individual.into_iter().take(T::MaxValidatorSet::get() as usize).collect::<BTreeMap<_, _>>();
-		let bounded = BoundedBTreeMap::<_, _, T::MaxValidatorSet>::try_from(individual).defensive().unwrap_or_default();
+		let individual = self
+			.individual
+			.into_iter()
+			.take(T::MaxValidatorSet::get() as usize)
+			.collect::<BTreeMap<_, _>>();
+		let bounded = BoundedBTreeMap::<_, _, T::MaxValidatorSet>::try_from(individual)
+			.defensive()
+			.unwrap_or_default();
 
-		pallet_staking_async::EraRewardPoints {
-			total: self.total,
-			individual: bounded,
-		}
+		pallet_staking_async::EraRewardPoints { total: self.total, individual: bounded }
 	}
 }
 
