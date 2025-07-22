@@ -138,7 +138,7 @@ parameter_types! {
 	pub const RelayerStakeLease: u32 = 300;
 
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
-	pub PriorityBoostPerMessage: u64 = 182_044_444_444_444;
+	pub PriorityBoostPerMessage: u64 = 328_162_135_442_412;
 }
 
 /// Proof of messages, coming from Polkadot.
@@ -342,7 +342,13 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bridge_runtime_common::integrity::check_message_lane_weights;
+	use bridge_runtime_common::{
+		assert_complete_bridge_types,
+		integrity::{
+			assert_complete_with_parachain_bridge_constants, check_message_lane_weights,
+			AssertChainConstants, AssertCompleteBridgeConstants,
+		},
+	};
 
 	/// Every additional message in the message delivery transaction boosts its priority.
 	/// So the priority of transaction with `N+1` messages is larger than priority of
@@ -370,44 +376,43 @@ mod tests {
 		);
 	}
 
-	// FAIL-CI: @bkontur please help fix this test
-	// #[test]
-	// fn ensure_bridge_integrity() {
-	// 	assert_complete_bridge_types!(
-	// 		runtime: Runtime,
-	// 		with_bridged_chain_messages_instance: WithBridgeHubPolkadotMessagesInstance,
-	// 		this_chain: bp_bridge_hub_kusama::BridgeHubKusama,
-	// 		bridged_chain: bp_bridge_hub_polkadot::BridgeHubPolkadot,
-	// 		expected_payload_type: XcmAsPlainPayload,
-	// 	);
-	//
-	// 	assert_complete_with_parachain_bridge_constants::<
-	// 		Runtime,
-	// 		BridgeParachainPolkadotInstance,
-	// 		WithBridgeHubPolkadotMessagesInstance,
-	// 	>(AssertCompleteBridgeConstants {
-	// 		this_chain_constants: AssertChainConstants {
-	// 			block_length: bp_bridge_hub_kusama::BlockLength::get(),
-	// 			block_weights: bp_bridge_hub_kusama::BlockWeights::get(),
-	// 		},
-	// 	});
-	//
-	// 	pallet_bridge_relayers::extension::per_message::ensure_priority_boost_is_sane::<
-	// 		Runtime,
-	// 		WithBridgeHubPolkadotMessagesInstance,
-	// 		PriorityBoostPerMessage,
-	// 	>(FEE_BOOST_PER_MESSAGE);
-	//
-	// 	assert_eq!(
-	// 		BridgeKusamaToPolkadotMessagesPalletInstance::get(),
-	// 		Into::<InteriorLocation>::into(PalletInstance(
-	// 			bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX,
-	// 		))
-	// 	);
-	//
-	// 	assert!(BridgeHubPolkadotLocation::get()
-	// 		.starts_with(&PolkadotGlobalConsensusNetworkLocation::get()));
-	// }
+	#[test]
+	fn ensure_bridge_integrity() {
+		assert_complete_bridge_types!(
+			runtime: Runtime,
+			with_bridged_chain_messages_instance: WithBridgeHubPolkadotMessagesInstance,
+			this_chain: bp_bridge_hub_kusama::BridgeHubKusama,
+			bridged_chain: bp_bridge_hub_polkadot::BridgeHubPolkadot,
+			expected_payload_type: XcmAsPlainPayload,
+		);
+
+		assert_complete_with_parachain_bridge_constants::<
+			Runtime,
+			BridgeParachainPolkadotInstance,
+			WithBridgeHubPolkadotMessagesInstance,
+		>(AssertCompleteBridgeConstants {
+			this_chain_constants: AssertChainConstants {
+				block_length: bp_bridge_hub_kusama::BlockLength::get(),
+				block_weights: bp_bridge_hub_kusama::BlockWeights::get(),
+			},
+		});
+
+		pallet_bridge_relayers::extension::per_message::ensure_priority_boost_is_sane::<
+			Runtime,
+			WithBridgeHubPolkadotMessagesInstance,
+			PriorityBoostPerMessage,
+		>(FEE_BOOST_PER_MESSAGE);
+
+		assert_eq!(
+			BridgeKusamaToPolkadotMessagesPalletInstance::get(),
+			Into::<InteriorLocation>::into(PalletInstance(
+				bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX,
+			))
+		);
+
+		assert!(BridgeHubPolkadotLocation::get()
+			.starts_with(&PolkadotGlobalConsensusNetworkLocation::get()));
+	}
 }
 
 /// Contains the migrations for a P/K bridge.
