@@ -139,6 +139,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveDelegatedStakingMessages {
 		messages: Vec<staking::delegated_staking::RcDelegatedStakingMessageOf<T>>,
 	},
+	#[codec(index = 24)]
+	ReceiveChildBountiesMessages { messages: Vec<child_bounties::PortableChildBountiesMessage> },
 	#[codec(index = 30)]
 	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
 	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },

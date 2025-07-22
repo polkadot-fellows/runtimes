@@ -857,6 +857,17 @@ pub mod pallet {
 			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
+		#[pallet::call_index(24)]
+		#[pallet::weight(T::AhWeightInfo::receive_child_bounties_messages(messages.len() as u32))]
+		pub fn receive_child_bounties_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcChildBountiesMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_child_bounties_messages(messages).map_err(Into::into)
+		}
+
 		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
 		#[pallet::weight({1})] // TODO: @ggwpez weight

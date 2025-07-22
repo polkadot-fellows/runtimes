@@ -49,6 +49,7 @@ pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 pub mod bounties;
+pub mod child_bounties;
 pub mod conviction_voting;
 pub mod scheduler;
 pub mod treasury;
@@ -61,6 +62,7 @@ use crate::{
 	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
 };
 use accounts::AccountsMigrator;
+use child_bounties::ChildBountiesMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
 	pallet_prelude::*,
@@ -85,6 +87,7 @@ use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::{
 	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
 };
+use sp_runtime::traits::BlockNumberProvider;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
@@ -323,11 +326,18 @@ pub enum MigrationStage<
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
+
 	BountiesMigrationInit,
 	BountiesMigrationOngoing {
 		last_key: Option<bounties::BountiesStage>,
 	},
 	BountiesMigrationDone,
+
+	ChildBountiesMigrationInit,
+	ChildBountiesMigrationOngoing {
+		last_key: Option<child_bounties::ChildBountiesStage>,
+	},
+	ChildBountiesMigrationDone,
 
 	AssetRateMigrationInit,
 	AssetRateMigrationOngoing {
@@ -452,7 +462,8 @@ pub mod pallet {
 		+ pallet_staking::Config
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
-		+ pallet_treasury::Config
+		+ pallet_child_bounties::Config
+		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_delegated_staking::Config
 		+ pallet_xcm::Config
 	{
@@ -959,6 +970,7 @@ pub mod pallet {
 			From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
 		crate::BalanceOf<T>:
 			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber: Into<u32>
 	{
 		fn integrity_test() {
 			let (ah_ump_priority_blocks, _) = T::AhUmpQueuePriorityPattern::get();
@@ -1669,6 +1681,38 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::BountiesMigrationDone => {
+					Self::transition(MigrationStage::ChildBountiesMigrationInit);
+				},
+				MigrationStage::ChildBountiesMigrationInit => {
+					Self::transition(MigrationStage::ChildBountiesMigrationOngoing { last_key: None });
+				},
+				MigrationStage::ChildBountiesMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match ChildBountiesMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ChildBountiesMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::ChildBountiesMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating child bounties: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::ChildBountiesMigrationDone => {
 					Self::transition(MigrationStage::AssetRateMigrationInit);
 				},
 				MigrationStage::AssetRateMigrationInit => {
