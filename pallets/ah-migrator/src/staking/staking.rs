@@ -21,10 +21,6 @@ use pallet_rc_migrator::{staking::PortableStakingMessage, types::DefensiveTrunca
 use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
-	pub fn staking_migration_start_hook() {}
-
-	pub fn staking_migration_finish_hook() {}
-
 	pub fn do_receive_staking_messages(
 		messages: Vec<PortableStakingMessage>,
 	) -> Result<(), Error<T>> {
@@ -61,7 +57,7 @@ impl<T: Config> Pallet<T> {
 			},
 			Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
-				let bounded = BoundedVec::truncate_from(invulnerables);
+				let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
 				pallet_staking_async::Invulnerables::<T>::put(bounded);
 			},
 			Bonded { stash, controller } => {
@@ -106,10 +102,9 @@ impl<T: Config> Pallet<T> {
 				);
 			},
 			ClaimedRewards { era, validator, rewards } => {
-				// NOTE: This is being renamed from `ClaimedRewards` to `ErasClaimedRewards`
 				log::debug!(target: LOG_TARGET, "Integrating ErasClaimedRewards {:?}/{:?}", validator, era);
 				let bounded =
-					BoundedVec::<_, pallet_staking_async::ClaimedRewardsBound<T>>::truncate_from(
+					BoundedVec::<_, pallet_staking_async::ClaimedRewardsBound<T>>::defensive_truncate_from(
 						rewards,
 					);
 				let weak_bounded = WeakBoundedVec::force_from(bounded.into_inner(), None);
@@ -141,7 +136,7 @@ impl<T: Config> Pallet<T> {
 			},
 			BondedEras(bonded_eras) => {
 				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
-				let bounded = BoundedVec::truncate_from(bonded_eras); // TODO @ggwpez
+				let bounded: BoundedVec<_, _> = bonded_eras.defensive_truncate_into();
 				pallet_staking_async::BondedEras::<T>::put(bounded);
 			},
 			ValidatorSlashInEra { era, validator, slash } => {

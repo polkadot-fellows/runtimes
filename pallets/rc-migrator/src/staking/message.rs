@@ -117,6 +117,7 @@ pub enum PortableStakingMessage {
 	},
 }
 
+/// Generic staking storage values.
 #[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct StakingValues<Balance> {
 	pub validator_count: Option<u32>,
@@ -170,6 +171,7 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 }
 
 impl<T: pallet_staking_async::Config> StakingMigrator<T> {
+	/// Put the values into the storage.
 	pub fn put_values(values: StakingValues<pallet_staking_async::BalanceOf<T>>) {
 		use pallet_staking_async::*;
 
@@ -212,12 +214,7 @@ pub type PortableStakingValues = StakingValues<u128>;
 	MaxEncodedLen,
 )]
 pub struct PortableActiveEraInfo {
-	/// Index of era.
 	pub index: EraIndex,
-	/// Moment of start expressed as millisecond from `$UNIX_EPOCH`.
-	///
-	/// Start can be none if start hasn't been set for the era yet,
-	/// Start is set on the first on_finalize of the era to guarantee usage of `Time`.
 	pub start: Option<u64>,
 }
 
@@ -247,15 +244,9 @@ impl Into<pallet_staking_async::ActiveEraInfo> for PortableActiveEraInfo {
 	MaxEncodedLen,
 )]
 pub enum PortableForcing {
-	/// Not forcing anything - just let whatever happen.
 	NotForcing,
-	/// Force a new era, then reset to `NotForcing` as soon as it is done.
-	/// Note that this will force to trigger an election until a new era is triggered, if the
-	/// election failed, the next session end will trigger a new election again, until success.
 	ForceNew,
-	/// Avoid a new era indefinitely.
 	ForceNone,
-	/// Force a new era at the end of all sessions indefinitely.
 	ForceAlways,
 }
 
@@ -297,20 +288,9 @@ impl Into<pallet_staking_async::Forcing> for PortableForcing {
 	MaxEncodedLen,
 )]
 pub struct PortableStakingLedger {
-	/// The stash account whose balance is actually locked and at stake.
 	pub stash: AccountId32,
-
-	/// The total amount of the stash's balance that we are currently accounting for.
-	/// It's just `active` plus all the `unlocking` balances.
 	pub total: u128,
-
-	/// The total amount of the stash's balance that will be at stake in any forthcoming
-	/// rounds.
 	pub active: u128,
-
-	/// Any balance that is becoming free, which may eventually be transferred out of the stash
-	/// (assuming it doesn't get slashed first). It is assumed that this will be treated as a first
-	/// in, first out queue where the new (higher value) eras get pushed on the back.
 	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>, /* 100 is an upper bound TODO
 	                                                                * @kianenigma review */
 }
@@ -368,9 +348,7 @@ impl<
 	MaxEncodedLen,
 )]
 pub struct PortableUnlockChunk {
-	/// Amount of funds to be unlocked.
 	pub value: u128,
-	/// Era number at which point it'll be unlocked.
 	pub era: EraIndex,
 }
 
@@ -402,17 +380,12 @@ impl Into<pallet_staking_async::UnlockChunk<u128>> for PortableUnlockChunk {
 	MaxEncodedLen,
 )]
 pub struct PortableUnappliedSlash {
-	/// The stash ID of the offending validator.
 	pub validator: AccountId32,
-	/// The validator's own slash.
 	pub own: u128,
-	/// All other slashed stakers and amounts.
 	pub others: BoundedVec<(AccountId32, u128), ConstU32<100>>, /* 100 is an upper bound TODO
 	                                                             * @kianenigma review */
-	/// Reporters of the offence; bounty payout recipients.
 	pub reporters: BoundedVec<AccountId32, ConstU32<100>>, /* 100 is an upper bound TODO
 	                                                        * @kianenigma review */
-	/// The amount of payout.
 	pub payout: u128,
 }
 
@@ -438,12 +411,15 @@ impl<
 	> Into<pallet_staking_async::UnappliedSlash<T>> for PortableUnappliedSlash
 {
 	fn into(self) -> pallet_staking_async::UnappliedSlash<T> {
+		if self.others.len() > T::MaxExposurePageSize::get() as usize {
+			defensive!("UnappliedSlash longer than the weak bound");
+		}
+
 		pallet_staking_async::UnappliedSlash {
 			validator: self.validator,
 			own: self.own,
-			// TODO @ggwpez cleanup
-			others: WeakBoundedVec::<_, _>::force_from(
-				self.others.into_iter().map(Into::into).collect::<Vec<_>>(),
+			others: WeakBoundedVec::<_, T::MaxExposurePageSize>::force_from(
+				self.others.into_inner(),
 				None,
 			),
 			reporter: self.reporters.into_iter().next(), // TODO @kianenigma review
@@ -464,15 +440,10 @@ impl<
 	MaxEncodedLen,
 )]
 pub enum PortableRewardDestination {
-	/// Pay into the stash account, increasing the amount at stake accordingly.
 	Staked,
-	/// Pay into the stash account, not increasing the amount at stake.
 	Stash,
-	/// Deprecated
 	Controller,
-	/// Pay into a specified account.
 	Account(AccountId32),
-	/// Receive no reward.
 	None,
 }
 
@@ -519,17 +490,9 @@ impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewa
 	DecodeWithMemTracking,
 )]
 pub struct PortableNominations {
-	/// The targets of nomination.
 	pub targets: BoundedVec<AccountId32, ConstU32<100>>, /* 100 is an upper bound TODO
 	                                                      * @kianenigma review */
-	/// The era the nominations were submitted.
-	///
-	/// Except for initial nominations which are considered submitted at era 0.
 	pub submitted_in: EraIndex,
-	/// Whether the nominations have been suppressed. This can happen due to slashing of the
-	/// validators, or other events that might invalidate the nomination.
-	///
-	/// NOTE: this for future proofing and is thus far not used.
 	pub suppressed: bool,
 }
 
@@ -581,13 +544,9 @@ where
 	DecodeWithMemTracking,
 )]
 pub struct PortablePagedExposureMetadata {
-	/// The total balance backing this validator.
 	pub total: u128,
-	/// The validator's own stash that is exposed.
 	pub own: u128,
-	/// Number of nominators backing this validator.
 	pub nominator_count: u32,
-	/// Number of pages of nominators.
 	pub page_count: Page,
 }
 
@@ -631,9 +590,7 @@ impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMeta
 	DecodeWithMemTracking,
 )]
 pub struct PortableExposurePage {
-	/// The total balance of this chunk/page.
 	pub page_total: u128,
-	/// The portions of nominators stashes that are exposed.
 	pub others: BoundedVec<PortableIndividualExposure, ConstU32<600>>, /* 600 is an upper bound
 	                                                                    * TODO @kianenigma
 	                                                                    * review */
@@ -691,9 +648,7 @@ impl<
 	TypeInfo,
 )]
 pub struct PortableIndividualExposure {
-	/// The stash account of the nominator in question.
 	pub who: AccountId32,
-	/// Amount of funds exposed.
 	pub value: u128,
 }
 
@@ -717,10 +672,8 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 	PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen, DecodeWithMemTracking,
 )]
 pub struct PortableEraRewardPoints {
-	/// Total number of points. Equals the sum of reward points for each validator.
 	pub total: u32,
-	/// The reward points earned by a given validator.
-	pub individual: BoundedBTreeMap<AccountId32, u32, ConstU32<600>>, /* 100 is an upper bound
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, /* 100 is an upper bound
 	                                                                   * TODO @kianenigma review */
 }
 
@@ -729,16 +682,11 @@ impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
 	type Portable = PortableEraRewardPoints;
 
 	fn into_portable(self) -> Self::Portable {
-		// TODO @ggwpez
-		if self.individual.len() > 600 {
-			log::error!(target: LOG_TARGET, "EraRewardPoints truncated from length {}", self.individual.len());
-			defensive!("EraRewardPoints truncated");
-		}
-		let individual = self.individual.into_iter().take(600).collect::<BTreeMap<_, _>>();
+		let individual: BoundedVec<_, ConstU32<600>> = self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into();
 
 		PortableEraRewardPoints {
 			total: self.total,
-			individual: BoundedBTreeMap::try_from(individual).defensive().unwrap_or_default(),
+			individual,
 		}
 	}
 }
@@ -751,11 +699,12 @@ impl<
 {
 	fn into(self) -> pallet_staking_async::EraRewardPoints<T> {
 		let individual =
-			self.individual.into_iter().map(|(k, v)| (k, v)).collect::<BTreeMap<_, _>>();
+			self.individual.into_iter().take(T::MaxValidatorSet::get() as usize).collect::<BTreeMap<_, _>>();
+		let bounded = BoundedBTreeMap::<_, _, T::MaxValidatorSet>::try_from(individual).defensive().unwrap_or_default();
 
 		pallet_staking_async::EraRewardPoints {
 			total: self.total,
-			individual: BoundedBTreeMap::try_from(individual).defensive().unwrap_or_default(),
+			individual: bounded,
 		}
 	}
 }
