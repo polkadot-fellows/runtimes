@@ -141,10 +141,6 @@ substrate-wasm-builder = { optional = true, workspace = true }
 [features]
 default = ["std"]
 paseo = [] # For Paseo AHM
-ahm-staking-migration = [
-	"pallet-ah-migrator/ahm-staking-migration",
-	"pallet-rc-migrator/ahm-staking-migration"
-]
 
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",

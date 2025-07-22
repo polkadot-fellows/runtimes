@@ -79,8 +79,7 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
-	treasury::RcTreasuryMessage, types::MigrationStatus,
-	staking::PortableStakingMessage,
+	staking::PortableStakingMessage, treasury::RcTreasuryMessage, types::MigrationStatus,
 };
 
 use cumulus_primitives_core::AggregateMessageOrigin;
@@ -859,7 +858,6 @@ pub mod pallet {
 			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
-		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
 		#[pallet::weight({1})] // TODO: @ggwpez weight
 		pub fn receive_staking_messages(

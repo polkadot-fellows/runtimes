@@ -65,9 +65,6 @@ pallet-ah-ops = { workspace = true }
 
 [features]
 default = ["std"]
-ahm-staking-migration = [
-	"pallet-rc-migrator/ahm-staking-migration"
-]
 std = [
 	"assets-common/std",
 	"assets-common/std",

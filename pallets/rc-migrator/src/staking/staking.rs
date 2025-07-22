@@ -17,17 +17,15 @@
 //! Pallet staking migration.
 
 pub use crate::staking::message::PortableStakingMessage;
-use crate::{staking::IntoAh, *};
-use codec::{EncodeLike, HasCompact};
+use crate::{staking::IntoAh, types::DefensiveTruncateInto, *};
+use codec::{EncodeLike, FullCodec, FullEncode, HasCompact};
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
-use crate::types::DefensiveTruncateInto;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
 	ValidatorPrefs,
 };
-use codec::{FullCodec, FullEncode};
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
 
@@ -165,8 +163,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((stash, payment)) => {
 							pallet_staking::Payee::<T>::remove(&stash);
-							messages
-								.push(PortableStakingMessage::Payee { stash: stash.clone(), payment: payment.into_portable() });
+							messages.push(PortableStakingMessage::Payee {
+								stash: stash.clone(),
+								payment: payment.into_portable(),
+							});
 							StakingStage::Payee(Some(stash))
 						},
 						None => StakingStage::Validators(None),
@@ -186,7 +186,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							pallet_staking::Validators::<T>::remove(&stash);
 							messages.push(PortableStakingMessage::Validators {
 								stash: stash.clone(),
-								validators,
+								validators: validators.into_portable(),
 							});
 							StakingStage::Validators(Some(stash))
 						},
@@ -323,7 +323,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							messages.push(PortableStakingMessage::ErasValidatorPrefs {
 								era,
 								validator: validator.clone(),
-								prefs,
+								prefs: prefs.into_portable(),
 							});
 							StakingStage::ErasValidatorPrefs(Some((era, validator)))
 						},
@@ -336,7 +336,8 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, reward)) => {
 							pallet_staking::ErasValidatorReward::<T>::remove(&era);
-							messages.push(PortableStakingMessage::ErasValidatorReward { era, reward });
+							messages
+								.push(PortableStakingMessage::ErasValidatorReward { era, reward });
 							StakingStage::ErasValidatorReward(Some(era))
 						},
 						None => StakingStage::ErasRewardPoints(None),
@@ -348,7 +349,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, points)) => {
 							pallet_staking::ErasRewardPoints::<T>::remove(&era);
-							messages.push(PortableStakingMessage::ErasRewardPoints { era, points: points.into_portable() });
+							messages.push(PortableStakingMessage::ErasRewardPoints {
+								era,
+								points: points.into_portable(),
+							});
 							StakingStage::ErasRewardPoints(Some(era))
 						},
 						None => StakingStage::ErasTotalStake(None),
@@ -360,7 +364,8 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, total_stake)) => {
 							pallet_staking::ErasTotalStake::<T>::remove(&era);
-							messages.push(PortableStakingMessage::ErasTotalStake { era, total_stake });
+							messages
+								.push(PortableStakingMessage::ErasTotalStake { era, total_stake });
 							StakingStage::ErasTotalStake(Some(era))
 						},
 						None => StakingStage::UnappliedSlashes(None),
@@ -380,7 +385,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
 							for slash in slashes.into_iter().take(1000) {
 								// First 1000 slashes should be enough, just to avoid unbound loop
-								messages.push(PortableStakingMessage::UnappliedSlashes { era, slash: slash.into_portable() });
+								messages.push(PortableStakingMessage::UnappliedSlashes {
+									era,
+									slash: slash.into_portable(),
+								});
 							}
 							StakingStage::UnappliedSlashes(Some(era))
 						},
@@ -430,11 +438,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, slash)) => {
 							pallet_staking::NominatorSlashInEra::<T>::remove(&era, &validator);
-							messages.push(PortableStakingMessage::NominatorSlashInEra {
-								era,
-								validator: validator.clone(),
-								slash,
-							});
+							// Not migrated. TODO @kianenigma review
 							StakingStage::NominatorSlashInEra(Some((era, validator)))
 						},
 						None => StakingStage::SlashingSpans(None),
@@ -446,7 +450,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((account, spans)) => {
 							pallet_staking::SlashingSpans::<T>::remove(&account);
-							// We do not migrate them. TODO @kianenigma review
+							// Not migrated. TODO @kianenigma review
 							StakingStage::SlashingSpans(Some(account))
 						},
 						None => StakingStage::SpanSlash(None),
@@ -458,7 +462,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some(((account, span), slash)) => {
 							pallet_staking::SpanSlash::<T>::remove((&account, &span));
-							// We do not migrate them. TODO @kianenigma review
+							// Not migrated. TODO @kianenigma review
 							StakingStage::SpanSlash(Some((account, span)))
 						},
 						None => StakingStage::Finished,

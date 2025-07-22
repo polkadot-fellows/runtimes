@@ -345,9 +345,7 @@ pub enum MigrationStage<
 	},
 	TreasuryMigrationDone,
 
-	#[cfg(feature = "ahm-staking-migration")]
 	StakingMigrationInit,
-	#[cfg(feature = "ahm-staking-migration")]
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
 	},
@@ -1003,7 +1001,6 @@ pub mod pallet {
 				},
 				MigrationStage::Starting => {
 					log::info!(target: LOG_TARGET, "Starting the migration");
-					#[cfg(feature = "ahm-staking-migration")]
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_start();
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
@@ -1725,16 +1722,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::TreasuryMigrationDone => {
-					#[cfg(feature = "ahm-staking-migration")]
 					Self::transition(MigrationStage::StakingMigrationInit);
-					#[cfg(not(feature = "ahm-staking-migration"))]
-					Self::transition(MigrationStage::StakingMigrationDone);
 				},
-				#[cfg(feature = "ahm-staking-migration")]
 				MigrationStage::StakingMigrationInit => {
 					Self::transition(MigrationStage::StakingMigrationOngoing { next_key: None });
 				},
-				#[cfg(feature = "ahm-staking-migration")]
 				MigrationStage::StakingMigrationOngoing { next_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match staking::StakingMigrator::<T>::migrate_many(
@@ -1771,7 +1763,6 @@ pub mod pallet {
 							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
 					);
 
-					#[cfg(feature = "ahm-staking-migration")]
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 
 					// Send finish message to AH.

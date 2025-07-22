@@ -56,7 +56,6 @@ frame-election-provider-support = { workspace = true }
 
 [features]
 default = ["std"]
-ahm-staking-migration = []
 
 std = [
 	"codec/std",

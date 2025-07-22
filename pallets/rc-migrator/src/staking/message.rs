@@ -20,16 +20,16 @@ extern crate alloc;
 
 use crate::{
 	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
-	*, types::{defensive_vector_truncate, defensive_vector_translate},
+	types::{defensive_vector_translate, defensive_vector_truncate, DefensiveTruncateInto},
+	*,
 };
 use alloc::collections::BTreeMap;
 use codec::{EncodeLike, HasCompact};
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
-use crate::types::DefensiveTruncateInto;
 use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord}, EraRewardPoints, Nominations, RewardDestination, StakingLedger,
-	ValidatorPrefs,
+	slashing::{SlashingSpans, SpanIndex, SpanRecord},
+	EraRewardPoints, Nominations, RewardDestination, StakingLedger,
 };
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, Page, SessionIndex};
@@ -47,8 +47,7 @@ use sp_staking::{EraIndex, Page, SessionIndex};
 	PartialEqNoBound,
 	EqNoBound,
 )]
-pub enum PortableStakingMessage
-{
+pub enum PortableStakingMessage {
 	Values(PortableStakingValues),
 	Invulnerables(Vec<AccountId32>),
 	Bonded {
@@ -66,7 +65,7 @@ pub enum PortableStakingMessage
 	},
 	Validators {
 		stash: AccountId32,
-		validators: ValidatorPrefs,
+		validators: PortableValidatorPrefs,
 	},
 	Nominators {
 		stash: AccountId32,
@@ -92,7 +91,7 @@ pub enum PortableStakingMessage
 	ErasValidatorPrefs {
 		era: EraIndex,
 		validator: AccountId32,
-		prefs: ValidatorPrefs,
+		prefs: PortableValidatorPrefs,
 	},
 	ErasValidatorReward {
 		era: EraIndex,
@@ -115,11 +114,6 @@ pub enum PortableStakingMessage
 		era: EraIndex,
 		validator: AccountId32,
 		slash: (Perbill, u128),
-	},
-	NominatorSlashInEra {
-		era: EraIndex,
-		validator: AccountId32,
-		slash: u128,
 	},
 }
 
@@ -160,7 +154,9 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
 			active_era: ActiveEra::<T>::take().map(IntoPortable::into_portable),
-			force_era: ForceEra::<T>::exists().then(ForceEra::<T>::take).map(IntoPortable::into_portable),
+			force_era: ForceEra::<T>::exists()
+				.then(ForceEra::<T>::take)
+				.map(IntoPortable::into_portable),
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
 			slash_reward_fraction: SlashRewardFraction::<T>::exists()
 				.then(SlashRewardFraction::<T>::take),
@@ -227,7 +223,7 @@ pub struct PortableActiveEraInfo {
 
 impl IntoPortable for pallet_staking::ActiveEraInfo {
 	type Portable = PortableActiveEraInfo;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortableActiveEraInfo { index: self.index, start: self.start }
 	}
@@ -266,7 +262,7 @@ pub enum PortableForcing {
 // Forcing: RC -> Portable
 impl IntoPortable for pallet_staking::Forcing {
 	type Portable = PortableForcing;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		match self {
 			pallet_staking::Forcing::NotForcing => PortableForcing::NotForcing,
@@ -315,16 +311,18 @@ pub struct PortableStakingLedger {
 	/// Any balance that is becoming free, which may eventually be transferred out of the stash
 	/// (assuming it doesn't get slashed first). It is assumed that this will be treated as a first
 	/// in, first out queue where the new (higher value) eras get pushed on the back.
-	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>, /* 100 is an upper bound TODO
+	                                                                * @kianenigma review */
 }
 
+// StakingLedger: RC -> Portable
 impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
 	type Portable = PortableStakingLedger;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		// TODO @kianenigma what to do with `legacy_claimed_rewards`?
-		defensive_assert!(self.legacy_claimed_rewards.is_empty());
-		
+		//defensive_assert!(self.legacy_claimed_rewards.is_empty());
+
 		PortableStakingLedger {
 			stash: self.stash,
 			total: self.total,
@@ -332,6 +330,28 @@ impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
 			unlocking: defensive_vector_translate(self.unlocking),
 			// TODO @kianenigma controller is ignored, right?
 			// self.controller,
+		}
+	}
+}
+
+// StakingLedger: Portable -> AH
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::StakingLedger<T>> for PortableStakingLedger
+{
+	fn into(self) -> pallet_staking_async::StakingLedger<T> {
+		pallet_staking_async::StakingLedger {
+			stash: self.stash,
+			total: self.total,
+			active: self.active,
+			unlocking: self
+				.unlocking
+				.into_iter()
+				.map(Into::into)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			controller: None, // TODO @kianenigma review
 		}
 	}
 }
@@ -354,11 +374,19 @@ pub struct PortableUnlockChunk {
 	pub era: EraIndex,
 }
 
+// UnlockChunk: RC -> Portable
 impl IntoPortable for pallet_staking::UnlockChunk<u128> {
 	type Portable = PortableUnlockChunk;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortableUnlockChunk { value: self.value, era: self.era }
+	}
+}
+
+// UnlockChunk: Portable -> AH
+impl Into<pallet_staking_async::UnlockChunk<u128>> for PortableUnlockChunk {
+	fn into(self) -> pallet_staking_async::UnlockChunk<u128> {
+		pallet_staking_async::UnlockChunk { value: self.value, era: self.era }
 	}
 }
 
@@ -379,22 +407,46 @@ pub struct PortableUnappliedSlash {
 	/// The validator's own slash.
 	pub own: u128,
 	/// All other slashed stakers and amounts.
-	pub others: BoundedVec<(AccountId32, u128), ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+	pub others: BoundedVec<(AccountId32, u128), ConstU32<100>>, /* 100 is an upper bound TODO
+	                                                             * @kianenigma review */
 	/// Reporters of the offence; bounty payout recipients.
-	pub reporters: BoundedVec<AccountId32, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+	pub reporters: BoundedVec<AccountId32, ConstU32<100>>, /* 100 is an upper bound TODO
+	                                                        * @kianenigma review */
 	/// The amount of payout.
 	pub payout: u128,
 }
 
+// UnappliedSlash: RC -> Portable
 impl IntoPortable for pallet_staking::UnappliedSlash<AccountId32, u128> {
 	type Portable = PortableUnappliedSlash;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortableUnappliedSlash {
 			validator: self.validator,
 			own: self.own,
 			others: self.others.defensive_truncate_into(),
 			reporters: self.reporters.defensive_truncate_into(),
+			payout: self.payout,
+		}
+	}
+}
+
+// UnappliedSlash: Portable -> AH
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::UnappliedSlash<T>> for PortableUnappliedSlash
+{
+	fn into(self) -> pallet_staking_async::UnappliedSlash<T> {
+		pallet_staking_async::UnappliedSlash {
+			validator: self.validator,
+			own: self.own,
+			// TODO @ggwpez cleanup
+			others: WeakBoundedVec::<_, _>::force_from(
+				self.others.into_iter().map(Into::into).collect::<Vec<_>>(),
+				None,
+			),
+			reporter: self.reporters.into_iter().next(), // TODO @kianenigma review
 			payout: self.payout,
 		}
 	}
@@ -424,12 +476,13 @@ pub enum PortableRewardDestination {
 	None,
 }
 
+// RewardDestination: RC -> Portable
 impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
 	type Portable = PortableRewardDestination;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		use PortableRewardDestination::*;
-		
+
 		match self {
 			RewardDestination::Staked => Staked,
 			RewardDestination::Stash => Stash,
@@ -440,12 +493,35 @@ impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
 	}
 }
 
+// RewardDestination: Portable -> AH
+impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewardDestination {
+	fn into(self) -> pallet_staking_async::RewardDestination<AccountId32> {
+		use pallet_staking_async::RewardDestination::*;
+		match self {
+			PortableRewardDestination::Staked => Staked,
+			PortableRewardDestination::Stash => Stash,
+			PortableRewardDestination::Controller => Controller,
+			PortableRewardDestination::Account(account) => Account(account),
+			PortableRewardDestination::None => None,
+		}
+	}
+}
+
 #[derive(
-	PartialEqNoBound, EqNoBound, Clone, Encode, Decode, RuntimeDebugNoBound, TypeInfo, MaxEncodedLen, DecodeWithMemTracking,
+	PartialEqNoBound,
+	EqNoBound,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebugNoBound,
+	TypeInfo,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
 )]
 pub struct PortableNominations {
 	/// The targets of nomination.
-	pub targets: BoundedVec<AccountId32, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+	pub targets: BoundedVec<AccountId32, ConstU32<100>>, /* 100 is an upper bound TODO
+	                                                      * @kianenigma review */
 	/// The era the nominations were submitted.
 	///
 	/// Except for initial nominations which are considered submitted at era 0.
@@ -457,12 +533,33 @@ pub struct PortableNominations {
 	pub suppressed: bool,
 }
 
+// Nominations: RC -> Portable
 impl<T: Config> IntoPortable for pallet_staking::Nominations<T> {
 	type Portable = PortableNominations;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortableNominations {
 			targets: defensive_vector_truncate(self.targets),
+			submitted_in: self.submitted_in,
+			suppressed: self.suppressed,
+		}
+	}
+}
+
+// Nominations: Portable -> AH
+impl<T: pallet_staking_async::Config<CurrencyBalance = u128>>
+	Into<pallet_staking_async::Nominations<T>> for PortableNominations
+where
+	<T as frame_system::Config>::AccountId: From<AccountId32>,
+{
+	fn into(self) -> pallet_staking_async::Nominations<T> {
+		pallet_staking_async::Nominations {
+			targets: self
+				.targets
+				.into_iter()
+				.map(Into::into)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
 			submitted_in: self.submitted_in,
 			suppressed: self.suppressed,
 		}
@@ -494,9 +591,10 @@ pub struct PortablePagedExposureMetadata {
 	pub page_count: Page,
 }
 
+// PagedExposureMetadata: RC -> Portable
 impl IntoPortable for sp_staking::PagedExposureMetadata<u128> {
 	type Portable = PortablePagedExposureMetadata;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortablePagedExposureMetadata {
 			total: self.total,
@@ -507,23 +605,76 @@ impl IntoPortable for sp_staking::PagedExposureMetadata<u128> {
 	}
 }
 
+// PagedExposureMetadata: Portable -> AH
+impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMetadata {
+	fn into(self) -> sp_staking::PagedExposureMetadata<u128> {
+		sp_staking::PagedExposureMetadata {
+			total: self.total,
+			own: self.own,
+			nominator_count: self.nominator_count,
+			page_count: self.page_count,
+		}
+	}
+}
+
 /// A snapshot of the stake backing a single validator in the system.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, RuntimeDebug, TypeInfo, DecodeWithMemTracking)]
+#[derive(
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	TypeInfo,
+	DecodeWithMemTracking,
+)]
 pub struct PortableExposurePage {
 	/// The total balance of this chunk/page.
 	pub page_total: u128,
 	/// The portions of nominators stashes that are exposed.
-	pub others: BoundedVec<PortableIndividualExposure, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+	pub others: BoundedVec<PortableIndividualExposure, ConstU32<600>>, /* 600 is an upper bound
+	                                                                    * TODO @kianenigma
+	                                                                    * review */
 }
 
+// ExposurePage: RC -> Portable
 impl IntoPortable for sp_staking::ExposurePage<AccountId32, u128> {
 	type Portable = PortableExposurePage;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortableExposurePage {
 			page_total: self.page_total,
-			others: self.others.into_iter().map(IntoPortable::into_portable).collect::<Vec<_>>().defensive_truncate_into(),
+			others: self
+				.others
+				.into_iter()
+				.map(IntoPortable::into_portable)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
 		}
+	}
+}
+
+// ExposurePage: Portable -> AH (part 1)
+impl Into<sp_staking::ExposurePage<AccountId32, u128>> for PortableExposurePage {
+	fn into(self) -> sp_staking::ExposurePage<AccountId32, u128> {
+		sp_staking::ExposurePage {
+			page_total: self.page_total,
+			others: self.others.into_iter().map(Into::into).collect::<Vec<_>>(),
+		}
+	}
+}
+
+// ExposurePage: Portable -> AH (part 2)
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::BoundedExposurePage<T>> for PortableExposurePage
+{
+	fn into(self) -> pallet_staking_async::BoundedExposurePage<T> {
+		let page: sp_staking::ExposurePage<_, _> = self.into();
+		pallet_staking_async::BoundedExposurePage::from(page)
 	}
 }
 
@@ -546,11 +697,19 @@ pub struct PortableIndividualExposure {
 	pub value: u128,
 }
 
+// IndividualExposure: RC -> Portable
 impl IntoPortable for sp_staking::IndividualExposure<AccountId32, u128> {
 	type Portable = PortableIndividualExposure;
-	
+
 	fn into_portable(self) -> Self::Portable {
 		PortableIndividualExposure { who: self.who, value: self.value }
+	}
+}
+
+// IndividualExposure: Portable -> AH
+impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndividualExposure {
+	fn into(self) -> sp_staking::IndividualExposure<AccountId32, u128> {
+		sp_staking::IndividualExposure { who: self.who, value: self.value }
 	}
 }
 
@@ -561,22 +720,75 @@ pub struct PortableEraRewardPoints {
 	/// Total number of points. Equals the sum of reward points for each validator.
 	pub total: u32,
 	/// The reward points earned by a given validator.
-	pub individual: BoundedBTreeMap<AccountId32, u32, ConstU32<100>>, // 100 is an upper bound TODO @kianenigma review
+	pub individual: BoundedBTreeMap<AccountId32, u32, ConstU32<600>>, /* 100 is an upper bound
+	                                                                   * TODO @kianenigma review */
 }
 
+// EraRewardPoints: RC -> Portable
 impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
 	type Portable = PortableEraRewardPoints;
 
 	fn into_portable(self) -> Self::Portable {
 		// TODO @ggwpez
-		if self.individual.len() > 100 {
+		if self.individual.len() > 600 {
+			log::error!(target: LOG_TARGET, "EraRewardPoints truncated from length {}", self.individual.len());
 			defensive!("EraRewardPoints truncated");
 		}
-		let individual = self.individual.into_iter().take(100).collect::<BTreeMap<_, _>>();
+		let individual = self.individual.into_iter().take(600).collect::<BTreeMap<_, _>>();
 
 		PortableEraRewardPoints {
 			total: self.total,
 			individual: BoundedBTreeMap::try_from(individual).defensive().unwrap_or_default(),
 		}
+	}
+}
+
+// EraRewardPoints: Portable -> AH
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::EraRewardPoints<T>> for PortableEraRewardPoints
+{
+	fn into(self) -> pallet_staking_async::EraRewardPoints<T> {
+		let individual =
+			self.individual.into_iter().map(|(k, v)| (k, v)).collect::<BTreeMap<_, _>>();
+
+		pallet_staking_async::EraRewardPoints {
+			total: self.total,
+			individual: BoundedBTreeMap::try_from(individual).defensive().unwrap_or_default(),
+		}
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+)]
+pub struct PortableValidatorPrefs {
+	pub commission: Perbill,
+	pub blocked: bool,
+}
+
+// ValidatorPrefs: RC -> Portable
+impl IntoPortable for pallet_staking::ValidatorPrefs {
+	type Portable = PortableValidatorPrefs;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableValidatorPrefs { commission: self.commission, blocked: self.blocked }
+	}
+}
+
+// ValidatorPrefs: Portable -> AH
+impl Into<pallet_staking_async::ValidatorPrefs> for PortableValidatorPrefs {
+	fn into(self) -> pallet_staking_async::ValidatorPrefs {
+		pallet_staking_async::ValidatorPrefs { commission: self.commission, blocked: self.blocked }
 	}
 }

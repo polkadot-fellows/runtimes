@@ -20,11 +20,8 @@ pub mod fast_unstake;
 pub mod nom_pools;
 pub mod nom_pools_alias;
 
-#[cfg(feature = "ahm-staking-migration")]
 pub mod message;
-#[cfg(feature = "ahm-staking-migration")]
 pub mod staking;
-#[cfg(feature = "ahm-staking-migration")]
 pub use staking::*;
 
 // Copy&paster of Convert trait so that we can implement it here on external types

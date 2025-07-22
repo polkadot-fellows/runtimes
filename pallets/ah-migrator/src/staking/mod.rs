@@ -22,5 +22,4 @@ pub mod delegated_staking;
 pub mod fast_unstake;
 pub mod nom_pools;
 
-#[cfg(feature = "ahm-staking-migration")]
 pub mod staking;
