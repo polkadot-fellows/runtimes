@@ -136,7 +136,7 @@ impl<T: Config> Pallet<T> {
 			},
 			BondedEras(bonded_eras) => {
 				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
-				let bounded: BoundedVec<_, _> = bonded_eras.defensive_truncate_into();
+				let bounded: BoundedVec<_, _> = bonded_eras.clone().defensive_truncate_into();
 				pallet_staking_async::BondedEras::<T>::put(bounded);
 			},
 			ValidatorSlashInEra { era, validator, slash } => {

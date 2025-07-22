@@ -18,7 +18,11 @@
 
 use crate::{
 	staking::{
-		message::{PortableForcing, PortableNominations, PortableStakingLedger, StakingValues},
+		message::{
+			PortableEraRewardPoints, PortableExposurePage, PortableForcing, PortableNominations,
+			PortablePagedExposureMetadata, PortableStakingLedger, PortableUnappliedSlash,
+			PortableValidatorPrefs, StakingValues,
+		},
 		PortableStakingMessage,
 	},
 	types::IntoPortable,
@@ -54,6 +58,16 @@ pub struct RcData {
 	pub validators: Vec<(AccountId32, pallet_staking::ValidatorPrefs)>,
 	pub nominators: Vec<(AccountId32, PortableNominations)>,
 	pub virtual_stakers: Vec<AccountId32>,
+	pub eras_stakers_overview: Vec<(u32, AccountId32, PortablePagedExposureMetadata)>,
+	pub eras_stakers_paged: Vec<((u32, AccountId32, u32), PortableExposurePage)>,
+	pub claimed_rewards: Vec<(u32, AccountId32, Vec<u32>)>,
+	pub eras_validator_prefs: Vec<(u32, AccountId32, PortableValidatorPrefs)>,
+	pub eras_validator_reward: Vec<(u32, u128)>,
+	pub eras_reward_points: Vec<(u32, PortableEraRewardPoints)>,
+	pub eras_total_stake: Vec<(u32, u128)>,
+	pub unapplied_slashes: Vec<(u32, Vec<PortableUnappliedSlash>)>,
+	pub bonded_eras: Vec<(u32, u32)>,
+	pub validator_slash_in_era: Vec<(u32, AccountId32, (Perbill, u128))>,
 }
 
 pub struct StakingMigratedCorrectly<T>(pub core::marker::PhantomData<T>);
@@ -93,6 +107,26 @@ impl<T: crate::Config> crate::types::RcMigrationCheck for StakingMigratedCorrect
 				.map(|(k, v)| (k, v.into_portable()))
 				.collect(),
 			virtual_stakers: pallet_staking::VirtualStakers::<T>::iter_keys().collect(),
+			eras_stakers_overview: pallet_staking::ErasStakersOverview::<T>::iter()
+				.map(|(k1, k2, v)| (k1, k2, v.into_portable()))
+				.collect(),
+			eras_stakers_paged: pallet_staking::ErasStakersPaged::<T>::iter()
+				.map(|(k, v)| (k, v.into_portable()))
+				.collect(),
+			claimed_rewards: pallet_staking::ClaimedRewards::<T>::iter().collect(),
+			eras_validator_prefs: pallet_staking::ErasValidatorPrefs::<T>::iter()
+				.map(|(k1, k2, v)| (k1, k2, v.into_portable()))
+				.collect(),
+			eras_validator_reward: pallet_staking::ErasValidatorReward::<T>::iter().collect(),
+			eras_reward_points: pallet_staking::ErasRewardPoints::<T>::iter()
+				.map(|(k, v)| (k, v.into_portable()))
+				.collect(),
+			eras_total_stake: pallet_staking::ErasTotalStake::<T>::iter().collect(),
+			unapplied_slashes: pallet_staking::UnappliedSlashes::<T>::iter()
+				.map(|(k, v)| (k, v.into_iter().map(IntoPortable::into_portable).collect()))
+				.collect(),
+			bonded_eras: pallet_staking::BondedEras::<T>::get(),
+			validator_slash_in_era: pallet_staking::ValidatorSlashInEra::<T>::iter().collect(),
 		}
 	}
 

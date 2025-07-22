@@ -16,8 +16,14 @@
 
 //! Checks that the staking migration succeeded.
 
-use pallet_rc_migrator::staking::{message::PortableNominations, PortableStakingMessage, RcData};
-use sp_runtime::AccountId32;
+use pallet_rc_migrator::{
+	staking::{
+		message::{PortableNominations, PortableUnappliedSlash},
+		PortableStakingMessage, RcData,
+	},
+	types::IntoPortable,
+};
+use sp_runtime::{AccountId32, Perbill};
 
 impl<T: crate::Config> crate::types::AhMigrationCheck
 	for pallet_rc_migrator::staking::StakingMigratedCorrectly<T>
@@ -37,7 +43,16 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 		assert_eq!(rc.min_commission, pallet_staking_async::MinCommission::<T>::get());
 		assert_eq!(rc.max_validators_count, pallet_staking_async::MaxValidatorsCount::<T>::get());
 		assert_eq!(rc.max_nominators_count, pallet_staking_async::MaxNominatorsCount::<T>::get());
-		//assert_eq!(rc.current_era, pallet_staking_async::CurrentEra::<T>::get());
+		// @kianenigma please review
+		if let Some(rc_era) = rc.current_era {
+			let diff = (rc_era as i64 -
+				pallet_staking_async::CurrentEra::<T>::get().expect("Must have current era")
+					as i64)
+				.abs();
+			assert!(diff <= 2, "Current era difference is at most 1");
+		} else {
+			assert_eq!(pallet_staking_async::CurrentEra::<T>::get(), None);
+		}
 		assert_eq!(
 			rc.active_era.map(translate_active_era),
 			pallet_staking_async::ActiveEra::<T>::get()
@@ -80,6 +95,55 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 		assert_eq!(
 			rc.virtual_stakers,
 			pallet_staking_async::VirtualStakers::<T>::iter_keys().collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.eras_stakers_overview
+				.into_iter()
+				.map(|(k1, k2, v)| (k1, k2, v.into()))
+				.collect::<Vec<_>>(),
+			pallet_staking_async::ErasStakersOverview::<T>::iter().collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.eras_stakers_paged
+				.into_iter()
+				.map(|(k, v)| (k, v.into()))
+				.collect::<Vec<_>>(),
+			pallet_staking_async::ErasStakersPaged::<T>::iter().collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.claimed_rewards,
+			pallet_staking_async::ClaimedRewards::<T>::iter()
+				.map(|(k1, k2, v)| (k1, k2, v.into_inner()))
+				.collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.eras_validator_prefs
+				.into_iter()
+				.map(|(k1, k2, v)| (k1, k2, v.into()))
+				.collect::<Vec<_>>(),
+			pallet_staking_async::ErasValidatorPrefs::<T>::iter().collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.eras_validator_reward,
+			pallet_staking_async::ErasValidatorReward::<T>::iter().collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.eras_reward_points
+				.into_iter()
+				.map(|(k, v)| (k, v.into()))
+				.collect::<Vec<_>>(),
+			pallet_staking_async::ErasRewardPoints::<T>::iter().collect::<Vec<_>>()
+		);
+		assert_eq!(
+			rc.eras_total_stake,
+			pallet_staking_async::ErasTotalStake::<T>::iter().collect::<Vec<_>>()
+		);
+		check_unapplied_slashes::<T>(rc.unapplied_slashes);
+		// TODO assert_eq!(rc.bonded_eras,
+		// pallet_staking_async::BondedEras::<T>::get().into_inner());
+		assert_eq!(
+			rc.validator_slash_in_era,
+			pallet_staking_async::ValidatorSlashInEra::<T>::iter().collect::<Vec<_>>()
 		);
 	}
 }
@@ -126,4 +190,19 @@ fn translate_nominations<T: crate::Config>(
 		submitted_in: nominations.submitted_in,
 		suppressed: nominations.suppressed,
 	}
+}
+
+fn check_unapplied_slashes<T: crate::Config>(rc: Vec<(u32, Vec<PortableUnappliedSlash>)>) {
+	let mut expected_slashes =
+		Vec::<(u32, (AccountId32, Perbill, u32), PortableUnappliedSlash)>::new();
+
+	for (era, slashes) in rc {
+		for slash in slashes {
+			// We insert all slashes with this special key
+			let key = (slash.validator.clone(), Perbill::from_percent(99), 9999);
+			expected_slashes.push((era, key, slash));
+		}
+	}
+
+	// TODO assert
 }

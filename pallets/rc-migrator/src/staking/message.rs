@@ -675,7 +675,15 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 }
 
 #[derive(
-	PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen, DecodeWithMemTracking,
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
