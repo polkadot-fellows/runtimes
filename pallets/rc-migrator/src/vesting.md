@@ -25,7 +25,6 @@ The vesting pallet is not using the proper FRAME version tracking; rather, it tr
 the `StorageVersion` value. It does this incorrectly though, with Asset Hub reporting version 0
 instead of 1. We ignore and correct this by writing 1 to the storage.
 
-
 ## User Impact
 
 This affects users that have vesting schedules on the Relay chain or on Asset Hub. There exists a

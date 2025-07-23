@@ -79,7 +79,7 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
-	treasury::RcTreasuryMessage, types::MigrationStatus,
+	staking::PortableStakingMessage, treasury::RcTreasuryMessage, types::MigrationStatus,
 };
 
 use cumulus_primitives_core::AggregateMessageOrigin;
@@ -265,6 +265,7 @@ pub mod pallet {
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
 		+ pallet_delegated_staking::Config
+		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
@@ -857,12 +858,13 @@ pub mod pallet {
 			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
-		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
-		#[pallet::weight({1})] // TODO: @ggwpez weight
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(3, 3).saturating_add(Weight::from_parts(10_000_000, 200)).saturating_mul(messages.len() as u64)
+		)] // TODO @ggwpez weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
-			messages: Vec<T::RcStakingMessage>,
+			messages: Vec<PortableStakingMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

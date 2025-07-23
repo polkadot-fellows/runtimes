@@ -35,6 +35,7 @@ pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-async = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
@@ -92,6 +93,7 @@ std = [
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
+	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
@@ -143,6 +145,7 @@ runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
@@ -182,6 +185,7 @@ try-runtime = [
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
