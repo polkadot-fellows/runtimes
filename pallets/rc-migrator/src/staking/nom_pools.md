@@ -15,6 +15,7 @@ to Relay Chain Block number provider.
 ## User Impact
 
 Impact here is negligible and only for pool operators - not members:
+
 - Pool commission change rate (measured in blocks) could be decreased by one block.
 - Pool operators may be able to change the commission rate one block later than anticipated. This is
   due to the nature or translating blocks of two different blockchains which does not yield

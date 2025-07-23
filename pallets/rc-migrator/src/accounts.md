@@ -21,6 +21,7 @@ the Relay or a parachain (like Asset Hub).
 
 There are different kinds of sovereign accounts. In this context, we only focus on these parachain
 sovereign accounts:
+
 - On the Relay: derived from `"para" ++ para_id ++ 00..`
 - On the Asset Hub and all other sibling parachains: derived from `"sibl" ++ para_id ++ 00..`
 
@@ -82,26 +83,26 @@ Pallets Increasing Provider References (Polkadot / Kusama / Westend):
 - delegate_staking (P/K/W): One extra provider reference should be migrated to AH for every account
 with the hold reason `pallet_delegated_staking::HoldReason::StakingDelegation`. This ensures the
 entire balance, including the ED, can be staked via holds.
-Source: https://github.com/paritytech/polkadot-sdk/blob/ab1e12ab6f6c3946c3c61b97328702e719cd1223/substrate/frame/delegated-staking/src/types.rs#L81
+Source: <https://github.com/paritytech/polkadot-sdk/blob/ab1e12ab6f6c3946c3c61b97328702e719cd1223/substrate/frame/delegated-staking/src/types.rs#L81>
 
 - parachains_on_demand (P/K/W): The on-demand pallet pot account should not be migrated to AH and
 will remain untouched.
-Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/polkadot/runtime/parachains/src/on_demand/mod.rs#L407
+Source: <https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/polkadot/runtime/parachains/src/on_demand/mod.rs#L407>
 
 - crowdloan (P/K/W): The provider reference for a crowdloan fund account allows it to exist without
 an ED until funding is received. Since new crowdloans can no longer be created, and only successful
 ones are being migrated, we don’t expect any new fund accounts below ED. This reference can be
 ignored.
-Source: https://github.com/paritytech/polkadot-sdk/blob/9abe25d974f6045d1e97537e0f1e860459053722/polkadot/runtime/common/src/crowdloan/mod.rs#L417
+Source: <https://github.com/paritytech/polkadot-sdk/blob/9abe25d974f6045d1e97537e0f1e860459053722/polkadot/runtime/common/src/crowdloan/mod.rs#L417>
 
 - balances (P/K/W): No special handling is needed, as this is covered by the fungible implementation
 during injection on AH.
-Source: https://github.com/paritytech/polkadot-sdk/blob/9abe25d974f6045d1e97537e0f1e860459053722/substrate/frame/balances/src/lib.rs#L1035
+Source: <https://github.com/paritytech/polkadot-sdk/blob/9abe25d974f6045d1e97537e0f1e860459053722/substrate/frame/balances/src/lib.rs#L1035>
 
 - session (P/K/W): Validator accounts may receive a provider reference at genesis if they did not
 previously exist. This is not relevant for migration. Even if a validator is fully reaped during
 migration, they can restore their account by teleporting funds to RC post-migration.
-Source: https://github.com/paritytech/polkadot-sdk/blob/8d4138f77106a6af49920ad84f3283f696f3f905/substrate/frame/session/src/lib.rs#L462-L465
+Source: <https://github.com/paritytech/polkadot-sdk/blob/8d4138f77106a6af49920ad84f3283f696f3f905/substrate/frame/session/src/lib.rs#L462-L465>
 
 - broker (//_): Not relevant for RC and AH runtimes.
 
@@ -109,22 +110,21 @@ Pallets Increasing Consumer References (Polkadot / Kusama / Westend):
 
 - balances (P/K/W): No custom handling is required, as this is covered by the fungible
 implementation during account injection on AH.
-Source: https://github.com/paritytech/polkadot-sdk/blob/9abe25d974f6045d1e97537e0f1e860459053722/substrate/frame/balances/src/lib.rs#L1035
+Source: <https://github.com/paritytech/polkadot-sdk/blob/9abe25d974f6045d1e97537e0f1e860459053722/substrate/frame/balances/src/lib.rs#L1035>
 
 - recovery (/K/W): A consumer reference is added to the proxy account when it claims an already
 initiated recovery process. This reference is later removed when the recovery process ends. For
 simplicity, we can ignore this consumer reference, as it might affect only a small number of
 accounts, and a decrease without a prior increase will not cause any issues.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
-Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
+Source: <https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610>
 
 - session (P/K/W): TODO: @Ank4n session set keys moving to AH
-Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
+Source: <https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812>
 
 - staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant.
 
 - assets, contracts, nfts, uniques, revive (//): Not relevant for RC and AH runtimes.
-
 
 ### XCM "Checking Account" and DOT/KSM Total Issuance Tracking
 
@@ -156,19 +156,18 @@ the source of truth for DOT/KSM *total issuance*.
 
 | DOT Teleports (in or out) | **Relay** | **AH** |
 |----------|-----|--------|
-| _Before_ | Yes | Yes |
-| _During_ | No  | No  |
-| _After_  | Yes | Yes |
-
+| *Before* | Yes | Yes |
+| *During* | No  | No  |
+| *After*  | Yes | Yes |
 
 The runtime configurations of Relay and AH need to change in terms of how they use the checking
 account before, during and after the migration.
 
 |     DOT Teleports tracking in Checking Account    | **Relay** | **AH** |
 |----------|-----------|--------|
-| _Before_ |     Yes, MintLocal       |   No Checking     |
-| _During_ |     No Checking       |   No Checking     |
-| _After_  |     No Checking      |   Yes, MintLocal     |
+| *Before* |     Yes, MintLocal       |   No Checking     |
+| *During* |     No Checking       |   No Checking     |
+| *After*  |     No Checking      |   Yes, MintLocal     |
 
 #### Tracking Total Issuance Post-Migration
 
@@ -186,30 +185,30 @@ To achieve this, we implement the following arithmetic algorithm:
 After all accounts (including checking account) are migrated from RC to AH:
 
 ```
-	ah_checking_intermediate = ah_check_before + rc_check_before
-	(0) rc_check_before = ah_checking_intermediate - ah_check_before
+ ah_checking_intermediate = ah_check_before + rc_check_before
+ (0) rc_check_before = ah_checking_intermediate - ah_check_before
 
-	Invariants:
-	(1) rc_check_before = sum_total_before(ah, bh, collectives, coretime, people)
-	(2) rc_check_before = sum_total_before(bh, collectives, coretime, people) + ah_total_before
+ Invariants:
+ (1) rc_check_before = sum_total_before(ah, bh, collectives, coretime, people)
+ (2) rc_check_before = sum_total_before(bh, collectives, coretime, people) + ah_total_before
 
-	Because teleports are disabled for RC and AH during migration, we can say:
-	(3) sum_total_before(bh, collectives, coretime, people) = sum_total_after(bh, collectives, coretime, people)
+ Because teleports are disabled for RC and AH during migration, we can say:
+ (3) sum_total_before(bh, collectives, coretime, people) = sum_total_after(bh, collectives, coretime, people)
 
-	Ergo use (3) in (2):
-	(4) rc_check_before = sum_total_after(bh, collectives, coretime, people) + ah_total_before
+ Ergo use (3) in (2):
+ (4) rc_check_before = sum_total_after(bh, collectives, coretime, people) + ah_total_before
 
-	We want:
-		ah_check_after = sum_total_after(rc, bh, collectives, coretime, people)
-		ah_check_after = sum_total_after(bh, collectives, coretime, people) + rc_balance_kept
-	Use (3):
-		ah_check_after = sum_total_before(bh, collectives, coretime, people) + rc_balance_kept
-		ah_check_after = sum_total_before(ah, bh, collectives, coretime, people) - ah_total_before + rc_balance_kept
-	Use (1):
-		ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
+ We want:
+  ah_check_after = sum_total_after(rc, bh, collectives, coretime, people)
+  ah_check_after = sum_total_after(bh, collectives, coretime, people) + rc_balance_kept
+ Use (3):
+  ah_check_after = sum_total_before(bh, collectives, coretime, people) + rc_balance_kept
+  ah_check_after = sum_total_before(ah, bh, collectives, coretime, people) - ah_total_before + rc_balance_kept
+ Use (1):
+  ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
 
-	Finally use (0):
-		ah_check_after = ah_checking_intermediate - ah_check_before - ah_total_before + rc_balance_kept
+ Finally use (0):
+  ah_check_after = ah_checking_intermediate - ah_check_before - ah_total_before + rc_balance_kept
 ```
 
 At which point, `ah_total_issuance_after` should equal `rc_total_issuance_before`.

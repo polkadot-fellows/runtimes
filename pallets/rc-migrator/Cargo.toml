@@ -80,6 +80,8 @@ std = [
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
+	"pallet-staking-async-ah-client/std",
+	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-treasury/std",
@@ -102,8 +104,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"pallet-staking-async/std",
-	"pallet-staking-async-ah-client/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -125,6 +125,8 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-staking-async-ah-client/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
@@ -139,8 +141,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-staking-async/runtime-benchmarks",
-	"pallet-staking-async-ah-client/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -162,6 +162,8 @@ try-runtime = [
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
+	"pallet-staking-async-ah-client/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-treasury/try-runtime",
@@ -170,6 +172,4 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-staking-async/try-runtime",
-	"pallet-staking-async-ah-client/try-runtime"
 ]

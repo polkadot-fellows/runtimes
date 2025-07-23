@@ -93,6 +93,7 @@ std = [
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
+	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
@@ -118,7 +119,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"pallet-staking-async/std"
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
@@ -145,6 +145,7 @@ runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
@@ -161,7 +162,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-staking-async/runtime-benchmarks"
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
@@ -185,6 +185,7 @@ try-runtime = [
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
@@ -193,5 +194,4 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-staking-async/try-runtime"
 ]

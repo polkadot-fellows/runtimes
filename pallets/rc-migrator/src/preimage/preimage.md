@@ -23,6 +23,7 @@ Deprecated. Will not be migrated but funds will be unreserved.
 ## User Impact
 
 For anyone who has registered a preimage:
+
 - If the preimage was in the new RequestStatusFor: Some unlocked funds 😎. We cannot calculate a list of affected accounts in advance since users can still influence this.
 - If the preimage was in the old StatusFor: will be removed and funds unlocked. [Exhaustive list](https://github.com/ggwpez/substrate-scripts/blob/master/ahm-preimage-statusfor-accounts.py) of all 166 Polkadot accounts that are affected by this and will have **UP TO** these funds unlocked (not a legally binding statement):
   
