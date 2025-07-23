@@ -291,8 +291,8 @@ pub struct PortableStakingLedger {
 	pub stash: AccountId32,
 	pub total: u128,
 	pub active: u128,
-	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>, /* 100 is an upper bound TODO
-	                                                                * @kianenigma review */
+	// Expected to be around 32, but we can use 100 as upper bound.
+	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>,
 }
 
 // StakingLedger: RC -> Portable
@@ -300,8 +300,7 @@ impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
 	type Portable = PortableStakingLedger;
 
 	fn into_portable(self) -> Self::Portable {
-		// TODO @kianenigma what to do with `legacy_claimed_rewards`?
-		//defensive_assert!(self.legacy_claimed_rewards.is_empty());
+		// We drop the `legacy_claimed_rewards` field, as they are not used anymore.
 
 		PortableStakingLedger {
 			stash: self.stash,
@@ -313,8 +312,7 @@ impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
 				.map(IntoPortable::into_portable)
 				.collect::<Vec<_>>()
 				.defensive_truncate_into(),
-			// TODO @kianenigma controller is ignored, right?
-			// self.controller,
+			// self.controller is ignored since its not part of the storage.
 		}
 	}
 }
@@ -336,7 +334,7 @@ impl<
 				.map(Into::into)
 				.collect::<Vec<_>>()
 				.defensive_truncate_into(),
-			controller: None, // TODO @kianenigma review
+			controller: None, // Not needed
 		}
 	}
 }
@@ -387,10 +385,8 @@ impl Into<pallet_staking_async::UnlockChunk<u128>> for PortableUnlockChunk {
 pub struct PortableUnappliedSlash {
 	pub validator: AccountId32,
 	pub own: u128,
-	pub others: BoundedVec<(AccountId32, u128), ConstU32<100>>, /* 100 is an upper bound TODO
-	                                                             * @kianenigma review */
-	pub reporters: BoundedVec<AccountId32, ConstU32<100>>, /* 100 is an upper bound TODO
-	                                                        * @kianenigma review */
+	pub others: BoundedVec<(AccountId32, u128), ConstU32<600>>, // Range 0-512
+	pub reporters: BoundedVec<AccountId32, ConstU32<10>>,       // Range 0-1
 	pub payout: u128,
 }
 
@@ -427,7 +423,7 @@ impl<
 				self.others.into_inner(),
 				None,
 			),
-			reporter: self.reporters.into_iter().next(), // TODO @kianenigma review
+			reporter: self.reporters.first().cloned(),
 			payout: self.payout,
 		}
 	}
@@ -496,8 +492,7 @@ impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewa
 	DecodeWithMemTracking,
 )]
 pub struct PortableNominations {
-	pub targets: BoundedVec<AccountId32, ConstU32<100>>, /* 100 is an upper bound TODO
-	                                                      * @kianenigma review */
+	pub targets: BoundedVec<AccountId32, ConstU32<32>>, // Range up to 16
 	pub submitted_in: EraIndex,
 	pub suppressed: bool,
 }
@@ -597,9 +592,7 @@ impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMeta
 )]
 pub struct PortableExposurePage {
 	pub page_total: u128,
-	pub others: BoundedVec<PortableIndividualExposure, ConstU32<600>>, /* 600 is an upper bound
-	                                                                    * TODO @kianenigma
-	                                                                    * review */
+	pub others: BoundedVec<PortableIndividualExposure, ConstU32<600>>, // Range 0-512
 }
 
 // ExposurePage: RC -> Portable
@@ -687,8 +680,7 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
-	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, /* 100 is an upper bound
-	                                                                * TODO @kianenigma review */
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, //  Up to MaxValidatorSize
 }
 
 // EraRewardPoints: RC -> Portable

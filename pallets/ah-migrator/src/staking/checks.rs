@@ -36,7 +36,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 	fn post_check(rc: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Storage Values
 		assert_eq!(rc.validator_count, pallet_staking_async::ValidatorCount::<T>::get());
-		// Min validator count is not migrated @kianenigma review
+		// Min validator count is not migrated and instead configured via `MinimumValidatorSetSize`
 		assert_eq!(rc.min_nominator_bond, pallet_staking_async::MinNominatorBond::<T>::get());
 		assert_eq!(rc.min_validator_bond, pallet_staking_async::MinValidatorBond::<T>::get());
 		assert_eq!(rc.min_active_stake, pallet_staking_async::MinimumActiveStake::<T>::get());
@@ -61,7 +61,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 		assert_eq!(rc.max_staked_rewards, pallet_staking_async::MaxStakedRewards::<T>::get());
 		assert_eq!(rc.slash_reward_fraction, pallet_staking_async::SlashRewardFraction::<T>::get());
 		assert_eq!(rc.canceled_slash_payout, pallet_staking_async::CanceledSlashPayout::<T>::get());
-		// Current planned session is not migrated @kianenigma review
+		// Current planned session is not migrated
 		assert_eq!(rc.chill_threshold, pallet_staking_async::ChillThreshold::<T>::get());
 
 		// Storage Maps

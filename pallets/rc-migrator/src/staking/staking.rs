@@ -438,7 +438,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, slash)) => {
 							pallet_staking::NominatorSlashInEra::<T>::remove(&era, &validator);
-							// Not migrated. TODO @kianenigma review
+							// Not migrated.
 							StakingStage::NominatorSlashInEra(Some((era, validator)))
 						},
 						None => StakingStage::SlashingSpans(None),
@@ -450,7 +450,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((account, spans)) => {
 							pallet_staking::SlashingSpans::<T>::remove(&account);
-							// Not migrated. TODO @kianenigma review
+							// Not migrated.
 							StakingStage::SlashingSpans(Some(account))
 						},
 						None => StakingStage::SpanSlash(None),
@@ -462,7 +462,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some(((account, span), slash)) => {
 							pallet_staking::SpanSlash::<T>::remove((&account, &span));
-							// Not migrated. TODO @kianenigma review
+							// Not migrated.
 							StakingStage::SpanSlash(Some((account, span)))
 						},
 						None => StakingStage::Finished,
