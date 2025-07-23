@@ -60,7 +60,16 @@ pub enum ChildBountiesStage {
 }
 
 /// Child bounties data message to migrate some data from RC to AH.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq, DecodeWithMemTracking)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	TypeInfo,
+	RuntimeDebugNoBound,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+)]
 pub enum PortableChildBountiesMessage {
 	ChildBountyCount(BountyIndex),
 	ParentChildBounties(BountyIndex, u32),
@@ -73,7 +82,7 @@ pub enum PortableChildBountiesMessage {
 	ChildBountyDescriptionsV1 {
 		parent_id: BountyIndex,
 		child_id: BountyIndex,
-		description: Vec<u8>,
+		description: BoundedVec<u8, ConstU32<1024>>,
 	},
 	V0ToV1ChildBountyIds {
 		v0_child_id: BountyIndex,
@@ -102,7 +111,7 @@ where
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or_default();
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		log::info!(target: LOG_TARGET, "Migrating ChildBounties at stage {:?} with weight limit {:?}", &last_key, &weight_counter.limit());
 
@@ -209,11 +218,15 @@ where
 							pallet_child_bounties::ChildBountyDescriptionsV1::<T>::remove(
 								&parent_id, &child_id,
 							);
+							// TODO use DefensiveTruncateInto
+							let description = description.into_iter().take(1000).collect::<Vec<_>>();
+							let description = BoundedVec::try_from(description).defensive().unwrap_or_default();
+
 							messages.push(
 								PortableChildBountiesMessage::ChildBountyDescriptionsV1 {
 									parent_id,
 									child_id,
-									description: description.into_inner(),
+									description,
 								},
 							);
 							ChildBountiesStage::ChildBountyDescriptionsV1 {
@@ -272,7 +285,13 @@ where
 			};
 		}
 
-
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| types::AhMigratorCall::<
+				T,
+			>::ReceiveChildBountiesMessages {
+				messages,
+			})?;
+		}
 
 		if last_key == ChildBountiesStage::Finished {
 			log::info!(target: LOG_TARGET, "ChildBounties migration finished");
@@ -307,7 +326,7 @@ pub struct PortableChildBounty {
 	pub status: PortableChildBountyStatus,
 }
 
-// PortableChildBounty: RC -> Portable
+// ChildBounty: RC -> Portable
 impl<BlockNumber: Into<u32>> IntoPortable for ChildBounty<AccountId32, u128, BlockNumber> {
 	type Portable = PortableChildBounty;
 
@@ -318,6 +337,19 @@ impl<BlockNumber: Into<u32>> IntoPortable for ChildBounty<AccountId32, u128, Blo
 			fee: self.fee,
 			curator_deposit: self.curator_deposit,
 			status: self.status.into_portable(),
+		}
+	}
+}
+
+// ChildBounty: Portable -> AH
+impl<BlockNumber: From<u32>, Balance: From<u128>> From<PortableChildBounty> for ChildBounty<AccountId32, Balance, BlockNumber> {
+	fn from(portable: PortableChildBounty) -> Self {
+		ChildBounty {
+			parent_bounty: portable.parent_bounty,
+			value: portable.value.into(),
+			fee: portable.fee.into(),
+			curator_deposit: portable.curator_deposit.into(),
+			status: portable.status.into(),
 		}
 	}
 }
@@ -340,7 +372,7 @@ pub enum PortableChildBountyStatus {
 	PendingPayout { curator: AccountId32, beneficiary: AccountId32, unlock_at: u32 },
 }
 
-// PortableChildBountyStatus: RC -> Portable
+// ChildBountyStatus: RC -> Portable
 impl<BlockNumber: Into<u32>> IntoPortable for ChildBountyStatus<AccountId32, BlockNumber> {
 	type Portable = PortableChildBountyStatus;
 
@@ -353,6 +385,19 @@ impl<BlockNumber: Into<u32>> IntoPortable for ChildBountyStatus<AccountId32, Blo
 			ChildBountyStatus::Active { curator } => Active { curator },
 			ChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
 				PendingPayout { curator, beneficiary, unlock_at: unlock_at.into() },
+		}
+	}
+}
+
+// ChildBountyStatus: Portable -> AH
+impl<BlockNumber: From<u32>> From<PortableChildBountyStatus> for ChildBountyStatus<AccountId32, BlockNumber> {
+	fn from(portable: PortableChildBountyStatus) -> Self {
+		match portable {
+			PortableChildBountyStatus::Added => ChildBountyStatus::Added,
+			PortableChildBountyStatus::CuratorProposed { curator } => ChildBountyStatus::CuratorProposed { curator },
+			PortableChildBountyStatus::Active { curator } => ChildBountyStatus::Active { curator },
+			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
+				ChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at: unlock_at.into() },
 		}
 	}
 }

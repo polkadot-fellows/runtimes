@@ -52,6 +52,7 @@ pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 pub mod xcm_translation;
+pub mod child_bounties;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
@@ -81,6 +82,7 @@ use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
 	treasury::RcTreasuryMessage, types::MigrationStatus,
 };
+use pallet_rc_migrator::child_bounties::PortableChildBountiesMessage;
 
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::traits::EnqueueMessage;
@@ -151,6 +153,7 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	ChildBounties,
 	Treasury,
 	Balances,
 	Multisig,
@@ -263,6 +266,7 @@ pub mod pallet {
 		+ pallet_ah_ops::Config
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
+		+ pallet_child_bounties::Config
 		+ pallet_treasury::Config
 		+ pallet_delegated_staking::Config
 	{
@@ -502,7 +506,11 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>
+	where
+		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber: From<u32>,
+		pallet_treasury::BalanceOf<T>: From<u128>,
+	{
 		/// Receive accounts from the Relay Chain.
 		///
 		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
@@ -858,10 +866,10 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(24)]
-		#[pallet::weight(T::AhWeightInfo::receive_child_bounties_messages(messages.len() as u32))]
+		#[pallet::weight(0)] // TODO @ggwpez weight
 		pub fn receive_child_bounties_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcChildBountiesMessageOf<T>>,
+			messages: Vec<PortableChildBountiesMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -870,7 +878,7 @@ pub mod pallet {
 
 		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
-		#[pallet::weight({1})] // TODO: @ggwpez weight
+		#[pallet::weight(1)] // TODO @ggwpez weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
 			messages: Vec<T::RcStakingMessage>,
@@ -1002,11 +1010,11 @@ pub mod pallet {
 		///
 		/// Currently returns the input account unchanged (mock implementation).
 		///
-		/// TODO: Will also be responsible to emit a translation event.
-		/// TODO: The current signature suggests that the function is intended to be infallible and
+		/// TODO Will also be responsible to emit a translation event.
+		/// TODO The current signature suggests that the function is intended to be infallible and
 		/// always return a valid account. This should be revisited when we replace the mock
 		/// implementation with the real one.
-		/// TODO: introduce different accountId types for RC and AH e.g something like
+		/// TODO introduce different accountId types for RC and AH e.g something like
 		/// ```rust
 		/// trait IntoAhTranslated<AhAccountId> {
 		///     fn into_ah_translated(self) -> AhAccountId;

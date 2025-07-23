@@ -7943,6 +7943,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-balances",
  "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-conviction-voting",
  "pallet-delegated-staking",
  "pallet-fast-unstake",
