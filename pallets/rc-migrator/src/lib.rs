@@ -746,7 +746,9 @@ pub mod pallet {
 		/// Schedule the migration to start at a given moment.
 		///
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start.
+		/// - `start`: The block number at which the migration will start. Must be a point within
+		/// the current era before the validator election process has started. Typically, this
+		/// corresponds to the final session of the era, just prior to the election kickoff.
 		/// - `cool_off_end`: The block number at which the cool-off period will end.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
@@ -996,19 +998,19 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
-						// TODO: @ggwpez staking check; how long it will take, should we just shift
-						// the start time? also we have cool-off period, may be this not the best place?
 
-						/*
-						let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-						let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-						// ensure new era is not planned when starting migration.
-						if current_era > active_era {
-							defensive!("New era is planned, migration cannot start until it is completed");
-							Self::transition(MigrationStage::Pending);
-							return weight_counter.consumed();
+						weight_counter.consume(T::DbWeight::get().reads(2));
+						#[cfg(feature = "ahm-staking-migration")]
+						{
+							let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+							// ensure new era is not planned when starting migration.
+							if current_era > active_era {
+								defensive!("Migration must start before the election starts on the chain.");
+								Self::transition(MigrationStage::Pending);
+								return weight_counter.consumed();
+							}
 						}
-						*/
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
