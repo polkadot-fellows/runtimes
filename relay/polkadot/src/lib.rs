@@ -1694,10 +1694,9 @@ impl OnSwap for SwapLeases {
 	}
 }
 
-// TODO: @muharem adjust when async backing enabled for Polkadot Asset Hub
 // Derived from `polkadot_asset_hub_runtime::RuntimeBlockWeights`.
 const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
 	polkadot_primitives::MAX_POV_SIZE as u64,
 );
 
