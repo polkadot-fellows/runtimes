@@ -130,5 +130,45 @@ impl<T: crate::Config> crate::types::RcMigrationCheck for StakingMigratedCorrect
 		}
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload) {}
+	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+		use pallet_staking::*;
+		// All storage values are gone
+		assert!(!ValidatorCount::<T>::exists());
+		assert!(!MinimumValidatorCount::<T>::exists());
+		assert!(!MinNominatorBond::<T>::exists());
+		assert!(!MinValidatorBond::<T>::exists());
+		assert!(!MinimumActiveStake::<T>::exists());
+		assert!(!MinCommission::<T>::exists());
+		assert!(!MaxValidatorsCount::<T>::exists());
+		assert!(!MaxNominatorsCount::<T>::exists());
+		assert!(!CurrentEra::<T>::exists());
+		assert!(!ActiveEra::<T>::exists());
+		assert!(!ForceEra::<T>::exists());
+		assert!(!MaxStakedRewards::<T>::exists());
+		assert!(!SlashRewardFraction::<T>::exists());
+		assert!(!CanceledSlashPayout::<T>::exists());
+		assert!(!CurrentPlannedSession::<T>::exists());
+		assert!(!ChillThreshold::<T>::exists());
+
+		assert!(!Invulnerables::<T>::exists());
+		assert!(Bonded::<T>::iter_keys().next().is_none());
+		assert!(Ledger::<T>::iter_keys().next().is_none());
+		assert!(Payee::<T>::iter_keys().next().is_none());
+		assert!(Validators::<T>::iter_keys().next().is_none());
+		assert!(Nominators::<T>::iter_keys().next().is_none());
+		assert!(VirtualStakers::<T>::iter_keys().next().is_none());
+		assert!(ErasStakersOverview::<T>::iter_keys().next().is_none());
+		assert!(ErasStakersPaged::<T>::iter_keys().next().is_none());
+		assert!(ClaimedRewards::<T>::iter_keys().next().is_none());
+		assert!(ErasValidatorPrefs::<T>::iter_keys().next().is_none());
+		assert!(ErasValidatorReward::<T>::iter_keys().next().is_none());
+		assert!(ErasRewardPoints::<T>::iter_keys().next().is_none());
+		assert!(ErasTotalStake::<T>::iter_keys().next().is_none());
+		assert!(UnappliedSlashes::<T>::iter_keys().next().is_none());
+		assert!(!BondedEras::<T>::exists());
+		assert!(ValidatorSlashInEra::<T>::iter_keys().next().is_none());
+		assert!(NominatorSlashInEra::<T>::iter_keys().next().is_none());
+		assert!(SlashingSpans::<T>::iter_keys().next().is_none());
+		assert!(SpanSlash::<T>::iter_keys().next().is_none());
+	}
 }
