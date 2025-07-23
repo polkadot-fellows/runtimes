@@ -78,6 +78,10 @@ fn asset_hub_polkadot_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"staking": {
+			"validatorCount": 1000,
+			"devStakers": Some((2_000, 25_000)),
+		}
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
