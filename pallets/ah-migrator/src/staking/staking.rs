@@ -134,11 +134,15 @@ impl<T: Config> Pallet<T> {
 				let slash: pallet_staking_async::UnappliedSlash<_> = slash.into();
 				pallet_staking_async::UnappliedSlashes::<T>::insert(era, slash_key, slash);
 			},
-			BondedEras(bonded_eras) => {
-				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
-				let bounded: BoundedVec<_, _> = bonded_eras.clone().defensive_truncate_into();
-				pallet_staking_async::BondedEras::<T>::put(bounded);
-			},
+			BondedEras(bonded_eras) =>
+				if pallet_staking_async::BondedEras::<T>::exists() {
+					log::error!("BondedEras already exists, skipping insert");
+					defensive_assert!(bonded_eras.is_empty());
+				} else {
+					log::debug!(target: LOG_TARGET, "Integrating BondedEras");
+					let bounded: BoundedVec<_, _> = bonded_eras.clone().defensive_truncate_into();
+					pallet_staking_async::BondedEras::<T>::put(bounded);
+				},
 			ValidatorSlashInEra { era, validator, slash } => {
 				log::debug!(target: LOG_TARGET, "Integrating ValidatorSlashInEra {:?}/{:?}", validator, era);
 				pallet_staking_async::ValidatorSlashInEra::<T>::insert(era, validator, slash);

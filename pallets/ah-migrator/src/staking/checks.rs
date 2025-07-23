@@ -133,8 +133,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 			pallet_staking_async::ErasTotalStake::<T>::iter().collect::<Vec<_>>()
 		);
 		check_unapplied_slashes::<T>(rc.unapplied_slashes);
-		// TODO assert_eq!(rc.bonded_eras,
-		// pallet_staking_async::BondedEras::<T>::get().into_inner());
+		assert_eq!(rc.bonded_eras, pallet_staking_async::BondedEras::<T>::get().into_inner());
 		assert_eq!(
 			rc.validator_slash_in_era,
 			pallet_staking_async::ValidatorSlashInEra::<T>::iter().collect::<Vec<_>>()
