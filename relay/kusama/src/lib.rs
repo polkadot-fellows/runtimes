@@ -1542,7 +1542,6 @@ impl parachains_paras::Config for Runtime {
 	type AssignCoretime = CoretimeAssignmentProvider;
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 1000.
-	// FAIL-CI: @bkchr what is this cost here? what would be a good value for Kusama?
 	type CooldownRemovalMultiplier = ConstUint<{ 1000 * UNITS / DAYS as u128 }>;
 	type AuthorizeCurrentCodeOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
