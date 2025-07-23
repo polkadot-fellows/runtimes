@@ -55,7 +55,7 @@ jobs:
           # Retry snapshot creation up to 10 times
           for i in {1..10}; do
             echo "Snapshot creation attempt $i/10"
-            if try-runtime create-snapshot --uri ${{ matrix.runtime.uri }} --output-path snapshot.raw || true; then
+            if try-runtime create-snapshot --uri ${{ matrix.runtime.uri }} snapshot.raw || true; then
               if [ -f "snapshot.raw" ] && [ -s "snapshot.raw" ]; then
                 echo "Snapshot created successfully"
                 break
