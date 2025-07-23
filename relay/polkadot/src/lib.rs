@@ -46,9 +46,9 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		AsEnsureOriginWithArg, ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything,
-		FromContains, Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp,
-		ProcessMessage, ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -68,7 +68,6 @@ use pallet_staking_async_rc_client as rc_client;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
@@ -1325,13 +1324,7 @@ impl parachains_paras::Config for Runtime {
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 5000.
 	type CooldownRemovalMultiplier = ConstUint<{ 5000 * UNITS / DAYS as u128 }>;
-	type AuthorizeCurrentCodeOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		// Collectives DDay plurality mapping.
-		AsEnsureOriginWithArg<
-			EnsureXcm<IsVoiceOfBody<xcm_config::CollectivesLocation, xcm_config::DDayBodyId>>,
-		>,
-	>;
+	type AuthorizeCurrentCodeOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
