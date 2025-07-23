@@ -859,7 +859,9 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(30)]
-		#[pallet::weight({1})] // TODO: @ggwpez weight
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(3, 3).saturating_add(Weight::from_parts(10_000_000, 200)).saturating_mul(messages.len() as u64)
+		)] // TODO @ggwpez weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
 			messages: Vec<PortableStakingMessage>,
