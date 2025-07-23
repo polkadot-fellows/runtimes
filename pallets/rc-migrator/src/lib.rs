@@ -996,8 +996,8 @@ pub mod pallet {
 				MigrationStage::Pending => {
 					return weight_counter.consumed();
 				},
-				MigrationStage::Scheduled { block_number, cool_off_end } =>
-					if now >= block_number {
+				MigrationStage::Scheduled { start, cool_off_end } =>
+					if now >= start {
 
 						weight_counter.consume(T::DbWeight::get().reads(2));
 						#[cfg(feature = "ahm-staking-migration")]
@@ -1012,7 +1012,7 @@ pub mod pallet {
 							}
 						}
 
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh { cool_off_end });
 							},
