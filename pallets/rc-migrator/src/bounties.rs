@@ -21,8 +21,18 @@ use pallet_bounties::{Bounty, BountyIndex};
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// The stages of the bounties pallet data migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum BountiesStage {
 	#[default]
 	BountyCount,
@@ -37,7 +47,7 @@ pub enum BountiesStage {
 }
 
 /// Bounties data message that is being sent to the AH Migrator.
-#[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
 pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
 	BountyCount(BountyIndex),
 	BountyApprovals(Vec<BountyIndex>),
@@ -94,15 +104,23 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 			last_key = match last_key {
 				BountiesStage::BountyCount => {
-					let count = pallet_bounties::BountyCount::<T>::take();
-					log::debug!(target: LOG_TARGET, "Migration BountyCount {:?}", &count);
-					messages.push(RcBountiesMessage::BountyCount(count));
+					if pallet_bounties::BountyCount::<T>::exists() {
+						let count = pallet_bounties::BountyCount::<T>::take();
+						log::debug!(target: LOG_TARGET, "Migration BountyCount {:?}", &count);
+						messages.push(RcBountiesMessage::BountyCount(count));
+					} else {
+						log::debug!(target: LOG_TARGET, "Not migrating empty BountyCount");
+					}
 					BountiesStage::BountyApprovals
 				},
 				BountiesStage::BountyApprovals => {
-					let approvals = pallet_bounties::BountyApprovals::<T>::take();
-					log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
-					messages.push(RcBountiesMessage::BountyApprovals(approvals.into_inner()));
+					if pallet_bounties::BountyApprovals::<T>::exists() {
+						let approvals = pallet_bounties::BountyApprovals::<T>::take();
+						log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
+						messages.push(RcBountiesMessage::BountyApprovals(approvals.into_inner()));
+					} else {
+						log::debug!(target: LOG_TARGET, "Not migrating empty BountyApprovals");
+					}
 					BountiesStage::BountyDescriptions { last_key: None }
 				},
 				BountiesStage::BountyDescriptions { last_key } => {
@@ -151,11 +169,9 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages.into_inner(),
-				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
-				|len| T::AhWeightInfo::receive_bounties_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages.into_inner(), |messages| {
+				types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages }
+			})?;
 		}
 
 		if last_key == BountiesStage::Finished {
@@ -182,8 +198,17 @@ pub mod alias {
 	/// A bounty proposal.
 	///
 	/// Alias of [pallet_bounties::Bounty].
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	#[derive(
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		Clone,
+		PartialEq,
+		Eq,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+	)]
 	pub struct Bounty<AccountId, Balance, BlockNumber> {
 		/// The account proposing it.
 		pub proposer: AccountId,
@@ -216,7 +241,11 @@ pub type RcPrePayload<T> = (
 	BountyIndex,
 	Vec<(
 		BountyIndex,
-		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
+		Bounty<
+			<T as frame_system::Config>::AccountId,
+			BalanceOf<T>,
+			pallet_treasury::BlockNumberFor<T>,
+		>,
 	)>,
 	Vec<(BountyIndex, Vec<u8>)>,
 	Vec<BountyIndex>,

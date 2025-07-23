@@ -21,7 +21,17 @@ pub struct CrowdloanMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 	/// Reserve for some slot leases.
 	LeaseReserve {
@@ -71,7 +81,7 @@ pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 		para_id: ParaId,
 		/// Amount that was reserved to create the crowdloan.
 		///
-		/// Normally this is 500 DOT. TODO: Should sanity check.
+		/// Normally this is 500 DOT. TODO: @ggwpez Should sanity check.
 		amount: Balance,
 	},
 }
@@ -79,8 +89,17 @@ pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 pub type RcCrowdloanMessageOf<T> =
 	RcCrowdloanMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>;
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub enum CrowdloanStage {
 	Setup,
 	LeaseReserve { last_key: Option<ParaId> },
@@ -136,7 +155,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
 
 					// Only thing to do here is to re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
-					if cfg!(feature = "ahm-polkadot") {
+					if !cfg!(feature = "ahm-kusama") {
 						let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
 						if leases.is_empty() {
 							defensive!("Bifrost fund maybe already ended, remove this");
@@ -236,7 +255,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 						let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
 						let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
-							// We directly remove so that we dont have to store a cursor:
+						// We directly remove so that we dont have to store a cursor:
 						pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 
 						log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
@@ -246,7 +265,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
 				},
 				CrowdloanStage::CrowdloanReserve => {
-					// TODO: not much slower without last_key?
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
 							inner_key = CrowdloanStage::CrowdloanReserve;
@@ -275,7 +293,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveCrowdloanMessages { messages },
-				|len| T::AhWeightInfo::receive_crowdloan_messages(len),
 			)?;
 		}
 
@@ -375,7 +392,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
 		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
 			// Stay consistent with migrate_many: remap for leases
-			let remapped_para_id = if cfg!(feature = "ahm-polkadot") && para_id == ParaId::from(2030) {
+			let remapped_para_id = if !cfg!(feature = "ahm-kusama") && para_id == ParaId::from(2030) {
 				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
@@ -422,7 +439,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 
 		// Process crowdloan funds and contributions
 		for (original_para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
-			let para_id = if cfg!(feature = "ahm-polkadot") && original_para_id == ParaId::from(2030) {
+			let para_id = if !cfg!(feature = "ahm-kusama") && original_para_id == ParaId::from(2030) {
 				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
@@ -473,7 +490,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
 		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
 			// Remap Bifrost para_id consistently with pre_check
-			let remapped_para_id = if cfg!(feature = "ahm-polkadot") && para_id == ParaId::from(2030) {
+			let remapped_para_id = if !cfg!(feature = "ahm-kusama") && para_id == ParaId::from(2030) {
 				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {

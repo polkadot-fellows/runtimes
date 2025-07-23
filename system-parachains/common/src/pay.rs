@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::traits::{
 	fungibles,
 	tokens::{PaymentStatus, Preservation},
@@ -27,7 +27,15 @@ use xcm_executor::traits::ConvertLocation;
 /// Versioned locatable account type which contains both an XCM `location` and `account_id` to
 /// identify an account which exists on some chain.
 #[derive(
-	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Eq,
+	PartialEq,
+	Clone,
+	RuntimeDebug,
+	scale_info::TypeInfo,
+	MaxEncodedLen,
 )]
 pub enum VersionedLocatableAccount {
 	// TODO: remove the V3 variant when V5 is available
@@ -93,14 +101,15 @@ where
 {
 	fn match_location(who: &VersionedLocatableAccount) -> Result<A::Type, ()> {
 		// only applicable for the local accounts
-		let account_id = match who {
+		let account_id: &xcm::v4::Location = match who {
 			VersionedLocatableAccount::V3 { location, account_id } if location.is_here() =>
 				&(*account_id).try_into().map_err(|_| ())?,
 			VersionedLocatableAccount::V4 { location, account_id } if location.is_here() =>
 				account_id,
 			_ => return Err(()),
 		};
-		C::convert_location(account_id).ok_or(())
+		let account_id_v5 = account_id.clone().try_into().map_err(|_| ())?;
+		C::convert_location(&account_id_v5).ok_or(())
 	}
 	fn match_asset(asset: &VersionedLocatableAsset) -> Result<xcm::v4::Location, ()> {
 		match asset {
@@ -134,18 +143,24 @@ pub mod benchmarks {
 	{
 		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
 			VersionedLocatableAsset::V4 {
-				location: Location::new(0, []),
-				asset_id: Location::new(
+				location: xcm::v4::Location::new(0, []),
+				asset_id: xcm::v4::Location::new(
 					0,
-					[PalletInstance(PalletId::get()), GeneralIndex(seed.into())],
+					[
+						xcm::v4::Junction::PalletInstance(PalletId::get()),
+						xcm::v4::Junction::GeneralIndex(seed.into()),
+					],
 				)
 				.into(),
 			}
 		}
 		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocatableAccount {
 			VersionedLocatableAccount::V4 {
-				location: Location::new(0, []),
-				account_id: Location::new(0, [AccountId32 { network: None, id: seed }]),
+				location: xcm::v4::Location::new(0, []),
+				account_id: xcm::v4::Location::new(
+					0,
+					[xcm::v4::Junction::AccountId32 { network: None, id: seed }],
+				),
 			}
 		}
 	}

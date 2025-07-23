@@ -15,9 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO FAIL-CI: Insecure unless your chain includes `PrevalidateAttests` as a
-// `TransactionExtension`.
-
 use crate::*;
 
 use crate::types::AccountIdOf;
@@ -27,8 +24,17 @@ pub struct IndicesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebug,
+	Clone,
+	PartialEq,
+	Eq,
+)]
 pub struct RcIndicesIndex<AccountIndex, AccountId, Balance> {
 	pub index: AccountIndex,
 	pub who: AccountId,
@@ -94,11 +100,9 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|batch| types::AhMigratorCall::<T>::ReceiveIndices { indices: batch },
-				|len| T::AhWeightInfo::receive_indices(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |batch| {
+				types::AhMigratorCall::<T>::ReceiveIndices { indices: batch }
+			})?;
 		}
 
 		Ok(inner_key)

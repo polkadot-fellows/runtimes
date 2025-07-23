@@ -47,170 +47,125 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_ah_migrator`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
-	/// Proof: `ParachainSystem::UpwardDeliveryFeeFactor` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `PolkadotXcm::SupportedVersion` (r:1 w:0)
-	/// Proof: `PolkadotXcm::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::HostConfiguration` (r:1 w:0)
-	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
-	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn on_finalize() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `217`
-		//  Estimated: `3682`
-		// Minimum execution time: 31_670_000 picoseconds.
-		Weight::from_parts(37_941_000, 0)
-			.saturating_add(Weight::from_parts(0, 3682))
-			.saturating_add(T::DbWeight::get().reads(5))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
+impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::WeightInfo for WeightInfo<T> {
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_multisigs(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `52 + n * (135 ±0)`
-		//  Estimated: `1493 + n * (2603 ±0)`
-		// Minimum execution time: 40_029_000 picoseconds.
-		Weight::from_parts(40_626_754, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 24_387
-			.saturating_add(Weight::from_parts(17_014_334, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `0 + n * (135 ±0)`
+		//  Estimated: `990 + n * (2603 ±0)`
+		// Minimum execution time: 39_711_000 picoseconds.
+		Weight::from_parts(13_858_435, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 34_208
+			.saturating_add(Weight::from_parts(21_193_429, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:255 w:255)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(85), added: 2560, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(121), added: 2596, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:255 w:255)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(67), added: 2542, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:255 w:255)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_accounts(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `52 + n * (135 ±0)`
-		//  Estimated: `1493 + n * (3774 ±0)`
-		// Minimum execution time: 148_821_000 picoseconds.
-		Weight::from_parts(153_881_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 139_159
-			.saturating_add(Weight::from_parts(118_857_245, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `0 + n * (135 ±0)`
+		//  Estimated: `990 + n * (3774 ±0)`
+		// Minimum execution time: 165_419_000 picoseconds.
+		Weight::from_parts(166_250_000, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 80_620
+			.saturating_add(Weight::from_parts(147_305_828, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((4_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((4_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3774).saturating_mul(n.into()))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_liquid_accounts(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `52 + n * (135 ±0)`
-		//  Estimated: `1493 + n * (2603 ±0)`
-		// Minimum execution time: 50_761_000 picoseconds.
-		Weight::from_parts(51_360_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 62_546
-			.saturating_add(Weight::from_parts(28_323_706, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `0 + n * (135 ±0)`
+		//  Estimated: `990 + n * (2603 ±0)`
+		// Minimum execution time: 57_810_000 picoseconds.
+		Weight::from_parts(58_811_000, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 23_717
+			.saturating_add(Weight::from_parts(36_274_916, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
 	}
 	/// Storage: `Claims::Vesting` (r:255 w:255)
-	/// Proof: `Claims::Vesting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Proof: `Claims::Vesting` (`max_values`: None, `max_size`: Some(56), added: 2531, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_claims(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `152`
-		//  Estimated: `1493 + n * (2475 ±0)`
-		// Minimum execution time: 24_610_000 picoseconds.
-		Weight::from_parts(20_795_149, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 11_817
-			.saturating_add(Weight::from_parts(3_439_950, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `43`
+		//  Estimated: `990 + n * (2531 ±0)`
+		// Minimum execution time: 25_310_000 picoseconds.
+		Weight::from_parts(15_714_979, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 7_092
+			.saturating_add(Weight::from_parts(4_116_899, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 2475).saturating_mul(n.into()))
+			.saturating_add(Weight::from_parts(0, 2531).saturating_mul(n.into()))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `Proxy::Proxies` (r:0 w:255)
+	/// Storage: `Proxy::Proxies` (r:255 w:255)
 	/// Proof: `Proxy::Proxies` (`max_values`: None, `max_size`: Some(1241), added: 3716, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_proxy_proxies(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 36_280_000 picoseconds.
-		Weight::from_parts(21_005_646, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 14_579
-			.saturating_add(Weight::from_parts(3_195_047, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `76`
+		//  Estimated: `990 + n * (3716 ±0)`
+		// Minimum execution time: 164_640_000 picoseconds.
+		Weight::from_parts(92_329_131, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 621_598
+			.saturating_add(Weight::from_parts(217_221_317, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 3716).saturating_mul(n.into()))
 	}
 	/// Storage: `System::Account` (r:255 w:255)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_proxy_announcements(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `52 + n * (135 ±0)`
-		//  Estimated: `1493 + n * (2603 ±0)`
-		// Minimum execution time: 39_800_000 picoseconds.
-		Weight::from_parts(40_650_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 16_950
-			.saturating_add(Weight::from_parts(18_809_348, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `0 + n * (135 ±0)`
+		//  Estimated: `990 + n * (2603 ±0)`
+		// Minimum execution time: 38_960_000 picoseconds.
+		Weight::from_parts(48_049_000, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 18_500
+			.saturating_add(Weight::from_parts(23_088_851, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
 	}
 	/// Storage: `Vesting::Vesting` (r:255 w:255)
 	/// Proof: `Vesting::Vesting` (`max_values`: None, `max_size`: Some(1057), added: 3532, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Vesting::StorageVersion` (r:0 w:1)
 	/// Proof: `Vesting::StorageVersion` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_vesting_schedules(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `242`
-		//  Estimated: `1493 + n * (3532 ±0)`
-		// Minimum execution time: 36_980_000 picoseconds.
-		Weight::from_parts(14_322_064, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 25_550
-			.saturating_add(Weight::from_parts(5_978_528, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `166`
+		//  Estimated: `990 + n * (3532 ±0)`
+		// Minimum execution time: 34_699_000 picoseconds.
+		Weight::from_parts(6_502_944, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 13_255
+			.saturating_add(Weight::from_parts(7_572_772, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3532).saturating_mul(n.into()))
 	}
@@ -218,21 +173,19 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForSubPoolsStorage` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForSubPoolsStorage` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_nom_pools_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `340`
-		//  Estimated: `1493 + n * (3672 ±0)`
-		// Minimum execution time: 32_480_000 picoseconds.
-		Weight::from_parts(52_150_826, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 13_215
-			.saturating_add(Weight::from_parts(6_709_902, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
+		//  Measured:  `231`
+		//  Estimated: `1489 + n * (3672 ±0)`
+		// Minimum execution time: 35_099_000 picoseconds.
+		Weight::from_parts(44_939_181, 0)
+			.saturating_add(Weight::from_parts(0, 1489))
+			// Standard Error: 23_849
+			.saturating_add(Weight::from_parts(9_484_279, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3672).saturating_mul(n.into()))
 	}
@@ -240,26 +193,22 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 	/// Proof: `FastUnstake::Queue` (`max_values`: None, `max_size`: Some(56), added: 2531, mode: `MaxEncodedLen`)
 	/// Storage: `FastUnstake::CounterForQueue` (r:1 w:1)
 	/// Proof: `FastUnstake::CounterForQueue` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_fast_unstake_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `151`
-		//  Estimated: `1493 + n * (2531 ±0)`
-		// Minimum execution time: 25_951_000 picoseconds.
-		Weight::from_parts(29_619_392, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 14_528
-			.saturating_add(Weight::from_parts(4_380_352, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
+		//  Measured:  `42`
+		//  Estimated: `1489 + n * (2531 ±0)`
+		// Minimum execution time: 28_291_000 picoseconds.
+		Weight::from_parts(26_243_070, 0)
+			.saturating_add(Weight::from_parts(0, 1489))
+			// Standard Error: 11_721
+			.saturating_add(Weight::from_parts(5_270_398, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2531).saturating_mul(n.into()))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Referenda::DecidingCount` (r:0 w:16)
 	/// Proof: `Referenda::DecidingCount` (`max_values`: None, `max_size`: Some(14), added: 2489, mode: `MaxEncodedLen`)
 	/// Storage: `Referenda::ReferendumCount` (r:0 w:1)
@@ -268,13 +217,12 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 	/// Proof: `Referenda::TrackQueue` (`max_values`: None, `max_size`: Some(2012), added: 4487, mode: `MaxEncodedLen`)
 	fn receive_referenda_values() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 94_660_000 picoseconds.
-		Weight::from_parts(95_961_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(34))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 111_180_000 picoseconds.
+		Weight::from_parts(132_090_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(T::DbWeight::get().writes(33))
 	}
 	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
 	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
@@ -282,40 +230,34 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:1)
 	/// Proof: `Referenda::ReferendumInfoFor` (`max_values`: None, `max_size`: Some(936), added: 3411, mode: `MaxEncodedLen`)
 	/// The range of component `m` is `[1, 4000000]`.
 	fn receive_single_active_referendums(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `291 + m * (1 ±0)`
-		//  Estimated: `3756 + m * (1 ±0)`
-		// Minimum execution time: 25_951_000 picoseconds.
-		Weight::from_parts(65_357_526, 0)
-			.saturating_add(Weight::from_parts(0, 3756))
-			// Standard Error: 3
-			.saturating_add(Weight::from_parts(3_505, 0).saturating_mul(m.into()))
-			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(T::DbWeight::get().writes(4))
+		//  Measured:  `144 + m * (1 ±0)`
+		//  Estimated: `3609 + m * (1 ±0)`
+		// Minimum execution time: 50_220_000 picoseconds.
+		Weight::from_parts(191_640_762, 0)
+			.saturating_add(Weight::from_parts(0, 3609))
+			// Standard Error: 10
+			.saturating_add(Weight::from_parts(4_217, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:255)
 	/// Proof: `Referenda::ReferendumInfoFor` (`max_values`: None, `max_size`: Some(936), added: 3411, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_complete_referendums(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 22_040_000 picoseconds.
-		Weight::from_parts(31_394_388, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 8_820
-			.saturating_add(Weight::from_parts(2_144_930, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 25_230_000 picoseconds.
+		Weight::from_parts(20_167_732, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 10_350
+			.saturating_add(Weight::from_parts(2_856_446, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
@@ -324,249 +266,223 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Scheduler::Agenda` (r:0 w:1)
 	/// Proof: `Scheduler::Agenda` (`max_values`: None, `max_size`: Some(38963), added: 41438, mode: `MaxEncodedLen`)
 	/// The range of component `m` is `[1, 4000000]`.
 	fn receive_single_scheduler_agenda(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `291 + m * (1 ±0)`
-		//  Estimated: `3756 + m * (1 ±0)`
-		// Minimum execution time: 26_201_000 picoseconds.
-		Weight::from_parts(29_375_165, 0)
-			.saturating_add(Weight::from_parts(0, 3756))
-			// Standard Error: 2
-			.saturating_add(Weight::from_parts(3_513, 0).saturating_mul(m.into()))
-			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(T::DbWeight::get().writes(4))
+		//  Measured:  `144 + m * (1 ±0)`
+		//  Estimated: `3609 + m * (1 ±0)`
+		// Minimum execution time: 37_330_000 picoseconds.
+		Weight::from_parts(204_161_240, 0)
+			.saturating_add(Weight::from_parts(0, 3609))
+			// Standard Error: 10
+			.saturating_add(Weight::from_parts(4_203, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Scheduler::Lookup` (r:0 w:255)
 	/// Proof: `Scheduler::Lookup` (`max_values`: None, `max_size`: Some(48), added: 2523, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_scheduler_lookup(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 29_331_000 picoseconds.
-		Weight::from_parts(34_650_224, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 11_710
-			.saturating_add(Weight::from_parts(1_946_744, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 24_770_000 picoseconds.
+		Weight::from_parts(20_395_864, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 4_360
+			.saturating_add(Weight::from_parts(2_489_624, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `VoterList::ListNodes` (r:255 w:255)
 	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
 	/// Storage: `VoterList::CounterForListNodes` (r:1 w:1)
 	/// Proof: `VoterList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_bags_list_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `256`
-		//  Estimated: `1493 + n * (2629 ±0)`
-		// Minimum execution time: 27_720_000 picoseconds.
-		Weight::from_parts(15_187_229, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 10_752
-			.saturating_add(Weight::from_parts(5_106_569, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
+		//  Measured:  `147`
+		//  Estimated: `1489 + n * (2629 ±0)`
+		// Minimum execution time: 30_450_000 picoseconds.
+		Weight::from_parts(21_466_902, 0)
+			.saturating_add(Weight::from_parts(0, 1489))
+			// Standard Error: 9_709
+			.saturating_add(Weight::from_parts(6_294_436, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2629).saturating_mul(n.into()))
 	}
 	/// Storage: `Indices::Accounts` (r:255 w:255)
 	/// Proof: `Indices::Accounts` (`max_values`: None, `max_size`: Some(69), added: 2544, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_indices(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `185`
-		//  Estimated: `1493 + n * (2544 ±0)`
-		// Minimum execution time: 30_580_000 picoseconds.
-		Weight::from_parts(63_279_769, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 24_844
-			.saturating_add(Weight::from_parts(3_585_589, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `76`
+		//  Estimated: `990 + n * (2544 ±0)`
+		// Minimum execution time: 25_030_000 picoseconds.
+		Weight::from_parts(19_955_027, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 6_687
+			.saturating_add(Weight::from_parts(4_670_838, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2544).saturating_mul(n.into()))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `ConvictionVoting::VotingFor` (r:0 w:255)
 	/// Proof: `ConvictionVoting::VotingFor` (`max_values`: None, `max_size`: Some(27241), added: 29716, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_conviction_voting_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 39_110_000 picoseconds.
-		Weight::from_parts(39_810_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 16_022
-			.saturating_add(Weight::from_parts(14_861_838, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 34_549_000 picoseconds.
+		Weight::from_parts(38_699_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 14_986
+			.saturating_add(Weight::from_parts(18_082_943, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Bounties::Bounties` (r:0 w:255)
 	/// Proof: `Bounties::Bounties` (`max_values`: None, `max_size`: Some(177), added: 2652, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_bounties_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 22_460_000 picoseconds.
-		Weight::from_parts(29_864_451, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 6_852
-			.saturating_add(Weight::from_parts(2_035_226, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 21_870_000 picoseconds.
+		Weight::from_parts(21_724_575, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 4_988
+			.saturating_add(Weight::from_parts(2_592_987, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `AssetRate::ConversionRateToNative` (r:0 w:255)
 	/// Proof: `AssetRate::ConversionRateToNative` (`max_values`: None, `max_size`: Some(1238), added: 3713, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_asset_rates(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 27_031_000 picoseconds.
-		Weight::from_parts(24_663_182, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 9_679
-			.saturating_add(Weight::from_parts(4_680_894, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 27_590_000 picoseconds.
+		Weight::from_parts(25_780_062, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 15_097
+			.saturating_add(Weight::from_parts(5_597_018, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
 	/// Storage: `AhOps::RcCrowdloanContribution` (r:255 w:255)
 	/// Proof: `AhOps::RcCrowdloanContribution` (`max_values`: None, `max_size`: Some(112), added: 2587, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_crowdloan_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `189`
-		//  Estimated: `1493 + n * (2587 ±0)`
-		// Minimum execution time: 43_921_000 picoseconds.
-		Weight::from_parts(11_722_938, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 100_177
-			.saturating_add(Weight::from_parts(23_530_041, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `80`
+		//  Estimated: `990 + n * (2587 ±0)`
+		// Minimum execution time: 67_741_000 picoseconds.
+		Weight::from_parts(92_116_141, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 66_530
+			.saturating_add(Weight::from_parts(27_035_967, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2587).saturating_mul(n.into()))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Referenda::MetadataOf` (r:0 w:255)
 	/// Proof: `Referenda::MetadataOf` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_referenda_metadata(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 22_960_000 picoseconds.
-		Weight::from_parts(22_433_519, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 2_604
-			.saturating_add(Weight::from_parts(1_916_491, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 24_800_000 picoseconds.
+		Weight::from_parts(26_342_055, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 4_661
+			.saturating_add(Weight::from_parts(2_387_129, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Treasury::Spends` (r:0 w:255)
 	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(2456), added: 4931, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_treasury_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `1493`
-		// Minimum execution time: 26_100_000 picoseconds.
-		Weight::from_parts(33_806_617, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 19_335
-			.saturating_add(Weight::from_parts(7_594_525, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 33_579_000 picoseconds.
+		Weight::from_parts(32_032_960, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 20_884
+			.saturating_add(Weight::from_parts(9_103_294, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `System::Account` (r:255 w:255)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
+	/// Proof: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc58572feb1c375d7a518a751256473585f` (r:255 w:255)
+	/// Storage: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc578adc36325155ecc312db8d05535c572` (r:1 w:1)
+	/// Proof: UNKNOWN KEY `0x51f0fdd8976812ef2ac697eeb9d43dc578adc36325155ecc312db8d05535c572` (r:1 w:1)
 	/// The range of component `n` is `[1, 255]`.
-	fn receive_preimage_legacy_status(n: u32, ) -> Weight {
+	fn receive_delegated_staking_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `52 + n * (135 ±0)`
-		//  Estimated: `1493 + n * (2603 ±0)`
-		// Minimum execution time: 37_980_000 picoseconds.
-		Weight::from_parts(7_971_041, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 18_300
-			.saturating_add(Weight::from_parts(17_079_440, 0).saturating_mul(n.into()))
+		//  Measured:  `142`
+		//  Estimated: `3607 + n * (2475 ±0)`
+		// Minimum execution time: 32_430_000 picoseconds.
+		Weight::from_parts(21_865_473, 0)
+			.saturating_add(Weight::from_parts(0, 3607))
+			// Standard Error: 14_880
+			.saturating_add(Weight::from_parts(6_148_068, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 2475).saturating_mul(n.into()))
+	}
+	/// Storage: `System::Account` (r:255 w:255)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 255]`.
+	fn receive_preimage_legacy_status(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0 + n * (135 ±0)`
+		//  Estimated: `990 + n * (2603 ±0)`
+		// Minimum execution time: 41_160_000 picoseconds.
+		Weight::from_parts(41_931_000, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 20_626
+			.saturating_add(Weight::from_parts(21_118_166, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
 	}
 	/// Storage: `Preimage::RequestStatusFor` (r:255 w:0)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 255]`.
 	fn receive_preimage_request_status(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `204 + n * (47 ±0)`
-		//  Estimated: `1493 + n * (2566 ±0)`
-		// Minimum execution time: 31_390_000 picoseconds.
-		Weight::from_parts(32_580_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			// Standard Error: 46_367
-			.saturating_add(Weight::from_parts(8_572_249, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `57 + n * (47 ±0)`
+		//  Estimated: `990 + n * (2566 ±0)`
+		// Minimum execution time: 38_020_000 picoseconds.
+		Weight::from_parts(3_159_011, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 134_892
+			.saturating_add(Weight::from_parts(11_295_156, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(Weight::from_parts(0, 2566).saturating_mul(n.into()))
 	}
 	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
 	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
-	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `m` is `[1, 80]`.
 	fn receive_preimage_chunk(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0 + m * (49900 ±0)`
-		//  Estimated: `3616 + m * (48969 ±24)`
-		// Minimum execution time: 62_941_000 picoseconds.
-		Weight::from_parts(64_921_000, 0)
-			.saturating_add(Weight::from_parts(0, 3616))
-			// Standard Error: 75_171
-			.saturating_add(Weight::from_parts(49_663_518, 0).saturating_mul(m.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
+		//  Estimated: `3469 + m * (48969 ±24)`
+		// Minimum execution time: 68_630_000 picoseconds.
+		Weight::from_parts(39_413_050, 0)
+			.saturating_add(Weight::from_parts(0, 3469))
+			// Standard Error: 170_021
+			.saturating_add(Weight::from_parts(60_537_298, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(Weight::from_parts(0, 48969).saturating_mul(m.into()))
 	}
 	/// Storage: `AhMigrator::AhMigrationStage` (r:1 w:1)
@@ -575,8 +491,8 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `1486`
-		// Minimum execution time: 16_460_000 picoseconds.
-		Weight::from_parts(17_170_000, 0)
+		// Minimum execution time: 22_250_000 picoseconds.
+		Weight::from_parts(23_379_000, 0)
 			.saturating_add(Weight::from_parts(0, 1486))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -599,26 +515,56 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 		// Proof Size summary in bytes:
 		//  Measured:  `185`
 		//  Estimated: `3650`
-		// Minimum execution time: 41_060_000 picoseconds.
-		Weight::from_parts(43_661_000, 0)
+		// Minimum execution time: 56_180_000 picoseconds.
+		Weight::from_parts(58_840_000, 0)
 			.saturating_add(Weight::from_parts(0, 3650))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `AhMigrator::AhBalancesBefore` (r:1 w:0)
 	/// Proof: `AhMigrator::AhBalancesBefore` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:1 w:0)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::AhMigrationStage` (r:1 w:1)
 	/// Proof: `AhMigrator::AhMigrationStage` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
 	fn finish_migration() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `109`
-		//  Estimated: `3593`
-		// Minimum execution time: 24_230_000 picoseconds.
-		Weight::from_parts(25_230_000, 0)
-			.saturating_add(Weight::from_parts(0, 3593))
-			.saturating_add(T::DbWeight::get().reads(3))
+		//  Measured:  `133`
+		//  Estimated: `1517`
+		// Minimum execution time: 26_900_000 picoseconds.
+		Weight::from_parts(30_160_000, 0)
+			.saturating_add(Weight::from_parts(0, 1517))
+			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `AhMigrator::DmpQueuePriorityConfig` (r:1 w:0)
+	/// Proof: `AhMigrator::DmpQueuePriorityConfig` (`max_values`: Some(1), `max_size`: Some(9), added: 504, mode: `MaxEncodedLen`)
+	/// Storage: `MessageQueue::BookStateFor` (r:1 w:0)
+	/// Proof: `MessageQueue::BookStateFor` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `MessageQueue::ServiceHead` (r:0 w:1)
+	/// Proof: `MessageQueue::ServiceHead` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `MaxEncodedLen`)
+	fn force_dmp_queue_priority() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `302`
+		//  Estimated: `3517`
+		// Minimum execution time: 15_350_000 picoseconds.
+		Weight::from_parts(16_360_000, 0)
+			.saturating_add(Weight::from_parts(0, 3517))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `AhMigrator::DmpQueuePriorityConfig` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpQueuePriorityConfig` (`max_values`: Some(1), `max_size`: Some(9), added: 504, mode: `MaxEncodedLen`)
+	fn set_dmp_queue_priority() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `1494`
+		// Minimum execution time: 10_420_000 picoseconds.
+		Weight::from_parts(11_341_000, 0)
+			.saturating_add(Weight::from_parts(0, 1494))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+
+	fn set_manager() -> Weight {
+		Weight::from_parts(10_000_000, 1000)
 	}
 }

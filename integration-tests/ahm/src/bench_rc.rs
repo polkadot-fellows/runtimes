@@ -66,15 +66,50 @@ fn test_bench_start_data_migration() {
 }
 
 #[test]
-fn test_bench_update_ah_msg_processed_count() {
+fn test_bench_send_chunked_xcm_and_track() {
 	new_test_ext().execute_with(|| {
-		test_update_ah_msg_processed_count::<RelayChain>();
+		test_send_chunked_xcm_and_track::<RelayChain>();
 	});
 }
 
 #[test]
-fn test_bench_send_chunked_xcm_and_track() {
+fn test_bench_receive_query_response() {
 	new_test_ext().execute_with(|| {
-		test_send_chunked_xcm_and_track::<RelayChain>();
+		test_receive_query_response::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_set_ah_ump_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_set_ah_ump_queue_priority::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_resend_xcm() {
+	new_test_ext().execute_with(|| {
+		test_resend_xcm::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_set_unprocessed_msg_buffer() {
+	new_test_ext().execute_with(|| {
+		test_set_unprocessed_msg_buffer::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_force_ah_ump_queue_priority() {
+	new_test_ext().execute_with(|| {
+		test_force_ah_ump_queue_priority::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_set_manager() {
+	new_test_ext().execute_with(|| {
+		test_set_manager::<RelayChain>();
 	});
 }

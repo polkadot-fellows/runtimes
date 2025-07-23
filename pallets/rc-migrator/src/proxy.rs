@@ -22,7 +22,6 @@ use frame_support::traits::Currency;
 extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
-use frame_system::pallet_prelude::BlockNumberFor;
 
 pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -36,8 +35,7 @@ type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 	/// The account that is delegating to their proxy.
 	pub delegator: AccountId,
@@ -48,14 +46,13 @@ pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 }
 
 pub type RcProxyOf<T, ProxyType> =
-	RcProxy<AccountIdOf<T>, BalanceOf<T>, ProxyType, BlockNumberFor<T>>;
+	RcProxy<AccountIdOf<T>, BalanceOf<T>, ProxyType, pallet_proxy::BlockNumberFor<T>>;
 
 /// A RcProxy in Relay chain format, can only be understood by the RC and must be translated first.
 pub(crate) type RcProxyLocalOf<T> = RcProxyOf<T, <T as pallet_proxy::Config>::ProxyType>;
 
 /// A deposit that was taken for a proxy announcement.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcProxyAnnouncement<AccountId, Balance> {
 	pub depositor: AccountId,
 	pub deposit: Balance,
@@ -113,11 +110,9 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|n| T::AhWeightInfo::receive_proxy_proxies(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch }
+			})?;
 		}
 
 		// Return last processed key if there are more items, None if we're done
@@ -133,7 +128,13 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
 		(proxies, deposit): (
-			Vec<pallet_proxy::ProxyDefinition<T::AccountId, T::ProxyType, BlockNumberFor<T>>>,
+			Vec<
+				pallet_proxy::ProxyDefinition<
+					T::AccountId,
+					T::ProxyType,
+					pallet_proxy::BlockNumberFor<T>,
+				>,
+			>,
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
@@ -211,18 +212,15 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			}
 
 			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });
+			pallet_proxy::Announcements::<T>::remove(&acc);
 			last_processed = Some(acc);
 		}
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveProxyAnnouncements {
-					announcements: batch,
-				},
-				|n| T::AhWeightInfo::receive_proxy_announcements(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveProxyAnnouncements { announcements: batch }
+			})?;
 		}
 
 		// Return last processed key if there are more items, None if we're done
@@ -259,5 +257,7 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
 		assert_eq!(count, 0, "Assert storage 'Proxy::Proxies::rc_post::empty'");
+		let count = pallet_proxy::Announcements::<T>::iter_keys().count();
+		assert_eq!(count, 0, "Assert storage 'Proxy::Announcements::rc_post::empty'");
 	}
 }

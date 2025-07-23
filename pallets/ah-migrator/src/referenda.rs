@@ -81,6 +81,67 @@ pub type AhReferendumStatusOf<T, I> = ReferendumStatus<
 >;
 
 impl<T: Config> Pallet<T> {
+	pub fn translate_referendum_accounts(
+		referendum: RcReferendumInfoOf<T, ()>,
+	) -> RcReferendumInfoOf<T, ()> {
+		match referendum {
+			ReferendumInfo::Ongoing(mut status) => {
+				status.submission_deposit.who =
+					Self::translate_account_rc_to_ah(status.submission_deposit.who.clone());
+				if let Some(ref mut decision_deposit) = status.decision_deposit {
+					decision_deposit.who =
+						Self::translate_account_rc_to_ah(decision_deposit.who.clone());
+				}
+				ReferendumInfo::Ongoing(status)
+			},
+			ReferendumInfo::Approved(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::Approved(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::Rejected(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::Rejected(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::Cancelled(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::Cancelled(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::TimedOut(block, submission_deposit, decision_deposit) => {
+				let translated_submission = submission_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				let translated_decision = decision_deposit.map(|mut deposit| {
+					deposit.who = Self::translate_account_rc_to_ah(deposit.who.clone());
+					deposit
+				});
+				ReferendumInfo::TimedOut(block, translated_submission, translated_decision)
+			},
+			ReferendumInfo::Killed(block) => ReferendumInfo::Killed(block),
+		}
+	}
+
 	pub fn do_receive_referendums(
 		referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
 	) -> Result<(), Error<T>> {
@@ -92,7 +153,8 @@ impl<T: Config> Pallet<T> {
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for (id, referendum) in referendums {
-			match Self::do_receive_referendum(id, referendum) {
+			let translated_referendum = Self::translate_referendum_accounts(referendum);
+			match Self::do_receive_referendum(id, translated_referendum) {
 				Ok(()) => count_good += 1,
 				Err(_) => count_bad += 1,
 			}
@@ -117,12 +179,7 @@ impl<T: Config> Pallet<T> {
 		let referendum: AhReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
 				let cancel_referendum = |id, status: RcReferendumStatusOf<T, ()>| {
-					if let Some((_, last_alarm)) = status.alarm {
-						// TODO: scheduler migrated first?
-						let _ = T::Scheduler::cancel(last_alarm);
-					}
-					// TODO: use referenda block provider
-					let now = frame_system::Pallet::<T>::block_number();
+					let now = <T as Config>::RcBlockNumberProvider::current_block_number();
 					ReferendumInfoFor::<T, ()>::insert(
 						id,
 						ReferendumInfo::Cancelled(
@@ -131,6 +188,7 @@ impl<T: Config> Pallet<T> {
 							status.decision_deposit,
 						),
 					);
+					Self::deposit_event(Event::ReferendumCanceled { id });
 					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
 				};
 
@@ -211,7 +269,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_referenda_values(
-		referendum_count: u32,
+		referendum_count: Option<u32>,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	) -> Result<(), Error<T>> {
@@ -221,14 +279,20 @@ impl<T: Config> Pallet<T> {
 			count: 1,
 		});
 
-		ReferendumCount::<T, ()>::put(referendum_count);
-		deciding_count.iter().for_each(|(track_id, count)| {
-			DecidingCount::<T, ()>::insert(track_id, count);
-		});
-		track_queue.into_iter().for_each(|(track_id, queue)| {
-			let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
-			TrackQueue::<T, ()>::insert(track_id, queue);
-		});
+		if let Some(referendum_count) = referendum_count {
+			ReferendumCount::<T, ()>::put(referendum_count);
+		}
+		if deciding_count.len() > 0 {
+			deciding_count.iter().for_each(|(track_id, count)| {
+				DecidingCount::<T, ()>::insert(track_id, count);
+			});
+		}
+		if track_queue.len() > 0 {
+			track_queue.into_iter().for_each(|(track_id, queue)| {
+				let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
+				TrackQueue::<T, ()>::insert(track_id, queue);
+			});
+		}
 
 		Self::deposit_event(Event::BatchProcessed {
 			pallet: PalletEventName::ReferendaValues,
@@ -254,8 +318,6 @@ pub mod alias {
 		AhReferendumInfoOf<T, ()>,
 	>;
 }
-// TODO: shift referendums' time block by the time of the migration
-// TODO: schedule `one_fewer_deciding` for referendums canceled during migration
 
 // (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
 #[derive(Decode)]
@@ -373,7 +435,75 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		fn convert_rc_to_ah_referendum<T: Config>(
 			rc_info: RcReferendumInfoOf<T, ()>,
 		) -> AhReferendumInfoOf<T, ()> {
-			match rc_info {
+			// Manually translate account IDs to test the translate_referendum_accounts function
+			let translated_rc_info = match rc_info {
+				ReferendumInfo::Ongoing(mut status) => {
+					status.submission_deposit.who = crate::Pallet::<T>::translate_account_rc_to_ah(
+						status.submission_deposit.who.clone(),
+					);
+					if let Some(ref mut decision_deposit) = status.decision_deposit {
+						decision_deposit.who = crate::Pallet::<T>::translate_account_rc_to_ah(
+							decision_deposit.who.clone(),
+						);
+					}
+					ReferendumInfo::Ongoing(status)
+				},
+				ReferendumInfo::Approved(block, submission_deposit, decision_deposit) => {
+					let translated_submission = submission_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					let translated_decision = decision_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					ReferendumInfo::Approved(block, translated_submission, translated_decision)
+				},
+				ReferendumInfo::Rejected(block, submission_deposit, decision_deposit) => {
+					let translated_submission = submission_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					let translated_decision = decision_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					ReferendumInfo::Rejected(block, translated_submission, translated_decision)
+				},
+				ReferendumInfo::Cancelled(block, submission_deposit, decision_deposit) => {
+					let translated_submission = submission_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					let translated_decision = decision_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					ReferendumInfo::Cancelled(block, translated_submission, translated_decision)
+				},
+				ReferendumInfo::TimedOut(block, submission_deposit, decision_deposit) => {
+					let translated_submission = submission_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					let translated_decision = decision_deposit.map(|mut deposit| {
+						deposit.who =
+							crate::Pallet::<T>::translate_account_rc_to_ah(deposit.who.clone());
+						deposit
+					});
+					ReferendumInfo::TimedOut(block, translated_submission, translated_decision)
+				},
+				ReferendumInfo::Killed(block) => ReferendumInfo::Killed(block),
+			};
+
+			match translated_rc_info {
 				ReferendumInfo::Ongoing(rc_status) => {
 					// --- Mimic do_receive_referendum logic ---
 					let ah_origin =
@@ -381,7 +511,8 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 							Ok(origin) => origin,
 							Err(_) => {
 								// Origin conversion failed, return cancelled.
-								let now = frame_system::Pallet::<T>::block_number();
+								let now =
+									<T as Config>::RcBlockNumberProvider::current_block_number();
 								return AhReferendumInfoOf::<T, ()>::Cancelled(
 									now,
 									Some(rc_status.submission_deposit),
@@ -395,7 +526,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 						Ok(proposal) => proposal,
 						Err(_) => {
 							// Call conversion failed, return cancelled.
-							let now = frame_system::Pallet::<T>::block_number();
+							let now = <T as Config>::RcBlockNumberProvider::current_block_number();
 							return AhReferendumInfoOf::<T, ()>::Cancelled(
 								now,
 								Some(rc_status.submission_deposit),
@@ -411,8 +542,8 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 						proposal: ah_proposal, // Use converted proposal
 						enactment: rc_status.enactment,
 						submitted: rc_status.submitted,
-						submission_deposit: rc_status.submission_deposit,
-						decision_deposit: rc_status.decision_deposit,
+						submission_deposit: rc_status.submission_deposit, // Already translated
+						decision_deposit: rc_status.decision_deposit,     // Already translated
 						deciding: rc_status.deciding,
 						tally: rc_status.tally,
 						in_queue: rc_status.in_queue,

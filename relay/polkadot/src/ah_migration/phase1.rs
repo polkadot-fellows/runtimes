@@ -17,6 +17,7 @@
 //! First phase of the Asset Hub Migration.
 
 use crate::*;
+use pallet_rc_migrator::types::PortableFreezeReason;
 
 /// Contains all calls that are enabled during the migration.
 pub struct CallsEnabledDuringMigration;
@@ -81,17 +82,18 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		System(..) => (ON, ON),
 		Scheduler(..) => (OFF, OFF),
 		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON), // TODO double check
+		Babe(..) => (ON, ON), // TODO: @muharem double check
 		Timestamp(..) => (ON, ON),
 		Indices(..) => (OFF, OFF),
 		Balances(..) => (OFF, ON),
 		// TransactionPayment has no calls
 		// Authorship has no calls
 		Staking(..) => (OFF, OFF),
+		StakingAhClient(..) => (ON, ON),
 		// Offences has no calls
 		// Historical has no calls
 		Session(..) => (OFF, ON),
-		Grandpa(..) => (ON, ON), // TODO double check
+		Grandpa(..) => (ON, ON), // TODO: @muharem double check
 		// AuthorityDiscovery has no calls
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
@@ -100,7 +102,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Whitelist(..) => (OFF, OFF),
 		Claims(..) => (OFF, OFF),
 		Vesting(..) => (OFF, OFF),
-		Utility(..) => (OFF, ON), // batching etc
+		Utility(..) => (ON, ON), // batching etc
 		Proxy(..) => (OFF, ON),
 		Multisig(..) => (OFF, ON),
 		Bounties(..) => (OFF, OFF),
@@ -119,10 +121,10 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Paras(..) => (ON, ON),
 		Initializer(..) => (ON, ON),
 		// Dmp has no calls and deprecated
-		Hrmp(..) => (OFF, OFF),
+		Hrmp(..) => (OFF, ON),
 		// ParaSessionInfo has no calls
-		ParasDisputes(..) => (OFF, ON), // TODO check with security
-		ParasSlashing(..) => (OFF, ON), // TODO check with security
+		ParasDisputes(..) => (OFF, ON), // TODO: @muharem check with security
+		ParasSlashing(..) => (OFF, ON), // TODO: @muharem check with security
 		OnDemand(..) => (OFF, ON),
 		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
@@ -137,13 +139,42 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
 		Coretime(..) => (ON, ON),
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
-		XcmPallet(..) => (OFF, ON), /* TODO allow para origins and root to call this during the migration, see https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928789463 */
-		MessageQueue(..) => (ON, ON), // TODO think about this
+		XcmPallet(..) => (ON, ON),
+		MessageQueue(..) => (ON, ON), // TODO: @muharem think about this
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
 		RcMigrator(..) => (ON, ON),
-		#[cfg(feature = "zombie-bite-sudo")]
-		Sudo(..) => (ON, ON),
 		// Exhaustive match. Compiler ensures that we did not miss any.
+	}
+}
+
+// Type safe mapping of RC hold reason to portable format.
+impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
+	type Portable = pallet_rc_migrator::types::PortableHoldReason;
+
+	fn into_portable(self) -> Self::Portable {
+		use pallet_rc_migrator::types::PortableHoldReason;
+
+		match self {
+			RuntimeHoldReason::Preimage(inner) => PortableHoldReason::Preimage(inner),
+			RuntimeHoldReason::StateTrieMigration(inner) =>
+				PortableHoldReason::StateTrieMigration(inner),
+			RuntimeHoldReason::DelegatedStaking(inner) =>
+				PortableHoldReason::DelegatedStaking(inner),
+			RuntimeHoldReason::Staking(inner) => PortableHoldReason::Staking(inner),
+			RuntimeHoldReason::Session(inner) => PortableHoldReason::Session(inner),
+			RuntimeHoldReason::XcmPallet(inner) => PortableHoldReason::XcmPallet(inner),
+		}
+	}
+}
+
+impl pallet_rc_migrator::types::IntoPortable for RuntimeFreezeReason {
+	type Portable = pallet_rc_migrator::types::PortableFreezeReason;
+
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			RuntimeFreezeReason::NominationPools(inner) =>
+				PortableFreezeReason::NominationPools(inner),
+		}
 	}
 }

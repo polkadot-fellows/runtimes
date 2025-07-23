@@ -11,6 +11,7 @@ publish = false
 
 # Substrate
 sp-core = { workspace = true, default-features = true }
+sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
 
 # Bridges
@@ -24,3 +25,12 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 bridge-hub-kusama-runtime = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"bridge-hub-common/runtime-benchmarks",
+	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+]

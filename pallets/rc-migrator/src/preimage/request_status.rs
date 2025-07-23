@@ -18,8 +18,17 @@
 use crate::{preimage::*, types::*, *};
 
 /// An entry of the `RequestStatusFor` storage map.
-#[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	TypeInfo,
+	Clone,
+	MaxEncodedLen,
+	RuntimeDebug,
+	PartialEq,
+	Eq,
+)]
 pub struct RcPreimageRequestStatus<AccountId, Ticket> {
 	/// The hash of the original preimage.
 	pub hash: H256,
@@ -96,13 +105,9 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceivePreimageRequestStatus {
-					request_status: batch,
-				},
-				|len| T::AhWeightInfo::receive_preimage_request_status(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceivePreimageRequestStatus { request_status: batch }
+			})?;
 		}
 
 		Ok(new_next_key)

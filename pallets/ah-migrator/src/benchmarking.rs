@@ -41,14 +41,17 @@ use pallet_rc_migrator::{
 	scheduler::RcSchedulerMessage,
 	staking::{
 		bags_list::alias::Node,
+		delegated_staking::RcDelegatedStakingMessage,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
+	types::BenchmarkingDefault,
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
+use xcm::v4::{Junction, Location};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -64,17 +67,6 @@ pub type ConvictionVotingIndexOf<T> = <<T as pallet_conviction_voting::Config>::
 )]
 pub mod benchmarks {
 	use super::*;
-
-	#[benchmark]
-	fn on_finalize() {
-		let block_num = BlockNumberFor::<T>::from(1u32);
-		DmpDataMessageCounts::<T>::put((1, 0));
-
-		#[block]
-		{
-			Pallet::<T>::on_finalize(block_num)
-		}
-	}
 
 	#[benchmark]
 	fn receive_multisigs(n: Linear<1, 255>) {
@@ -114,11 +106,16 @@ pub mod benchmarks {
 			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
 
 			let hold_amount = ed;
-			let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
+			let holds = vec![IdAmount {
+				id: T::PortableHoldReason::benchmarking_default(),
+				amount: hold_amount,
+			}];
 
 			let freeze_amount = 2 * ed;
-			let freezes =
-				vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
+			let freezes = vec![IdAmount {
+				id: T::PortableFreezeReason::benchmarking_default(),
+				amount: freeze_amount,
+			}];
 
 			let lock_amount = 3 * ed;
 			let locks = vec![pallet_balances::BalanceLock::<u128> {
@@ -369,11 +366,11 @@ pub mod benchmarks {
 		let mut track_queue = vec![];
 
 		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
-		for (i, (id, _)) in tracks.iter().enumerate() {
-			deciding_count.push((id.clone(), (i as u32).into()));
+		for (i, track) in tracks.enumerate() {
+			deciding_count.push((track.id.clone(), (i as u32).into()));
 
 			track_queue.push((
-				id.clone(),
+				track.id.clone(),
 				vec![
 					(i as u32, (i as u32).into());
 					<T as pallet_referenda::Config>::MaxQueued::get() as usize
@@ -382,7 +379,7 @@ pub mod benchmarks {
 		}
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, referendum_count, deciding_count, track_queue);
+		_(RawOrigin::Root, vec![(Some(referendum_count), deciding_count, track_queue)]);
 
 		assert_last_event::<T>(
 			Event::BatchProcessed {
@@ -400,8 +397,8 @@ pub mod benchmarks {
 	fn receive_single_active_referendums(m: Linear<1, 4000000>) {
 		let create_referendum_info = |m: u32| -> (u32, RcReferendumInfoOf<T, ()>) {
 			let id = m;
-			let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
-			let track_id = tracks.iter().next().unwrap().0;
+			let mut tracks = <T as pallet_referenda::Config>::Tracks::tracks();
+			let track_id = tracks.next().unwrap().id;
 			let deposit = Deposit { who: [1; 32].into(), amount: m.into() };
 			let call: <T as frame_system::Config>::RuntimeCall =
 				frame_system::Call::remark { remark: vec![1u8; m as usize] }.into();
@@ -728,17 +725,20 @@ pub mod benchmarks {
 				id: n.into(),
 				status: SpendStatus {
 					asset_kind: VersionedLocatableAsset::V4 {
-						location: Location::new(0, [Parachain(1000)]),
+						location: Location::new(0, [xcm::v4::Junction::Parachain(1000)]),
 						asset_id: Location::new(
 							0,
-							[PalletInstance(n.into()), GeneralIndex(n.into())],
+							[
+								xcm::v4::Junction::PalletInstance(n.into()),
+								xcm::v4::Junction::GeneralIndex(n.into()),
+							],
 						)
 						.into(),
 					},
 					amount: n.into(),
 					beneficiary: VersionedLocation::V4(Location::new(
 						0,
-						[xcm::latest::Junction::AccountId32 { network: None, id: [n; 32].into() }],
+						[xcm::v4::Junction::AccountId32 { network: None, id: [n; 32].into() }],
 					)),
 					valid_from: n.into(),
 					expire_at: n.into(),
@@ -755,6 +755,34 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::BatchProcessed {
 				pallet: PalletEventName::Treasury,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_delegated_staking_messages(n: Linear<1, 255>) {
+		let create_delegated_staking = |n: u8| -> RcDelegatedStakingMessageOf<T> {
+			RcDelegatedStakingMessage::Agents {
+				agent: [n; 32].into(),
+				payee: [n; 32].into(),
+				total_delegated: n.into(),
+				unclaimed_withdrawals: n.into(),
+				pending_slash: n.into(),
+			}
+		};
+		let messages = (0..n)
+			.map(|i| create_delegated_staking(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::DelegatedStaking,
 				count_good: n,
 				count_bad: 0,
 			}
@@ -901,16 +929,72 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn finish_migration() {
+		AhMigrationStage::<T>::put(&MigrationStage::DataMigrationOngoing);
 		#[extrinsic_call]
-		_(RawOrigin::Root, MigrationFinishedData { rc_balance_kept: 100 });
+		_(RawOrigin::Root, Some(MigrationFinishedData { rc_balance_kept: 100 }));
 
 		assert_last_event::<T>(
 			Event::StageTransition {
-				old: MigrationStage::Pending,
+				old: MigrationStage::DataMigrationOngoing,
 				new: MigrationStage::MigrationDone,
 			}
 			.into(),
 		);
+	}
+
+	#[benchmark]
+	fn force_dmp_queue_priority() {
+		use frame_support::BoundedSlice;
+
+		T::MessageQueue::enqueue_message(
+			BoundedSlice::defensive_truncate_from(&[1]),
+			AggregateMessageOrigin::Parent,
+		);
+
+		let now = BlockNumberFor::<T>::from(1u32);
+		let priority_blocks = BlockNumberFor::<T>::from(10u32);
+		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);
+		DmpQueuePriorityConfig::<T>::put(DmpQueuePriority::OverrideConfig(
+			priority_blocks,
+			round_robin_blocks,
+		));
+
+		#[block]
+		{
+			Pallet::<T>::force_dmp_queue_priority(now)
+		}
+
+		assert_last_event::<T>(
+			Event::DmpQueuePrioritySet {
+				prioritized: true,
+				cycle_block: now + BlockNumberFor::<T>::from(1u32),
+				cycle_period: priority_blocks + round_robin_blocks,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn set_dmp_queue_priority() {
+		let old = DmpQueuePriorityConfig::<T>::get();
+		let new = DmpQueuePriority::OverrideConfig(
+			BlockNumberFor::<T>::from(10u32),
+			BlockNumberFor::<T>::from(1u32),
+		);
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
+	}
+
+	#[benchmark]
+	fn set_manager() {
+		let old = Manager::<T>::get();
+		let new = Some([0; 32].into());
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::ManagerSet { old, new }.into());
 	}
 
 	#[cfg(feature = "std")]
@@ -920,15 +1004,6 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_multisigs::<T>(n, true /* enable checks */)
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_on_finalize<T>()
-	where
-		T: Config,
-		ConvictionVotingIndexOf<T>: From<u8>,
-	{
-		_on_finalize::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
@@ -1121,6 +1196,15 @@ pub mod benchmarks {
 	}
 
 	#[cfg(feature = "std")]
+	pub fn test_receive_delegated_staking_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_delegated_staking_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
 	pub fn test_force_set_stage<T>()
 	where
 		T: Config,
@@ -1172,5 +1256,32 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_preimage_chunk::<T>(m, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_force_dmp_queue_priority<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_force_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_dmp_queue_priority<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_manager<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_manager::<T>(true)
 	}
 }

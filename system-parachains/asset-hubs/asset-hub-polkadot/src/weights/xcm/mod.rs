@@ -18,10 +18,14 @@ mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::{xcm_config::MaxAssetsIntoHolding, Runtime};
+use alloc::vec::Vec;
 use pallet_xcm_benchmarks_fungible::WeightInfo as XcmFungibleWeight;
 use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
-use sp_std::prelude::*;
-use xcm::{latest::prelude::*, DoubleEncoded};
+use sp_runtime::BoundedVec;
+use xcm::{
+	latest::{prelude::*, AssetTransferFilter},
+	DoubleEncoded,
+};
 
 trait WeighAssets {
 	fn weigh_assets(&self, weight: Weight) -> Weight;
@@ -42,8 +46,9 @@ impl WeighAssets for AssetFilter {
 					WildFungibility::NonFungible =>
 						weight.saturating_mul((MaxAssetsIntoHolding::get() * 2) as u64),
 				},
-				AllCounted(count) => weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
-				AllOfCounted { count, .. } => weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
+				AllCounted(count) => weight.saturating_mul(MAX_ASSETS.min((*count as u64).max(1))),
+				AllOfCounted { count, .. } =>
+					weight.saturating_mul(MAX_ASSETS.min((*count as u64).max(1))),
 			},
 		}
 	}
@@ -82,7 +87,7 @@ impl<Call> XcmWeightInfo<Call> for AssetHubPolkadotXcmWeight<Call> {
 	}
 	fn transact(
 		_origin_type: &OriginKind,
-		_require_weight_at_most: &Weight,
+		_fallback_max_weight: &Option<Weight>,
 		_call: &DoubleEncoded<Call>,
 	) -> Weight {
 		XcmGeneric::<Runtime>::transact()
@@ -119,8 +124,11 @@ impl<Call> XcmWeightInfo<Call> for AssetHubPolkadotXcmWeight<Call> {
 	fn deposit_reserve_asset(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_assets(XcmFungibleWeight::<Runtime>::deposit_reserve_asset())
 	}
-	fn exchange_asset(_give: &AssetFilter, _receive: &Assets, _maximal: &bool) -> Weight {
-		Weight::MAX
+	fn exchange_asset(give: &AssetFilter, receive: &Assets, _maximal: &bool) -> Weight {
+		let base_weight = XcmGeneric::<Runtime>::exchange_asset();
+		let give_weight = give.weigh_assets(base_weight);
+		let receive_weight = receive.weigh_assets(base_weight);
+		give_weight.max(receive_weight)
 	}
 	fn initiate_reserve_withdraw(
 		assets: &AssetFilter,
@@ -223,10 +231,51 @@ impl<Call> XcmWeightInfo<Call> for AssetHubPolkadotXcmWeight<Call> {
 		XcmGeneric::<Runtime>::clear_topic()
 	}
 	fn alias_origin(_: &Location) -> Weight {
-		// XCM Executor does not currently support alias origin operations
-		Weight::MAX
+		XcmGeneric::<Runtime>::alias_origin()
 	}
 	fn unpaid_execution(_: &WeightLimit, _: &Option<Location>) -> Weight {
 		XcmGeneric::<Runtime>::unpaid_execution()
+	}
+	fn pay_fees(_asset: &Asset) -> Weight {
+		XcmGeneric::<Runtime>::pay_fees()
+	}
+	fn initiate_transfer(
+		_dest: &Location,
+		remote_fees: &Option<AssetTransferFilter>,
+		_preserve_origin: &bool,
+		assets: &BoundedVec<AssetTransferFilter, MaxAssetTransferFilters>,
+		_xcm: &Xcm<()>,
+	) -> Weight {
+		let base_weight = XcmFungibleWeight::<Runtime>::initiate_transfer();
+		let mut weight = if let Some(remote_fees) = remote_fees {
+			let fees = remote_fees.inner();
+			fees.weigh_assets(base_weight)
+		} else {
+			base_weight
+		};
+
+		for asset_filter in assets {
+			let assets = asset_filter.inner();
+			let extra = assets.weigh_assets(XcmFungibleWeight::<Runtime>::initiate_transfer());
+			weight = weight.saturating_add(extra);
+		}
+		weight
+	}
+	fn execute_with_origin(
+		_descendant_origin: &Option<InteriorLocation>,
+		_xcm: &Xcm<Call>,
+	) -> Weight {
+		XcmGeneric::<Runtime>::execute_with_origin()
+	}
+	fn set_hints(hints: &BoundedVec<Hint, HintNumVariants>) -> Weight {
+		let mut weight = Weight::zero();
+		for hint in hints {
+			match hint {
+				AssetClaimer { .. } => {
+					weight = weight.saturating_add(XcmGeneric::<Runtime>::asset_claimer());
+				},
+			}
+		}
+		weight
 	}
 }

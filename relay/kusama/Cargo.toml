@@ -22,7 +22,6 @@ kusama-runtime-constants = { workspace = true }
 sp-api = { workspace = true }
 sp-inherents = { workspace = true }
 sp-offchain = { workspace = true }
-sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -123,7 +122,6 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [features]
 default = ["std"]
 no_std = []
-only-staking = []
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -208,7 +206,6 @@ std = [
 	"sp-runtime/std",
 	"sp-session/std",
 	"sp-staking/std",
-	"sp-std/std",
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
@@ -260,6 +257,7 @@ runtime-benchmarks = [
 	"pallet-society/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
@@ -268,12 +266,14 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",

@@ -23,8 +23,17 @@ use crate::{preimage::*, types::*, *};
 pub const CHUNK_SIZE: u32 = MAX_XCM_SIZE - 100;
 
 /// A chunk of a preimage that was migrated out of the Relay and can be integrated into AH.
-#[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	TypeInfo,
+	Clone,
+	MaxEncodedLen,
+	RuntimeDebug,
+	PartialEq,
+	Eq,
+)]
 pub struct RcPreimageChunk {
 	/// The hash of the original preimage.
 	pub preimage_hash: H256,
@@ -159,7 +168,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			// set the offset of the next_key
 			next_key = Some((next_key_inner, last_offset));
 
-			// TODO weight tracking
+			// TODO: @muharem weight tracking
 			if batch.len() >= 10 {
 				break next_key;
 			}
@@ -170,11 +179,9 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch },
-				|_| Weight::from_all(1), // TODO remove with xcm v5
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
+			})?;
 		}
 
 		Ok(last_key)

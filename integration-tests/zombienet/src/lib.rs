@@ -1,6 +1,5 @@
 use anyhow::anyhow;
-use subxt::{OnlineClient, PolkadotConfig};
-use zombienet_sdk::{NetworkConfig, NetworkConfigBuilder, NetworkNode};
+use zombienet_sdk::{NetworkConfig, NetworkConfigBuilder};
 
 pub mod environment;
 
@@ -23,16 +22,19 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 				.with_default_command("polkadot")
 				.with_default_image(images.polkadot.as_str())
 				.with_chain_spec_command(CMD_TPL)
+				.with_default_args(vec!["-lparachain=debug,runtime=debug".into()])
 				.chain_spec_command_is_local(true)
 				.with_node(|node| node.with_name(ALICE))
 				.with_node(|node| node.with_name(BOB))
 		})
 		.with_parachain(|p| {
-			p.with_id(2000).cumulus_based(true).with_collator(|n| {
-				n.with_name(COLLATOR)
-					.with_command("polkadot-parachain")
-					.with_image(images.cumulus.as_str())
-			})
+			p.with_id(1005)
+				.with_default_command("polkadot-parachain")
+				.with_default_image(images.cumulus.as_str())
+				.with_chain_spec_command(CMD_TPL)
+				.chain_spec_command_is_local(true)
+				.with_chain("coretime-polkadot-local")
+				.with_collator(|n| n.with_name(COLLATOR))
 		})
 		.build()
 		.map_err(|errs| {
@@ -41,30 +43,4 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 		})?;
 
 	Ok(config)
-}
-
-pub async fn wait_subxt_client(
-	node: &NetworkNode,
-) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
-	log::info!("trying to connect to: {}", node.ws_uri());
-	loop {
-		match node.client::<PolkadotConfig>().await {
-			Ok(cli) => {
-				log::info!("returning client for: {}", node.ws_uri());
-				return Ok(cli);
-			},
-			Err(e) => {
-				log::trace!("{e:?}");
-				if let subxt::Error::Rpc(subxt::error::RpcError::ClientError(ref inner)) = e {
-					log::trace!("inner: {inner}");
-					if inner.to_string().contains("i/o error") {
-						// The node is not ready to accept connections yet
-						tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-						continue;
-					}
-				}
-				return Err(anyhow!("Cannot connect to node : {e:?}"));
-			},
-		};
-	}
 }

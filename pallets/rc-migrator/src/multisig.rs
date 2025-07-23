@@ -18,6 +18,7 @@
 #![doc = include_str!("multisig.md")]
 
 use frame_support::traits::Currency;
+use sp_runtime::traits::Zero;
 
 extern crate alloc;
 use crate::{types::*, *};
@@ -80,8 +81,7 @@ mod aliases {
 // generics, otherwise it would be a bug and fail to decode. However, we can just prevent that but
 // by not exposing generics... On the other hand: for Westend and Kusama it could possibly help if
 // we don't hard-code all types.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct RcMultisig<AccountId, Balance> {
 	/// The creator of the multisig who placed the deposit.
 	pub creator: AccountId,
@@ -143,6 +143,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 			}
 
 			let kv = iter.next();
+
 			let Some((k1, k2, multisig)) = kv else {
 				last_key = None;
 				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
@@ -157,17 +158,49 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				details: Some(k1.clone()),
 			});
 
+			aliases::Multisigs::<T>::remove(&k1, &k2);
 			last_key = Some((k1, k2));
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch },
-				|n| T::AhWeightInfo::receive_multisigs(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch }
+			})?;
 		}
 
 		Ok(last_key)
+	}
+}
+
+/// Struct used to check the multisig migration in integration tests.
+pub struct MultisigMigrationChecker<T>(sp_std::marker::PhantomData<T>);
+
+#[cfg(feature = "std")]
+impl<T: Config> RcMigrationCheck for MultisigMigrationChecker<T> {
+	// Vec of multisig account ids with non-zero balance on the relay chain before migration
+	type RcPrePayload = Vec<AccountIdOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut multisig_ids = Vec::new();
+		// Collect all multisig account ids with non-zero balance from storage
+		for (multisig_id, _, _) in aliases::Multisigs::<T>::iter() {
+			let multisig_balance =
+				<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
+					<T as frame_system::Config>::AccountId,
+				>>::total_balance(&multisig_id);
+			if !multisig_balance.is_zero() {
+				multisig_ids.push(multisig_id);
+			}
+		}
+
+		multisig_ids
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage 'Multisig::Multisigs::rc_post::empty'
+		assert!(
+			pallet_multisig::Multisigs::<T>::iter().next().is_none(),
+			"Multisig storage should be empty on the relay chain after migration"
+		);
 	}
 }

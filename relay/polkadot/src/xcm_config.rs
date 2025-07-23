@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals, Everything, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -46,10 +46,9 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
-pub use pallet_rc_migrator::xcm_config::*;
+pub use pallet_rc_migrator::xcm_config::{AssetHubLocation, CollectivesLocation};
 
 parameter_types! {
-	pub const RootLocation: Location = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
@@ -131,12 +130,21 @@ parameter_types! {
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
-/// individual routers.
-pub type XcmRouter = WithUniqueTopic<(
+/// The XCM router. Use [`XcmRouter`] instead.
+pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
 	// Only one router so far - use DMP to communicate with child parachains.
 	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
 )>;
+
+/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
+/// individual routers.
+///
+/// This router does not route to the Asset Hub if the migration is ongoing.
+pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
+	XcmRouterWithoutException,
+	FromContains<Equals<AssetHubLocation>, Everything>,
+	crate::RcMigrator,
+>;
 
 pub struct Fellows;
 impl Contains<Location> for Fellows {
@@ -152,13 +160,6 @@ pub struct OnlyParachains;
 impl Contains<Location> for OnlyParachains {
 	fn contains(loc: &Location) -> bool {
 		matches!(loc.unpack(), (0, [Parachain(_)]))
-	}
-}
-
-pub struct LocalPlurality;
-impl Contains<Location> for LocalPlurality {
-	fn contains(loc: &Location) -> bool {
-		matches!(loc.unpack(), (0, [Plurality { .. }]))
 	}
 }
 
@@ -182,10 +183,6 @@ pub type Barrier = TrailingSetTopicAsId<(
 	>,
 )>;
 
-/// Locations that will not be charged fees in the executor, neither for execution nor delivery.
-/// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
-
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -195,7 +192,7 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter = crate::RcMigrator;
+	type IsTeleporter = pallet_rc_migrator::xcm_config::TrustedTeleporters<crate::RcMigrator>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -215,7 +212,9 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
-		WaivedLocations,
+		pallet_rc_migrator::xcm_config::WaivedLocations<crate::RcMigrator>,
+		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
+		// of the new AH Treasury.
 		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
 	>;
 	// No bridges on the Relay Chain
@@ -228,6 +227,7 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
+	type XcmEventEmitter = XcmPallet;
 }
 
 parameter_types! {
@@ -311,4 +311,6 @@ impl pallet_xcm::Config for Runtime {
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	// Aliasing is disabled: xcm_executor::Config::Aliasers allows `Nothing`.
+	type AuthorizedAliasConsideration = Disabled;
 }
