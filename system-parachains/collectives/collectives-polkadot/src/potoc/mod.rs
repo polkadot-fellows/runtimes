@@ -32,8 +32,8 @@ use crate::xcm_config::FellowshipAdminBodyId as PotocAdminBodyId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		DefensiveResult, EitherOf, EitherOfDiverse, MapSuccess, NeverEnsureOrigin,
-		OnRuntimeUpgrade, PalletInfoAccess, RankedMembers,
+		DefensiveResult, EitherOf, EitherOfDiverse, MapSuccess,
+		OnRuntimeUpgrade, PalletInfoAccess, RankedMembers, NeverEnsureOrigin,
 	},
 	PalletId,
 };
@@ -80,9 +80,9 @@ pub type PromoteOrigin = MapSuccess<OpenGovOrMembers, Replace<ConstU16<1>>>;
 
 impl pallet_potoc_origins::Config for Runtime {}
 
-pub type PotocReferendaInstance = pallet_referenda::Instance3;
+pub type PotocReferendaInstance = pallet_referenda::Instance4;
 impl pallet_referenda::Config<PotocReferendaInstance> for Runtime {
-	type WeightInfo = weights::pallet_referenda_fellowship_referenda::WeightInfo<Runtime>;
+	type WeightInfo = ();
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -101,11 +101,12 @@ impl pallet_referenda::Config<PotocReferendaInstance> for Runtime {
 	type AlarmInterval = ConstU32<1>;
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = crate::System;
 }
 
-pub type PotocCollectiveInstance = pallet_ranked_collective::Instance3;
+pub type PotocCollectiveInstance = pallet_ranked_collective::Instance4;
 impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
-	type WeightInfo = weights::pallet_ranked_collective_fellowship_collective::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_ranked_collective_potoc_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	// Promotions and the induction of new members are serviced by `PotocCore` pallet instance.
@@ -142,10 +143,10 @@ impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 	type BenchmarkSetup = (crate::PotocCore, crate::PotocSalary);
 }
 
-pub type PotocCoreInstance = pallet_core_fellowship::Instance3;
+pub type PotocCoreInstance = pallet_core_fellowship::Instance4;
 
 impl pallet_core_fellowship::Config<PotocCoreInstance> for Runtime {
-	type WeightInfo = weights::pallet_core_fellowship_fellowship_core::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_core_fellowship_potoc_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, PotocCollectiveInstance>;
 	type Balance = Balance;
@@ -156,10 +157,10 @@ impl pallet_core_fellowship::Config<PotocCoreInstance> for Runtime {
 	// Fast promotions are not needed with a single rank and would require higher turnout.
 	type FastPromoteOrigin = NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
-	type MaxRank = ConstU32<9>;
+	type MaxRank = ConstU32<1>;
 }
 
-pub type PotocSalaryInstance = pallet_salary::Instance3;
+pub type PotocSalaryInstance = pallet_salary::Instance4;
 
 use xcm::prelude::*;
 
@@ -184,7 +185,7 @@ pub type PotocSalaryPaymaster = PayOverXcm<
 >;
 
 impl pallet_salary::Config<PotocSalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary_fellowship_salary::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_salary_potoc_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -235,10 +236,10 @@ pub type PotocTreasuryPaymaster = PayOverXcm<
 	VersionedLocationConverter,
 >;
 
-pub type PotocTreasuryInstance = pallet_treasury::Instance3;
+pub type PotocTreasuryInstance = pallet_treasury::Instance4;
 
 impl pallet_treasury::Config<PotocTreasuryInstance> for Runtime {
-	type WeightInfo = weights::pallet_treasury_fellowship_treasury::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_treasury_potoc_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = PotocTreasuryPalletId;
 	type Currency = Balances;
@@ -275,6 +276,7 @@ impl pallet_treasury::Config<PotocTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = crate::System;
 }
 
 pub struct InsertSeedMembers;
@@ -313,9 +315,8 @@ impl OnRuntimeUpgrade for InsertSeedMembers {
 
 			log::info!("PoToC Seed member inserted: {address}");
 
-			// TODO use potoc weight
-			weight.saturating_accrue(weights::pallet_ranked_collective_fellowship_collective::WeightInfo::<Runtime>::add_member());
-			weight.saturating_accrue(weights::pallet_ranked_collective_fellowship_collective::WeightInfo::<Runtime>::promote_member(1));
+			weight.saturating_accrue(weights::pallet_ranked_collective_potoc_collective::WeightInfo::<Runtime>::add_member());
+			weight.saturating_accrue(weights::pallet_ranked_collective_potoc_collective::WeightInfo::<Runtime>::promote_member(1));
 		}
 
 		weight

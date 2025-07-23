@@ -31,7 +31,7 @@ pub mod pallet_origins {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
-	#[derive(PartialEq, Eq, Clone, MaxEncodedLen, Encode, Decode, TypeInfo, RuntimeDebug)]
+	#[derive(PartialEq, Eq, Clone, MaxEncodedLen, Encode, Decode, TypeInfo, RuntimeDebug, DecodeWithMemTracking)]
 	#[pallet::origin]
 	pub enum Origin {
 		/// Plurality voice of the [ranks::MEMBER] members given via referendum.

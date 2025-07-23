@@ -16,11 +16,11 @@
 
 //! Track configurations for PoToC.
 
-use super::origins::Origin;
+use alloc::borrow::Cow;
 use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS, MINUTES};
-use pallet_referenda::{Curve::LinearDecreasing, TrackInfo};
 use polkadot_runtime_common::prod_or_fast;
 use sp_runtime::Perbill;
+use sp_runtime::str_array as s;
 
 /// Referendum `TrackId` type.
 pub type TrackId = u16;
@@ -43,50 +43,54 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
 
 	/// Return the array of available tracks and their information.
-	fn tracks() -> &'static [(Self::Id, TrackInfo<Balance, BlockNumber>)] {
-		static DATA: [(TrackId, TrackInfo<Balance, BlockNumber>); 1] = [(
-			constants::MEMBERS,
-			TrackInfo {
-				name: "members",
+	fn tracks(	
+	) -> impl Iterator<Item = Cow<'static, pallet_referenda::Track<Self::Id, Balance, BlockNumber>>> {
+		use constants as tracks;
+		const DATA: [pallet_referenda::Track<TrackId, Balance, BlockNumber>; 1] = [
+		pallet_referenda::Track {
+			id: tracks::MEMBERS,
+			info: pallet_referenda::TrackInfo {
+				name: s("members"),
 				max_deciding: 10,
 				decision_deposit: 5 * DOLLARS,
 				prepare_period: prod_or_fast!(24 * HOURS, 1 * MINUTES),
 				decision_period: prod_or_fast!(7 * DAYS, 5 * MINUTES),
 				confirm_period: prod_or_fast!(24 * HOURS, 1 * MINUTES),
 				min_enactment_period: prod_or_fast!(HOURS, 1 * MINUTES),
-				min_approval: LinearDecreasing {
+				min_approval: pallet_referenda::Curve::LinearDecreasing {
 					length: Perbill::from_percent(100),
 					floor: Perbill::from_percent(50),
 					ceil: Perbill::from_percent(100),
 				},
-				min_support: LinearDecreasing {
+				min_support: pallet_referenda::Curve::LinearDecreasing {
 					length: Perbill::from_percent(100),
 					floor: Perbill::from_percent(0),
-					ceil: Perbill::from_percent(50),
+					ceil: Perbill::from_percent(100),
 				},
 			},
-		)];
-		&DATA[..]
+		},];
+		DATA.iter().map(Cow::Borrowed)
 	}
 
 	/// Determine the voting track for the given `origin`.
 	fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
+		use super::origins::Origin;
+		use constants as tracks;
+
 		#[cfg(feature = "runtime-benchmarks")]
 		{
 			// For benchmarks, we enable a root origin.
 			// It is important that this is not available in production!
 			let root: Self::RuntimeOrigin = frame_system::RawOrigin::Root.into();
 			if &root == id {
-				return Ok(constants::MEMBERS)
+				return Ok(tracks::MEMBERS)
 			}
 		}
 
 		match Origin::try_from(id.clone()) {
-			Ok(Origin::Members) => Ok(constants::MEMBERS),
+			Ok(Origin::Members) => Ok(tracks::MEMBERS),
 			_ => Err(()),
 		}
 	}
 }
 
-// implements [`frame_support::traits::Get`] for [`TracksInfo`]
-pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);
