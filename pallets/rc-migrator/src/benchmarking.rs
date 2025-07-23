@@ -137,7 +137,9 @@ pub mod benchmarks {
 			weight_limit: WeightLimit::Unlimited,
 			check_origin: None,
 		}]);
-		PendingXcmMessages::<T>::insert(query_id, xcm);
+		let message_hash = T::Hashing::hash_of(&xcm);
+		PendingXcmMessages::<T>::insert(message_hash, xcm);
+		PendingXcmQueries::<T>::insert(query_id, message_hash);
 
 		let maybe_error = MaybeErrorCode::Success;
 		let response = Response::DispatchResult(maybe_error.clone());
@@ -145,7 +147,7 @@ pub mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Root, query_id, response);
 
-		assert!(PendingXcmMessages::<T>::get(query_id).is_none());
+		assert!(PendingXcmMessages::<T>::get(message_hash).is_none());
 		assert_last_event::<T>(
 			Event::QueryResponseReceived { query_id, response: maybe_error }.into(),
 		);
@@ -153,19 +155,26 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn resend_xcm() {
-		let query_id = 1;
+		let query_id = 10;
+		let next_query_id = 0;
 		let xcm = Xcm(vec![Instruction::UnpaidExecution {
 			weight_limit: WeightLimit::Unlimited,
 			check_origin: None,
 		}]);
-		PendingXcmMessages::<T>::insert(query_id, xcm);
+		let message_hash = T::Hashing::hash_of(&xcm);
+		PendingXcmMessages::<T>::insert(message_hash, xcm);
+		PendingXcmQueries::<T>::insert(query_id, message_hash);
 		parachains_dmp::Pallet::<T>::make_parachain_reachable(1000);
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, query_id);
 
-		assert!(PendingXcmMessages::<T>::get(query_id).is_some());
-		assert_last_event::<T>(Event::XcmResendAttempt { query_id, send_error: None }.into());
+		assert!(PendingXcmMessages::<T>::get(message_hash).is_some());
+		assert!(PendingXcmQueries::<T>::get(query_id).is_some());
+		assert!(PendingXcmQueries::<T>::get(next_query_id).is_some());
+		assert_last_event::<T>(
+			Event::XcmResendAttempt { query_id: next_query_id, send_error: None }.into(),
+		);
 	}
 
 	#[benchmark]

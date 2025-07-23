@@ -96,7 +96,7 @@ use runtime_parachains::{
 };
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
-	traits::{BadOrigin, One, Zero},
+	traits::{BadOrigin, Hash, One, Zero},
 	AccountId32,
 };
 use sp_std::prelude::*;
@@ -667,16 +667,23 @@ pub mod pallet {
 	/// The pending XCM messages.
 	///
 	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
-	/// The `QueryId` is the identifier from the [`pallet_xcm`] query handler registry. The XCM
-	/// pallet will notify about the status of the message by calling the
-	/// [`Pallet::receive_query_response`] function with the `QueryId` and the
-	/// response.
 	///
 	/// Unconfirmed messages can be resent by calling the [`Pallet::resend_xcm`] function.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
-		CountedStorageMap<_, Twox64Concat, QueryId, Xcm<()>, OptionQuery>;
+		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+
+	/// The pending XCM response queries and their XCM hash referencing the message in the
+	/// [`PendingXcmMessages`] storage.
+	///
+	/// The `QueryId` is the identifier from the [`pallet_xcm`] query handler registry. The XCM
+	/// pallet will notify about the status of the message by calling the
+	/// [`Pallet::receive_query_response`] function with the `QueryId` and the
+	/// response.
+	#[pallet::storage]
+	pub type PendingXcmQueries<T: Config> =
+		StorageMap<_, Twox64Concat, QueryId, T::Hash, OptionQuery>;
 
 	/// The DMP queue priority.
 	#[pallet::storage]
@@ -738,7 +745,9 @@ pub mod pallet {
 		/// Schedule the migration to start at a given moment.
 		///
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start.
+		/// - `start`: The block number at which the migration will start. Must be a point within
+		/// the current era before the validator election process has started. Typically, this
+		/// corresponds to the final session of the era, just prior to the election kickoff.
 		/// - `cool_off_end`: The block number at which the cool-off period will end.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
@@ -806,6 +815,9 @@ pub mod pallet {
 				},
 			}
 
+			let message_hash =
+				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+
 			let response = match response {
 				Response::DispatchResult(maybe_error) => maybe_error,
 				_ => return Err(Error::<T>::InvalidQueryResponse.into()),
@@ -817,7 +829,8 @@ pub mod pallet {
 					"Received success response for query id: {}",
 					query_id
 				);
-				PendingXcmMessages::<T>::remove(query_id);
+				PendingXcmMessages::<T>::remove(message_hash);
+				PendingXcmQueries::<T>::remove(query_id);
 			} else {
 				log::error!(
 					target: LOG_TARGET,
@@ -838,16 +851,46 @@ pub mod pallet {
 		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
-			let xcm = PendingXcmMessages::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+			let message_hash =
+				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
+			let xcm =
+				PendingXcmMessages::<T>::get(message_hash).ok_or(Error::<T>::QueryNotFound)?;
 
-			if let Err(err) = send_xcm::<T::SendXcm>(Location::new(0, Parachain(1000)), xcm) {
+			let asset_hub_location = Location::new(0, Parachain(1000));
+			let receive_notification_call =
+				Call::<T>::receive_query_response { query_id: 0, response: Default::default() };
+
+			let new_query_id = pallet_xcm::Pallet::<T>::new_notify_query(
+				asset_hub_location.clone(),
+				<T as Config>::RuntimeCall::from(receive_notification_call),
+				frame_system::Pallet::<T>::block_number() + T::XcmResponseTimeout::get(),
+				Location::here(),
+			);
+
+			let xcm_with_report = {
+				let mut xcm = xcm.clone();
+				xcm.inner_mut().push(SetAppendix(Xcm(vec![ReportTransactStatus(
+					QueryResponseInfo {
+						destination: Location::parent(),
+						query_id: new_query_id,
+						max_weight: T::RcWeightInfo::receive_query_response(),
+					},
+				)])));
+				xcm
+			};
+
+			if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, xcm_with_report) {
 				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
-					query_id,
+					query_id: new_query_id,
 					send_error: Some(err),
 				});
 			} else {
-				Self::deposit_event(Event::<T>::XcmResendAttempt { query_id, send_error: None });
+				PendingXcmQueries::<T>::insert(new_query_id, message_hash);
+				Self::deposit_event(Event::<T>::XcmResendAttempt {
+					query_id: new_query_id,
+					send_error: None,
+				});
 			}
 
 			Ok(Pays::No.into())
@@ -954,19 +997,19 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { start, cool_off_end } =>
 					if now >= start {
-						// TODO: @ggwpez staking check; how long it will take, should we just shift
-						// the start time? also we have cool-off period, may be this not the best place?
 
-						/*
-						let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-						let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-						// ensure new era is not planned when starting migration.
-						if current_era > active_era {
-							defensive!("New era is planned, migration cannot start until it is completed");
-							Self::transition(MigrationStage::Pending);
-							return weight_counter.consumed();
+						weight_counter.consume(T::DbWeight::get().reads(2));
+						#[cfg(feature = "ahm-staking-migration")]
+						{
+							let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+							// ensure new era is not planned when starting migration.
+							if current_era > active_era {
+								defensive!("Migration must start before the election starts on the chain.");
+								Self::transition(MigrationStage::Pending);
+								return weight_counter.consumed();
+							}
 						}
-						*/
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
@@ -1913,7 +1956,7 @@ pub mod pallet {
 				);
 
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
-				let message = Xcm(vec![
+				let message = vec![
 					Instruction::UnpaidExecution {
 						weight_limit: WeightLimit::Unlimited,
 						check_origin: None,
@@ -1923,18 +1966,28 @@ pub mod pallet {
 						fallback_max_weight: None,
 						call: call.encode().into(),
 					},
-					SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
+				];
+
+				let message_hash = T::Hashing::hash_of(&message);
+
+				let message_with_report = {
+					let mut m = message.clone();
+					m.push(SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
 						destination: Location::parent(),
 						query_id,
 						max_weight: T::RcWeightInfo::receive_query_response(),
-					})])),
-				]);
+					})])));
+					m
+				};
 
-				if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, message.clone()) {
+				if let Err(err) =
+					send_xcm::<T::SendXcm>(asset_hub_location, Xcm(message_with_report))
+				{
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 					return Err(Error::XcmError);
 				} else {
-					PendingXcmMessages::<T>::insert(query_id, message);
+					PendingXcmMessages::<T>::insert(message_hash, Xcm(message));
+					PendingXcmQueries::<T>::insert(query_id, message_hash);
 					batch_count += 1;
 				}
 			}

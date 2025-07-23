@@ -47,6 +47,16 @@ pub mod consensus {
 	pub const BLOCK_PROCESSING_VELOCITY: u32 = 1;
 	/// Relay chain slot duration, in milliseconds.
 	pub const RELAY_CHAIN_SLOT_DURATION_MILLIS: u32 = 6000;
+
+	/// Parameters enabling async backing functionality.
+	///
+	/// Once all system chains have migrated to the new async backing mechanism, the parameters
+	/// in this namespace will replace those currently defined in `super::*`.
+	pub mod async_backing {
+		/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included into
+		/// the relay chain.
+		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 3;
+	}
 }
 
 /// Constants relating to DOT.

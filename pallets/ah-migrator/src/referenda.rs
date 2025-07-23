@@ -511,7 +511,8 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 							Ok(origin) => origin,
 							Err(_) => {
 								// Origin conversion failed, return cancelled.
-								let now = frame_system::Pallet::<T>::block_number();
+								let now =
+									<T as Config>::RcBlockNumberProvider::current_block_number();
 								return AhReferendumInfoOf::<T, ()>::Cancelled(
 									now,
 									Some(rc_status.submission_deposit),
@@ -525,7 +526,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 						Ok(proposal) => proposal,
 						Err(_) => {
 							// Call conversion failed, return cancelled.
-							let now = frame_system::Pallet::<T>::block_number();
+							let now = <T as Config>::RcBlockNumberProvider::current_block_number();
 							return AhReferendumInfoOf::<T, ()>::Cancelled(
 								now,
 								Some(rc_status.submission_deposit),
