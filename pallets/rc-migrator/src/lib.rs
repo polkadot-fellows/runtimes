@@ -745,17 +745,13 @@ pub mod pallet {
 
 		/// Schedule the migration to start at a given moment.
 		///
-<<<<<<< HEAD
-		/// `start_moment` must be a point within the current era before the validator election
-		/// process has started. Typically, this corresponds to the final session of the era, just
-		/// prior to the election kickoff.
-=======
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start.
+		/// - `start`: The block number at which the migration will start. Must be a point within
+		/// the current era before the validator election process has started. Typically, this
+		/// corresponds to the final session of the era, just prior to the election kickoff.
 		/// - `cool_off_end`: The block number at which the cool-off period will end.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
->>>>>>> origin/dev-asset-hub-migration
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
