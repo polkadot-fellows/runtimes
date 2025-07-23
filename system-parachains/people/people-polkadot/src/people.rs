@@ -95,6 +95,7 @@ pub enum IdentityField {
 	CloneNoBound,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	EqNoBound,
 	MaxEncodedLen,
 	PartialEqNoBound,
@@ -103,8 +104,8 @@ pub enum IdentityField {
 )]
 #[codec(mel_bound())]
 pub struct IdentityInfo {
-	/// A reasonable display name for the controller of the account. This should be whatever the  
-	/// account is typically known as and should not be confusable with other entities, given  
+	/// A reasonable display name for the controller of the account. This should be whatever the
+	/// account is typically known as and should not be confusable with other entities, given
 	/// reasonable context.
 	///
 	/// Stored as UTF-8.

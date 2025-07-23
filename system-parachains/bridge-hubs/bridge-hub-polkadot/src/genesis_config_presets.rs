@@ -36,6 +36,7 @@ fn bridge_hub_polkadot_genesis(
 				.cloned()
 				.map(|k| (k, BRIDGE_HUB_POLKADOT_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -84,8 +85,15 @@ pub fn preset_names() -> Vec<PresetId> {
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
-		sp_genesis_builder::DEV_RUNTIME_PRESET =>
-			bridge_hub_polkadot_genesis(invulnerables(), testnet_accounts(), 1002.into(), vec![]),
+		sp_genesis_builder::DEV_RUNTIME_PRESET => bridge_hub_polkadot_genesis(
+			invulnerables(),
+			testnet_accounts_with([
+				// Make sure `StakingPot` is funded for benchmarking purposes.
+				StakingPot::get(),
+			]),
+			1002.into(),
+			vec![],
+		),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => bridge_hub_polkadot_genesis(
 			invulnerables(),
 			testnet_accounts(),

@@ -38,6 +38,7 @@ fn send_xcm_from_polkadot_relay_to_kusama_asset_hub_should_fail_on_not_applicabl
 	// Polkadot Global Consensus
 	// Send XCM message from Relay Chain to Bridge Hub source Parachain
 	Polkadot::execute_with(|| {
+		Dmp::make_parachain_reachable(BridgeHubPolkadot::para_id());
 		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
 			sudo_origin,
 			bx!(destination),

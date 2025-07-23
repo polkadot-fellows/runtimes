@@ -15,13 +15,15 @@
 
 //! The Ambassador Program's referenda voting tracks.
 
+use super::Origin;
 const fn percent(x: i32) -> sp_arithmetic::FixedI64 {
 	sp_arithmetic::FixedI64::from_rational(x as u128, 100)
 }
 use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS, MINUTES};
 use pallet_ranked_collective_ambassador::Rank;
+use alloc::borrow::Cow;
 use pallet_referenda::Curve;
-use sp_runtime::{traits::Convert, Perbill};
+use sp_runtime::{str_array as s, traits::Convert, Perbill};
 
 /// Referendum `TrackId` type.
 pub type TrackId = u16;
@@ -149,13 +151,15 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
 
 	/// Return the array of available tracks and their information.
-	fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
+	fn tracks(
+	) -> impl Iterator<Item = Cow<'static, pallet_referenda::Track<Self::Id, Balance, BlockNumber>>>
+	{
 		use constants as tracks;
-		static DATA: [(TrackId, pallet_referenda::TrackInfo<Balance, BlockNumber>); 21] = [
-			(
-				tracks::ASSOCIATE_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "associate ambassador",
+		const DATA: [pallet_referenda::Track<TrackId, Balance, BlockNumber>; 21] = [
+			pallet_referenda::Track {
+				id: tracks::ASSOCIATE_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("associate ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -173,10 +177,10 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				tracks::LEAD_AMBASSADOR,
-				pallet_referenda::TrackInfo {
+			},
+			pallet_referenda::Track {
+				id: tracks::LEAD_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
 					name: "lead ambassador",
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
@@ -195,11 +199,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				tracks::SENIOR_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "senior ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::SENIOR_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("senior ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -217,11 +221,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				tracks::PRINCIPAL_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "principal ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::PRINCIPAL_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("principal ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -239,11 +243,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				tracks::GLOBAL_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "global ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::GLOBAL_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("global ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -261,11 +265,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				tracks::GLOBAL_HEAD_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "global head ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::GLOBAL_HEAD_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("global head ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -283,11 +287,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				tracks::RETAIN_AT_ASSOCIATE_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "retain at associate ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::RETAIN_AT_ASSOCIATE_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("retain at associate ambassador"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -297,11 +301,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: RETAIN_MIN_APPROVAL,
 					min_support: RETAIN_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::RETAIN_AT_LEAD_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "retain at lead ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::RETAIN_AT_LEAD_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("retain at lead ambassador"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -311,11 +315,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: RETAIN_MIN_APPROVAL,
 					min_support: RETAIN_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::RETAIN_AT_SENIOR_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "retain at senior ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::RETAIN_AT_SENIOR_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("retain at senior ambassador"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -325,11 +329,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: RETAIN_MIN_APPROVAL,
 					min_support: RETAIN_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::RETAIN_AT_PRINCIPAL_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "retain at principal ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::RETAIN_AT_PRINCIPAL_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("retain at principal ambassador"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -339,11 +343,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: RETAIN_MIN_APPROVAL,
 					min_support: RETAIN_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::RETAIN_AT_GLOBAL_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "retain at global ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::RETAIN_AT_GLOBAL_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("retain at global ambassador"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -353,11 +357,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: RETAIN_MIN_APPROVAL,
 					min_support: RETAIN_MIN_SUPPORT,
 				},
-			),
-			(
+			},
+			pallet_referenda::Track {
 				tracks::PROMOTE_TO_ASSOCIATE_AMBASSADOR,
 				pallet_referenda::TrackInfo {
-					name: "promote to associate ambassador",
+					name: s("promote to associate ambassador"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -367,11 +371,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: PROMOTE_MIN_APPROVAL,
 					min_support: PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::PROMOTE_TO_LEAD_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "promote to lead ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::PROMOTE_TO_LEAD_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("promote to lead ambassador"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -381,11 +385,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: PROMOTE_MIN_APPROVAL,
 					min_support: PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::PROMOTE_TO_SENIOR_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "promote to senior ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::PROMOTE_TO_SENIOR_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("promote to senior ambassador"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -395,11 +399,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: PROMOTE_MIN_APPROVAL,
 					min_support: PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::PROMOTE_TO_PRINCIPAL_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "promote to principal ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::PROMOTE_TO_PRINCIPAL_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("promote to principal ambassador"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -409,11 +413,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: PROMOTE_MIN_APPROVAL,
 					min_support: PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::PROMOTE_TO_GLOBAL_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "promote to global ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::PROMOTE_TO_GLOBAL_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("promote to global ambassador"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -423,11 +427,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: PROMOTE_MIN_APPROVAL,
 					min_support: PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::FAST_PROMOTE_TO_ASSOCIATE_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "fast promote to associate ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::FAST_PROMOTE_TO_ASSOCIATE_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("fast promote to associate ambassador"),
 					max_deciding: FAST_PROMOTE_MAX_DECIDING,
 					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
 					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
@@ -437,11 +441,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: FAST_PROMOTE_MIN_APPROVAL,
 					min_support: FAST_PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::FAST_PROMOTE_TO_LEAD_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "fast promote to lead ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::FAST_PROMOTE_TO_LEAD_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("fast promote to lead ambassador"),
 					max_deciding: FAST_PROMOTE_MAX_DECIDING,
 					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
 					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
@@ -451,11 +455,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: FAST_PROMOTE_MIN_APPROVAL,
 					min_support: FAST_PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
-				tracks::FAST_PROMOTE_TO_SENIOR_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "fast promote to senior ambassador",
+			},
+			pallet_referenda::Track {
+				id: tracks::FAST_PROMOTE_TO_SENIOR_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("fast promote to senior ambassador"),
 					max_deciding: FAST_PROMOTE_MAX_DECIDING,
 					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
 					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
@@ -465,11 +469,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: FAST_PROMOTE_MIN_APPROVAL,
 					min_support: FAST_PROMOTE_MIN_SUPPORT,
 				},
-			),
-			(
+			},
+			pallet_referenda::Track {
 				tracks::TIP,
 				pallet_referenda::TrackInfo {
-					name: "tip",
+					name: s("tip"),
 					max_deciding: 200,
 					decision_deposit: DOLLARS * 10, // 1 DOT
 					prepare_period: MINUTES,
@@ -479,11 +483,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: APP_TIP,
 					min_support: SUP_TIP,
 				},
-			),
-			(
-				tracks::TREASURER,
-				pallet_referenda::TrackInfo {
-					name: "treasurer",
+			},
+			pallet_referenda::Track {
+				id: tracks::TREASURER,
+				info: pallet_referenda::TrackInfo {
+					name: s("treasurer"),
 					max_deciding: 10,
 					decision_deposit: DOLLARS, // 1,000 DOT
 					prepare_period: 2 * HOURS,
@@ -493,9 +497,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_approval: APP_TREASURER,
 					min_support: SUP_TREASURER,
 				},
-			),
+			},
 		];
-		&DATA[..]
+		DATA.iter().map(Cow::Borrowed)
 	}
 
 	/// Determine the voting track for the given `origin`.
@@ -545,4 +549,3 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 }
 
 // implements [`frame_support::traits::Get`] for [`TracksInfo`]
-pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);

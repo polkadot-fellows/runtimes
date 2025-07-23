@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
+hex-literal = { workspace = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
@@ -64,4 +65,5 @@ runtime-benchmarks = [
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]

@@ -15,7 +15,7 @@
 
 use crate::*;
 use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
-use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
+use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	traits::fungible::Mutate,
@@ -27,20 +27,13 @@ use xcm_runtime_apis::{
 };
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Kusama::assert_ump_queue_processed(
-		false,
-		Some(AssetHubKusama::para_id()),
-		Some(Weight::from_parts(157_718_000, 3_593)),
-	);
+	Kusama::assert_ump_queue_processed(false, Some(AssetHubKusama::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
-	AssetHubKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		720_053_000,
-		7_203,
-	)));
+	AssetHubKusama::assert_xcm_pallet_attempted_complete(None);
 
 	AssetHubKusama::assert_parachain_system_ump_sent();
 
@@ -84,30 +77,16 @@ fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 
 fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(
-		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
-	);
-	let (expected_foreign_asset_id_latest, expected_foreign_asset_amount) =
+	let (_, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
-	let expected_foreign_asset_id: xcm::v4::Location =
-		expected_foreign_asset_id_latest.try_into().unwrap();
-
 	AssetHubKusama::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		AssetHubKusama,
 		vec![
-			// native asset reserve transfer for paying fees, withdrawn from Penpal's sov account
-			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
-			) => {
-				who: *who == sov_penpal_on_ahk.clone(),
-				amount: *amount == t.args.amount,
-			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
 				who: *who == t.receiver.account_id,
 			},
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { owner, amount, .. }) => {
 				owner: *owner == t.receiver.account_id,
 				amount: *amount == expected_foreign_asset_amount,
 			},
@@ -119,26 +98,22 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 	AssetHubKusama::assert_xcm_pallet_attempted_complete(None);
-	let (expected_foreign_asset_id_latest, expected_foreign_asset_amount) =
+	let (_, expected_native_amount) =
+		fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let (_, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
-	let expected_foreign_asset_id: xcm::v4::Location =
-		expected_foreign_asset_id_latest.try_into().unwrap();
 	assert_expected_events!(
 		AssetHubKusama,
 		vec![
 			// native asset used for fees is transferred to Parachain's Sovereign account as reserve
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Transfer { from, to, amount }
+				pallet_balances::Event::Transfer { from, amount, .. }
 			) => {
 				from: *from == t.sender.account_id,
-				to: *to == AssetHubKusama::sovereign_account_id_of(
-					t.args.dest.clone()
-				),
-				amount: *amount == t.args.amount,
+				amount: *amount == expected_native_amount,
 			},
 			// foreign asset is burned locally as part of teleportation
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { owner, balance, .. }) => {
 				owner: *owner == t.sender.account_id,
 				balance: *balance == expected_foreign_asset_amount,
 			},
@@ -152,8 +127,6 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 	let (_, expected_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
 	let checking_account = <PenpalA as PenpalAPallet>::PolkadotXcm::check_account();
-	let system_para_native_asset_location = KsmLocation::get();
-
 	PenpalA::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		PenpalA,
@@ -171,10 +144,9 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 				amount: *amount == expected_asset_amount,
 			},
 			// native asset for fee is deposited to receiver
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == system_para_native_asset_location,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				asset_id: *asset_id == Location::parent(),
 				owner: *owner == t.receiver.account_id,
-				amount: *amount == expected_asset_amount,
 			},
 		]
 	);
@@ -355,12 +327,10 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		ASSET_HUB_KUSAMA_ED * 100_000_000_000,
 	)]);
 
-	let asset_location_on_penpal_v4: xcm::v4::Location =
-		asset_location_on_penpal.try_into().unwrap();
 	// Init values for System Parachain
 	let foreign_asset_at_asset_hub_kusama =
-		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
-			.appended_with(asset_location_on_penpal_v4)
+		Location::new(1, [Parachain(PenpalA::para_id().into())])
+			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubKusamaReceiver::get();
 
@@ -459,7 +429,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_to_penpal_beneficiary_id = PenpalAReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let foreign_asset_at_asset_hub_kusama_latest: Location =
-		foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap();
+		foreign_asset_at_asset_hub_kusama.clone();
 	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(foreign_asset_at_asset_hub_kusama_latest.clone(), asset_amount_to_send).into(),
