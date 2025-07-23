@@ -43,16 +43,10 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 		assert_eq!(rc.min_commission, pallet_staking_async::MinCommission::<T>::get());
 		assert_eq!(rc.max_validators_count, pallet_staking_async::MaxValidatorsCount::<T>::get());
 		assert_eq!(rc.max_nominators_count, pallet_staking_async::MaxNominatorsCount::<T>::get());
-		// @kianenigma please review
-		if let Some(rc_era) = rc.current_era {
-			let diff = (rc_era as i64 -
-				pallet_staking_async::CurrentEra::<T>::get().expect("Must have current era")
-					as i64)
-				.abs();
-			assert!(diff <= 2, "Current era difference is at most 1");
-		} else {
-			assert_eq!(pallet_staking_async::CurrentEra::<T>::get(), None);
-		}
+		assert_eq!(
+			pallet_staking_async::CurrentEra::<T>::get().expect("Must be set"),
+			pallet_staking_async::ActiveEra::<T>::get().expect("Must be set").index
+		);
 		assert_eq!(
 			rc.active_era.map(translate_active_era),
 			pallet_staking_async::ActiveEra::<T>::get()
