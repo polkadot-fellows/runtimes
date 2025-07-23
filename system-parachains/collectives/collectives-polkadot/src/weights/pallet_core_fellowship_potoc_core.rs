@@ -175,7 +175,7 @@ impl<T: frame_system::Config> pallet_core_fellowship::WeightInfo for WeightInfo<
 	/// The range of component `r` is `[1, 9]`.
 	/// The range of component `r` is `[1, 9]`.
 	/// The range of component `r` is `[1, 1]`.
-	fn promote_fast(_r: u16, ) -> Weight {
+	fn promote_fast(_r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `66002`
 		//  Estimated: `69046`
@@ -211,6 +211,20 @@ impl<T: frame_system::Config> pallet_core_fellowship::WeightInfo for WeightInfo<
 		//  Estimated: `3514`
 		// Minimum execution time: 16_000_000 picoseconds.
 		Weight::from_parts(17_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3514))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `AmbassadorCore::Member` (r:1 w:1)
+	/// Proof: `AmbassadorCore::Member` (`max_values`: None, `max_size`: Some(49), added: 2524, mode: `MaxEncodedLen`)
+	/// Storage: `AmbassadorCollective::Members` (r:1 w:0)
+	/// Proof: `AmbassadorCollective::Members` (`max_values`: None, `max_size`: Some(42), added: 2517, mode: `MaxEncodedLen`)
+	fn import_member() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `285`
+		//  Estimated: `3514`
+		// Minimum execution time: 17_493_000 picoseconds.
+		Weight::from_parts(18_180_000, 0)
 			.saturating_add(Weight::from_parts(0, 3514))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))

@@ -775,12 +775,12 @@ construct_runtime!(
 		SecretarySalary: pallet_salary::<Instance3> = 81,
 
 		// Tooling Collective in the 90s
-		PotocCollective: pallet_ranked_collective::<Instance3> = 90,
-		PotocReferenda: pallet_referenda::<Instance3> = 91,
+		PotocCollective: pallet_ranked_collective::<Instance4> = 90,
+		PotocReferenda: pallet_referenda::<Instance4> = 91,
 		PotocOrigins: pallet_potoc_origins = 92,
-		PotocCore: pallet_core_fellowship::<Instance3> = 93,
-		PotocSalary: pallet_salary::<Instance3> = 94,
-		PotocTreasury: pallet_treasury::<Instance3> = 95
+		PotocCore: pallet_core_fellowship::<Instance4> = 93,
+		PotocSalary: pallet_salary::<Instance4> = 94,
+		PotocTreasury: pallet_treasury::<Instance4> = 95
 	}
 );
 
