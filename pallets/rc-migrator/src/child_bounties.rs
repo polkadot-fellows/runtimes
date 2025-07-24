@@ -83,7 +83,7 @@ pub enum PortableChildBountiesMessage {
 	ChildBountyDescriptionsV1 {
 		parent_id: BountyIndex,
 		child_id: BountyIndex,
-		description: BoundedVec<u8, ConstU32<1024>>,
+		description: BoundedVec<u8, ConstU32<17000>>, // 16 KiB on Polkadot
 	},
 	V0ToV1ChildBountyIds {
 		v0_child_id: BountyIndex,
