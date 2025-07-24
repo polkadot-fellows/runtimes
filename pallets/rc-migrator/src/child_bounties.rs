@@ -401,3 +401,17 @@ impl<BlockNumber: From<u32>> From<PortableChildBountyStatus> for ChildBountyStat
 		}
 	}
 }
+
+pub struct ChildBountiesMigratedCorrectly<T>(PhantomData<T>);
+
+impl<T: Config> crate::types::RcMigrationCheck for ChildBountiesMigratedCorrectly<T> {
+	type RcPrePayload = ();
+
+	fn pre_check() -> Self::RcPrePayload {
+		()
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		()
+	}
+}

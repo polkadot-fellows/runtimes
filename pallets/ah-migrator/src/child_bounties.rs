@@ -84,3 +84,15 @@ where
 		Ok(())
 	}
 }
+
+impl<T: crate::Config> crate::types::AhMigrationCheck
+	for pallet_rc_migrator::child_bounties::ChildBountiesMigratedCorrectly<T>
+{
+	type RcPrePayload = ();
+	type AhPrePayload = ();
+
+	fn pre_check(_rc: Self::RcPrePayload) -> Self::AhPrePayload {}
+
+	fn post_check(rc: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+	}
+}

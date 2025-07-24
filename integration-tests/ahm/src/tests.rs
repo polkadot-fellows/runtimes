@@ -57,6 +57,7 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
+	child_bounties::ChildBountiesMigratedCorrectly,
 	staking::StakingMigratedCorrectly, types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
@@ -108,6 +109,7 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
 	StakingMigratedCorrectly<Polkadot>,
+	ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
 type AhChecks = (
@@ -146,6 +148,7 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	ProxyWhaleWatching,
 	StakingMigratedCorrectly<AssetHub>,
+	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
