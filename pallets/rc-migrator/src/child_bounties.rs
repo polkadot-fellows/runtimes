@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::*;
+use crate::{types::DefensiveTruncateInto, *};
 use pallet_bounties::{Bounty, BountyIndex};
 use pallet_child_bounties::{ChildBounty, ChildBountyStatus};
 use sp_runtime::traits::BlockNumberProvider;
@@ -220,11 +220,7 @@ where
 							pallet_child_bounties::ChildBountyDescriptionsV1::<T>::remove(
 								&parent_id, &child_id,
 							);
-							// TODO use DefensiveTruncateInto
-							let description =
-								description.into_iter().take(1000).collect::<Vec<_>>();
-							let description =
-								BoundedVec::try_from(description).defensive().unwrap_or_default();
+							let description = description.into_inner().defensive_truncate_into();
 
 							messages.push(
 								PortableChildBountiesMessage::ChildBountyDescriptionsV1 {
