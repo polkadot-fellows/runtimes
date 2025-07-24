@@ -1,6 +1,7 @@
 # XCM configuration changes for AHM
 
-## TODOs:
+## TODOs
+
 -[ ] TODO: @acatangiu. Post migration we need to switch all system chains XCM transport fees beneficiary from
 `RelayTreasuryLocation` to the new `AssetHubTreasuryLocation`. Does not necessarily need to be done
 _synchronously during AHM_, so let's do it after the migration ends successfully. Besides the

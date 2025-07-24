@@ -54,6 +54,18 @@ impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
 	}
 }
 
+/// Defensively truncate a value and convert it into its bounded form.
+pub trait DefensiveTruncateInto<T> {
+	/// Defensively truncate a value and convert it into its bounded form.
+	fn defensive_truncate_into(self) -> T;
+}
+
+impl<T, U: DefensiveTruncateFrom<T>> DefensiveTruncateInto<U> for T {
+	fn defensive_truncate_into(self) -> U {
+		U::defensive_truncate_from(self)
+	}
+}
+
 /// Generate a default instance for benchmarking purposes.
 pub trait BenchmarkingDefault {
 	/// Default for benchmarking purposes only.
@@ -141,9 +153,8 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 24)]
 	ReceiveChildBountiesMessages { messages: Vec<child_bounties::PortableChildBountiesMessage> },
-	#[codec(index = 30)]
-	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
-	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
+	#[codec(index = 25)]
+	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]

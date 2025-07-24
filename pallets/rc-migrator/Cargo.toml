@@ -33,11 +33,13 @@ pallet-proxy = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-staking-async = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-staking-async-ah-client = { workspace = true }
 pallet-session = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
@@ -55,6 +57,7 @@ frame-election-provider-support = { workspace = true }
 
 [features]
 default = ["std"]
+
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
@@ -78,6 +81,8 @@ std = [
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
+	"pallet-staking-async-ah-client/std",
+	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-treasury/std",
@@ -121,6 +126,8 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-staking-async-ah-client/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
@@ -156,6 +163,8 @@ try-runtime = [
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
+	"pallet-staking-async-ah-client/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-treasury/try-runtime",
