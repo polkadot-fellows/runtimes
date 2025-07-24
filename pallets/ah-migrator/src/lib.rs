@@ -863,7 +863,10 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(24)]
-		#[pallet::weight(0)] // TODO @ggwpez weight
+		#[pallet::weight(
+			// TODO @ggwpez weight
+			T::DbWeight::get().reads_writes(3, 3).saturating_add(Weight::from_parts(10_000_000, 200)).saturating_mul(messages.len() as u64)
+		)]
 		pub fn receive_child_bounties_messages(
 			origin: OriginFor<T>,
 			messages: Vec<PortableChildBountiesMessage>,
