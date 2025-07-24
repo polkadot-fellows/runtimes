@@ -19,12 +19,7 @@
 use crate::*;
 use pallet_rc_migrator::child_bounties::PortableChildBountiesMessage;
 
-impl<T: Config> Pallet<T>
-where
-	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
-		From<u32>,
-	pallet_treasury::BalanceOf<T>: From<u128>,
-{
+impl<T: Config> Pallet<T> {
 	pub fn do_receive_child_bounties_messages(
 		messages: Vec<PortableChildBountiesMessage>,
 	) -> Result<(), Error<T>> {

@@ -267,7 +267,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_child_bounties::Config
-		+ pallet_treasury::Config
+		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_delegated_staking::Config
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
@@ -507,12 +507,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T>
-	where
-		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
-			From<u32>,
-		pallet_treasury::BalanceOf<T>: From<u128>,
-	{
+	impl<T: Config> Pallet<T> {
 		/// Receive accounts from the Relay Chain.
 		///
 		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
