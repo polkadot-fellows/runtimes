@@ -282,7 +282,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src, rustfmt"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 
@@ -290,7 +290,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src, rustfmt"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
