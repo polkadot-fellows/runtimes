@@ -189,7 +189,6 @@ jobs:
           fi
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
-        #uses: "paritytech/try-runtime-gha@v0.2.0"
         env:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
