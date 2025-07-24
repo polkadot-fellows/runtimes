@@ -57,8 +57,8 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
-	child_bounties::ChildBountiesMigratedCorrectly,
-	staking::StakingMigratedCorrectly, types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
+	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;

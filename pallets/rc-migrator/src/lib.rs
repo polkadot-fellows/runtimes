@@ -87,7 +87,6 @@ use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::{
 	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
 };
-use sp_runtime::traits::BlockNumberProvider;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
@@ -99,7 +98,7 @@ use runtime_parachains::{
 };
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
-	traits::{BadOrigin, Hash, One, Zero},
+	traits::{BadOrigin, BlockNumberProvider, Hash, One, Zero},
 	AccountId32,
 };
 use sp_std::prelude::*;

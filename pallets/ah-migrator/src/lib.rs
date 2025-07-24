@@ -37,6 +37,7 @@ pub mod asset_rate;
 pub mod benchmarking;
 pub mod bounties;
 pub mod call;
+pub mod child_bounties;
 pub mod claims;
 pub mod conviction_voting;
 pub mod crowdloan;
@@ -52,7 +53,6 @@ pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 pub mod xcm_translation;
-pub mod child_bounties;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
@@ -79,10 +79,10 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
-	staking::PortableStakingMessage, treasury::RcTreasuryMessage, types::MigrationStatus,
+	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
+	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
+	treasury::RcTreasuryMessage, types::MigrationStatus,
 };
-use pallet_rc_migrator::child_bounties::PortableChildBountiesMessage;
 
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::traits::EnqueueMessage;
@@ -509,7 +509,8 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber: From<u32>,
+		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
+			From<u32>,
 		pallet_treasury::BalanceOf<T>: From<u128>,
 	{
 		/// Receive accounts from the Relay Chain.

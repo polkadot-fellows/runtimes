@@ -16,9 +16,10 @@
 
 use crate::*;
 use pallet_bounties::{Bounty, BountyIndex};
-use pallet_child_bounties::ChildBounty;
-use pallet_child_bounties::ChildBountyStatus;
+use pallet_child_bounties::{ChildBounty, ChildBountyStatus};
 use sp_runtime::traits::BlockNumberProvider;
+#[cfg(feature = "std")]
+use std::collections::BTreeMap;
 
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
@@ -101,7 +102,8 @@ pub struct ChildBountiesMigrator<T> {
 
 impl<T: Config> PalletMigration for ChildBountiesMigrator<T>
 where
-	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber: Into<u32>
+	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
+		Into<u32>,
 {
 	type Key = ChildBountiesStage;
 	type Error = Error<T>;
@@ -219,8 +221,10 @@ where
 								&parent_id, &child_id,
 							);
 							// TODO use DefensiveTruncateInto
-							let description = description.into_iter().take(1000).collect::<Vec<_>>();
-							let description = BoundedVec::try_from(description).defensive().unwrap_or_default();
+							let description =
+								description.into_iter().take(1000).collect::<Vec<_>>();
+							let description =
+								BoundedVec::try_from(description).defensive().unwrap_or_default();
 
 							messages.push(
 								PortableChildBountiesMessage::ChildBountyDescriptionsV1 {
@@ -286,10 +290,8 @@ where
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| types::AhMigratorCall::<
-				T,
-			>::ReceiveChildBountiesMessages {
-				messages,
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveChildBountiesMessages { messages }
 			})?;
 		}
 
@@ -342,7 +344,9 @@ impl<BlockNumber: Into<u32>> IntoPortable for ChildBounty<AccountId32, u128, Blo
 }
 
 // ChildBounty: Portable -> AH
-impl<BlockNumber: From<u32>, Balance: From<u128>> From<PortableChildBounty> for ChildBounty<AccountId32, Balance, BlockNumber> {
+impl<BlockNumber: From<u32>, Balance: From<u128>> From<PortableChildBounty>
+	for ChildBounty<AccountId32, Balance, BlockNumber>
+{
 	fn from(portable: PortableChildBounty) -> Self {
 		ChildBounty {
 			parent_bounty: portable.parent_bounty,
@@ -390,28 +394,75 @@ impl<BlockNumber: Into<u32>> IntoPortable for ChildBountyStatus<AccountId32, Blo
 }
 
 // ChildBountyStatus: Portable -> AH
-impl<BlockNumber: From<u32>> From<PortableChildBountyStatus> for ChildBountyStatus<AccountId32, BlockNumber> {
+impl<BlockNumber: From<u32>> From<PortableChildBountyStatus>
+	for ChildBountyStatus<AccountId32, BlockNumber>
+{
 	fn from(portable: PortableChildBountyStatus) -> Self {
 		match portable {
 			PortableChildBountyStatus::Added => ChildBountyStatus::Added,
-			PortableChildBountyStatus::CuratorProposed { curator } => ChildBountyStatus::CuratorProposed { curator },
+			PortableChildBountyStatus::CuratorProposed { curator } =>
+				ChildBountyStatus::CuratorProposed { curator },
 			PortableChildBountyStatus::Active { curator } => ChildBountyStatus::Active { curator },
 			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
-				ChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at: unlock_at.into() },
+				ChildBountyStatus::PendingPayout {
+					curator,
+					beneficiary,
+					unlock_at: unlock_at.into(),
+				},
 		}
 	}
 }
 
+#[cfg(feature = "std")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RcData {
+	pub child_bounty_count: u32,
+	pub parent_child_bounties: Vec<(u32, u32)>,
+	pub parent_total_child_bounties: Vec<(u32, u32)>,
+	pub child_bounties: Vec<(u32, u32, PortableChildBounty)>,
+	pub child_bounty_descriptions_v1: Vec<(u32, u32, Vec<u8>)>,
+	pub v0_to_v1_child_bounty_ids: Vec<(u32, (u32, u32))>,
+	pub children_curator_fees: Vec<(u32, u128)>,
+}
+
+#[cfg(feature = "std")]
 pub struct ChildBountiesMigratedCorrectly<T>(PhantomData<T>);
 
-impl<T: Config> crate::types::RcMigrationCheck for ChildBountiesMigratedCorrectly<T> {
-	type RcPrePayload = ();
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for ChildBountiesMigratedCorrectly<T>
+where
+	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
+		Into<u32>,
+{
+	type RcPrePayload = RcData;
 
 	fn pre_check() -> Self::RcPrePayload {
-		()
+		use pallet_child_bounties::*;
+
+		RcData {
+			child_bounty_count: ChildBountyCount::<T>::get(),
+			parent_child_bounties: ParentChildBounties::<T>::iter().collect(),
+			parent_total_child_bounties: ParentTotalChildBounties::<T>::iter().collect(),
+			child_bounties: ChildBounties::<T>::iter()
+				.map(|(p, c, b)| (p, c, b.into_portable()))
+				.collect(),
+			child_bounty_descriptions_v1: ChildBountyDescriptionsV1::<T>::iter()
+				.map(|(p, c, d)| (p, c, d.into_inner()))
+				.collect(),
+			v0_to_v1_child_bounty_ids: V0ToV1ChildBountyIds::<T>::iter().collect(),
+			children_curator_fees: ChildrenCuratorFees::<T>::iter().collect(),
+		}
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
-		()
+		use pallet_child_bounties::*;
+
+		assert_eq!(ChildBountyCount::<T>::get(), 0);
+		assert_eq!(ParentChildBounties::<T>::iter().count(), 0);
+		assert_eq!(ParentTotalChildBounties::<T>::iter().count(), 0);
+		assert_eq!(ChildBounties::<T>::iter().count(), 0);
+		assert_eq!(ChildBountyDescriptionsV1::<T>::iter().count(), 0);
+		assert_eq!(V0ToV1ChildBountyIds::<T>::iter().count(), 0);
+		assert_eq!(ChildrenCuratorFees::<T>::iter().count(), 0);
 	}
 }
