@@ -13,8 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod aliases;
-mod collectives_salary;
-mod fellowship;
-mod fellowship_treasury;
-mod teleport;
+//! Tests related to claiming assets trapped during XCM execution.
+
+use crate::*;
+
+use integration_tests_helpers::test_chain_can_claim_assets;
+use xcm_executor::traits::DropAssets;
+
+#[test]
+fn assets_can_be_claimed() {
+	let amount = CoretimeExistentialDeposit::get();
+	let assets: Assets = (Parent, amount).into();
+
+	test_chain_can_claim_assets!(
+		CoretimePolkadot,
+		RuntimeCall,
+		NetworkId::Polkadot,
+		assets,
+		amount
+	);
+}

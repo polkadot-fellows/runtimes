@@ -26,14 +26,90 @@ pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 // Cumulus
 pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
-pub use emulated_integration_tests_common::macros::Dmp;
+pub use emulated_integration_tests_common::{macros::Dmp, test_chain_can_claim_assets};
 pub use xcm_emulator::Chain;
 
 pub mod common;
 
-/// TODO: when bumping to polkadot-sdk v1.8.0,
+/// TODO: when bumping to polkadot-sdk stable2506,
 /// remove this crate altogether and get the macros from `emulated-integration-tests-common`.
-/// TODO: backport this macros to polkadot-sdk
+/// note: $asset needs to be prefunded outside this function
+#[macro_export]
+macro_rules! create_pool_with_native_on {
+	( $chain:ident, $asset:expr, $is_foreign:expr, $asset_owner:expr ) => {
+		$crate::create_pool_with_native_on!(
+			$chain,
+			$asset,
+			$is_foreign,
+			$asset_owner,
+			1_000_000_000_000,
+			2_000_000_000_000
+		);
+	};
+
+	( $chain:ident, $asset:expr, $is_foreign:expr, $asset_owner:expr, $native_amount:expr, $asset_amount:expr ) => {
+		$crate::paste::paste! {
+			<$chain>::execute_with(|| {
+				type RuntimeEvent = <$chain as $crate::Chain>::RuntimeEvent;
+				let owner = $asset_owner;
+				let signed_owner = <$chain as $crate::Chain>::RuntimeOrigin::signed(owner.clone());
+				let native_asset = Location::parent();
+
+				if $is_foreign {
+					assert_ok!(<$chain as [<$chain Pallet>]>::ForeignAssets::mint(
+						signed_owner.clone(),
+						$asset.clone().into(),
+						owner.clone().into(),
+						10_000_000_000_000, // For it to have more than enough.
+					));
+				} else {
+					let asset_id = match $asset.clone().interior.last() {
+						Some(GeneralIndex(id)) => *id as u32,
+						_ => unreachable!(),
+					};
+					assert_ok!(<$chain as [<$chain Pallet>]>::Assets::mint(
+						signed_owner.clone(),
+						asset_id.into(),
+						owner.clone().into(),
+						10_000_000_000_000, // For it to have more than enough.
+					));
+				}
+
+				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::create_pool(
+					signed_owner.clone(),
+					Box::new(native_asset.clone()),
+					Box::new($asset.clone().try_into().unwrap()),
+				));
+
+				assert_expected_events!(
+					$chain,
+					vec![
+						RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+					]
+				);
+
+				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::add_liquidity(
+					signed_owner,
+					Box::new(native_asset),
+					Box::new($asset),
+					$native_amount,
+					$asset_amount,
+					0,
+					0,
+					owner.into()
+				));
+
+				assert_expected_events!(
+					$chain,
+					vec![
+						RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded { .. }) => {},
+					]
+				);
+			});
+		}
+	};
+}
+
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
 	( $sender_relay:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {
@@ -451,104 +527,6 @@ macro_rules! test_parachain_is_trusted_teleporter {
 					para_sender_balance_before = <$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
 				}
 			)+
-		}
-	};
-}
-
-#[macro_export]
-macro_rules! test_chain_can_claim_assets {
-	( $sender_para:ty, $runtime_call:ty, $network_id:expr, $assets:expr, $amount:expr ) => {
-		$crate::paste::paste! {
-			let sender = [<$sender_para Sender>]::get();
-			let origin = <$sender_para as $crate::Chain>::RuntimeOrigin::signed(sender.clone());
-			// Receiver is the same as sender
-			let beneficiary: Location =
-				$crate::AccountId32 { network: Some($network_id), id: sender.clone().into() }.into();
-			let versioned_assets: $crate::VersionedAssets = $assets.clone().into();
-
-			<$sender_para>::execute_with(|| {
-				// Assets are trapped for whatever reason.
-				// The possible reasons for this might differ from runtime to runtime, so here we just drop them directly.
-				<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::drop_assets(
-					&beneficiary,
-					$assets.clone().into(),
-					&XcmContext { origin: None, message_id: [0u8; 32], topic: None },
-				);
-
-				type RuntimeEvent = <$sender_para as $crate::Chain>::RuntimeEvent;
-				assert_expected_events!(
-					$sender_para,
-					vec![
-						RuntimeEvent::PolkadotXcm(
-							$crate::pallet_xcm::Event::AssetsTrapped { origin: beneficiary, assets: versioned_assets, .. }
-						) => {},
-					]
-				);
-
-				let balance_before = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&sender);
-
-				// Different origin or different assets won't work.
-				let other_origin = <$sender_para as $crate::Chain>::RuntimeOrigin::signed([<$sender_para Receiver>]::get());
-				assert!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
-					other_origin,
-					bx!(versioned_assets.clone().into()),
-					bx!(beneficiary.clone().into()),
-				).is_err());
-				let other_versioned_assets: $crate::VersionedAssets = Assets::new().into();
-				assert!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
-					origin.clone(),
-					bx!(other_versioned_assets.into()),
-					bx!(beneficiary.clone().into()),
-				).is_err());
-
-				// Assets will be claimed to `beneficiary`, which is the same as `sender`.
-				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
-					origin.clone(),
-					bx!(versioned_assets.clone().into()),
-					bx!(beneficiary.clone().into()),
-				));
-
-				assert_expected_events!(
-					$sender_para,
-					vec![
-						RuntimeEvent::PolkadotXcm(
-							$crate::pallet_xcm::Event::AssetsClaimed { origin: beneficiary, assets: versioned_assets, .. }
-						) => {},
-					]
-				);
-
-				// After claiming the assets, the balance has increased.
-				let balance_after = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&sender);
-				assert_eq!(balance_after, balance_before + $amount);
-
-				// Claiming the assets again doesn't work.
-				assert!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
-					origin.clone(),
-					bx!(versioned_assets.clone().into()),
-					bx!(beneficiary.clone().into()),
-				).is_err());
-
-				let balance = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&sender);
-				assert_eq!(balance, balance_after);
-
-				// You can also claim assets and send them to a different account.
-				<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::drop_assets(
-					&beneficiary,
-					$assets.clone().into(),
-					&XcmContext { origin: None, message_id: [0u8; 32], topic: None },
-				);
-				let receiver = [<$sender_para Receiver>]::get();
-				let other_beneficiary: Location =
-					$crate::AccountId32 { network: Some($network_id), id: receiver.clone().into() }.into();
-				let balance_before = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&receiver);
-				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
-					origin.clone(),
-					bx!(versioned_assets.clone().into()),
-					bx!(other_beneficiary.clone().into()),
-				));
-				let balance_after = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&receiver);
-				assert_eq!(balance_after, balance_before + $amount);
-			});
 		}
 	};
 }
