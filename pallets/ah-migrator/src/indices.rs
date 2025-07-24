@@ -64,21 +64,13 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
 
-		let translated_rc_pre: BTreeMap<_, _> = rc_pre_payload
+		let all_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
 			.map(|RcIndicesIndex { index, who, deposit, frozen }| {
 				let translated_who = Pallet::<T>::translate_account_rc_to_ah(who);
 				(index, (translated_who, deposit, frozen))
 			})
 			.collect();
-
-		let ah_pre: BTreeMap<_, _> = ah_pre_payload
-			.into_iter()
-			.map(|RcIndicesIndex { index, who, deposit, frozen }| (index, (who, deposit, frozen)))
-			.collect();
-
-		let all_pre: BTreeMap<_, _> =
-			translated_rc_pre.into_iter().chain(ah_pre.into_iter()).collect();
 
 		let all_post: BTreeMap<_, _> = pallet_indices::Accounts::<T>::iter().collect();
 
