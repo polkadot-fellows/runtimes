@@ -813,10 +813,7 @@ mod benches {
 			)
 			.map_err(|e| {
 				log::error!(
-					"Failed to `XcmOverBridgeHubRococo::open_bridge`({:?}, {:?})`, error: {:?}",
-					sibling_parachain_location,
-					bridge_destination_universal_location,
-					e
+					"Failed to `XcmOverBridgeHubRococo::open_bridge`({sibling_parachain_location:?}, {bridge_destination_universal_location:?})`, error: {e:?}"
 				);
 				BenchmarkError::Stop("Bridge was not opened!")
 			})?;

@@ -3355,7 +3355,7 @@ mod remote_tests {
 					.collect::<Vec<_>>();
 
 			for (ref_index, referenda) in all_refs {
-				log::info!(target: LOG_TARGET, "🚀 executing referenda #{}", ref_index);
+				log::info!(target: LOG_TARGET, "🚀 executing referenda #{ref_index}");
 				let RefStatus { origin, proposal, .. } = referenda;
 				// we do more or less what the scheduler will do under the hood, as best as we can
 				// imitate:
@@ -3366,13 +3366,13 @@ mod remote_tests {
 				>::peek(&proposal) {
 					Ok(x) => x,
 					Err(e) => {
-						log::error!(target: LOG_TARGET, "failed to get preimage: {:?}", e);
+						log::error!(target: LOG_TARGET, "failed to get preimage: {e:?}");
 						continue;
 					}
 				};
 
 				let dispatch_result = call.dispatch(origin.clone().into());
-				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {:?}: {:?}", origin, dispatch_result);
+				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {origin:?}: {dispatch_result:?}");
 			}
 		});
 	}
@@ -3470,7 +3470,7 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "total-staked = {:?}", token.amount(total_staked));
 			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
 			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
-			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
