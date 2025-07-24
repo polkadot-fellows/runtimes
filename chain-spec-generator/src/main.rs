@@ -82,11 +82,13 @@ fn main() -> Result<(), String> {
 				"glutton-kusama-local",
 				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config) as Box<_>,
 			),
+			/*
 			#[cfg(feature = "encointer-kusama")]
 			(
 				"encointer-kusama-local",
 				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
 			),
+			*/
 			#[cfg(feature = "coretime-kusama")]
 			(
 				"coretime-kusama",
