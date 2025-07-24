@@ -836,10 +836,7 @@ mod benches {
 			)
 			.map_err(|e| {
 				log::error!(
-					"Failed to `XcmOverBridgeHubRococo::open_bridge`({:?}, {:?})`, error: {:?}",
-					sibling_parachain_location,
-					bridge_destination_universal_location,
-					e
+					"Failed to `XcmOverBridgeHubRococo::open_bridge`({sibling_parachain_location:?}, {bridge_destination_universal_location:?})`, error: {e:?}"
 				);
 				BenchmarkError::Stop("Bridge was not opened!")
 			})?;
@@ -876,8 +873,7 @@ mod benches {
 			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(reward_kind) = reward_kind
 			else {
 				panic!(
-					"Unexpected reward_kind: {:?} - not compatible with `bench_reward`!",
-					reward_kind
+					"Unexpected reward_kind: {reward_kind:?} - not compatible with `bench_reward`!"
 				);
 			};
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
