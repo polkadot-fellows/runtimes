@@ -16,9 +16,7 @@
 
 use crate::porting_prelude::*;
 
-use asset_hub_polkadot_runtime::{
-	AhMigrator, Block as AssetHubBlock, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent,
-};
+use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent};
 use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
@@ -26,53 +24,94 @@ use cumulus_primitives_core::{
 use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{
-	DmpDataMessageCounts as RcDmpDataMessageCounts, MigrationStage as RcMigrationStage,
-	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
+	MigrationStage as RcMigrationStage, MigrationStageOf as RcMigrationStageOf,
+	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{
 	Block as PolkadotBlock, RcMigrator, Runtime as Polkadot, RuntimeEvent as RcRuntimeEvent,
 };
-use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
+use remote_externalities::{Builder, Mode, OfflineConfig};
 use runtime_parachains::{
 	dmp::DownwardMessageQueues,
 	inclusion::{AggregateMessageOrigin as RcMessageOrigin, UmpQueueId},
 };
+use sp_io::TestExternalities;
 use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
+use tokio::sync::OnceCell;
 use xcm::prelude::*;
-//use frame_support::traits::QueueFootprintQuery; // Only on westend
 
 pub const AH_PARA_ID: ParaId = ParaId::new(1000);
 const LOG_RC: &str = "runtime::relay";
 const LOG_AH: &str = "runtime::asset-hub";
 
+pub enum Chain {
+	Relay,
+	AssetHub,
+}
+
+impl ToString for Chain {
+	fn to_string(&self) -> String {
+		match self {
+			Chain::Relay => "SNAP_RC".to_string(),
+			Chain::AssetHub => "SNAP_AH".to_string(),
+		}
+	}
+}
+
+pub type Snapshot = (Vec<(Vec<u8>, (Vec<u8>, i32))>, sp_core::H256);
+
+static RC_CACHE: OnceCell<Snapshot> = OnceCell::const_new();
+static AH_CACHE: OnceCell<Snapshot> = OnceCell::const_new();
+
 /// Load Relay and AH externalities in parallel.
-pub async fn load_externalities(
-) -> Option<(RemoteExternalities<PolkadotBlock>, RemoteExternalities<AssetHubBlock>)> {
+pub async fn load_externalities() -> Option<(TestExternalities, TestExternalities)> {
 	let (rc, ah) = tokio::try_join!(
-		tokio::spawn(async { remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await }),
-		tokio::spawn(async { remote_ext_test_setup::<AssetHubBlock>("SNAP_AH").await })
+		tokio::spawn(async { remote_ext_test_setup(Chain::Relay).await }),
+		tokio::spawn(async { remote_ext_test_setup(Chain::AssetHub).await })
 	)
 	.ok()?;
 	Some((rc?, ah?))
 }
 
-pub async fn remote_ext_test_setup<Block: sp_runtime::traits::Block>(
-	env: &str,
-) -> Option<RemoteExternalities<Block>> {
+pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 	sp_tracing::try_init_simple();
-	let snap = std::env::var(env).ok()?;
-	let abs = std::path::absolute(snap.clone());
+	log::info!("Checking {} snapshot cache", chain.to_string());
 
-	let ext = Builder::<Block>::default()
-		.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
-		.build()
-		.await
-		.map_err(|e| {
-			eprintln!("Could not load from snapshot: {:?}: {:?}", abs, e);
+	let cache = match chain {
+		Chain::Relay => &RC_CACHE,
+		Chain::AssetHub => &AH_CACHE,
+	};
+
+	let snapshot = cache
+		.get_or_init(|| async {
+			log::info!("Loading {} snapshot", chain.to_string());
+
+			// Load snapshot.
+			let snap = std::env::var(chain.to_string()).ok().expect("Env var not set");
+			let abs = std::path::absolute(snap.clone());
+
+			let ext = Builder::<PolkadotBlock>::default()
+				.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
+				.build()
+				.await
+				.map_err(|e| {
+					eprintln!("Could not load from snapshot: {:?}: {:?}", abs, e);
+				})
+				.unwrap();
+
+			// `RemoteExternalities` and `TestExternalities` types cannot be cloned so we need to
+			// convert them to raw snapshot and store it in the cache.
+			ext.inner_ext.into_raw_snapshot()
 		})
-		.unwrap();
+		.await;
+
+	let ext = TestExternalities::from_raw_snapshot(
+		snapshot.0.clone(),
+		snapshot.1.clone(),
+		sp_storage::StateVersion::V1,
+	);
 
 	Some(ext)
 }
@@ -192,7 +231,6 @@ pub fn enqueue_ump(msgs: (Vec<UpwardMessage>, BlockNumberFor<AssetHub>)) {
 	}
 }
 
-#[cfg(feature = "ahm-polkadot")] // XCM V3 or V4
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	match xcm {
@@ -220,11 +258,23 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					_ => (), // Fine, we only check Transacts
 				}
 			},
+		VersionedXcm::V5(inner) =>
+			for instruction in inner.0 {
+				match instruction {
+					xcm::v5::Instruction::Transact { call, .. } => {
+						// Interesting part here: ensure that the receiving runtime can decode the
+						// call
+						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+							.expect("Must decode DMP XCM call");
+					},
+					_ => (), // Fine, we only check Transacts
+				}
+			},
 		_ => panic!("Wrong XCM version: {:?}", xcm),
 	};
 }
 
-#[cfg(feature = "ahm-westend")] // XCM V5
+#[cfg(feature = "stable2503")] // XCM V5
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	let xcm = match xcm {
@@ -250,14 +300,17 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 // stage. Otherwise, the `AccountsMigrationInit` stage will be set bypassing the `Scheduled` stage.
 // The `Scheduled` stage is tested separately by the `scheduled_migration_works` test.
 pub fn set_initial_migration_stage(
-	relay_chain: &mut RemoteExternalities<PolkadotBlock>,
+	relay_chain: &mut TestExternalities,
+	maybe_stage: Option<RcMigrationStageOf<Polkadot>>,
 ) -> RcMigrationStageOf<Polkadot> {
 	let stage = relay_chain.execute_with(|| {
-		let stage = if let Ok(stage) = std::env::var("START_STAGE") {
+		let stage = if let Some(stage) = maybe_stage {
+			stage
+		} else if let Ok(stage) = std::env::var("START_STAGE") {
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStage::Scheduled { block_number: 0u32.into() }
+			RcMigrationStage::Scheduled { start: 0u32.into(), cool_off_end: 0u32.into() }
 		};
 		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
 		stage
@@ -272,9 +325,7 @@ pub fn set_initial_migration_stage(
 // both the DMP messages sent from the relay chain to asset hub, which will be used to perform the
 // migration, and the relay chain payload, which will be used to check the correctness of the
 // migration process.
-pub fn rc_migrate(
-	relay_chain: &mut RemoteExternalities<PolkadotBlock>,
-) -> Vec<InboundDownwardMessage> {
+pub fn rc_migrate(relay_chain: &mut TestExternalities) -> Vec<InboundDownwardMessage> {
 	// AH parachain ID
 	let para_id = ParaId::from(1000);
 
@@ -286,16 +337,11 @@ pub fn rc_migrate(
 		loop {
 			next_block_rc();
 
-			// Bypass the unconfirmed DMP messages limit since we do not send the messages to the AH
-			// on every RC block.
-			let (sent, _) = RcDmpDataMessageCounts::<Polkadot>::get();
-			RcDmpDataMessageCounts::<Polkadot>::put((sent, sent));
-
 			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
 			dmps.extend(new_dmps);
 
 			match RcMigrationStageStorage::<Polkadot>::get() {
-				RcMigrationStage::WaitingForAh => {
+				RcMigrationStage::WaitingForAh { .. } => {
 					log::info!("Migration waiting for AH signal");
 					break dmps;
 				},
@@ -317,10 +363,7 @@ pub fn rc_migrate(
 // Processes all the pending DMP messages in the AH message queue to complete the pallet
 // migration. Uses the relay chain pre-migration payload to check the correctness of the
 // migration once completed.
-pub fn ah_migrate(
-	asset_hub: &mut RemoteExternalities<AssetHubBlock>,
-	dmp_messages: Vec<InboundDownwardMessage>,
-) {
+pub fn ah_migrate(asset_hub: &mut TestExternalities, dmp_messages: Vec<InboundDownwardMessage>) {
 	// Inject the DMP messages into the Asset Hub
 	asset_hub.execute_with(|| {
 		let mut fp =
@@ -343,7 +386,7 @@ pub fn ah_migrate(
 
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use
 		// contains some overweight ones.
-		// TODO compare with the number of messages before the migration
+		// TODO: @re-gius compare with the number of messages before the migration
 	});
 	asset_hub.commit_all().unwrap();
 }

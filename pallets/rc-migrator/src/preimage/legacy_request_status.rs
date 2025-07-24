@@ -18,8 +18,17 @@
 use crate::{preimage::*, types::*, *};
 
 /// An entry of the `StatusFor` storage map. Should only be used to unreserve funds on AH.
-#[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	TypeInfo,
+	Clone,
+	MaxEncodedLen,
+	RuntimeDebug,
+	PartialEq,
+	Eq,
+)]
 pub struct RcPreimageLegacyStatus<AccountId, Balance> {
 	/// The hash of the original preimage.
 	///
@@ -110,13 +119,9 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus {
-					legacy_status: batch,
-				},
-				|len| T::AhWeightInfo::receive_preimage_legacy_status(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus { legacy_status: batch }
+			})?;
 		}
 
 		Ok(new_next_key)

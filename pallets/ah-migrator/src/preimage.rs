@@ -20,6 +20,9 @@ use frame_support::traits::{Consideration, Footprint};
 use pallet_rc_migrator::preimage::{chunks::*, *};
 use sp_runtime::traits::{BlakeTwo256, Hash};
 
+// NOTE: preimage doesn't require post-check account translation: the account translation is applied
+// during processing and the post-checks focus on hash integrity rather than account-based
+// comparisons.
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_chunks(chunks: Vec<RcPreimageChunk>) -> Result<(), Error<T>> {
 		Self::deposit_event(Event::BatchReceived {
@@ -56,7 +59,7 @@ impl<T: Config> Pallet<T> {
 			Some(preimage) => {
 				if preimage.len() != chunk.chunk_byte_offset as usize {
 					defensive!("Preimage chunk missing");
-					return Err(Error::<T>::TODO);
+					return Err(Error::<T>::PreimageChunkMissing);
 				}
 
 				match preimage.try_mutate(|p| {
@@ -68,14 +71,14 @@ impl<T: Config> Pallet<T> {
 					},
 					None => {
 						defensive!("Preimage too big");
-						return Err(Error::<T>::TODO);
+						return Err(Error::<T>::PreimageTooBig);
 					},
 				}
 			},
 			None => {
 				if chunk.chunk_byte_offset != 0 {
 					defensive!("Preimage chunk missing");
-					return Err(Error::<T>::TODO);
+					return Err(Error::<T>::PreimageChunkMissing);
 				}
 
 				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
@@ -136,7 +139,7 @@ impl<T: Config> Pallet<T> {
 			.any(|(key_hash, _)| key_hash == request_status.hash)
 		{
 			log::error!("Missing preimage for request status hash {:?}", request_status.hash);
-			return Err(Error::<T>::TODO);
+			return Err(Error::<T>::PreimageMissing);
 		}
 
 		let new_ticket = match request_status.request_status {
@@ -163,7 +166,10 @@ impl<T: Config> Pallet<T> {
 
 		let new_request_status = match (new_ticket, request_status.request_status.clone()) {
 			(Some(new_ticket), alias::RequestStatus::Unrequested { ticket: (who, _), len }) =>
-				alias::RequestStatus::Unrequested { ticket: (who, new_ticket), len },
+				alias::RequestStatus::Unrequested {
+					ticket: (Self::translate_account_rc_to_ah(who), new_ticket),
+					len,
+				},
 			(
 				Some(new_ticket),
 				alias::RequestStatus::Requested {
@@ -172,11 +178,26 @@ impl<T: Config> Pallet<T> {
 					count,
 				},
 			) => alias::RequestStatus::Requested {
-				maybe_ticket: Some((who, new_ticket)),
+				maybe_ticket: Some((Self::translate_account_rc_to_ah(who), new_ticket)),
 				maybe_len: Some(len),
 				count,
 			},
-			_ => request_status.request_status,
+			_ => match request_status.request_status {
+				alias::RequestStatus::Unrequested { ticket: (who, ticket), len } =>
+					alias::RequestStatus::Unrequested {
+						ticket: (Self::translate_account_rc_to_ah(who), ticket),
+						len,
+					},
+				alias::RequestStatus::Requested { maybe_ticket, count, maybe_len } => {
+					let translated_maybe_ticket = maybe_ticket
+						.map(|(who, ticket)| (Self::translate_account_rc_to_ah(who), ticket));
+					alias::RequestStatus::Requested {
+						maybe_ticket: translated_maybe_ticket,
+						count,
+						maybe_len,
+					}
+				},
+			},
 		};
 
 		alias::RequestStatusFor::<T>::insert(request_status.hash, &new_request_status);
@@ -215,12 +236,16 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_legacy_status(
 		status: RcPreimageLegacyStatusOf<T>,
 	) -> Result<(), Error<T>> {
-		// Unreserve the deposit
-		let missing =
-			<T as pallet_preimage::Config>::Currency::unreserve(&status.depositor, status.deposit);
+		let translated_depositor = Self::translate_account_rc_to_ah(status.depositor);
+
+		// Unreserve the deposit from the translated account
+		let missing = <T as pallet_preimage::Config>::Currency::unreserve(
+			&translated_depositor,
+			status.deposit,
+		);
 
 		if missing != Default::default() {
-			log::error!(target: LOG_TARGET, "Failed to unreserve deposit for preimage legacy status {:?}, who: {}, missing {:?}", status.hash,status.depositor.to_ss58check(), missing);
+			log::error!(target: LOG_TARGET, "Failed to unreserve deposit for preimage legacy status {:?}, who: {}, missing {:?}", status.hash, translated_depositor.to_ss58check(), missing);
 			return Err(Error::<T>::FailedToUnreserveDeposit);
 		}
 
@@ -353,10 +378,10 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 						);
 					},
 					alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
-						// TODO: preimages that store referendums calls will be unrequested since
-						// the call of the preimage is mapped and a new preimage of the mapped call
-						// is noted. The unrequested preimage can be deletes since not needed
-						// anymore.
+						// TODO: @re-gius preimages that store referendums calls will be unrequested
+						// since the call of the preimage is mapped and a new preimage of the
+						// mapped call is noted. The unrequested preimage can be deletes since
+						// not needed anymore.
 						//
 						// assert!(
 						// 	requested,

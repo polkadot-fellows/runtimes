@@ -18,8 +18,17 @@
 
 use crate::{types::*, *};
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
 pub enum BagsListStage<AccountId, Score> {
 	ListNodes(Option<AccountId>),
 	ListBags(Option<Score>),
@@ -34,6 +43,7 @@ pub type BagsListStageOf<T> = BagsListStage<
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
 	RuntimeDebugNoBound,
@@ -43,7 +53,6 @@ pub type BagsListStageOf<T> = BagsListStage<
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcBagsListMessage<T: pallet_bags_list::Config<pallet_bags_list::Instance1>> {
 	Node { id: T::AccountId, node: alias::NodeOf<T> },
 	Bag { score: T::Score, bag: alias::BagOf<T> },
@@ -132,11 +141,9 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages },
-				|len| T::AhWeightInfo::receive_bags_list_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages }
+			})?;
 		}
 
 		if inner_key == BagsListStage::Finished {
@@ -151,8 +158,17 @@ pub mod alias {
 	use super::*;
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/bags-list/src/list/mod.rs#L818-L830 minus all the stuff that we don't need
-	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	#[derive(
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		MaxEncodedLen,
+		TypeInfo,
+		Clone,
+		PartialEq,
+		Eq,
+		RuntimeDebug,
+	)]
 	pub struct Node<AccountId, Score> {
 		pub id: AccountId,
 		pub prev: Option<AccountId>,
@@ -166,8 +182,17 @@ pub mod alias {
 	>;
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/bags-list/src/list/mod.rs#L622-L630
-	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	#[derive(
+		Encode,
+		DecodeWithMemTracking,
+		Decode,
+		MaxEncodedLen,
+		TypeInfo,
+		Clone,
+		PartialEq,
+		Eq,
+		RuntimeDebug,
+	)]
 	pub struct Bag<AccountId> {
 		pub head: Option<AccountId>,
 		pub tail: Option<AccountId>,
@@ -194,8 +219,17 @@ pub mod alias {
 	>;
 }
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+)]
 pub enum GenericBagsListMessage<AccountId, Score> {
 	Node { id: AccountId, node: alias::Node<AccountId, Score> },
 	Bag { score: Score, bag: alias::Bag<AccountId> },

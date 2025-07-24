@@ -62,7 +62,7 @@ pub struct Proxy {
 	pub permissions: Vec<Permission>,
 	/// Can control `who`.
 	pub delegatee: AccountId32,
-	// TODO also check the delay
+	// TODO: @ggwpez also check the delay
 }
 
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
@@ -76,22 +76,11 @@ impl RcMigrationCheck for ProxyBasicWorks {
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
-				#[cfg(not(feature = "ahm-westend"))]
 				let inner = proxy.proxy_type.0;
-				#[cfg(feature = "ahm-westend")] // Westend does not have remote proxies
-				let inner = proxy.proxy_type;
 
 				let permission = match Permission::try_convert(inner) {
 					Ok(permission) => permission,
 					Err(e) => {
-						#[cfg(feature = "ahm-westend")]
-						if inner == westend_runtime::ProxyType::IdentityJudgement ||
-							inner == westend_runtime::ProxyType::SudoBalances
-						{
-							// These cannot be converted currently TODO
-							continue;
-						}
-
 						defensive!("Proxy could not be converted: {:?}", e);
 						continue;
 					},
@@ -182,31 +171,27 @@ impl ProxyBasicWorks {
 			assert!(!Self::can_transfer(delegatee, delegator, false), "Only `Any` can transfer");
 		}
 
-		#[cfg(not(feature = "ahm-westend"))] // Westend has no Governance
-		{
-			let allowed_governance = permissions.contains(&Permission::Any) ||
-				permissions.contains(&Permission::NonTransfer) ||
-				permissions.contains(&Permission::Governance);
-			if allowed_governance {
-				assert!(
-					Self::can_governance(delegatee, delegator, true),
-					"`Any`, `NonTransfer`, or `Governance` can do governance"
-				);
-			} else {
-				assert!(
-					!Self::can_governance(delegatee, delegator, false),
-					"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {:?}",
-					permissions
-				);
-			}
+		let allowed_governance = permissions.contains(&Permission::Any) ||
+			permissions.contains(&Permission::NonTransfer) ||
+			permissions.contains(&Permission::Governance);
+		if allowed_governance {
+			assert!(
+				Self::can_governance(delegatee, delegator, true),
+				"`Any`, `NonTransfer`, or `Governance` can do governance"
+			);
+		} else {
+			assert!(
+				!Self::can_governance(delegatee, delegator, false),
+				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {:?}",
+				permissions
+			);
 		}
 
-		// TODO add staking etc
+		// TODO: @ggwpez add staking etc
 
 		// Alice cannot transfer
 		assert!(!Self::can_transfer(&alice, &delegator, false), "Alice cannot transfer");
 		// Alice cannot do governance
-		#[cfg(not(feature = "ahm-westend"))]
 		assert!(!Self::can_governance(&alice, &delegator, false), "Alice cannot do governance");
 	}
 
@@ -248,7 +233,6 @@ impl ProxyBasicWorks {
 	/// Check that the `delegatee` can do governance on behalf of the `delegator`.
 	///
 	/// Currently only checks the `bounties::propose_bounty` call.
-	#[cfg(not(feature = "ahm-westend"))] // Westend has no Governance
 	fn can_governance(delegatee: &AccountId32, delegator: &AccountId32, hint: bool) -> bool {
 		frame_support::hypothetically!({
 			Self::fund_accounts(delegatee, delegator);
@@ -315,7 +299,6 @@ impl ProxyBasicWorks {
 	}
 
 	/// Check if there is a `BountyProposed` event.
-	#[cfg(not(feature = "ahm-westend"))]
 	fn find_bounty_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
 			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(

@@ -23,6 +23,7 @@ and this account will be used for all future spends.
 
 The `Beneficiary` parameter of the spend call has changed from `xcm::Location` to two dimensional
 type:
+
 ``` rust
 struct LocatableBeneficiary {
     // Deposit location.

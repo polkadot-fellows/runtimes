@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2503-5
 
 # cancel previous runs
 concurrency:
@@ -104,8 +104,14 @@ jobs:
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
           # run benchmarking
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+            EXCLUDE_EXTRINSICS=""
+          else
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
+            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+          fi
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
@@ -187,62 +193,14 @@ jobs:
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
       - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r -- --nocapture --test-threads 1
         env:
           RUST_BACKTRACE: 1
           SNAP_RC: "../../polkadot.snap"
           SNAP_AH: "../../ah-polkadot.snap"
           RUST_LOG: "warn"
-
-  # TODO: remove if not needed. or reuse for Paseo
-  ahm-test-westend:
-    if: false
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Checkout Polkadot SDK
-        uses: actions/checkout@v4
-        with:
-          repository: paritytech/polkadot-sdk
-          path: polkadot-sdk
-          ref: donal-ahm
-          fetch-depth: 1
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32-unknown-unknown"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests-westend"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      
-      - name: Install Rust deps
-        run: |
-          cargo install just zepter --locked -q
-
-      - name: Test Asset Hub Migration (Westend)
-        run: |
-          SDK=$PWD/polkadot-sdk
-          cd integration-tests/ahm
-          just port westend $SDK cumulus/test/ahm
+      - name: Test Benchmarks Asset Hub Migration (Polkadot)
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
         env:
           RUST_BACKTRACE: 1
           RUST_LOG: "warn"
@@ -278,15 +236,14 @@ jobs:
           shared-key: "fellowship-cache-chain-spec-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+      - name: Check
+        run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
@@ -318,7 +275,12 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --features fast-runtime --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
 
       - name: Zombienet smoke test
         timeout-minutes: 20
@@ -366,7 +328,7 @@ jobs:
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
             FEATURES="--features=metadata-hash"
           fi
-          
+
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
           cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
@@ -405,8 +367,8 @@ jobs:
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-          done 
-          
+          done
+
       - name: Installing dependencies of ecosystem tests
         working-directory: ./ecosystem-tests
         run: yarn install
@@ -414,7 +376,7 @@ jobs:
       - name: Running ecosystem tests
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 60
+          timeout_minutes: 90
           max_attempts: 3
           command: cd ecosystem-tests && yarn test
 
@@ -431,7 +393,7 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       # FAIL-CI - zombienet-smoke
-      - ecosystem-tests
       - ahm-test-polkadot
+      - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

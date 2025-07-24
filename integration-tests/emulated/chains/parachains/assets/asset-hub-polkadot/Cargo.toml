@@ -11,6 +11,7 @@ publish = false
 
 # Substrate
 sp-core = { workspace = true, default-features = true }
+sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
 
 # Cumulus
@@ -21,6 +22,26 @@ xcm = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true }
 
 # Runtimes
-asset-hub-polkadot-runtime = { workspace = true, default-features = true }
+asset-hub-polkadot-runtime = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
+
+# Bridges
+snowbridge-inbound-queue-primitives = { workspace = true, default-features = true }
+
+# Emulated tests
+integration-tests-helpers = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"penpal-emulated-chain/runtime-benchmarks",
+	"polkadot-emulated-chain/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+]

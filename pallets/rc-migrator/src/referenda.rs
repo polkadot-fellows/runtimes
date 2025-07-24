@@ -21,8 +21,18 @@ use pallet_referenda::{
 };
 
 /// The stages of the referenda pallet migration.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum ReferendaStage {
 	#[default]
 	StorageValues,
@@ -61,10 +71,13 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 }
 
 impl<T: Config> ReferendaMigrator<T> {
-	fn migrate_values(_weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
+	fn migrate_values(weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Migrating referenda values");
 
-		let referendum_count = ReferendumCount::<T, ()>::take();
+		let referendum_count =
+			ReferendumCount::<T, ()>::exists().then(ReferendumCount::<T, ()>::take);
+
+		// expected tracks count.
 		const TRACKS_COUNT: usize = 16;
 
 		// track_id, count
@@ -81,14 +94,21 @@ impl<T: Config> ReferendaMigrator<T> {
 			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
 
-		Pallet::<T>::send_xcm_and_track(
-			types::AhMigratorCall::<T>::ReceiveReferendaValues {
-				referendum_count,
-				deciding_count,
-				track_queue,
-			},
-			T::AhWeightInfo::receive_referenda_values(),
-		)?;
+		if referendum_count.is_none() && deciding_count.is_empty() && track_queue.is_empty() {
+			log::info!(
+				target: LOG_TARGET,
+				"Referenda values are empty. Skipping referenda values migration.",
+			);
+			return Ok(());
+		}
+
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
+		batch.push((referendum_count, deciding_count, track_queue));
+		weight_counter.consume(batch.consume_weight());
+
+		Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+			types::AhMigratorCall::<T>::ReceiveReferendaValues { values: batch }
+		})?;
 
 		Ok(())
 	}
@@ -153,11 +173,9 @@ impl<T: Config> ReferendaMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveReferendaMetadata { metadata: batch },
-				|len| T::AhWeightInfo::receive_referenda_metadata(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveReferendaMetadata { metadata: batch }
+			})?;
 		}
 
 		Ok(last_key)
@@ -229,11 +247,9 @@ impl<T: Config> ReferendaMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch },
-				|len| T::AhWeightInfo::receive_complete_referendums(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch }
+			})?;
 		}
 
 		Ok(last_key)

@@ -15,52 +15,118 @@
 
 use crate::*;
 use frame_support::{
-	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
 };
 use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
+	test_relay_is_trusted_teleporter,
 };
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
 use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
 
 #[test]
-fn teleport_from_and_to_relay() {
-	let amount = POLKADOT_ED * 1000;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = PEOPLE_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
 		Polkadot,
-		PolkadotXcmConfig,
 		vec![PeoplePolkadot],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = POLKADOT_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		PeoplePolkadot,
-		PeoplePolkadotXcmConfig,
 		Polkadot,
-		amount
+		amount,
+		transfer_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = PEOPLE_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		vec![PeoplePolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = POLKADOT_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		PeoplePolkadot,
+		Polkadot,
+		amount,
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		PeoplePolkadot,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = PEOPLE_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,
+		vec![PeoplePolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		PeoplePolkadot,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		transfer_assets
+	);
+
+	let amount = PEOPLE_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,
+		vec![PeoplePolkadot],
+		(native_asset, amount),
+		transfer_assets
 	);
 }
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Polkadot::assert_ump_queue_processed(
-		false,
-		Some(PeoplePolkadot::para_id()),
-		Some(Weight::from_parts(157_718_000, 3_593)),
-	);
+	Polkadot::assert_ump_queue_processed(false, Some(PeoplePolkadot::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
 
-	PeoplePolkadot::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		600_000_000,
-		7_000,
-	)));
+	PeoplePolkadot::assert_xcm_pallet_attempted_complete(None);
 
 	PeoplePolkadot::assert_parachain_system_ump_sent();
 

@@ -18,7 +18,7 @@ approvals on a specific call hash by the Multisig members.
 
 One thing to consider is that Multisigs are constructed from account IDs. In order to allow the same
 Multisigs to be re-created, it is paramount to keep all account IDs that were accessible on the
-relay still accessible, hence: https://github.com/polkadot-fellows/runtimes/issues/526. Otherwise it
+relay still accessible, hence: <https://github.com/polkadot-fellows/runtimes/issues/526>. Otherwise it
 could happen that a Multisig cannot be re-created and loses funds to its associated accounts.
 
 Note: I considered an XCM where the call is sent back to the relay to execute instead of executing

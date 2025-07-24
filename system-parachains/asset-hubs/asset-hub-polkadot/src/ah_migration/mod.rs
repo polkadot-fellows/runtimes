@@ -15,7 +15,10 @@
 
 pub mod call_filter;
 
+extern crate alloc;
+
 use super::*;
+use alloc::boxed::Box;
 use codec::DecodeAll;
 use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
 use frame_system::pallet_prelude::BlockNumberFor;
@@ -26,75 +29,81 @@ use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
 use xcm::latest::prelude::*;
 
+impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
+	fn from(reason: pallet_rc_migrator::types::PortableHoldReason) -> Self {
+		use pallet_rc_migrator::types::PortableHoldReason;
+		use RuntimeHoldReason::*;
+
+		match reason {
+			PortableHoldReason::Preimage(preimage) => Preimage(preimage),
+			PortableHoldReason::Staking(staking) => match staking {
+				pallet_staking::HoldReason::Staking =>
+					Staking(pallet_staking_async::HoldReason::Staking),
+			},
+			PortableHoldReason::StateTrieMigration(state_trie_migration) =>
+				StateTrieMigration(state_trie_migration),
+			PortableHoldReason::DelegatedStaking(delegated_staking) =>
+				DelegatedStaking(delegated_staking),
+			PortableHoldReason::Session(session) => Session(session),
+			PortableHoldReason::XcmPallet(xcm_pallet) => PolkadotXcm(xcm_pallet),
+		}
+	}
+}
+
+impl From<pallet_rc_migrator::types::PortableFreezeReason> for RuntimeFreezeReason {
+	fn from(reason: pallet_rc_migrator::types::PortableFreezeReason) -> Self {
+		use pallet_rc_migrator::types::PortableFreezeReason;
+
+		match reason {
+			PortableFreezeReason::NominationPools(nomination_pools) =>
+				RuntimeFreezeReason::NominationPools(nomination_pools),
+		}
+	}
+}
+
 /// Treasury accounts migrating to the new treasury account address (same account address that was
 /// used on the Relay Chain).
 pub struct TreasuryAccounts;
-impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
-	fn get() -> (AccountId, Vec<Location>) {
+impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
+	fn get() -> (AccountId, Vec<xcm::v4::Location>) {
 		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
 		(
 			xcm_config::PreMigrationRelayTreasuryPalletAccount::get(),
 			vec![
 				// USDT
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1984)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(1984),
+					],
+				),
 				// USDC
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1337)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(1337),
+					],
+				),
 				// DED
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(30)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(30),
+					],
+				),
 				// STINK
-				Location::new(0, [PalletInstance(assets_id), GeneralIndex(42069)]),
+				xcm::v4::Location::new(
+					0,
+					[
+						xcm::v4::Junction::PalletInstance(assets_id),
+						xcm::v4::Junction::GeneralIndex(42069),
+					],
+				),
 			],
 		)
-	}
-}
-
-/// Relay Chain Hold Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub enum RcHoldReason {
-	#[codec(index = 10)]
-	Preimage(pallet_preimage::HoldReason),
-	#[codec(index = 98)]
-	StateTrieMigration(pallet_state_trie_migration::HoldReason),
-	#[codec(index = 41)]
-	DelegatedStaking(pallet_delegated_staking::HoldReason),
-}
-
-impl Default for RcHoldReason {
-	fn default() -> Self {
-		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
-	}
-}
-
-/// Relay Chain Freeze Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub enum RcFreezeReason {
-	#[codec(index = 39u8)]
-	NominationPools(pallet_nomination_pools::FreezeReason),
-}
-
-impl Default for RcFreezeReason {
-	fn default() -> Self {
-		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
-	}
-}
-
-pub struct RcToAhHoldReason;
-impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(_: RcHoldReason) -> RuntimeHoldReason {
-		PreimageHoldReason::get()
-	}
-}
-
-pub struct RcToAhFreezeReason;
-impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
-	fn convert(reason: RcFreezeReason) -> RuntimeFreezeReason {
-		match reason {
-			RcFreezeReason::NominationPools(
-				pallet_nomination_pools::FreezeReason::PoolMinBalance,
-			) => RuntimeFreezeReason::NominationPools(
-				pallet_nomination_pools::FreezeReason::PoolMinBalance,
-			),
-		}
 	}
 }
 
@@ -111,21 +120,10 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			Governance => Ok(ProxyType::Governance),
 			Staking => Ok(ProxyType::Staking),
 			CancelProxy => Ok(ProxyType::CancelProxy),
-			Auction => Err(p), // Does not exist on PAH
+			Auction => Ok(ProxyType::OldAuction),
 			NominationPools => Ok(ProxyType::NominationPools),
-			ParaRegistration => Err(p), // Does not exist on PAH
+			ParaRegistration => Ok(ProxyType::OldParaRegistration),
 		}
-	}
-}
-
-/// Convert a Relay Chain Proxy Delay to a local AH one.
-// NOTE we assume Relay Chain and AH to have the same block type
-pub struct RcToAhDelay;
-impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToAhDelay {
-	fn convert(rc: BlockNumberFor<Runtime>) -> BlockNumberFor<Runtime> {
-		// Polkadot Relay chain: 6 seconds per block
-		// Asset Hub: 12 seconds per block
-		rc / 2
 	}
 }
 
@@ -133,7 +131,7 @@ impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToAhDelay {
 ///
 /// These origins are utilized in Governance and mapped to Asset Hub origins for active referendums.
 #[allow(non_camel_case_types)]
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcPalletsOrigin {
 	#[codec(index = 0u8)]
 	system(frame_system::Origin<Runtime>),
@@ -161,9 +159,9 @@ impl TryConvert<RcPalletsOrigin, OriginCaller> for RcToAhPalletsOrigin {
 /// Relay Chain Runtime Call.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcRuntimeCall {
-	// TODO: variant set code for Relay Chain
-	// TODO: variant set code for Parachains
-	// TODO: whitelisted caller
+	// TODO: @muharem variant set code for Relay Chain
+	// TODO: @muharem variant set code for Parachains
+	// TODO: @muharem whitelisted caller
 	#[codec(index = 0u8)]
 	System(frame_system::Call<Runtime>),
 	#[codec(index = 19u8)]
@@ -375,7 +373,7 @@ impl
 		let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
 			log::error!(target: LOG_TARGET, "Failed to convert RC asset kind to latest version");
 		})?;
-		if asset_kind.location != Location::new(0, Parachain(1000)) {
+		if asset_kind.location != xcm::v5::Location::new(0, xcm::v5::Junction::Parachain(1000)) {
 			log::error!(
 				target: LOG_TARGET,
 				"Unsupported RC asset kind location: {:?}",
@@ -383,8 +381,8 @@ impl
 			);
 			return Err(());
 		};
-		let asset_kind = VersionedLocatableAsset::V4 {
-			location: Location::here(),
+		let asset_kind = VersionedLocatableAsset::V5 {
+			location: xcm::v5::Location::here(),
 			asset_id: asset_kind.asset_id,
 		};
 		let beneficiary = beneficiary.try_into().map_err(|_| {
@@ -393,8 +391,10 @@ impl
 				"Failed to convert RC beneficiary type to the latest version"
 			);
 		})?;
-		let beneficiary =
-			VersionedLocatableAccount::V4 { location: Location::here(), account_id: beneficiary };
+		let beneficiary = VersionedLocatableAccount::V4 {
+			location: xcm::v4::Location::here(),
+			account_id: beneficiary,
+		};
 		Ok((asset_kind, beneficiary))
 	}
 }

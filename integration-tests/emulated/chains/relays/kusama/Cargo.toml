@@ -25,4 +25,12 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 kusama-runtime-constants = { workspace = true, default-features = true }
-kusama-runtime = { workspace = true, default-features = true }
+kusama-runtime = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"kusama-runtime-constants/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+]

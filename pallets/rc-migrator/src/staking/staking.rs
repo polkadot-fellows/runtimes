@@ -16,14 +16,11 @@
 
 //! Pallet staking migration.
 
-pub use crate::staking::message::{
-	AhEquivalentStakingMessageOf, RcStakingMessage, RcStakingMessageOf,
-};
-use crate::{staking::IntoAh, *};
-use codec::{EncodeLike, HasCompact};
+pub use crate::staking::message::PortableStakingMessage;
+use crate::{types::DefensiveTruncateInto, *};
+use codec::{EncodeLike, FullCodec, FullEncode, HasCompact};
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
-use frame_support::traits::DefensiveTruncateInto;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
@@ -102,7 +99,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				}
 			}
 
-			if messages.len() > 10_000 {
+			if messages.len() > 500 {
 				log::warn!("Weight allowed very big batch, stopping");
 				break;
 			}
@@ -110,12 +107,12 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 			inner_key = match inner_key {
 				StakingStage::Values => {
 					let values = Self::take_values();
-					messages.push(RcStakingMessage::Values(values));
+					messages.push(PortableStakingMessage::Values(values));
 					StakingStage::Invulnerables
 				},
 				StakingStage::Invulnerables => {
 					let invulnerables = pallet_staking::Invulnerables::<T>::take();
-					messages.push(RcStakingMessage::Invulnerables(invulnerables));
+					messages.push(PortableStakingMessage::Invulnerables(invulnerables));
 					StakingStage::Bonded(None)
 				},
 				StakingStage::Bonded(who) => {
@@ -128,7 +125,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((stash, controller)) => {
 							pallet_staking::Bonded::<T>::remove(&stash);
-							messages.push(RcStakingMessage::Bonded {
+							messages.push(PortableStakingMessage::Bonded {
 								stash: stash.clone(),
 								controller,
 							});
@@ -147,9 +144,9 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((controller, ledger)) => {
 							pallet_staking::Ledger::<T>::remove(&controller);
-							messages.push(RcStakingMessage::Ledger {
+							messages.push(PortableStakingMessage::Ledger {
 								controller: controller.clone(),
-								ledger,
+								ledger: ledger.into_portable(),
 							});
 							StakingStage::Ledger(Some(controller))
 						},
@@ -166,8 +163,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((stash, payment)) => {
 							pallet_staking::Payee::<T>::remove(&stash);
-							messages
-								.push(RcStakingMessage::Payee { stash: stash.clone(), payment });
+							messages.push(PortableStakingMessage::Payee {
+								stash: stash.clone(),
+								payment: payment.into_portable(),
+							});
 							StakingStage::Payee(Some(stash))
 						},
 						None => StakingStage::Validators(None),
@@ -185,9 +184,9 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((stash, validators)) => {
 							pallet_staking::Validators::<T>::remove(&stash);
-							messages.push(RcStakingMessage::Validators {
+							messages.push(PortableStakingMessage::Validators {
 								stash: stash.clone(),
-								validators,
+								validators: validators.into_portable(),
 							});
 							StakingStage::Validators(Some(stash))
 						},
@@ -206,9 +205,9 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((stash, nominations)) => {
 							pallet_staking::Nominators::<T>::remove(&stash);
-							messages.push(RcStakingMessage::Nominators {
+							messages.push(PortableStakingMessage::Nominators {
 								stash: stash.clone(),
-								nominations,
+								nominations: nominations.into_portable(),
 							});
 							StakingStage::Nominators(Some(stash))
 						},
@@ -228,7 +227,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((staker, ())) => {
 							pallet_staking::VirtualStakers::<T>::remove(&staker);
-							messages.push(RcStakingMessage::VirtualStakers(staker.clone()));
+							messages.push(PortableStakingMessage::VirtualStakers(staker.clone()));
 							StakingStage::VirtualStakers(Some(staker))
 						},
 						None => StakingStage::ErasStakersOverview(None),
@@ -248,10 +247,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, exposure)) => {
 							pallet_staking::ErasStakersOverview::<T>::remove(&era, &validator);
-							messages.push(RcStakingMessage::ErasStakersOverview {
+							messages.push(PortableStakingMessage::ErasStakersOverview {
 								era,
 								validator: validator.clone(),
-								exposure,
+								exposure: exposure.into_portable(),
 							});
 							StakingStage::ErasStakersOverview(Some((era, validator)))
 						},
@@ -272,11 +271,11 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							pallet_staking::ErasStakersPaged::<T>::remove((
 								&era, &validator, &page,
 							));
-							messages.push(RcStakingMessage::ErasStakersPaged {
+							messages.push(PortableStakingMessage::ErasStakersPaged {
 								era,
 								validator: validator.clone(),
 								page,
-								exposure,
+								exposure: exposure.into_portable(),
 							});
 							StakingStage::ErasStakersPaged(Some((era, validator, page)))
 						},
@@ -297,7 +296,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, rewards)) => {
 							pallet_staking::ClaimedRewards::<T>::remove(&era, &validator);
-							messages.push(RcStakingMessage::ClaimedRewards {
+							messages.push(PortableStakingMessage::ClaimedRewards {
 								era,
 								validator: validator.clone(),
 								rewards,
@@ -321,10 +320,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, prefs)) => {
 							pallet_staking::ErasValidatorPrefs::<T>::remove(&era, &validator);
-							messages.push(RcStakingMessage::ErasValidatorPrefs {
+							messages.push(PortableStakingMessage::ErasValidatorPrefs {
 								era,
 								validator: validator.clone(),
-								prefs,
+								prefs: prefs.into_portable(),
 							});
 							StakingStage::ErasValidatorPrefs(Some((era, validator)))
 						},
@@ -337,7 +336,8 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, reward)) => {
 							pallet_staking::ErasValidatorReward::<T>::remove(&era);
-							messages.push(RcStakingMessage::ErasValidatorReward { era, reward });
+							messages
+								.push(PortableStakingMessage::ErasValidatorReward { era, reward });
 							StakingStage::ErasValidatorReward(Some(era))
 						},
 						None => StakingStage::ErasRewardPoints(None),
@@ -349,7 +349,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, points)) => {
 							pallet_staking::ErasRewardPoints::<T>::remove(&era);
-							messages.push(RcStakingMessage::ErasRewardPoints { era, points });
+							messages.push(PortableStakingMessage::ErasRewardPoints {
+								era,
+								points: points.into_portable(),
+							});
 							StakingStage::ErasRewardPoints(Some(era))
 						},
 						None => StakingStage::ErasTotalStake(None),
@@ -361,7 +364,8 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, total_stake)) => {
 							pallet_staking::ErasTotalStake::<T>::remove(&era);
-							messages.push(RcStakingMessage::ErasTotalStake { era, total_stake });
+							messages
+								.push(PortableStakingMessage::ErasTotalStake { era, total_stake });
 							StakingStage::ErasTotalStake(Some(era))
 						},
 						None => StakingStage::UnappliedSlashes(None),
@@ -381,7 +385,10 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
 							for slash in slashes.into_iter().take(1000) {
 								// First 1000 slashes should be enough, just to avoid unbound loop
-								messages.push(RcStakingMessage::UnappliedSlashes { era, slash });
+								messages.push(PortableStakingMessage::UnappliedSlashes {
+									era,
+									slash: slash.into_portable(),
+								});
 							}
 							StakingStage::UnappliedSlashes(Some(era))
 						},
@@ -390,7 +397,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				},
 				StakingStage::BondedEras => {
 					let bonded_eras = pallet_staking::BondedEras::<T>::take();
-					messages.push(RcStakingMessage::BondedEras(bonded_eras));
+					messages.push(PortableStakingMessage::BondedEras(bonded_eras));
 					StakingStage::ValidatorSlashInEra(None)
 				},
 				StakingStage::ValidatorSlashInEra(next) => {
@@ -407,7 +414,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, slash)) => {
 							pallet_staking::ValidatorSlashInEra::<T>::remove(&era, &validator);
-							messages.push(RcStakingMessage::ValidatorSlashInEra {
+							messages.push(PortableStakingMessage::ValidatorSlashInEra {
 								era,
 								validator: validator.clone(),
 								slash,
@@ -431,11 +438,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, validator, slash)) => {
 							pallet_staking::NominatorSlashInEra::<T>::remove(&era, &validator);
-							messages.push(RcStakingMessage::NominatorSlashInEra {
-								era,
-								validator: validator.clone(),
-								slash,
-							});
+							// Not migrated.
 							StakingStage::NominatorSlashInEra(Some((era, validator)))
 						},
 						None => StakingStage::SlashingSpans(None),
@@ -447,10 +450,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((account, spans)) => {
 							pallet_staking::SlashingSpans::<T>::remove(&account);
-							messages.push(RcStakingMessage::SlashingSpans {
-								account: account.clone(),
-								spans,
-							});
+							// Not migrated.
 							StakingStage::SlashingSpans(Some(account))
 						},
 						None => StakingStage::SpanSlash(None),
@@ -462,11 +462,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some(((account, span), slash)) => {
 							pallet_staking::SpanSlash::<T>::remove((&account, &span));
-							messages.push(RcStakingMessage::SpanSlash {
-								account: account.clone(),
-								span,
-								slash,
-							});
+							// Not migrated.
 							StakingStage::SpanSlash(Some((account, span)))
 						},
 						None => StakingStage::Finished,
@@ -479,11 +475,11 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm(
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| types::AhMigratorCall::<
+				T,
+			>::ReceiveStakingMessages {
 				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveStakingMessages { messages },
-				|_len| Weight::from_all(1),
-			)?;
+			})?;
 		}
 
 		if inner_key == StakingStage::Finished {
@@ -494,7 +490,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 	}
 }
 
-use codec::{FullCodec, FullEncode};
+/// Resume a storage map iterator from a key or start from the beginning if None.
 fn resume<Map: frame_support::IterableStorageMap<K, V>, K: FullEncode, V: FullCodec>(
 	key: Option<K>,
 ) -> impl Iterator<Item = (K, V)> {

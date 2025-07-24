@@ -20,9 +20,11 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
+use frame_support::traits::{tokens::IdAmount, ContainsPair};
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
+use xcm_builder::InspectMessageQueues;
 
 pub trait ToPolkadotSs58 {
 	fn to_polkadot_ss58(&self) -> String;
@@ -32,6 +34,43 @@ impl ToPolkadotSs58 for AccountId32 {
 	fn to_polkadot_ss58(&self) -> String {
 		self.to_ss58check_with_version(sp_core::crypto::Ss58AddressFormat::custom(0))
 	}
+}
+
+/// Convert a type into its portable format.
+///
+/// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
+/// format, send portable format from AH to RC, convert portable format to AH object.
+pub trait IntoPortable {
+	type Portable;
+
+	fn into_portable(self) -> Self::Portable;
+}
+
+impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
+	type Portable = IdAmount<Id::Portable, Balance>;
+
+	fn into_portable(self) -> Self::Portable {
+		IdAmount { id: self.id.into_portable(), amount: self.amount }
+	}
+}
+
+/// Defensively truncate a value and convert it into its bounded form.
+pub trait DefensiveTruncateInto<T> {
+	/// Defensively truncate a value and convert it into its bounded form.
+	fn defensive_truncate_into(self) -> T;
+}
+
+impl<T, U: DefensiveTruncateFrom<T>> DefensiveTruncateInto<U> for T {
+	fn defensive_truncate_into(self) -> U {
+		U::defensive_truncate_from(self)
+	}
+}
+
+/// Generate a default instance for benchmarking purposes.
+pub trait BenchmarkingDefault {
+	/// Default for benchmarking purposes only.
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self;
 }
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -68,13 +107,17 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
-		referendum_count: u32,
-		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
-		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		values: Vec<(
+			// referendum_count
+			Option<u32>,
+			// deciding_count (track_id, count)
+			Vec<(TrackIdOf<T, ()>, u32)>,
+			// track_queue (referendum_id, votes)
+			Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		)>,
 	},
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
@@ -87,30 +130,33 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 17)]
 	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 19)]
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
-	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
-		messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::alias::ScheduledOf<T>>>)>,
+		messages: Vec<(
+			pallet_scheduler::BlockNumberFor<T>,
+			Vec<Option<scheduler::alias::ScheduledOf<T>>>,
+		)>,
+	},
+	#[codec(index = 23)]
+	ReceiveDelegatedStakingMessages {
+		messages: Vec<staking::delegated_staking::RcDelegatedStakingMessageOf<T>>,
 	},
 	#[codec(index = 30)]
-	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
-	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
+	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]
-	FinishMigration { data: MigrationFinishedData<BalanceOf<T>> },
+	FinishMigration { data: Option<MigrationFinishedData<BalanceOf<T>>> },
 
 	#[codec(index = 255)]
 	#[cfg(feature = "runtime-benchmarks")]
@@ -118,8 +164,18 @@ pub enum AhMigratorCall<T: Config> {
 }
 
 /// Further data coming from Relay Chain alongside the signal that migration has finished.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub struct MigrationFinishedData<Balance: Default> {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: Balance,
@@ -205,13 +261,144 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
-/// A weight that is zero if the migration is ongoing, otherwise it is the default weight.
-pub struct ZeroWeightOr<Status, Default>(PhantomData<(Status, Default)>);
-impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr<Status, Default> {
-	fn get() -> Weight {
-		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
+/// A wrapper around `Inner` that routes messages through `Inner` unless `MigrationState` is ongoing
+/// and `Exception` returns true for the given destination and message.
+pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
+	PhantomData<(Inner, Exception, MigrationState)>,
+);
+impl<
+		Inner: SendXcm,
+		Exception: ContainsPair<Location, Xcm<()>>,
+		MigrationState: MigrationStatus,
+	> SendXcm for RouteInnerWithException<Inner, Exception, MigrationState>
+{
+	type Ticket = Inner::Ticket;
+	fn validate(
+		destination: &mut Option<Location>,
+		message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		if MigrationState::is_ongoing() &&
+			Exception::contains(
+				destination.as_ref().ok_or(SendError::MissingArgument)?,
+				message.as_ref().ok_or(SendError::MissingArgument)?,
+			) {
+			Err(SendError::Transport("Migration ongoing - routing is temporary blocked!"))
+		} else {
+			Inner::validate(destination, message)
+		}
+	}
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Inner::deliver(ticket)
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful_delivery(location: Option<Location>) {
+		Inner::ensure_successful_delivery(location);
 	}
 }
+
+impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueues
+	for RouteInnerWithException<Inner, Exception, MigrationState>
+{
+	fn clear_messages() {
+		Inner::clear_messages()
+	}
+
+	fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
+		Inner::get_messages()
+	}
+}
+
+/// Exception for routing XCM messages with the first instruction being a query response to the
+/// given `Querier`.
+///
+/// The `Querier` is from the perspective of the receiver of the XCM message.
+pub struct ExceptResponseFor<Querier>(PhantomData<Querier>);
+impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querier> {
+	fn contains(l: &Xcm<()>) -> bool {
+		match l.first() {
+			Some(QueryResponse { querier: Some(querier), .. }) => !Querier::contains(querier),
+			_ => true,
+		}
+	}
+}
+
+/// The priority of the DMP/UMP queue during migration.
+///
+/// Controls how the DMP (Downward Message Passing) or UMP (Upward Message Passing) queue is
+/// processed relative to other queues during the migration process. This helps ensure timely
+/// processing of migration messages. The default priority pattern is defined in the pallet
+/// configuration, but can be overridden by a storage value of this type.
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum QueuePriority<BlockNumber: Copy> {
+	/// Use the default priority pattern from the pallet configuration.
+	#[default]
+	Config,
+	/// Override the default priority pattern from the configuration.
+	/// The tuple (priority_blocks, round_robin_blocks) defines how many blocks to prioritize
+	/// DMP queue processing vs normal round-robin processing.
+	OverrideConfig(BlockNumber, BlockNumber),
+	/// Disable DMP queue priority processing entirely.
+	Disabled,
+}
+
+impl<BlockNumber: Copy> QueuePriority<BlockNumber> {
+	pub fn get_priority_blocks(&self) -> Option<BlockNumber> {
+		match self {
+			QueuePriority::Config => None,
+			QueuePriority::OverrideConfig(priority_blocks, _) => Some(*priority_blocks),
+			QueuePriority::Disabled => None,
+		}
+	}
+}
+
+/// A value that is `Left::get()` if the migration is ongoing, otherwise it is `Right::get()`.
+pub struct LeftOrRight<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftOrRight<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+	}
+}
+
+/// A weight that is `Weight::MAX` if the migration is ongoing, otherwise it is the [`Inner`]
+/// weight of the [`pallet_fast_unstake::weights::WeightInfo`] trait.
+pub struct MaxOnIdleOrInner<Status, Inner>(PhantomData<(Status, Inner)>);
+impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
+	pallet_fast_unstake::weights::WeightInfo for MaxOnIdleOrInner<Status, Inner>
+{
+	fn on_idle_unstake(b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_unstake(b))
+	}
+	fn on_idle_check(v: u32, b: u32) -> Weight {
+		Status::is_ongoing()
+			.then(|| Weight::MAX)
+			.unwrap_or_else(|| Inner::on_idle_check(v, b))
+	}
+	fn register_fast_unstake() -> Weight {
+		Inner::register_fast_unstake()
+	}
+	fn deregister() -> Weight {
+		Inner::deregister()
+	}
+	fn control() -> Weight {
+		Inner::control()
+	}
+}
+
 /// A utility struct for batching XCM messages to stay within size limits.
 ///
 /// This struct manages collections of XCM messages, automatically creating
@@ -396,6 +583,57 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	/// The count of batches
 	pub fn batch_count(&self) -> u32 {
 		self.batch.batch_count()
+	}
+}
+
+/// Relay Chain Hold Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableHoldReason {
+	Preimage(pallet_preimage::HoldReason),
+	Staking(pallet_staking::HoldReason),
+	StateTrieMigration(pallet_state_trie_migration::HoldReason),
+	DelegatedStaking(pallet_delegated_staking::HoldReason),
+	Session(pallet_session::HoldReason),
+	XcmPallet(pallet_xcm::HoldReason),
+}
+
+impl BenchmarkingDefault for PortableHoldReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		PortableHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
+
+/// Relay Chain Freeze Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableFreezeReason {
+	NominationPools(pallet_nomination_pools::FreezeReason),
+}
+
+impl BenchmarkingDefault for PortableFreezeReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		PortableFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
 	}
 }
 

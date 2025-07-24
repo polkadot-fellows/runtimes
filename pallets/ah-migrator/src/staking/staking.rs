@@ -17,15 +17,13 @@
 //! Pallet staking migration.
 
 use crate::*;
-use frame_support::traits::DefensiveTruncateInto;
+use pallet_rc_migrator::{staking::PortableStakingMessage, types::DefensiveTruncateInto};
 use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
-	pub fn staking_migration_start_hook() {}
-
-	pub fn staking_migration_finish_hook() {}
-
-	pub fn do_receive_staking_messages(messages: Vec<T::RcStakingMessage>) -> Result<(), Error<T>> {
+	pub fn do_receive_staking_messages(
+		messages: Vec<PortableStakingMessage>,
+	) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} StakingMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -34,8 +32,7 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for message in messages {
-			let translated = T::RcStakingMessage::intoAh(message);
-			match Self::do_receive_staking_message(translated) {
+			match Self::do_receive_staking_message(message) {
 				Ok(_) => good += 1,
 				Err(_) => bad += 1,
 			}
@@ -50,10 +47,8 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn do_receive_staking_message(
-		message: AhEquivalentStakingMessageOf<T>,
-	) -> Result<(), Error<T>> {
-		use RcStakingMessage::*;
+	fn do_receive_staking_message(message: PortableStakingMessage) -> Result<(), Error<T>> {
+		use PortableStakingMessage::*;
 
 		match message {
 			Values(values) => {
@@ -62,7 +57,7 @@ impl<T: Config> Pallet<T> {
 			},
 			Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
-				let bounded = BoundedVec::truncate_from(invulnerables);
+				let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
 				pallet_staking_async::Invulnerables::<T>::put(bounded);
 			},
 			Bonded { stash, controller } => {
@@ -71,18 +66,22 @@ impl<T: Config> Pallet<T> {
 			},
 			Ledger { controller, ledger } => {
 				log::debug!(target: LOG_TARGET, "Integrating Ledger of controller {:?}", controller);
+				let ledger: pallet_staking_async::StakingLedger<_> = ledger.into();
 				pallet_staking_async::Ledger::<T>::insert(controller, ledger);
 			},
 			Payee { stash, payment } => {
 				log::debug!(target: LOG_TARGET, "Integrating Payee of stash {:?}", stash);
+				let payment: pallet_staking_async::RewardDestination<_> = payment.into();
 				pallet_staking_async::Payee::<T>::insert(stash, payment);
 			},
 			Validators { stash, validators } => {
 				log::debug!(target: LOG_TARGET, "Integrating Validators of stash {:?}", stash);
+				let validators: pallet_staking_async::ValidatorPrefs = validators.into();
 				pallet_staking_async::Validators::<T>::insert(stash, validators);
 			},
 			Nominators { stash, nominations } => {
 				log::debug!(target: LOG_TARGET, "Integrating Nominators of stash {:?}", stash);
+				let nominations: pallet_staking_async::Nominations<_> = nominations.into();
 				pallet_staking_async::Nominators::<T>::insert(stash, nominations);
 			},
 			VirtualStakers(staker) => {
@@ -91,24 +90,29 @@ impl<T: Config> Pallet<T> {
 			},
 			ErasStakersOverview { era, validator, exposure } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasStakersOverview {:?}/{:?}", validator, era);
+				let exposure: sp_staking::PagedExposureMetadata<_> = exposure.into();
 				pallet_staking_async::ErasStakersOverview::<T>::insert(era, validator, exposure);
 			},
 			ErasStakersPaged { era, validator, page, exposure } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasStakersPaged {:?}/{:?}/{:?}", validator, era, page);
+				let exposure: pallet_staking_async::BoundedExposurePage<_> = exposure.into();
 				pallet_staking_async::ErasStakersPaged::<T>::insert(
 					(era, validator, page),
 					exposure,
 				);
 			},
 			ClaimedRewards { era, validator, rewards } => {
-				// NOTE: This is being renamed from `ClaimedRewards` to `ErasClaimedRewards`
 				log::debug!(target: LOG_TARGET, "Integrating ErasClaimedRewards {:?}/{:?}", validator, era);
-				let bounded = BoundedVec::<_, pallet_staking_async::ErasClaimedRewardsBound<T>>::truncate_from(rewards);
+				let bounded =
+					BoundedVec::<_, pallet_staking_async::ClaimedRewardsBound<T>>::defensive_truncate_from(
+						rewards,
+					);
 				let weak_bounded = WeakBoundedVec::force_from(bounded.into_inner(), None);
-				pallet_staking_async::ErasClaimedRewards::<T>::insert(era, validator, weak_bounded);
+				pallet_staking_async::ClaimedRewards::<T>::insert(era, validator, weak_bounded);
 			},
 			ErasValidatorPrefs { era, validator, prefs } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasValidatorPrefs {:?}/{:?}", validator, era);
+				let prefs: pallet_staking_async::ValidatorPrefs = prefs.into();
 				pallet_staking_async::ErasValidatorPrefs::<T>::insert(era, validator, prefs);
 			},
 			ErasValidatorReward { era, reward } => {
@@ -117,6 +121,7 @@ impl<T: Config> Pallet<T> {
 			},
 			ErasRewardPoints { era, points } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasRewardPoints of era {:?}", era);
+				let points: pallet_staking_async::EraRewardPoints<_> = points.into();
 				pallet_staking_async::ErasRewardPoints::<T>::insert(era, points);
 			},
 			ErasTotalStake { era, total_stake } => {
@@ -126,28 +131,21 @@ impl<T: Config> Pallet<T> {
 			UnappliedSlashes { era, slash } => {
 				log::debug!(target: LOG_TARGET, "Integrating UnappliedSlashes of era {:?}", era);
 				let slash_key = (slash.validator.clone(), Perbill::from_percent(99), 9999);
+				let slash: pallet_staking_async::UnappliedSlash<_> = slash.into();
 				pallet_staking_async::UnappliedSlashes::<T>::insert(era, slash_key, slash);
 			},
-			BondedEras(bonded_eras) => {
-				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
-				let bounded = BoundedVec::truncate_from(bonded_eras); // FIXME
-				pallet_staking_async::BondedEras::<T>::put(bounded);
-			},
+			BondedEras(bonded_eras) =>
+				if pallet_staking_async::BondedEras::<T>::exists() {
+					log::error!("BondedEras already exists, skipping insert");
+					defensive_assert!(bonded_eras.is_empty());
+				} else {
+					log::debug!(target: LOG_TARGET, "Integrating BondedEras");
+					let bounded: BoundedVec<_, _> = bonded_eras.clone().defensive_truncate_into();
+					pallet_staking_async::BondedEras::<T>::put(bounded);
+				},
 			ValidatorSlashInEra { era, validator, slash } => {
 				log::debug!(target: LOG_TARGET, "Integrating ValidatorSlashInEra {:?}/{:?}", validator, era);
 				pallet_staking_async::ValidatorSlashInEra::<T>::insert(era, validator, slash);
-			},
-			NominatorSlashInEra { era, validator, slash } => {
-				log::debug!(target: LOG_TARGET, "Integrating NominatorSlashInEra {:?}/{:?}", validator, era);
-				pallet_staking_async::NominatorSlashInEra::<T>::insert(era, validator, slash);
-			},
-			SlashingSpans { account, spans } => {
-				log::debug!(target: LOG_TARGET, "Integrating SlashingSpans {:?}", account);
-				pallet_staking_async::SlashingSpans::<T>::insert(account, spans);
-			},
-			SpanSlash { account, span, slash } => {
-				log::debug!(target: LOG_TARGET, "Integrating SpanSlash {:?}/{:?}", account, span);
-				pallet_staking_async::SpanSlash::<T>::insert((account, span), slash);
 			},
 		}
 
