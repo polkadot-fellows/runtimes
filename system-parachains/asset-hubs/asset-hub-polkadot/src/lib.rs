@@ -119,11 +119,21 @@ use parachains_common::{
 };
 
 use sp_runtime::RuntimeDebug;
-pub use system_parachains_constants::SLOT_DURATION;
+pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
-	polkadot::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	},
+	polkadot::{
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
 };
+
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
 	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
@@ -240,7 +250,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -747,7 +757,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -1987,7 +1997,7 @@ mod tests {
 			base + weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 
 		let fit = block.checked_div_per_component(&transfer).unwrap_or_default();
-		assert!(fit >= 1000, "{} should be at least 1000", fit);
+		assert!(fit >= 1000, "{fit} should be at least 1000");
 	}
 
 	/// The fee for one transfer is at most 1 CENT.
@@ -2024,9 +2034,9 @@ mod tests {
 			fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
 
 		let proof_o_time = proof_fee.checked_div(time_fee).unwrap_or_default();
-		assert!(proof_o_time <= 30, "{} should be at most 30", proof_o_time);
+		assert!(proof_o_time <= 30, "{proof_o_time} should be at most 30");
 		let time_o_proof = time_fee.checked_div(proof_fee).unwrap_or_default();
-		assert!(time_o_proof <= 30, "{} should be at most 30", time_o_proof);
+		assert!(time_o_proof <= 30, "{time_o_proof} should be at most 30");
 	}
 
 	#[test]
