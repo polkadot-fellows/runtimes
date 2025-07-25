@@ -17,17 +17,11 @@
 //! Pallet staking migration.
 
 pub use crate::staking::message::PortableStakingMessage;
-use crate::{types::DefensiveTruncateInto, *};
-use codec::{EncodeLike, FullCodec, FullEncode, HasCompact};
-use core::fmt::Debug;
+use crate::*;
+use codec::{FullCodec, FullEncode};
 pub use frame_election_provider_support::PageIndex;
-use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
-	ValidatorPrefs,
-};
-use sp_runtime::{Perbill, Percent};
-use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
+use pallet_staking::slashing::SpanIndex;
+use sp_staking::{EraIndex, Page};
 
 pub struct StakingMigrator<T> {
 	_phantom: PhantomData<T>,

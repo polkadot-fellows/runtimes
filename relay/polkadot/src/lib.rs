@@ -2009,9 +2009,7 @@ mod benches {
 	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
-	pub use pallet_xcm::benchmarking::{
-		Pallet as PalletXcmExtrinsiscsBenchmark, Pallet as PalletXcmExtrinsicsBenchmark,
-	};
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use xcm_builder::MintLocation;
 	use xcm_config::{

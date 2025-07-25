@@ -24,11 +24,7 @@ use crate::{
 	*,
 };
 use alloc::collections::BTreeMap;
-use core::fmt::Debug;
-use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	EraRewardPoints, Nominations, RewardDestination, StakingLedger,
-};
+use pallet_staking::RewardDestination;
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, Page, SessionIndex};
 
@@ -466,6 +462,7 @@ impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
 
 // RewardDestination: Portable -> AH
 impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewardDestination {
+	#[allow(deprecated)]
 	fn into(self) -> pallet_staking_async::RewardDestination<AccountId32> {
 		use pallet_staking_async::RewardDestination::*;
 		match self {

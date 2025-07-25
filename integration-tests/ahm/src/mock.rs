@@ -49,12 +49,16 @@ pub enum Chain {
 	AssetHub,
 }
 
-impl ToString for Chain {
-	fn to_string(&self) -> String {
-		match self {
-			Chain::Relay => "SNAP_RC".to_string(),
-			Chain::AssetHub => "SNAP_AH".to_string(),
-		}
+impl std::fmt::Display for Chain {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"{}",
+			match self {
+				Chain::Relay => "SNAP_RC",
+				Chain::AssetHub => "SNAP_AH",
+			}
+		)
 	}
 }
 
@@ -75,7 +79,7 @@ pub async fn load_externalities() -> Option<(TestExternalities, TestExternalitie
 
 pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 	sp_tracing::try_init_simple();
-	log::info!("Checking {} snapshot cache", chain.to_string());
+	log::info!("Checking {chain} snapshot cache");
 
 	let cache = match chain {
 		Chain::Relay => &RC_CACHE,
@@ -84,10 +88,10 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 
 	let snapshot = cache
 		.get_or_init(|| async {
-			log::info!("Loading {} snapshot", chain.to_string());
+			log::info!("Loading {chain} snapshot");
 
 			// Load snapshot.
-			let snap = std::env::var(chain.to_string()).ok().expect("Env var not set");
+			let snap = std::env::var(chain.to_string()).expect("Env var not set");
 			let abs = std::path::absolute(snap.clone());
 
 			let ext = Builder::<PolkadotBlock>::default()
