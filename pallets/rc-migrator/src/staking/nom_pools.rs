@@ -21,7 +21,7 @@ use crate::{types::*, *};
 use alias::{RewardPool, SubPools};
 use frame_support::traits::{ConstU32, Get};
 use pallet_nomination_pools::{BondedPoolInner, ClaimPermission, PoolId, PoolMember};
-use sp_runtime::{Perbill, Saturating};
+use sp_runtime::Perbill;
 
 /// The stages of the nomination pools pallet migration.
 ///

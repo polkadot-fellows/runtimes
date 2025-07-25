@@ -16,15 +16,13 @@
 
 //! Asset Hub Migration tests.
 
-use crate::porting_prelude::*;
 
 use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};
 use pallet_rc_migrator::*;
 use polkadot_primitives::Id as ParaId;
 use polkadot_runtime::{
-	Block, BuildStorage, RcMigrator, Runtime as T, RuntimeCall, RuntimeOrigin, System,
+	BuildStorage, Runtime as T, RuntimeCall, RuntimeOrigin,
 };
-use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use runtime_parachains::inclusion::AggregateMessageOrigin;
 use sp_runtime::AccountId32;
 

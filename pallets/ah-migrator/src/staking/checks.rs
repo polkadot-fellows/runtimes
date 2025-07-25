@@ -19,9 +19,8 @@
 use pallet_rc_migrator::{
 	staking::{
 		message::{PortableNominations, PortableUnappliedSlash},
-		PortableStakingMessage, RcData,
+		RcData,
 	},
-	types::IntoPortable,
 };
 use sp_runtime::{AccountId32, Perbill};
 

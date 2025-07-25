@@ -51,7 +51,7 @@ use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, Track
 use pallet_treasury::PaymentState;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
-use xcm::v4::{Junction, Location};
+use xcm::v4::{Location};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());

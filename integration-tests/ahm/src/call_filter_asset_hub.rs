@@ -16,16 +16,13 @@
 
 //! Asset Hub Migration tests.
 
-use crate::porting_prelude::*;
 
 use asset_hub_polkadot_runtime::{
-	AhMigrator, Block, BuildStorage, Runtime as T, RuntimeCall, RuntimeOrigin, System,
+	BuildStorage, Runtime as T, RuntimeCall, RuntimeOrigin,
 };
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};
 use pallet_ah_migrator::*;
-use polkadot_primitives::Id as ParaId;
-use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use sp_runtime::AccountId32;
 
 /// Check that the call filtering mechanism works.

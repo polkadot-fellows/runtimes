@@ -15,21 +15,15 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::Permission;
-use crate::porting_prelude::*;
 
 use super::ProxyBasicWorks;
-use frame_support::{
-	traits::Currency,
-};
-use frame_system::pallet_prelude::*;
 use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
+use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
+	traits::TryConvert,
 	AccountId32,
 };
-use std::{collections::BTreeMap, str::FromStr};
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -67,12 +61,11 @@ impl RcMigrationCheck for ProxyWhaleWatching {
 				"Whales are rich on the relay"
 			);
 
-			let delegations = pallet_proxy::Proxies::<RelayRuntime>::get(&whale).0;
+			let delegations = pallet_proxy::Proxies::<RelayRuntime>::get(whale).0;
 			assert_eq!(
 				delegations.len(),
 				*num_proxies,
-				"Number of proxies is correct for whale {:?}",
-				whale
+				"Number of proxies is correct for whale {whale:?}"
 			);
 		}
 	}
@@ -95,7 +88,7 @@ impl AhMigrationCheck for ProxyWhaleWatching {
 				"Whales are rich on the asset hub"
 			);
 
-			let delegations = pallet_proxy::Proxies::<AssetHubRuntime>::get(&whale).0;
+			let delegations = pallet_proxy::Proxies::<AssetHubRuntime>::get(whale).0;
 			assert_eq!(delegations.len(), *num_proxies, "Number of proxies is correct");
 
 			for delegation in delegations.iter() {

@@ -122,9 +122,7 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		// Currently allowing for a difference of 0.1 DOT.
 		assert!(
 			ah_total_issuance_after.abs_diff(rc_total_issuance_before) < MIN_DOT_ERROR,
-			"Total issuance is not correctly tracked: before migration {} after migration {}.",
-			rc_total_issuance_before,
-			ah_total_issuance_after
+			"Total issuance is not correctly tracked: before migration {rc_total_issuance_before} after migration {ah_total_issuance_after}."
 		);
 	}
 }

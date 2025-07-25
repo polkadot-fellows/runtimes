@@ -23,7 +23,6 @@ use frame_support::{
 };
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
-use sp_core::ByteArray;
 use sp_runtime::{traits::Zero, BoundedVec};
 
 /// Account type meant to transfer data between RC and AH.

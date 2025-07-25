@@ -24,11 +24,10 @@
 //! types directly.
 
 use super::Permission;
-use crate::porting_prelude::*;
 
 use frame_support::{
 	pallet_prelude::*,
-	traits::{Currency, Defensive},
+	traits::Currency,
 };
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
@@ -105,7 +104,7 @@ impl AhMigrationCheck for ProxyBasicWorks {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Not empty in this case
 		assert!(
-			!pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_none(),
+			pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_some(),
 			"Assert storage 'Proxy::Proxies::ah_pre::empty'"
 		);
 	}
@@ -113,7 +112,7 @@ impl AhMigrationCheck for ProxyBasicWorks {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		for ((delegatee, delegator), permissions) in rc_pre_payload.iter() {
 			// Assert storage "Proxy::Proxies::ah_post::correct"
-			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);
+			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(delegator);
 			if entry.is_empty() {
 				// FIXME possibly bug
 				log::error!(
@@ -182,17 +181,16 @@ impl ProxyBasicWorks {
 		} else {
 			assert!(
 				!Self::can_governance(delegatee, delegator, false),
-				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {:?}",
-				permissions
+				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {permissions:?}"
 			);
 		}
 
 		// TODO: @ggwpez add staking etc
 
 		// Alice cannot transfer
-		assert!(!Self::can_transfer(&alice, &delegator, false), "Alice cannot transfer");
+		assert!(!Self::can_transfer(&alice, delegator, false), "Alice cannot transfer");
 		// Alice cannot do governance
-		assert!(!Self::can_governance(&alice, &delegator, false), "Alice cannot do governance");
+		assert!(!Self::can_governance(&alice, delegator, false), "Alice cannot do governance");
 	}
 
 	/// Check that the `delegatee` can transfer balances on behalf of the `delegator`.
@@ -272,11 +270,11 @@ impl ProxyBasicWorks {
 	) -> <AssetHubRuntime as pallet_balances::Config>::Balance {
 		let ed = <AssetHubRuntime as pallet_balances::Config>::ExistentialDeposit::get();
 		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
-			&delegatee.clone().into(),
+			&delegatee.clone(),
 			ed * 10000000,
 		);
 		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
-			&delegator.clone().into(),
+			&delegator.clone(),
 			ed * 10000000,
 		);
 		ed

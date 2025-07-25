@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::porting_prelude::*;
 
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent};
 use codec::Decode;
@@ -97,7 +96,7 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 				.build()
 				.await
 				.map_err(|e| {
-					eprintln!("Could not load from snapshot: {:?}: {:?}", abs, e);
+					eprintln!("Could not load from snapshot: {abs:?}: {e:?}");
 				})
 				.unwrap();
 
@@ -109,7 +108,7 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 
 	let ext = TestExternalities::from_raw_snapshot(
 		snapshot.0.clone(),
-		snapshot.1.clone(),
+		snapshot.1,
 		sp_storage::StateVersion::V1,
 	);
 
@@ -119,7 +118,7 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 pub fn next_block_rc() {
 	let past = frame_system::Pallet::<Polkadot>::block_number();
 	let now = past + 1;
-	log::debug!(target: LOG_RC, "Executing RC block: {:?}", now);
+	log::debug!(target: LOG_RC, "Executing RC block: {now:?}");
 	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
 	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -137,7 +136,7 @@ pub fn next_block_rc() {
 					..
 				})
 			) {
-				log::error!(target: LOG_RC, "Message processing error: {:?}", events);
+				log::error!(target: LOG_RC, "Message processing error: {events:?}");
 				true
 			} else {
 				false
@@ -149,16 +148,14 @@ pub fn next_block_rc() {
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
-		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
-		weight,
-		limit
+		"Weight exceeded 80% of limit: {weight:?}, limit: {limit:?}"
 	);
 }
 
 pub fn next_block_ah() {
 	let past = frame_system::Pallet::<AssetHub>::block_number();
 	let now = past + 1;
-	log::debug!(target: LOG_AH, "Executing AH block: {:?}", now);
+	log::debug!(target: LOG_AH, "Executing AH block: {now:?}");
 	frame_system::Pallet::<AssetHub>::set_block_number(now);
 	frame_system::Pallet::<AssetHub>::reset_events();
 	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -176,7 +173,7 @@ pub fn next_block_ah() {
 					..
 				})
 			) {
-				log::error!(target: LOG_AH, "Message processing error: {:?}", events);
+				log::error!(target: LOG_AH, "Message processing error: {events:?}");
 				true
 			} else {
 				false
@@ -188,9 +185,7 @@ pub fn next_block_ah() {
 	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
-		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
-		weight,
-		limit
+		"Weight exceeded 80% of limit: {weight:?}, limit: {limit:?}"
 	);
 }
 
@@ -236,38 +231,29 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	match xcm {
 		VersionedXcm::V3(inner) =>
 			for instruction in inner.0 {
-				match instruction {
-					xcm::v3::Instruction::Transact { call, .. } => {
+				if let xcm::v3::Instruction::Transact { call, .. } = instruction {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
 						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
-					},
-					_ => (), // Fine, we only check Transacts
 				}
 			},
 		VersionedXcm::V4(inner) =>
 			for instruction in inner.0 {
-				match instruction {
-					xcm::v4::Instruction::Transact { call, .. } => {
+				if let xcm::v4::Instruction::Transact { call, .. } = instruction {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
 						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
-					},
-					_ => (), // Fine, we only check Transacts
 				}
 			},
 		VersionedXcm::V5(inner) =>
 			for instruction in inner.0 {
-				match instruction {
-					xcm::v5::Instruction::Transact { call, .. } => {
+				if let xcm::v5::Instruction::Transact { call, .. } = instruction {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
 						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
-					},
-					_ => (), // Fine, we only check Transacts
 				}
 			},
 	};
@@ -289,7 +275,7 @@ pub fn set_initial_migration_stage(
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStage::Scheduled { start: 0u32.into(), cool_off_end: 0u32.into() }
+			RcMigrationStage::Scheduled { start: 0u32, cool_off_end: 0u32 }
 		};
 		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
 		stage
@@ -347,7 +333,7 @@ pub fn ah_migrate(asset_hub: &mut TestExternalities, dmp_messages: Vec<InboundDo
 	asset_hub.execute_with(|| {
 		let mut fp =
 			asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
-		enqueue_dmp((dmp_messages, 0u32.into()));
+		enqueue_dmp((dmp_messages, 0u32));
 
 		// Loop until no more DMPs are queued
 		loop {

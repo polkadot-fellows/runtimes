@@ -32,7 +32,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Disabled, Equals, Everything, FromContains, Nothing,
+		ConstU32, Contains, ContainsPair, Disabled, Equals, Everything, FromContains,
 		PalletInfoAccess,
 	},
 };
@@ -45,8 +45,7 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
-use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
-use system_parachains_constants::TREASURY_PALLET_ID;
+use sp_runtime::traits::{TryConvertInto};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,

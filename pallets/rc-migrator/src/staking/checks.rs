@@ -127,7 +127,7 @@ impl<T: crate::Config> crate::types::RcMigrationCheck for StakingMigratedCorrect
 		}
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
 		use pallet_staking::*;
 		// All storage values are gone
 		assert!(!ValidatorCount::<T>::exists());

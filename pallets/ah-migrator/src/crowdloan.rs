@@ -231,7 +231,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		fn verify_reserves<T: Config, I>(
 			_reserves_pre: &BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>>,
 			storage_iter: I,
-			error_msg: &str,
+			_error_msg: &str,
 		) where
 			I: Iterator<Item = ((BlockNumberFor<T>, ParaId, AccountIdOf<T>), BalanceOf<T>)>,
 		{
