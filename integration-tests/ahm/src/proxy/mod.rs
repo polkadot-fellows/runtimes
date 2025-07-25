@@ -28,11 +28,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use hex_literal::hex;
-use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
+use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
-	AccountId32,
+	traits::{TryConvert},
 };
 use std::{collections::BTreeMap, str::FromStr};
 

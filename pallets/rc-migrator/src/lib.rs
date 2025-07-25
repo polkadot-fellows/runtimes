@@ -451,7 +451,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
-		+ pallet_delegated_staking::Config
+		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_xcm::Config
 		+ pallet_staking_async_ah_client::Config
 	{

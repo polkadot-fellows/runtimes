@@ -93,7 +93,7 @@ use pallet_rc_migrator::{
 	preimage::*,
 	proxy::*,
 	staking::{
-		bags_list::RcBagsListMessage, delegated_staking::RcDelegatedStakingMessageOf,
+		bags_list::RcBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
 		fast_unstake::RcFastUnstakeMessage, nom_pools::*, *,
 	},
 	types::MigrationFinishedData,
@@ -264,7 +264,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
-		+ pallet_delegated_staking::Config
+		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
 		type RuntimeHoldReason: Parameter
@@ -851,7 +851,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() as u32))]
 		pub fn receive_delegated_staking_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcDelegatedStakingMessageOf<T>>,
+			messages: Vec<PortableDelegatedStakingMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

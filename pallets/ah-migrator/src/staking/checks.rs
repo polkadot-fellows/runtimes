@@ -141,6 +141,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 	}
 }
 
+#[allow(deprecated)]
 fn translate_reward_destination(
 	destination: pallet_staking::RewardDestination<AccountId32>,
 ) -> pallet_staking_async::RewardDestination<AccountId32> {

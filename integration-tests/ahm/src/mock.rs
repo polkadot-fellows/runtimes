@@ -240,7 +240,7 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					xcm::v3::Instruction::Transact { call, .. } => {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
 					},
 					_ => (), // Fine, we only check Transacts
@@ -252,7 +252,7 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					xcm::v4::Instruction::Transact { call, .. } => {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
 					},
 					_ => (), // Fine, we only check Transacts
@@ -264,34 +264,13 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					xcm::v5::Instruction::Transact { call, .. } => {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
 					},
 					_ => (), // Fine, we only check Transacts
 				}
 			},
-		_ => panic!("Wrong XCM version: {:?}", xcm),
 	};
-}
-
-#[cfg(feature = "stable2503")] // XCM V5
-fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
-	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
-	let xcm = match xcm {
-		VersionedXcm::V5(inner) => inner.0,
-		_ => panic!("Wrong XCM version: {:?}", xcm),
-	};
-
-	for instruction in xcm {
-		match instruction {
-			xcm::v5::Instruction::Transact { call, .. } => {
-				// Interesting part here: ensure that the receiving runtime can decode the call
-				let call: Call = Decode::decode(&mut &call.into_encoded()[..])
-					.expect("Must decode DMP XCM call");
-			},
-			_ => (), // Fine, we only check Transacts
-		}
-	}
 }
 
 // Sets the initial migration stage on the Relay Chain.

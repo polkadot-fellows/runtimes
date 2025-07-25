@@ -45,13 +45,13 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
-		tokens::{Fortitude, IdAmount, Precision, Preservation},
-		Defensive, LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
+		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		tokens::{Preservation},
+		Defensive, LockableCurrency, ReservableCurrency,
 	},
 };
 use frame_system::pallet_prelude::*;
-use pallet_balances::{AccountData, BalanceLock, Reasons as LockReasons};
+use pallet_balances::{AccountData};
 use sp_application_crypto::ByteArray;
 use sp_core::blake2_256;
 use sp_runtime::{

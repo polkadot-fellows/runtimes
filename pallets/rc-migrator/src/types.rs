@@ -149,7 +149,7 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
-		messages: Vec<staking::delegated_staking::RcDelegatedStakingMessageOf<T>>,
+		messages: Vec<staking::delegated_staking::PortableDelegatedStakingMessage>,
 	},
 	#[codec(index = 30)]
 	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },

@@ -90,7 +90,7 @@ impl AhMigrationCheck for BalancesCrossChecker {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		let (rc_total_issuance_before, rc_checking_balance_before) = rc_pre_payload;
-		let (ah_total_issuance_before, ah_checking_balance_before) = ah_pre_payload;
+		let (ah_total_issuance_before, _ah_checking_balance_before) = ah_pre_payload;
 
 		let ah_checking_balance_after = pallet_balances::Pallet::<AhRuntime>::total_balance(
 			&<AhRuntime as pallet_ah_migrator::Config>::CheckingAccount::get(),

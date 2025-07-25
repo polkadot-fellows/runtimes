@@ -41,7 +41,7 @@ use pallet_rc_migrator::{
 	scheduler::RcSchedulerMessage,
 	staking::{
 		bags_list::alias::Node,
-		delegated_staking::RcDelegatedStakingMessage,
+		delegated_staking::PortableDelegatedStakingMessage,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
@@ -764,8 +764,8 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_delegated_staking_messages(n: Linear<1, 255>) {
-		let create_delegated_staking = |n: u8| -> RcDelegatedStakingMessageOf<T> {
-			RcDelegatedStakingMessage::Agents {
+		let create_delegated_staking = |n: u8| -> PortableDelegatedStakingMessage {
+			PortableDelegatedStakingMessage::Agents {
 				agent: [n; 32].into(),
 				payee: [n; 32].into(),
 				total_delegated: n.into(),

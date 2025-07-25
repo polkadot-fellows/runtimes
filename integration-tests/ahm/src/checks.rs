@@ -18,13 +18,9 @@
 
 use crate::porting_prelude::*;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
+use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_runtime::{
 	traits::{Dispatchable, TryConvert},
 	AccountId32,
@@ -65,7 +61,7 @@ impl AhMigrationCheck for SanityChecks {
 		);
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(
 			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get() ==
 				pallet_ah_migrator::MigrationStage::MigrationDone

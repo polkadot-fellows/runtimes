@@ -19,16 +19,13 @@
 use crate::{
 	staking::{
 		message::{
-			PortableEraRewardPoints, PortableExposurePage, PortableForcing, PortableNominations,
+			PortableEraRewardPoints, PortableExposurePage, PortableNominations,
 			PortablePagedExposureMetadata, PortableStakingLedger, PortableUnappliedSlash,
-			PortableValidatorPrefs, StakingValues,
+			PortableValidatorPrefs,
 		},
-		PortableStakingMessage,
 	},
 	types::IntoPortable,
-	BalanceOf,
 };
-use pallet_staking::Pallet as Staking;
 use sp_runtime::{AccountId32, Perbill, Percent};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

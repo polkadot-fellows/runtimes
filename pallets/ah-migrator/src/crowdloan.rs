@@ -229,7 +229,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		// - storage_iter: Iterator over storage items
 		// - error_msg: Custom error message for assertion failure
 		fn verify_reserves<T: Config, I>(
-			reserves_pre: &BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>>,
+			_reserves_pre: &BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>>,
 			storage_iter: I,
 			error_msg: &str,
 		) where

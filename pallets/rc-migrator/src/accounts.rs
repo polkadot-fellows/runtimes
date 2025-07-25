@@ -17,7 +17,6 @@
 //! Account/Balance data migrator module.
 
 use crate::{types::*, *};
-use codec::DecodeAll;
 use frame_support::{
 	traits::tokens::{Balance as BalanceT, IdAmount},
 	weights::WeightMeter,

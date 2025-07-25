@@ -19,14 +19,12 @@
 extern crate alloc;
 
 use crate::{
-	staking::{AccountIdOf, BalanceOf, StakingMigrator},
+	staking::{BalanceOf, StakingMigrator},
 	types::DefensiveTruncateInto,
 	*,
 };
 use alloc::collections::BTreeMap;
-use codec::{EncodeLike, HasCompact};
 use core::fmt::Debug;
-pub use frame_election_provider_support::PageIndex;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	EraRewardPoints, Nominations, RewardDestination, StakingLedger,

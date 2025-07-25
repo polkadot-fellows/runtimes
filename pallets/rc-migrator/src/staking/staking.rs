@@ -436,7 +436,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					};
 
 					match iter.next() {
-						Some((era, validator, slash)) => {
+						Some((era, validator, _slash)) => {
 							pallet_staking::NominatorSlashInEra::<T>::remove(&era, &validator);
 							// Not migrated.
 							StakingStage::NominatorSlashInEra(Some((era, validator)))
@@ -448,7 +448,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					let mut iter = resume::<pallet_staking::SlashingSpans<T>, _, _>(account);
 
 					match iter.next() {
-						Some((account, spans)) => {
+						Some((account, _spans)) => {
 							pallet_staking::SlashingSpans::<T>::remove(&account);
 							// Not migrated.
 							StakingStage::SlashingSpans(Some(account))
@@ -460,7 +460,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					let mut iter = resume::<pallet_staking::SpanSlash<T>, _, _>(next);
 
 					match iter.next() {
-						Some(((account, span), slash)) => {
+						Some(((account, span), _slash)) => {
 							pallet_staking::SpanSlash::<T>::remove((&account, &span));
 							// Not migrated.
 							StakingStage::SpanSlash(Some((account, span)))

@@ -16,16 +16,12 @@
 
 //! Test that Multisig Account IDs result in the same IDs and they can still dispatch calls.
 
-use crate::porting_prelude::*;
-
 use frame_support::{
 	pallet_prelude::*,
-	traits::{Currency, Defensive},
 };
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
-use rand::prelude::*;
 use sp_runtime::{
 	traits::{Dispatchable, TryConvert},
 	AccountId32,
@@ -56,10 +52,10 @@ impl RcMigrationCheck for MultisigStillWork {
 			.take(1000)
 			.map(|(_id, a)| a.data)
 			.collect::<Vec<_>>();
-		let mut multisigs = Vec::new();
+		let multisigs = Vec::new();
 		//let mut rng = rand::rng();
 
-		for i in 0..100 {
+		for _i in 0..100 {
 			//let num_signatories = rng.gen_range(1..=10);
 			//let signatories = TODO @ggwpez
 		}
