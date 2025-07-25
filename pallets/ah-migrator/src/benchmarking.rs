@@ -29,6 +29,7 @@ use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
 	bounties::{alias::Bounty, RcBountiesMessage},
+	child_bounties::PortableChildBountiesMessage,
 	claims::{alias::EthereumAddress, RcClaimsMessage},
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
@@ -37,7 +38,6 @@ use pallet_rc_migrator::{
 		alias::{PreimageFor, RequestStatus as PreimageRequestStatus, MAX_SIZE},
 		CHUNK_SIZE,
 	},
-	child_bounties::PortableChildBountiesMessage,
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::RcSchedulerMessage,
 	staking::{
