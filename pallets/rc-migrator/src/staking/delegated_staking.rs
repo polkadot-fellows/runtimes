@@ -31,7 +31,6 @@ use types::{AccountIdOf, RcMigrationCheck};
 	PartialEq,
 	Eq,
 )]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum DelegatedStakingStage<AccountId> {
 	Delegators(Option<AccountId>),
 	Agents(Option<AccountId>),
@@ -40,80 +39,22 @@ pub enum DelegatedStakingStage<AccountId> {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
-#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
-pub enum RcDelegatedStakingMessage<AccountId, Balance> {
+pub enum PortableDelegatedStakingMessage {
 	Delegators {
-		delegator: AccountId,
-		agent: AccountId,
-		amount: Balance,
+		delegator: AccountId32,
+		agent: AccountId32,
+		amount: u128,
 	},
 	Agents {
-		agent: AccountId,
-		payee: AccountId,
-		total_delegated: Balance,
-		unclaimed_withdrawals: Balance,
-		pending_slash: Balance,
+		agent: AccountId32,
+		payee: AccountId32,
+		total_delegated: u128,
+		unclaimed_withdrawals: u128,
+		pending_slash: u128,
 	},
 }
 
-pub type RcDelegatedStakingMessageOf<T> = RcDelegatedStakingMessage<AccountIdOf<T>, BalanceOf<T>>;
-
-pub mod alias {
-	use super::*;
-
-	// From https://github.com/paritytech/polkadot-sdk/blob/0447d26148ef5b97f40fc01bce2d5156ab335eca/substrate/frame/delegated-staking/src/types.rs#L35
-	#[derive(Default, Encode, Clone, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
-	pub struct Delegation<AccountId, Balance> {
-		/// The target of delegation.
-		pub agent: AccountId,
-		/// The amount delegated.
-		pub amount: Balance,
-	}
-
-	// From https://github.com/paritytech/polkadot-sdk/blob/0447d26148ef5b97f40fc01bce2d5156ab335eca/substrate/frame/delegated-staking/src/types.rs#L95
-	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
-	pub struct AgentLedger<AccountId, Balance> {
-		/// Where the reward should be paid out.
-		pub payee: AccountId,
-		/// Sum of all delegated funds to this `Agent`.
-		pub total_delegated: Balance,
-		/// Funds that are withdrawn from core staking but not released to delegator/s. It is a
-		/// subset of `total_delegated` and can never be greater than it.
-		pub unclaimed_withdrawals: Balance,
-		/// Slashes that are not yet applied. This affects the effective balance of the `Agent`.
-		pub pending_slash: Balance,
-	}
-
-	/// Alias for private item [`pallet_delegated_staking::Delegations`].
-	///
-	/// Source: https://github.com/paritytech/polkadot-sdk/blob/0447d26148ef5b97f40fc01bce2d5156ab335eca/substrate/frame/delegated-staking/src/lib.rs#L277
-	#[frame_support::storage_alias(pallet_name)]
-	pub type Delegations<T: pallet_delegated_staking::Config> = CountedStorageMap<
-		pallet_delegated_staking::Pallet<T>,
-		Twox64Concat,
-		<T as frame_system::Config>::AccountId,
-		Delegation<<T as frame_system::Config>::AccountId, BalanceOf<T>>,
-		OptionQuery,
-	>;
-
-	/// Alias for private item [`pallet_delegated_staking::Agents`].
-	///
-	/// Source: https://github.com/paritytech/polkadot-sdk/blob/0447d26148ef5b97f40fc01bce2d5156ab335eca/substrate/frame/delegated-staking/src/lib.rs#L282
-	#[frame_support::storage_alias(pallet_name)]
-	pub type AgentLedgers<T: pallet_delegated_staking::Config> = CountedStorageMap<
-		pallet_delegated_staking::Pallet<T>,
-		Twox64Concat,
-		<T as frame_system::Config>::AccountId,
-		AgentLedger<<T as frame_system::Config>::AccountId, BalanceOf<T>>,
-		OptionQuery,
-	>;
-}
-
-pub struct DelegatedStakingMigrator<T> {
-	_phantom: sp_std::marker::PhantomData<T>,
-}
+pub struct DelegatedStakingMigrator<T>(core::marker::PhantomData<T>);
 
 impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 	type Key = DelegatedStakingStage<AccountIdOf<T>>;
@@ -125,7 +66,7 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(DelegatedStakingStage::Delegators(None));
 		let mut messages = XcmBatchAndMeter::<
-			RcDelegatedStakingMessage<AccountIdOf<T>, BalanceOf<T>>,
+			PortableDelegatedStakingMessage,
 		>::new_from_config::<T>();
 
 		loop {
@@ -157,16 +98,16 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 			last_key = match last_key {
 				DelegatedStakingStage::Delegators(last_key) => {
 					let mut delegators_iter = if let Some(last_key) = last_key.clone() {
-						alias::Delegations::<T>::iter_from(alias::Delegations::<T>::hashed_key_for(
+						pallet_delegated_staking::Delegators::<T>::iter_from(pallet_delegated_staking::Delegators::<T>::hashed_key_for(
 							last_key,
 						))
 					} else {
-						alias::Delegations::<T>::iter()
+						pallet_delegated_staking::Delegators::<T>::iter()
 					};
 					match delegators_iter.next() {
 						Some((key, value)) => {
-							alias::Delegations::<T>::remove(&key);
-							messages.push(RcDelegatedStakingMessage::Delegators {
+							pallet_delegated_staking::Delegators::<T>::remove(&key);
+							messages.push(PortableDelegatedStakingMessage::Delegators {
 								delegator: key.clone(),
 								agent: value.agent,
 								amount: value.amount,
@@ -178,16 +119,16 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 				},
 				DelegatedStakingStage::Agents(last_key) => {
 					let mut agents_iter = if let Some(last_key) = last_key.clone() {
-						alias::AgentLedgers::<T>::iter_from(
-							alias::AgentLedgers::<T>::hashed_key_for(last_key),
+						pallet_delegated_staking::Agents::<T>::iter_from(
+							pallet_delegated_staking::Agents::<T>::hashed_key_for(last_key),
 						)
 					} else {
-						alias::AgentLedgers::<T>::iter()
+						pallet_delegated_staking::Agents::<T>::iter()
 					};
 					match agents_iter.next() {
 						Some((key, value)) => {
-							alias::AgentLedgers::<T>::remove(&key);
-							messages.push(RcDelegatedStakingMessage::Agents {
+							pallet_delegated_staking::Agents::<T>::remove(&key);
+							messages.push(PortableDelegatedStakingMessage::Agents {
 								agent: key.clone(),
 								payee: value.payee,
 								total_delegated: value.total_delegated,
@@ -222,7 +163,7 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 pub mod test {
 	use super::*;
 
-	// Delegation used in Delegations storage item
+	// Delegation used in delegators storage item
 	#[derive(Debug, PartialEq, Eq, Clone)]
 	pub struct RcDelegation {
 		pub delegator: AccountId32,
@@ -230,7 +171,7 @@ pub mod test {
 		pub amount: u128,
 	}
 
-	// AgentLedger used in AgentLedgers storage item
+	// AgentLedger used in Agents storage item
 	#[derive(Debug, PartialEq, Eq, Clone)]
 	pub struct RcAgentLedger {
 		pub agent: AccountId32,
@@ -246,18 +187,18 @@ impl<T: Config> RcMigrationCheck for DelegatedStakingMigrator<T> {
 	type RcPrePayload = (Vec<test::RcDelegation>, Vec<test::RcAgentLedger>);
 
 	fn pre_check() -> Self::RcPrePayload {
-		let mut delegations = Vec::new();
+		let mut delegators = Vec::new();
 		let mut agent_ledgers = Vec::new();
 
-		for (delegator, delegation) in alias::Delegations::<T>::iter() {
-			delegations.push(test::RcDelegation {
+		for (delegator, delegation) in pallet_delegated_staking::Delegators::<T>::iter() {
+			delegators.push(test::RcDelegation {
 				delegator: delegator.clone(),
 				agent: delegation.agent.clone(),
 				amount: delegation.amount,
 			});
 		}
 
-		for (agent, agent_ledger) in alias::AgentLedgers::<T>::iter() {
+		for (agent, agent_ledger) in pallet_delegated_staking::Agents::<T>::iter() {
 			agent_ledgers.push(test::RcAgentLedger {
 				agent: agent.clone(),
 				payee: agent_ledger.payee.clone(),
@@ -267,19 +208,19 @@ impl<T: Config> RcMigrationCheck for DelegatedStakingMigrator<T> {
 			});
 		}
 
-		(delegations, agent_ledgers)
+		(delegators, agent_ledgers)
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		// Assert storage "Delegations::rc_post::empty"
+		// Assert storage "Delegators::rc_post::empty"
 		assert!(
-			alias::Delegations::<T>::iter().next().is_none(),
-			"No delegations should exist on the Relay Chain after migration"
+			pallet_delegated_staking::Delegators::<T>::iter().next().is_none(),
+			"No delegators should exist on the Relay Chain after migration"
 		);
 
-		// Assert storage "AgentLedgers::rc_post::empty"
+		// Assert storage "Agents::rc_post::empty"
 		assert!(
-			alias::AgentLedgers::<T>::iter().next().is_none(),
+			pallet_delegated_staking::Agents::<T>::iter().next().is_none(),
 			"No agent ledgers should exist on the Relay Chain after migration"
 		);
 	}
