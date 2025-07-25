@@ -65,9 +65,8 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(DelegatedStakingStage::Delegators(None));
-		let mut messages = XcmBatchAndMeter::<
-			PortableDelegatedStakingMessage,
-		>::new_from_config::<T>();
+		let mut messages =
+			XcmBatchAndMeter::<PortableDelegatedStakingMessage>::new_from_config::<T>();
 
 		loop {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
@@ -98,9 +97,9 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 			last_key = match last_key {
 				DelegatedStakingStage::Delegators(last_key) => {
 					let mut delegators_iter = if let Some(last_key) = last_key.clone() {
-						pallet_delegated_staking::Delegators::<T>::iter_from(pallet_delegated_staking::Delegators::<T>::hashed_key_for(
-							last_key,
-						))
+						pallet_delegated_staking::Delegators::<T>::iter_from(
+							pallet_delegated_staking::Delegators::<T>::hashed_key_for(last_key),
+						)
 					} else {
 						pallet_delegated_staking::Delegators::<T>::iter()
 					};

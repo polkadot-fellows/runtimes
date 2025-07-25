@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent};
 use codec::Decode;
 use cumulus_primitives_core::{
@@ -232,28 +231,28 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 		VersionedXcm::V3(inner) =>
 			for instruction in inner.0 {
 				if let xcm::v3::Instruction::Transact { call, .. } = instruction {
-						// Interesting part here: ensure that the receiving runtime can decode the
-						// call
-						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
-							.expect("Must decode DMP XCM call");
+					// Interesting part here: ensure that the receiving runtime can decode the
+					// call
+					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						.expect("Must decode DMP XCM call");
 				}
 			},
 		VersionedXcm::V4(inner) =>
 			for instruction in inner.0 {
 				if let xcm::v4::Instruction::Transact { call, .. } = instruction {
-						// Interesting part here: ensure that the receiving runtime can decode the
-						// call
-						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
-							.expect("Must decode DMP XCM call");
+					// Interesting part here: ensure that the receiving runtime can decode the
+					// call
+					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						.expect("Must decode DMP XCM call");
 				}
 			},
 		VersionedXcm::V5(inner) =>
 			for instruction in inner.0 {
 				if let xcm::v5::Instruction::Transact { call, .. } = instruction {
-						// Interesting part here: ensure that the receiving runtime can decode the
-						// call
-						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
-							.expect("Must decode DMP XCM call");
+					// Interesting part here: ensure that the receiving runtime can decode the
+					// call
+					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						.expect("Must decode DMP XCM call");
 				}
 			},
 	};

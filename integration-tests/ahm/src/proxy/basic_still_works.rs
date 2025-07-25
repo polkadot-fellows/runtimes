@@ -25,10 +25,7 @@
 
 use super::Permission;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::Currency,
-};
+use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};

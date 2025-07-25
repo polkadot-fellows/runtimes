@@ -17,12 +17,10 @@
 //! Checks that the staking migration succeeded.
 
 use crate::{
-	staking::{
-		message::{
-			PortableEraRewardPoints, PortableExposurePage, PortableNominations,
-			PortablePagedExposureMetadata, PortableStakingLedger, PortableUnappliedSlash,
-			PortableValidatorPrefs,
-		},
+	staking::message::{
+		PortableEraRewardPoints, PortableExposurePage, PortableNominations,
+		PortablePagedExposureMetadata, PortableStakingLedger, PortableUnappliedSlash,
+		PortableValidatorPrefs,
 	},
 	types::IntoPortable,
 };

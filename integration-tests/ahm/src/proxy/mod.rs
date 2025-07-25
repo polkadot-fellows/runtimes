@@ -23,9 +23,7 @@ pub use whale_watching::ProxyWhaleWatching;
 use crate::porting_prelude::*;
 
 use frame_support::pallet_prelude::*;
-use sp_runtime::{
-	traits::{TryConvert},
-};
+use sp_runtime::traits::TryConvert;
 
 /// Intent based permission.
 ///

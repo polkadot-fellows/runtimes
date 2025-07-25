@@ -44,11 +44,9 @@ use super::{
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
-use frame_support::{
-	traits::{
-		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
-		OnInitialize, ReservableCurrency,
-	},
+use frame_support::traits::{
+	fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
+	OnInitialize, ReservableCurrency,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{

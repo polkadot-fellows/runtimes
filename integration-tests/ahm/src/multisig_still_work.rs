@@ -16,9 +16,7 @@
 
 //! Test that Multisig Account IDs result in the same IDs and they can still dispatch calls.
 
-use frame_support::{
-	pallet_prelude::*,
-};
+use frame_support::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 

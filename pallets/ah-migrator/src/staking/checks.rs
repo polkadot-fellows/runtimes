@@ -16,11 +16,9 @@
 
 //! Checks that the staking migration succeeded.
 
-use pallet_rc_migrator::{
-	staking::{
-		message::{PortableNominations, PortableUnappliedSlash},
-		RcData,
-	},
+use pallet_rc_migrator::staking::{
+	message::{PortableNominations, PortableUnappliedSlash},
+	RcData,
 };
 use sp_runtime::{AccountId32, Perbill};
 

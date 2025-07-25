@@ -20,10 +20,7 @@ use super::ProxyBasicWorks;
 use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
-use sp_runtime::{
-	traits::TryConvert,
-	AccountId32,
-};
+use sp_runtime::{traits::TryConvert, AccountId32};
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
