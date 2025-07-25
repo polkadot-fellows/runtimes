@@ -29,6 +29,7 @@ use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
 	bounties::{alias::Bounty, RcBountiesMessage},
+	child_bounties::PortableChildBountiesMessage,
 	claims::{alias::EthereumAddress, RcClaimsMessage},
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
@@ -902,6 +903,32 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn receive_child_bounties_messages(n: Linear<1, 100>) {
+		// Use the ChildBountyDescriptionsV1 variant since it has this big description
+		let create_child_bounties = |n: u32| -> PortableChildBountiesMessage {
+			PortableChildBountiesMessage::ChildBountyDescriptionsV1 {
+				parent_id: n,
+				child_id: n,
+				description: vec![n as u8; 17000].try_into().unwrap(),
+			}
+		};
+
+		let messages = (0..n).map(create_child_bounties).collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ChildBounties,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
 
@@ -1256,6 +1283,15 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_preimage_chunk::<T>(m, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_child_bounties_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_child_bounties_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]

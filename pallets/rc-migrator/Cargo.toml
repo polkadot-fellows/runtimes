@@ -24,6 +24,7 @@ pallet-asset-rate = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
 pallet-bounties = { workspace = true }
+pallet-child-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -68,6 +69,7 @@ std = [
 	"pallet-bags-list/std",
 	"pallet-balances/std",
 	"pallet-bounties/std",
+	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-delegated-staking/std",
 	"pallet-fast-unstake/std",
@@ -114,6 +116,7 @@ runtime-benchmarks = [
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
+	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
@@ -150,6 +153,7 @@ try-runtime = [
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-bounties/try-runtime",
+	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-fast-unstake/try-runtime",

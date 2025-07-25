@@ -253,6 +253,13 @@ fn test_bench_receive_preimage_request_status() {
 }
 
 #[test]
+fn test_bench_receive_child_bounties_messages() {
+	new_test_ext().execute_with(|| {
+		test_receive_child_bounties_messages::<AssetHub>(BENCHMARK_N);
+	});
+}
+
+#[test]
 fn test_bench_force_dmp_queue_priority() {
 	new_test_ext().execute_with(|| {
 		test_force_dmp_queue_priority::<AssetHub>();

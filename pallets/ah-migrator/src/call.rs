@@ -52,7 +52,7 @@ impl<T: Config> Pallet<T> {
 		if ah_bounded_call.lookup_needed() {
 			// Noted preimages for referendums that did not pass will need to be manually removed
 			// later.
-			log::info!(target: LOG_TARGET, "New preimage was noted for call");
+			log::debug!(target: LOG_TARGET, "New preimage was noted for call");
 		}
 
 		Ok(ah_bounded_call)

@@ -51,7 +51,7 @@ impl<T: Config> Pallet<T> {
 		// Translate the delegator account from RC to AH format
 		let translated_delegator = Self::translate_account_rc_to_ah(proxy.delegator.clone());
 
-		log::info!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}",
+		log::debug!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}",
 			translated_delegator.to_polkadot_ss58(),
 			proxy.deposit
 		);
@@ -68,7 +68,7 @@ impl<T: Config> Pallet<T> {
 			// Translate the delegate account from RC to AH format
 			let translated_delegate = Self::translate_account_rc_to_ah(p.delegate.clone());
 
-			log::info!(target: LOG_TARGET, "Proxy type: {:?} delegate: {}",
+			log::debug!(target: LOG_TARGET, "Proxy type: {:?} delegate: {}",
 				proxy_type,
 				translated_delegate.to_polkadot_ss58()
 			);
