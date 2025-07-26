@@ -56,10 +56,10 @@ cumulus-primitives-aura = { version = "0.18.0", default-features = false }
 cumulus-primitives-core = { version = "0.19.0", default-features = false }
 cumulus-primitives-utility = { version = "0.21.0", default-features = false }
 emulated-integration-tests-common = { version = "22.1.0" }
-#encointer-balances-tx-payment = { version = "~16.1.0", default-features = false }
-#encointer-balances-tx-payment-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-#encointer-kusama-runtime = { path = "system-parachains/encointer" }
-#encointer-primitives = { version = "~16.4.0", default-features = false }
+encointer-balances-tx-payment = { version = "~16.1.0", default-features = false }
+encointer-balances-tx-payment-rpc-runtime-api = { version = "~16.1.0", default-features = false }
+encointer-kusama-runtime = { path = "system-parachains/encointer" }
+encointer-primitives = { version = "~16.4.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "41.0.0", default-features = false }
 frame-election-provider-support = { version = "41.0.0", default-features = false }
@@ -106,19 +106,19 @@ pallet-conviction-voting = { version = "41.0.0", default-features = false }
 pallet-core-fellowship = { version = "25.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "40.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "40.0.0", default-features = false }
-#pallet-encointer-balances = { version = "~16.2.0", default-features = false }
-#pallet-encointer-bazaar = { version = "~16.1.0", default-features = false }
-#pallet-encointer-bazaar-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-#pallet-encointer-ceremonies = { version = "~16.1.0", default-features = false }
-#pallet-encointer-ceremonies-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-#pallet-encointer-communities = { version = "~16.1.0", default-features = false }
-#pallet-encointer-communities-rpc-runtime-api = { version = "~16.1.0", default-features = false }
-#pallet-encointer-democracy = { version = "~16.4.0", default-features = false }
-#pallet-encointer-faucet = { version = "~16.2.0", default-features = false }
-#pallet-encointer-reputation-commitments = { version = "~16.1.0", default-features = false }
-#pallet-encointer-scheduler = { version = "~16.1.0", default-features = false }
-#pallet-encointer-treasuries = { version = "~16.4.1", default-features = false }
-#pallet-encointer-treasuries-rpc-runtime-api = { version = "~16.3.0", default-features = false }
+pallet-encointer-balances = { version = "~16.2.0", default-features = false }
+pallet-encointer-bazaar = { version = "~16.1.0", default-features = false }
+pallet-encointer-bazaar-rpc-runtime-api = { version = "~16.1.0", default-features = false }
+pallet-encointer-ceremonies = { version = "~16.1.0", default-features = false }
+pallet-encointer-ceremonies-rpc-runtime-api = { version = "~16.1.0", default-features = false }
+pallet-encointer-communities = { version = "~16.1.0", default-features = false }
+pallet-encointer-communities-rpc-runtime-api = { version = "~16.1.0", default-features = false }
+pallet-encointer-democracy = { version = "~16.4.0", default-features = false }
+pallet-encointer-faucet = { version = "~16.2.0", default-features = false }
+pallet-encointer-reputation-commitments = { version = "~16.1.0", default-features = false }
+pallet-encointer-scheduler = { version = "~16.1.0", default-features = false }
+pallet-encointer-treasuries = { version = "~16.4.1", default-features = false }
+pallet-encointer-treasuries-rpc-runtime-api = { version = "~16.3.0", default-features = false }
 pallet-fast-unstake = { version = "40.0.0", default-features = false }
 pallet-glutton = { version = "27.0.0", default-features = false }
 pallet-grandpa = { version = "41.0.0", default-features = false }
@@ -309,7 +309,7 @@ members = [
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",
-	#	"system-parachains/encointer",
+	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
