@@ -57,7 +57,8 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
-	staking::StakingMigratedCorrectly, types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
+	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
@@ -109,6 +110,7 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
 	StakingMigratedCorrectly<Polkadot>,
+	ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
 // Checks that are specific to Paseo.
@@ -158,6 +160,7 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	ProxyWhaleWatching,
 	StakingMigratedCorrectly<AssetHub>,
+	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
 #[cfg(feature = "paseo")]
