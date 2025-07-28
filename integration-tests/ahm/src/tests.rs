@@ -54,7 +54,8 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
-	staking::StakingMigratedCorrectly, types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
+	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
@@ -89,14 +90,15 @@ type RcChecks = (
 	pallet_rc_migrator::staking::delegated_staking::DelegatedStakingMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
 	BalancesCrossChecker,
-	RcPolkadotChecks,
+	RcRuntimeSpecificChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	MultisigStillWork,
 );
 
-// Checks that are specific to Polkadot, and not available on other chains (like Westend)
-pub type RcPolkadotChecks = (
+// Checks that are specific to Polkadot, and not available on other chains (like Paseo)
+#[cfg(not(feature = "paseo"))]
+pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
@@ -105,6 +107,17 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	ProxyWhaleWatching,
 	StakingMigratedCorrectly<Polkadot>,
+	ChildBountiesMigratedCorrectly<Polkadot>,
+);
+
+// Checks that are specific to Paseo.
+#[cfg(feature = "paseo")]
+pub type RcRuntimeSpecificChecks = (
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
+	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 );
 
 type AhChecks = (
@@ -128,13 +141,14 @@ type AhChecks = (
 	pallet_rc_migrator::staking::delegated_staking::DelegatedStakingMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
 	BalancesCrossChecker,
-	AhPolkadotChecks,
+	AhRuntimeSpecificChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	MultisigStillWork,
 );
 
-pub type AhPolkadotChecks = (
+#[cfg(not(feature = "paseo"))]
+pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
@@ -143,6 +157,16 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	ProxyWhaleWatching,
 	StakingMigratedCorrectly<AssetHub>,
+	ChildBountiesMigratedCorrectly<AssetHub>,
+);
+
+#[cfg(feature = "paseo")]
+pub type AhRuntimeSpecificChecks = (
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
+	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead

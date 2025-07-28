@@ -37,6 +37,7 @@ pub mod asset_rate;
 pub mod benchmarking;
 pub mod bounties;
 pub mod call;
+pub mod child_bounties;
 pub mod claims;
 pub mod conviction_voting;
 pub mod crowdloan;
@@ -78,8 +79,9 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	bounties::RcBountiesMessageOf, claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf,
-	staking::PortableStakingMessage, treasury::RcTreasuryMessage, types::MigrationStatus,
+	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
+	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
+	treasury::RcTreasuryMessage, types::MigrationStatus,
 };
 
 use cumulus_primitives_core::AggregateMessageOrigin;
@@ -151,6 +153,7 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	ChildBounties,
 	Treasury,
 	Balances,
 	Multisig,
@@ -263,7 +266,8 @@ pub mod pallet {
 		+ pallet_ah_ops::Config
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
-		+ pallet_treasury::Config
+		+ pallet_child_bounties::Config
+		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
@@ -858,7 +862,18 @@ pub mod pallet {
 			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(30)]
+		#[pallet::call_index(24)]
+		#[pallet::weight(T::AhWeightInfo::receive_child_bounties_messages(messages.len() as u32))]
+		pub fn receive_child_bounties_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableChildBountiesMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_child_bounties_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(25)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(3, 3).saturating_add(Weight::from_parts(10_000_000, 200)).saturating_mul(messages.len() as u64)
 		)] // TODO @ggwpez weight
@@ -993,11 +1008,11 @@ pub mod pallet {
 		///
 		/// Currently returns the input account unchanged (mock implementation).
 		///
-		/// TODO: Will also be responsible to emit a translation event.
-		/// TODO: The current signature suggests that the function is intended to be infallible and
+		/// TODO Will also be responsible to emit a translation event.
+		/// TODO The current signature suggests that the function is intended to be infallible and
 		/// always return a valid account. This should be revisited when we replace the mock
 		/// implementation with the real one.
-		/// TODO: introduce different accountId types for RC and AH e.g something like
+		/// TODO introduce different accountId types for RC and AH e.g something like
 		/// ```rust
 		/// trait IntoAhTranslated<AhAccountId> {
 		///     fn into_ah_translated(self) -> AhAccountId;
