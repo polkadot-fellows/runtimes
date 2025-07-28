@@ -155,7 +155,8 @@ where
 							));
 							ChildBountiesStage::ParentChildBounties { parent_id: Some(key) }
 						},
-						None => ChildBountiesStage::ChildBounties { ids: None },
+						None => ChildBountiesStage::ParentTotalChildBounties
+						 { parent_id: None },
 					}
 				},
 				ChildBountiesStage::ParentTotalChildBounties { parent_id } => {
@@ -233,7 +234,7 @@ where
 								ids: Some((parent_id, child_id)),
 							}
 						},
-						None => ChildBountiesStage::ChildrenCuratorFees { child_id: None },
+						None => ChildBountiesStage::V0ToV1ChildBountyIds { child_id: None },
 					}
 				},
 				ChildBountiesStage::V0ToV1ChildBountyIds { child_id } => {
@@ -253,7 +254,7 @@ where
 							});
 							ChildBountiesStage::V0ToV1ChildBountyIds { child_id: Some(v1_child_id) }
 						},
-						None => ChildBountiesStage::Finished,
+						None => ChildBountiesStage::ChildrenCuratorFees { child_id: None },
 					}
 				},
 				ChildBountiesStage::ChildrenCuratorFees { child_id } => {
