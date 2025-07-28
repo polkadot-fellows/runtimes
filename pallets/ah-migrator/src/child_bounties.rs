@@ -54,7 +54,8 @@ impl<T: Config> Pallet<T> {
 		match message {
 			ChildBountyCount(count) =>
 				if pallet_child_bounties::ChildBountyCount::<T>::exists() {
-					log::warn!(target: LOG_TARGET, "ChildBountyCount already exists, skipping");
+					// We try to not sent it twice, so this should not happen.
+					defensive!("ChildBountyCount already exists, skipping");
 				} else {
 					pallet_child_bounties::ChildBountyCount::<T>::set(count);
 				},
