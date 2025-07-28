@@ -41,7 +41,6 @@ use frame_election_provider_support::{
 use frame_support::{
 	construct_runtime,
 	genesis_builder_helper::{build_state, get_preset},
-	pallet_prelude::PhantomData,
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
@@ -63,8 +62,6 @@ pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDeposit
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
-use pallet_staking_async_ah_client as ah_client;
-use pallet_staking_async_rc_client as rc_client;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
@@ -464,7 +461,7 @@ impl pallet_timestamp::Config for Runtime {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-	type EventHandler = AssetHubStakingClient;
+	type EventHandler = Staking;
 }
 
 impl_opaque_keys! {
@@ -484,7 +481,7 @@ impl pallet_session::Config for Runtime {
 	type ValidatorIdOf = ConvertInto;
 	type ShouldEndSession = Babe;
 	type NextSessionRotation = Babe;
-	type SessionManager = session_historical::NoteHistoricalRoot<Self, AssetHubStakingClient>;
+	type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
@@ -493,8 +490,9 @@ impl pallet_session::Config for Runtime {
 
 impl pallet_session::historical::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type FullIdentification = sp_staking::Exposure<AccountId, Balance>;
-	type FullIdentificationOf = pallet_staking::DefaultExposureOf<Self>;
+	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
+	#[allow(deprecated)] // will be removed with AHM
+	type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
 }
 
 parameter_types! {
@@ -729,114 +727,7 @@ impl pallet_staking::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	// TODO: Set this to everything once AHM migration starts.
 	type Filter = ();
-}
-
-#[derive(Encode, Decode)]
-enum AssetHubRuntimePallets<AccountId> {
-	// TODO - AHM: check index
-	#[codec(index = 89)]
-	RcClient(RcClientCalls<AccountId>),
-}
-
-#[derive(Encode, Decode)]
-enum RcClientCalls<AccountId> {
-	// TODO - AHM: check index
-	#[codec(index = 0)]
-	RelaySessionReport(rc_client::SessionReport<AccountId>),
-	// TODO - AHM: check index
-	#[codec(index = 1)]
-	RelayNewOffence(SessionIndex, Vec<rc_client::Offence<AccountId>>),
-}
-
-pub struct AssetHubLocation;
-impl Get<Location> for AssetHubLocation {
-	fn get() -> Location {
-		Location::new(0, [Junction::Parachain(system_parachain::ASSET_HUB_ID)])
-	}
-}
-
-pub struct XcmToAssetHub<T: SendXcm>(PhantomData<T>);
-impl<T: SendXcm> ah_client::SendToAssetHub for XcmToAssetHub<T> {
-	type AccountId = AccountId;
-
-	fn relay_session_report(session_report: rc_client::SessionReport<Self::AccountId>) {
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Self::mk_asset_hub_call(RcClientCalls::RelaySessionReport(session_report)),
-		]);
-		if let Err(err) = send_xcm::<T>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime", "Failed to send relay session report message: {err:?}");
-		}
-	}
-
-	fn relay_new_offence(
-		session_index: SessionIndex,
-		offences: Vec<rc_client::Offence<Self::AccountId>>,
-	) {
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Self::mk_asset_hub_call(RcClientCalls::RelayNewOffence(session_index, offences)),
-		]);
-		if let Err(err) = send_xcm::<T>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime", "Failed to send relay offence message: {err:?}");
-		}
-	}
-}
-
-impl<T: SendXcm> XcmToAssetHub<T> {
-	fn mk_asset_hub_call(
-		call: RcClientCalls<<Self as ah_client::SendToAssetHub>::AccountId>,
-	) -> Instruction<()> {
-		Instruction::Transact {
-			origin_kind: OriginKind::Superuser,
-			fallback_max_weight: None,
-			call: AssetHubRuntimePallets::RcClient(call).encode().into(),
-		}
-	}
-}
-
-pub struct EnsureAssetHub;
-impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
-	type Success = ();
-	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
-		match <RuntimeOrigin as Into<Result<parachains_origin::Origin, RuntimeOrigin>>>::into(
-			o.clone(),
-		) {
-			Ok(parachains_origin::Origin::Parachain(id))
-				if id == system_parachain::ASSET_HUB_ID.into() =>
-				Ok(()),
-			_ => Err(o),
-		}
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
-		Ok(RuntimeOrigin::root())
-	}
-}
-
-// TODO - AHM: this pallet is currently in place, but does nothing. Upon AHM, it should become
-// activated. Note that it is used as `SessionManager`, but since its mode is `Passive`, it will
-// delegate all of its tasks to `Fallback`, which is again `Staking`.
-impl ah_client::Config for Runtime {
-	type CurrencyBalance = Balance;
-	type AssetHubOrigin =
-		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
-	type AdminOrigin = EnsureRoot<AccountId>;
-	type SessionInterface = Self;
-	type SendToAssetHub = XcmToAssetHub<crate::xcm_config::XcmRouter>;
-	type MinimumValidatorSetSize = ConstU32<4>;
-	type UnixTime = Timestamp;
-	type PointsPerBlock = ConstU32<20>;
-	type Fallback = Staking;
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -949,7 +840,7 @@ impl pallet_child_bounties::Config for Runtime {
 impl pallet_offences::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type IdentificationTuple = session_historical::IdentificationTuple<Self>;
-	type OnOffenceHandler = AssetHubStakingClient;
+	type OnOffenceHandler = Staking;
 }
 
 impl pallet_authority_discovery::Config for Runtime {
@@ -1304,7 +1195,7 @@ impl parachains_inclusion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type DisputesHandler = ParasDisputes;
 	type RewardValidators =
-		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, AssetHubStakingClient>;
+		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, Staking>;
 	type MessageQueue = MessageQueue;
 	type WeightInfo = weights::runtime_parachains_inclusion::WeightInfo<Runtime>;
 }
@@ -1469,7 +1360,7 @@ impl parachains_initializer::Config for Runtime {
 impl parachains_disputes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RewardValidators =
-		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, AssetHubStakingClient>;
+		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, Staking>;
 	type SlashingHandler = parachains_slashing::SlashValidatorsForDisputes<ParasSlashing>;
 	type WeightInfo = weights::runtime_parachains_disputes::WeightInfo<Runtime>;
 }
@@ -1756,7 +1647,6 @@ construct_runtime! {
 		ParasSlashing: parachains_slashing = 63,
 		OnDemand: parachains_on_demand = 64,
 		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
-		AssetHubStakingClient: pallet_staking_async_ah_client = 66,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
