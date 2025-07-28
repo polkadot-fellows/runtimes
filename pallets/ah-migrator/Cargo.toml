@@ -199,4 +199,6 @@ try-runtime = [
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
-ahm-kusama = []
+ahm-kusama = [
+	"pallet-rc-migrator/ahm-kusama",
+]
