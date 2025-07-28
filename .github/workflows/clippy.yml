@@ -43,5 +43,5 @@ jobs:
           cargo clippy --all-targets --locked --workspace --quiet
           cargo clippy --all-targets --all-features --locked --workspace --quiet
         env:
-          #RUSTFLAGS: "-D warnings" FAIL-CI re-enable after AHM
+          RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1

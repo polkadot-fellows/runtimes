@@ -143,7 +143,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				break;
 			};
 
-			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
+			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {k1:?}");
 
 			batch.push(RcMultisig {
 				creator: multisig.depositor,

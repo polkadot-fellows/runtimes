@@ -118,7 +118,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					ClaimsStage::Claims(None)
 				},
 				ClaimsStage::Claims(address) => {
-					let mut iter = match address.clone() {
+					let mut iter = match address {
 						Some(address) => alias::Claims::<T>::iter_from(
 							alias::Claims::<T>::hashed_key_for(address),
 						),
@@ -127,7 +127,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 
 					match iter.next() {
 						Some((address, amount)) => {
-							alias::Claims::<T>::remove(&address);
+							alias::Claims::<T>::remove(address);
 							messages.push(RcClaimsMessage::Claims((address, amount)));
 							ClaimsStage::Claims(Some(address))
 						},
@@ -135,7 +135,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					}
 				},
 				ClaimsStage::Vesting(address) => {
-					let mut iter = match address.clone() {
+					let mut iter = match address {
 						Some(address) => alias::Vesting::<T>::iter_from(
 							alias::Vesting::<T>::hashed_key_for(address),
 						),
@@ -152,7 +152,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					}
 				},
 				ClaimsStage::Signing(address) => {
-					let mut iter = match address.clone() {
+					let mut iter = match address {
 						Some(address) => alias::Signing::<T>::iter_from(
 							alias::Signing::<T>::hashed_key_for(address),
 						),
@@ -169,7 +169,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					}
 				},
 				ClaimsStage::Preclaims(address) => {
-					let mut iter = match address.clone() {
+					let mut iter = match address {
 						Some(address) => alias::Preclaims::<T>::iter_from(
 							alias::Preclaims::<T>::hashed_key_for(address),
 						),

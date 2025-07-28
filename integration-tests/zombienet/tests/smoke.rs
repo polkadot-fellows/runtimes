@@ -7,7 +7,7 @@ use zombienet_sdk_tests::{
 
 fn dump_provider_and_versions() {
 	let provider = get_provider_from_env();
-	log::info!("Using zombienet provider: {:?}", provider);
+	log::info!("Using zombienet provider: {provider:?}");
 
 	if let Provider::Docker = provider {
 		let images = get_images_from_env();

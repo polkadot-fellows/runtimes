@@ -1010,14 +1010,16 @@ pub mod pallet {
 					if now >= start {
 						weight_counter.consume(T::DbWeight::get().reads(2));
 
-						let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-						let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-						// ensure new era is not planned when starting migration.
-						#[cfg(not(feature = "std"))]
-						if current_era > active_era {
-							defensive!("Migration must start before the election starts on the chain.");
-							Self::transition(MigrationStage::Pending);
-							return weight_counter.consumed();
+						#[cfg(not(feature = "std"))] // Skip in tests since snapshot can be off
+						{
+							let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
+							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
+							// ensure new era is not planned when starting migration.
+							if current_era > active_era {
+								defensive!("Migration must start before the election starts on the chain.");
+								Self::transition(MigrationStage::Pending);
+								return weight_counter.consumed();
+							}
 						}
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {

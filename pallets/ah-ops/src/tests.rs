@@ -14,10 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use frame_support::{
-	hypothetically,
-	traits::{fungible::Mutate, InspectLockableCurrency, LockableCurrency, WithdrawReasons},
-};
 use sp_runtime::AccountId32;
 use std::str::FromStr;
 

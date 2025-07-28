@@ -215,7 +215,7 @@ pub type AccountFor<T> = Account<
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub struct MigratedBalances<Balance: Default> {
+pub struct MigratedBalances<Balance> {
 	pub kept: Balance,
 	pub migrated: Balance,
 }
