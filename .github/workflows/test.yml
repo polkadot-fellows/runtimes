@@ -188,8 +188,8 @@ jobs:
       - name: Download AHM test snapshots
         run: |
           python3 -m pip install gdown
-          gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR
-          gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z
+          gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR # 2025-07-28
+          gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z # 2025-07-28
 
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
