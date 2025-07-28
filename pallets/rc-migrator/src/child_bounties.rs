@@ -138,8 +138,8 @@ where
 					// Check if exists to make it idempotent.
 					if pallet_child_bounties::ChildBountyCount::<T>::exists() {
 						let count = pallet_child_bounties::ChildBountyCount::<T>::take();
-						messages.push(PortableChildBountiesMessage::ChildBountyCount(count));	
-					}				
+						messages.push(PortableChildBountiesMessage::ChildBountyCount(count));
+					}
 
 					ChildBountiesStage::ParentChildBounties { parent_id: None }
 				},
@@ -158,8 +158,7 @@ where
 							));
 							ChildBountiesStage::ParentChildBounties { parent_id: Some(key) }
 						},
-						None => ChildBountiesStage::ParentTotalChildBounties
-						 { parent_id: None },
+						None => ChildBountiesStage::ParentTotalChildBounties { parent_id: None },
 					}
 				},
 				ChildBountiesStage::ParentTotalChildBounties { parent_id } => {
