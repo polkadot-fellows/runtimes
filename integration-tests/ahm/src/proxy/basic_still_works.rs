@@ -111,13 +111,7 @@ impl AhMigrationCheck for ProxyBasicWorks {
 			// Assert storage "Proxy::Proxies::ah_post::correct"
 			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(delegator);
 			if entry.is_empty() {
-				// FIXME possibly bug
-				log::error!(
-					"Storage entry must exist for {:?} -> {:?}",
-					delegator.to_polkadot_ss58(),
-					delegatee.to_polkadot_ss58()
-				);
-				continue
+				defensive!("Storage entry must exist");
 			}
 
 			let maybe_delay =
