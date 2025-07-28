@@ -954,10 +954,7 @@ pub mod tests {
 				// Preimage pallet indexes on Polkadot RC => AH
 				[10, 0] => [5, 0].to_vec(),
 				// Pallet staking indexes on Polkadot RC => AH
-				// TODO: change to the correct encoding when Staking holds are correctly re-created
-				// on Asset Hub in pallet-staking-async, so when we add pallet-staking-async to
-				// Asset Hub.
-				[7, 0] => [5, 0].to_vec(),
+				[7, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Polkadot RC => AH
 				[41, 0] => [83, 0].to_vec(),
 				_ => panic!("Unknown hold id: {:?}", hold_id),

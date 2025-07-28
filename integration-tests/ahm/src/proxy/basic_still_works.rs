@@ -268,11 +268,11 @@ impl ProxyBasicWorks {
 		let ed = <AssetHubRuntime as pallet_balances::Config>::ExistentialDeposit::get();
 		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
 			&delegatee.clone(),
-			ed * 10000000,
+			ed * 100_000_000_000,
 		);
 		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
 			&delegator.clone(),
-			ed * 10000000,
+			ed * 100_000_000_000,
 		);
 		ed
 	}
