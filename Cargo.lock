@@ -8668,7 +8668,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic",
- "sp-core",
+ "sp-core 36.1.0",
  "sp-io",
  "sp-runtime",
 ]
@@ -9407,7 +9407,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic",
- "sp-core",
+ "sp-core 36.1.0",
  "sp-io",
  "sp-runtime",
 ]

@@ -42,7 +42,7 @@
 
 extern crate alloc;
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
 use scale_info::TypeInfo;
 use sp_arithmetic::traits::Saturating;
@@ -91,6 +91,7 @@ pub type Votes = u32;
 	EqNoBound,
 	RuntimeDebugNoBound,
 	TypeInfo,
+	DecodeWithMemTracking,
 	Encode,
 	Decode,
 	MaxEncodedLen,
@@ -192,7 +193,18 @@ impl MemberRecord {
 }
 
 /// Record needed for every vote.
-#[derive(PartialEq, Eq, Clone, Copy, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Copy,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
+)]
 pub enum VoteRecord {
 	/// Vote was an aye with given vote weight.
 	Aye(Votes),

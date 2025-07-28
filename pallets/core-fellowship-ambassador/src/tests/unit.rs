@@ -26,7 +26,7 @@ use frame_support::{
 	assert_noop, assert_ok, derive_impl, hypothetically, ord_parameter_types,
 	pallet_prelude::Weight,
 	parameter_types,
-	traits::{tokens::GetSalary, ConstU16, ConstU32, IsInVec, TryMapSuccess},
+	traits::{ConstU16, ConstU32, IsInVec, TryMapSuccess},
 };
 use frame_system::EnsureSignedBy;
 use sp_runtime::{bounded_vec, traits::TryMorphInto, BuildStorage, DispatchError, DispatchResult};
@@ -146,8 +146,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext.execute_with(|| {
 		set_rank(100, 9);
 		let params = ParamsType {
-			active_salary: bounded_vec![10, 20, 30, 40, 50, 60, 70, 80, 90],
-			passive_salary: bounded_vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
 			demotion_period: bounded_vec![2, 4, 6, 8, 10, 12, 14, 16, 18],
 			min_promotion_period: bounded_vec![3, 6, 9, 12, 15, 18, 21, 24, 27],
 			offboard_timeout: 1,
@@ -186,7 +184,6 @@ fn basic_stuff() {
 		assert_eq!(CoreFellowship::rank_to_index(1), Some(0));
 		assert_eq!(CoreFellowship::rank_to_index(9), Some(8));
 		assert_eq!(CoreFellowship::rank_to_index(10), None);
-		assert_eq!(CoreFellowship::get_salary(0, &1), 0);
 	});
 }
 
@@ -194,8 +191,6 @@ fn basic_stuff() {
 fn set_params_works() {
 	new_test_ext().execute_with(|| {
 		let params = ParamsType {
-			active_salary: bounded_vec![10, 20, 30, 40, 50, 60, 70, 80, 90],
-			passive_salary: bounded_vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
 			demotion_period: bounded_vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
 			min_promotion_period: bounded_vec![1, 2, 3, 4, 5, 10, 15, 20, 30],
 			offboard_timeout: 1,
@@ -212,8 +207,6 @@ fn set_params_works() {
 fn set_partial_params_works() {
 	new_test_ext().execute_with(|| {
 		let params = ParamsType {
-			active_salary: bounded_vec![None; 9],
-			passive_salary: bounded_vec![None; 9],
 			demotion_period: bounded_vec![None, Some(10), None, None, None, None, None, None, None],
 			min_promotion_period: bounded_vec![None; 9],
 			offboard_timeout: Some(2),
@@ -226,8 +219,6 @@ fn set_partial_params_works() {
 
 		// Update params from the base params value declared in `new_test_ext`
 		let raw_updated_params = ParamsType {
-			active_salary: bounded_vec![10, 20, 30, 40, 50, 60, 70, 80, 90],
-			passive_salary: bounded_vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
 			demotion_period: bounded_vec![2, 10, 6, 8, 10, 12, 14, 16, 18],
 			min_promotion_period: bounded_vec![3, 6, 9, 12, 15, 18, 21, 24, 27],
 			offboard_timeout: 2,
@@ -493,8 +484,6 @@ fn offboard_works() {
 fn infinite_demotion_period_works() {
 	new_test_ext().execute_with(|| {
 		let params = ParamsType {
-			active_salary: bounded_vec![10, 10, 10, 10, 10, 10, 10, 10, 10],
-			passive_salary: bounded_vec![10, 10, 10, 10, 10, 10, 10, 10, 10],
 			min_promotion_period: bounded_vec![10, 10, 10, 10, 10, 10, 10, 10, 10],
 			demotion_period: bounded_vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
 			offboard_timeout: 0,
@@ -534,30 +523,5 @@ fn promote_postpones_auto_demote() {
 		assert_ok!(CoreFellowship::promote(signed(6), 10, 6));
 		assert_eq!(next_demotion(10), 31);
 		assert_noop!(CoreFellowship::bump(signed(0), 10), Error::<Test>::NothingDoing);
-	});
-}
-
-#[test]
-fn get_salary_works() {
-	new_test_ext().execute_with(|| {
-		for i in 1..=9u64 {
-			set_rank(10 + i, i as u16);
-			assert_ok!(CoreFellowship::import(signed(10 + i)));
-			assert_eq!(CoreFellowship::get_salary(i as u16, &(10 + i)), i * 10);
-		}
-	});
-}
-
-#[test]
-fn active_changing_get_salary_works() {
-	new_test_ext().execute_with(|| {
-		for i in 1..=9u64 {
-			set_rank(10 + i, i as u16);
-			assert_ok!(CoreFellowship::import(signed(10 + i)));
-			assert_ok!(CoreFellowship::set_active(signed(10 + i), false));
-			assert_eq!(CoreFellowship::get_salary(i as u16, &(10 + i)), i);
-			assert_ok!(CoreFellowship::set_active(signed(10 + i), true));
-			assert_eq!(CoreFellowship::get_salary(i as u16, &(10 + i)), i * 10);
-		}
 	});
 }

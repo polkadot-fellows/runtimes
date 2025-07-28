@@ -15,13 +15,12 @@
 
 //! The Ambassador Program's referenda voting tracks.
 
-use super::Origin;
 const fn percent(x: i32) -> sp_arithmetic::FixedI64 {
 	sp_arithmetic::FixedI64::from_rational(x as u128, 100)
 }
 use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS, MINUTES};
-use pallet_ranked_collective_ambassador::Rank;
 use alloc::borrow::Cow;
+use pallet_ranked_collective_ambassador::Rank;
 use pallet_referenda::Curve;
 use sp_runtime::{str_array as s, traits::Convert, Perbill};
 
@@ -32,28 +31,28 @@ pub type TrackId = u16;
 pub mod constants {
 	use super::TrackId;
 
-	pub const ASSOCIATE_AMBASSADOR: TrackId = 1;
-	pub const LEAD_AMBASSADOR: TrackId = 2;
-	pub const SENIOR_AMBASSADOR: TrackId = 3;
-	pub const PRINCIPAL_AMBASSADOR: TrackId = 4;
-	pub const GLOBAL_AMBASSADOR: TrackId = 5;
-	pub const GLOBAL_HEAD_AMBASSADOR: TrackId = 6;
+	pub const ASSOCIATE: TrackId = 1;
+	pub const LEAD: TrackId = 2;
+	pub const SENIOR: TrackId = 3;
+	pub const PRINCIPAL: TrackId = 4;
+	pub const GLOBAL: TrackId = 5;
+	pub const GLOBAL_HEAD: TrackId = 6;
 
-	pub const RETAIN_AT_ASSOCIATE_AMBASSADOR: TrackId = 11;
-	pub const RETAIN_AT_LEAD_AMBASSADOR: TrackId = 12;
-	pub const RETAIN_AT_SENIOR_AMBASSADOR: TrackId = 13;
-	pub const RETAIN_AT_PRINCIPAL_AMBASSADOR: TrackId = 14;
-	pub const RETAIN_AT_GLOBAL_AMBASSADOR: TrackId = 15; // this should be opengov vote
+	pub const RETAIN_AT_ASSOCIATE: TrackId = 11;
+	pub const RETAIN_AT_LEAD: TrackId = 12;
+	pub const RETAIN_AT_SENIOR: TrackId = 13;
+	pub const RETAIN_AT_PRINCIPAL: TrackId = 14;
+	pub const RETAIN_AT_GLOBAL: TrackId = 15; // this should be opengov vote
 
-	pub const PROMOTE_TO_ASSOCIATE_AMBASSADOR: TrackId = 21;
-	pub const PROMOTE_TO_LEAD_AMBASSADOR: TrackId = 22;
-	pub const PROMOTE_TO_SENIOR_AMBASSADOR: TrackId = 23;
-	pub const PROMOTE_TO_PRINCIPAL_AMBASSADOR: TrackId = 24;
-	pub const PROMOTE_TO_GLOBAL_AMBASSADOR: TrackId = 25;
+	pub const PROMOTE_TO_ASSOCIATE: TrackId = 21;
+	pub const PROMOTE_TO_LEAD: TrackId = 22;
+	pub const PROMOTE_TO_SENIOR: TrackId = 23;
+	pub const PROMOTE_TO_PRINCIPAL: TrackId = 24;
+	pub const PROMOTE_TO_GLOBAL: TrackId = 25;
 
-	pub const FAST_PROMOTE_TO_ASSOCIATE_AMBASSADOR: TrackId = 31;
-	pub const FAST_PROMOTE_TO_LEAD_AMBASSADOR: TrackId = 32;
-	pub const FAST_PROMOTE_TO_SENIOR_AMBASSADOR: TrackId = 33;
+	pub const FAST_PROMOTE_TO_ASSOCIATE: TrackId = 31;
+	pub const FAST_PROMOTE_TO_LEAD: TrackId = 32;
+	pub const FAST_PROMOTE_TO_SENIOR: TrackId = 33;
 
 	pub const TIP: TrackId = 41;
 	pub const TREASURER: TrackId = 42;
@@ -157,9 +156,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		use constants as tracks;
 		const DATA: [pallet_referenda::Track<TrackId, Balance, BlockNumber>; 21] = [
 			pallet_referenda::Track {
-				id: tracks::ASSOCIATE_AMBASSADOR,
+				id: tracks::ASSOCIATE,
 				info: pallet_referenda::TrackInfo {
-					name: s("associate ambassador"),
+					name: s("associate"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -179,9 +178,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::LEAD_AMBASSADOR,
+				id: tracks::LEAD,
 				info: pallet_referenda::TrackInfo {
-					name: "lead ambassador",
+					name: s("lead"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -201,9 +200,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::SENIOR_AMBASSADOR,
+				id: tracks::SENIOR,
 				info: pallet_referenda::TrackInfo {
-					name: s("senior ambassador"),
+					name: s("senior"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -223,9 +222,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::PRINCIPAL_AMBASSADOR,
+				id: tracks::PRINCIPAL,
 				info: pallet_referenda::TrackInfo {
-					name: s("principal ambassador"),
+					name: s("principal"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -245,9 +244,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::GLOBAL_AMBASSADOR,
+				id: tracks::GLOBAL,
 				info: pallet_referenda::TrackInfo {
-					name: s("global ambassador"),
+					name: s("global"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -267,9 +266,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::GLOBAL_HEAD_AMBASSADOR,
+				id: tracks::GLOBAL_HEAD,
 				info: pallet_referenda::TrackInfo {
-					name: s("global head ambassador"),
+					name: s("global head"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -289,9 +288,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::RETAIN_AT_ASSOCIATE_AMBASSADOR,
+				id: tracks::RETAIN_AT_ASSOCIATE,
 				info: pallet_referenda::TrackInfo {
-					name: s("retain at associate ambassador"),
+					name: s("retain at associate"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -303,9 +302,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::RETAIN_AT_LEAD_AMBASSADOR,
+				id: tracks::RETAIN_AT_LEAD,
 				info: pallet_referenda::TrackInfo {
-					name: s("retain at lead ambassador"),
+					name: s("retain at lead"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -317,9 +316,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::RETAIN_AT_SENIOR_AMBASSADOR,
+				id: tracks::RETAIN_AT_SENIOR,
 				info: pallet_referenda::TrackInfo {
-					name: s("retain at senior ambassador"),
+					name: s("retain at senior"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -331,9 +330,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::RETAIN_AT_PRINCIPAL_AMBASSADOR,
+				id: tracks::RETAIN_AT_PRINCIPAL,
 				info: pallet_referenda::TrackInfo {
-					name: s("retain at principal ambassador"),
+					name: s("retain at principal"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -345,9 +344,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::RETAIN_AT_GLOBAL_AMBASSADOR,
+				id: tracks::RETAIN_AT_GLOBAL,
 				info: pallet_referenda::TrackInfo {
-					name: s("retain at global ambassador"),
+					name: s("retain at global"),
 					max_deciding: RETAIN_MAX_DECIDING,
 					decision_deposit: RETAIN_DECISION_DEPOSIT,
 					prepare_period: RETAIN_PREPARE_PERIOD,
@@ -359,9 +358,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				tracks::PROMOTE_TO_ASSOCIATE_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: s("promote to associate ambassador"),
+				id: tracks::PROMOTE_TO_ASSOCIATE,
+				info: pallet_referenda::TrackInfo {
+					name: s("promote to associate"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -373,9 +372,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::PROMOTE_TO_LEAD_AMBASSADOR,
+				id: tracks::PROMOTE_TO_LEAD,
 				info: pallet_referenda::TrackInfo {
-					name: s("promote to lead ambassador"),
+					name: s("promote to lead"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -387,9 +386,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::PROMOTE_TO_SENIOR_AMBASSADOR,
+				id: tracks::PROMOTE_TO_SENIOR,
 				info: pallet_referenda::TrackInfo {
-					name: s("promote to senior ambassador"),
+					name: s("promote to senior"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -401,9 +400,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::PROMOTE_TO_PRINCIPAL_AMBASSADOR,
+				id: tracks::PROMOTE_TO_PRINCIPAL,
 				info: pallet_referenda::TrackInfo {
-					name: s("promote to principal ambassador"),
+					name: s("promote to principal"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -415,9 +414,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::PROMOTE_TO_GLOBAL_AMBASSADOR,
+				id: tracks::PROMOTE_TO_GLOBAL,
 				info: pallet_referenda::TrackInfo {
-					name: s("promote to global ambassador"),
+					name: s("promote to global"),
 					max_deciding: PROMOTE_MAX_DECIDING,
 					decision_deposit: PROMOTE_DECISION_DEPOSIT,
 					prepare_period: PROMOTE_PREPARE_PERIOD,
@@ -429,9 +428,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::FAST_PROMOTE_TO_ASSOCIATE_AMBASSADOR,
+				id: tracks::FAST_PROMOTE_TO_ASSOCIATE,
 				info: pallet_referenda::TrackInfo {
-					name: s("fast promote to associate ambassador"),
+					name: s("fast promote to associate"),
 					max_deciding: FAST_PROMOTE_MAX_DECIDING,
 					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
 					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
@@ -443,9 +442,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::FAST_PROMOTE_TO_LEAD_AMBASSADOR,
+				id: tracks::FAST_PROMOTE_TO_LEAD,
 				info: pallet_referenda::TrackInfo {
-					name: s("fast promote to lead ambassador"),
+					name: s("fast promote to lead"),
 					max_deciding: FAST_PROMOTE_MAX_DECIDING,
 					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
 					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
@@ -457,9 +456,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				id: tracks::FAST_PROMOTE_TO_SENIOR_AMBASSADOR,
+				id: tracks::FAST_PROMOTE_TO_SENIOR,
 				info: pallet_referenda::TrackInfo {
-					name: s("fast promote to senior ambassador"),
+					name: s("fast promote to senior"),
 					max_deciding: FAST_PROMOTE_MAX_DECIDING,
 					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
 					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
@@ -471,8 +470,8 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				},
 			},
 			pallet_referenda::Track {
-				tracks::TIP,
-				pallet_referenda::TrackInfo {
+				id: tracks::TIP,
+				info: pallet_referenda::TrackInfo {
 					name: s("tip"),
 					max_deciding: 200,
 					decision_deposit: DOLLARS * 10, // 1 DOT
@@ -513,33 +512,31 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 			// It is important that this is not available in production!
 			let root: Self::RuntimeOrigin = frame_system::RawOrigin::Root.into();
 			if &root == id {
-				return Ok(tracks::GLOBAL_HEAD_AMBASSADOR)
+				return Ok(tracks::GLOBAL_HEAD)
 			}
 		}
 
 		match Origin::try_from(id.clone()) {
-			Ok(Origin::AssociateAmbassador) => Ok(tracks::ASSOCIATE_AMBASSADOR),
-			Ok(Origin::LeadAmbassador) => Ok(tracks::LEAD_AMBASSADOR),
-			Ok(Origin::SeniorAmbassador) => Ok(tracks::SENIOR_AMBASSADOR),
-			Ok(Origin::PrincipalAmbassador) => Ok(tracks::PRINCIPAL_AMBASSADOR),
-			Ok(Origin::GlobalAmbassador) => Ok(tracks::GLOBAL_AMBASSADOR),
-			Ok(Origin::GlobalHeadAmbassador) => Ok(tracks::GLOBAL_HEAD_AMBASSADOR),
+			Ok(Origin::AssociateAmbassador) => Ok(tracks::ASSOCIATE),
+			Ok(Origin::LeadAmbassador) => Ok(tracks::LEAD),
+			Ok(Origin::SeniorAmbassador) => Ok(tracks::SENIOR),
+			Ok(Origin::PrincipalAmbassador) => Ok(tracks::PRINCIPAL),
+			Ok(Origin::GlobalAmbassador) => Ok(tracks::GLOBAL),
+			Ok(Origin::GlobalHeadAmbassador) => Ok(tracks::GLOBAL_HEAD),
 
-			Ok(Origin::RetainAtAssociateAmbassador) => Ok(tracks::RETAIN_AT_ASSOCIATE_AMBASSADOR),
-			Ok(Origin::RetainAtLeadAmbassador) => Ok(tracks::RETAIN_AT_LEAD_AMBASSADOR),
-			Ok(Origin::RetainAtSeniorAmbassador) => Ok(tracks::RETAIN_AT_SENIOR_AMBASSADOR),
-			Ok(Origin::RetainAtPrincipalAmbassador) => Ok(tracks::RETAIN_AT_PRINCIPAL_AMBASSADOR),
+			Ok(Origin::RetainAtAssociateAmbassador) => Ok(tracks::RETAIN_AT_ASSOCIATE),
+			Ok(Origin::RetainAtLeadAmbassador) => Ok(tracks::RETAIN_AT_LEAD),
+			Ok(Origin::RetainAtSeniorAmbassador) => Ok(tracks::RETAIN_AT_SENIOR),
+			Ok(Origin::RetainAtPrincipalAmbassador) => Ok(tracks::RETAIN_AT_PRINCIPAL),
 
-			Ok(Origin::PromoteToAssociateAmbassador) => Ok(tracks::PROMOTE_TO_ASSOCIATE_AMBASSADOR),
-			Ok(Origin::PromoteToLeadAmbassador) => Ok(tracks::PROMOTE_TO_LEAD_AMBASSADOR),
-			Ok(Origin::PromoteToSeniorAmbassador) => Ok(tracks::PROMOTE_TO_SENIOR_AMBASSADOR),
-			Ok(Origin::PromoteToPrincipalAmbassador) => Ok(tracks::PROMOTE_TO_PRINCIPAL_AMBASSADOR),
+			Ok(Origin::PromoteToAssociateAmbassador) => Ok(tracks::PROMOTE_TO_ASSOCIATE),
+			Ok(Origin::PromoteToLeadAmbassador) => Ok(tracks::PROMOTE_TO_LEAD),
+			Ok(Origin::PromoteToSeniorAmbassador) => Ok(tracks::PROMOTE_TO_SENIOR),
+			Ok(Origin::PromoteToPrincipalAmbassador) => Ok(tracks::PROMOTE_TO_PRINCIPAL),
 
-			Ok(Origin::FastPromoteToAssociateAmbassador) =>
-				Ok(tracks::FAST_PROMOTE_TO_ASSOCIATE_AMBASSADOR),
-			Ok(Origin::FastPromoteToLeadAmbassador) => Ok(tracks::FAST_PROMOTE_TO_LEAD_AMBASSADOR),
-			Ok(Origin::FastPromoteToSeniorAmbassador) =>
-				Ok(tracks::FAST_PROMOTE_TO_SENIOR_AMBASSADOR),
+			Ok(Origin::FastPromoteToAssociateAmbassador) => Ok(tracks::FAST_PROMOTE_TO_ASSOCIATE),
+			Ok(Origin::FastPromoteToLeadAmbassador) => Ok(tracks::FAST_PROMOTE_TO_LEAD),
+			Ok(Origin::FastPromoteToSeniorAmbassador) => Ok(tracks::FAST_PROMOTE_TO_SENIOR),
 
 			Ok(Origin::Tip) => Ok(tracks::TIP),
 			Ok(Origin::Treasurer) => Ok(tracks::TREASURER),

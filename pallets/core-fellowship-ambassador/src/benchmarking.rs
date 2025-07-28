@@ -59,8 +59,6 @@ mod benchmarks {
 	fn set_benchmark_params<T: Config<I>, I: 'static>() -> Result<(), BenchmarkError> {
 		let max_rank = T::MaxRank::get() as usize;
 		let params = ParamsType {
-			active_salary: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
-			passive_salary: BoundedVec::try_from(vec![10u32.into(); max_rank]).unwrap(),
 			demotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			min_promotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			offboard_timeout: 1u32.into(),
@@ -74,8 +72,6 @@ mod benchmarks {
 	fn set_params() -> Result<(), BenchmarkError> {
 		let max_rank = T::MaxRank::get() as usize;
 		let params = ParamsType {
-			active_salary: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
-			passive_salary: BoundedVec::try_from(vec![10u32.into(); max_rank]).unwrap(),
 			demotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			min_promotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			offboard_timeout: 1u32.into(),
@@ -94,8 +90,6 @@ mod benchmarks {
 
 		// Set up the initial default state for the Params storage
 		let params = ParamsType {
-			active_salary: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
-			passive_salary: BoundedVec::try_from(vec![10u32.into(); max_rank]).unwrap(),
 			demotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			min_promotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			offboard_timeout: 1u32.into(),
@@ -104,16 +98,12 @@ mod benchmarks {
 
 		let default_params = Params::<T, I>::get();
 		let expected_params = ParamsType {
-			active_salary: default_params.active_salary,
-			passive_salary: BoundedVec::try_from(vec![10u32.into(); max_rank]).unwrap(),
 			demotion_period: default_params.demotion_period,
 			min_promotion_period: BoundedVec::try_from(vec![100u32.into(); max_rank]).unwrap(),
 			offboard_timeout: 1u32.into(),
 		};
 
 		let params_payload = ParamsType {
-			active_salary: BoundedVec::try_from(vec![None; max_rank]).unwrap(),
-			passive_salary: BoundedVec::try_from(vec![Some(10u32.into()); max_rank]).unwrap(),
 			demotion_period: BoundedVec::try_from(vec![None; max_rank]).unwrap(),
 			min_promotion_period: BoundedVec::try_from(vec![Some(100u32.into()); max_rank])
 				.unwrap(),

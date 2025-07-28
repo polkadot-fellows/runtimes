@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Additional logic for the Core Fellowship. This determines salary, registers activity/passivity
+//! Additional logic for the Core Fellowship. This registers activity/passivity
 //! and handles promotion and demotion periods.
 //!
 //! This only handles members of non-zero rank.
@@ -38,8 +38,7 @@
 //! - If a candidate fails to be promoted to a member within the `offboard_timeout` period, then
 //!   anyone may call `bump` to remove the account's candidacy.
 //! - Pre-existing members may call `import_member` on themselves (formerly `import`) to have their
-//!   rank recognised and be inducted into this pallet (to gain a salary and allow for eventual
-//!   promotion).
+//!   rank recognised and be inducted into this pallet (and allow eventual promotion).
 //! - If, externally to this pallet, a member or candidate has their rank removed completely, then
 //!   `offboard` may be called to remove them entirely from this pallet.
 //!
@@ -131,15 +130,7 @@ pub type Evidence<T, I> = BoundedVec<u8, <T as Config<I>>::EvidenceSize>;
 	MaxEncodedLen,
 )]
 #[scale_info(skip_type_params(Ranks))]
-pub struct ParamsType<
-	Balance: Clone + Eq + PartialEq + Debug,
-	BlockNumber: Clone + Eq + PartialEq + Debug,
-	Ranks: Get<u32>,
-> {
-	/// The amounts to be paid when a member of a given rank (-1) is active.
-	pub active_salary: BoundedVec<Balance, Ranks>,
-	/// The amounts to be paid when a member of a given rank (-1) is passive.
-	pub passive_salary: BoundedVec<Balance, Ranks>,
+pub struct ParamsType<BlockNumber: Clone + Eq + PartialEq + Debug, Ranks: Get<u32>> {
 	/// The period between which unproven members become demoted.
 	pub demotion_period: BoundedVec<BlockNumber, Ranks>,
 	/// The period between which members must wait before they may proceed to this rank.
@@ -149,15 +140,12 @@ pub struct ParamsType<
 }
 
 impl<
-		Balance: Default + Copy + Eq + Debug,
 		BlockNumber: Default + Copy + Eq + Debug,
 		Ranks: Get<u32>,
-	> Default for ParamsType<Balance, BlockNumber, Ranks>
+	> Default for ParamsType<BlockNumber, Ranks>
 {
 	fn default() -> Self {
 		Self {
-			active_salary: Default::default(),
-			passive_salary: Default::default(),
 			demotion_period: Default::default(),
 			min_promotion_period: Default::default(),
 			offboard_timeout: BlockNumber::default(),
@@ -186,11 +174,7 @@ pub struct MemberStatus<BlockNumber> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{
-		dispatch::Pays,
-		pallet_prelude::*,
-		traits::{tokens::GetSalary, EnsureOrigin},
-	};
+	use frame_support::{dispatch::Pays, pallet_prelude::*, traits::EnsureOrigin};
 	use frame_system::{ensure_root, pallet_prelude::*};
 	/// The in-code storage version.
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -247,12 +231,10 @@ pub mod pallet {
 	}
 
 	pub type ParamsOf<T, I> = ParamsType<
-		<T as Config<I>>::Balance,
 		BlockNumberFor<T>,
 		ConvertU16ToU32<<T as Config<I>>::MaxRank>,
 	>;
 	pub type PartialParamsOf<T, I> = ParamsType<
-		Option<<T as Config<I>>::Balance>,
 		Option<BlockNumberFor<T>>,
 		ConvertU16ToU32<<T as Config<I>>::MaxRank>,
 	>;
@@ -657,11 +639,6 @@ pub mod pallet {
 		) -> DispatchResult {
 			T::ParamsOrigin::ensure_origin_or_root(origin)?;
 			let params = Params::<T, I>::mutate(|p| {
-				Self::set_partial_params_slice(&mut p.active_salary, partial_params.active_salary);
-				Self::set_partial_params_slice(
-					&mut p.passive_salary,
-					partial_params.passive_salary,
-				);
 				Self::set_partial_params_slice(
 					&mut p.demotion_period,
 					partial_params.demotion_period,
@@ -729,23 +706,6 @@ pub mod pallet {
 				let e = Event::<T, I>::EvidenceJudged { who, wish, evidence, old_rank, new_rank };
 				Self::deposit_event(e);
 			}
-		}
-	}
-
-	impl<T: Config<I>, I: 'static> GetSalary<RankOf<T, I>, T::AccountId, T::Balance> for Pallet<T, I> {
-		fn get_salary(rank: RankOf<T, I>, who: &T::AccountId) -> T::Balance {
-			let index = match Self::rank_to_index(rank) {
-				Some(i) => i,
-				None => return Zero::zero(),
-			};
-			let member = match Member::<T, I>::get(who) {
-				Some(m) => m,
-				None => return Zero::zero(),
-			};
-			let params = Params::<T, I>::get();
-			let salary =
-				if member.is_active { params.active_salary } else { params.passive_salary };
-			salary[index]
 		}
 	}
 }

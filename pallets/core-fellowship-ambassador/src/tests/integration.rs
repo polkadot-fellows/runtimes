@@ -150,8 +150,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		assert_ok!(Club::add_member(signed(100), 100));
 		promote_n_times(100, 9);
 		let params = ParamsType {
-			active_salary: bounded_vec![10, 20, 30, 40, 50, 60, 70, 80, 90],
-			passive_salary: bounded_vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
 			demotion_period: bounded_vec![2, 4, 6, 8, 10, 12, 14, 16, 18],
 			min_promotion_period: bounded_vec![3, 6, 9, 12, 15, 18, 21, 24, 27],
 			offboard_timeout: 1,
