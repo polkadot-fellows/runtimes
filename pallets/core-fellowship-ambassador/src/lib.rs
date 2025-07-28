@@ -139,10 +139,8 @@ pub struct ParamsType<BlockNumber: Clone + Eq + PartialEq + Debug, Ranks: Get<u3
 	pub offboard_timeout: BlockNumber,
 }
 
-impl<
-		BlockNumber: Default + Copy + Eq + Debug,
-		Ranks: Get<u32>,
-	> Default for ParamsType<BlockNumber, Ranks>
+impl<BlockNumber: Default + Copy + Eq + Debug, Ranks: Get<u32>> Default
+	for ParamsType<BlockNumber, Ranks>
 {
 	fn default() -> Self {
 		Self {
@@ -230,14 +228,10 @@ pub mod pallet {
 		type MaxRank: Get<u16>;
 	}
 
-	pub type ParamsOf<T, I> = ParamsType<
-		BlockNumberFor<T>,
-		ConvertU16ToU32<<T as Config<I>>::MaxRank>,
-	>;
-	pub type PartialParamsOf<T, I> = ParamsType<
-		Option<BlockNumberFor<T>>,
-		ConvertU16ToU32<<T as Config<I>>::MaxRank>,
-	>;
+	pub type ParamsOf<T, I> =
+		ParamsType<BlockNumberFor<T>, ConvertU16ToU32<<T as Config<I>>::MaxRank>>;
+	pub type PartialParamsOf<T, I> =
+		ParamsType<Option<BlockNumberFor<T>>, ConvertU16ToU32<<T as Config<I>>::MaxRank>>;
 	pub type MemberStatusOf<T> = MemberStatus<BlockNumberFor<T>>;
 	pub type RankOf<T, I> = <<T as Config<I>>::Members as RankedMembers>::Rank;
 
