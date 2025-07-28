@@ -65,9 +65,7 @@ use frame_support::{
 		ConstBool, ConstU128, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
 		InstanceFilter, TransformOrigin,
 	},
-	weights::{
-		constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight, WeightToFee as _,
-	},
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight},
 	PalletId,
 };
 use frame_system::{
