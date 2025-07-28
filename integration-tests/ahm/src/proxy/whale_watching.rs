@@ -29,10 +29,10 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 ///
 /// We also store the number of proxies.
 const WHALES: &[(AccountId32, usize)] = &[
-	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 7),
-	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 7),
-	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 6),
-	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 6),
+	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 5),
+	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 5),
+	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 4),
+	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 4),
 ];
 
 const MILLION_DOT: polkadot_primitives::Balance =
