@@ -135,8 +135,11 @@ where
 
 			last_key = match last_key {
 				ChildBountiesStage::ChildBountyCount => {
-					let count = pallet_child_bounties::ChildBountyCount::<T>::take();
-					messages.push(PortableChildBountiesMessage::ChildBountyCount(count));
+					// Check if exists to make it idempotent.
+					if pallet_child_bounties::ChildBountyCount::<T>::exists() {
+						let count = pallet_child_bounties::ChildBountyCount::<T>::take();
+						messages.push(PortableChildBountiesMessage::ChildBountyCount(count));	
+					}				
 
 					ChildBountiesStage::ParentChildBounties { parent_id: None }
 				},
