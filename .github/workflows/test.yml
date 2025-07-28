@@ -187,8 +187,10 @@ jobs:
 
       - name: Download AHM test snapshots
         run: |
-          curl -sL 'https://tasty.limo/uploads/polkadot-2025-05-09.snap.lz4' -o polkadot.snap.lz4
-          curl -sL 'https://tasty.limo/uploads/ah-polkadot-2025-05-09.snap.lz4' -o ah-polkadot.snap.lz4
+          python3 -m pip install gdown
+          gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR
+          gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z
+
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
