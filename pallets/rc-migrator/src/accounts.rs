@@ -1125,39 +1125,12 @@ pub mod tests {
 						let total_balance = <T as Config>::Currency::total_balance(&who);
 						let ed = <T as Config>::Currency::minimum_balance();
 						if total_balance >= ed {
-							// Preserved accounts should have no Holds, Freezes, or Locks.
-							let holds = pallet_balances::Holds::<T>::get(&who);
-							assert!(
-								holds.is_empty(),
-								"Preserved account {:?} should have no holds on the relay chain after migration",
-								who.to_ss58check()
-							);
-
-							let freezes = pallet_balances::Freezes::<T>::get(&who);
-							assert!(
-								freezes.is_empty(),
-								"Preserved account {:?} should have no freezes on the relay chain after migration",
-								who.to_ss58check()
-							);
-
-							let locks = pallet_balances::Locks::<T>::get(&who);
-							assert!(
-								locks.is_empty(),
-								"Preserved account {:?} should have no locks on the relay chain after migration",
-								who.to_ss58check()
-							);
-
-							// Preserved accounts should not have enough free balance to be partly
-							// migrated to Asset Hub.
-							let free_balance = <T as Config>::Currency::reducible_balance(
-								&who,
-								Preservation::Expendable,
-								Fortitude::Polite,
-							);
-							assert!(
-								free_balance == ed.saturating_add(T::AhExistentialDeposit::get()),
-								"Preserved account {:?} should have not enough free balance on the relay chain after migration to be migrated to Asset Hub", 
-								who.to_ss58check()
+							let on_demand_pallet_account: T::AccountId =
+								T::OnDemandPalletId::get().into_account_truncating();
+							assert_eq!(
+								who,
+								on_demand_pallet_account,
+								"currently only on-demand pallet account has `AccountState::Preserve` state on RC",
 							);
 						}
 					},
