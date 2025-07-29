@@ -15,12 +15,11 @@
 
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
-
 use frame_support::sp_runtime::traits::Dispatchable;
 use kusama_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
-use people_kusama_runtime::people::IdentityInfo;
-
+use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 use pallet_identity::Data;
+use people_kusama_runtime::people::IdentityInfo;
 
 #[test]
 fn relay_commands_add_registrar() {
@@ -37,6 +36,7 @@ fn relay_commands_add_registrar() {
 			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
+			Dmp::make_parachain_reachable(1004);
 			let add_registrar_call =
 				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
 					account: registrar.into(),
@@ -98,6 +98,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 		type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let add_registrar_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
 				account: registrar.into(),
@@ -176,6 +177,7 @@ fn relay_commands_kill_identity() {
 		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
 		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
 				target: people_kusama_runtime::MultiAddress::Id(PeopleKusama::account_id_of(ALICE)),
@@ -235,6 +237,7 @@ fn relay_commands_kill_identity_wrong_origin() {
 		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
 		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
 				target: people_kusama_runtime::MultiAddress::Id(PeopleKusama::account_id_of(ALICE)),
@@ -292,6 +295,7 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
+			Dmp::make_parachain_reachable(1004);
 			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
 				PeopleRuntime,
 			>::add_username_authority {
@@ -339,7 +343,7 @@ fn relay_commands_add_remove_username_authority() {
 		PeopleKusama::execute_with(|| {
 			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
-			println!("setting username {}", usr);
+			println!("setting username {usr}");
 
 			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
 				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
@@ -447,6 +451,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let add_username_authority =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
 				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),

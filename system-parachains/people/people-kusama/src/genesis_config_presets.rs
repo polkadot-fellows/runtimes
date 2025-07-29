@@ -34,6 +34,7 @@ fn people_kusama_genesis(
 				.cloned()
 				.map(|k| (k, PEOPLE_KUSAMA_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -70,7 +71,14 @@ pub fn people_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value
 }
 
 fn people_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	people_kusama_local_testnet_genesis(para_id)
+	people_kusama_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.

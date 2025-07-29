@@ -167,8 +167,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 			Err(e) => log::error!(
 				target: "runtime::coretime",
-				"Failed to send request to update schedulable cores: {:?}",
-				e
+				"Failed to send request to update schedulable cores: {e:?}"
 			),
 		}
 	}
@@ -202,8 +201,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 			Err(e) => log::error!(
 				target: "runtime::coretime",
-				"Request for revenue info failed to send: {:?}",
-				e
+				"Request for revenue info failed to send: {e:?}"
 			),
 		}
 	}
@@ -282,8 +280,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 			Err(e) => log::error!(
 				target: "runtime::coretime",
-				"Core assignment failed to send: {:?}",
-				e
+				"Core assignment failed to send: {e:?}"
 			),
 		}
 	}
@@ -318,6 +315,8 @@ impl CoretimeInterface for CoretimeAllocator {
 
 parameter_types! {
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
+	pub const MinimumCreditPurchase: Balance = UNITS / 10;
+	pub const MinimumEndPrice: Balance = 10 * UNITS;
 }
 
 pub struct SovereignAccountOf;
@@ -343,5 +342,6 @@ impl pallet_broker::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
 	type MaxAutoRenewals = ConstU32<100>;
-	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
+	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
+	type MinimumCreditPurchase = MinimumCreditPurchase;
 }

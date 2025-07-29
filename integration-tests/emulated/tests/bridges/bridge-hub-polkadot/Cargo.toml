@@ -48,10 +48,11 @@ system-parachains-constants = { workspace = true, default-features = true }
 # Snowbridge
 snowbridge-beacon-primitives = { workspace = true, default-features = true }
 snowbridge-core = { workspace = true, default-features = true }
-snowbridge-router-primitives = { workspace = true, default-features = true }
+snowbridge-inbound-queue-primitives = { workspace = true, default-features = true }
 snowbridge-pallet-system = { workspace = true, default-features = true }
 snowbridge-pallet-outbound-queue = { workspace = true, default-features = true }
 snowbridge-pallet-inbound-queue-fixtures = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 
 [features]
 runtime-benchmarks = [
@@ -71,12 +72,13 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
+	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"snowbridge-pallet-inbound-queue-fixtures/runtime-benchmarks",
 	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
 	"snowbridge-pallet-system/runtime-benchmarks",
-	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]

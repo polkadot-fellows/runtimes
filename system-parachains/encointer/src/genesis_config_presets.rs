@@ -37,6 +37,7 @@ fn encointer_kusama_genesis(
 				.cloned()
 				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -103,7 +104,14 @@ pub fn encointer_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Va
 }
 
 fn encointer_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	encointer_kusama_local_testnet_genesis(para_id)
+	encointer_kusama_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.

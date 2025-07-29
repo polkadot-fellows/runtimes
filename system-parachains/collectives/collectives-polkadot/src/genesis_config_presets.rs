@@ -34,6 +34,7 @@ fn collectives_polkadot_genesis(
 				.cloned()
 				.map(|k| (k, COLLECTIVES_POLKADOT_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -70,7 +71,14 @@ pub fn collectives_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json
 }
 
 fn collectives_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
-	collectives_polkadot_local_testnet_genesis(para_id)
+	collectives_polkadot_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.

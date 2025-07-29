@@ -4,6 +4,71 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+- Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
+- Add Secretary Salary Pay Test Over XCM ([https://github.com/polkadot-fellows/runtimes/pull/778](https://github.com/polkadot-fellows/runtimes/pull/778))
+
+### Changed
+
+- Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
+- Configure block providers for pallets requiring block context ([polkadot-fellows/runtimes/pull/813](https://github.com/polkadot-fellows/runtimes/pull/813)):
+  - vesting: keep using Relay Chain block provider
+  - multisig: switch to local block provider (for unique multisig IDs)
+  - proxy: use Relay Chain block provider (for delayed announcements)
+  - nfts: use Relay Chain block provider (for minting start/end blocks)
+- PolkadotAssetHub: Enable Async Backing ([polkadot-fellows/runtimes/pull/763](https://github.com/polkadot-fellows/runtimes/pull/763))
+
+## [1.6.1] 24.06.2025
+
+### Changed
+
+- Slash and disable lazy and spammy validators as part of the new validator disabling strategy ([SDK #6827](https://github.com/paritytech/polkadot-sdk/pull/6827), [polkadot-fellows/runtimes/pull/782](https://github.com/polkadot-fellows/runtimes/pull/782))
+- Switch to UpToLimitWithReEnablingDisablingStrategy (Polkadot & Kusama) which always prioritises highest offenders for disabling instead of stopping when limit is reached ([polkadot-fellows/runtimes/pull/781](https://github.com/polkadot-fellows/runtimes/pull/781))
+- Snowbridge: Remove `snowbridge-pallet-system::NativeToForeignId` which is unused. ([#730](https://github.com/polkadot-fellows/runtimes/pull/730))
+
+## [1.6.0] 19.06.2025
+
+### Added
+
+- Bump ParachainHost runtime API version to 13 for polkadot and kusama ([polkadot-fellows/runtimes/pull/768](https://github.com/polkadot-fellows/runtimes/pull/768))
+- Update to SDK version `stable2503-6` ([polkadot-fellows/runtimes/pull/762](https://github.com/polkadot-fellows/runtimes/pull/762))
+- Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add missing events to nomination pool extrinsics ([SDK stable2503 #7377](https://github.com/paritytech/polkadot-sdk/pull/7377)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add view functions to Proxy pallet for runtime-specific type configuration ([SDK stable2503 #7320](https://github.com/paritytech/polkadot-sdk/pull/7320)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Core-fellowship: Add permissionless import_member ([SDK stable2503 #7030](https://github.com/paritytech/polkadot-sdk/pull/7030)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove a lease ([SDK stable2503 #7026](https://github.com/paritytech/polkadot-sdk/pull/7026)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove an assignment ([SDK stable2503 #7080](https://github.com/paritytech/polkadot-sdk/pull/7080)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to reserve a system core without having to wait two sale boundaries ([SDK stable2503 #4273](https://github.com/paritytech/polkadot-sdk/pull/4273)).
+- [[#755](https://github.com/polkadot-fellows/runtimes/pull/755)] Added `pallet_revive` to Kusama AssetHub.
+
+### Changed
+
+- Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Alter semantic meaning of 0 in metering limits of EVM contract calls ([SDK stable2503 #6890](https://github.com/paritytech/polkadot-sdk/pull/6890)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] `apply_authorized_upgrade`: Remote authorization if the version check fails ([SDK stable2503 #7812](https://github.com/paritytech/polkadot-sdk/pull/7812)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] `CheckOnlySudoAccount`: Provide some tags ([SDK stable2503 #7838](https://github.com/paritytech/polkadot-sdk/pull/7838)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Currency to Fungible migration for pallet-staking ([SDK stable2503 #5501](https://github.com/paritytech/polkadot-sdk/pull/5501)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Enable report_fork_voting() ([SDK stable2503 #6856](https://github.com/paritytech/polkadot-sdk/pull/6856)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Implement pallet view functions ([SDK stable2503 #4722](https://github.com/paritytech/polkadot-sdk/pull/4722)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] On-demand credits ([SDK stable2503 #5990](https://github.com/paritytech/polkadot-sdk/pull/5990)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Only allow apply slash to be executed if the slash amount is atleast ED ([SDK stable2503 #6540](https://github.com/paritytech/polkadot-sdk/pull/6540)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Paras-registrar: Improve error reporting ([SDK stable2503 #6989](https://github.com/paritytech/polkadot-sdk/pull/6989)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: convert properly assets in xcmpayment apis ([SDK stable2503 #7134](https://github.com/paritytech/polkadot-sdk/pull/7134)).
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Ensure Consistent Topic IDs for Traceable Cross-Chain XCM ([SDK stable2503 #7691](https://github.com/paritytech/polkadot-sdk/pull/7691)).
+
+- [[#753](https://github.com/polkadot-fellows/runtimes/pull/753)] Upgrades Polkadot and Kusama AssetHub to XCM v5. Adds a migration to check upgrade safety.
+- [[#754](https://github.com/polkadot-fellows/runtimes/pull/754)]  Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
+
+- Extend bounty update period to ~10 years ([polkadot-fellows/runtimes/pull/766](https://github.com/polkadot-fellows/runtimes/pull/766))
+
+### Fixed
+
+- Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
+  - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: minor fix for compatibility with V4 ([SDK stable2503 #6503](https://github.com/paritytech/polkadot-sdk/pull/6503)).
+- Allow `Utility` and `Multisig` calls from `CancelProxy` proxy types in Polkadot/Kusama relaychain runtimes ([polkadot-fellows/runtimes#740](https://github.com/polkadot-fellows/runtimes/pull/740))
+
 ## [1.5.1] 22.05.2025
 
 ### Fixed
@@ -13,6 +78,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snowbridge: Update transfer token gas and fee ([polkadot-fellows/runtimes#721](https://github.com/polkadot-fellows/runtimes/pull/721))
 - Update to SDK version `stable2412-6` ([polkadot-fellows/runtimes#712](https://github.com/polkadot-fellows/runtimes/pull/712))
   - [stable2412-6 changelog here](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-6)
+
+### Added
+
+- The Secretary Program ([polkadot-fellows/runtimes#347](https://github.com/polkadot-fellows/runtimes/pull/347))
 
 ## [1.5.0] 22.04.2025
 
@@ -84,7 +153,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hubs: added an AssetExchanger to be able to swap tokens using the xcm executor, even for delivery fees ([polkadot-fellows/runtimes#539](https://github.com/polkadot-fellows/runtimes/pull/539)).
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
 - Asset Hubs: XcmPaymentApi now returns all assets in a pool with the native token as acceptable as fee payment ([polkadot-fellows/runtimes#523](https://github.com/polkadot-fellows/runtimes/pull/523))
-
 - ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
 - Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
 - Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))

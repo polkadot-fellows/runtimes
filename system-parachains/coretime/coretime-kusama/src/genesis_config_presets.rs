@@ -37,6 +37,7 @@ fn coretime_kusama_genesis(
 				.cloned()
 				.map(|k| (k, CORETIME_KUSAMA_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
@@ -73,7 +74,14 @@ pub fn coretime_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Val
 }
 
 fn coretime_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	coretime_kusama_local_testnet_genesis(para_id)
+	coretime_kusama_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 fn coretime_kusama_live_genesis(para_id: ParaId) -> serde_json::Value {
