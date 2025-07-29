@@ -300,7 +300,12 @@ fn sovereign_account_translation() {
 	}
 }
 
-/// This test updates the `pallets/ah-migrator/sovereign_account_translation.csv` file.
+/// This test updates the `pallets/ah-migrator/src/sovereign_account_translation.rs` file.
+///
+/// It iterates through all possible Para-IDs (alive or dead) and their sovereign accounts and their
+/// first 100 derived accounts. If an account is found, it is added to the translation map. The
+/// value of 100 is arbitrary but nobody seems to use more than 10 in practice. The theoretical
+/// limit is 2^16, but that would make the test ~655 times slower.
 #[ignore]
 #[tokio::test]
 async fn find_translatable_accounts() {
