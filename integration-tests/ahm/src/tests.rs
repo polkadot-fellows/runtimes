@@ -40,6 +40,7 @@ use super::{
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+	accounts_translation_works::AccountTranslationWorks,
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -94,6 +95,7 @@ type RcChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	MultisigStillWork,
+	AccountTranslationWorks,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
@@ -145,6 +147,7 @@ type AhChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	MultisigStillWork,
+	AccountTranslationWorks,
 );
 
 #[cfg(not(feature = "paseo"))]

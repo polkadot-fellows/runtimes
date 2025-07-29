@@ -22,6 +22,7 @@ use pallet_rc_migrator::{
 		alias, ConvictionVotingMigrator, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
 	},
 	types::ToPolkadotSs58,
+	types::SortByEncoded,
 };
 
 impl<T: Config> Pallet<T> {
@@ -120,7 +121,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
 
 		// Build expected data by applying account translation to RC pre-payload data
-		let expected_ah_messages: Vec<_> = rc_pre_payload
+		let mut expected_ah_messages: Vec<_> = rc_pre_payload
 			.iter()
 			.map(|message| match message {
 				RcConvictionVotingMessage::VotingFor(account_id, class, voting) => {
@@ -155,6 +156,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 				},
 			})
 			.collect();
+		expected_ah_messages.sort_by_encoded();
 
 		// Collect actual data from AH storage
 		let voting_messages = alias::VotingFor::<T>::iter().map(|(account_id, class, voting)| {
@@ -166,7 +168,10 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 				RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class)
 			},
 		);
-		let actual_ah_messages: Vec<_> = voting_messages.chain(class_locks_messages).collect();
+		let mut actual_ah_messages: Vec<_> = voting_messages.chain(class_locks_messages).collect();
+		// Sort for canonical order since the pallet iteration order changed after the account
+		// translation.
+		actual_ah_messages.sort_by_encoded();
 
 		// Assert storage "ConvictionVoting::VotingFor::ah_post::length"
 		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::length"

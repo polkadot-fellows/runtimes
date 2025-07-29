@@ -70,6 +70,8 @@ impl<T: Config> Pallet<T> {
 			T::PortableFreezeReason,
 		>,
 	) -> Result<(), Error<T>> {
+		let account = account.translate_account(Self::translate_account_rc_to_ah);
+
 		if !Self::has_existential_deposit(&account) {
 			frame_system::Pallet::<T>::inc_providers(&account.who);
 		}
@@ -77,7 +79,10 @@ impl<T: Config> Pallet<T> {
 		let who = account.who;
 		let total_balance = account.free.saturating_add(account.reserved);
 		let minted = match <T as pallet::Config>::Currency::mint_into(&who, total_balance) {
-			Ok(minted) => minted,
+			Ok(minted) => {
+				log::info!("Minted into account {}: {:?}", who.to_ss58check(), minted);
+				minted
+			},
 			Err(e) => {
 				log::error!(
 					target: LOG_TARGET,
@@ -320,6 +325,8 @@ pub mod tests {
 				{
 					continue;
 				}
+				let who = crate::Pallet::<T>::translate_account_rc_to_ah(who);
+
 				let ah_free_post = <T as Config>::Currency::balance(&who);
 				let ah_reserved_post = <T as Config>::Currency::reserved_balance(&who);
 				let (ah_holds_pre, ah_reserved_before, ah_free_before) =

@@ -39,7 +39,7 @@ impl<T: Config> Pallet<T> {
 
 		log::error!("Translated account: {} -> {}", &account, &new); // TODO info
 
-		account
+		new
 	}
 
 	fn maybe_sovereign_translate(account: &T::AccountId) -> Option<T::AccountId> {
@@ -87,6 +87,6 @@ impl<T: Config> Pallet<T> {
 			derivation_index: *idx,
 		});
 
-		None
+		Some(new.clone())
 	}
 }
