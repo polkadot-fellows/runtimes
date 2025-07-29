@@ -1041,7 +1041,7 @@ impl pallet_revive::Config for Runtime {
 	type WeightInfo = weights::pallet_revive::WeightInfo<Self>;
 	type Precompiles = (
 		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
-		// FAIL-CI: @PG why not the ForeignAssetsInstance too? can we add it at <0x220>?
+		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
 		// ERC20<Self, InlineIdConfig<0x220>, ForeignAssetsInstance>,
 		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
 	);
