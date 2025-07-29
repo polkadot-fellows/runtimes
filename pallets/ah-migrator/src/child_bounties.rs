@@ -70,7 +70,7 @@ impl<T: Config> Pallet<T> {
 					AccountId32,
 					pallet_treasury::BalanceOf<T>,
 					pallet_treasury::BlockNumberFor<T>,
-				> = child_bounty.into();
+				> = child_bounty.translate_accounts(Self::translate_account_rc_to_ah).into();
 				pallet_child_bounties::ChildBounties::<T>::insert(
 					parent_id,
 					child_id,
