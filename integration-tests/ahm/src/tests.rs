@@ -60,7 +60,7 @@ use pallet_rc_migrator::{
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
-use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
+use polkadot_runtime_common::slots as pallet_slots;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::{crypto::Ss58Codec, ByteArray};
 use sp_io::TestExternalities;
