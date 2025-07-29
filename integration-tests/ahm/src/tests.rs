@@ -368,8 +368,10 @@ async fn find_translatable_accounts() {
 	println!("Found {} RC derived   account translations", derived_translations.len());
 
 	// Rust code with the translation maps
-	let mut rust: String = "/// List of RC para to AH sibl sovereign account translation sorted by RC account.
-pub const SOV_TRANSLATIONS: &[(AccountId32, AccountId32)] = &[\n".into();
+	let mut rust: String = format!("// RC snap path: {}\n", std::env::var("SNAP_RC").unwrap());
+	
+	rust.push_str("/// List of RC para to AH sibl sovereign account translation sorted by RC account.
+pub const SOV_TRANSLATIONS: &[(AccountId32, AccountId32)] = &[\n");
 
 	let mut sov_translations = sov_translations.into_iter().collect::<Vec<_>>();
 	sov_translations.sort_by(|(_, (rc_acc, _)), (_, (rc_acc2, _))| rc_acc.cmp(rc_acc2));
