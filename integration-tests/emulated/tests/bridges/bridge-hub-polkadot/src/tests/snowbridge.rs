@@ -1432,3 +1432,71 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 
 	send_token_back_to_ethereum(weth_location, MIN_ETHER_BALANCE);
 }
+
+#[test]
+fn export_from_non_system_parachain_will_fail() {
+	let penpal_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(PenpalB::para_id().into())],
+	));
+	BridgeHubPolkadot::fund_accounts(vec![(penpal_sovereign.clone(), INITIAL_FUND)]);
+
+	PenpalB::execute_with(|| {
+		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
+		type RuntimeOrigin = <PenpalB as Chain>::RuntimeOrigin;
+
+		let local_fee_asset =
+			Asset { id: AssetId(Location::here()), fun: Fungible(1_000_000_000_000) };
+
+		let weth_location_reanchored =
+			Location::new(0, [AccountKey20 { network: None, key: WETH.into() }]);
+
+		let weth_asset =
+			Asset { id: AssetId(weth_location_reanchored.clone()), fun: Fungible(TOKEN_AMOUNT) };
+
+		assert_ok!(<PenpalB as PenpalBPallet>::PolkadotXcm::send(
+			RuntimeOrigin::root(),
+			bx!(VersionedLocation::from(Location::new(
+				1,
+				Parachain(BridgeHubPolkadot::para_id().into())
+			))),
+			bx!(VersionedXcm::from(Xcm(vec![
+				WithdrawAsset(local_fee_asset.clone().into()),
+				BuyExecution { fees: local_fee_asset.clone(), weight_limit: Unlimited },
+				ExportMessage {
+					network: Ethereum { chain_id: CHAIN_ID },
+					destination: Here,
+					xcm: Xcm(vec![
+						WithdrawAsset(weth_asset.clone().into()),
+						DepositAsset {
+							assets: Wild(All),
+							beneficiary: Location::new(
+								0,
+								[AccountKey20 {
+									network: None,
+									key: ETHEREUM_DESTINATION_ADDRESS.into()
+								}]
+							)
+						},
+						SetTopic([0; 32]),
+					]),
+				},
+			]))),
+		));
+
+		assert_expected_events!(
+			PenpalB,
+			vec![RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent{ .. }) => {},]
+		);
+	});
+
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed{ success:false, origin,
+.. }) => { 				origin: *origin ==
+bridge_hub_common::AggregateMessageOrigin::Sibling(PenpalB::para_id()), 			},]
+		);
+	});
+}

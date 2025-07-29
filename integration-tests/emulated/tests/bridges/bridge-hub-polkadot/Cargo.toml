@@ -38,6 +38,7 @@ pallet-bridge-messages = { workspace = true, default-features = true }
 
 # Local
 bp-bridge-hub-polkadot = { workspace = true, default-features = true }
+bridge-hub-common = { workspace = true, default-features = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 asset-hub-polkadot-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }

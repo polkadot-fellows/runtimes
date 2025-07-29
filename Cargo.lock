@@ -2077,6 +2077,7 @@ dependencies = [
  "asset-hub-polkadot-runtime",
  "bp-bridge-hub-polkadot",
  "bp-messages",
+ "bridge-hub-common",
  "bridge-hub-polkadot-runtime",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
