@@ -37,7 +37,7 @@ impl<T: Config> Pallet<T> {
 			return account;
 		};
 
-		log::error!("Translated account: {} -> {}", &account, &new); // TODO info
+		log::debug!("Translated account: {} -> {}", &account, &new); // TODO info
 
 		new
 	}

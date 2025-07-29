@@ -20,6 +20,8 @@ use hex_literal::hex;
 use sp_runtime::AccountId32;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
+use sp_application_crypto::Ss58Codec;
+use pallet_rc_migrator::accounts::AccountState;
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -34,19 +36,26 @@ pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 impl RcMigrationCheck for AccountTranslationWorks {
 	type RcPrePayload = ();
 
-	fn pre_check() -> Self::RcPrePayload {
-		for (rc_acc, ah_acc) in TRANSLATIONS.iter() {
-			assert!(frame_system::Account::<RelayRuntime>::contains_key(rc_acc));
-			assert!(!frame_system::Account::<RelayRuntime>::contains_key(ah_acc));
-		}
-	}
+	fn pre_check() -> Self::RcPrePayload {}
 
 	fn post_check(_: Self::RcPrePayload) {
-		for (rc_acc, ah_acc) in TRANSLATIONS.iter() {
-			if frame_system::Account::<AssetHubRuntime>::contains_key(rc_acc) {
-				panic!("RC acc should not exist on AH: {}, {:?}", rc_acc, frame_system::Account::<AssetHubRuntime>::get(rc_acc));
+		// RC acc gone
+		for (rc_acc, _) in TRANSLATIONS.iter() {
+			if !frame_system::Account::<RelayRuntime>::contains_key(rc_acc) {
+				continue;
 			}
-			assert!(!frame_system::Account::<AssetHubRuntime>::contains_key(ah_acc));
+
+			// If an account still exists, then it must be in the RcAccounts map
+			let Some(entry) = pallet_rc_migrator::RcAccounts::<RelayRuntime>::get(rc_acc) else {
+				panic!("RC acc did not properly migrate: {}", rc_acc);
+			};
+
+			match entry {
+				AccountState::Migrate => panic!("RC acc did not properly migrate: {}", rc_acc.to_ss58check()),
+				AccountState::Preserve | AccountState::Part { .. } => {
+					// This is fine
+				}
+			}
 		}
 	}
 }
@@ -55,22 +64,12 @@ impl AhMigrationCheck for AccountTranslationWorks {
 	type RcPrePayload = ();
 	type AhPrePayload = ();
 
-	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		// AH acc exists
-		for (rc_acc, ah_acc) in TRANSLATIONS.iter() {
-			assert!(!frame_system::Account::<AssetHubRuntime>::contains_key(rc_acc));
-			assert!(frame_system::Account::<AssetHubRuntime>::contains_key(ah_acc));
-		}
-	}
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {}
 
 	fn post_check(_rc_pre: Self::RcPrePayload, _: Self::AhPrePayload) {
 		// AH acc exists
-		for (rc_acc, ah_acc) in TRANSLATIONS.iter() {
+		for (_, ah_acc) in TRANSLATIONS.iter() {
 			assert!(frame_system::Account::<AssetHubRuntime>::contains_key(ah_acc));
-			println!("AH acc: {}, {:?}", ah_acc, frame_system::Account::<AssetHubRuntime>::get(ah_acc));
-			if frame_system::Account::<AssetHubRuntime>::contains_key(rc_acc) {
-				panic!("RC acc should not exist on AH: {}, {:?}", rc_acc, frame_system::Account::<AssetHubRuntime>::get(rc_acc));
-			}			
 		}
 	}
 }

@@ -362,11 +362,8 @@ impl PortableChildBounty {
 		translate_account: impl Fn(AccountId32) -> AccountId32,
 	) -> Self {
 		PortableChildBounty {
-			parent_bounty: self.parent_bounty,
-			value: self.value,
-			fee: self.fee,
-			curator_deposit: self.curator_deposit,
 			status: self.status.translate_accounts(translate_account),
+			..self
 		}
 	}
 }

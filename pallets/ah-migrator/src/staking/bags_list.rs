@@ -19,6 +19,7 @@
 
 use crate::*;
 use pallet_rc_migrator::staking::bags_list::{alias, BagsListMigrator, GenericBagsListMessage};
+use pallet_rc_migrator::types::SortByEncoded;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bags_list_messages(
@@ -109,7 +110,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
 
-		let rc_pre_translated: Vec<GenericBagsListMessage<T::AccountId, T::Score>> = rc_pre_payload
+		let mut rc_pre_translated: Vec<GenericBagsListMessage<T::AccountId, T::Score>> = rc_pre_payload
 			.into_iter()
 			.map(|message| {
 				match message {
@@ -146,6 +147,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 				}
 			})
 			.collect();
+		rc_pre_translated.sort_by_encoded();
 
 		let mut ah_messages = Vec::new();
 
@@ -169,6 +171,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 				bag: alias::Bag { head: bag.head, tail: bag.tail },
 			});
 		}
+		ah_messages.sort_by_encoded();
 
 		// Assert storage "VoterList::ListBags::ah_post::length"
 		// Assert storage "VoterList::ListBags::ah_post::length"
