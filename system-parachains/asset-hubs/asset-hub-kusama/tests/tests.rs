@@ -567,9 +567,7 @@ fn check_sane_weight_report_bridge_status() {
 	let max_weight = bp_asset_hub_kusama::XcmBridgeHubRouterTransactCallMaxWeight::get();
 	assert!(
 		actual.all_lte(max_weight),
-		"max_weight: {:?} should be adjusted to actual {:?}",
-		max_weight,
-		actual
+		"max_weight: {max_weight:?} should be adjusted to actual {actual:?}"
 	);
 }
 

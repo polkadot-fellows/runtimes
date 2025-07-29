@@ -77,10 +77,7 @@ fn network_export_table_works() {
 					&Xcm::default()
 				),
 				expected_result,
-				"expected_result: {:?} not matched for network: {:?} and remote_location: {:?}",
-				expected_result,
-				network,
-				remote_location,
+				"expected_result: {expected_result:?} not matched for network: {network:?} and remote_location: {remote_location:?}",
 			)
 		}
 	});
