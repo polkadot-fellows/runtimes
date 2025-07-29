@@ -20,18 +20,17 @@ use crate::{
 	},
 	*,
 };
-use asset_hub_polkadot_runtime::xcm_config::{
-	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
-	RelayTreasuryPalletAccount,
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
+	BridgeHubEthereumBaseFee, EthereumNetwork,
 };
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
-	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
-	Runtime, RuntimeOrigin,
+	bridge_to_ethereum_config::EthereumGatewayAddress, xcm_config::RelayTreasuryPalletAccount,
+	EthereumBeaconClient, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
-use frame_support::{pallet_prelude::TypeInfo, traits::Get};
+use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{
