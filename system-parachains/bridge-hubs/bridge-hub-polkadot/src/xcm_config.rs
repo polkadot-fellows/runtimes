@@ -15,6 +15,7 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::XcmOverBridgeHubKusama;
+use bridge_hub_common::DenyExportMessageFrom;
 
 use super::{
 	AccountId, AllPalletsWithSystem, Balances, CollatorSelection, ParachainInfo, ParachainSystem,
@@ -24,7 +25,8 @@ use super::{
 use frame_support::{
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstU32, Contains, Disabled, Equals, Everything, Nothing,
+		tokens::imbalance::ResolveTo, ConstU32, Contains, Disabled, Equals, Everything,
+		EverythingBut, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -37,17 +39,20 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use sp_runtime::traits::AccountIdConversion;
 pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
-use system_parachains_constants::{polkadot::locations::AssetHubLocation, TREASURY_PALLET_ID};
+use system_parachains_constants::{
+	polkadot::locations::{AssetHubLocation, EthereumNetwork},
+	TREASURY_PALLET_ID,
+};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowHrmpNotificationsFromRelayChain,
 	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	DenyRecursively, DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal,
+	DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter,
+	HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
@@ -151,7 +156,15 @@ impl Contains<Location> for FellowsPlurality {
 
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
-		DenyReserveTransferToRelayChain,
+		(
+			DenyRecursively<DenyReserveTransferToRelayChain>,
+			DenyRecursively<
+				DenyExportMessageFrom<
+					EverythingBut<Equals<AssetHubLocation>>,
+					Equals<EthereumNetwork>,
+				>,
+			>,
+		),
 		(
 			// Allow local users to buy weight credit.
 			TakeWeightCredit,
