@@ -16,16 +16,13 @@
 // limitations under the License.
 
 use crate::{Config, Pallet};
+use frame_support::traits::Defensive;
 
 impl<T: Config> Pallet<T> {
 	/// Translate account from RC format to AH format.
 	///
 	/// Currently returns the input account unchanged (mock implementation).
 	///
-	/// TODO Will also be responsible to emit a translation event.
-	/// TODO The current signature suggests that the function is intended to be infallible and
-	/// always return a valid account. This should be revisited when we replace the mock
-	/// implementation with the real one.
 	/// TODO introduce different accountId types for RC and AH e.g something like
 	/// ```rust
 	/// trait IntoAhTranslated<AhAccountId> {
@@ -34,7 +31,62 @@ impl<T: Config> Pallet<T> {
 	/// ```
 	/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
 	pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
-		// Mock implementation - return unchanged for now
+		let Some(new) = Self::maybe_sovereign_translate(&account)
+			.or_else(|| Self::maybe_derived_translate(&account))
+		else {
+			return account;
+		};
+
+		log::error!("Translated account: {} -> {}", &account, &new); // TODO info
+
 		account
+	}
+
+	fn maybe_sovereign_translate(account: &T::AccountId) -> Option<T::AccountId> {
+		let Some(new) = crate::sovereign_account_translation::SOV_TRANSLATIONS
+			.binary_search_by_key(account, |(rc_acc, _)| rc_acc.clone())
+			.map(|i| {
+				crate::sovereign_account_translation::SOV_TRANSLATIONS
+					.get(i)
+					.map(|(_, ah_acc)| ah_acc)
+					.defensive()
+			})
+			.ok()
+			.flatten()
+			.cloned()
+		else {
+			return None;
+		};
+
+		Self::deposit_event(crate::Event::AccountTranslatedParachainSovereign {
+			from: account.clone(),
+			to: new.clone(),
+		});
+
+		Some(new)
+	}
+
+	fn maybe_derived_translate(account: &T::AccountId) -> Option<T::AccountId> {
+		let Some((new, idx)) = crate::sovereign_account_translation::DERIVED_TRANSLATIONS
+			.binary_search_by_key(account, |(rc_acc, _, _)| rc_acc.clone())
+			.map(|i| {
+				crate::sovereign_account_translation::DERIVED_TRANSLATIONS
+					.get(i)
+					.map(|(_, idx, ah_acc)| (ah_acc, idx))
+					.defensive()
+			})
+			.ok()
+			.flatten()
+		else {
+			return None;
+		};
+
+		Self::deposit_event(crate::Event::AccountTranslatedParachainSovereignDerived {
+			from: account.clone(),
+			to: new.clone(),
+			derivation_index: *idx,
+		});
+
+		None
 	}
 }
