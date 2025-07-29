@@ -21,15 +21,7 @@ use frame_support::traits::Defensive;
 impl<T: Config> Pallet<T> {
 	/// Translate account from RC format to AH format.
 	///
-	/// Currently returns the input account unchanged (mock implementation).
-	///
-	/// TODO introduce different accountId types for RC and AH e.g something like
-	/// ```rust
-	/// trait IntoAhTranslated<AhAccountId> {
-	///     fn into_ah_translated(self) -> AhAccountId;
-	/// }
-	/// ```
-	/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
+	/// TODO introduce different accountId types for RC and AH
 	pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
 		let Some(new) = Self::maybe_sovereign_translate(&account)
 			.or_else(|| Self::maybe_derived_translate(&account))

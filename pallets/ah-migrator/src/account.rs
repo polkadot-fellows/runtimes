@@ -79,10 +79,7 @@ impl<T: Config> Pallet<T> {
 		let who = account.who;
 		let total_balance = account.free.saturating_add(account.reserved);
 		let minted = match <T as pallet::Config>::Currency::mint_into(&who, total_balance) {
-			Ok(minted) => {
-				log::info!("Minted into account {}: {:?}", who.to_ss58check(), minted);
-				minted
-			},
+			Ok(minted) => minted,
 			Err(e) => {
 				log::error!(
 					target: LOG_TARGET,
