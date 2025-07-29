@@ -104,12 +104,14 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 	}
 }
 
-impl<AccountId, Balance: Zero, HoldReason, FreezeReason> Account<AccountId, Balance, HoldReason, FreezeReason> {
-	pub fn translate_account(self, f: impl Fn(AccountId) -> AccountId) -> Account<AccountId, Balance, HoldReason, FreezeReason> {
-		Account {
-			who: f(self.who),
-			..self
-		}
+impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
+	Account<AccountId, Balance, HoldReason, FreezeReason>
+{
+	pub fn translate_account(
+		self,
+		f: impl Fn(AccountId) -> AccountId,
+	) -> Account<AccountId, Balance, HoldReason, FreezeReason> {
+		Account { who: f(self.who), ..self }
 	}
 }
 

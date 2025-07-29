@@ -17,11 +17,10 @@
 //! Test that account translation works (Para sovereign and derived).
 
 use hex_literal::hex;
-use sp_runtime::AccountId32;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::RcMigrationCheck;
+use pallet_rc_migrator::{accounts::AccountState, types::RcMigrationCheck};
 use sp_application_crypto::Ss58Codec;
-use pallet_rc_migrator::accounts::AccountState;
+use sp_runtime::AccountId32;
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -29,8 +28,12 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 pub struct AccountTranslationWorks;
 
 pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
-	// para 2034: 5Ec4AhPbkXX97KXMcf9v9SkRNG4Gyc3VhcMMuQe9QXfAHnrC -> 5Eg2fntQqFi3EvFWAf71G66Ecjjah26bmFzoANAeHFgj9Lia
-	(AccountId32::new(hex!("70617261f2070000000000000000000000000000000000000000000000000000")), AccountId32::new(hex!("7369626cf2070000000000000000000000000000000000000000000000000000"))),
+	// para 2034: 5Ec4AhPbkXX97KXMcf9v9SkRNG4Gyc3VhcMMuQe9QXfAHnrC ->
+	// 5Eg2fntQqFi3EvFWAf71G66Ecjjah26bmFzoANAeHFgj9Lia
+	(
+		AccountId32::new(hex!("70617261f2070000000000000000000000000000000000000000000000000000")),
+		AccountId32::new(hex!("7369626cf2070000000000000000000000000000000000000000000000000000")),
+	),
 ];
 
 impl RcMigrationCheck for AccountTranslationWorks {
@@ -51,10 +54,11 @@ impl RcMigrationCheck for AccountTranslationWorks {
 			};
 
 			match entry {
-				AccountState::Migrate => panic!("RC acc did not properly migrate: {}", rc_acc.to_ss58check()),
+				AccountState::Migrate =>
+					panic!("RC acc did not properly migrate: {}", rc_acc.to_ss58check()),
 				AccountState::Preserve | AccountState::Part { .. } => {
 					// This is fine
-				}
+				},
 			}
 		}
 	}

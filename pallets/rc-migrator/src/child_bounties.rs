@@ -361,10 +361,7 @@ impl PortableChildBounty {
 		self,
 		translate_account: impl Fn(AccountId32) -> AccountId32,
 	) -> Self {
-		PortableChildBounty {
-			status: self.status.translate_accounts(translate_account),
-			..self
-		}
+		PortableChildBounty { status: self.status.translate_accounts(translate_account), ..self }
 	}
 }
 

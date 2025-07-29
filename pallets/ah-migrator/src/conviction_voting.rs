@@ -21,8 +21,7 @@ use pallet_rc_migrator::{
 	conviction_voting::{
 		alias, ConvictionVotingMigrator, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
 	},
-	types::ToPolkadotSs58,
-	types::SortByEncoded,
+	types::{SortByEncoded, ToPolkadotSs58},
 };
 
 impl<T: Config> Pallet<T> {

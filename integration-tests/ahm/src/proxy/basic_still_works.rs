@@ -117,8 +117,14 @@ impl AhMigrationCheck for ProxyBasicWorks {
 			let maybe_delay =
 				entry.iter().find(|proxy| proxy.delegate == *delegatee).map(|proxy| proxy.delay);
 
-			let delegatee = pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(delegatee.clone());
-			let delegator = pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(delegator.clone());
+			let delegatee =
+				pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(
+					delegatee.clone(),
+				);
+			let delegator =
+				pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(
+					delegator.clone(),
+				);
 			Self::check_proxy(&delegatee, &delegator, permissions, maybe_delay.unwrap_or(0));
 		}
 	}

@@ -18,6 +18,7 @@
 
 #![cfg(test)]
 
+pub mod accounts_translation_works;
 pub mod balances_test;
 pub mod bench_ah;
 pub mod bench_ops;
@@ -32,7 +33,6 @@ pub mod proxy;
 pub mod queues_priority;
 pub mod tests;
 pub mod xcm_route;
-pub mod accounts_translation_works;
 
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
