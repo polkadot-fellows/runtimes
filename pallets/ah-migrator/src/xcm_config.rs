@@ -30,7 +30,6 @@ use xcm::latest::prelude::*;
 use xcm_builder::{AllowExplicitUnpaidExecutionFrom, IsSiblingSystemParachain};
 use xcm_executor::traits::{Properties, ShouldExecute};
 
-#[cfg(not(feature = "ahm-kusama"))]
 use polkadot_runtime_constants::system_parachain;
 
 pub mod common {
@@ -146,9 +145,6 @@ mod before {
 		*,
 	};
 
-	#[cfg(feature = "ahm-kusama")]
-	use kusama_runtime_constants::TREASURY_PALLET_ID;
-	#[cfg(not(feature = "ahm-kusama"))]
 	use polkadot_runtime_constants::TREASURY_PALLET_ID;
 
 	parameter_types! {

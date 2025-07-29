@@ -16,7 +16,7 @@
 use crate::*;
 use frame_support::traits::{tokens::UnityOrOuterConversion, FromContains};
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
-use system_parachains_common::pay::{LocalPay, VersionedLocatableAccount};
+use system_parachains_common::pay::VersionedLocatableAccount;
 
 parameter_types! {
 	pub const SpendPeriod: BlockNumber = 24 * RC_DAYS;

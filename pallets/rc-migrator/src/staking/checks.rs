@@ -17,18 +17,13 @@
 //! Checks that the staking migration succeeded.
 
 use crate::{
-	staking::{
-		message::{
-			PortableEraRewardPoints, PortableExposurePage, PortableForcing, PortableNominations,
-			PortablePagedExposureMetadata, PortableStakingLedger, PortableUnappliedSlash,
-			PortableValidatorPrefs, StakingValues,
-		},
-		PortableStakingMessage,
+	staking::message::{
+		PortableEraRewardPoints, PortableExposurePage, PortableNominations,
+		PortablePagedExposureMetadata, PortableStakingLedger, PortableUnappliedSlash,
+		PortableValidatorPrefs,
 	},
 	types::IntoPortable,
-	BalanceOf,
 };
-use pallet_staking::Pallet as Staking;
 use sp_runtime::{AccountId32, Perbill, Percent};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,7 +125,7 @@ impl<T: crate::Config> crate::types::RcMigrationCheck for StakingMigratedCorrect
 		}
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
 		use pallet_staking::*;
 		// All storage values are gone
 		assert!(!ValidatorCount::<T>::exists());

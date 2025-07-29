@@ -254,7 +254,7 @@ pub mod tests {
 		// i.e., the mapping of AH hold ids to hold amounts, the reserved balance and the free
 		// balance on Asset Hub before migration.
 		type RcPrePayload = (BTreeMap<T::AccountId, BalanceSummary>, u128);
-		type AhPrePayload = (BTreeMap<T::AccountId, (BTreeMap<Vec<u8>, u128>, u128, u128)>);
+		type AhPrePayload = BTreeMap<T::AccountId, (BTreeMap<Vec<u8>, u128>, u128, u128)>;
 
 		/// Run some checks on asset hub before the migration and store intermediate payload.
 		///

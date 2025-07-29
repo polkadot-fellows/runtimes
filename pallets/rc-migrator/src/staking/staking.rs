@@ -17,17 +17,11 @@
 //! Pallet staking migration.
 
 pub use crate::staking::message::PortableStakingMessage;
-use crate::{types::DefensiveTruncateInto, *};
-use codec::{EncodeLike, FullCodec, FullEncode, HasCompact};
-use core::fmt::Debug;
+use crate::*;
+use codec::{FullCodec, FullEncode};
 pub use frame_election_provider_support::PageIndex;
-use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
-	ValidatorPrefs,
-};
-use sp_runtime::{Perbill, Percent};
-use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
+use pallet_staking::slashing::SpanIndex;
+use sp_staking::{EraIndex, Page};
 
 pub struct StakingMigrator<T> {
 	_phantom: PhantomData<T>,
@@ -436,7 +430,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					};
 
 					match iter.next() {
-						Some((era, validator, slash)) => {
+						Some((era, validator, _slash)) => {
 							pallet_staking::NominatorSlashInEra::<T>::remove(&era, &validator);
 							// Not migrated.
 							StakingStage::NominatorSlashInEra(Some((era, validator)))
@@ -448,7 +442,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					let mut iter = resume::<pallet_staking::SlashingSpans<T>, _, _>(account);
 
 					match iter.next() {
-						Some((account, spans)) => {
+						Some((account, _spans)) => {
 							pallet_staking::SlashingSpans::<T>::remove(&account);
 							// Not migrated.
 							StakingStage::SlashingSpans(Some(account))
@@ -460,7 +454,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					let mut iter = resume::<pallet_staking::SpanSlash<T>, _, _>(next);
 
 					match iter.next() {
-						Some(((account, span), slash)) => {
+						Some(((account, span), _slash)) => {
 							pallet_staking::SpanSlash::<T>::remove((&account, &span));
 							// Not migrated.
 							StakingStage::SpanSlash(Some((account, span)))

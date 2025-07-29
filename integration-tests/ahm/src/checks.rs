@@ -18,18 +18,8 @@
 
 use crate::porting_prelude::*;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
-use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
-use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
-	AccountId32,
-};
-use std::{collections::BTreeMap, str::FromStr};
+use pallet_rc_migrator::types::RcMigrationCheck;
 
 pub struct SanityChecks;
 
@@ -40,8 +30,8 @@ impl RcMigrationCheck for SanityChecks {
 		assert!(
 			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
 				pallet_rc_migrator::MigrationStage::Scheduled {
-					start: 0u32.into(),
-					cool_off_end: 0u32.into(),
+					start: 0u32,
+					cool_off_end: 0u32,
 				}
 		);
 	}
@@ -65,7 +55,7 @@ impl AhMigrationCheck for SanityChecks {
 		);
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(
 			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get() ==
 				pallet_ah_migrator::MigrationStage::MigrationDone
@@ -76,10 +66,10 @@ impl AhMigrationCheck for SanityChecks {
 /// Assert that the root hash is what we expect.
 pub fn assert_root_hash(chain: &str, want_hex: &str) {
 	let got = hex::encode(sp_io::storage::root(sp_runtime::StateVersion::V1));
-	println!("{chain} root hash: {:?}", got);
+	println!("{chain} root hash: {got:?}");
 	if got == want_hex {
 		return
 	}
 
-	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {}\nGot:      {}", want_hex, got);
+	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {want_hex}\nGot:      {got}");
 }

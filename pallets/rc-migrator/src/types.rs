@@ -149,7 +149,7 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
-		messages: Vec<staking::delegated_staking::RcDelegatedStakingMessageOf<T>>,
+		messages: Vec<staking::delegated_staking::PortableDelegatedStakingMessage>,
 	},
 	#[codec(index = 24)]
 	ReceiveChildBountiesMessages { messages: Vec<child_bounties::PortableChildBountiesMessage> },
@@ -178,7 +178,7 @@ pub enum AhMigratorCall<T: Config> {
 	PartialEq,
 	Eq,
 )]
-pub struct MigrationFinishedData<Balance: Default> {
+pub struct MigrationFinishedData<Balance> {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: Balance,
 }
@@ -342,7 +342,7 @@ impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querie
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub enum QueuePriority<BlockNumber: Copy> {
+pub enum QueuePriority<BlockNumber> {
 	/// Use the default priority pattern from the pallet configuration.
 	#[default]
 	Config,

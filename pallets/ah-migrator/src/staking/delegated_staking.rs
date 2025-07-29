@@ -16,28 +16,27 @@
 
 use crate::*;
 use pallet_rc_migrator::staking::delegated_staking::{
-	alias as delegated_staking_alias, test, DelegatedStakingMigrator, RcDelegatedStakingMessage,
-	RcDelegatedStakingMessageOf,
+	test, DelegatedStakingMigrator, PortableDelegatedStakingMessage,
 };
 
 impl<T: Config> Pallet<T> {
 	pub fn translate_delegated_staking_message(
-		message: RcDelegatedStakingMessageOf<T>,
-	) -> RcDelegatedStakingMessageOf<T> {
+		message: PortableDelegatedStakingMessage,
+	) -> PortableDelegatedStakingMessage {
 		match message {
-			RcDelegatedStakingMessage::Delegators { delegator, agent, amount } =>
-				RcDelegatedStakingMessage::Delegators {
+			PortableDelegatedStakingMessage::Delegators { delegator, agent, amount } =>
+				PortableDelegatedStakingMessage::Delegators {
 					delegator: Self::translate_account_rc_to_ah(delegator),
 					agent: Self::translate_account_rc_to_ah(agent),
 					amount,
 				},
-			RcDelegatedStakingMessage::Agents {
+			PortableDelegatedStakingMessage::Agents {
 				agent,
 				payee,
 				total_delegated,
 				unclaimed_withdrawals,
 				pending_slash,
-			} => RcDelegatedStakingMessage::Agents {
+			} => PortableDelegatedStakingMessage::Agents {
 				agent: Self::translate_account_rc_to_ah(agent),
 				payee: Self::translate_account_rc_to_ah(payee),
 				total_delegated,
@@ -48,7 +47,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_delegated_staking_messages(
-		messages: Vec<RcDelegatedStakingMessageOf<T>>,
+		messages: Vec<PortableDelegatedStakingMessage>,
 	) -> DispatchResult {
 		log::info!(target: LOG_TARGET, "Processing {} delegated staking messages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -77,29 +76,29 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_process_delegated_staking_message(
-		message: RcDelegatedStakingMessageOf<T>,
+		message: PortableDelegatedStakingMessage,
 	) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Processing delegated staking message: {:?}", message);
 
 		match message {
-			RcDelegatedStakingMessage::Delegators { delegator, agent, amount } => {
-				let delegation = delegated_staking_alias::Delegation { agent, amount };
-				delegated_staking_alias::Delegations::<T>::insert(delegator, delegation);
+			PortableDelegatedStakingMessage::Delegators { delegator, agent, amount } => {
+				let delegation = pallet_delegated_staking::types::Delegation { agent, amount };
+				pallet_delegated_staking::Delegators::<T>::insert(delegator, delegation);
 			},
-			RcDelegatedStakingMessage::Agents {
+			PortableDelegatedStakingMessage::Agents {
 				agent,
 				payee,
 				total_delegated,
 				unclaimed_withdrawals,
 				pending_slash,
 			} => {
-				let agent_ledger = delegated_staking_alias::AgentLedger {
+				let agent_ledger = pallet_delegated_staking::types::AgentLedger {
 					payee,
 					total_delegated,
 					unclaimed_withdrawals,
 					pending_slash,
 				};
-				delegated_staking_alias::AgentLedgers::<T>::insert(agent, agent_ledger);
+				pallet_delegated_staking::Agents::<T>::insert(agent, agent_ledger);
 			},
 		}
 
@@ -114,13 +113,13 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Assert storage "Delegations::ah_pre::empty"
 		assert!(
-			delegated_staking_alias::Delegations::<T>::iter().next().is_none(),
+			pallet_delegated_staking::Delegators::<T>::iter().next().is_none(),
 			"No delegations should exist on the Asset Hub before migration"
 		);
 
-		// Assert storage "AgentLedgers::ah_pre::empty"
+		// Assert storage "Agents::ah_pre::empty"
 		assert!(
-			delegated_staking_alias::AgentLedgers::<T>::iter().next().is_none(),
+			pallet_delegated_staking::Agents::<T>::iter().next().is_none(),
 			"No agent ledgers should exist on the Asset Hub before migration"
 		);
 	}
@@ -131,14 +130,14 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 		// Assert storage "Delegations::ah_post::correct"
 		assert_eq!(
 			delegations.len(),
-			delegated_staking_alias::Delegations::<T>::iter().count(),
+			pallet_delegated_staking::Delegators::<T>::iter().count(),
 			"Number of delegations on Asset Hub after migration should be the same as on the Relay Chain before migration"
 		);
 
-		// Assert storage "AgentLedgers::ah_post::correct"
+		// Assert storage "Agents::ah_post::correct"
 		assert_eq!(
 			agent_ledgers.len(),
-			delegated_staking_alias::AgentLedgers::<T>::iter().count(),
+			pallet_delegated_staking::Agents::<T>::iter().count(),
 			"Number of agent ledgers on Asset Hub after migration should be the same as on the Relay Chain before migration"
 		);
 
@@ -150,7 +149,7 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 				Pallet::<T>::translate_account_rc_to_ah(delegation.agent.clone());
 
 			let ah_delegation_maybe =
-				delegated_staking_alias::Delegations::<T>::get(&translated_delegator);
+				pallet_delegated_staking::Delegators::<T>::get(&translated_delegator);
 			assert!(
 				ah_delegation_maybe.is_some(),
 				"Delegation for delegator {:?} should exist on the Asset Hub after migration",
@@ -171,7 +170,7 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 			);
 		}
 
-		// Assert storage "AgentLedgers::ah_post::correct"
+		// Assert storage "Agents::ah_post::correct"
 		for agent_ledger in agent_ledgers {
 			let translated_agent =
 				Pallet::<T>::translate_account_rc_to_ah(agent_ledger.agent.clone());
@@ -179,7 +178,7 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 				Pallet::<T>::translate_account_rc_to_ah(agent_ledger.payee.clone());
 
 			let ah_agent_ledger_maybe =
-				delegated_staking_alias::AgentLedgers::<T>::get(&translated_agent);
+				pallet_delegated_staking::Agents::<T>::get(&translated_agent);
 			assert!(
 				ah_agent_ledger_maybe.is_some(),
 				"Agent ledger for agent {:?} should exist on the Asset Hub after migration",

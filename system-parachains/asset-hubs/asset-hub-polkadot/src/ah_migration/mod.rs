@@ -21,13 +21,11 @@ use super::*;
 use alloc::boxed::Box;
 use codec::DecodeAll;
 use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
-use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::LOG_TARGET;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
 use sp_core::Get;
 use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
-use xcm::latest::prelude::*;
 
 impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
 	fn from(reason: pallet_rc_migrator::types::PortableHoldReason) -> Self {
