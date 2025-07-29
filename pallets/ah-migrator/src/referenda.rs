@@ -16,7 +16,7 @@
 
 use crate::*;
 use call::BoundedCallOf;
-use frame_support::traits::{schedule::v3::Anon, DefensiveTruncateFrom};
+use frame_support::traits::DefensiveTruncateFrom;
 use pallet_rc_migrator::referenda::ReferendaMigrator;
 use pallet_referenda::{
 	BalanceOf, DecidingCount, MetadataOf, ReferendumCount, ReferendumIndex, ReferendumInfo,

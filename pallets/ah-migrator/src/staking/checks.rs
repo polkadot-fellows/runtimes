@@ -16,12 +16,9 @@
 
 //! Checks that the staking migration succeeded.
 
-use pallet_rc_migrator::{
-	staking::{
-		message::{PortableNominations, PortableUnappliedSlash},
-		PortableStakingMessage, RcData,
-	},
-	types::IntoPortable,
+use pallet_rc_migrator::staking::{
+	message::{PortableNominations, PortableUnappliedSlash},
+	RcData,
 };
 use sp_runtime::{AccountId32, Perbill};
 
@@ -141,6 +138,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 	}
 }
 
+#[allow(deprecated)]
 fn translate_reward_destination(
 	destination: pallet_staking::RewardDestination<AccountId32>,
 ) -> pallet_staking_async::RewardDestination<AccountId32> {

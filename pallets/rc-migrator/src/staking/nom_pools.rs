@@ -21,7 +21,7 @@ use crate::{types::*, *};
 use alias::{RewardPool, SubPools};
 use frame_support::traits::{ConstU32, Get};
 use pallet_nomination_pools::{BondedPoolInner, ClaimPermission, PoolId, PoolMember};
-use sp_runtime::{Perbill, Saturating};
+use sp_runtime::Perbill;
 
 /// The stages of the nomination pools pallet migration.
 ///
@@ -504,7 +504,7 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 		}
 
 		// Collect bonded pools
-		for (pool_id, mut pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
+		for (pool_id, pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
 			let generic_pool = tests::GenericBondedPoolInner {
 				commission: tests::GenericCommission {
 					current: pool.commission.current,

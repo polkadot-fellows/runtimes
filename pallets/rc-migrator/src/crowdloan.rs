@@ -155,19 +155,18 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
 
 					// Only thing to do here is to re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
-					if !cfg!(feature = "ahm-kusama") {
-						let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
-						if leases.is_empty() {
-							defensive!("Bifrost fund maybe already ended, remove this");
-							continue;
-						}
-
-						// It would be better if we can re-map all contributions to the new para id, but
-						// that requires to iterate them all, so we go the other way around; changing
-						// the leases to the old Bifrost Crowdloan.
-						pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
-						log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
+					let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
+					if leases.is_empty() {
+						defensive!("Bifrost fund maybe already ended, remove this");
+						continue;
 					}
+
+					// It would be better if we can re-map all contributions to the new para id, but
+					// that requires to iterate them all, so we go the other way around; changing
+					// the leases to the old Bifrost Crowdloan.
+					pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
+					log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
+
 					inner_key
 				},
 				CrowdloanStage::LeaseReserve { last_key } => {
@@ -392,7 +391,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
 		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
 			// Stay consistent with migrate_many: remap for leases
-			let remapped_para_id = if !cfg!(feature = "ahm-kusama") && para_id == ParaId::from(2030) {
+			let remapped_para_id = if para_id == ParaId::from(2030) {
 				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
@@ -439,7 +438,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 
 		// Process crowdloan funds and contributions
 		for (original_para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
-			let para_id = if !cfg!(feature = "ahm-kusama") && original_para_id == ParaId::from(2030) {
+			let para_id = if original_para_id == ParaId::from(2030) {
 				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
@@ -490,7 +489,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
 		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
 			// Remap Bifrost para_id consistently with pre_check
-			let remapped_para_id = if !cfg!(feature = "ahm-kusama") && para_id == ParaId::from(2030) {
+			let remapped_para_id = if para_id == ParaId::from(2030) {
 				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {

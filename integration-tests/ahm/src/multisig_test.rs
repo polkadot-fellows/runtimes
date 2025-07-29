@@ -26,7 +26,7 @@
 //! types directly.
 
 use crate::porting_prelude::*;
-use frame_support::{pallet_prelude::*, traits::Currency};
+use frame_support::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_application_crypto::Ss58Codec;
@@ -67,7 +67,7 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			pallet_multisig::Multisigs::<RcRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
-				multisig_info.call_hash.clone()
+				multisig_info.call_hash
 			),
 			"Sample multisig {:?} should have been correctly created on the relay chain.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -81,7 +81,7 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			!pallet_multisig::Multisigs::<RcRuntime>::contains_key(
 				multisig_info.depositor.clone(),
-				multisig_info.call_hash.clone()
+				multisig_info.call_hash
 			),
 			"Sample multisig {:?} should have been removed from the relay chain after migration.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -101,7 +101,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			!pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.depositor.clone(),
-				multisig_info.call_hash.clone()
+				multisig_info.call_hash
 			),
 			"Sample multisig {:?} should not be present on Asset Hub before migration.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -115,7 +115,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
-				call_hash.clone()
+				call_hash
 			),
 			"Sample multisig {:?} should have been correctly re-created on Asset Hub.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -123,13 +123,13 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		// Remove the multisig from the Asset Hub to avoid messing up with the next tests.
 		pallet_multisig::Multisigs::<AhRuntime>::remove(
 			multisig_info.multisig_id.clone(),
-			call_hash.clone(),
+			call_hash,
 		);
 		// Check that the multisig has been effectively removed
 		assert!(
 			!pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
-				call_hash.clone()
+				call_hash
 			),
 			"Sample multisig {:?} should have been correctly removed from Asset Hub after tests.",
 			multisig_info.multisig_id.clone().to_ss58check()

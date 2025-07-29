@@ -19,18 +19,12 @@
 extern crate alloc;
 
 use crate::{
-	staking::{AccountIdOf, BalanceOf, StakingMigrator},
+	staking::{BalanceOf, StakingMigrator},
 	types::DefensiveTruncateInto,
 	*,
 };
 use alloc::collections::BTreeMap;
-use codec::{EncodeLike, HasCompact};
-use core::fmt::Debug;
-pub use frame_election_provider_support::PageIndex;
-use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	EraRewardPoints, Nominations, RewardDestination, StakingLedger,
-};
+use pallet_staking::RewardDestination;
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, Page, SessionIndex};
 
@@ -468,6 +462,7 @@ impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
 
 // RewardDestination: Portable -> AH
 impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewardDestination {
+	#[allow(deprecated)]
 	fn into(self) -> pallet_staking_async::RewardDestination<AccountId32> {
 		use pallet_staking_async::RewardDestination::*;
 		match self {

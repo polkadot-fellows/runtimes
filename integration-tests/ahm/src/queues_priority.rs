@@ -108,8 +108,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 }
-				.into(),
+			DmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 },
 		));
 	});
 
@@ -123,7 +122,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }.into(),
+			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 },
 		));
 	});
 
@@ -137,7 +136,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 2, cycle_period: 12 }.into(),
+			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 2, cycle_period: 12 },
 		));
 	});
 
@@ -151,8 +150,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 10, cycle_period: 12 }
-				.into(),
+			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 10, cycle_period: 12 },
 		));
 	});
 
@@ -166,8 +164,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: false, cycle_block: 11, cycle_period: 12 }
-				.into(),
+			DmpQueuePrioritySetEvent { prioritized: false, cycle_block: 11, cycle_period: 12 },
 		));
 	});
 
@@ -181,8 +178,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 }
-				.into(),
+			DmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 },
 		));
 	});
 
@@ -196,7 +192,7 @@ fn test_force_dmp_queue_priority() {
 		<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<AhRuntime>::assert_has_event(AhRuntimeEvent::AhMigrator(
-			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }.into(),
+			DmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 },
 		));
 	});
 }
@@ -276,8 +272,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 },
 		));
 	});
 
@@ -291,8 +286,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 },
 		));
 	});
 
@@ -306,8 +300,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 2, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 2, cycle_period: 12 },
 		));
 	});
 
@@ -321,8 +314,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 10, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 10, cycle_period: 12 },
 		));
 	});
 
@@ -336,8 +328,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 11, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 11, cycle_period: 12 },
 		));
 	});
 
@@ -351,8 +342,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: false, cycle_block: 12, cycle_period: 12 },
 		));
 	});
 
@@ -366,8 +356,7 @@ fn test_force_ah_ump_queue_priority() {
 		<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 		frame_system::Pallet::<RcRuntime>::assert_has_event(RcRuntimeEvent::RcMigrator(
-			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 }
-				.into(),
+			AhUmpQueuePrioritySetEvent { prioritized: true, cycle_block: 1, cycle_period: 12 },
 		));
 	});
 }

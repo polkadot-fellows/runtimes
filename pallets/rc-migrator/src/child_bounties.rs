@@ -15,11 +15,9 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{types::DefensiveTruncateInto, *};
-use pallet_bounties::{Bounty, BountyIndex};
+use pallet_bounties::BountyIndex;
 use pallet_child_bounties::{ChildBounty, ChildBountyStatus};
 use sp_runtime::traits::BlockNumberProvider;
-#[cfg(feature = "std")]
-use std::collections::BTreeMap;
 
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
