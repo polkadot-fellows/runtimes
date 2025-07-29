@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - multisig: switch to local block provider (for unique multisig IDs)
   - proxy: use Relay Chain block provider (for delayed announcements)
   - nfts: use Relay Chain block provider (for minting start/end blocks)
+- PolkadotAssetHub: Enable Async Backing ([polkadot-fellows/runtimes/pull/763](https://github.com/polkadot-fellows/runtimes/pull/763))
 
 ## [1.6.1] 24.06.2025
 

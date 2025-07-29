@@ -2245,7 +2245,7 @@ mod tests {
 			base + weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 
 		let fit = block.checked_div_per_component(&transfer).unwrap_or_default();
-		assert!(fit >= 1000, "{} should be at least 1000", fit);
+		assert!(fit >= 1000, "{fit} should be at least 1000");
 	}
 
 	/// The fee for one transfer is at most 1 CENT.
@@ -2282,9 +2282,9 @@ mod tests {
 			fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
 
 		let proof_o_time = proof_fee.checked_div(time_fee).unwrap_or_default();
-		assert!(proof_o_time <= 30, "{} should be at most 30", proof_o_time);
+		assert!(proof_o_time <= 30, "{proof_o_time} should be at most 30");
 		let time_o_proof = time_fee.checked_div(proof_fee).unwrap_or_default();
-		assert!(time_o_proof <= 30, "{} should be at most 30", time_o_proof);
+		assert!(time_o_proof <= 30, "{time_o_proof} should be at most 30");
 	}
 
 	#[test]

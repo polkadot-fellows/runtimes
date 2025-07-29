@@ -928,7 +928,7 @@ where
 		);
 		let raw_payload = SignedPayload::new(call, tx_ext)
 			.map_err(|e| {
-				log::warn!(target: LOG_TARGET, "Unable to create signed payload: {:?}", e);
+				log::warn!(target: LOG_TARGET, "Unable to create signed payload: {e:?}");
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
@@ -2775,7 +2775,7 @@ mod test_fees {
 			value: Default::default(),
 		};
 		let info = call.get_dispatch_info();
-		println!("call = {:?} / info = {:?}", call, info);
+		println!("call = {call:?} / info = {info:?}");
 		// convert to runtime call.
 		let call = RuntimeCall::Balances(call);
 		let tx_ext: TxExtension = (
@@ -2964,7 +2964,7 @@ mod multiplier_tests {
 		// the weight is 1/100th bigger than target.
 		run_with_system_weight(target.saturating_mul(101) / 100, || {
 			let next = SlowAdjustingFeeUpdate::<Runtime>::convert(minimum_multiplier);
-			assert!(next > minimum_multiplier, "{:?} !>= {:?}", next, minimum_multiplier);
+			assert!(next > minimum_multiplier, "{next:?} !>= {minimum_multiplier:?}");
 		})
 	}
 
@@ -3128,7 +3128,7 @@ mod multiplier_tests {
 				TransactionPayment::on_finalize(1);
 				let next = TransactionPayment::next_fee_multiplier();
 
-				assert!(next > multiplier, "{:?} !>= {:?}", next, multiplier);
+				assert!(next > multiplier, "{next:?} !>= {multiplier:?}");
 				multiplier = next;
 
 				println!(
@@ -3166,10 +3166,10 @@ mod multiplier_tests {
 				TransactionPayment::on_finalize(1);
 				let next = TransactionPayment::next_fee_multiplier();
 
-				assert!(next < multiplier, "{:?} !>= {:?}", next, multiplier);
+				assert!(next < multiplier, "{next:?} !>= {multiplier:?}");
 				multiplier = next;
 
-				println!("block = {} / multiplier {:?}", blocks, multiplier);
+				println!("block = {blocks} / multiplier {multiplier:?}");
 			});
 			blocks += 1;
 		}
@@ -3230,7 +3230,7 @@ mod remote_tests {
 					.collect::<Vec<_>>();
 
 			for (ref_index, referenda) in all_refs {
-				log::info!(target: LOG_TARGET, "🚀 executing referenda #{}", ref_index);
+				log::info!(target: LOG_TARGET, "🚀 executing referenda #{ref_index}");
 				let RefStatus { origin, proposal, .. } = referenda;
 				// we do more or less what the scheduler will do under the hood, as best as we can
 				// imitate:
@@ -3241,13 +3241,13 @@ mod remote_tests {
 				>::peek(&proposal) {
 					Ok(x) => x,
 					Err(e) => {
-						log::error!(target: LOG_TARGET, "failed to get preimage: {:?}", e);
+						log::error!(target: LOG_TARGET, "failed to get preimage: {e:?}");
 						continue;
 					}
 				};
 
 				let dispatch_result = call.dispatch(origin.clone().into());
-				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {:?}: {:?}", origin, dispatch_result);
+				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {origin:?}: {dispatch_result:?}");
 			}
 		});
 	}
@@ -3345,7 +3345,7 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "total-staked = {:?}", token.amount(total_staked));
 			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
 			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
-			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
