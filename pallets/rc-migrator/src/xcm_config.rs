@@ -24,7 +24,6 @@ use frame_support::{
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
 
-#[cfg(not(feature = "ahm-kusama"))]
 use polkadot_runtime_constants::system_parachain::*;
 
 parameter_types! {
