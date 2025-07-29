@@ -41,6 +41,7 @@ use super::{
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
+use std::collections::BTreeSet;
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, InboundDownwardMessage, Junction, Location, ParaId};
@@ -51,6 +52,7 @@ use frame_support::{
 		OnInitialize, ReservableCurrency,
 	},
 };
+use sp_core::ByteArray;
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
 	proxy::ProxyBasicChecks, types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
@@ -300,54 +302,117 @@ fn sovereign_account_translation() {
 	}
 }
 
-/// For human consumption.
+/// This test updates the `pallets/ah-migrator/sovereign_account_translation.csv` file.
+#[ignore]
 #[tokio::test]
-async fn print_sovereign_account_translation() {
-	let (mut rc, mut ah) = load_externalities().await.unwrap();
+async fn find_translatable_accounts() {
+	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 
-	let mut rc_to_ah = BTreeMap::new();
+	// Extract all accounts from the RC
+	let rc_accounts = rc.execute_with(|| {
+		frame_system::Account::<Polkadot>::iter_keys().collect::<BTreeSet<_>>()
+	});
+	println!("Found {} RC accounts", rc_accounts.len());
 
-	rc.execute_with(|| {
-		for para_id in paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>() {
-			let rc_acc =
-				xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
-					&Location::new(0, Junction::Parachain(para_id.into())),
-				)
+	// Para ID -> (RC sovereign, AH sovereign)
+	let mut sov_translations = BTreeMap::<u32, (AccountId32, AccountId32)>::new();
+	// Para ID -> (RC derived, index, AH derived)
+	let mut derived_translations = BTreeMap::<u32, (AccountId32, u16, AccountId32)>::new();
+
+	// Try to find Para sovereign and derived accounts.
+	for para_id in 0..(u16::MAX as u32) {
+		// The Parachain sovereign account ID on the relay chain
+		let rc_para_sov =
+			xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
+				&Location::new(0, Junction::Parachain(para_id.into())),
+			)
+			.unwrap();
+
+		let (ah_para_sibl, found_para_id) =
+			pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_para_sov)
 				.unwrap();
 
-			let (ah_acc, para_id) =
-				pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&rc_acc)
-					.unwrap();
-			rc_to_ah.insert(rc_acc, (ah_acc, para_id));
+		// Check if we need to translate this to the sovereign sibl account
+		if rc_accounts.contains(&rc_para_sov) {
+			assert_eq!(found_para_id, para_id.into()); // sanity check			
+			println!("Found RC sovereign for para {}: {} -> {}", &para_id, &rc_para_sov, &ah_para_sibl);
+			sov_translations.insert(para_id, (rc_para_sov.clone(), ah_para_sibl.clone()));			
+		} else {
+			// NOTE we do not have a `continue` here, meaning that we also check derived accounts
+			// of non-existent para sovs, just in case they get revived in the future.
 		}
 
-		for account in frame_system::Account::<Polkadot>::iter_keys() {
-			let translated =
-				pallet_ah_ops::Pallet::<AssetHub>::try_translate_rc_sovereign_to_ah(&account);
+		// Now we check the first 100 derived accounts
+		for derivation_index in 0..100 {
+			let rc_para_derived = pallet_ah_ops::derivative_account_id(rc_para_sov.clone(), derivation_index);
+			let expected_ah_para_derived = pallet_ah_ops::derivative_account_id(ah_para_sibl.clone(), derivation_index);
 
-			if let Ok((ah_acc, para_id)) = translated {
-				if !rc_to_ah.contains_key(&account) {
-					println!("Account belongs to an unregistered para {}: {}", para_id, account);
-					rc_to_ah.insert(account, (ah_acc, para_id));
-				}
+			if rc_accounts.contains(&rc_para_derived) {
+				let (ah_para_derived, found_para_id) =
+					pallet_ah_ops::Pallet::<AssetHub>::try_rc_sovereign_derived_to_ah(
+						&rc_para_derived,
+						&rc_para_sov,
+						derivation_index)
+						.unwrap();
+
+				assert_eq!(ah_para_derived, expected_ah_para_derived); // sanity check
+				assert_eq!(found_para_id, para_id.into()); // sanity check
+
+				println!("Found RC derived   for para {}: {} -> {} (index {})", &para_id, &rc_para_derived, &ah_para_derived, &derivation_index);
+				derived_translations.insert(para_id, (rc_para_derived, derivation_index, ah_para_derived));
 			}
 		}
-	});
+	}
 
-	let mut csv: String = "para,rc,ah\n".into();
+	println!("Found {} RC sovereign account translations", sov_translations.len());
+	println!("Found {} RC derived   account translations", derived_translations.len());
 
-	// Sanity check that they all exist. Note that they dont *have to*, but all do.
-	println!("Translating {} RC accounts to AH", rc_to_ah.len());
-	ah.execute_with(|| {
-		for (rc_acc, (ah_acc, para_id)) in rc_to_ah.iter() {
-			println!("[{}] {} -> {}", para_id, rc_acc, ah_acc);
+	// Rust code with the translation maps
+	let mut rust: String = "/// List of RC para to AH sibl sovereign account translation sorted by RC account.
+pub const SOV_TRANSLATIONS: &[(AccountId32, AccountId32)] = &[\n".into();
 
-			csv.push_str(&format!("{},{},{}\n", para_id, rc_acc, ah_acc));
-		}
-	});
+	let mut sov_translations = sov_translations.into_iter().collect::<Vec<_>>();
+	sov_translations.sort_by(|(_, (rc_acc, _)), (_, (rc_acc2, _))| rc_acc.cmp(rc_acc2));
 
-	//std::fs::write("../../pallets/rc-migrator/src/sovereign_account_translation.csv",
-	// csv).unwrap();
+	for (para_id, (rc_acc, ah_acc)) in sov_translations.iter() {
+		rust.push_str(&format!("\t// para {}: {} -> {}\n", para_id, &rc_acc, &ah_acc));
+		rust.push_str(&format!("\t({}, {}),\n", format_account_id(rc_acc), format_account_id(ah_acc)));
+	}
+
+	rust.push_str("];");
+
+	rust.push_str("\n\n/// List of RC para to AH sibl derived account translation sorted by RC account.
+pub const DERIVED_TRANSLATIONS: &[(AccountId32, u16, AccountId32)] = &[\n");
+
+	let mut derived_translations = derived_translations.into_iter().collect::<Vec<_>>();
+	derived_translations.sort_by(|(_, (rc_acc, _, _)), (_, (rc_acc2, _, _))| rc_acc.cmp(rc_acc2));
+
+	for (para_id, (rc_acc, derivation_index, ah_acc)) in derived_translations.iter() {
+		rust.push_str(&format!("\t// para {}: {} -> {} (index {})\n", para_id, &rc_acc, &ah_acc, &derivation_index));
+		rust.push_str(&format!("\t({}, {}, {}),\n", format_account_id(rc_acc), derivation_index, format_account_id(ah_acc)));
+	}
+
+	rust.push_str("];");
+
+	// Replace everything after the "AUTOGENERATED BELOW" comment with our Rust string
+	let path = std::path::Path::new("../../pallets/ah-migrator/src/sovereign_account_translation.rs");
+	let mut file = std::fs::File::open(path).unwrap();
+	let mut contents = String::new();
+	std::io::Read::read_to_string(&mut file, &mut contents).unwrap();
+
+	// Replace everything after the "AUTOGENERATED BELOW" comment with our Rust string
+	let pos_auto_gen = contents.find("// AUTOGENERATED BELOW").unwrap() + 23;
+	contents.truncate(pos_auto_gen);
+	contents.insert_str(pos_auto_gen, &rust);
+	
+	// Write the result back to the file
+	std::fs::write(path, contents).unwrap();
+
+	println!("Wrote to {}", std::fs::canonicalize(path).unwrap().display());
+}
+
+fn format_account_id(acc: &AccountId32) -> String {
+	format!("AccountId32::new(hex!(\"{}\"))", hex::encode(acc.as_slice()))
 }
 
 #[tokio::test]

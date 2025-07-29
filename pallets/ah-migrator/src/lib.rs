@@ -32,6 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
+pub mod account_translation;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -53,6 +54,7 @@ pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 pub mod xcm_translation;
+pub mod sovereign_account_translation;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
@@ -1002,26 +1004,6 @@ pub mod pallet {
 			}
 			<T as Config>::AdminOrigin::ensure_origin(origin)?;
 			Ok(())
-		}
-
-		/// Translate account from RC format to AH format.
-		///
-		/// Currently returns the input account unchanged (mock implementation).
-		///
-		/// TODO Will also be responsible to emit a translation event.
-		/// TODO The current signature suggests that the function is intended to be infallible and
-		/// always return a valid account. This should be revisited when we replace the mock
-		/// implementation with the real one.
-		/// TODO introduce different accountId types for RC and AH e.g something like
-		/// ```rust
-		/// trait IntoAhTranslated<AhAccountId> {
-		///     fn into_ah_translated(self) -> AhAccountId;
-		/// }
-		/// ```
-		/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
-		pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
-			// Mock implementation - return unchanged for now
-			account
 		}
 
 		/// Helper function for migration post-check validation.
