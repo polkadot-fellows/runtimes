@@ -35,6 +35,7 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Cumulus
+pub use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
 	test_parachain_is_trusted_teleporter,
@@ -55,24 +56,28 @@ pub use polkadot_system_emulated_network::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
 		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
+	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	collectives_polkadot_emulated_chain::{
 		genesis::ED as COLLECTIVES_POLKADOT_ED,
 		CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	},
+	coretime_polkadot_emulated_chain::CoretimePolkadotParaPallet as CoretimePolkadotPallet,
 	penpal_emulated_chain::{
 		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
 		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},
+	people_polkadot_emulated_chain::PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	CollectivesPolkadotPara as CollectivesPolkadot, PenpalAPara as PenpalA,
-	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
-	PenpalBPara as PenpalB, PenpalBParaReceiver as PenpalBReceiver,
-	PenpalBParaSender as PenpalBSender, PolkadotRelay as Polkadot,
+	CollectivesPolkadotPara as CollectivesPolkadot, CoretimePolkadotPara as CoretimePolkadot,
+	PenpalAPara as PenpalA, PenpalAParaReceiver as PenpalAReceiver,
+	PenpalAParaSender as PenpalASender, PenpalBPara as PenpalB,
+	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
+	PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
 	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 

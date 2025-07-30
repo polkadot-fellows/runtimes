@@ -2239,8 +2239,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			// The XCM executor of Kusama doesn't have a configured `Aliasers`
-			Err(BenchmarkError::Skip)
+			let origin = Location::new(0, [Parachain(1000)]);
+			let target =
+				Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
+			Ok((origin, target))
 		}
 	}
 

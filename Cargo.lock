@@ -2079,6 +2079,7 @@ dependencies = [
  "bp-messages",
  "bridge-hub-common",
  "bridge-hub-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "frame-support",
