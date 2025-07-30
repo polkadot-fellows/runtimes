@@ -41,7 +41,6 @@ use asset_test_utils::{
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
 use codec::{Decode, Encode};
-use core::ops::Mul;
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{fungibles::InspectEnumerable, ContainsPair},
