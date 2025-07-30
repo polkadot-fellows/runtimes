@@ -10738,9 +10738,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-common"
-version = "19.1.0"
+version = "19.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eccd922c8032004e38c1a6cab86f304949d04e61e270c982b06a02132d53bf58"
+checksum = "768b3b70c32202f5e2fa1c673b01dcdb46c726b0d66d865d9638035fd2ecccfc"
 dependencies = [
  "bitvec",
  "frame-benchmarking",

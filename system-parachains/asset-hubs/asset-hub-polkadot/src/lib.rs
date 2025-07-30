@@ -1157,6 +1157,7 @@ mod benches {
 	use super::*;
 	use alloc::boxed::Box;
 	use frame_support::assert_ok;
+	use system_parachains_constants::polkadot::locations::{PeopleLocation, PeopleParaId};
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -1224,11 +1225,6 @@ mod benches {
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
 		type DeliveryHelper = (
-			cumulus_primitives_utility::ToParentDeliveryHelper<
-				xcm_config::XcmConfig,
-				ExistentialDepositAsset,
-				PriceForParentDelivery,
-			>,
 			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 				xcm_config::XcmConfig,
 				ExistentialDepositAsset,
@@ -1236,17 +1232,24 @@ mod benches {
 				RandomParaId,
 				ParachainSystem,
 			>,
+			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				xcm_config::XcmConfig,
+				ExistentialDepositAsset,
+				PriceForSiblingParachainDelivery,
+				PeopleParaId,
+				ParachainSystem,
+			>,
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			Some(Parent.into())
+			Some(PeopleLocation::get())
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay/native token can be teleported between AH and Relay.
+			// Relay/native token can be teleported between AH and People.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
-				Parent.into(),
+				PeopleLocation::get(),
 			))
 		}
 
@@ -1260,10 +1263,10 @@ mod benches {
 
 		fn set_up_complex_asset_transfer() -> Option<(XcmAssets, u32, Location, Box<dyn FnOnce()>)>
 		{
-			// Transfer to Relay some local AH asset (local-reserve-transfer) while paying
+			// Transfer to People some local AH asset (local-reserve-transfer) while paying
 			// fees using teleported native token.
 			// (We don't care that Relay doesn't accept incoming unknown AH local asset)
-			let dest = Parent.into();
+			let dest = PeopleLocation::get();
 
 			let fee_amount = ExistentialDeposit::get();
 			let fee_asset: Asset = (Location::parent(), fee_amount).into();
@@ -1306,20 +1309,39 @@ mod benches {
 		}
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
+			use frame_support::traits::tokens::fungible;
+			let account = frame_benchmarking::whitelisted_caller();
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				<Balances as fungible::Inspect<_>>::minimum_balance(),
+			));
+			let asset_id = 1984;
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				asset_id.into(),
+				account.into(),
+				true,
+				1u128,
+			));
+			let amount = 1_000_000u128;
+			let asset_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
+			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
 	}
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
 		type XcmConfig = xcm_config::XcmConfig;
 		type AccountIdConverter = xcm_config::LocationToAccountId;
-		type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+		type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 			xcm_config::XcmConfig,
 			ExistentialDepositAsset,
-			PriceForParentDelivery,
+			PriceForSiblingParachainDelivery,
+			PeopleParaId,
+			ParachainSystem,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
-			Ok(DotLocation::get())
+			Ok(PeopleLocation::get())
 		}
 		fn worst_case_holding(depositable_count: u32) -> XcmAssets {
 			// A mix of fungible, non-fungible, and concrete assets.
@@ -1351,8 +1373,8 @@ mod benches {
 	}
 
 	parameter_types! {
-		pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
-			DotLocation::get(),
+		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
+			PeopleLocation::get(),
 			Asset { fun: Fungible(UNITS), id: AssetId(DotLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
@@ -1376,7 +1398,24 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(DotLocation::get()), fun: Fungible(UNITS) }
+			use frame_support::traits::tokens::fungible;
+			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get(),
+			));
+			let asset_id = 1984;
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				asset_id.into(),
+				account.into(),
+				true,
+				1u128,
+			));
+			let amount = 1_000_000u128;
+			let asset_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
+			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
 	}
 
@@ -1448,17 +1487,17 @@ mod benches {
 
 		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 			Ok((
-				DotLocation::get(),
+				PeopleLocation::get(),
 				frame_system::Call::remark_with_event { remark: vec![] }.into(),
 			))
 		}
 
 		fn subscribe_origin() -> Result<Location, BenchmarkError> {
-			Ok(DotLocation::get())
+			Ok(PeopleLocation::get())
 		}
 
 		fn claimable_asset() -> Result<(Location, Location, XcmAssets), BenchmarkError> {
-			let origin = DotLocation::get();
+			let origin = PeopleLocation::get();
 			let assets: XcmAssets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
