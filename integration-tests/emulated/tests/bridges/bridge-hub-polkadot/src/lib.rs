@@ -45,7 +45,10 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
-pub use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
+pub use integration_tests_helpers::{
+	common::snowbridge::{MIN_ETHER_BALANCE, WETH},
+	create_pool_with_native_on,
+};
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
@@ -58,12 +61,13 @@ pub use kusama_polkadot_system_emulated_network::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
+	kusama_emulated_chain::KusamaRelayPallet as KusamaPallet,
 	penpal_emulated_chain::{
 		penpal_runtime::xcm_config::{
 			CustomizableAssetFromSystemAssetHub as PenpalCustomizableAssetFromSystemAssetHub,
 			UniversalLocation as PenpalUniversalLocation,
 		},
-		PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
+		PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
 	},
 	polkadot_emulated_chain::{
 		genesis::ED as POLKADOT_ED,
@@ -76,7 +80,9 @@ pub use kusama_polkadot_system_emulated_network::{
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PenpalBPara as PenpalB,
+	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, KusamaRelay as Kusama,
+	KusamaRelayReceiver as KusamaReceiver, PenpalAPara as PenpalA,
+	PenpalAParaReceiver as PenpalAReceiver, PenpalBPara as PenpalB,
 	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
 	PolkadotRelay as Polkadot, PolkadotRelayReceiver as PolkadotReceiver,
 	PolkadotRelaySender as PolkadotSender,

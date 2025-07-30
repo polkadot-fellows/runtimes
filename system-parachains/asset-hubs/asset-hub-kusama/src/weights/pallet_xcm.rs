@@ -379,24 +379,38 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	/// Storage: `Benchmark::Override` (r:0 w:0)
-	/// Proof: `Benchmark::Override` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
+	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Balances::Holds` (r:1 w:1)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(85), added: 2560, mode: `MaxEncodedLen`)
 	fn add_authorized_alias() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 18_446_744_073_709_551_000 picoseconds.
-		Weight::from_parts(18_446_744_073_709_551_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
+		//  Measured:  `128`
+		//  Estimated: `3593`
+		// Minimum execution time: 64_890_000 picoseconds.
+		// TODO: set this manually because pallet-xcm benchmark code is broken on `stable2506` for
+		// Asset Hub Kusama (benchmark doesn't have enough free balance to pay for deposit).
+		// TODO: Can go back to automatically generated with `stable2506-1` or newer.
+		Weight::from_parts(66_660_000, 0)
+			.saturating_add(Weight::from_parts(0, 3593))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// Storage: `Benchmark::Override` (r:0 w:0)
-	/// Proof: `Benchmark::Override` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
+	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Balances::Holds` (r:1 w:1)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(85), added: 2560, mode: `MaxEncodedLen`)
 	fn remove_authorized_alias() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 18_446_744_073_709_551_000 picoseconds.
-		Weight::from_parts(18_446_744_073_709_551_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
+		//  Measured:  `516`
+		//  Estimated: `3981`
+		// Minimum execution time: 64_810_000 picoseconds.
+		// TODO: set this manually because pallet-xcm benchmark code is broken on `stable2506` for
+		// Asset Hub Kusama (benchmark doesn't have enough free balance to pay for deposit).
+		// TODO: Can go back to automatically generated with `stable2506-1` or newer.
+		Weight::from_parts(69_290_000, 0)
+			.saturating_add(Weight::from_parts(0, 3981))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }

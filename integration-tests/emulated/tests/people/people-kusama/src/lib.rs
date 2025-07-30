@@ -43,12 +43,16 @@ pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
+	bridge_hub_kusama_emulated_chain::BridgeHubKusamaParaPallet as BridgeHubKusamaPallet,
+	coretime_kusama_emulated_chain::CoretimeKusamaParaPallet as CoretimeKusamaPallet,
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
 	people_kusama_emulated_chain::{
 		genesis::ED as PEOPLE_KUSAMA_ED, PeopleKusamaParaPallet as PeopleKusamaPallet,
 	},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
-	AssetHubKusamaParaSender as AssetHubKusamaSender, KusamaRelay as Kusama,
+	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
+	CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama,
 	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
 	PenpalAPara as PenpalA, PeopleKusamaPara as PeopleKusama,
 	PeopleKusamaParaReceiver as PeopleKusamaReceiver, PeopleKusamaParaSender as PeopleKusamaSender,

@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub use frame_support::{assert_err, assert_ok};
+
 // Polkadot
 pub use xcm::{prelude::*, v3};
 
@@ -26,17 +28,27 @@ pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
 		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
+	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	collectives_polkadot_emulated_chain::{
 		genesis::ED as COLLECTIVES_POLKADOT_ED,
 		CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	},
+	coretime_polkadot_emulated_chain::{
+		coretime_polkadot_runtime,
+		coretime_polkadot_runtime::ExistentialDeposit as CoretimePolkadotExistentialDeposit,
+		CoretimePolkadotParaPallet as CoretimePolkadotPallet,
+	},
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
+	people_polkadot_emulated_chain::PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
-	CollectivesPolkadotPara as CollectivesPolkadot,
+	BridgeHubPolkadotPara as BridgeHubPolkadot, CollectivesPolkadotPara as CollectivesPolkadot,
 	CollectivesPolkadotParaReceiver as CollectivesPolkadotReceiver,
-	CollectivesPolkadotParaSender as CollectivesPolkadotSender, PolkadotRelay as Polkadot,
+	CollectivesPolkadotParaSender as CollectivesPolkadotSender,
+	CoretimePolkadotPara as CoretimePolkadot, PenpalAPara as PenpalA,
+	PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
 	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 
