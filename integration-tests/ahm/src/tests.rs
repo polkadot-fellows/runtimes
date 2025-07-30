@@ -51,8 +51,9 @@ use frame_support::traits::{
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
-	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
-	MigrationStage as AhMigrationStage,
+	sovereign_account_translation::{DERIVED_TRANSLATIONS, SOV_TRANSLATIONS},
+	types::AhMigrationCheck,
+	AhMigrationStage as AhMigrationStageStorage, MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
 	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
@@ -384,18 +385,20 @@ async fn find_translatable_accounts() {
 
 	rust.push_str(
 		"/// List of RC para to AH sibl sovereign account translation sorted by RC account.
-pub const SOV_TRANSLATIONS: &[(AccountId32, AccountId32)] = &[\n",
+pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'static str))] = &[\n",
 	);
 
 	let mut sov_translations = sov_translations.into_iter().collect::<Vec<_>>();
 	sov_translations.sort_by(|(_, (rc_acc, _)), (_, (rc_acc2, _))| rc_acc.cmp(rc_acc2));
 
 	for (para_id, (rc_acc, ah_acc)) in sov_translations.iter() {
-		rust.push_str(&format!("\t// para {}: {} -> {}\n", para_id, &rc_acc, &ah_acc));
+		rust.push_str(&format!("\t// para {}\n", para_id));
 		rust.push_str(&format!(
-			"\t({}, {}),\n",
+			"\t(({}, \"{}\"), ({}, \"{}\")),\n",
 			format_account_id(rc_acc),
-			format_account_id(ah_acc)
+			rc_acc.to_ss58check(),
+			format_account_id(ah_acc),
+			ah_acc.to_ss58check(),
 		));
 	}
 
@@ -403,22 +406,21 @@ pub const SOV_TRANSLATIONS: &[(AccountId32, AccountId32)] = &[\n",
 
 	rust.push_str(
 		"\n\n/// List of RC para to AH sibl derived account translation sorted by RC account.
-pub const DERIVED_TRANSLATIONS: &[(AccountId32, u16, AccountId32)] = &[\n",
+pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId32, &'static str))] = &[\n",
 	);
 
 	let mut derived_translations = derived_translations.into_iter().collect::<Vec<_>>();
 	derived_translations.sort_by(|(_, (rc_acc, _, _)), (_, (rc_acc2, _, _))| rc_acc.cmp(rc_acc2));
 
 	for (para_id, (rc_acc, derivation_index, ah_acc)) in derived_translations.iter() {
+		rust.push_str(&format!("\t// para {} (derivation index {})\n", para_id, derivation_index));
 		rust.push_str(&format!(
-			"\t// para {}: {} -> {} (index {})\n",
-			para_id, &rc_acc, &ah_acc, &derivation_index
-		));
-		rust.push_str(&format!(
-			"\t({}, {}, {}),\n",
+			"\t(({}, \"{}\"), {}, ({}, \"{}\")),\n",
 			format_account_id(rc_acc),
+			rc_acc.to_ss58check(),
 			derivation_index,
-			format_account_id(ah_acc)
+			format_account_id(ah_acc),
+			ah_acc.to_ss58check(),
 		));
 	}
 
@@ -440,6 +442,20 @@ pub const DERIVED_TRANSLATIONS: &[(AccountId32, u16, AccountId32)] = &[\n",
 	std::fs::write(path, contents).unwrap();
 
 	println!("Wrote to {}", std::fs::canonicalize(path).unwrap().display());
+}
+
+/// Check the SS58 IDs in `pallets/ah-migrator/src/sovereign_account_translation.rs` are correct.
+#[test]
+fn translation_integrity_check() {
+	for ((rc_acc, rc_id), (ah_acc, ah_id)) in SOV_TRANSLATIONS.iter() {
+		assert_eq!(&rc_acc.to_ss58check(), rc_id);
+		assert_eq!(&ah_acc.to_ss58check(), ah_id);
+	}
+
+	for ((rc_acc, rc_id), _, (ah_acc, ah_id)) in DERIVED_TRANSLATIONS.iter() {
+		assert_eq!(&rc_acc.to_ss58check(), rc_id);
+		assert_eq!(&ah_acc.to_ss58check(), ah_id);
+	}
 }
 
 fn format_account_id(acc: &AccountId32) -> String {
