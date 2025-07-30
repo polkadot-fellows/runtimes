@@ -25,7 +25,7 @@ pub use frame_support::{
 };
 pub use sp_runtime::traits::Dispatchable;
 
-// Polkadot
+// Kusama
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
 	v5::{self, Error, NetworkId::Kusama as KusamaId},
@@ -33,6 +33,7 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Cumulus
+pub use asset_hub_kusama_runtime::xcm_config::XcmConfig as AssetHubKusamaXcmConfig;
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
 	test_parachain_is_trusted_teleporter,
@@ -52,18 +53,22 @@ pub use kusama_system_emulated_network::{
 		genesis::{AssetHubKusamaAssetOwner, ED as ASSET_HUB_KUSAMA_ED},
 		AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
+	bridge_hub_kusama_emulated_chain::BridgeHubKusamaParaPallet as BridgeHubKusamaPallet,
+	coretime_kusama_emulated_chain::CoretimeKusamaParaPallet as CoretimeKusamaPallet,
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	penpal_emulated_chain::{
 		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
 		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},
+	people_kusama_emulated_chain::PeopleKusamaParaPallet as PeopleKusamaPallet,
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
-	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, KusamaRelay as Kusama,
-	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
-	PenpalAPara as PenpalA, PenpalAParaReceiver as PenpalAReceiver,
-	PenpalAParaSender as PenpalASender, PenpalBPara as PenpalB,
-	PenpalBParaReceiver as PenpalBReceiver,
+	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, CoretimeKusamaPara as CoretimeKusama,
+	KusamaRelay as Kusama, KusamaRelayReceiver as KusamaReceiver,
+	KusamaRelaySender as KusamaSender, PenpalAPara as PenpalA,
+	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
+	PenpalBPara as PenpalB, PenpalBParaReceiver as PenpalBReceiver,
+	PenpalBParaSender as PenpalBSender, PeopleKusamaPara as PeopleKusama,
 };
 pub use parachains_common::{AccountId, Balance};
 

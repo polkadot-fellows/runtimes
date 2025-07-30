@@ -383,4 +383,11 @@ impl<T: frame_system::Config> WeightInfo<T> {
 		// Minimum execution time: 640_000 picoseconds.
 		Weight::from_parts(740_000, 0)
 	}
+	pub(crate) fn alias_origin() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 830_000 picoseconds.
+		Weight::from_parts(900_000, 0)
+	}
 }
