@@ -873,7 +873,8 @@ pub type Executive = frame_executive::Executive<
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
-	use system_parachains_constants::kusama::locations::{AssetHubLocation, AssetHubParaId};
+	use kusama_runtime_constants::system_parachain::AssetHubParaId;
+	use system_parachains_constants::kusama::locations::AssetHubLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]

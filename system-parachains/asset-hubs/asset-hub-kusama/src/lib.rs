@@ -1268,7 +1268,8 @@ mod benches {
 	use super::*;
 	use alloc::boxed::Box;
 	use frame_support::assert_ok;
-	use system_parachains_constants::kusama::locations::{PeopleLocation, PeopleParaId};
+	use kusama_runtime_constants::system_parachain::PeopleParaId;
+	use system_parachains_constants::kusama::locations::PeopleLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]

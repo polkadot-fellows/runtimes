@@ -605,7 +605,8 @@ use pallet_bridge_messages::LaneIdOf;
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
-	use system_parachains_constants::polkadot::locations::{AssetHubLocation, AssetHubParaId};
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+	use system_parachains_constants::polkadot::locations::AssetHubLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]

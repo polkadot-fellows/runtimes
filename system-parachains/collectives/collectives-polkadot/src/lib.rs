@@ -830,7 +830,8 @@ pub type Executive = frame_executive::Executive<
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::*;
-	use system_parachains_constants::polkadot::locations::{AssetHubLocation, AssetHubParaId};
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+	use system_parachains_constants::polkadot::locations::AssetHubLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
