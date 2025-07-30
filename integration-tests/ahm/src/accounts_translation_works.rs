@@ -39,7 +39,12 @@ pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 impl RcMigrationCheck for AccountTranslationWorks {
 	type RcPrePayload = ();
 
-	fn pre_check() -> Self::RcPrePayload {}
+	fn pre_check() -> Self::RcPrePayload {
+		// RC must exist
+		for (rc_acc, _) in TRANSLATIONS.iter() {
+			assert!(frame_system::Account::<RelayRuntime>::contains_key(rc_acc));
+		}
+	}
 
 	fn post_check(_: Self::RcPrePayload) {
 		// RC acc gone
