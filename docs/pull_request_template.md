@@ -7,7 +7,7 @@ Use this PR template to streamline the release process, communicate on the chang
 <!---
 1) What kind of changes does this PR introduce?
 Indicate if merging this PR will result in breaking changes (e.g. changes to transaction/event/error encoding, polkadot-sdk migrations, or XCM and storage format) or disruptions for network stakeholders. 
-When submitting a breaking change, please make sure to ping @SBalaguer and @anaelleltd so that they can notify ecosystem teams and builders.
+When submitting a breaking change, please make sure to ping @anaelleltd so that she can notify ecosystem teams and builders.
 Otherwise, ignore sections 1 and 2.
 -->
 
