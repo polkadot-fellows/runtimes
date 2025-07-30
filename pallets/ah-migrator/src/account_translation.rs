@@ -17,6 +17,7 @@
 
 use crate::{Config, Pallet};
 use frame_support::traits::Defensive;
+use pallet_rc_migrator::types::ToPolkadotSs58;
 
 impl<T: Config> Pallet<T> {
 	/// Translate account from RC format to AH format.
@@ -29,7 +30,7 @@ impl<T: Config> Pallet<T> {
 			return account;
 		};
 
-		log::debug!("Translated account: {} -> {}", &account, &new);
+		log::debug!("Translated account: {} -> {}", &account.to_polkadot_ss58(), &new.to_polkadot_ss58());
 
 		new
 	}
