@@ -59,6 +59,7 @@ snowbridge-outbound-queue-primitives = { workspace = true }
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"bp-bridge-hub-polkadot/runtime-benchmarks",
+	"bridge-hub-common/runtime-benchmarks",
 	"bridge-hub-polkadot-runtime/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
