@@ -381,24 +381,30 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	}
 	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Balances::Holds` (r:1 w:1)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(157), added: 2632, mode: `MaxEncodedLen`)
 	fn add_authorized_alias() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `498`
-		//  Estimated: `3963`
-		// Minimum execution time: 19_789_000 picoseconds.
-		Weight::from_parts(20_317_000, 3963)
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `128`
+		//  Estimated: `3622`
+		// Minimum execution time: 35_000_000 picoseconds.
+		Weight::from_parts(36_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3622))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Balances::Holds` (r:1 w:1)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(157), added: 2632, mode: `MaxEncodedLen`)
 	fn remove_authorized_alias() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `537`
-		//  Estimated: `4002`
-		// Minimum execution time: 20_805_000 picoseconds.
-		Weight::from_parts(21_481_000, 4002)
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `516`
+		//  Estimated: `3981`
+		// Minimum execution time: 38_000_000 picoseconds.
+		Weight::from_parts(39_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3981))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }
