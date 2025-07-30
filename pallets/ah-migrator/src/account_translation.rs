@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
 			return account;
 		};
 
-		log::debug!(
+		log::info!(
 			"Translated account: {} -> {}",
 			&account.to_polkadot_ss58(),
 			&new.to_polkadot_ss58()
