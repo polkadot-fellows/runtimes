@@ -22,6 +22,7 @@ use super::*;
 use alloc::string::String;
 use frame_support::traits::{tokens::IdAmount, ContainsPair};
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
+use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
 use xcm_builder::InspectMessageQueues;
@@ -96,7 +97,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 4)]
 	ReceivePreimageChunks { chunks: Vec<preimage::RcPreimageChunk> },
 	#[codec(index = 5)]
-	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
+	ReceivePreimageRequestStatus { request_status: Vec<preimage::PortableRequestStatus> },
 	#[codec(index = 6)]
 	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 	#[codec(index = 7)]

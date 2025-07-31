@@ -443,6 +443,8 @@ pub mod pallet {
 		PreimageTooBig,
 		/// Preimage chunk missing.
 		PreimageChunkMissing,
+		/// Preimage status invalid.
+		PreimageStatusInvalid,
 	}
 
 	#[pallet::event]
@@ -629,7 +631,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_preimage_request_status(request_status.len() as u32))]
 		pub fn receive_preimage_request_status(
 			origin: OriginFor<T>,
-			request_status: Vec<RcPreimageRequestStatusOf<T>>,
+			request_status: Vec<PortableRequestStatus>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
