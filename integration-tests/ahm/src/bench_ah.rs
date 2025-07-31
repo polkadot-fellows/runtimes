@@ -260,6 +260,13 @@ fn test_bench_receive_child_bounties_messages() {
 }
 
 #[test]
+fn test_bench_receive_staking_messages() {
+	new_test_ext().execute_with(|| {
+		test_receive_staking_messages::<AssetHub>(BENCHMARK_N);
+	});
+}
+
+#[test]
 fn test_bench_force_dmp_queue_priority() {
 	new_test_ext().execute_with(|| {
 		test_force_dmp_queue_priority::<AssetHub>();

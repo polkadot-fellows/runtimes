@@ -43,10 +43,11 @@ use pallet_rc_migrator::{
 	staking::{
 		bags_list::alias::Node,
 		delegated_staking::PortableDelegatedStakingMessage,
+		message::PortableUnappliedSlash,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
-	types::BenchmarkingDefault,
+	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
@@ -929,6 +930,34 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn receive_staking_messages(n: Linear<1, 100>) {
+		let create_staking = |n: u32| -> PortableStakingMessage {
+			let alice = AccountId32::from([n as u8; 32]);
+
+			PortableStakingMessage::UnappliedSlashes {
+				era: n,
+				slash: PortableUnappliedSlash {
+					validator: alice.clone(),
+					own: n.into(),
+					others: vec![(alice.clone(), n.into()); 512].defensive_truncate_into(),
+					reporters: vec![alice; 1].defensive_truncate_into(),
+					payout: n.into(),
+				},
+			}
+		};
+
+		let messages = (0..n).map(create_staking).collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed { pallet: PalletEventName::Staking, count_good: n, count_bad: 0 }
+				.into(),
+		);
+	}
+
+	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
 
@@ -1292,6 +1321,15 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_child_bounties_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_staking_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_staking_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
