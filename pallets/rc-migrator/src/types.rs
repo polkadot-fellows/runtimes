@@ -763,6 +763,21 @@ mod xcm_batch_tests {
 	}
 }
 
+/// Sort collections of encodable items.
+///
+/// This is a escape hatch that removes the need to implement `PartialOrd` for all types nested (and
+/// possibly private) types.
+pub trait SortByEncoded {
+	/// Sort by value encoding.
+	fn sort_by_encoded(&mut self);
+}
+
+impl<T: Encode> SortByEncoded for Vec<T> {
+	fn sort_by_encoded(&mut self) {
+		self.sort_by_key(|a| a.encode());
+	}
+}
+
 #[cfg(test)]
 mod batch_and_meter_tests {
 	use super::*;

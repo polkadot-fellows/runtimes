@@ -18,6 +18,7 @@
 
 #![cfg(test)]
 
+pub mod accounts_translation_works;
 pub mod balances_test;
 pub mod bench_ah;
 pub mod bench_ops;

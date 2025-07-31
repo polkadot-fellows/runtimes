@@ -50,6 +50,7 @@ impl RcMigrationCheck for ProxyWhaleWatching {
 
 	fn pre_check() -> Self::RcPrePayload {
 		// All whales alive
+		#[cfg(not(feature = "paseo"))]
 		for (whale, num_proxies) in WHALES {
 			let acc = frame_system::Account::<RelayRuntime>::get(whale);
 			assert!(acc.nonce == 0, "Whales are pure");
@@ -78,6 +79,7 @@ impl AhMigrationCheck for ProxyWhaleWatching {
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		// Whales still afloat
+		#[cfg(not(feature = "paseo"))]
 		for (whale, num_proxies) in WHALES {
 			let acc = frame_system::Account::<AssetHubRuntime>::get(whale);
 			assert!(

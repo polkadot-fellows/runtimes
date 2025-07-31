@@ -355,6 +355,16 @@ impl<BlockNumber: From<u32>, Balance: From<u128>> From<PortableChildBounty>
 	}
 }
 
+impl PortableChildBounty {
+	/// Apply an account translation function to all accounts.
+	pub fn translate_accounts(
+		self,
+		translate_account: impl Fn(AccountId32) -> AccountId32,
+	) -> Self {
+		PortableChildBounty { status: self.status.translate_accounts(translate_account), ..self }
+	}
+}
+
 #[derive(
 	Encode,
 	Decode,
@@ -405,6 +415,28 @@ impl<BlockNumber: From<u32>> From<PortableChildBountyStatus>
 					curator,
 					beneficiary,
 					unlock_at: unlock_at.into(),
+				},
+		}
+	}
+}
+
+impl PortableChildBountyStatus {
+	/// Apply an account translation function to all accounts.
+	pub fn translate_accounts(
+		self,
+		translate_account: impl Fn(AccountId32) -> AccountId32,
+	) -> Self {
+		match self {
+			PortableChildBountyStatus::Added => PortableChildBountyStatus::Added,
+			PortableChildBountyStatus::CuratorProposed { curator } =>
+				PortableChildBountyStatus::CuratorProposed { curator: translate_account(curator) },
+			PortableChildBountyStatus::Active { curator } =>
+				PortableChildBountyStatus::Active { curator: translate_account(curator) },
+			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
+				PortableChildBountyStatus::PendingPayout {
+					curator: translate_account(curator),
+					beneficiary: translate_account(beneficiary),
+					unlock_at,
 				},
 		}
 	}

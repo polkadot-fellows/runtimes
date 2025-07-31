@@ -18,7 +18,10 @@
 //! Fast unstake migration logic.
 
 use crate::*;
-use pallet_rc_migrator::staking::bags_list::{alias, BagsListMigrator, GenericBagsListMessage};
+use pallet_rc_migrator::{
+	staking::bags_list::{alias, BagsListMigrator, GenericBagsListMessage},
+	types::SortByEncoded,
+};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bags_list_messages(
@@ -109,43 +112,48 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
 
-		let rc_pre_translated: Vec<GenericBagsListMessage<T::AccountId, T::Score>> = rc_pre_payload
-			.into_iter()
-			.map(|message| {
-				match message {
-					GenericBagsListMessage::Node { id, node } => {
-						let translated_id = Pallet::<T>::translate_account_rc_to_ah(id);
-						let translated_node_id = Pallet::<T>::translate_account_rc_to_ah(node.id);
-						let translated_prev =
-							node.prev.map(Pallet::<T>::translate_account_rc_to_ah);
-						let translated_next =
-							node.next.map(Pallet::<T>::translate_account_rc_to_ah);
+		let mut rc_pre_translated: Vec<GenericBagsListMessage<T::AccountId, T::Score>> =
+			rc_pre_payload
+				.into_iter()
+				.map(|message| {
+					match message {
+						GenericBagsListMessage::Node { id, node } => {
+							let translated_id = Pallet::<T>::translate_account_rc_to_ah(id);
+							let translated_node_id =
+								Pallet::<T>::translate_account_rc_to_ah(node.id);
+							let translated_prev =
+								node.prev.map(Pallet::<T>::translate_account_rc_to_ah);
+							let translated_next =
+								node.next.map(Pallet::<T>::translate_account_rc_to_ah);
 
-						GenericBagsListMessage::Node {
-							id: translated_id,
-							node: alias::Node {
-								id: translated_node_id,
-								prev: translated_prev,
-								next: translated_next,
-								bag_upper: node.bag_upper,
-								score: node.score,
-							},
-						}
-					},
-					GenericBagsListMessage::Bag { score, bag } => {
-						// Directly translate all AccountId fields - no need for encode/decode
-						// cycles
-						let translated_head = bag.head.map(Pallet::<T>::translate_account_rc_to_ah);
-						let translated_tail = bag.tail.map(Pallet::<T>::translate_account_rc_to_ah);
+							GenericBagsListMessage::Node {
+								id: translated_id,
+								node: alias::Node {
+									id: translated_node_id,
+									prev: translated_prev,
+									next: translated_next,
+									bag_upper: node.bag_upper,
+									score: node.score,
+								},
+							}
+						},
+						GenericBagsListMessage::Bag { score, bag } => {
+							// Directly translate all AccountId fields - no need for encode/decode
+							// cycles
+							let translated_head =
+								bag.head.map(Pallet::<T>::translate_account_rc_to_ah);
+							let translated_tail =
+								bag.tail.map(Pallet::<T>::translate_account_rc_to_ah);
 
-						GenericBagsListMessage::Bag {
-							score,
-							bag: alias::Bag { head: translated_head, tail: translated_tail },
-						}
-					},
-				}
-			})
-			.collect();
+							GenericBagsListMessage::Bag {
+								score,
+								bag: alias::Bag { head: translated_head, tail: translated_tail },
+							}
+						},
+					}
+				})
+				.collect();
+		rc_pre_translated.sort_by_encoded();
 
 		let mut ah_messages = Vec::new();
 
@@ -169,6 +177,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 				bag: alias::Bag { head: bag.head, tail: bag.tail },
 			});
 		}
+		ah_messages.sort_by_encoded();
 
 		// Assert storage "VoterList::ListBags::ah_post::length"
 		// Assert storage "VoterList::ListBags::ah_post::length"

@@ -32,6 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
+pub mod account_translation;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -47,6 +48,7 @@ pub mod preimage;
 pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
+pub mod sovereign_account_translation;
 pub mod staking;
 pub mod treasury;
 pub mod types;
@@ -454,9 +456,16 @@ pub mod pallet {
 			new: MigrationStage,
 		},
 		/// We received a batch of messages that will be integrated into a pallet.
-		BatchReceived { pallet: PalletEventName, count: u32 },
+		BatchReceived {
+			pallet: PalletEventName,
+			count: u32,
+		},
 		/// We processed a batch of messages for this pallet.
-		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
+		BatchProcessed {
+			pallet: PalletEventName,
+			count_good: u32,
+			count_bad: u32,
+		},
 		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is
 		/// emitted.
 		///
@@ -489,17 +498,34 @@ pub mod pallet {
 			new: DmpQueuePriority<BlockNumberFor<T>>,
 		},
 		/// The balances before the migration were recorded.
-		BalancesBeforeRecordSet { checking_account: T::Balance, total_issuance: T::Balance },
+		BalancesBeforeRecordSet {
+			checking_account: T::Balance,
+			total_issuance: T::Balance,
+		},
 		/// The balances before the migration were consumed.
-		BalancesBeforeRecordConsumed { checking_account: T::Balance, total_issuance: T::Balance },
+		BalancesBeforeRecordConsumed {
+			checking_account: T::Balance,
+			total_issuance: T::Balance,
+		},
 		/// A referendum was cancelled because it could not be mapped.
-		ReferendumCanceled { id: u32 },
+		ReferendumCanceled {
+			id: u32,
+		},
 		/// The manager account id was set.
 		ManagerSet {
 			/// The old manager account id.
 			old: Option<T::AccountId>,
 			/// The new manager account id.
 			new: Option<T::AccountId>,
+		},
+		AccountTranslatedParachainSovereign {
+			from: T::AccountId,
+			to: T::AccountId,
+		},
+		AccountTranslatedParachainSovereignDerived {
+			from: T::AccountId,
+			to: T::AccountId,
+			derivation_index: u16,
 		},
 	}
 
@@ -1002,26 +1028,6 @@ pub mod pallet {
 			}
 			<T as Config>::AdminOrigin::ensure_origin(origin)?;
 			Ok(())
-		}
-
-		/// Translate account from RC format to AH format.
-		///
-		/// Currently returns the input account unchanged (mock implementation).
-		///
-		/// TODO Will also be responsible to emit a translation event.
-		/// TODO The current signature suggests that the function is intended to be infallible and
-		/// always return a valid account. This should be revisited when we replace the mock
-		/// implementation with the real one.
-		/// TODO introduce different accountId types for RC and AH e.g something like
-		/// ```rust
-		/// trait IntoAhTranslated<AhAccountId> {
-		///     fn into_ah_translated(self) -> AhAccountId;
-		/// }
-		/// ```
-		/// where RC::AccountId would implement IntoAhTranslated<AH::AccountId>
-		pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
-			// Mock implementation - return unchanged for now
-			account
 		}
 
 		/// Helper function for migration post-check validation.
