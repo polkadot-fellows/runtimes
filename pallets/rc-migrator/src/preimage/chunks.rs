@@ -168,8 +168,13 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			// set the offset of the next_key
 			next_key = Some((next_key_inner, last_offset));
 
-			// TODO: @muharem weight tracking
-			if batch.len() >= 10 {
+			const MAX_CHUNKS_PER_BLOCK: u32 = 10;
+			if batch.len() >= MAX_CHUNKS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({}) to migrate per block reached, current batch size: {}",
+					MAX_CHUNKS_PER_BLOCK,
+					batch.len()
+				);
 				break next_key;
 			}
 		};
