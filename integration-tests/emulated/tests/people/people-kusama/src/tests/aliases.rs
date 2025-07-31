@@ -17,7 +17,7 @@
 
 use crate::*;
 use emulated_integration_tests_common::{macros::AccountId, test_cross_chain_alias};
-use frame_support::{traits::ContainsPair, BoundedVec};
+use frame_support::traits::ContainsPair;
 use people_kusama_runtime::xcm_config::XcmConfig;
 use xcm::latest::Junctions::*;
 
