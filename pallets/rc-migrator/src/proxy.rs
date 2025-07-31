@@ -152,6 +152,15 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			return Err(OutOfWeightError);
 		}
 
+		if batch.len() > MAX_ITEMS_PER_BLOCK {
+			log::info!(
+				"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+				MAX_ITEMS_PER_BLOCK,
+				batch.len()
+			);
+			return Err(OutOfWeightError);
+		}
+
 		let translated_proxies = proxies
 			.into_iter()
 			.map(|proxy| pallet_proxy::ProxyDefinition {
@@ -209,6 +218,15 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				} else {
 					break;
 				}
+			}
+
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break;
 			}
 
 			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });
