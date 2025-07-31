@@ -18,14 +18,13 @@
 //! The module defines the following on-chain functionality of the Ambassador Program:
 //!
 //! - Managed set of program members, where every member has a [rank](ranks) (via
-//!   [AmbassadorCollective](pallet_ranked_collective)).
+//!   [AmbassadorCollective](pallet_ranked_collective_ambassador)).
 //! - Referendum functionality for the program members to propose, vote on, and execute proposals on
 //!   behalf of the members of a certain [rank](Origin) (via
 //!   [AmbassadorReferenda](pallet_referenda)).
-//! - Promotion and demotion periods, register of members' activity, and rank based salaries (via
+//! - Promotion and demotion periods, register of members' activity(via
+//!   [AmbassadorCore](pallet_core_fellowship)). inducted into
 //!   [AmbassadorCore](pallet_core_fellowship)).
-//! - Members' salaries (via [AmbassadorSalary](pallet_salary), requiring a member to be imported or
-//!   inducted into [AmbassadorCore](pallet_core_fellowship)).
 //! - Ambassador Program Sub-Treasury (via [AmbassadorTreasury](pallet_treasury)).
 
 pub mod origins;
@@ -33,38 +32,38 @@ mod tracks;
 
 pub use origins::pallet_origins as pallet_ambassador_origins;
 
-use crate::{
-	xcm_config::{AssetHubUsdt, FellowshipAdminBodyId},
-	AssetRateWithNative, *,
-};
+use crate::{xcm_config::FellowshipAdminBodyId, AssetRateWithNative, *};
 use frame_support::{
 	pallet_prelude::PalletInfoAccess,
 	traits::{EitherOf, MapSuccess, TryMapSuccess},
 };
 use frame_system::EnsureRootWithSuccess;
-use origins::pallet_origins::{EnsureAmbassadorsFrom, HeadAmbassadors, Origin, SeniorAmbassadors};
-use pallet_ranked_collective::{MemberIndex, Rank, Votes};
+use origins::pallet_origins::{
+	EnsureAmbassadorsFrom, EnsureCanFastPromoteTo, EnsureCanPromoteTo, EnsureCanRetainAt,
+	GlobalHeadAmbassador, Spender,
+};
+use pallet_ranked_collective_ambassador::{MemberIndex, Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
-use sp_core::ConstU128;
+use polkadot_runtime_constants::time::HOURS;
 use sp_runtime::{
-	traits::{
-		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, MaybeConvert, Replace,
-		ReplaceWithDefault,
-	},
+	traits::{CheckedReduceBy, Convert, IdentityLookup, MaybeConvert, Replace},
 	Permill,
 };
 use xcm::prelude::*;
-use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
+use xcm_builder::PayOverXcm;
 
 /// The Ambassador Program's member ranks.
 pub mod ranks {
 	use super::Rank;
 
 	#[allow(dead_code)]
-	pub const CANDIDATE: Rank = 0;
-	pub const AMBASSADOR: Rank = 1;
-	pub const SENIOR_AMBASSADOR: Rank = 2;
-	pub const HEAD_AMBASSADOR: Rank = 3;
+	pub const ADVOCATE_AMBASSADOR: Rank = 0; // aka Candidate.
+	pub const ASSOCIATE_AMBASSADOR: Rank = 1;
+	pub const LEAD_AMBASSADOR: Rank = 2;
+	pub const SENIOR_AMBASSADOR: Rank = 3;
+	pub const PRINCIPAL_AMBASSADOR: Rank = 4;
+	pub const GLOBAL_AMBASSADOR: Rank = 5;
+	pub const GLOBAL_HEAD_AMBASSADOR: Rank = 6;
 }
 
 impl pallet_ambassador_origins::Config for Runtime {}
@@ -72,14 +71,13 @@ impl pallet_ambassador_origins::Config for Runtime {}
 /// Demotion is by any of:
 /// - Root can demote arbitrarily;
 /// - the FellowshipAdmin voice (i.e. token holder referendum) can demote arbitrarily;
-/// - Head Ambassadors voice can demote Senior Ambassador or Ambassador;
 /// - Senior Ambassadors voice can demote Ambassador.
 pub type DemoteOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
 		MapSuccess<
 			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+			Replace<ConstU16<{ ranks::GLOBAL_HEAD_AMBASSADOR }>>,
 		>,
 		TryMapSuccess<
 			EnsureAmbassadorsFrom<ConstU16<{ ranks::SENIOR_AMBASSADOR }>>,
@@ -88,41 +86,18 @@ pub type DemoteOrigin = EitherOf<
 	>,
 >;
 
-/// Promotion and approval (rank-retention) is by any of:
-/// - Root can promote arbitrarily.
-/// - the FellowshipAdmin voice (i.e. token holder referendum) can promote arbitrarily.
-/// - Head Ambassadors voice can promote to Senior Ambassador and Ambassador;
-/// - Senior Ambassadors voice can promote to Ambassador.
-pub type PromoteOrigin = DemoteOrigin;
-
 /// Root, FellowshipAdmin or HeadAmbassadors.
-pub type OpenGovOrHeadAmbassadors = EitherOfDiverse<
+pub type OpenGovOrGlobalHeadAmbassador = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<
-		HeadAmbassadors,
+		GlobalHeadAmbassador,
 		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
 	>,
 >;
 
-/// Ambassadors' vote weights for referendums.
-/// - Each member with an excess rank of 0 gets 1 vote;
-/// - ...with an excess rank of 1 gets 5 votes;
-/// - ...with an excess rank of 2 gets 10 votes;
-/// - ...with an excess rank of 3 gets 15 votes;
-pub struct VoteWeight;
-impl Convert<Rank, Votes> for VoteWeight {
-	fn convert(excess: Rank) -> Votes {
-		if excess == 0 {
-			1
-		} else {
-			(excess * 5).into()
-		}
-	}
-}
+pub type AmbassadorCollectiveInstance = pallet_ranked_collective_ambassador::Instance2;
 
-pub type AmbassadorCollectiveInstance = pallet_ranked_collective::Instance2;
-
-impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime {
+impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> for Runtime {
 	type WeightInfo = weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	// Promotions must be done through the [`crate::AmbassadorCore`] pallet instance.
@@ -131,28 +106,29 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	#[cfg(feature = "runtime-benchmarks")]
 	type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
 	type DemoteOrigin = DemoteOrigin;
-	type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
 	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = AmbassadorReferenda;
-	type MinRankOfClass = sp_runtime::traits::Identity;
-	type VoteWeight = VoteWeight;
-	type ExchangeOrigin = OpenGovOrHeadAmbassadors;
-	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
+	type MinRankOfClass = tracks::MinRankOfClass;
+	type VoteWeight = pallet_ranked_collective_ambassador::Geometric;
+	type ExchangeOrigin = OpenGovOrGlobalHeadAmbassador;
+	type MemberSwappedHandler = crate::AmbassadorCore;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxMemberCount = ();
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxMemberCount = AmbassadorMemberCount;
+	type Currency = Balances;
+	type InductionDeposit = InductionDeposit;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
+	type BenchmarkSetup = crate::AmbassadorCore;
 }
 
-/// Limits the number of Head Ambassadors to 21.
+/// Limits the number of Global Head Ambassadors to 21.
 ///
 /// The value of 21 comes from the initial OpenGov proposal: <https://github.com/polkadot-fellows/runtimes/issues/264>
 pub struct AmbassadorMemberCount;
 impl MaybeConvert<Rank, MemberIndex> for AmbassadorMemberCount {
 	fn maybe_convert(rank: Rank) -> Option<MemberIndex> {
-		(rank == 3).then_some(21)
+		(rank == 6).then_some(21)
 	}
 }
 
@@ -160,6 +136,7 @@ parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
 	pub const SubmissionDeposit: Balance = 0;
 	pub const UndecidingTimeout: BlockNumber = 7 * DAYS;
+	pub const InductionDeposit: u64 = 1;
 }
 
 pub type AmbassadorReferendaInstance = pallet_referenda::Instance2;
@@ -171,24 +148,25 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type Scheduler = Scheduler;
 	type Currency = Balances;
 	// Any member of the Ambassador Program can submit a proposal.
-	type SubmitOrigin = pallet_ranked_collective::EnsureMember<
+	type SubmitOrigin = pallet_ranked_collective_ambassador::EnsureMember<
 		Runtime,
 		AmbassadorCollectiveInstance,
-		{ ranks::AMBASSADOR },
+		{ ranks::ASSOCIATE_AMBASSADOR },
 	>;
 	// Referendum can be canceled by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote among all Head Ambassadors.
-	type CancelOrigin = OpenGovOrHeadAmbassadors;
+	// - a vote among all Global Head Ambassadors.
+	type CancelOrigin = OpenGovOrGlobalHeadAmbassador;
 	// Referendum can be killed by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote among all Head Ambassadors.
-	type KillOrigin = OpenGovOrHeadAmbassadors;
+	// - a vote among all Global Head Ambassadors.
+	type KillOrigin = OpenGovOrGlobalHeadAmbassador;
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = Votes;
-	type Tally = pallet_ranked_collective::TallyOf<Runtime, AmbassadorCollectiveInstance>;
+	type Tally =
+		pallet_ranked_collective_ambassador::TallyOf<Runtime, AmbassadorCollectiveInstance>;
 	type SubmissionDeposit = SubmissionDeposit;
 	type MaxQueued = ConstU32<20>;
 	type UndecidingTimeout = UndecidingTimeout;
@@ -198,90 +176,38 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type BlockNumberProvider = System;
 }
 
-pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
+pub type AmbassadorCoreInstance = pallet_core_fellowship_ambassador::Instance2;
 
-impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
+impl pallet_core_fellowship_ambassador::Config<AmbassadorCoreInstance> for Runtime {
 	type WeightInfo = weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
-	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
+	type Members =
+		pallet_ranked_collective_ambassador::Pallet<Runtime, AmbassadorCollectiveInstance>;
 	type Balance = Balance;
 	// Parameters are set by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote among all Head Ambassadors.
-	type ParamsOrigin = OpenGovOrHeadAmbassadors;
-	// Induction (creating a candidate) is by any of:
-	// - Root;
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single member of the Ambassador Program;
-	type InductOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EitherOfDiverse<
+	type ParamsOrigin = OpenGovOrGlobalHeadAmbassador;
+	type ApproveOrigin = EitherOf<
+		MapSuccess<
 			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			pallet_ranked_collective::EnsureMember<
-				Runtime,
-				AmbassadorCollectiveInstance,
-				{ ranks::AMBASSADOR },
-			>,
+			Replace<ConstU16<{ ranks::GLOBAL_HEAD_AMBASSADOR }>>,
 		>,
+		EnsureCanRetainAt,
 	>;
-	type ApproveOrigin = PromoteOrigin;
-	type PromoteOrigin = PromoteOrigin;
-	type FastPromoteOrigin = frame_support::traits::NeverEnsureOrigin<u16>;
+	type PromoteOrigin = EitherOf<
+		MapSuccess<
+			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+			Replace<ConstU16<{ ranks::GLOBAL_HEAD_AMBASSADOR }>>,
+		>,
+		EnsureCanPromoteTo,
+	>;
+	type FastPromoteOrigin = EnsureCanFastPromoteTo;
+	type Currency = Balances;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
-	type MaxRank = ConstU32<9>;
-}
-
-parameter_types! {
-	// The interior location on AssetHub for the paying account. This is the Ambassador Salary
-	// pallet instance. This sovereign account will need funding.
-	pub AmbassadorSalaryLocation: InteriorLocation =
-		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
-}
-
-const USDT_UNITS: u128 = 1_000_000;
-
-/// [`PayOverXcm`] setup to pay the Ambassador salary on the AssetHub in USDt.
-pub type AmbassadorSalaryPaymaster = PayOverXcm<
-	AmbassadorSalaryLocation,
-	crate::xcm_config::XcmRouter,
-	crate::PolkadotXcm,
-	ConstU32<{ 6 * HOURS }>,
-	AccountId,
-	(),
-	ConvertToValue<AssetHubUsdt>,
-	AliasesIntoAccountId32<(), AccountId>,
->;
-
-pub type AmbassadorSalaryInstance = pallet_salary::Instance2;
-
-impl pallet_salary::Config<AmbassadorSalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary_ambassador_salary::WeightInfo<Runtime>;
-	type RuntimeEvent = RuntimeEvent;
-
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Paymaster = AmbassadorSalaryPaymaster;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Paymaster = crate::impls::benchmarks::PayWithEnsure<
-		AmbassadorSalaryPaymaster,
-		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
-	>;
-	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
-
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Salary = pallet_core_fellowship::Pallet<Runtime, AmbassadorCoreInstance>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Salary = frame_support::traits::tokens::ConvertRank<
-		crate::impls::benchmarks::RankToSalary<Balances>,
-	>;
-	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
-	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
-	// Total monthly salary budget.
-	// 10,000 USDT for up to 21 members.
-	type Budget = ConstU128<{ 10_000 * 21 * USDT_UNITS }>;
+	type MaxRank = ConstU16<6>;
 }
 
 parameter_types! {
@@ -312,6 +238,8 @@ pub type AmbassadorTreasuryPaymaster = PayOverXcm<
 	VersionedLocationConverter,
 >;
 
+pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
+
 pub type AmbassadorTreasuryInstance = pallet_treasury::Instance2;
 
 impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
@@ -319,25 +247,13 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = AmbassadorTreasuryPalletId;
 	type Currency = Balances;
-	type RejectOrigin = OpenGovOrHeadAmbassadors;
+	type RejectOrigin = OpenGovOrGlobalHeadAmbassador;
 	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
 	type BurnDestination = ();
 	type SpendFunds = ();
 	type MaxApprovals = ConstU32<100>;
-	type SpendOrigin = EitherOf<
-		EitherOf<
-			EnsureRootWithSuccess<AccountId, MaxBalance>,
-			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
-				Replace<ConstU128<{ 10_000 * GRAND }>>,
-			>,
-		>,
-		EitherOf<
-			MapSuccess<SeniorAmbassadors, Replace<ConstU128<{ 100 * UNITS }>>>,
-			MapSuccess<HeadAmbassadors, Replace<ConstU128<{ 10 * GRAND }>>>,
-		>,
-	>;
+	type SpendOrigin = TreasurySpender;
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocation;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
@@ -362,8 +278,9 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 mod tests {
 	use super::*;
 
-	type Limit =
-		<Runtime as pallet_ranked_collective::Config<AmbassadorCollectiveInstance>>::MaxMemberCount;
+	type Limit = <Runtime as pallet_ranked_collective_ambassador::Config<
+		AmbassadorCollectiveInstance,
+	>>::MaxMemberCount;
 
 	#[test]
 	fn ambassador_rank_limit_works() {

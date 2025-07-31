@@ -370,7 +370,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::AmbassadorCollective { .. } |
 					RuntimeCall::AmbassadorReferenda { .. } |
 					RuntimeCall::AmbassadorCore { .. } |
-					RuntimeCall::AmbassadorSalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -764,12 +763,11 @@ construct_runtime!(
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
 
 		// Ambassador Program.
-		AmbassadorCollective: pallet_ranked_collective::<Instance2> = 70,
+		AmbassadorCollective: pallet_ranked_collective_ambassador::<Instance2> = 70,
 		AmbassadorReferenda: pallet_referenda::<Instance2> = 71,
 		AmbassadorOrigins: pallet_ambassador_origins = 72,
-		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
-		AmbassadorSalary: pallet_salary::<Instance2> = 74,
-		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
+		AmbassadorCore: pallet_core_fellowship_ambassador::<Instance2> = 73,
+		AmbassadorTreasury: pallet_treasury::<Instance2> = 74,
 
 		// The Secretary Collective
 		// pub type SecretaryCollectiveInstance = pallet_ranked_collective::instance3;
@@ -856,9 +854,8 @@ mod benches {
 		[pallet_treasury, FellowshipTreasury]
 		[pallet_asset_rate, AssetRate]
 		[pallet_referenda, AmbassadorReferenda]
-		[pallet_ranked_collective, AmbassadorCollective]
-		[pallet_core_fellowship, AmbassadorCore]
-		[pallet_salary, AmbassadorSalary]
+		[pallet_ranked_collective_ambassador, AmbassadorCollective]
+		[pallet_core_fellowship_ambassador, AmbassadorCore]
 		[pallet_treasury, AmbassadorTreasury]
 		[pallet_ranked_collective, SecretaryCollective]
 		[pallet_salary, SecretarySalary]
