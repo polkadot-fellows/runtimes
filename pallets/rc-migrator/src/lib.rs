@@ -448,7 +448,7 @@ pub mod pallet {
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
 		+ pallet_fast_unstake::Config
-		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config
 		+ pallet_vesting::Config
 		+ pallet_indices::Config

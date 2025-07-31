@@ -122,7 +122,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
-	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
+	ReceiveBagsListMessages { messages: Vec<staking::bags_list::PortableBagsListMessage> },
 	#[codec(index = 14)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 	#[codec(index = 15)]

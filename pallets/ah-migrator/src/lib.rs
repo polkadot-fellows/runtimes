@@ -97,7 +97,7 @@ use pallet_rc_migrator::{
 	preimage::*,
 	proxy::*,
 	staking::{
-		bags_list::RcBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
+		bags_list::PortableBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
 		fast_unstake::RcFastUnstakeMessage, nom_pools::*,
 	},
 	types::MigrationFinishedData,
@@ -258,7 +258,7 @@ pub mod pallet {
 		> + pallet_nomination_pools::Config<
 			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
 		> + pallet_fast_unstake::Config
-		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
@@ -759,7 +759,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_bags_list_messages(messages.len() as u32))]
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcBagsListMessage<T>>,
+			messages: Vec<PortableBagsListMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
