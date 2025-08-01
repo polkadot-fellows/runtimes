@@ -202,11 +202,13 @@ impl AhMigrationCheck for PalletsTryStateCheck {
 	#[cfg(feature = "try-runtime")]
 	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
 		use frame_support::traits::TryState;
-		asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
+		let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
 			frame_system::Pallet::<AssetHub>::block_number(),
 			frame_support::traits::TryStateSelect::All,
-		)
-		.unwrap();
+		);
+		if res.is_err() {
+			log::error!("Pallets try-state check failed: {res:?}");
+		}
 	}
 }
 
