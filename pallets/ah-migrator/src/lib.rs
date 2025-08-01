@@ -99,6 +99,8 @@ use pallet_rc_migrator::{
 	staking::{
 		bags_list::PortableBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
 		fast_unstake::RcFastUnstakeMessage, nom_pools::*,
+		bags_list::RcBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
+		fast_unstake::PortableFastUnstakeMessage, nom_pools::*,
 	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
@@ -257,7 +259,7 @@ pub mod pallet {
 			Votes = u128,
 		> + pallet_nomination_pools::Config<
 			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
-		> + pallet_fast_unstake::Config
+		> + pallet_fast_unstake::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
@@ -683,7 +685,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_fast_unstake_messages(messages.len() as u32))]
 		pub fn receive_fast_unstake_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcFastUnstakeMessage<T>>,
+			messages: Vec<PortableFastUnstakeMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

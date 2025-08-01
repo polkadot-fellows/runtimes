@@ -10200,6 +10200,7 @@ dependencies = [
  "pallet-ah-ops",
  "pallet-balances",
  "pallet-bounties",
+ "pallet-fast-unstake",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-multisig",
