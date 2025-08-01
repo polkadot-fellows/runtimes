@@ -118,8 +118,19 @@ where
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+				.is_err() || weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_child_bounties_messages(
+				(messages.len() + 1) as u32,
+			)) {
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
