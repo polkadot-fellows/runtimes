@@ -98,8 +98,6 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::PortableBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
-		fast_unstake::RcFastUnstakeMessage, nom_pools::*,
-		bags_list::RcBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
 		fast_unstake::PortableFastUnstakeMessage, nom_pools::*,
 	},
 	types::MigrationFinishedData,
