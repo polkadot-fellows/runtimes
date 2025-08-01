@@ -19,27 +19,12 @@
 
 use crate::*;
 use pallet_rc_migrator::staking::fast_unstake::{
-	alias, FastUnstakeMigrator, FastUnstakeStorageValues, RcFastUnstakeMessage,
+	FastUnstakeMigrator, PortableFastUnstakeMessage,
 };
 
 impl<T: Config> Pallet<T> {
-	pub fn translate_fast_unstake_storage_values(
-		values: FastUnstakeStorageValues<T>,
-	) -> FastUnstakeStorageValues<T> {
-		let translated_head = values.head.map(|mut request| {
-			request.stashes.iter_mut().for_each(|(account, _)| {
-				*account = Self::translate_account_rc_to_ah(account.clone());
-			});
-			request
-		});
-		FastUnstakeStorageValues {
-			head: translated_head,
-			eras_to_check_per_block: values.eras_to_check_per_block,
-		}
-	}
-
 	pub fn do_receive_fast_unstake_messages(
-		messages: Vec<RcFastUnstakeMessage<T>>,
+		messages: Vec<PortableFastUnstakeMessage>,
 	) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} FastUnstakeMessages", messages.len());
@@ -65,16 +50,15 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_fast_unstake_message(
-		message: RcFastUnstakeMessage<T>,
+		message: PortableFastUnstakeMessage,
 	) -> Result<(), Error<T>> {
 		match message {
-			RcFastUnstakeMessage::StorageValues { values } => {
-				FastUnstakeMigrator::<T>::put_values(Self::translate_fast_unstake_storage_values(
-					values,
-				));
+			PortableFastUnstakeMessage::StorageValues { values } => {
+				let values = values.translate_accounts(Self::translate_account_rc_to_ah);
+				FastUnstakeMigrator::<T>::put_values(values);
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeStorageValues");
 			},
-			RcFastUnstakeMessage::Queue { member } => {
+			PortableFastUnstakeMessage::Queue { member } => {
 				let translated_member = (Self::translate_account_rc_to_ah(member.0), member.1);
 				debug_assert!(!pallet_fast_unstake::Queue::<T>::contains_key(&translated_member.0));
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeQueueMember: {:?}", &translated_member.0);
@@ -88,13 +72,13 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
-	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
+	type RcPrePayload = (Vec<(AccountId32, u128)>, u32); // (queue, eras_to_check)
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// AH pre: Verify no entries are present
 		assert!(
-			alias::Head::<T>::get().is_none(),
+			pallet_fast_unstake::Head::<T>::get().is_none(),
 			"Assert storage 'FastUnstake::Head::ah_pre::empty'"
 		);
 		assert!(
@@ -118,7 +102,7 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 		// Assert storage "FastUnstake::Head::ah_post::consistent"
 		// Assert storage "FastUnstake::Head::ah_post::length"
 		assert!(
-			alias::Head::<T>::get().is_none(),
+			pallet_fast_unstake::Head::<T>::get().is_none(),
 			"Assert storage 'FastUnstake::Head::ah_post::correct'"
 		);
 
