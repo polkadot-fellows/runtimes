@@ -67,10 +67,9 @@ std = [
 	"rand/std",
 ]
 try-runtime = [
-	"polkadot-runtime/try-runtime",
 	"asset-hub-polkadot-runtime/try-runtime",
-	"frame-support/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
+	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-ah-migrator/try-runtime",
 	"pallet-ah-ops/try-runtime",
@@ -85,8 +84,9 @@ try-runtime = [
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"polkadot-runtime/try-runtime",
 	"runtime-parachains/try-runtime",
-	"sp-runtime/try-runtime"
+	"sp-runtime/try-runtime",
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
