@@ -97,6 +97,7 @@ type RcChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
@@ -149,6 +150,7 @@ type AhChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 #[cfg(not(feature = "paseo"))]
@@ -172,6 +174,40 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 );
+
+pub struct PalletsTryStateCheck;
+impl RcMigrationCheck for PalletsTryStateCheck {
+	type RcPrePayload = ();
+	fn pre_check() -> Self::RcPrePayload {
+		// nada
+		()
+	}
+	fn post_check(_: Self::RcPrePayload) {
+		// nada
+	}
+}
+impl AhMigrationCheck for PalletsTryStateCheck {
+	type AhPrePayload = ();
+	type RcPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// nada
+		()
+	}
+
+	#[cfg(not(feature = "try-runtime"))]
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
+		// nada
+	}
+	#[cfg(feature = "try-runtime")]
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
+		use frame_support::traits::TryState;
+		asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
+			frame_system::Pallet::<AssetHub>::block_number(),
+			frame_support::traits::TryStateSelect::All,
+		).unwrap();
+	}
+}
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

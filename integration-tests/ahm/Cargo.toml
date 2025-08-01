@@ -57,7 +57,7 @@ frame-benchmarking = { workspace = true }
 rand = { workspace = true }
 
 [features]
-default = ["std"]
+default = ["std", "try-runtime"]
 std = [
 	"cumulus-pallet-parachain-system/std",
 	"frame-benchmarking/std",
@@ -65,6 +65,28 @@ std = [
 	"log/std",
 	"polkadot-runtime/std",
 	"rand/std",
+]
+try-runtime = [
+	"polkadot-runtime/try-runtime",
+	"asset-hub-polkadot-runtime/try-runtime",
+	"frame-support/try-runtime",
+	"cumulus-pallet-parachain-system/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-ah-migrator/try-runtime",
+	"pallet-ah-ops/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-bounties/try-runtime",
+	"pallet-indices/try-runtime",
+	"pallet-message-queue/try-runtime",
+	"pallet-multisig/try-runtime",
+	"pallet-proxy/try-runtime",
+	"pallet-rc-migrator/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"pallet-whitelist/try-runtime",
+	"pallet-xcm/try-runtime",
+	"polkadot-runtime-common/try-runtime",
+	"runtime-parachains/try-runtime",
+	"sp-runtime/try-runtime"
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
@@ -96,5 +118,4 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]
-
 paseo = []
