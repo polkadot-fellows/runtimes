@@ -83,7 +83,7 @@ impl RcMigrationCheck for PalletsTryStateCheck {
 	type RcPrePayload = ();
 	#[cfg(not(feature = "try-runtime"))]
 	fn pre_check() -> Self::RcPrePayload {
-		()
+		log::warn!("You are not running pallets try-state checks because the `try-runtime` feature is not enabled. This is not recommended for better test coverage.");
 	}
 	#[cfg(feature = "try-runtime")]
 	fn pre_check() -> Self::RcPrePayload {
@@ -106,12 +106,11 @@ impl AhMigrationCheck for PalletsTryStateCheck {
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// nada
-		()
 	}
 
 	#[cfg(not(feature = "try-runtime"))]
 	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
-		// nada
+		log::warn!("You are not running pallets try-state checks because the `try-runtime` feature is not enabled. This is not recommended for better test coverage.");
 	}
 	#[cfg(feature = "try-runtime")]
 	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {

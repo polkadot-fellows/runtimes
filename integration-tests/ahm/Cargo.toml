@@ -57,7 +57,7 @@ frame-benchmarking = { workspace = true }
 rand = { workspace = true }
 
 [features]
-default = ["std", "try-runtime"]
+default = ["std"]
 std = [
 	"cumulus-pallet-parachain-system/std",
 	"frame-benchmarking/std",
