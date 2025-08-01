@@ -81,8 +81,10 @@ impl<T: Config> FastUnstakeMigrator<T> {
 
 impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T>
 where
-<<T as pallet_fast_unstake::Config>::Currency as frame_support::traits::Currency<<T as frame_system::Config>::AccountId>>::Balance: From<u128>,
-<T as frame_system::Config>::AccountId: From<AccountId32>,
+	<<T as pallet_fast_unstake::Config>::Currency as frame_support::traits::Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance: From<u128>,
+	<T as frame_system::Config>::AccountId: From<AccountId32>,
 {
 	pub fn put_values(values: PortableFastUnstakeStorageValues) {
 		values
@@ -96,18 +98,15 @@ where
 }
 
 impl PortableFastUnstakeStorageValues {
-		pub fn translate_accounts(self, function: impl Fn(AccountId32) -> AccountId32) -> Self {
+	pub fn translate_accounts(self, function: impl Fn(AccountId32) -> AccountId32) -> Self {
 		let head = self.head.map(|mut request| {
 			request.stashes.iter_mut().for_each(|(account, _)| {
 				*account = function(account.clone());
 			});
 			request
 		});
-		
-		Self {
-			head,
-			eras_to_check_per_block: self.eras_to_check_per_block,
-		}
+
+		Self { head, eras_to_check_per_block: self.eras_to_check_per_block }
 	}
 }
 
@@ -140,14 +139,22 @@ impl<T: Config> IntoPortable for pallet_fast_unstake::types::UnstakeRequest<T> {
 }
 
 // Portable -> AH
-impl<T: pallet_fast_unstake::Config> From<PortableUnstakeRequest> for pallet_fast_unstake::types::UnstakeRequest<T>
+impl<T: pallet_fast_unstake::Config> From<PortableUnstakeRequest>
+	for pallet_fast_unstake::types::UnstakeRequest<T>
 where
-<<T as pallet_fast_unstake::Config>::Currency as frame_support::traits::Currency<<T as frame_system::Config>::AccountId>>::Balance: From<u128>,
-<T as frame_system::Config>::AccountId: From<AccountId32>,
+	<<T as pallet_fast_unstake::Config>::Currency as frame_support::traits::Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance: From<u128>,
+	<T as frame_system::Config>::AccountId: From<AccountId32>,
 {
 	fn from(request: PortableUnstakeRequest) -> Self {
 		pallet_fast_unstake::types::UnstakeRequest {
-			stashes: request.stashes.into_iter().map(|(a, v)| (a.into(), v.into())).collect::<Vec<_>>().defensive_truncate_into(),
+			stashes: request
+				.stashes
+				.into_iter()
+				.map(|(a, v)| (a.into(), v.into()))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
 			checked: request.checked.into_inner().defensive_truncate_into(),
 		}
 	}

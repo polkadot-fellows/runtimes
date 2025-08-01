@@ -18,9 +18,7 @@
 //! Fast unstake migration logic.
 
 use crate::*;
-use pallet_rc_migrator::staking::fast_unstake::{
-	FastUnstakeMigrator, PortableFastUnstakeMessage,
-};
+use pallet_rc_migrator::staking::fast_unstake::{FastUnstakeMigrator, PortableFastUnstakeMessage};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_fast_unstake_messages(
