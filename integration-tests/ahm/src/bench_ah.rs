@@ -41,7 +41,8 @@ const BENCHMARK_N: u32 = 10;
 
 #[test]
 fn test_bench_receive_preimage_chunk() {
-	use pallet_rc_migrator::preimage::{alias::MAX_SIZE, chunks::CHUNK_SIZE};
+	use pallet_preimage::MAX_SIZE;
+	use pallet_rc_migrator::preimage::chunks::CHUNK_SIZE;
 
 	assert_eq!(
 		MAX_SIZE / CHUNK_SIZE,
@@ -256,6 +257,13 @@ fn test_bench_receive_preimage_request_status() {
 fn test_bench_receive_child_bounties_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_child_bounties_messages::<AssetHub>(BENCHMARK_N);
+	});
+}
+
+#[test]
+fn test_bench_receive_staking_messages() {
+	new_test_ext().execute_with(|| {
+		test_receive_staking_messages::<AssetHub>(BENCHMARK_N);
 	});
 }
 

@@ -17,9 +17,6 @@
 use crate::{types::DefensiveTruncateInto, *};
 use pallet_bounties::BountyIndex;
 use pallet_child_bounties::{ChildBounty, ChildBountyStatus};
-use sp_runtime::traits::BlockNumberProvider;
-
-pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// Stages that the `ChildBountiesMigrator` will go through in linear order.
 #[derive(
@@ -98,11 +95,7 @@ pub struct ChildBountiesMigrator<T> {
 	_phantom: PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for ChildBountiesMigrator<T>
-where
-	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
-		Into<u32>,
-{
+impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 	type Key = ChildBountiesStage;
 	type Error = Error<T>;
 
@@ -458,11 +451,7 @@ pub struct RcData {
 pub struct ChildBountiesMigratedCorrectly<T>(PhantomData<T>);
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::RcMigrationCheck for ChildBountiesMigratedCorrectly<T>
-where
-	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber:
-		Into<u32>,
-{
+impl<T: Config> crate::types::RcMigrationCheck for ChildBountiesMigratedCorrectly<T> {
 	type RcPrePayload = RcData;
 
 	fn pre_check() -> Self::RcPrePayload {

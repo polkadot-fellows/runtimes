@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use crate::*;
-use pallet_rc_migrator::claims::{alias, ClaimsMigrator, RcClaimsMessage, RcClaimsMessageOf};
+use pallet_rc_migrator::claims::{ClaimsMigrator, RcClaimsMessage, RcClaimsMessageOf};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_claims(messages: Vec<RcClaimsMessageOf<T>>) -> Result<(), Error<T>> {
@@ -55,33 +55,33 @@ impl<T: Config> Pallet<T> {
 				pallet_claims::Total::<T>::put(total);
 			},
 			RcClaimsMessage::Claims((who, amount)) => {
-				if alias::Claims::<T>::contains_key(&who) {
+				if pallet_claims::Claims::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: claims {:?}", who);
-				alias::Claims::<T>::insert(who, amount);
+				pallet_claims::Claims::<T>::insert(who, amount);
 			},
 			RcClaimsMessage::Vesting { who, schedule } => {
-				if alias::Vesting::<T>::contains_key(&who) {
+				if pallet_claims::Vesting::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: vesting {:?}", who);
-				alias::Vesting::<T>::insert(who, schedule);
+				pallet_claims::Vesting::<T>::insert(who, schedule);
 			},
 			RcClaimsMessage::Signing((who, statement_kind)) => {
-				if alias::Signing::<T>::contains_key(&who) {
+				if pallet_claims::Signing::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: signing {:?}", who);
-				alias::Signing::<T>::insert(who, statement_kind);
+				pallet_claims::Signing::<T>::insert(who, statement_kind);
 			},
 			RcClaimsMessage::Preclaims((who, address)) => {
 				let translated_who = Self::translate_account_rc_to_ah(who);
-				if alias::Preclaims::<T>::contains_key(&translated_who) {
+				if pallet_claims::Preclaims::<T>::contains_key(&translated_who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims {:?}", translated_who);
-				alias::Preclaims::<T>::insert(translated_who, address);
+				pallet_claims::Preclaims::<T>::insert(translated_who, address);
 			},
 		}
 		Ok(())
@@ -101,22 +101,22 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 		);
 		// "Assert storage 'Claims::Claims::ah_pre::empty'"
 		assert!(
-			alias::Claims::<T>::iter().next().is_none(),
+			pallet_claims::Claims::<T>::iter().next().is_none(),
 			"Assert storage 'Claims::Claims::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Vesting::ah_pre::empty'"
 		assert!(
-			alias::Vesting::<T>::iter().next().is_none(),
+			pallet_claims::Vesting::<T>::iter().next().is_none(),
 			"Assert storage 'Claims::Vesting::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Signing::ah_pre::empty'"
 		assert!(
-			alias::Signing::<T>::iter().next().is_none(),
+			pallet_claims::Signing::<T>::iter().next().is_none(),
 			"Assert storage 'Claims::Signing::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Preclaims::ah_pre::empty'"
 		assert!(
-			alias::Preclaims::<T>::iter().next().is_none(),
+			pallet_claims::Preclaims::<T>::iter().next().is_none(),
 			"Assert storage 'Claims::Preclaims::ah_pre::empty'"
 		);
 	}
@@ -135,6 +135,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 				}
 			})
 			.collect();
+		assert!(!rc_pre_translated.is_empty(), "There must be some claims");
 
 		let mut ah_messages = Vec::new();
 
@@ -143,22 +144,22 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 		// "Assert storage 'Claims::Total::ah_post::correct'"
 		ah_messages.push(RcClaimsMessage::StorageValues { total });
 
-		for (address, amount) in alias::Claims::<T>::iter() {
+		for (address, amount) in pallet_claims::Claims::<T>::iter() {
 			// "Assert storage 'Claims::Claims::ah_post::correct'"
 			ah_messages.push(RcClaimsMessage::Claims((address, amount)));
 		}
 
-		for (address, schedule) in alias::Vesting::<T>::iter() {
+		for (address, schedule) in pallet_claims::Vesting::<T>::iter() {
 			// "Assert storage 'Claims::Vesting::ah_post::correct'"
 			ah_messages.push(RcClaimsMessage::Vesting { who: address, schedule });
 		}
 
-		for (address, statement) in alias::Signing::<T>::iter() {
+		for (address, statement) in pallet_claims::Signing::<T>::iter() {
 			// "Assert storage 'Claims::Signing::ah_post::correct'"
 			ah_messages.push(RcClaimsMessage::Signing((address, statement)));
 		}
 
-		for (account_id, address) in alias::Preclaims::<T>::iter() {
+		for (account_id, address) in pallet_claims::Preclaims::<T>::iter() {
 			// "Assert storage 'Claims::Preclaims::ah_post::correct'"
 			ah_messages.push(RcClaimsMessage::Preclaims((account_id, address)));
 		}
