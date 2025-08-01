@@ -36,7 +36,7 @@ use crate::porting_prelude::*;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
-	checks::{SanityChecks, PalletsTryStateCheck},
+	checks::{PalletsTryStateCheck, SanityChecks},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
