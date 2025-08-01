@@ -71,7 +71,7 @@ frame-system-rpc-runtime-api = { version = "37.0.0", default-features = false }
 frame-try-runtime = { version = "0.47.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.36.0", package = "sc-consensus-grandpa" }
-hex-literal = "0.4.1"
+hex-literal = { version = "0.4.1" }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
 kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-polkadot-system" }
@@ -195,8 +195,8 @@ primitive-types = { version = "0.13.1", default-features = false }
 frame-metadata-hash-extension = { version = "0.9.0", default-features = false }
 remote-externalities = { version = "0.52.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "20.0.0", default-features = false, package = "polkadot-runtime-parachains" }
-sc-chain-spec = "44.0.0"
-sc-network = "0.51.0"
+sc-chain-spec = { version = "44.0.0" }
+sc-network = { version = "0.51.0" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
@@ -209,13 +209,13 @@ snowbridge-outbound-queue-runtime-api = { version = "0.14.0", default-features =
 snowbridge-outbound-queue-primitives = { version = "0.3.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.14.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.14.0", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = "0.22.0"
-snowbridge-pallet-ethereum-client-fixtures = "0.22.0"
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.22.0" }
+snowbridge-pallet-ethereum-client-fixtures = { version = "0.22.0" }
 snowbridge-pallet-outbound-queue = { version = "0.14.0", default-features = false }
 snowbridge-pallet-system = { version = "0.14.0", default-features = false }
 snowbridge-inbound-queue-primitives = { version = "0.3.0", default-features = false }
 snowbridge-runtime-common = { version = "0.14.0", default-features = false }
-snowbridge-runtime-test-common = "0.16.0"
+snowbridge-runtime-test-common = { version = "0.16.0" }
 snowbridge-system-runtime-api = { version = "0.14.0", default-features = false }
 sp-api = { version = "37.0.0", default-features = false }
 sp-application-crypto = { version = "41.0.0", default-features = false }
@@ -227,7 +227,7 @@ sp-debug-derive = { version = "14.0.0", default-features = false }
 sp-genesis-builder = { version = "0.18.0", default-features = false }
 sp-inherents = { version = "37.0.0", default-features = false }
 sp-io = { version = "41.0.0", default-features = false }
-sp-keyring = "42.0.0"
+sp-keyring = { version = "42.0.0" }
 sp-npos-elections = { version = "37.0.0", default-features = false }
 sp-offchain = { version = "37.0.0", default-features = false }
 sp-runtime = { version = "42.0.0", default-features = false }
@@ -241,18 +241,18 @@ sp-transaction-pool = { version = "37.0.0", default-features = false }
 sp-trie = { version = "40.0.0", default-features = false }
 sp-version = { version = "40.0.0", default-features = false }
 sp-weights = { version = "32.0.0", default-features = false }
-substrate-wasm-builder = "27.0.0"
+substrate-wasm-builder = { version = "27.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
 xcm = { version = "17.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "21.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = "0.20.0"
+xcm-emulator = { version = "0.20.0" }
 xcm-executor = { version = "20.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.8.0", default-features = false }
 anyhow = { version = "1.0.82" }
-subxt = "0.42.1"
+subxt = { version = "0.42.1" }
 tracing-subscriber = { version = "0.3.18" }
-zombienet-sdk = "0.3.10"
+zombienet-sdk = { version = "0.3.10" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
