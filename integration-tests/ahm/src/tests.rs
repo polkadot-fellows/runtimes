@@ -205,7 +205,8 @@ impl AhMigrationCheck for PalletsTryStateCheck {
 		asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
 			frame_system::Pallet::<AssetHub>::block_number(),
 			frame_support::traits::TryStateSelect::All,
-		).unwrap();
+		)
+		.unwrap();
 	}
 }
 
