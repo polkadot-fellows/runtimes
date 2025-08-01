@@ -81,7 +81,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	bounties::PortableBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
+	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
 	treasury::RcTreasuryMessage, types::MigrationStatus,
 };
@@ -269,7 +269,10 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_child_bounties::Config
-		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_treasury::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+		>
 		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
@@ -311,6 +314,12 @@ pub mod pallet {
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+		/// Block number provider of the treasury pallet.
+		///
+		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
+		/// code since they all depend on the treasury provided block number. The compiler checks
+		/// that this is configured correctly.
+		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 		/// Some part of the Relay Chain origins used in Governance.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
@@ -802,7 +811,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
-			messages: Vec<PortableBountiesMessageOf<T>>,
+			messages: Vec<RcBountiesMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

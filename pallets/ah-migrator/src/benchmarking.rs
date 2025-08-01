@@ -23,20 +23,19 @@ use frame_support::traits::{
 };
 use frame_system::RawOrigin;
 use pallet_asset_rate::AssetKindFactory;
-use pallet_bags_list::list::{Bag, Node};
-use pallet_bounties::{Bounty, BountyStatus};
+use pallet_rc_migrator::bounties::alias::{Bounty, BountyStatus};
 use pallet_conviction_voting::{AccountVote, Casting, Delegations, Vote, Voting};
 use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_preimage::PreimageFor;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
-	bounties::{PortableBountiesMessage, PortableBountiesMessageOf},
+	bounties::{RcBountiesMessageOf},
 	child_bounties::PortableChildBountiesMessage,
 	claims::{RcClaimsMessage, RcClaimsMessageOf},
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
-	preimage::CHUNK_SIZE,
+	preimage::{CHUNK_SIZE, PortableRequestStatus, PortableRequestStatusInner},
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::RcSchedulerMessage,
 	staking::{
@@ -47,12 +46,14 @@ use pallet_rc_migrator::{
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
 	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
+use pallet_rc_migrator::bounties::RcBountiesMessage;
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
 use polkadot_runtime_common::claims::EthereumAddress;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
 use xcm::v4::Location;
+use pallet_rc_migrator::staking::bags_list::PortableNode;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -519,7 +520,7 @@ pub mod benchmarks {
 		let create_bags_list = |n: u8| -> PortableBagsListMessage {
 			PortableBagsListMessage::Node {
 				id: [n; 32].into(),
-				node: Node {
+				node: PortableNode {
 					id: [n; 32].into(),
 					prev: Some([n; 32].into()),
 					next: Some([n; 32].into()),
@@ -621,8 +622,8 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_bounties_messages(n: Linear<1, 255>) {
-		let create_bounties = |n: u8| -> PortableBountiesMessageOf<T> {
-			PortableBountiesMessage::Bounties((
+		let create_bounties = |n: u8| -> RcBountiesMessageOf<T> {
+			RcBountiesMessage::Bounties((
 				n.into(),
 				Bounty {
 					proposer: [n; 32].into(),
@@ -826,7 +827,7 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_preimage_request_status(n: Linear<1, 255>) {
-		let create_preimage_request_status = |n: u8| -> RcPreimageRequestStatusOf<T> {
+		let create_preimage_request_status = |n: u8| -> PortableRequestStatus {
 			let preimage = vec![n; 512];
 			let hash = T::Preimage::note(preimage.into()).unwrap();
 
@@ -839,10 +840,10 @@ pub mod benchmarks {
 			let consideration =
 				<T as pallet_preimage::Config>::Consideration::new(&depositor, old_footprint)
 					.unwrap();
-			RcPreimageRequestStatusOf::<T> {
+			PortableRequestStatus {
 				hash,
-				request_status: PreimageRequestStatus::Unrequested {
-					ticket: (depositor, consideration),
+				request_status: PortableRequestStatusInner::Unrequested {
+					ticket: (depositor, consideration.encode().defensive_truncate_into()),
 					len: 512, // smaller than old footprint
 				},
 			}
@@ -877,7 +878,7 @@ pub mod benchmarks {
 		let preimage_ah_part = preimage[..(preimage_len - CHUNK_SIZE) as usize].to_vec();
 
 		if preimage_ah_part.len() > 0 {
-			let preimage_ah_part: BoundedVec<u8, ConstU32<{ MAX_SIZE }>> =
+			let preimage_ah_part: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
 				preimage_ah_part.try_into().unwrap();
 			PreimageFor::<T>::insert((hash, preimage_len), preimage_ah_part);
 		}
