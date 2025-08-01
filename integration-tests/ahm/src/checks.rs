@@ -73,3 +73,55 @@ pub fn assert_root_hash(chain: &str, want_hex: &str) {
 
 	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {want_hex}\nGot:      {got}");
 }
+
+/// Runs the try-state checks for all pallets once pre-migration on RC, and once post-migration on
+/// AH.
+///
+/// noop if `feature = "try-runtime"` is not enabled.
+pub struct PalletsTryStateCheck;
+impl RcMigrationCheck for PalletsTryStateCheck {
+	type RcPrePayload = ();
+	#[cfg(not(feature = "try-runtime"))]
+	fn pre_check() -> Self::RcPrePayload {
+		()
+	}
+	#[cfg(feature = "try-runtime")]
+	fn pre_check() -> Self::RcPrePayload {
+		use frame_support::traits::TryState;
+		let res = polkadot_runtime::AllPalletsWithSystem::try_state(
+			frame_system::Pallet::<polkadot_runtime::Runtime>::block_number(),
+			frame_support::traits::TryStateSelect::All,
+		);
+		if res.is_err() {
+			log::error!("Pallets try-state check failed: {res:?}");
+		}
+	}
+	fn post_check(_: Self::RcPrePayload) {
+		// nada
+	}
+}
+impl AhMigrationCheck for PalletsTryStateCheck {
+	type AhPrePayload = ();
+	type RcPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// nada
+		()
+	}
+
+	#[cfg(not(feature = "try-runtime"))]
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
+		// nada
+	}
+	#[cfg(feature = "try-runtime")]
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
+		use frame_support::traits::TryState;
+		let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
+			frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::block_number(),
+			frame_support::traits::TryStateSelect::All,
+		);
+		if res.is_err() {
+			log::error!("Pallets try-state check failed: {res:?}");
+		}
+	}
+}

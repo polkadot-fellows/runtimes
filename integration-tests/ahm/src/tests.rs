@@ -36,7 +36,7 @@ use crate::porting_prelude::*;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
-	checks::SanityChecks,
+	checks::{SanityChecks, PalletsTryStateCheck},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -174,43 +174,6 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 );
-
-pub struct PalletsTryStateCheck;
-impl RcMigrationCheck for PalletsTryStateCheck {
-	type RcPrePayload = ();
-	fn pre_check() -> Self::RcPrePayload {
-		// nada
-		()
-	}
-	fn post_check(_: Self::RcPrePayload) {
-		// nada
-	}
-}
-impl AhMigrationCheck for PalletsTryStateCheck {
-	type AhPrePayload = ();
-	type RcPrePayload = ();
-
-	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		// nada
-		()
-	}
-
-	#[cfg(not(feature = "try-runtime"))]
-	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
-		// nada
-	}
-	#[cfg(feature = "try-runtime")]
-	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
-		use frame_support::traits::TryState;
-		let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
-			frame_system::Pallet::<AssetHub>::block_number(),
-			frame_support::traits::TryStateSelect::All,
-		);
-		if res.is_err() {
-			log::error!("Pallets try-state check failed: {res:?}");
-		}
-	}
-}
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
