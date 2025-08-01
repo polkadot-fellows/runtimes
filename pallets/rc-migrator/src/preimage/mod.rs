@@ -23,4 +23,6 @@ pub mod request_status;
 
 pub use chunks::{PreimageChunkMigrator, RcPreimageChunk, CHUNK_SIZE};
 pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageLegacyStatusOf};
-pub use request_status::{PortableRequestStatus, PreimageRequestStatusMigrator, PortableRequestStatusInner};
+pub use request_status::{
+	PortableRequestStatus, PortableRequestStatusInner, PreimageRequestStatusMigrator,
+};

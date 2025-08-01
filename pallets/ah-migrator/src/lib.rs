@@ -272,8 +272,7 @@ pub mod pallet {
 		+ pallet_treasury::Config<
 			Currency = pallet_balances::Pallet<Self>,
 			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
-		>
-		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
+		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
 		type RuntimeHoldReason: Parameter

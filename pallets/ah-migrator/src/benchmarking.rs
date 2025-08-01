@@ -23,22 +23,25 @@ use frame_support::traits::{
 };
 use frame_system::RawOrigin;
 use pallet_asset_rate::AssetKindFactory;
-use pallet_rc_migrator::bounties::alias::{Bounty, BountyStatus};
 use pallet_conviction_voting::{AccountVote, Casting, Delegations, Vote, Voting};
 use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_preimage::PreimageFor;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
-	bounties::{RcBountiesMessageOf},
+	bounties::{
+		alias::{Bounty, BountyStatus},
+		RcBountiesMessage, RcBountiesMessageOf,
+	},
 	child_bounties::PortableChildBountiesMessage,
 	claims::{RcClaimsMessage, RcClaimsMessageOf},
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
-	preimage::{CHUNK_SIZE, PortableRequestStatus, PortableRequestStatusInner},
+	preimage::{PortableRequestStatus, PortableRequestStatusInner, CHUNK_SIZE},
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::RcSchedulerMessage,
 	staking::{
+		bags_list::PortableNode,
 		delegated_staking::PortableDelegatedStakingMessage,
 		message::PortableUnappliedSlash,
 		nom_pools_alias::{SubPools, UnbondPool},
@@ -46,14 +49,12 @@ use pallet_rc_migrator::{
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
 	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
-use pallet_rc_migrator::bounties::RcBountiesMessage;
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
 use polkadot_runtime_common::claims::EthereumAddress;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
 use xcm::v4::Location;
-use pallet_rc_migrator::staking::bags_list::PortableNode;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
