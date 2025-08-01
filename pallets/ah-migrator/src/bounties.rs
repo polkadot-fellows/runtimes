@@ -17,7 +17,7 @@
 use crate::*;
 use pallet_bounties::BountyStatus;
 use pallet_rc_migrator::bounties::{
-	alias::Bounty as RcBounty, BountiesMigrator, RcBountiesMessage, RcBountiesMessageOf,
+	alias::Bounty as RcBounty, BountiesMigrator, PortableBountiesMessage, PortableBountiesMessageOf,
 	RcPrePayload,
 };
 
@@ -74,7 +74,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_bounties_messages(
-		messages: Vec<RcBountiesMessageOf<T>>,
+		messages: Vec<PortableBountiesMessageOf<T>>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Processing {} bounties messages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -100,15 +100,15 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn do_process_bounty_message(message: RcBountiesMessageOf<T>) -> Result<(), Error<T>> {
+	fn do_process_bounty_message(message: PortableBountiesMessageOf<T>) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Processing bounties message: {:?}", message);
 
 		match message {
-			RcBountiesMessage::BountyCount(count) => {
+			PortableBountiesMessage::BountyCount(count) => {
 				log::debug!(target: LOG_TARGET, "Integrating bounties count: {:?}", count);
 				pallet_bounties::BountyCount::<T>::put(count);
 			},
-			RcBountiesMessage::BountyApprovals(approvals) => {
+			PortableBountiesMessage::BountyApprovals(approvals) => {
 				log::debug!(target: LOG_TARGET, "Integrating bounties approvals: {:?}", approvals);
 				let approvals = BoundedVec::<
                     _,
@@ -116,7 +116,7 @@ impl<T: Config> Pallet<T> {
                 >::defensive_truncate_from(approvals);
 				pallet_bounties::BountyApprovals::<T>::put(approvals);
 			},
-			RcBountiesMessage::BountyDescriptions((index, description)) => {
+			PortableBountiesMessage::BountyDescriptions((index, description)) => {
 				log::debug!(target: LOG_TARGET, "Integrating bounties descriptions: {:?}", description);
 				let description = BoundedVec::<
 					_,
@@ -124,7 +124,7 @@ impl<T: Config> Pallet<T> {
 				>::defensive_truncate_from(description);
 				pallet_bounties::BountyDescriptions::<T>::insert(index, description);
 			},
-			RcBountiesMessage::Bounties((index, bounty)) => {
+			PortableBountiesMessage::Bounties((index, bounty)) => {
 				log::debug!(target: LOG_TARGET, "Integrating bounty: {:?}", index);
 				let translated_bounty = Self::translate_bounty(bounty);
 				pallet_rc_migrator::bounties::alias::Bounties::<T>::insert(

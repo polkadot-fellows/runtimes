@@ -15,10 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_bounties::{Bounty, BountyIndex};
-
-pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// The stages of the bounties pallet data migration.
 #[derive(
@@ -48,16 +45,12 @@ pub enum BountiesStage {
 
 /// Bounties data message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
-pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
+pub enum PortableBountiesMessage {
 	BountyCount(BountyIndex),
 	BountyApprovals(Vec<BountyIndex>),
 	BountyDescriptions((BountyIndex, Vec<u8>)),
-	Bounties((BountyIndex, alias::Bounty<AccountId, Balance, BlockNumber>)),
+	Bounties((BountyIndex, pallet_bounties::Bounty<AccountId32, u128, u32>)),
 }
-
-/// Bounties data message that is being sent to the AH Migrator.
-pub type RcBountiesMessageOf<T> =
-	RcBountiesMessage<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>;
 
 pub struct BountiesMigrator<T> {
 	_phantom: PhantomData<T>,
@@ -107,7 +100,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					if pallet_bounties::BountyCount::<T>::exists() {
 						let count = pallet_bounties::BountyCount::<T>::take();
 						log::debug!(target: LOG_TARGET, "Migration BountyCount {:?}", &count);
-						messages.push(RcBountiesMessage::BountyCount(count));
+						messages.push(PortableBountiesMessage::BountyCount(count));
 					} else {
 						log::debug!(target: LOG_TARGET, "Not migrating empty BountyCount");
 					}
@@ -117,7 +110,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					if pallet_bounties::BountyApprovals::<T>::exists() {
 						let approvals = pallet_bounties::BountyApprovals::<T>::take();
 						log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
-						messages.push(RcBountiesMessage::BountyApprovals(approvals.into_inner()));
+						messages.push(PortableBountiesMessage::BountyApprovals(approvals.into_inner()));
 					} else {
 						log::debug!(target: LOG_TARGET, "Not migrating empty BountyApprovals");
 					}
@@ -137,7 +130,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 								&key
 							);
 							pallet_bounties::BountyDescriptions::<T>::remove(&key);
-							messages.push(RcBountiesMessage::BountyDescriptions((
+							messages.push(PortableBountiesMessage::BountyDescriptions((
 								key,
 								value.into_inner(),
 							)));
@@ -148,15 +141,15 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 				},
 				BountiesStage::Bounties { last_key } => {
 					let mut iter = if let Some(last_key) = last_key {
-						alias::Bounties::<T>::iter_from_key(last_key)
+						pallet_bounties::Bounties::<T>::iter_from_key(last_key)
 					} else {
-						alias::Bounties::<T>::iter()
+						pallet_bounties::Bounties::<T>::iter()
 					};
 					match iter.next() {
 						Some((key, value)) => {
 							log::debug!(target: LOG_TARGET, "Migration Bounty {:?}", &key);
-							alias::Bounties::<T>::remove(&key);
-							messages.push(RcBountiesMessage::Bounties((key, value)));
+							pallet_bounties::Bounties::<T>::remove(&key);
+							messages.push(PortableBountiesMessage::Bounties((key, value)));
 							BountiesStage::Bounties { last_key: Some(key) }
 						},
 						None => BountiesStage::Finished,
@@ -188,54 +181,6 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 	}
 }
 
-pub mod alias {
-	use super::*;
-	use pallet_bounties::BountyStatus;
-
-	/// Alias of [pallet_bounties::BalanceOf].
-	pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
-
-	/// A bounty proposal.
-	///
-	/// Alias of [pallet_bounties::Bounty].
-	#[derive(
-		Encode,
-		DecodeWithMemTracking,
-		Decode,
-		Clone,
-		PartialEq,
-		Eq,
-		RuntimeDebug,
-		TypeInfo,
-		MaxEncodedLen,
-	)]
-	pub struct Bounty<AccountId, Balance, BlockNumber> {
-		/// The account proposing it.
-		pub proposer: AccountId,
-		/// The (total) amount that should be paid if the bounty is rewarded.
-		pub value: Balance,
-		/// The curator fee. Included in value.
-		pub fee: Balance,
-		/// The deposit of curator.
-		pub curator_deposit: Balance,
-		/// The amount held on deposit (reserved) for making this proposal.
-		pub bond: Balance,
-		/// The status of this bounty.
-		pub status: BountyStatus<AccountId, BlockNumber>,
-	}
-
-	/// Bounties that have been made.
-	///
-	/// Alias of [pallet_bounties::Bounties].
-	#[frame_support::storage_alias(pallet_name)]
-	pub type Bounties<T: pallet_bounties::Config<()>> = StorageMap<
-		pallet_bounties::Pallet<T, ()>,
-		Twox64Concat,
-		BountyIndex,
-		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T, ()>, BlockNumberFor<T>>,
-	>;
-}
-
 // (BountyCount, Bounties, BountyDescriptions, BountyApprovals)
 pub type RcPrePayload<T> = (
 	BountyIndex,
@@ -243,8 +188,8 @@ pub type RcPrePayload<T> = (
 		BountyIndex,
 		Bounty<
 			<T as frame_system::Config>::AccountId,
-			BalanceOf<T>,
-			pallet_treasury::BlockNumberFor<T>,
+			u128,
+			u32,
 		>,
 	)>,
 	Vec<(BountyIndex, Vec<u8>)>,

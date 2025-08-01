@@ -81,7 +81,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
+	bounties::PortableBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
 	treasury::RcTreasuryMessage, types::MigrationStatus,
 };
@@ -802,7 +802,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcBountiesMessageOf<T>>,
+			messages: Vec<PortableBountiesMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

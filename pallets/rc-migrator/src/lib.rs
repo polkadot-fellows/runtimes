@@ -460,7 +460,7 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_child_bounties::Config
-		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>, BlockNumberProvider = Self::TreasuryBlockNumberProvider>
 		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_xcm::Config
 		+ pallet_staking_async_ah_client::Config
@@ -474,6 +474,13 @@ pub mod pallet {
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
+
+		/// Block number provider of the treasury pallet.
+		///
+		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
+		/// code since they all depend on the treasury provided block number. The compiler checks
+		/// that this is configured correctly.
+		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
