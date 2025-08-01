@@ -29,6 +29,7 @@
 //!
 //! ```
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+//! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
 
 use crate::porting_prelude::*;
