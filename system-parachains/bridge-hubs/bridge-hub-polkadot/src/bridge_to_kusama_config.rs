@@ -102,7 +102,7 @@ parameter_types! {
 	pub const ParachainPalletNameAtKusama: &'static str = bp_kusama::PARAS_PALLET_NAME;
 
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
-	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
+	pub PriorityBoostPerMessage: u64 = 3_641_799_307_958;
 }
 
 /// Proof of messages, coming from Kusama.
@@ -154,6 +154,7 @@ impl pallet_bridge_parachains::Config<BridgeParachainKusamaInstance> for Runtime
 		SingleParaStoredHeaderDataBuilder<bp_bridge_hub_kusama::BridgeHubKusama>;
 	type HeadsToKeep = ParachainHeadsToKeep;
 	type MaxParaHeadDataSize = MaxParaHeadDataSize;
+	type OnNewHead = ();
 }
 
 /// Add XCM messages support for exchanging messages with BridgeHubKusama.

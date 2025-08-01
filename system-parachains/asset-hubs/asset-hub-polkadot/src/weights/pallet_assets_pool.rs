@@ -540,4 +540,37 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
+	/// Storage: `PoolAssets::Asset` (r:1 w:0)
+	/// Proof: `PoolAssets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
+	fn total_issuance() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `314`
+		//  Estimated: `3675`
+		// Minimum execution time: 5_673_000 picoseconds.
+		Weight::from_parts(6_032_000, 0)
+			.saturating_add(Weight::from_parts(0, 3675))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
+	/// Storage: `PoolAssets::Account` (r:1 w:0)
+	/// Proof: `PoolAssets::Account` (`max_values`: None, `max_size`: Some(134), added: 2609, mode: `MaxEncodedLen`)
+	fn balance() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `188`
+		//  Estimated: `3599`
+		// Minimum execution time: 6_746_000 picoseconds.
+		Weight::from_parts(7_190_000, 0)
+			.saturating_add(Weight::from_parts(0, 3599))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
+	/// Storage: `PoolAssets::Approvals` (r:1 w:0)
+	/// Proof: `PoolAssets::Approvals` (`max_values`: None, `max_size`: Some(148), added: 2623, mode: `MaxEncodedLen`)
+	fn allowance() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `283`
+		//  Estimated: `3613`
+		// Minimum execution time: 9_311_000 picoseconds.
+		Weight::from_parts(9_602_000, 0)
+			.saturating_add(Weight::from_parts(0, 3613))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
 }

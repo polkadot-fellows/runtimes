@@ -16,9 +16,7 @@
 //! Tests related to claiming assets trapped during XCM execution.
 
 use crate::*;
-
 use integration_tests_helpers::test_chain_can_claim_assets;
-use xcm_executor::traits::DropAssets;
 
 #[test]
 fn assets_can_be_claimed() {
