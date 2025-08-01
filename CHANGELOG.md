@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - proxy: use Relay Chain block provider (for delayed announcements)
   - nfts: use Relay Chain block provider (for minting start/end blocks)
 - PolkadotAssetHub: Enable Async Backing ([polkadot-fellows/runtimes/pull/763](https://github.com/polkadot-fellows/runtimes/pull/763))
+- Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging. [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
 
 ## [1.6.1] 24.06.2025
 

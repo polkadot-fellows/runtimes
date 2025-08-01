@@ -16,18 +16,17 @@ use crate::{
 	tests::{
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
 		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
-		dot_at_ah_polkadot,
+		dot_at_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };
-use asset_hub_polkadot_runtime::xcm_config::{
-	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
-	RelayTreasuryPalletAccount,
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
+	BridgeHubEthereumBaseFee, EthereumNetwork,
 };
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
-	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
-	Runtime, RuntimeOrigin,
+	bridge_to_ethereum_config::EthereumGatewayAddress, xcm_config::RelayTreasuryPalletAccount,
+	EthereumBeaconClient, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
@@ -155,15 +154,7 @@ fn send_token_from_ethereum_to_penpal() {
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
-	PenpalB::execute_with(|| {
-		assert_ok!(<PenpalB as Chain>::System::set_storage(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			vec![(
-				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
-				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
-			)],
-		));
-	});
+	set_trust_reserve_on_penpal();
 
 	// Create asset on the Penpal parachain.
 	PenpalB::execute_with(|| {
@@ -452,8 +443,8 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 				AssetHubPolkadotReceiver::get(),
 			);
 		// Send the Token back to Ethereum
-		assert_ok!(
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
 				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
 				Box::new(destination),
 				Box::new(beneficiary),
