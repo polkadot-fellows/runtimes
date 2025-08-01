@@ -16,18 +16,16 @@
 //! Tests related to XCM aliasing.
 
 use crate::*;
+use bridge_hub_polkadot_runtime::xcm_config::XcmConfig;
 use emulated_integration_tests_common::{macros::AccountId, test_cross_chain_alias};
 use frame_support::{traits::ContainsPair, BoundedVec};
 use xcm::latest::Junctions::*;
-use AssetHubPolkadotXcmConfig as XcmConfig;
 
 const ALLOWED: bool = true;
 const DENIED: bool = false;
 
 const TELEPORT_FEES: bool = true;
 const RESERVE_TRANSFER_FEES: bool = false;
-
-const ETHEREUM_BOB: [u8; 20] = hex_literal::hex!("11b0b11000011b0b11000011b0b11000011b0b11");
 
 #[test]
 fn account_on_sibling_chain_cannot_alias_into_same_local_account() {
@@ -36,30 +34,23 @@ fn account_on_sibling_chain_cannot_alias_into_same_local_account() {
 	let target = origin.clone();
 	let fees = POLKADOT_ED * 10;
 
-	PenpalA::mint_foreign_asset(
-		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
+	PenpalB::mint_foreign_asset(
+		<PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
 		Location::parent(),
 		origin.clone(),
 		fees * 10,
 	);
 
-	// On Asset Hub we don't want to support aliasing from other chains:
-	// - there is no real world demand for it, the direction is usually reversed, users already have
-	//   accounts on AH and want to use them cross-chain on other chains,
-	// - without real world demand, it's better to keep AH permissions as tight as possible.
-	// Aliasing same account doesn't work on AH.
+	// On Bridge Hub we don't want to support aliasing from other chains: there is no real world
+	// demand for it, only low-level power users (like relayers) directly interact with Bridge
+	// Hub. They don't need aliasing to operate cross-chain they can operate locally.
+	// Aliasing same account doesn't work on BH.
 	test_cross_chain_alias!(
 		vec![
-			// between BH and AH: denied
-			(BridgeHubPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Collectives and AH: denied
-			(CollectivesPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Coretime and AH: denied
-			(CoretimePolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between People and AH: denied
-			(PeoplePolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Penpal and AH: denied
-			(PenpalA, AssetHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)
+			// between AH and BH: denied
+			(AssetHubPolkadot, BridgeHubPolkadot, TELEPORT_FEES, DENIED),
+			// between Penpal and BH: denied
+			(PenpalB, BridgeHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)
 		],
 		origin,
 		target,
@@ -74,8 +65,8 @@ fn account_on_sibling_chain_cannot_alias_into_different_local_account() {
 	let target: AccountId = [2; 32].into();
 	let fees = POLKADOT_ED * 10;
 
-	PenpalA::mint_foreign_asset(
-		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
+	PenpalB::mint_foreign_asset(
+		<PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
 		Location::parent(),
 		origin.clone(),
 		fees * 10,
@@ -84,16 +75,10 @@ fn account_on_sibling_chain_cannot_alias_into_different_local_account() {
 	// Aliasing different account on different chains
 	test_cross_chain_alias!(
 		vec![
-			// between BH and AH: denied
-			(BridgeHubPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Collectives and AH: denied
-			(CollectivesPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Coretime and AH: denied
-			(CoretimePolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between People and AH: denied
-			(PeoplePolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Penpal and AH: denied
-			(PenpalA, AssetHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)
+			// between AH and BH: denied
+			(AssetHubPolkadot, BridgeHubPolkadot, TELEPORT_FEES, DENIED),
+			// between Penpal and BH: denied
+			(PenpalB, BridgeHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)
 		],
 		origin,
 		target,
@@ -112,22 +97,22 @@ fn authorized_cross_chain_aliases() {
 	let pal_admin = <PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get());
 	PenpalB::mint_foreign_asset(pal_admin.clone(), Location::parent(), origin.clone(), fees * 10);
 	PenpalB::mint_foreign_asset(pal_admin, Location::parent(), bad_origin.clone(), fees * 10);
-	AssetHubPolkadot::fund_accounts(vec![(target.clone(), fees * 10)]);
+	BridgeHubPolkadot::fund_accounts(vec![(target.clone(), fees * 10)]);
 
-	// let's authorize `origin` on Penpal to alias `target` on AssetHub
-	AssetHubPolkadot::execute_with(|| {
+	// let's authorize `origin` on Penpal to alias `target` on BridgeHub
+	BridgeHubPolkadot::execute_with(|| {
 		let penpal_origin = Location::new(
 			1,
 			X2([
 				Parachain(PenpalB::para_id().into()),
-				AccountId32Junction { network: Some(Polkadot), id: origin.clone().into() },
+				AccountId32 { network: Some(Polkadot), id: origin.clone().into() },
 			]
 			.into()),
 		);
 		// `target` adds `penpal_origin` as authorized alias
 		assert_ok!(
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::add_authorized_alias(
-				<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(target.clone()),
+			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::PolkadotXcm::add_authorized_alias(
+				<BridgeHubPolkadot as Chain>::RuntimeOrigin::signed(target.clone()),
 				Box::new(penpal_origin.into()),
 				None
 			)
@@ -136,14 +121,10 @@ fn authorized_cross_chain_aliases() {
 	// Verify that unauthorized `bad_origin` cannot alias into `target`, from any chain.
 	test_cross_chain_alias!(
 		vec![
-			// between BH and AssetHub: denied
-			(BridgeHubPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Collectives and AssetHub: denied
-			(CollectivesPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between People and AssetHub: denied
-			(PeoplePolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Penpal and AssetHub: denied
-			(PenpalB, AssetHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)
+			// between AH and BridgeHub: denied
+			(AssetHubPolkadot, BridgeHubPolkadot, TELEPORT_FEES, DENIED),
+			// between Penpal and BridgeHub: denied
+			(PenpalB, BridgeHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)
 		],
 		bad_origin,
 		target,
@@ -153,31 +134,27 @@ fn authorized_cross_chain_aliases() {
 	// chains cannot.
 	test_cross_chain_alias!(
 		vec![
-			// between BH and AssetHub: denied
-			(BridgeHubPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Collectives and AssetHub: denied
-			(CollectivesPolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between People and AssetHub: denied
-			(PeoplePolkadot, AssetHubPolkadot, TELEPORT_FEES, DENIED),
-			// between Penpal and AssetHub: allowed
-			(PenpalB, AssetHubPolkadot, RESERVE_TRANSFER_FEES, ALLOWED)
+			// between AH and BridgeHub: denied
+			(AssetHubPolkadot, BridgeHubPolkadot, TELEPORT_FEES, DENIED),
+			// between Penpal and BridgeHub: allowed
+			(PenpalB, BridgeHubPolkadot, RESERVE_TRANSFER_FEES, ALLOWED)
 		],
 		origin,
 		target,
 		fees
 	);
-	// remove authorization for `origin` on Penpal to alias `target` on AssetHub
-	AssetHubPolkadot::execute_with(|| {
+	// remove authorization for `origin` on Penpal to alias `target` on BridgeHub
+	BridgeHubPolkadot::execute_with(|| {
 		// `target` removes all authorized aliases
 		assert_ok!(
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::remove_all_authorized_aliases(
-				<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(target.clone())
+			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::PolkadotXcm::remove_all_authorized_aliases(
+				<BridgeHubPolkadot as Chain>::RuntimeOrigin::signed(target.clone())
 			)
 		);
 	});
-	// Verify `penpal::origin` can no longer alias into `target` on AssetHub.
+	// Verify `penpal::origin` can no longer alias into `target` on BridgeHub.
 	test_cross_chain_alias!(
-		vec![(PenpalB, AssetHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)],
+		vec![(PenpalB, BridgeHubPolkadot, RESERVE_TRANSFER_FEES, DENIED)],
 		origin,
 		target,
 		fees
@@ -186,15 +163,15 @@ fn authorized_cross_chain_aliases() {
 
 #[test]
 fn aliasing_child_locations() {
-	AssetHubPolkadot::execute_with(|| {
-		// Allows aliasing descendant of origin.
+	BridgeHubPolkadot::execute_with(|| {
+		// Bridge Hub allows aliasing descendant of origin.
 		let origin = Location::new(1, X1([PalletInstance(8)].into()));
 		let target = Location::new(1, X2([PalletInstance(8), GeneralIndex(9)].into()));
 		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let origin = Location::new(1, X1([Parachain(8)].into()));
 		let target = Location::new(
 			1,
-			X2([Parachain(8), AccountId32Junction { network: None, id: [1u8; 32] }].into()),
+			X2([Parachain(8), AccountId32 { network: None, id: [1u8; 32] }].into()),
 		);
 		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let origin = Location::new(1, X1([Parachain(8)].into()));
@@ -209,35 +186,31 @@ fn aliasing_child_locations() {
 		let origin = Location::new(1, X1([Parachain(8)].into()));
 		let target = Location::new(
 			0,
-			X2([Parachain(8), AccountId32Junction { network: None, id: [1u8; 32] }].into()),
+			X2([Parachain(8), AccountId32 { network: None, id: [1u8; 32] }].into()),
 		);
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let origin = Location::new(1, X1([Parachain(8)].into()));
-		let target =
-			Location::new(0, X1([AccountId32Junction { network: None, id: [1u8; 32] }].into()));
+		let target = Location::new(0, X1([AccountId32 { network: None, id: [1u8; 32] }].into()));
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-		let origin =
-			Location::new(1, X1([AccountId32Junction { network: None, id: [1u8; 32] }].into()));
-		let target =
-			Location::new(0, X1([AccountId32Junction { network: None, id: [1u8; 32] }].into()));
+		let origin = Location::new(1, X1([AccountId32 { network: None, id: [1u8; 32] }].into()));
+		let target = Location::new(0, X1([AccountId32 { network: None, id: [1u8; 32] }].into()));
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 	});
 }
 
 #[test]
-fn local_asset_hub_root_cannot_alias_external_locations() {
-	AssetHubPolkadot::execute_with(|| {
-		// Does not allow local/AH root to alias other locations.
+fn asset_hub_root_aliases_anything() {
+	BridgeHubPolkadot::execute_with(|| {
+		// Does not allow AH root to alias other locations.
 		let origin = Location::new(1, X1([Parachain(1000)].into()));
 
 		let target = Location::new(1, X1([Parachain(2000)].into()));
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-		let target =
-			Location::new(1, X1([AccountId32Junction { network: None, id: [1u8; 32] }].into()));
+		let target = Location::new(1, X1([AccountId32 { network: None, id: [1u8; 32] }].into()));
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let target = Location::new(
 			1,
-			X2([Parachain(8), AccountId32Junction { network: None, id: [1u8; 32] }].into()),
+			X2([Parachain(8), AccountId32 { network: None, id: [1u8; 32] }].into()),
 		);
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let target =
@@ -257,7 +230,7 @@ fn local_asset_hub_root_cannot_alias_external_locations() {
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let origin = Location::new(
 			1,
-			X2([Parachain(1000), AccountId32Junction { network: None, id: [1u8; 32] }].into()),
+			X2([Parachain(1000), AccountId32 { network: None, id: [1u8; 32] }].into()),
 		);
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 
@@ -276,84 +249,6 @@ fn local_asset_hub_root_cannot_alias_external_locations() {
 		let origin = Location::new(1, X1([Parachain(1001)].into()));
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 		let origin = Location::new(1, X1([Parachain(1002)].into()));
-		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-	});
-}
-#[test]
-fn asset_hub_kusama_root_aliases_into_kusama_origins() {
-	AssetHubPolkadot::execute_with(|| {
-		let origin = Location::new(2, X2([GlobalConsensus(Kusama), Parachain(1000)].into()));
-
-		let target = Location::new(2, X2([GlobalConsensus(Kusama), Parachain(2000)].into()));
-		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-
-		let target = Location::new(
-			2,
-			X3([
-				GlobalConsensus(Kusama),
-				Parachain(2000),
-				AccountId32Junction { network: None, id: AssetHubPolkadotSender::get().into() },
-			]
-			.into()),
-		);
-		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-
-		let target = Location::new(
-			2,
-			X4([GlobalConsensus(Kusama), Parachain(2000), PalletInstance(8), GeneralIndex(9)]
-				.into()),
-		);
-		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-	});
-}
-
-#[test]
-fn asset_hub_kusama_root_does_not_alias_into_ethereum_origins() {
-	AssetHubPolkadot::execute_with(|| {
-		let origin = Location::new(2, X2([GlobalConsensus(Kusama), Parachain(1000)].into()));
-
-		let target = Location::new(2, X1([GlobalConsensus(Ethereum { chain_id: 1 })].into()));
-		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-
-		let target = Location::new(
-			2,
-			X2([
-				GlobalConsensus(Ethereum { chain_id: 1 }),
-				AccountKey20 { network: None, key: ETHEREUM_BOB },
-			]
-			.into()),
-		);
-		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-	});
-}
-
-#[test]
-fn asset_hub_kusama_root_does_not_alias_into_asset_hub_polkadot_origins() {
-	AssetHubPolkadot::execute_with(|| {
-		let origin = Location::new(2, X2([GlobalConsensus(Kusama), Parachain(1000)].into()));
-
-		let target = Location::new(2, X1([GlobalConsensus(Polkadot)].into()));
-		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-
-		let target = Location::new(2, X2([GlobalConsensus(Polkadot), Parachain(2000)].into()));
-		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-
-		let target = Location::new(
-			2,
-			X3([
-				GlobalConsensus(Polkadot),
-				Parachain(2000),
-				AccountId32Junction { network: None, id: AssetHubPolkadotSender::get().into() },
-			]
-			.into()),
-		);
-		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
-
-		let target = Location::new(
-			2,
-			X4([GlobalConsensus(Polkadot), Parachain(2000), PalletInstance(8), GeneralIndex(9)]
-				.into()),
-		);
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 	});
 }
