@@ -460,8 +460,10 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_child_bounties::Config
-		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>, BlockNumberProvider = Self::TreasuryBlockNumberProvider>
-		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_treasury::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_xcm::Config
 		+ pallet_staking_async_ah_client::Config
 	{

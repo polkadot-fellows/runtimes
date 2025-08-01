@@ -110,7 +110,8 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					if pallet_bounties::BountyApprovals::<T>::exists() {
 						let approvals = pallet_bounties::BountyApprovals::<T>::take();
 						log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
-						messages.push(PortableBountiesMessage::BountyApprovals(approvals.into_inner()));
+						messages
+							.push(PortableBountiesMessage::BountyApprovals(approvals.into_inner()));
 					} else {
 						log::debug!(target: LOG_TARGET, "Not migrating empty BountyApprovals");
 					}
@@ -184,14 +185,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 // (BountyCount, Bounties, BountyDescriptions, BountyApprovals)
 pub type RcPrePayload<T> = (
 	BountyIndex,
-	Vec<(
-		BountyIndex,
-		Bounty<
-			<T as frame_system::Config>::AccountId,
-			u128,
-			u32,
-		>,
-	)>,
+	Vec<(BountyIndex, Bounty<<T as frame_system::Config>::AccountId, u128, u32>)>,
 	Vec<(BountyIndex, Vec<u8>)>,
 	Vec<BountyIndex>,
 );

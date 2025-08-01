@@ -23,22 +23,20 @@ use frame_support::traits::{
 };
 use frame_system::RawOrigin;
 use pallet_asset_rate::AssetKindFactory;
-use pallet_bounties::BountyStatus;
+use pallet_bags_list::list::{Bag, Node};
+use pallet_bounties::{Bounty, BountyStatus};
 use pallet_conviction_voting::{AccountVote, Casting, Delegations, Vote, Voting};
 use pallet_nomination_pools::TotalUnbondingPools;
+use pallet_preimage::PreimageFor;
 use pallet_proxy::ProxyDefinition;
-use pallet_rc_migrator::bounties::PortableBountiesMessage;
-use pallet_bounties::Bounty;
 use pallet_rc_migrator::{
-	bounties::{PortableBountiesMessageOf},
+	bounties::{PortableBountiesMessage, PortableBountiesMessageOf},
 	child_bounties::PortableChildBountiesMessage,
-	claims::{RcClaimsMessageOf},
+	claims::{RcClaimsMessage, RcClaimsMessageOf},
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
-	preimage::{
-		CHUNK_SIZE,
-	},
+	preimage::CHUNK_SIZE,
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::RcSchedulerMessage,
 	staking::{
@@ -49,14 +47,9 @@ use pallet_rc_migrator::{
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
 	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
-use pallet_bags_list::list::{Node, Bag};
-use polkadot_runtime_common::claims::EthereumAddress;
-use pallet_rc_migrator::claims::RcClaimsMessage;
-use pallet_preimage::{
-	PreimageFor, 
-};
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
+use polkadot_runtime_common::claims::EthereumAddress;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
 use xcm::v4::Location;

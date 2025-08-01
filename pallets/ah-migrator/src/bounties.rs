@@ -17,8 +17,8 @@
 use crate::*;
 use pallet_bounties::BountyStatus;
 use pallet_rc_migrator::bounties::{
-	alias::Bounty as RcBounty, BountiesMigrator, PortableBountiesMessage, PortableBountiesMessageOf,
-	RcPrePayload,
+	alias::Bounty as RcBounty, BountiesMigrator, PortableBountiesMessage,
+	PortableBountiesMessageOf, RcPrePayload,
 };
 
 impl<T: Config> Pallet<T> {
