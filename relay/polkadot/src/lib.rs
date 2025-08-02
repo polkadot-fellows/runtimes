@@ -1736,7 +1736,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
 	type OnDemandPalletId = OnDemandPalletId;
-	type UnprocessedMsgBuffer = ConstU32<5>;
+	type UnprocessedMsgBuffer = ConstU32<8>;
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;

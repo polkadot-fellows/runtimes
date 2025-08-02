@@ -81,6 +81,16 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 					break;
 				}
 			}
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
+				break;
+			}
+
 			let mut iter = match inner_key {
 				Some(who) => pallet_vesting::Vesting::<T>::iter_from_key(who),
 				None => pallet_vesting::Vesting::<T>::iter(),
