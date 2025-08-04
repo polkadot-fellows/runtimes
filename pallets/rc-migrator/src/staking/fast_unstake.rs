@@ -17,7 +17,7 @@
 //! Nomination pools data migrator module.
 
 use crate::{types::*, *};
-use alias::UnstakeRequest;
+use sp_staking::EraIndex;
 
 #[derive(
 	Encode,
@@ -47,11 +47,9 @@ pub enum FastUnstakeStage<AccountId> {
 	PartialEqNoBound,
 	EqNoBound,
 )]
-#[codec(mel_bound(T: Config))]
-#[scale_info(skip_type_params(T))]
-pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
-	StorageValues { values: FastUnstakeStorageValues<T> },
-	Queue { member: (T::AccountId, alias::BalanceOf<T>) },
+pub enum PortableFastUnstakeMessage {
+	StorageValues { values: PortableFastUnstakeStorageValues },
+	Queue { member: (AccountId32, u128) },
 }
 
 /// All the `StorageValues` from the fast unstake pallet.
@@ -66,33 +64,105 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 	EqNoBound,
 	RuntimeDebugNoBound,
 )]
-#[codec(mel_bound(T: Config))]
-#[scale_info(skip_type_params(T))]
-pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
-	pub head: Option<UnstakeRequest<T>>,
+pub struct PortableFastUnstakeStorageValues {
+	pub head: Option<PortableUnstakeRequest>,
 	pub eras_to_check_per_block: Option<u32>,
 }
 
-impl<T: pallet_fast_unstake::Config> FastUnstakeStorageValues<T> {
-	pub fn is_empty(&self) -> bool {
-		self.head.is_none() && self.eras_to_check_per_block.is_none()
-	}
-}
-
-impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T> {
-	pub fn take_values() -> FastUnstakeStorageValues<T> {
-		FastUnstakeStorageValues {
-			head: alias::Head::<T>::take(),
+impl<T: Config> FastUnstakeMigrator<T> {
+	pub fn take_values() -> PortableFastUnstakeStorageValues {
+		PortableFastUnstakeStorageValues {
+			head: pallet_fast_unstake::Head::<T>::take().map(IntoPortable::into_portable),
 			eras_to_check_per_block: pallet_fast_unstake::ErasToCheckPerBlock::<T>::exists()
 				.then(pallet_fast_unstake::ErasToCheckPerBlock::<T>::take),
 		}
 	}
+}
 
-	pub fn put_values(values: FastUnstakeStorageValues<T>) {
-		values.head.map(alias::Head::<T>::put);
+impl<T: pallet_fast_unstake::Config> FastUnstakeMigrator<T>
+where
+	<<T as pallet_fast_unstake::Config>::Currency as frame_support::traits::Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance: From<u128>,
+	<T as frame_system::Config>::AccountId: From<AccountId32>,
+{
+	pub fn put_values(values: PortableFastUnstakeStorageValues) {
+		values
+			.head
+			.map(Into::<pallet_fast_unstake::types::UnstakeRequest<_>>::into)
+			.map(pallet_fast_unstake::Head::<T>::put);
 		values
 			.eras_to_check_per_block
 			.map(pallet_fast_unstake::ErasToCheckPerBlock::<T>::put);
+	}
+}
+
+impl PortableFastUnstakeStorageValues {
+	pub fn translate_accounts(self, function: impl Fn(AccountId32) -> AccountId32) -> Self {
+		let head = self.head.map(|mut request| {
+			request.stashes.iter_mut().for_each(|(account, _)| {
+				*account = function(account.clone());
+			});
+			request
+		});
+
+		Self { head, eras_to_check_per_block: self.eras_to_check_per_block }
+	}
+}
+
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	MaxEncodedLen,
+	TypeInfo,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+	RuntimeDebugNoBound,
+)]
+pub struct PortableUnstakeRequest {
+	pub stashes: BoundedVec<(AccountId32, u128), ConstU32<20>>, // Fast Unstake batch size = 16
+	pub checked: BoundedVec<EraIndex, ConstU32<30>>,            // Bonding duration + 1 = 29
+}
+
+// RC -> Portable
+impl<T: Config> IntoPortable for pallet_fast_unstake::types::UnstakeRequest<T> {
+	type Portable = PortableUnstakeRequest;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableUnstakeRequest {
+			stashes: self.stashes.into_inner().defensive_truncate_into(),
+			checked: self.checked.into_inner().defensive_truncate_into(),
+		}
+	}
+}
+
+// Portable -> AH
+impl<T: pallet_fast_unstake::Config> From<PortableUnstakeRequest>
+	for pallet_fast_unstake::types::UnstakeRequest<T>
+where
+	<<T as pallet_fast_unstake::Config>::Currency as frame_support::traits::Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance: From<u128>,
+	<T as frame_system::Config>::AccountId: From<AccountId32>,
+{
+	fn from(request: PortableUnstakeRequest) -> Self {
+		pallet_fast_unstake::types::UnstakeRequest {
+			stashes: request
+				.stashes
+				.into_iter()
+				.map(|(a, v)| (a.into(), v.into()))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			checked: request.checked.into_inner().defensive_truncate_into(),
+		}
+	}
+}
+
+impl PortableFastUnstakeStorageValues {
+	pub fn is_empty(&self) -> bool {
+		self.head.is_none() && self.eras_to_check_per_block.is_none()
 	}
 }
 
@@ -146,7 +216,7 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 				FastUnstakeStage::StorageValues => {
 					let values = Self::take_values();
 					if !values.is_empty() {
-						messages.push(RcFastUnstakeMessage::StorageValues { values });
+						messages.push(PortableFastUnstakeMessage::StorageValues { values });
 					} else {
 						log::info!(
 							target: LOG_TARGET,
@@ -167,7 +237,7 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 					match new_queue_iter.next() {
 						Some((key, member)) => {
 							pallet_fast_unstake::Queue::<T>::remove(&key);
-							messages.push(RcFastUnstakeMessage::Queue {
+							messages.push(PortableFastUnstakeMessage::Queue {
 								member: (key.clone(), member),
 							});
 							FastUnstakeStage::Queue(Some(key))
@@ -197,14 +267,14 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
-	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
+	type RcPrePayload = (Vec<(T::AccountId, u128)>, u32); // (queue, eras_to_check)
 
 	fn pre_check() -> Self::RcPrePayload {
 		let queue: Vec<_> = pallet_fast_unstake::Queue::<T>::iter().collect();
 		let eras_to_check = pallet_fast_unstake::ErasToCheckPerBlock::<T>::get();
 
 		assert!(
-			alias::Head::<T>::get().is_none(),
+			pallet_fast_unstake::Head::<T>::get().is_none(),
 			"Staking Heads must be empty on the relay chain before the migration"
 		);
 
@@ -214,7 +284,7 @@ impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		// RC post: Ensure that entries have been deleted
 		assert!(
-			alias::Head::<T>::get().is_none(),
+			pallet_fast_unstake::Head::<T>::get().is_none(),
 			"Assert storage 'FastUnstake::Head::rc_post::empty'"
 		);
 		assert!(
@@ -226,45 +296,4 @@ impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
 			"Assert storage 'FastUnstake::ErasToCheckPerBlock::rc_post::empty'"
 		);
 	}
-}
-
-pub mod alias {
-	use super::*;
-	use frame_support::traits::Currency;
-	use pallet_fast_unstake::types::*;
-	use sp_staking::EraIndex;
-
-	pub type BalanceOf<T> = <<T as pallet_fast_unstake::Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::Balance;
-
-	/// An unstake request.
-	///
-	/// This is stored in [`crate::Head`] storage item and points to the current unstake request
-	/// that is being processed.
-	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/fast-unstake/src/types.rs#L48-L57
-	#[derive(
-		Encode,
-		Decode,
-		DecodeWithMemTracking,
-		EqNoBound,
-		PartialEqNoBound,
-		CloneNoBound,
-		TypeInfo,
-		RuntimeDebugNoBound,
-		MaxEncodedLen,
-	)]
-	#[scale_info(skip_type_params(T))]
-	pub struct UnstakeRequest<T: pallet_fast_unstake::Config> {
-		/// This list of stashes are being processed in this request, and their corresponding
-		/// deposit.
-		pub stashes: BoundedVec<(T::AccountId, BalanceOf<T>), T::BatchSize>,
-		/// The list of eras for which they have been checked.
-		pub checked: BoundedVec<EraIndex, MaxChecking<T>>,
-	}
-
-	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/fast-unstake/src/lib.rs#L213-L214
-	#[frame_support::storage_alias(pallet_name)]
-	pub type Head<T: pallet_fast_unstake::Config> =
-		StorageValue<pallet_fast_unstake::Pallet<T>, UnstakeRequest<T>, OptionQuery>;
 }
