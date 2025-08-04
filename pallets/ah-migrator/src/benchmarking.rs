@@ -340,8 +340,8 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_fast_unstake_messages(n: Linear<1, 255>) {
-		let create_fast_unstake = |n: u8| -> RcFastUnstakeMessage<T> {
-			RcFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
+		let create_fast_unstake = |n: u8| -> PortableFastUnstakeMessage {
+			PortableFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
 		};
 
 		let messages =

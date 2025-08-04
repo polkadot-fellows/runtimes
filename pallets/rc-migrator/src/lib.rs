@@ -126,6 +126,12 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 /// everything is confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
 
+/// The maximum number of items that can be migrated in a single block.
+///
+/// This serves as an additional safety limit beyond the weight accounting of both the Relay Chain
+/// and Asset Hub.
+pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
+
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
 
