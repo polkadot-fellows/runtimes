@@ -39,6 +39,7 @@ jobs:
 
       - name: Debug CI
         run: |
+          git diff --exit-code  
           cargo fetch
           git diff --exit-code
 
