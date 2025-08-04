@@ -716,6 +716,20 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
+	/// The block number at which the migration began and the pallet's extrinsics were locked.
+	///
+	/// This value is set when entering the `WaitingForAh` stage, i.e., when
+	/// `RcMigrationStage::is_ongoing()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationStartBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
+	/// Block number when migration finished and extrinsics were unlocked.
+	///
+	/// This is set when entering the `MigrationDone` stage hence when
+	/// `RcMigrationStage::is_finished()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationEndBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
 	/// Alias for `Paras` from `paras_registrar`.
 	///
 	/// The fields of the type stored in the original storage item are private, so we define the
@@ -1934,16 +1948,12 @@ pub mod pallet {
 		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
 
-			if new == MigrationStage::Starting {
+			if matches!(new, MigrationStage::WaitingForAh { .. }) {
 				defensive_assert!(
-					matches!(
-						old,
-						MigrationStage::WaitingForAh { .. } |
-							MigrationStage::Scheduled { .. } |
-							MigrationStage::CoolOff { .. }
-					),
-					"Data migration can only enter from WaitingForAh or Scheduled"
+					matches!(old, MigrationStage::Scheduled { .. }),
+					"Data migration can only enter from Scheduled"
 				);
+				MigrationStartBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 				Self::deposit_event(Event::AssetHubMigrationStarted);
 			}
 
@@ -1952,6 +1962,7 @@ pub mod pallet {
 					old == MigrationStage::SignalMigrationFinish,
 					"MigrationDone can only enter from SignalMigrationFinish"
 				);
+				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 				Self::deposit_event(Event::AssetHubMigrationFinished);
 			}
 
