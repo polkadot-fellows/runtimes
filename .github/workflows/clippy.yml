@@ -37,12 +37,6 @@ jobs:
           shared-key: "fellowship-cache-clippy"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Debug CI
-        run: |
-          git diff --exit-code  
-          cargo fetch
-          git diff --exit-code
-
       - name: Clippy
         run: |
           cargo clippy --version
