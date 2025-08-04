@@ -447,7 +447,7 @@ pub mod pallet {
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
-		+ pallet_fast_unstake::Config
+		+ pallet_fast_unstake::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
 		+ pallet_vesting::Config
