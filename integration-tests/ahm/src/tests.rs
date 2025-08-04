@@ -71,6 +71,7 @@ use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
 use std::{
 	collections::{BTreeMap, BTreeSet, VecDeque},
+	path::PathBuf,
 	str::FromStr,
 };
 use xcm::latest::*;
@@ -691,6 +692,18 @@ async fn migration_works_time() {
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+
+	// Check for OUT_SNAP_DIR and store it there
+	if let Ok(out_dir) = std::env::var("OUT_SNAP_DIR") {
+		let dir = PathBuf::from(out_dir);
+		if !dir.exists() {
+			std::fs::create_dir_all(&dir).unwrap();
+		}
+		println!("Storing snapshots to {dir:?}");
+
+		store_externalities(rc, Chain::Relay, dir.clone());
+		store_externalities(ah, Chain::AssetHub, dir);
+	}
 }
 
 #[tokio::test]

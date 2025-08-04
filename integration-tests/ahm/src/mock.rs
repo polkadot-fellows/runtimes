@@ -15,7 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent};
-use codec::Decode;
+use codec::{Compact, Decode, Encode};
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
@@ -36,7 +36,7 @@ use runtime_parachains::{
 };
 use sp_io::TestExternalities;
 use sp_runtime::{BoundedVec, Perbill};
-use std::str::FromStr;
+use std::{io::Write, path::PathBuf, str::FromStr};
 use tokio::sync::OnceCell;
 use xcm::prelude::*;
 
@@ -116,6 +116,37 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 	);
 
 	Some(ext)
+}
+
+pub fn store_externalities(ext: TestExternalities, chain: Chain, dir: PathBuf) {
+	let name = match chain {
+		Chain::Relay => "polkadot-post.snap",
+		Chain::AssetHub => "ah-polkadot-post.snap",
+	};
+	let path = dir.join(name);
+
+	// File writer to write our snapshot
+	let mut file = std::fs::File::create(&path).unwrap();
+	let mut writer = std::io::BufWriter::new(file);
+
+	// Snapshot version 4
+	Compact(4u16).using_encoded(|v| writer.write_all(v).unwrap());
+
+	// State version 1
+	writer.write_all(&[0x01]).unwrap();
+
+	let kv_pairs = ext.into_raw_snapshot().0;
+
+	// Num of KV pairs
+	Compact(kv_pairs.len() as u32).using_encoded(|v| writer.write_all(v).unwrap());
+
+	// KV pairs
+	for pair in kv_pairs {
+		pair.using_encoded(|v| writer.write_all(v).unwrap());
+	}
+
+	writer.flush().unwrap();
+	println!("Stored {chain} snapshot to {}", path.display());
 }
 
 pub fn next_block_rc() {
