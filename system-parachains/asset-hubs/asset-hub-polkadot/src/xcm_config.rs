@@ -513,7 +513,8 @@ pub type XcmRouter = WithUniqueTopic<(
 	ToKusamaXcmRouter,
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
 	// GlobalConsensus
-	// TODO(#837): remove and use vanilla UnpaidRemoteExporter for 2506-1 or newer, or 2507 or newer
+	// TODO(#837): remove and use vanilla UnpaidRemoteExporter for 2506-1 or newer, or 2507 or
+	// newer
 	bridging::to_ethereum::InspectMessageWrapper<
 		UnpaidRemoteExporter<
 			bridging::to_ethereum::EthereumNetworkExportTable,
@@ -770,7 +771,8 @@ pub mod bridging {
 			}
 		}
 
-		// TODO(#837): remove and use vanilla UnpaidRemoteExporter for 2506-1 or newer, or 2507 or newer
+		// TODO(#837): remove and use vanilla UnpaidRemoteExporter for 2506-1 or newer, or 2507 or
+		// newer
 		pub struct InspectMessageWrapper<Inner>(PhantomData<Inner>);
 		impl<Inner: SendXcm> SendXcm for InspectMessageWrapper<Inner> {
 			type Ticket = Inner::Ticket;
