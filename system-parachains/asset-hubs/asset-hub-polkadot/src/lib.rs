@@ -532,14 +532,14 @@ pub enum ProxyType {
 	///
 	/// Contains the `NominationPools` and `Utility` pallets.
 	NominationPools,
-	/// Placeholder variant for old migrated `Auction` proxy type from the Relay chain.
+	/// To be used with the remote proxy pallet to manage parachain lease auctions on the relay.
 	///
-	/// Cannot do anything.
-	OldAuction,
-	/// Placeholder variant for old migrated `ParaRegistration` proxy type from the Relay chain.
+	/// This variant cannot do anything on Asset Hub itself.
+	Auction,
+	/// To be used with the remote proxy pallet to manage parachain registration on the relay.
 	///
-	/// Cannot do anything.
-	OldParaRegistration,
+	/// This variant cannot do anything on Asset Hub itself.
+	ParaRegistration,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -551,7 +551,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::OldAuction | ProxyType::OldParaRegistration => false,
+			ProxyType::Auction | ProxyType::ParaRegistration => false,
 			ProxyType::NonTransfer => !matches!(
 				c,
 				RuntimeCall::Balances { .. } |
