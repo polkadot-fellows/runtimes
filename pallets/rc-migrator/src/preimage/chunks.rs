@@ -218,17 +218,62 @@ impl<T: Config> PreimageChunkMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
+pub mod preimage_tests {
+	use super::*;
+	use std::collections::BTreeSet;
+
+	// Returns the preimages that are unrequested during migration and therefore deleted.
+	pub fn get_unrequested_preimage_hashes<T: Config>() -> BTreeSet<H256> {
+		let mut candidate_preimage_hashes = Vec::new();
+		// Ongoing referenda are unrequested once during migration (count is decremented by 1).
+		for (_, referendum_info) in pallet_referenda::ReferendumInfoFor::<T>::iter() {
+			if let pallet_referenda::ReferendumInfo::Ongoing(status) = referendum_info {
+				let Some(hash) = status.proposal.lookup_hash() else { continue };
+				candidate_preimage_hashes.push(hash);
+			}
+		}
+		// Scheduled tasks call are unrequested once during migration (count is decremented by 1).
+		for (_, agenda) in pallet_scheduler::Agenda::<T>::iter() {
+			for maybe_schedule in agenda {
+				if let Some(schedule) = maybe_schedule {
+					let Some(hash) = schedule.call.lookup_hash() else { continue };
+					candidate_preimage_hashes.push(hash);
+				}
+			}
+		}
+		let mut unrequested_preimage_hashes: BTreeSet<H256> = BTreeSet::new();
+		// Only pick preimages with count == 1, which will be therefore deleted as a consequence of
+		// being unrequested during migration.
+		for hash in candidate_preimage_hashes {
+			let Some(alias::RequestStatus::Requested { count, .. }) =
+				alias::RequestStatusFor::<T>::get(hash)
+			else {
+				continue
+			};
+			// Missing preimage hash is skipped.
+			if !alias::PreimageFor::<T>::iter_keys().any(|(key_hash, _)| key_hash == hash) {
+				continue;
+			}
+			if count == 1 {
+				unrequested_preimage_hashes.insert(hash);
+			}
+		}
+		unrequested_preimage_hashes
+	}
+}
+
+#[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 	type RcPrePayload = Vec<(H256, u32)>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		let all_keys = alias::PreimageFor::<T>::iter_keys().count();
-		let good_keys = alias::PreimageFor::<T>::iter_keys()
-			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
-			.count();
-		log::info!("Migrating {} keys out of {}", good_keys, all_keys);
+		let unrequested_preimage_hashes = preimage_tests::get_unrequested_preimage_hashes::<T>();
 		alias::PreimageFor::<T>::iter_keys()
-			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
+			.filter(|(hash, _)| {
+				alias::RequestStatusFor::<T>::contains_key(hash) &&
+					!unrequested_preimage_hashes.contains(hash)
+			})
 			.collect()
 	}
 

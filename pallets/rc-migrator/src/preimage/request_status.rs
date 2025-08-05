@@ -127,24 +127,28 @@ impl<T: Config> PreimageRequestStatusMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
+	// Migrated preimage hashes and their request statuses as booleans.
+	// We remove preimages that are deleted or unrequested during the migration.
 	type RcPrePayload = Vec<(H256, bool)>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		alias::RequestStatusFor::<T>::iter()
-			.filter(|(hash, _)| {
-				alias::PreimageFor::<T>::iter_keys().any(|(key_hash, _)| key_hash == *hash)
-			})
-			.map(|(hash, request_status)| {
-				(
-					hash,
-					match request_status {
-						alias::RequestStatus::Requested { .. } => true,
-						_ => false,
-					},
-				)
-			})
-			.collect()
+		let preimage_hashes =
+			alias::PreimageFor::<T>::iter_keys().map(|(hash, _)| hash).collect::<Vec<_>>();
+		// We remove preimages that are unrequested and therefore deleted during migration.
+		let unrequested_preimages = chunks::preimage_tests::get_unrequested_preimage_hashes::<T>();
+		let mut migrated_request_statuses: Vec<(H256, bool)> = Vec::new();
+		for (hash, request_status) in alias::RequestStatusFor::<T>::iter() {
+			if preimage_hashes.contains(&hash) && !unrequested_preimages.contains(&hash) {
+				let requested = match request_status {
+					alias::RequestStatus::Requested { .. } => true,
+					alias::RequestStatus::Unrequested { .. } => false,
+				};
+				migrated_request_statuses.push((hash, requested));
+			}
+		}
+		migrated_request_statuses
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
