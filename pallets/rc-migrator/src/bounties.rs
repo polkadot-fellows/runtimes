@@ -97,8 +97,13 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
 				break;
 			}
 
@@ -190,7 +195,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 pub mod alias {
 	use super::*;
-	use pallet_bounties::BountyStatus;
+	pub use pallet_bounties::BountyStatus;
 
 	/// Alias of [pallet_bounties::BalanceOf].
 	pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;

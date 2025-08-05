@@ -97,7 +97,7 @@ use pallet_rc_migrator::{
 	preimage::*,
 	proxy::*,
 	staking::{
-		bags_list::RcBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
+		bags_list::PortableBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
 		fast_unstake::PortableFastUnstakeMessage, nom_pools::*,
 	},
 	types::MigrationFinishedData,
@@ -258,7 +258,7 @@ pub mod pallet {
 		> + pallet_nomination_pools::Config<
 			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
 		> + pallet_fast_unstake::Config<Currency = pallet_balances::Pallet<Self>>
-		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
@@ -269,8 +269,10 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_child_bounties::Config
-		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
-		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_treasury::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
 		type RuntimeHoldReason: Parameter
@@ -311,6 +313,12 @@ pub mod pallet {
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+		/// Block number provider of the treasury pallet.
+		///
+		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
+		/// code since they all depend on the treasury provided block number. The compiler checks
+		/// that this is configured correctly.
+		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 		/// Some part of the Relay Chain origins used in Governance.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
@@ -409,6 +417,20 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
+	/// The block number at which the migration began and the pallet's extrinsics were locked.
+	///
+	/// This value is set when entering the `WaitingForAh` stage, i.e., when
+	/// `RcMigrationStage::is_ongoing()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationStartBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
+	/// Block number when migration finished and extrinsics were unlocked.
+	///
+	/// This is set when entering the `MigrationDone` stage hence when
+	/// `RcMigrationStage::is_finished()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationEndBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Failed to unreserve deposit.
@@ -443,6 +465,8 @@ pub mod pallet {
 		PreimageTooBig,
 		/// Preimage chunk missing.
 		PreimageChunkMissing,
+		/// Preimage status invalid.
+		PreimageStatusInvalid,
 	}
 
 	#[pallet::event]
@@ -629,7 +653,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_preimage_request_status(request_status.len() as u32))]
 		pub fn receive_preimage_request_status(
 			origin: OriginFor<T>,
-			request_status: Vec<RcPreimageRequestStatusOf<T>>,
+			request_status: Vec<PortableRequestStatus>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -757,7 +781,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_bags_list_messages(messages.len() as u32))]
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcBagsListMessage<T>>,
+			messages: Vec<PortableBagsListMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -900,9 +924,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(25)]
-		#[pallet::weight(
-			T::DbWeight::get().reads_writes(3, 3).saturating_add(Weight::from_parts(10_000_000, 200)).saturating_mul(messages.len() as u64)
-		)] // TODO @ggwpez weight
+		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))]
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
 			messages: Vec<PortableStakingMessage>,
@@ -1092,6 +1114,7 @@ pub mod pallet {
 					old == MigrationStage::Pending,
 					"Data migration can only enter from Pending"
 				);
+				MigrationStartBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 				Self::deposit_event(Event::AssetHubMigrationStarted);
 			}
 			if new == MigrationStage::MigrationDone {
@@ -1099,6 +1122,7 @@ pub mod pallet {
 					old == MigrationStage::DataMigrationOngoing,
 					"MigrationDone can only enter from DataMigrationOngoing"
 				);
+				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 				Self::deposit_event(Event::AssetHubMigrationFinished);
 			}
 

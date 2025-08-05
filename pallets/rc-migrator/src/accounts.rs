@@ -277,6 +277,15 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break;
+			}
+
 			let Some((who, account_info)) = iter.next() else {
 				maybe_last_key = None;
 				break;

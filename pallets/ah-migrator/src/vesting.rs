@@ -24,7 +24,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_vesting_schedules(
 		messages: Vec<RcVestingSchedule<T>>,
 	) -> Result<(), Error<T>> {
-		alias::StorageVersion::<T>::put(alias::Releases::V1);
+		pallet_vesting::StorageVersion::<T>::put(pallet_vesting::Releases::V1);
 		log::info!(target: LOG_TARGET, "Integrating {} vesting schedules", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::Vesting,
@@ -76,23 +76,6 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-pub mod alias {
-	use super::*;
-
-	#[frame_support::storage_alias(pallet_name)]
-	pub type StorageVersion<T: pallet_vesting::Config> =
-		StorageValue<pallet_vesting::Pallet<T>, Releases, ValueQuery>;
-
-	#[derive(
-		Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, Default, TypeInfo,
-	)]
-	pub enum Releases {
-		#[default]
-		V0,
-		V1,
-	}
-}
-
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 	type RcPrePayload =
@@ -104,8 +87,8 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 		let vesting_schedules: Vec<_> = pallet_vesting::Vesting::<T>::iter().collect();
 		assert!(vesting_schedules.is_empty(), "Assert storage 'Vesting::Vesting::ah_pre::empty'");
 		assert_eq!(
-			alias::StorageVersion::<T>::get(),
-			alias::Releases::V0,
+			pallet_vesting::StorageVersion::<T>::get(),
+			pallet_vesting::Releases::V0,
 			"Vesting::StorageVersion::ah_post::empty"
 		)
 	}
@@ -162,6 +145,6 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 
 		// Assert storage "Vesting::StorageVersion::ah_post::correct"
 		// Assert storage "Vesting::StorageVersion::ah_post::consistent"
-		assert_eq!(alias::StorageVersion::<T>::get(), alias::Releases::V1, "Vesting StorageVersion mismatch: Asset Hub schedules differ from original Relay Chain schedules")
+		assert_eq!(pallet_vesting::StorageVersion::<T>::get(), pallet_vesting::Releases::V1, "Vesting StorageVersion mismatch: Asset Hub schedules differ from original Relay Chain schedules")
 	}
 }
