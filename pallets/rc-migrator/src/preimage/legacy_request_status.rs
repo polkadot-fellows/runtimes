@@ -82,6 +82,15 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break next_key;
+			}
+
 			let next_key_inner = match next_key {
 				Some(key) => key,
 				None => {
