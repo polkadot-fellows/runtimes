@@ -195,7 +195,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 pub mod alias {
 	use super::*;
-	use pallet_bounties::BountyStatus;
+	pub use pallet_bounties::BountyStatus;
 
 	/// Alias of [pallet_bounties::BalanceOf].
 	pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
