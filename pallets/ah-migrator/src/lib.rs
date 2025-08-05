@@ -83,7 +83,7 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
-	treasury::RcTreasuryMessage, types::MigrationStatus,
+	treasury::PortableTreasuryMessage, types::MigrationStatus,
 };
 
 use cumulus_primitives_core::AggregateMessageOrigin;
@@ -126,7 +126,7 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::PortableHoldReason,
 	<T as Config>::PortableFreezeReason,
 >;
-pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
+pub type RcTreasuryMessageOf<T> = PortableTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
 	pallet_treasury::AssetBalanceOf<T, ()>,

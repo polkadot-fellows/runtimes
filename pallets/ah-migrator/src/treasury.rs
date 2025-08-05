@@ -16,12 +16,12 @@
 
 use crate::*;
 use pallet_rc_migrator::treasury::{
-	alias as treasury_alias, RcSpendStatus, RcSpendStatusOf, TreasuryMigrator,
+	PortableTreasuryMessage, TreasuryMigrator,
 };
 use pallet_treasury::{ProposalIndex, SpendIndex};
 
 impl<T: Config> Pallet<T> {
-	pub fn do_receive_treasury_messages(messages: Vec<RcTreasuryMessageOf<T>>) -> DispatchResult {
+	pub fn do_receive_treasury_messages(messages: Vec<PortableTreasuryMessage>) -> DispatchResult {
 		log::info!(target: LOG_TARGET, "Processing {} treasury messages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::Treasury,
@@ -50,10 +50,10 @@ impl<T: Config> Pallet<T> {
 		log::debug!(target: LOG_TARGET, "Processing treasury message: {:?}", message);
 
 		match message {
-			RcTreasuryMessage::ProposalCount(proposal_count) => {
+			PortableTreasuryMessage::ProposalCount(proposal_count) => {
 				pallet_treasury::ProposalCount::<T>::put(proposal_count);
 			},
-			RcTreasuryMessage::Proposals((proposal_index, proposal)) => {
+			PortableTreasuryMessage::Proposals((proposal_index, proposal)) => {
 				let translated_proposal = pallet_treasury::Proposal {
 					proposer: Self::translate_account_rc_to_ah(proposal.proposer),
 					value: proposal.value,
@@ -62,14 +62,14 @@ impl<T: Config> Pallet<T> {
 				};
 				pallet_treasury::Proposals::<T>::insert(proposal_index, translated_proposal);
 			},
-			RcTreasuryMessage::Approvals(approvals) => {
+			PortableTreasuryMessage::Approvals(approvals) => {
 				let approvals = BoundedVec::<_, <T as pallet_treasury::Config>::MaxApprovals>::defensive_truncate_from(approvals);
 				pallet_treasury::Approvals::<T>::put(approvals);
 			},
-			RcTreasuryMessage::SpendCount(spend_count) => {
+			PortableTreasuryMessage::SpendCount(spend_count) => {
 				treasury_alias::SpendCount::<T>::put(spend_count);
 			},
-			RcTreasuryMessage::Spends { id: spend_index, status: spend } => {
+			PortableTreasuryMessage::Spends { id: spend_index, status: spend } => {
 				let treasury_alias::SpendStatus {
 					asset_kind,
 					amount,
@@ -110,10 +110,10 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {:?}", spend);
 				treasury_alias::Spends::<T>::insert(spend_index, spend);
 			},
-			RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
+			PortableTreasuryMessage::LastSpendPeriod(last_spend_period) => {
 				pallet_treasury::LastSpendPeriod::<T>::set(last_spend_period);
 			},
-			RcTreasuryMessage::Funds => {
+			PortableTreasuryMessage::Funds => {
 				Self::migrate_treasury_funds();
 			},
 		}

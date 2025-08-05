@@ -16,6 +16,7 @@
 
 use crate::*;
 use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
+use polkadot_runtime_common::impls::VersionedLocatableAsset;
 
 /// Stage of the scheduler pallet migration.
 #[derive(
@@ -46,38 +47,18 @@ pub enum TreasuryStage {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, DecodeWithMemTracking, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
-pub enum RcTreasuryMessage<
-	AccountId,
-	Balance,
-	AssetBalance,
-	BlockNumber,
-	AssetKind,
-	Beneficiary,
-	PaymentId,
-	TreasuryBlockNumber,
-> {
+pub enum PortableTreasuryMessage {
 	ProposalCount(ProposalIndex),
-	Proposals((ProposalIndex, Proposal<AccountId, Balance>)),
+	Proposals((ProposalIndex, Proposal<AccountId32, u128>)),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
 	Spends {
 		id: SpendIndex,
-		status: alias::SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId>,
+		status: PortableSpendStatus,
 	},
-	LastSpendPeriod(Option<TreasuryBlockNumber>),
+	LastSpendPeriod(Option<u32>),
 	Funds,
 }
-use sp_runtime::traits::BlockNumberProvider;
-pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
-	<T as frame_system::Config>::AccountId,
-	pallet_treasury::BalanceOf<T, ()>,
-	pallet_treasury::AssetBalanceOf<T, ()>,
-	BlockNumberFor<T>,
-	<T as pallet_treasury::Config>::AssetKind,
-	<T as pallet_treasury::Config>::Beneficiary,
-	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
-	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber,
->;
 
 pub struct TreasuryMigrator<T> {
 	_phantom: PhantomData<T>,
@@ -129,7 +110,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				TreasuryStage::ProposalCount => {
 					if pallet_treasury::ProposalCount::<T>::exists() {
 						let count = pallet_treasury::ProposalCount::<T>::take();
-						messages.push(RcTreasuryMessage::ProposalCount(count));
+						messages.push(PortableTreasuryMessage::ProposalCount(count));
 					}
 					TreasuryStage::Proposals(None)
 				},
@@ -142,7 +123,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					match iter.next() {
 						Some((key, value)) => {
 							pallet_treasury::Proposals::<T>::remove(&key);
-							messages.push(RcTreasuryMessage::Proposals((key, value)));
+							messages.push(PortableTreasuryMessage::Proposals((key, value)));
 							TreasuryStage::Proposals(Some(key))
 						},
 						None => TreasuryStage::Approvals,
@@ -151,27 +132,27 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				TreasuryStage::Approvals => {
 					if pallet_treasury::Approvals::<T>::exists() {
 						let approvals = pallet_treasury::Approvals::<T>::take();
-						messages.push(RcTreasuryMessage::Approvals(approvals.into_inner()));
+						messages.push(PortableTreasuryMessage::Approvals(approvals.into_inner()));
 					}
 					TreasuryStage::SpendCount
 				},
 				TreasuryStage::SpendCount => {
-					if alias::SpendCount::<T>::exists() {
-						let count = alias::SpendCount::<T>::take();
-						messages.push(RcTreasuryMessage::SpendCount(count));
+					if pallet_treasury::SpendCount::<T>::exists() {
+						let count = pallet_treasury::SpendCount::<T>::take();
+						messages.push(PortableTreasuryMessage::SpendCount(count));
 					}
 					TreasuryStage::Spends(None)
 				},
 				TreasuryStage::Spends(last_key) => {
 					let mut iter = if let Some(last_key) = last_key {
-						alias::Spends::<T>::iter_from_key(last_key)
+						pallet_treasury::Spends::<T>::iter_from_key(last_key)
 					} else {
-						alias::Spends::<T>::iter()
+						pallet_treasury::Spends::<T>::iter()
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							alias::Spends::<T>::remove(&key);
-							messages.push(RcTreasuryMessage::Spends { id: key, status: value });
+							pallet_treasury::Spends::<T>::remove(&key);
+							messages.push(PortableTreasuryMessage::Spends { id: key, status: value.into_portable() });
 							TreasuryStage::Spends(Some(key))
 						},
 						None => TreasuryStage::LastSpendPeriod,
@@ -180,12 +161,12 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				TreasuryStage::LastSpendPeriod => {
 					if pallet_treasury::LastSpendPeriod::<T>::exists() {
 						let last_spend_period = pallet_treasury::LastSpendPeriod::<T>::take();
-						messages.push(RcTreasuryMessage::LastSpendPeriod(last_spend_period));
+						messages.push(PortableTreasuryMessage::LastSpendPeriod(last_spend_period));
 					}
 					TreasuryStage::Funds
 				},
 				TreasuryStage::Funds => {
-					messages.push(RcTreasuryMessage::Funds);
+					messages.push(PortableTreasuryMessage::Funds);
 					TreasuryStage::Finished
 				},
 				TreasuryStage::Finished => {
@@ -208,84 +189,55 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 	}
 }
 
-pub mod alias {
-	use super::*;
+#[derive(Clone, PartialEq, Eq, Debug, Encode, DecodeWithMemTracking, Decode, TypeInfo, MaxEncodedLen)]
+pub struct PortableSpendStatus {
+	pub amount: u128,
+	pub valid_from: u32,
+	pub expire_at: u32,
+	pub status: PortablePaymentState,
+}
 
-	/// Alias for private item [`pallet_treasury::SpendCount`].
-	///
-	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L335
-	#[frame_support::storage_alias(pallet_name)]
-	pub type SpendCount<T: pallet_treasury::Config> =
-		StorageValue<pallet_treasury::Pallet<T>, SpendIndex, ValueQuery>;
+impl IntoPortable for pallet_treasury::SpendStatus<VersionedLocatableAsset, u128, VersionedLocation, u32, u64> {
+	type Portable = PortableSpendStatus;
 
-	/// Spends that have been approved and being processed.
-	///
-	/// Copy of [`pallet_treasury::Spends`].
-	///
-	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L340
-	#[frame_support::storage_alias(pallet_name)]
-	pub type Spends<T: pallet_treasury::Config> = StorageMap<
-		pallet_treasury::Pallet<T>,
-		Twox64Concat,
-		pallet_treasury::SpendIndex,
-		SpendStatus<
-			<T as pallet_treasury::Config>::AssetKind,
-			pallet_treasury::AssetBalanceOf<T, ()>,
-			<T as pallet_treasury::Config>::Beneficiary,
-			BlockNumberFor<T>,
-			<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
-		>,
-		OptionQuery,
-	>;
-
-	/// Info regarding an approved treasury spend.
-	///
-	/// Copy of [`pallet_treasury::SpendStatus`].
-	///
-	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L181
-	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-	#[derive(
-		Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo,
-	)]
-	pub struct SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId> {
-		// The kind of asset to be spent.
-		pub asset_kind: AssetKind,
-		/// The asset amount of the spend.
-		pub amount: AssetBalance,
-		/// The beneficiary of the spend.
-		pub beneficiary: Beneficiary,
-		/// The block number from which the spend can be claimed.
-		pub valid_from: BlockNumber,
-		/// The block number by which the spend has to be claimed.
-		pub expire_at: BlockNumber,
-		/// The status of the payout/claim.
-		pub status: pallet_treasury::PaymentState<PaymentId>,
+	fn into_portable(self) -> Self::Portable {
+		PortableSpendStatus {
+			amount: self.amount,
+			valid_from: self.valid_from,
+			expire_at: self.expire_at,
+			status: self.status.into_portable(),
+		}
 	}
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct RcSpendStatus<AssetBalance, BlockNumber, PaymentId> {
-	pub amount: AssetBalance,
-	pub valid_from: BlockNumber,
-	pub expire_at: BlockNumber,
-	pub status: PaymentId,
+#[derive(Clone, PartialEq, Eq, Debug, Encode, DecodeWithMemTracking, Decode, TypeInfo, MaxEncodedLen)]
+pub enum PortablePaymentState {
+	Pending,
+	Attempted { id: u64 },
+	Failed,
 }
 
-pub type RcSpendStatusOf<T> = RcSpendStatus<
-	pallet_treasury::AssetBalanceOf<T, ()>,
-	BlockNumberFor<T>,
-	pallet_treasury::PaymentState<<<T as pallet_treasury::Config>::Paymaster as Pay>::Id>,
->;
+impl IntoPortable for pallet_treasury::PaymentState<u64> {
+	type Portable = PortablePaymentState;
+
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			pallet_treasury::PaymentState::Pending => PortablePaymentState::Pending,
+			pallet_treasury::PaymentState::Attempted { id } => PortablePaymentState::Attempted { id },
+			pallet_treasury::PaymentState::Failed => PortablePaymentState::Failed,
+		}
+	}
+}
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 	// (proposals with data, historical proposals count, approvals ids, spends, historical spends
 	// count)
 	type RcPrePayload = (
-		Vec<(ProposalIndex, Proposal<T::AccountId, pallet_treasury::BalanceOf<T, ()>>)>,
+		Vec<(ProposalIndex, Proposal<AccountId32, u128>)>,
 		u32,
 		Vec<ProposalIndex>,
-		Vec<(SpendIndex, RcSpendStatusOf<T>)>,
+		Vec<(SpendIndex, PortableSpendStatus)>,
 		u32,
 	);
 
@@ -294,20 +246,20 @@ impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 		let proposals = pallet_treasury::Proposals::<T>::iter().collect::<Vec<_>>();
 		let proposals_count = pallet_treasury::ProposalCount::<T>::get();
 		let approvals = pallet_treasury::Approvals::<T>::get().into_inner();
-		let spends = alias::Spends::<T>::iter()
+		let spends = pallet_treasury::Spends::<T>::iter()
 			.map(|(spend_id, spend_status)| {
 				(
 					spend_id,
-					RcSpendStatus {
+					PortableSpendStatus {
 						amount: spend_status.amount,
 						valid_from: spend_status.valid_from,
 						expire_at: spend_status.expire_at,
-						status: spend_status.status,
+						status: spend_status.status.into_portable(),
 					},
 				)
 			})
 			.collect::<Vec<_>>();
-		let spends_count = alias::SpendCount::<T>::get();
+		let spends_count = pallet_treasury::SpendCount::<T>::get();
 		(proposals, proposals_count, approvals, spends, spends_count)
 	}
 
@@ -333,14 +285,14 @@ impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 
 		// Assert storage 'Treasury::SpendCount::rc_post::empty'
 		assert_eq!(
-			alias::SpendCount::<T>::get(),
+			pallet_treasury::SpendCount::<T>::get(),
 			0,
 			"SpendCount should be 0 on relay chain after migration"
 		);
 
 		// Assert storage 'Treasury::Spends::rc_post::empty'
 		assert!(
-			alias::Spends::<T>::iter().next().is_none(),
+			pallet_treasury::Spends::<T>::iter().next().is_none(),
 			"Spends should be empty on relay chain after migration"
 		);
 	}

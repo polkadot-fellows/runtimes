@@ -46,7 +46,7 @@ use pallet_rc_migrator::{
 		message::PortableUnappliedSlash,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
-	treasury::{alias::SpendStatus, RcTreasuryMessage},
+	treasury::{alias::SpendStatus, PortableTreasuryMessage},
 	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
@@ -724,7 +724,7 @@ pub mod benchmarks {
 	#[benchmark]
 	fn receive_treasury_messages(n: Linear<1, 255>) {
 		let create_treasury = |n: u8| -> RcTreasuryMessageOf<T> {
-			RcTreasuryMessage::Spends {
+			PortableTreasuryMessage::Spends {
 				id: n.into(),
 				status: SpendStatus {
 					asset_kind: VersionedLocatableAsset::V4 {
