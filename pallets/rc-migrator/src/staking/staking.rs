@@ -93,6 +93,17 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				}
 			}
 
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_staking_messages((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+
 			if messages.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
