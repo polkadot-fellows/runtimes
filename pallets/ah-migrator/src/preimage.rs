@@ -288,8 +288,8 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 		}
 
 		let new_preimages = alias::PreimageFor::<T>::iter_keys().count();
-		// Pallet scheduler currently unrequests and deletes preimage with hash
-		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
+		// Some preimages may have been deleted as a side effect of being unrequested during
+		// migration.
 		if new_preimages != rc_pre_payload.len() {
 			log::warn!(
 				"Preimage::PreimageFor and relay chain payload have different size: {} vs {}",
