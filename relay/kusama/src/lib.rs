@@ -666,12 +666,15 @@ parameter_types! {
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
-	type MaxAutoRebagPerBlock = ConstU32<0>;
 	type RuntimeEvent = RuntimeEvent;
 	type ScoreProvider = Staking;
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MaxAutoRebagPerBlock = ConstU32<5>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 #[derive(
