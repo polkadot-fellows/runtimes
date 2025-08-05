@@ -557,7 +557,7 @@ parameter_types! {
 	pub const MaxActiveValidators: u32 = 2000;
 	// One page only, fill the whole page with the `MaxActiveValidators`.
 	pub const MaxWinnersPerPage: u32 = MaxActiveValidators::get();
-	// Unbonded, thus the max backers per winner maps to the max electing voters limit.
+	// Unbounded, thus the max backers per winner maps to the max electing voters limit.
 	pub const MaxBackersPerWinner: u32 = MaxElectingVoters::get();
 }
 
