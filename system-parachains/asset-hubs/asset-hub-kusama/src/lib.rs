@@ -1038,7 +1038,8 @@ impl pallet_revive::Config for Runtime {
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
-	type WeightInfo = weights::pallet_revive::WeightInfo<Self>;
+	// TODO(#840): use `weights::pallet_revive::WeightInfo` here
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
 	type Precompiles = (
 		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
 		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
@@ -1275,7 +1276,8 @@ mod benches {
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
 		[pallet_remote_proxy, RemoteProxyRelayChain]
-		[pallet_revive, Revive]
+		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
+		// [pallet_revive, Revive]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
