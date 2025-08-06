@@ -17,7 +17,7 @@
 use crate::*;
 use pallet_rc_migrator::{
 	treasury::{PortableSpendStatus, PortableTreasuryMessage, TreasuryMigrator},
-	types::{IntoPortable, SortByEncoded},
+	types::SortByEncoded,
 };
 use pallet_treasury::{ProposalIndex, SpendIndex};
 
@@ -273,7 +273,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 	}
 
 	fn post_check(
-		(proposals, proposals_count, approvals, mut spends, spends_count): Self::RcPrePayload,
+		(proposals, proposals_count, approvals, rc_spends, spends_count): Self::RcPrePayload,
 		_: Self::AhPrePayload,
 	) {
 		// Assert storage 'Treasury::ProposalCount::ah_post::correct'
@@ -345,37 +345,41 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		// Assert storage 'Treasury::SpendCount::ah_post::length'
 		assert_eq!(
 			pallet_treasury::Spends::<T>::iter_keys().count() as u32,
-			spends.len() as u32,
+			rc_spends.len() as u32,
 			"Number of active spends on Asset Hub should match Relay Chain value"
 		);
 
 		// Assert storage 'Treasury::Spends::ah_post::consistent'
-		let mut ah_spends = Vec::new();
-		for (spend_id, spend) in pallet_treasury::Spends::<T>::iter() {
-			let untranslated_beneficiary = match spend.beneficiary {
-				VersionedLocatableAccount::V4 { location, account_id } => account_id,
-				_ => unreachable!(),
-			};
+		let mut ah_spends = pallet_treasury::Spends::<T>::iter().collect::<Vec<_>>();
 
-			ah_spends.push((
+		let mut untranslated_rc_spends = Vec::new();
+		for (spend_id, spend) in rc_spends {
+			let translated_beneficiary =
+				crate::Pallet::<T>::translate_beneficiary_location(spend.beneficiary).unwrap();
+
+			let (asset_kind, beneficiary) =
+				T::RcToAhTreasurySpend::convert((spend.asset_kind, translated_beneficiary))
+					.unwrap();
+
+			untranslated_rc_spends.push((
 				spend_id,
-				PortableSpendStatus {
-					asset_kind: spend.asset_kind,
+				pallet_treasury::SpendStatus {
+					asset_kind,
 					amount: spend.amount,
-					beneficiary: VersionedLocation::V4(untranslated_beneficiary),
+					beneficiary,
 					valid_from: spend.valid_from,
 					expire_at: spend.expire_at,
-					status: spend.status.into_portable(),
+					status: spend.status.into(),
 				},
 			));
 		}
-		ah_spends.sort_by_encoded(); // VersionedLocatableAsset is not Ord
-		spends.sort_by_encoded();
+
+		ah_spends.sort_by_encoded();
+		untranslated_rc_spends.sort_by_encoded(); // VersionedLocatableAsset is not Ord
 
 		// Assert storage 'Treasury::Spends::ah_post::correct'
-		assert_eq!(
-			ah_spends, spends,
-			"Spends on Asset Hub should match migrated Spends from the relay chain"
-		);
+		for (rc_spend, ah_spend) in untranslated_rc_spends.iter().zip(ah_spends.iter()) {
+			assert_eq!(rc_spend, ah_spend);
+		}
 	}
 }
