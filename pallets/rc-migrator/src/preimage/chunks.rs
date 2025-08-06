@@ -252,13 +252,14 @@ pub mod preimage_tests {
 		// Only pick preimages with count == 1, which will be therefore deleted as a consequence of
 		// being unrequested during migration.
 		for hash in candidate_preimage_hashes {
-			let Some(alias::RequestStatus::Requested { count, .. }) =
-				alias::RequestStatusFor::<T>::get(hash)
+			let Some(pallet_preimage::RequestStatus::Requested { count, .. }) =
+				pallet_preimage::RequestStatusFor::<T>::get(hash)
 			else {
 				continue
 			};
 			// Missing preimage hash is skipped.
-			if !alias::PreimageFor::<T>::iter_keys().any(|(key_hash, _)| key_hash == hash) {
+			if !pallet_preimage::PreimageFor::<T>::iter_keys().any(|(key_hash, _)| key_hash == hash)
+			{
 				continue;
 			}
 			if count == 1 {
@@ -275,9 +276,9 @@ impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let unrequested_preimage_hashes = preimage_tests::get_unrequested_preimage_hashes::<T>();
-		alias::PreimageFor::<T>::iter_keys()
+		pallet_preimage::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| {
-				alias::RequestStatusFor::<T>::contains_key(hash) &&
+				pallet_preimage::RequestStatusFor::<T>::contains_key(hash) &&
 					!unrequested_preimage_hashes.contains(hash)
 			})
 			.collect()

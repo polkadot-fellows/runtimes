@@ -297,13 +297,13 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			);
 		}
 
-		let new_preimages = alias::PreimageFor::<T>::iter_keys().count();
+		let new_preimages_count = pallet_preimage::PreimageFor::<T>::iter_keys().count();
 		// Some preimages may have been deleted as a side effect of being unrequested during
 		// migration.
-		if new_preimages != rc_pre_payload.len() {
+		if new_preimages_count != rc_pre_payload.len() {
 			log::warn!(
 				"Preimage::PreimageFor and relay chain payload have different size: {} vs {}",
-				new_preimages,
+				new_preimages_count,
 				rc_pre_payload.len(),
 			);
 		}
@@ -312,7 +312,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 		// Assert storage "Preimage::PreimageFor::ah_post::correct"
 		for (hash, len) in rc_pre_payload.iter() {
 			assert!(
-				alias::PreimageFor::<T>::contains_key((hash, len)),
+				pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
 				"Relay chain Preimage::PreimageFor storage item with key {:?} {:?} is not found on Asset Hub",
 				hash,
 				len,
@@ -350,14 +350,14 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 		for (hash, requested) in rc_pre_payload.iter() {
 			// Assert storage "Preimage::RequestStatusFor::ah_post::correct"
 			assert!(
-				alias::RequestStatusFor::<T>::contains_key(hash),
+				pallet_preimage::RequestStatusFor::<T>::contains_key(hash),
 				"Relay chain Preimage::RequestStatusFor storage item with key {:?} is not found on Asset Hub",
 				hash
 			);
-			match alias::RequestStatusFor::<T>::get(hash).unwrap() {
-				alias::RequestStatus::Unrequested { len, .. } => {
+			match pallet_preimage::RequestStatusFor::<T>::get(hash).unwrap() {
+				pallet_preimage::RequestStatus::Unrequested { len, .. } => {
 					assert!(
-						alias::PreimageFor::<T>::contains_key((hash, len)),
+						pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
 						"Preimage::RequestStatusFor is missing preimage"
 					);
 					assert!(
@@ -366,9 +366,9 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 						hash
 					);
 				},
-				alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
+				pallet_preimage::RequestStatus::Requested { maybe_len: Some(len), .. } => {
 					assert!(
-						alias::PreimageFor::<T>::contains_key((hash, len)),
+						pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
 						"Preimage::RequestStatusFor is missing preimage"
 					);
 					assert!(
@@ -377,7 +377,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 						hash
 					);
 				},
-				alias::RequestStatus::Requested { .. } => {
+				pallet_preimage::RequestStatus::Requested { .. } => {
 					assert!(
 						requested,
 						"Preimage with hash {:?} should be unrequested on Asset Hub, but is requested instead",
