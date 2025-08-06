@@ -7979,6 +7979,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+ "system-parachains-common",
 ]
 
 [[package]]

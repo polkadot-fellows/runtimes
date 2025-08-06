@@ -29,6 +29,12 @@ parameter_types! {
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
+pub type TreasuryPaymaster = system_parachains_common::pay::LocalPay<
+	NativeAndAssets,
+	TreasuryAccount,
+	xcm_config::LocationToAccountId,
+>;
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
@@ -44,11 +50,7 @@ impl pallet_treasury::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocatableAccount;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type Paymaster = system_parachains_common::pay::LocalPay<
-		NativeAndAssets,
-		TreasuryAccount,
-		xcm_config::LocationToAccountId,
-	>;
+	type Paymaster = TreasuryPaymaster;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]

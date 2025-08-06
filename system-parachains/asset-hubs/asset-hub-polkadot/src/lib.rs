@@ -1185,6 +1185,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	>;
 	type Currency = Balances;
 	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type TreasuryPaymaster = treasury::TreasuryPaymaster;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
 	type RcProxyType = ah_migration::RcProxyType;

@@ -52,10 +52,7 @@ pub enum PortableTreasuryMessage {
 	Proposals((ProposalIndex, Proposal<AccountId32, u128>)),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
-	Spends {
-		id: SpendIndex,
-		status: PortableSpendStatus,
-	},
+	Spends { id: SpendIndex, status: PortableSpendStatus },
 	LastSpendPeriod(Option<u32>),
 	Funds,
 }
@@ -152,7 +149,10 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					match iter.next() {
 						Some((key, value)) => {
 							pallet_treasury::Spends::<T>::remove(&key);
-							messages.push(PortableTreasuryMessage::Spends { id: key, status: value.into_portable() });
+							messages.push(PortableTreasuryMessage::Spends {
+								id: key,
+								status: value.into_portable(),
+							});
 							TreasuryStage::Spends(Some(key))
 						},
 						None => TreasuryStage::LastSpendPeriod,
@@ -189,20 +189,29 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 	}
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Encode, DecodeWithMemTracking, Decode, TypeInfo, MaxEncodedLen)]
+#[derive(
+	Clone, PartialEq, Eq, Debug, Encode, DecodeWithMemTracking, Decode, TypeInfo, MaxEncodedLen,
+)]
 pub struct PortableSpendStatus {
+	pub asset_kind: VersionedLocatableAsset,
 	pub amount: u128,
+	pub beneficiary: VersionedLocation,
 	pub valid_from: u32,
 	pub expire_at: u32,
 	pub status: PortablePaymentState,
 }
 
-impl IntoPortable for pallet_treasury::SpendStatus<VersionedLocatableAsset, u128, VersionedLocation, u32, u64> {
+// RC -> Portable
+impl IntoPortable
+	for pallet_treasury::SpendStatus<VersionedLocatableAsset, u128, VersionedLocation, u32, u64>
+{
 	type Portable = PortableSpendStatus;
 
 	fn into_portable(self) -> Self::Portable {
 		PortableSpendStatus {
+			asset_kind: self.asset_kind,
 			amount: self.amount,
+			beneficiary: self.beneficiary,
 			valid_from: self.valid_from,
 			expire_at: self.expire_at,
 			status: self.status.into_portable(),
@@ -210,21 +219,55 @@ impl IntoPortable for pallet_treasury::SpendStatus<VersionedLocatableAsset, u128
 	}
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Encode, DecodeWithMemTracking, Decode, TypeInfo, MaxEncodedLen)]
+// Portable -> AH
+impl Into<pallet_treasury::SpendStatus<VersionedLocatableAsset, u128, VersionedLocation, u32, u64>>
+	for PortableSpendStatus
+{
+	fn into(
+		self,
+	) -> pallet_treasury::SpendStatus<VersionedLocatableAsset, u128, VersionedLocation, u32, u64> {
+		pallet_treasury::SpendStatus {
+			asset_kind: self.asset_kind,
+			amount: self.amount,
+			beneficiary: self.beneficiary,
+			valid_from: self.valid_from,
+			expire_at: self.expire_at,
+			status: self.status.into(),
+		}
+	}
+}
+
+#[derive(
+	Clone, PartialEq, Eq, Debug, Encode, DecodeWithMemTracking, Decode, TypeInfo, MaxEncodedLen,
+)]
 pub enum PortablePaymentState {
 	Pending,
 	Attempted { id: u64 },
 	Failed,
 }
 
+// RC -> Portable
 impl IntoPortable for pallet_treasury::PaymentState<u64> {
 	type Portable = PortablePaymentState;
 
 	fn into_portable(self) -> Self::Portable {
 		match self {
 			pallet_treasury::PaymentState::Pending => PortablePaymentState::Pending,
-			pallet_treasury::PaymentState::Attempted { id } => PortablePaymentState::Attempted { id },
+			pallet_treasury::PaymentState::Attempted { id } =>
+				PortablePaymentState::Attempted { id },
 			pallet_treasury::PaymentState::Failed => PortablePaymentState::Failed,
+		}
+	}
+}
+
+// Portable -> AH
+impl Into<pallet_treasury::PaymentState<u64>> for PortablePaymentState {
+	fn into(self) -> pallet_treasury::PaymentState<u64> {
+		match self {
+			PortablePaymentState::Pending => pallet_treasury::PaymentState::Pending,
+			PortablePaymentState::Attempted { id } =>
+				pallet_treasury::PaymentState::Attempted { id },
+			PortablePaymentState::Failed => pallet_treasury::PaymentState::Failed,
 		}
 	}
 }
@@ -251,7 +294,9 @@ impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 				(
 					spend_id,
 					PortableSpendStatus {
+						asset_kind: spend_status.asset_kind,
 						amount: spend_status.amount,
+						beneficiary: spend_status.beneficiary,
 						valid_from: spend_status.valid_from,
 						expire_at: spend_status.expire_at,
 						status: spend_status.status.into_portable(),

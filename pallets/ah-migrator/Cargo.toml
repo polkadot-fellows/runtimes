@@ -60,6 +60,7 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
+system-parachains-common = { workspace = true }
 
 # [dev-dependencies]
 # asset-hub-polkadot-runtime = { workspace = true, default-features = true }
