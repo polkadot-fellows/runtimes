@@ -45,7 +45,6 @@ impl RcMigrationCheck for MultisigStillWork {
 	fn pre_check() -> Self::RcPrePayload {
 		// We generate 100 multisigs consisting of between 1 and 10 signatories.
 		// Just use the first 1000 accs to make the generation a bit faster.
-		// TODO @ggwpez finish
 		let accounts = frame_system::Account::<RelayRuntime>::iter()
 			.take(1000)
 			.map(|(id, _)| id)

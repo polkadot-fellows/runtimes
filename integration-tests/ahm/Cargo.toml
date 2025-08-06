@@ -56,6 +56,8 @@ pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
 rand = { workspace = true }
 pallet-preimage = { workspace = true, default-features = true }
+pallet-staking-async = { workspace = true, default-features = true }
+pallet-referenda = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]

@@ -560,7 +560,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					//RuntimeCall::Bounties(..) | # TODO: @ggwpez more
+					RuntimeCall::Bounties(..) |
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
@@ -655,9 +655,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-
 			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			// TODO: @ggwpez Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
 				RuntimeCall::Treasury(..) |
@@ -671,16 +669,16 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Staking => {
 				matches!(
 					c,
-					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) |
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
 						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
-					                                   *RuntimeCall::VoterList(..)
-					                                   */
+						RuntimeCall::NominationPools(..) |
+						RuntimeCall::FastUnstake(..) |
+						RuntimeCall::VoterList(..)
 				)
 			},
 			ProxyType::NominationPools => {
-				matches!(c, /* RuntimeCall::NominationPools(..) | */ RuntimeCall::Utility(..))
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
 		}
 	}
