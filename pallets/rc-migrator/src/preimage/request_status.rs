@@ -15,9 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{preimage::*, types::*, *};
+use crate::{types::*, *};
 
-/// An entry of the `RequestStatusFor` storage map.
 #[derive(
 	Encode,
 	DecodeWithMemTracking,
@@ -29,15 +28,94 @@ use crate::{preimage::*, types::*, *};
 	PartialEq,
 	Eq,
 )]
-pub struct RcPreimageRequestStatus<AccountId, Ticket> {
-	/// The hash of the original preimage.
+pub struct PortableRequestStatus {
 	pub hash: H256,
-	/// The request status of the original preimage.
-	pub request_status: alias::RequestStatus<AccountId, Ticket>,
+	pub request_status: PortableRequestStatusInner,
 }
 
-pub type RcPreimageRequestStatusOf<T> =
-	RcPreimageRequestStatus<<T as frame_system::Config>::AccountId, super::alias::TicketOf<T>>;
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	TypeInfo,
+	Clone,
+	MaxEncodedLen,
+	RuntimeDebug,
+	PartialEq,
+	Eq,
+)]
+pub enum PortableRequestStatusInner {
+	Unrequested {
+		ticket: (AccountId32, PortableTicket),
+		len: u32,
+	},
+	Requested {
+		maybe_ticket: Option<(AccountId32, PortableTicket)>,
+		count: u32,
+		maybe_len: Option<u32>,
+	},
+}
+
+/// An encoded ticket.
+///
+/// Assumed to never be longer than 100 bytes. In practice, this will just be a balance.
+pub type PortableTicket = BoundedVec<u8, ConstU32<100>>;
+
+impl<Ticket: Encode + MaxEncodedLen> IntoPortable
+	for pallet_preimage::RequestStatus<AccountId32, Ticket>
+{
+	type Portable = PortableRequestStatusInner;
+
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			pallet_preimage::RequestStatus::Unrequested { ticket: (acc, inner), len } =>
+				PortableRequestStatusInner::Unrequested {
+					ticket: (acc, inner.encode().defensive_truncate_into()),
+					len,
+				},
+			pallet_preimage::RequestStatus::Requested { maybe_ticket, count, maybe_len } =>
+				PortableRequestStatusInner::Requested {
+					maybe_ticket: maybe_ticket
+						.map(|(acc, inner)| (acc, inner.encode().defensive_truncate_into())),
+					count,
+					maybe_len,
+				},
+		}
+	}
+}
+
+impl<Ticket: Decode> TryInto<pallet_preimage::RequestStatus<AccountId32, Ticket>>
+	for PortableRequestStatusInner
+{
+	type Error = ();
+
+	fn try_into(self) -> Result<pallet_preimage::RequestStatus<AccountId32, Ticket>, Self::Error> {
+		match self {
+			PortableRequestStatusInner::Unrequested { ticket: (acc, inner), len } => {
+				let inner = Ticket::decode(&mut inner.into_inner().as_slice()).map_err(|_| ())?;
+				Ok(pallet_preimage::RequestStatus::Unrequested { ticket: (acc, inner), len })
+			},
+			PortableRequestStatusInner::Requested { maybe_ticket: None, count, maybe_len } =>
+				Ok(pallet_preimage::RequestStatus::Requested {
+					maybe_ticket: None,
+					count,
+					maybe_len,
+				}),
+			PortableRequestStatusInner::Requested {
+				maybe_ticket: Some((acc, inner)),
+				count,
+				maybe_len,
+			} => {
+				let inner = Ticket::decode(&mut inner.into_inner().as_slice()).map_err(|_| ())?;
+				Ok(pallet_preimage::RequestStatus::Requested {
+					maybe_ticket: Some((acc, inner)),
+					count,
+					maybe_len,
+				})
+			},
+		}
+	}
+}
 
 pub struct PreimageRequestStatusMigrator<T: pallet_preimage::Config> {
 	_phantom: PhantomData<T>,
@@ -76,6 +154,15 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break next_key;
+			}
+
 			let next_key_inner = match next_key {
 				Some(key) => key,
 				None => {
@@ -86,18 +173,22 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				},
 			};
 
-			let Some(request_status) = alias::RequestStatusFor::<T>::get(next_key_inner) else {
+			let Some(request_status) = pallet_preimage::RequestStatusFor::<T>::get(next_key_inner)
+			else {
 				defensive!("Storage corruption");
 				next_key = Self::next_key(Some(next_key_inner));
 				continue;
 			};
 
-			batch.push(RcPreimageRequestStatus { hash: next_key_inner, request_status });
+			batch.push(PortableRequestStatus {
+				hash: next_key_inner,
+				request_status: request_status.into_portable(),
+			});
 			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {:?}", next_key_inner);
 
 			next_key = Self::next_key(Some(next_key_inner));
 			// Remove the migrated key from the relay chain
-			alias::RequestStatusFor::<T>::remove(next_key_inner);
+			pallet_preimage::RequestStatusFor::<T>::remove(next_key_inner);
 
 			if next_key.is_none() {
 				break next_key;
@@ -118,9 +209,9 @@ impl<T: Config> PreimageRequestStatusMigrator<T> {
 	/// Get the next key after the given one or the first one for `None`.
 	pub fn next_key(key: Option<H256>) -> Option<H256> {
 		match key {
-			None => alias::RequestStatusFor::<T>::iter_keys().next(),
-			Some(key) => alias::RequestStatusFor::<T>::iter_keys_from(
-				alias::RequestStatusFor::<T>::hashed_key_for(key),
+			None => pallet_preimage::RequestStatusFor::<T>::iter_keys().next(),
+			Some(key) => pallet_preimage::RequestStatusFor::<T>::iter_keys_from(
+				pallet_preimage::RequestStatusFor::<T>::hashed_key_for(key),
 			)
 			.next(),
 		}
@@ -154,7 +245,7 @@ impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
 		// "Assert storage 'Preimage::RequestStatusFor::rc_post::empty'"
 		assert_eq!(
-			alias::RequestStatusFor::<T>::iter().count(),
+			pallet_preimage::RequestStatusFor::<T>::iter().count(),
 			0,
 			"Preimage::RequestStatusFor must be empty on the relay chain after migration"
 		);

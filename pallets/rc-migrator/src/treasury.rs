@@ -115,8 +115,13 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
 				break;
 			}
 

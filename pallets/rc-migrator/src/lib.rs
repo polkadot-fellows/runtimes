@@ -126,6 +126,12 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 /// everything is confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
 
+/// The maximum number of items that can be migrated in a single block.
+///
+/// This serves as an additional safety limit beyond the weight accounting of both the Relay Chain
+/// and Asset Hub.
+pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
+
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
 
@@ -448,7 +454,7 @@ pub mod pallet {
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
 		+ pallet_fast_unstake::Config<Currency = pallet_balances::Pallet<Self>>
-		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
@@ -460,8 +466,10 @@ pub mod pallet {
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
 		+ pallet_child_bounties::Config
-		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
-		+ pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_treasury::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_xcm::Config
 		+ pallet_staking_async_ah_client::Config
 	{
@@ -474,6 +482,13 @@ pub mod pallet {
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
+
+		/// Block number provider of the treasury pallet.
+		///
+		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
+		/// code since they all depend on the treasury provided block number. The compiler checks
+		/// that this is configured correctly.
+		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
@@ -715,6 +730,20 @@ pub mod pallet {
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// The block number at which the migration began and the pallet's extrinsics were locked.
+	///
+	/// This value is set when entering the `WaitingForAh` stage, i.e., when
+	/// `RcMigrationStage::is_ongoing()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationStartBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
+	/// Block number when migration finished and extrinsics were unlocked.
+	///
+	/// This is set when entering the `MigrationDone` stage hence when
+	/// `RcMigrationStage::is_finished()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationEndBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -1934,16 +1963,12 @@ pub mod pallet {
 		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
 
-			if new == MigrationStage::Starting {
+			if matches!(new, MigrationStage::WaitingForAh { .. }) {
 				defensive_assert!(
-					matches!(
-						old,
-						MigrationStage::WaitingForAh { .. } |
-							MigrationStage::Scheduled { .. } |
-							MigrationStage::CoolOff { .. }
-					),
-					"Data migration can only enter from WaitingForAh or Scheduled"
+					matches!(old, MigrationStage::Scheduled { .. }),
+					"Data migration can only enter from Scheduled"
 				);
+				MigrationStartBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 				Self::deposit_event(Event::AssetHubMigrationStarted);
 			}
 
@@ -1952,6 +1977,7 @@ pub mod pallet {
 					old == MigrationStage::SignalMigrationFinish,
 					"MigrationDone can only enter from SignalMigrationFinish"
 				);
+				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 				Self::deposit_event(Event::AssetHubMigrationFinished);
 			}
 

@@ -53,11 +53,13 @@ use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
 	sovereign_account_translation::{DERIVED_TRANSLATIONS, SOV_TRANSLATIONS},
 	types::AhMigrationCheck,
-	AhMigrationStage as AhMigrationStageStorage, MigrationStage as AhMigrationStage,
+	AhMigrationStage as AhMigrationStageStorage, MigrationEndBlock as AhMigrationEndBlock,
+	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
 use pallet_rc_migrator::{
 	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
-	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	types::RcMigrationCheck, MigrationEndBlock as RcMigrationEndBlock,
+	MigrationStage as RcMigrationStage, MigrationStartBlock as RcMigrationStartBlock,
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
@@ -630,6 +632,16 @@ async fn migration_works_time() {
 	let rc_block_end = rc.execute_with(frame_system::Pallet::<Polkadot>::block_number);
 	let ah_block_end = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
 
+	rc.execute_with(|| {
+		assert_eq!(RcMigrationStartBlock::<Polkadot>::get(), Some(rc_block_start + 1));
+		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(rc_block_end));
+	});
+
+	ah.execute_with(|| {
+		assert_eq!(AhMigrationStartBlock::<AssetHub>::get(), Some(ah_block_start + 1));
+		assert_eq!(AhMigrationEndBlock::<AssetHub>::get(), Some(ah_block_end));
+	});
+
 	// Post-checks on the Relay
 	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
 
@@ -653,11 +665,24 @@ async fn migration_works_time() {
 		AhMigrationStageStorage::<AssetHub>::put(AhMigrationStage::DataMigrationOngoing);
 	});
 
-	let ah_block_start = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
+	let new_ah_block_start = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
 
 	log::info!("Running the migration second time");
 
-	migrate(ah_block_start, &mut rc, &mut ah);
+	migrate(new_ah_block_start, &mut rc, &mut ah);
+
+	let new_rc_block_end = rc.execute_with(frame_system::Pallet::<Polkadot>::block_number);
+	let new_ah_block_end = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
+
+	rc.execute_with(|| {
+		assert_eq!(RcMigrationStartBlock::<Polkadot>::get(), Some(rc_block_start + 1));
+		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(new_rc_block_end));
+	});
+
+	ah.execute_with(|| {
+		assert_eq!(AhMigrationStartBlock::<AssetHub>::get(), Some(ah_block_start + 1));
+		assert_eq!(AhMigrationEndBlock::<AssetHub>::get(), Some(new_ah_block_end));
+	});
 
 	// run post checks with the pre checks data from the first migration
 

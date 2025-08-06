@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{preimage::*, types::*, *};
+use crate::{types::*, *};
 
 /// Max size that we want a preimage chunk to be.
 ///
@@ -79,7 +79,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 					let (maybe_next_key, skipped) = Self::next_key();
 					// Remove skipped storage items that won't be migrated
 					for (old_hash, old_len) in skipped {
-						alias::PreimageFor::<T>::remove((old_hash, old_len));
+						pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
 					}
 					let Some(next_key) = maybe_next_key else {
 						// No more preimages
@@ -90,11 +90,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
 				Some(((hash, len), _)) => {
 					// Remove the previous key for which the migration is complete.
-					alias::PreimageFor::<T>::remove((hash, len));
+					pallet_preimage::PreimageFor::<T>::remove((hash, len));
 					// Get the next key and remove the ones skipped before that.
 					let (next_key_maybe, skipped) = Self::next_key();
 					for (old_hash, old_len) in skipped {
-						alias::PreimageFor::<T>::remove((old_hash, old_len));
+						pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
 					}
 					let Some(next_key) = next_key_maybe else {
 						break None;
@@ -103,13 +103,13 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				},
 			};
 			// Load the preimage
-			let Some(preimage) = alias::PreimageFor::<T>::get(next_key_inner) else {
+			let Some(preimage) = pallet_preimage::PreimageFor::<T>::get(next_key_inner) else {
 				defensive!("Storage corruption {:?}", next_key_inner);
 				// Remove the previous key for which the migration failed.
-				alias::PreimageFor::<T>::remove(next_key_inner);
+				pallet_preimage::PreimageFor::<T>::remove(next_key_inner);
 				let (next_key_maybe, skipped) = Self::next_key();
 				for (old_hash, old_len) in skipped {
-					alias::PreimageFor::<T>::remove((old_hash, old_len));
+					pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
 				}
 				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
 				continue;
@@ -128,10 +128,10 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			let Ok(bounded_chunk) = BoundedVec::try_from(chunk_bytes.clone()).defensive() else {
 				defensive!("Unreachable");
 				// Remove the previous key for which the migration failed.
-				alias::PreimageFor::<T>::remove(next_key_inner);
+				pallet_preimage::PreimageFor::<T>::remove(next_key_inner);
 				let (next_key_maybe, skipped) = Self::next_key();
 				for (old_hash, old_len) in skipped {
-					alias::PreimageFor::<T>::remove((old_hash, old_len));
+					pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
 				}
 				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
 				continue;
@@ -168,8 +168,13 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			// set the offset of the next_key
 			next_key = Some((next_key_inner, last_offset));
 
-			// TODO: @muharem weight tracking
-			if batch.len() >= 10 {
+			const MAX_CHUNKS_PER_BLOCK: u32 = 10;
+			if batch.len() >= MAX_CHUNKS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({}) to migrate per block reached, current batch size: {}",
+					MAX_CHUNKS_PER_BLOCK,
+					batch.len()
+				);
 				break next_key;
 			}
 		};
@@ -191,21 +196,22 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 impl<T: Config> PreimageChunkMigrator<T> {
 	// Returns the next key to migrated and all the legacy preimages skipped before that, which will
 	// be deleted
+	#[allow(deprecated)] // StatusFor is deprecated
 	fn next_key() -> (Option<(H256, u32)>, Vec<(H256, u32)>) {
 		let mut skipped = Vec::new();
-		let next_key_maybe = alias::PreimageFor::<T>::iter_keys()
+		let next_key_maybe = pallet_preimage::PreimageFor::<T>::iter_keys()
 			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
 			// loop, but it cannot be exploited since the pallet does not allow to add more items to
 			// the `StatusFor` map anymore.
 			.skip_while(|(hash, len)| {
-				if !alias::RequestStatusFor::<T>::contains_key(hash) {
+				if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
 					log::info!(
 						"Ignoring old preimage that is not in the request status map: {:?}",
 						hash
 					);
 					skipped.push((*hash, *len));
 					debug_assert!(
-						alias::StatusFor::<T>::contains_key(hash),
+						pallet_preimage::StatusFor::<T>::contains_key(hash),
 						"Preimage must be tracked somewhere"
 					);
 					true
@@ -280,7 +286,7 @@ impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
 		// "Assert storage 'Preimage::PreimageFor::rc_post::empty'"
 		assert_eq!(
-			alias::PreimageFor::<T>::iter_keys().count(),
+			pallet_preimage::PreimageFor::<T>::iter_keys().count(),
 			0,
 			"Preimage::PreimageFor is not empty on relay chain after migration"
 		);
