@@ -46,11 +46,10 @@ use pallet_rc_migrator::{
 		message::PortableUnappliedSlash,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
-	treasury::{alias::SpendStatus, PortableTreasuryMessage},
+	treasury::{PortablePaymentState, PortableSpendStatus, PortableTreasuryMessage},
 	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
-use pallet_treasury::PaymentState;
 use polkadot_runtime_common::claims::EthereumAddress;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
@@ -723,10 +722,10 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_treasury_messages(n: Linear<1, 255>) {
-		let create_treasury = |n: u8| -> RcTreasuryMessageOf<T> {
+		let create_treasury = |n: u8| -> PortableTreasuryMessage {
 			PortableTreasuryMessage::Spends {
 				id: n.into(),
-				status: SpendStatus {
+				status: PortableSpendStatus {
 					asset_kind: VersionedLocatableAsset::V4 {
 						location: Location::new(0, [xcm::v4::Junction::Parachain(1000)]),
 						asset_id: Location::new(
@@ -745,7 +744,7 @@ pub mod benchmarks {
 					)),
 					valid_from: n.into(),
 					expire_at: n.into(),
-					status: PaymentState::Pending,
+					status: PortablePaymentState::Pending,
 				},
 			}
 		};
