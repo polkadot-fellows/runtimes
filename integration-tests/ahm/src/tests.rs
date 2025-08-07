@@ -29,6 +29,7 @@
 //!
 //! ```
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+//! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
 
 use crate::porting_prelude::*;
@@ -36,7 +37,7 @@ use crate::porting_prelude::*;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
-	checks::SanityChecks,
+	checks::{PalletsTryStateCheck, SanityChecks},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -99,6 +100,7 @@ type RcChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
@@ -151,6 +153,7 @@ type AhChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 #[cfg(not(feature = "paseo"))]
