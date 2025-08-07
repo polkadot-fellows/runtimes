@@ -50,15 +50,15 @@ use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
 	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
-	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,  ExternalConsensusLocationsConverterFor,
-	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
-	InspectMessageQueues, IsConcrete, LocalMint, MatchedConvertedConcreteId, NoChecking,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SingleAssetExchangeAdapter, SovereignSignedViaLocation, StartsWith,
-	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId,
-	UnpaidRemoteExporter, UsingComponents, WeightInfoBounds, WithComputedOrigin,
-	WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
+	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, ExternalConsensusLocationsConverterFor,
+	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter,
+	GlobalConsensusParachainConvertsFor, HashedDescription, InspectMessageQueues, IsConcrete,
+	LocalMint, MatchedConvertedConcreteId, NoChecking, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SingleAssetExchangeAdapter,
+	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
+	TrailingSetTopicAsId, UnpaidRemoteExporter, UsingComponents, WeightInfoBounds,
+	WithComputedOrigin, WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
@@ -726,7 +726,9 @@ pub mod bridging {
 	pub mod to_ethereum {
 		use super::*;
 		pub use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
-		use bp_bridge_hub_polkadot::snowbridge::{InboundQueuePalletInstance, InboundQueueV2PalletInstance };
+		use bp_bridge_hub_polkadot::snowbridge::{
+			InboundQueuePalletInstance, InboundQueueV2PalletInstance,
+		};
 		use xcm::{VersionedLocation, VersionedXcm};
 
 		parameter_types! {
