@@ -62,7 +62,7 @@ pub mod tx_payment {
 			_tip: Self::Balance,
 		) -> Result<Self::LiquidityInfo, TransactionValidityError> {
 			if fee.is_zero() {
-				return Ok(None)
+				return Ok(None);
 			}
 
 			match F::withdraw(
