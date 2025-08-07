@@ -788,6 +788,17 @@ parameter_types! {
 	pub const CouncilSpendOriginMaxAmount: Balance = Balance::MAX;
 }
 
+pub type TreasuryPaymaster = PayOverXcm<
+	TreasuryInteriorLocation,
+	crate::xcm_config::XcmRouter,
+	crate::XcmPallet,
+	ConstU32<{ 6 * HOURS }>,
+	<Runtime as pallet_treasury::Config>::Beneficiary,
+	<Runtime as pallet_treasury::Config>::AssetKind,
+	LocatableAssetConverter,
+	VersionedLocationConverter,
+>;
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
@@ -804,16 +815,7 @@ impl pallet_treasury::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocation;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type Paymaster = PayOverXcm<
-		TreasuryInteriorLocation,
-		crate::xcm_config::XcmRouter,
-		crate::XcmPallet,
-		ConstU32<{ 6 * HOURS }>,
-		Self::Beneficiary,
-		Self::AssetKind,
-		LocatableAssetConverter,
-		VersionedLocationConverter,
-	>;
+	type Paymaster = TreasuryPaymaster;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	type BlockNumberProvider = System;
@@ -1727,6 +1729,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type Currency = Balances;
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
+	type TreasuryPaymaster = TreasuryPaymaster;
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;

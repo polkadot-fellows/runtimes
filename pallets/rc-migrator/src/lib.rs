@@ -85,7 +85,8 @@ use pallet_balances::AccountData;
 use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::{
-	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
+	claims as pallet_claims, crowdloan as pallet_crowdloan, impls::VersionedLocatableAsset,
+	paras_registrar, slots as pallet_slots,
 };
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
@@ -465,6 +466,9 @@ pub mod pallet {
 		+ pallet_treasury::Config<
 			Currency = pallet_balances::Pallet<Self>,
 			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+			Paymaster = Self::TreasuryPaymaster,
+			AssetKind = VersionedLocatableAsset,
+			Beneficiary = VersionedLocation,
 		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_xcm::Config
 		+ pallet_staking_async_ah_client::Config
@@ -485,6 +489,12 @@ pub mod pallet {
 		/// code since they all depend on the treasury provided block number. The compiler checks
 		/// that this is configured correctly.
 		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+		type TreasuryPaymaster: Pay<
+			Id = u64,
+			Balance = u128,
+			Beneficiary = VersionedLocation,
+			AssetKind = VersionedLocatableAsset,
+		>;
 
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter

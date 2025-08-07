@@ -83,8 +83,9 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
-	treasury::RcTreasuryMessage, types::MigrationStatus,
+	treasury::PortableTreasuryMessage, types::MigrationStatus,
 };
+use system_parachains_common::pay::VersionedLocatableAccount;
 
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::traits::EnqueueMessage;
@@ -125,16 +126,6 @@ type RcAccountFor<T> = RcAccount<
 	<T as pallet_balances::Config>::Balance,
 	<T as Config>::PortableHoldReason,
 	<T as Config>::PortableFreezeReason,
->;
-pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
-	<T as frame_system::Config>::AccountId,
-	pallet_treasury::BalanceOf<T, ()>,
-	pallet_treasury::AssetBalanceOf<T, ()>,
-	BlockNumberFor<T>,
-	VersionedLocatableAsset,
-	VersionedLocation,
-	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
-	<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber,
 >;
 
 #[derive(
@@ -272,6 +263,9 @@ pub mod pallet {
 		+ pallet_treasury::Config<
 			Currency = pallet_balances::Pallet<Self>,
 			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+			Paymaster = Self::TreasuryPaymaster,
+			AssetKind = VersionedLocatableAsset,
+			Beneficiary = VersionedLocatableAccount,
 		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
@@ -319,6 +313,12 @@ pub mod pallet {
 		/// code since they all depend on the treasury provided block number. The compiler checks
 		/// that this is configured correctly.
 		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+		type TreasuryPaymaster: Pay<
+			Id = u64,
+			Balance = u128,
+			Beneficiary = VersionedLocatableAccount,
+			AssetKind = VersionedLocatableAsset,
+		>;
 		/// Some part of the Relay Chain origins used in Governance.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
@@ -866,7 +866,7 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
 		pub fn receive_treasury_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcTreasuryMessageOf<T>>,
+			messages: Vec<PortableTreasuryMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

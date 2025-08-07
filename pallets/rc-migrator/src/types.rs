@@ -140,7 +140,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
 	#[codec(index = 21)]
-	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
+	ReceiveTreasuryMessages { messages: Vec<treasury::PortableTreasuryMessage> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
 		messages: Vec<(
