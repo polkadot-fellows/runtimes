@@ -75,11 +75,11 @@ pub mod benchmarks {
 	#[benchmark]
 	fn schedule_migration() {
 		let start = DispatchTime::<BlockNumberFor<T>>::At(10u32.into());
-		let pre_cool_off = DispatchTime::<BlockNumberFor<T>>::At(20u32.into());
-		let post_cool_off = DispatchTime::<BlockNumberFor<T>>::After(20u32.into());
+		let warm_up = DispatchTime::<BlockNumberFor<T>>::At(20u32.into());
+		let cool_off = DispatchTime::<BlockNumberFor<T>>::After(20u32.into());
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, start, pre_cool_off, post_cool_off);
+		_(RawOrigin::Root, start, warm_up, cool_off);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
@@ -93,8 +93,8 @@ pub mod benchmarks {
 	#[benchmark]
 	fn start_data_migration() {
 		let now = frame_system::Pallet::<T>::block_number();
-		let pre_cool_off = DispatchTime::<BlockNumberFor<T>>::At(200u32.into());
-		PreMigrationCoolOffPeriod::<T>::put(pre_cool_off);
+		let warm_up = DispatchTime::<BlockNumberFor<T>>::At(200u32.into());
+		WarmUpPeriod::<T>::put(warm_up);
 		let initial_stage = MigrationStageOf::<T>::WaitingForAh;
 		RcMigrationStage::<T>::put(&initial_stage);
 
@@ -104,9 +104,7 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: initial_stage,
-				new: MigrationStageOf::<T>::PreMigrationCoolOff {
-					cool_off_end: pre_cool_off.evaluate(now),
-				},
+				new: MigrationStageOf::<T>::WarmUp { end_at: warm_up.evaluate(now) },
 			}
 			.into(),
 		);

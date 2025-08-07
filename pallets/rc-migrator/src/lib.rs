@@ -197,8 +197,8 @@ pub enum MigrationStage<
 		///
 		/// The block number at which we notify the Asset Hub about the start of the migration and
 		/// move to `WaitingForAH` stage. After we receive the confirmation, the Relay Chain will
-		/// enter the `PreMigrationCoolOff` stage and wait for the cool-off period to end
-		/// (`PreMigrationCoolOffPeriod`) before starting to send the migration data to the Asset
+		/// enter the `WarmUp` stage and wait for the warm-up period to end
+		/// (`WarmUpPeriod`) before starting to send the migration data to the Asset
 		/// Hub.
 		start: BlockNumber,
 	},
@@ -207,12 +207,12 @@ pub enum MigrationStage<
 	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
 	/// receive the migration data.
 	WaitingForAh,
-	PreMigrationCoolOff {
-		/// The block number at which the cool-off period will end.
+	WarmUp {
+		/// The block number at which the warm-up period will end.
 		///
-		/// After the cool-off period ends, the Relay Chain will start to send the migration data
+		/// After the warm-up period ends, the Relay Chain will start to send the migration data
 		/// to the Asset Hub.
-		cool_off_end: BlockNumber,
+		end_at: BlockNumber,
 	},
 	/// The migration is starting and initialization hooks are being executed.
 	Starting,
@@ -355,12 +355,12 @@ pub enum MigrationStage<
 		next_key: Option<staking::StakingStage<AccountId>>,
 	},
 	StakingMigrationDone,
-	PostMigrationCoolOff {
+	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
 		///
 		/// After the cool-off period ends, the Relay Chain will signal migration end to the Asset
 		/// Hub and finish the migration.
-		cool_off_end: BlockNumber,
+		end_at: BlockNumber,
 	},
 	SignalMigrationFinish,
 	MigrationDone,
@@ -741,12 +741,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type MigrationEndBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
 
-	/// The duration of the pre migration cool-off period.
+	/// The duration of the pre migration warm-up period.
 	///
-	/// This is the duration of the cool-off period before the data migration starts. During this
+	/// This is the duration of the warm-up period before the data migration starts. During this
 	/// period, the migration will be in ongoing state and the concerned extrinsics will be locked.
 	#[pallet::storage]
-	pub type PreMigrationCoolOffPeriod<T: Config> =
+	pub type WarmUpPeriod<T: Config> =
 		StorageValue<_, DispatchTime<BlockNumberFor<T>>, OptionQuery>;
 
 	/// The duration of the post migration cool-off period.
@@ -755,7 +755,7 @@ pub mod pallet {
 	/// this period, the migration will be still in ongoing state and the concerned extrinsics will
 	/// be locked.
 	#[pallet::storage]
-	pub type PostMigrationCoolOffPeriod<T: Config> =
+	pub type CoolOffPeriod<T: Config> =
 		StorageValue<_, DispatchTime<BlockNumberFor<T>>, OptionQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
@@ -800,12 +800,10 @@ pub mod pallet {
 		/// - `start`: The block number at which the migration will start. Must be a point within
 		/// the current era before the validator election process has started. Typically, this
 		/// corresponds to the final session of the era, just prior to the election kickoff.
-		/// - `pre_cool_off`: The block number at which the pre migration cool-off period will end.
-		///   The
-		/// `DispatchTime` calculated at the moment of the transition to the cool-off stage.
-		/// - `post_cool_off`: The block number at which the post migration cool-off period will
-		///   end. The `DispatchTime` calculated at the moment of the transition to the cool-off
-		///   stage.
+		/// - `warm_up`: The block number at which the pre migration warm-up period will end. The
+		///   `DispatchTime` calculated at the moment of the transition to the warm-up stage.
+		/// - `cool_off`: The block number at which the post migration cool-off period will end. The
+		///   `DispatchTime` calculated at the moment of the transition to the cool-off stage.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
@@ -813,18 +811,18 @@ pub mod pallet {
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start: DispatchTime<BlockNumberFor<T>>,
-			pre_cool_off: DispatchTime<BlockNumberFor<T>>,
-			post_cool_off: DispatchTime<BlockNumberFor<T>>,
+			warm_up: DispatchTime<BlockNumberFor<T>>,
+			cool_off: DispatchTime<BlockNumberFor<T>>,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
 			let start = start.evaluate(now);
 			ensure!(start > now, Error::<T>::PastBlockNumber);
-			ensure!(pre_cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
-			ensure!(post_cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
-			PreMigrationCoolOffPeriod::<T>::put(pre_cool_off);
-			PostMigrationCoolOffPeriod::<T>::put(post_cool_off);
+			ensure!(warm_up.evaluate(now) >= start, Error::<T>::PastBlockNumber);
+			ensure!(cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
+			WarmUpPeriod::<T>::put(warm_up);
+			CoolOffPeriod::<T>::put(cool_off);
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
 		}
@@ -838,20 +836,19 @@ pub mod pallet {
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
-			let cool_off_end = match RcMigrationStage::<T>::get() {
-				MigrationStage::WaitingForAh => {
-					if let Some(cool_off_end) = PreMigrationCoolOffPeriod::<T>::get() {
-						cool_off_end.evaluate(frame_system::Pallet::<T>::block_number())
+			let end_at = match RcMigrationStage::<T>::get() {
+				MigrationStage::WaitingForAh =>
+					if let Some(end_at) = WarmUpPeriod::<T>::get() {
+						end_at.evaluate(frame_system::Pallet::<T>::block_number())
 					} else {
 						frame_system::Pallet::<T>::block_number()
-					}
-				},
+					},
 				stage => {
 					defensive!("start_data_migration called in invalid stage: {:?}", stage);
 					return Err(Error::<T>::UnreachableStage.into())
 				},
 			};
-			Self::transition(MigrationStage::PreMigrationCoolOff { cool_off_end });
+			Self::transition(MigrationStage::WarmUp { end_at });
 			Ok(())
 		}
 
@@ -1096,15 +1093,15 @@ pub mod pallet {
 					// We transition out here in `start_data_migration`
 					return weight_counter.consumed();
 				},
-				MigrationStage::PreMigrationCoolOff { cool_off_end } => {
-					// waiting for the cool-off period to end
-					if now >= cool_off_end {
+				MigrationStage::WarmUp { end_at } => {
+					// waiting for the warm-up period to end
+					if now >= end_at {
 						Self::transition(MigrationStage::Starting);
 					} else {
 						log::info!(
 							target: LOG_TARGET,
-							"Waiting for the cool-off period to end, cool_off_end: {:?}",
-							cool_off_end,
+							"Waiting for the warm-up period to end, end_at: {:?}",
+							end_at,
 						);
 					}
 					return weight_counter.consumed();
@@ -1895,18 +1892,18 @@ pub mod pallet {
 				},
 				MigrationStage::StakingMigrationDone => {
 					let now = frame_system::Pallet::<T>::block_number();
-					let cool_off_end = if let Some(cool_off_end) = PostMigrationCoolOffPeriod::<T>::get() {
-						cool_off_end.evaluate(now)
+					let end_at = if let Some(end_at) = CoolOffPeriod::<T>::get() {
+						end_at.evaluate(now)
 					} else {
 						now
 					};
-					Self::transition(MigrationStage::PostMigrationCoolOff {
-						cool_off_end,
+					Self::transition(MigrationStage::CoolOff {
+						end_at,
 					});
 				},
-				MigrationStage::PostMigrationCoolOff { cool_off_end } => {
+				MigrationStage::CoolOff { end_at } => {
 					let now = frame_system::Pallet::<T>::block_number();
-					if now >= cool_off_end {
+					if now >= end_at {
 						Self::transition(MigrationStage::SignalMigrationFinish);
 					}
 				},

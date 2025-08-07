@@ -722,9 +722,9 @@ async fn scheduled_migration_works() {
 	ah.commit_all().unwrap();
 
 	let mut start = 0u32;
-	let mut pre_cool_off_end = 0u32;
+	let mut warm_up_end = 0u32;
 	// 2 blocks after the end of the data migration.
-	let post_cool_off_end = DispatchTime::After(2u32);
+	let cool_off_end = DispatchTime::After(2u32);
 
 	// Schedule the migration on RC.
 	let dmp_messages = rc.execute_with(|| {
@@ -733,7 +733,7 @@ async fn scheduled_migration_works() {
 
 		let now = frame_system::Pallet::<Polkadot>::block_number();
 		start = now + 2;
-		pre_cool_off_end = start + 3;
+		warm_up_end = start + 3;
 
 		// Fellowship Origin
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
@@ -746,8 +746,8 @@ async fn scheduled_migration_works() {
 		assert_ok!(RcMigrator::schedule_migration(
 			origin.into(),
 			DispatchTime::At(start),
-			DispatchTime::At(pre_cool_off_end),
-			post_cool_off_end,
+			DispatchTime::At(warm_up_end),
+			cool_off_end,
 		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
@@ -809,21 +809,15 @@ async fn scheduled_migration_works() {
 
 		next_block_rc();
 
-		let cool_off_end = pre_cool_off_end;
+		let end_at = warm_up_end;
 
 		// cooling off
-		assert_eq!(
-			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::PreMigrationCoolOff { cool_off_end }
-		);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WarmUp { end_at });
 
 		next_block_rc();
 
 		// still cooling off
-		assert_eq!(
-			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::PreMigrationCoolOff { cool_off_end }
-		);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WarmUp { end_at });
 
 		next_block_rc();
 
@@ -851,12 +845,12 @@ async fn scheduled_migration_works() {
 		next_block_rc();
 
 		let now = now + 1;
-		let cool_off_end = post_cool_off_end.evaluate(now);
+		let end_at = cool_off_end.evaluate(now);
 
 		// cooling off
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::PostMigrationCoolOff { cool_off_end }
+			RcMigrationStage::CoolOff { end_at }
 		);
 
 		next_block_rc();
@@ -864,12 +858,12 @@ async fn scheduled_migration_works() {
 		// still cooling off
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::PostMigrationCoolOff { cool_off_end }
+			RcMigrationStage::CoolOff { end_at }
 		);
 
 		next_block_rc();
 
-		// cool off end
+		// cool-off end
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
 			RcMigrationStage::SignalMigrationFinish
