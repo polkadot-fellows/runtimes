@@ -166,8 +166,7 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::parameter_types;
-	pub use polkadot_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
-	use xcm::latest::prelude::{Junction::*, Location};
+	use xcm::latest::prelude::{Junction::*, Location, NetworkId};
 
 	parameter_types! {
 		pub AssetHubLocation: Location =
@@ -176,5 +175,7 @@ pub mod locations {
 			Location::new(1, Parachain(polkadot_runtime_constants::system_parachain::PEOPLE_ID));
 
 		pub GovernanceLocation: Location = Location::parent();
+
+		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
 	}
 }
