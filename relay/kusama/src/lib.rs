@@ -515,7 +515,7 @@ impl pallet_session::historical::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
 	#[allow(deprecated)] // will be removed with AHM
-	type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
+	type FullIdentificationOf = pallet_staking::DefaultExposureOf<Runtime>;
 }
 
 parameter_types! {
