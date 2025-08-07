@@ -55,6 +55,9 @@ cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
 rand = { workspace = true }
+pallet-preimage = { workspace = true, default-features = true }
+pallet-staking-async = { workspace = true, default-features = true }
+pallet-referenda = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
@@ -102,8 +105,11 @@ runtime-benchmarks = [
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-referenda/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",

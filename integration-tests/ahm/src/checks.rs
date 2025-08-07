@@ -29,10 +29,7 @@ impl RcMigrationCheck for SanityChecks {
 	fn pre_check() -> Self::RcPrePayload {
 		assert!(
 			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
-				pallet_rc_migrator::MigrationStage::Scheduled {
-					start: 0u32,
-					cool_off_end: 0u32,
-				}
+				pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 }
 		);
 	}
 

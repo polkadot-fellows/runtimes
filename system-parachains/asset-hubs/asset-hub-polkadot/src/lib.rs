@@ -532,14 +532,14 @@ pub enum ProxyType {
 	///
 	/// Contains the `NominationPools` and `Utility` pallets.
 	NominationPools,
-	/// Placeholder variant for old migrated `Auction` proxy type from the Relay chain.
+	/// To be used with the remote proxy pallet to manage parachain lease auctions on the relay.
 	///
-	/// Cannot do anything.
-	OldAuction,
-	/// Placeholder variant for old migrated `ParaRegistration` proxy type from the Relay chain.
+	/// This variant cannot do anything on Asset Hub itself.
+	Auction,
+	/// To be used with the remote proxy pallet to manage parachain registration on the relay.
 	///
-	/// Cannot do anything.
-	OldParaRegistration,
+	/// This variant cannot do anything on Asset Hub itself.
+	ParaRegistration,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -551,7 +551,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::OldAuction | ProxyType::OldParaRegistration => false,
+			ProxyType::Auction | ProxyType::ParaRegistration => false,
 			ProxyType::NonTransfer => !matches!(
 				c,
 				RuntimeCall::Balances { .. } |
@@ -560,7 +560,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					//RuntimeCall::Bounties(..) | # TODO: @ggwpez more
+					RuntimeCall::Bounties(..) |
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
@@ -655,9 +655,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-
 			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			// TODO: @ggwpez Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
 				RuntimeCall::Treasury(..) |
@@ -671,16 +669,16 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Staking => {
 				matches!(
 					c,
-					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) |
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
 						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
-					                                   *RuntimeCall::VoterList(..)
-					                                   */
+						RuntimeCall::NominationPools(..) |
+						RuntimeCall::FastUnstake(..) |
+						RuntimeCall::VoterList(..)
 				)
 			},
 			ProxyType::NominationPools => {
-				matches!(c, /* RuntimeCall::NominationPools(..) | */ RuntimeCall::Utility(..))
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
 		}
 	}
@@ -1184,6 +1182,8 @@ impl pallet_ah_migrator::Config for Runtime {
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
 	>;
 	type Currency = Balances;
+	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type TreasuryPaymaster = treasury::TreasuryPaymaster;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
 	type RcProxyType = ah_migration::RcProxyType;

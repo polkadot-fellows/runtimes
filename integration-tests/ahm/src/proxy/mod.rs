@@ -82,8 +82,8 @@ impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permissio
 			ProxyType::Governance => Permission::Governance,
 			ProxyType::NominationPools => Permission::NominationPools,
 			ProxyType::NonTransfer => Permission::NonTransfer,
-			ProxyType::OldAuction => Permission::Old,
-			ProxyType::OldParaRegistration => Permission::Old,
+			ProxyType::Auction => Permission::Old,
+			ProxyType::ParaRegistration => Permission::Old,
 			ProxyType::Staking => Permission::Staking,
 		})
 	}

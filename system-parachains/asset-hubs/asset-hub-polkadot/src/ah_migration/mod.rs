@@ -118,9 +118,9 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			Governance => Ok(ProxyType::Governance),
 			Staking => Ok(ProxyType::Staking),
 			CancelProxy => Ok(ProxyType::CancelProxy),
-			Auction => Ok(ProxyType::OldAuction),
+			Auction => Ok(ProxyType::Auction),
 			NominationPools => Ok(ProxyType::NominationPools),
-			ParaRegistration => Ok(ProxyType::OldParaRegistration),
+			ParaRegistration => Ok(ProxyType::ParaRegistration),
 		}
 	}
 }
@@ -365,9 +365,8 @@ impl
 	> for RcToAhTreasurySpend
 {
 	fn convert(
-		rc: (VersionedLocatableAsset, VersionedLocation),
+		(asset_kind, beneficiary): (VersionedLocatableAsset, VersionedLocation),
 	) -> Result<(VersionedLocatableAsset, VersionedLocatableAccount), ()> {
-		let (asset_kind, beneficiary) = rc;
 		let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
 			log::error!(target: LOG_TARGET, "Failed to convert RC asset kind to latest version");
 		})?;

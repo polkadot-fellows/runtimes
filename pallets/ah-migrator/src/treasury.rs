@@ -15,13 +15,14 @@
 // limitations under the License.
 
 use crate::*;
-use pallet_rc_migrator::treasury::{
-	alias as treasury_alias, RcSpendStatus, RcSpendStatusOf, TreasuryMigrator,
+use pallet_rc_migrator::{
+	treasury::{PortableSpendStatus, PortableTreasuryMessage, TreasuryMigrator},
+	types::SortByEncoded,
 };
 use pallet_treasury::{ProposalIndex, SpendIndex};
 
 impl<T: Config> Pallet<T> {
-	pub fn do_receive_treasury_messages(messages: Vec<RcTreasuryMessageOf<T>>) -> DispatchResult {
+	pub fn do_receive_treasury_messages(messages: Vec<PortableTreasuryMessage>) -> DispatchResult {
 		log::info!(target: LOG_TARGET, "Processing {} treasury messages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::Treasury,
@@ -46,14 +47,14 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn do_process_treasury_message(message: RcTreasuryMessageOf<T>) -> Result<(), Error<T>> {
+	fn do_process_treasury_message(message: PortableTreasuryMessage) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Processing treasury message: {:?}", message);
 
 		match message {
-			RcTreasuryMessage::ProposalCount(proposal_count) => {
+			PortableTreasuryMessage::ProposalCount(proposal_count) => {
 				pallet_treasury::ProposalCount::<T>::put(proposal_count);
 			},
-			RcTreasuryMessage::Proposals((proposal_index, proposal)) => {
+			PortableTreasuryMessage::Proposals((proposal_index, proposal)) => {
 				let translated_proposal = pallet_treasury::Proposal {
 					proposer: Self::translate_account_rc_to_ah(proposal.proposer),
 					value: proposal.value,
@@ -62,22 +63,22 @@ impl<T: Config> Pallet<T> {
 				};
 				pallet_treasury::Proposals::<T>::insert(proposal_index, translated_proposal);
 			},
-			RcTreasuryMessage::Approvals(approvals) => {
+			PortableTreasuryMessage::Approvals(approvals) => {
 				let approvals = BoundedVec::<_, <T as pallet_treasury::Config>::MaxApprovals>::defensive_truncate_from(approvals);
 				pallet_treasury::Approvals::<T>::put(approvals);
 			},
-			RcTreasuryMessage::SpendCount(spend_count) => {
-				treasury_alias::SpendCount::<T>::put(spend_count);
+			PortableTreasuryMessage::SpendCount(spend_count) => {
+				pallet_treasury::SpendCount::<T>::put(spend_count);
 			},
-			RcTreasuryMessage::Spends { id: spend_index, status: spend } => {
-				let treasury_alias::SpendStatus {
+			PortableTreasuryMessage::Spends { id: spend_index, status: spend } => {
+				let pallet_treasury::SpendStatus {
 					asset_kind,
 					amount,
 					beneficiary,
 					valid_from,
 					expire_at,
 					status,
-				} = spend;
+				} = spend.into();
 
 				// Apply account translation to beneficiary before type conversion
 				let translated_beneficiary = Self::translate_beneficiary_location(beneficiary)
@@ -99,7 +100,7 @@ impl<T: Config> Pallet<T> {
 							Error::FailedToConvertType
 						},
 					)?;
-				let spend = treasury_alias::SpendStatus {
+				let spend = pallet_treasury::SpendStatus {
 					asset_kind,
 					amount,
 					beneficiary,
@@ -108,12 +109,12 @@ impl<T: Config> Pallet<T> {
 					status,
 				};
 				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {:?}", spend);
-				treasury_alias::Spends::<T>::insert(spend_index, spend);
+				pallet_treasury::Spends::<T>::insert(spend_index, spend);
 			},
-			RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
+			PortableTreasuryMessage::LastSpendPeriod(last_spend_period) => {
 				pallet_treasury::LastSpendPeriod::<T>::set(last_spend_period);
 			},
-			RcTreasuryMessage::Funds => {
+			PortableTreasuryMessage::Funds => {
 				Self::migrate_treasury_funds();
 			},
 		}
@@ -232,7 +233,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		)>,
 		u32,
 		Vec<ProposalIndex>,
-		Vec<(SpendIndex, RcSpendStatusOf<T>)>,
+		Vec<(SpendIndex, PortableSpendStatus)>,
 		u32,
 	);
 	type AhPrePayload = ();
@@ -259,20 +260,20 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 
 		// Assert storage 'Treasury::SpendCount::ah_pre::empty'
 		assert_eq!(
-			treasury_alias::SpendCount::<T>::get(),
+			pallet_treasury::SpendCount::<T>::get(),
 			0,
 			"SpendCount should be 0 on Asset Hub before migration"
 		);
 
 		// Assert storage 'Treasury::Spends::ah_pre::empty'
 		assert!(
-			treasury_alias::Spends::<T>::iter().next().is_none(),
+			pallet_treasury::Spends::<T>::iter().next().is_none(),
 			"Spends should be empty on Asset Hub before migration"
 		);
 	}
 
 	fn post_check(
-		(proposals, proposals_count, approvals, spends, spends_count): Self::RcPrePayload,
+		(proposals, proposals_count, approvals, rc_spends, spends_count): Self::RcPrePayload,
 		_: Self::AhPrePayload,
 	) {
 		// Assert storage 'Treasury::ProposalCount::ah_post::correct'
@@ -284,7 +285,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 
 		// Assert storage 'Treasury::SpendCount::ah_post::correct'
 		assert_eq!(
-			treasury_alias::SpendCount::<T>::get(),
+			pallet_treasury::SpendCount::<T>::get(),
 			spends_count,
 			"SpendCount on Asset Hub should match Relay Chain value"
 		);
@@ -343,28 +344,42 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		// Assert storage 'Treasury::SpendCount::ah_post::consistent'
 		// Assert storage 'Treasury::SpendCount::ah_post::length'
 		assert_eq!(
-			treasury_alias::Spends::<T>::iter_keys().count() as u32,
-			spends.len() as u32,
+			pallet_treasury::Spends::<T>::iter_keys().count() as u32,
+			rc_spends.len() as u32,
 			"Number of active spends on Asset Hub should match Relay Chain value"
 		);
 
 		// Assert storage 'Treasury::Spends::ah_post::consistent'
-		let mut ah_spends = Vec::new();
-		for (spend_id, spend) in treasury_alias::Spends::<T>::iter() {
-			ah_spends.push((
+		let mut ah_spends = pallet_treasury::Spends::<T>::iter().collect::<Vec<_>>();
+
+		let mut untranslated_rc_spends = Vec::new();
+		for (spend_id, spend) in rc_spends {
+			let translated_beneficiary =
+				crate::Pallet::<T>::translate_beneficiary_location(spend.beneficiary).unwrap();
+
+			let (asset_kind, beneficiary) =
+				T::RcToAhTreasurySpend::convert((spend.asset_kind, translated_beneficiary))
+					.unwrap();
+
+			untranslated_rc_spends.push((
 				spend_id,
-				RcSpendStatus {
+				pallet_treasury::SpendStatus {
+					asset_kind,
 					amount: spend.amount,
+					beneficiary,
 					valid_from: spend.valid_from,
 					expire_at: spend.expire_at,
-					status: spend.status.clone(),
+					status: spend.status.into(),
 				},
 			));
 		}
+
+		ah_spends.sort_by_encoded();
+		untranslated_rc_spends.sort_by_encoded(); // VersionedLocatableAsset is not Ord
+
 		// Assert storage 'Treasury::Spends::ah_post::correct'
-		assert_eq!(
-			ah_spends, spends,
-			"Spends on Asset Hub should match migrated Spends from the relay chain"
-		);
+		for (rc_spend, ah_spend) in untranslated_rc_spends.iter().zip(ah_spends.iter()) {
+			assert_eq!(rc_spend, ah_spend);
+		}
 	}
 }

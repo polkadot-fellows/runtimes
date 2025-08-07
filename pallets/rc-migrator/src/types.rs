@@ -22,6 +22,7 @@ use super::*;
 use alloc::string::String;
 use frame_support::traits::{tokens::IdAmount, ContainsPair};
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
+use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
 use xcm_builder::InspectMessageQueues;
@@ -96,7 +97,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 4)]
 	ReceivePreimageChunks { chunks: Vec<preimage::RcPreimageChunk> },
 	#[codec(index = 5)]
-	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
+	ReceivePreimageRequestStatus { request_status: Vec<preimage::PortableRequestStatus> },
 	#[codec(index = 6)]
 	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 	#[codec(index = 7)]
@@ -121,7 +122,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
-	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
+	ReceiveBagsListMessages { messages: Vec<staking::bags_list::PortableBagsListMessage> },
 	#[codec(index = 14)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 	#[codec(index = 15)]
@@ -139,7 +140,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
 	#[codec(index = 21)]
-	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
+	ReceiveTreasuryMessages { messages: Vec<treasury::PortableTreasuryMessage> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
 		messages: Vec<(

@@ -278,7 +278,7 @@ pub fn set_initial_migration_stage(
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStage::Scheduled { start: 0u32, cool_off_end: 0u32 }
+			RcMigrationStage::Scheduled { start: 0u32 }
 		};
 		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
 		stage
@@ -309,7 +309,7 @@ pub fn rc_migrate(relay_chain: &mut TestExternalities) -> Vec<InboundDownwardMes
 			dmps.extend(new_dmps);
 
 			match RcMigrationStageStorage::<Polkadot>::get() {
-				RcMigrationStage::WaitingForAh { .. } => {
+				RcMigrationStage::WaitingForAh => {
 					log::info!("Migration waiting for AH signal");
 					break dmps;
 				},

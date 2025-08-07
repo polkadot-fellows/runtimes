@@ -54,11 +54,13 @@ use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
 	sovereign_account_translation::{DERIVED_TRANSLATIONS, SOV_TRANSLATIONS},
 	types::AhMigrationCheck,
-	AhMigrationStage as AhMigrationStageStorage, MigrationStage as AhMigrationStage,
+	AhMigrationStage as AhMigrationStageStorage, MigrationEndBlock as AhMigrationEndBlock,
+	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
 use pallet_rc_migrator::{
 	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
-	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	types::RcMigrationCheck, MigrationEndBlock as RcMigrationEndBlock,
+	MigrationStage as RcMigrationStage, MigrationStartBlock as RcMigrationStartBlock,
 	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
@@ -633,6 +635,16 @@ async fn migration_works_time() {
 	let rc_block_end = rc.execute_with(frame_system::Pallet::<Polkadot>::block_number);
 	let ah_block_end = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
 
+	rc.execute_with(|| {
+		assert_eq!(RcMigrationStartBlock::<Polkadot>::get(), Some(rc_block_start + 1));
+		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(rc_block_end));
+	});
+
+	ah.execute_with(|| {
+		assert_eq!(AhMigrationStartBlock::<AssetHub>::get(), Some(ah_block_start + 1));
+		assert_eq!(AhMigrationEndBlock::<AssetHub>::get(), Some(ah_block_end));
+	});
+
 	// Post-checks on the Relay
 	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
 
@@ -656,11 +668,24 @@ async fn migration_works_time() {
 		AhMigrationStageStorage::<AssetHub>::put(AhMigrationStage::DataMigrationOngoing);
 	});
 
-	let ah_block_start = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
+	let new_ah_block_start = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
 
 	log::info!("Running the migration second time");
 
-	migrate(ah_block_start, &mut rc, &mut ah);
+	migrate(new_ah_block_start, &mut rc, &mut ah);
+
+	let new_rc_block_end = rc.execute_with(frame_system::Pallet::<Polkadot>::block_number);
+	let new_ah_block_end = ah.execute_with(frame_system::Pallet::<AssetHub>::block_number);
+
+	rc.execute_with(|| {
+		assert_eq!(RcMigrationStartBlock::<Polkadot>::get(), Some(rc_block_start + 1));
+		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(new_rc_block_end));
+	});
+
+	ah.execute_with(|| {
+		assert_eq!(AhMigrationStartBlock::<AssetHub>::get(), Some(ah_block_start + 1));
+		assert_eq!(AhMigrationEndBlock::<AssetHub>::get(), Some(new_ah_block_end));
+	});
 
 	// run post checks with the pre checks data from the first migration
 
@@ -700,7 +725,9 @@ async fn scheduled_migration_works() {
 	ah.commit_all().unwrap();
 
 	let mut start = 0u32;
-	let mut cool_off_end = 0u32;
+	let mut warm_up_end = 0u32;
+	// 2 blocks after the end of the data migration.
+	let cool_off_end = DispatchTime::After(2u32);
 
 	// Schedule the migration on RC.
 	let dmp_messages = rc.execute_with(|| {
@@ -709,7 +736,7 @@ async fn scheduled_migration_works() {
 
 		let now = frame_system::Pallet::<Polkadot>::block_number();
 		start = now + 2;
-		cool_off_end = start + 3;
+		warm_up_end = start + 3;
 
 		// Fellowship Origin
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
@@ -722,28 +749,26 @@ async fn scheduled_migration_works() {
 		assert_ok!(RcMigrator::schedule_migration(
 			origin.into(),
 			DispatchTime::At(start),
-			DispatchTime::At(cool_off_end),
+			DispatchTime::At(warm_up_end),
+			cool_off_end,
 		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { start, cool_off_end }
+			RcMigrationStage::Scheduled { start }
 		);
 
 		next_block_rc();
 		// migrating not yet started
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::Scheduled { start, cool_off_end }
+			RcMigrationStage::Scheduled { start }
 		);
 		assert_eq!(DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID).len(), 0);
 
 		next_block_rc();
 
 		// migration is waiting for AH to acknowledge the start
-		assert_eq!(
-			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::WaitingForAh { cool_off_end }
-		);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(!dmp_messages.is_empty());
 
@@ -783,26 +808,19 @@ async fn scheduled_migration_works() {
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
 
-		assert_eq!(
-			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::WaitingForAh { cool_off_end }
-		);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 
 		next_block_rc();
 
+		let end_at = warm_up_end;
+
 		// cooling off
-		assert_eq!(
-			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::CoolOff { cool_off_end }
-		);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WarmUp { end_at });
 
 		next_block_rc();
 
 		// still cooling off
-		assert_eq!(
-			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::CoolOff { cool_off_end }
-		);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WarmUp { end_at });
 
 		next_block_rc();
 
@@ -815,6 +833,43 @@ async fn scheduled_migration_works() {
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
 			RcMigrationStage::AccountsMigrationInit
+		);
+	});
+	rc.commit_all().unwrap();
+
+	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
+	rc.execute_with(|| {
+		log::info!("Fast forward to the data migrating finish");
+
+		RcMigrationStageStorage::<Polkadot>::set(RcMigrationStage::StakingMigrationDone);
+
+		let now = frame_system::Pallet::<Polkadot>::block_number();
+
+		next_block_rc();
+
+		let now = now + 1;
+		let end_at = cool_off_end.evaluate(now);
+
+		// cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { end_at }
+		);
+
+		next_block_rc();
+
+		// still cooling off
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::CoolOff { end_at }
+		);
+
+		next_block_rc();
+
+		// cool-off end
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::SignalMigrationFinish
 		);
 	});
 	rc.commit_all().unwrap();

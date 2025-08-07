@@ -7979,6 +7979,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+ "system-parachains-common",
 ]
 
 [[package]]
@@ -10203,8 +10204,11 @@ dependencies = [
  "pallet-indices",
  "pallet-message-queue",
  "pallet-multisig",
+ "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-referenda",
+ "pallet-staking-async",
  "pallet-timestamp",
  "pallet-whitelist",
  "pallet-xcm",
