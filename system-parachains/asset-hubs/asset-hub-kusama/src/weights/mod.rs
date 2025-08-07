@@ -33,7 +33,8 @@ pub mod pallet_nft_fractionalization;
 pub mod pallet_nfts;
 pub mod pallet_proxy;
 pub mod pallet_remote_proxy;
-pub mod pallet_revive;
+// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
+// pub mod pallet_revive;
 pub mod pallet_session;
 pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;

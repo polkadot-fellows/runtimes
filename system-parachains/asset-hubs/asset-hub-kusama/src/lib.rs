@@ -39,13 +39,41 @@ use assets_common::{
 	matching::FromSiblingParachain,
 	AssetIdForTrustBackedAssetsConvert,
 };
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use frame_support::{
+	construct_runtime,
+	dispatch::DispatchClass,
+	genesis_builder_helper::{build_state, get_preset},
+	ord_parameter_types, parameter_types,
+	traits::{
+		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
+		ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, Equals, EverythingBut,
+		InstanceFilter, TransformOrigin, WithdrawReasons,
+	},
+	weights::{ConstantMultiplier, Weight},
+	BoundedVec, PalletId,
+};
+use frame_system::{
+	limits::{BlockLength, BlockWeights},
+	EnsureRoot, EnsureSigned, EnsureSignedBy,
+};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
+use pallet_assets::precompiles::{InlineIdConfig, ERC20};
+use pallet_nfts::PalletFeatures;
 use pallet_proxy::ProxyDefinition;
-use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
+use pallet_revive::evm::runtime::EthExtra;
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
+use parachains_common::{
+	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
+	Header, Nonce, Signature,
+};
+use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160, U256};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
@@ -53,37 +81,11 @@ use sp_runtime::{
 		Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill,
+	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
 };
-
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
-use frame_support::{
-	construct_runtime,
-	dispatch::{DispatchClass, DispatchInfo},
-	genesis_builder_helper::{build_state, get_preset},
-	ord_parameter_types, parameter_types,
-	traits::{
-		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
-		ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, Equals, EverythingBut,
-		InstanceFilter, Nothing, TransformOrigin, WithdrawReasons,
-	},
-	weights::{ConstantMultiplier, Weight, WeightToFee as _},
-	BoundedVec, PalletId,
-};
-use frame_system::{
-	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned, EnsureSignedBy,
-};
-use pallet_nfts::PalletFeatures;
-use parachains_common::{
-	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
-	Header, Nonce, Signature,
-};
-use sp_runtime::{traits::TransactionExtension, RuntimeDebug};
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
@@ -98,6 +100,7 @@ use system_parachains_constants::{
 		fee::WeightToFee,
 	},
 };
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::prelude::*, Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets,
 	VersionedLocation, VersionedXcm,
@@ -111,15 +114,6 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
-
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-
-// Polkadot imports
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-
-use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -704,6 +698,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
 	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
+	type RelayParentOffset = ConstU32<0>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -1040,12 +1035,17 @@ impl pallet_revive::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
-	type CallFilter = Nothing;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
-	type WeightInfo = weights::pallet_revive::WeightInfo<Self>;
-	type ChainExtension = ();
+	// TODO(#840): use `weights::pallet_revive::WeightInfo` here
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type Precompiles = (
+		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
+		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
+		// ERC20<Self, InlineIdConfig<0x220>, ForeignAssetsInstance>,
+		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
+	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
 	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
@@ -1054,7 +1054,6 @@ impl pallet_revive::Config for Runtime {
 	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
-	type Xcm = pallet_xcm::Pallet<Self>;
 	type ChainId = ConstU64<420_420_418>;
 	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
 	type EthGasEncoder = ();
@@ -1160,18 +1159,6 @@ impl EthExtra for EthExtraImpl {
 	}
 }
 
-// This impl is no longer necessary post stable-2506.
-impl TryFrom<RuntimeCall> for pallet_revive::Call<Runtime> {
-	type Error = ();
-
-	fn try_from(value: RuntimeCall) -> Result<Self, Self::Error> {
-		match value {
-			RuntimeCall::Revive(call) => Ok(call),
-			_ => Err(()),
-		}
-	}
-}
-
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
@@ -1270,7 +1257,8 @@ mod benches {
 	use super::*;
 	use alloc::boxed::Box;
 	use frame_support::assert_ok;
-	use system_parachains_constants::kusama::locations::{PeopleLocation, PeopleParaId};
+	use kusama_runtime_constants::system_parachain::PeopleParaId;
+	use system_parachains_constants::kusama::locations::PeopleLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -1288,7 +1276,8 @@ mod benches {
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
 		[pallet_remote_proxy, RemoteProxyRelayChain]
-		[pallet_revive, Revive]
+		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
+		// [pallet_revive, Revive]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
@@ -1619,8 +1608,11 @@ mod benches {
 			Ok((origin, ticket, assets))
 		}
 
-		fn fee_asset() -> Result<Asset, BenchmarkError> {
-			Ok(Asset { id: AssetId(KsmLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+		fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
+			Ok((
+				Asset { id: AssetId(KsmLocation::get()), fun: Fungible(1_000 * UNITS) },
+				Limited(Weight::from_parts(5000, 5000)),
+			))
 		}
 
 		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
@@ -1693,7 +1685,10 @@ mod benches {
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
-impl_runtime_apis! {
+pallet_revive::impl_runtime_apis_plus_revive!(
+	Runtime,
+	Executive,
+	EthExtraImpl,
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
 		fn slot_duration() -> sp_consensus_aura::SlotDuration {
 			sp_consensus_aura::SlotDuration::from_millis(SLOT_DURATION)
@@ -1701,6 +1696,12 @@ impl_runtime_apis! {
 
 		fn authorities() -> Vec<AuraId> {
 			pallet_aura::Authorities::<Runtime>::get().into_inner()
+		}
+	}
+
+	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
+		fn relay_parent_offset() -> u32 {
+			0
 		}
 	}
 
@@ -1873,33 +1874,9 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			let native_asset = KsmLocation::get();
-			let fee_in_native = WeightToFee::weight_to_fee(&weight);
-			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
-			match latest_asset_id {
-				Ok(asset_id) if asset_id.0 == native_asset => {
-					// for native asset
-					Ok(fee_in_native)
-				},
-				Ok(asset_id) => {
-					// Try to get current price of `asset_id` in `native_asset`.
-					if let Ok(Some(swapped_in_native)) = assets_common::PoolAdapter::<Runtime>::quote_price_tokens_for_exact_tokens(
-							asset_id.0.clone(),
-							native_asset,
-							fee_in_native,
-							true, // We include the fee.
-						) {
-						Ok(swapped_in_native)
-					} else {
-						log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
-						Err(XcmPaymentApiError::AssetNotFound)
-					}
-				},
-				Err(_) => {
-					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
-					Err(XcmPaymentApiError::VersionedConversionFailed)
-				}
-			}
+			use crate::xcm_config::XcmConfig;
+			type Trader = <XcmConfig as xcm_executor::Config>::Trader;
+			PolkadotXcm::query_weight_to_asset_fee::<Trader>(weight, asset)
 		}
 
 		fn query_xcm_weight(message: VersionedXcm<()>) -> Result<Weight, XcmPaymentApiError> {
@@ -2017,173 +1994,6 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_revive::ReviveApi<Block, AccountId, Balance, Nonce, BlockNumber> for Runtime
-	{
-		fn balance(address: H160) -> U256 {
-			Revive::evm_balance(&address)
-		}
-
-		fn block_gas_limit() -> U256 {
-			Revive::evm_block_gas_limit()
-		}
-
-		fn gas_price() -> U256 {
-			Revive::evm_gas_price()
-		}
-
-		fn nonce(address: H160) -> Nonce {
-			let account = <Runtime as pallet_revive::Config>::AddressMapper::to_account_id(&address);
-			System::account_nonce(account)
-		}
-
-		fn eth_transact(tx: pallet_revive::evm::GenericTransaction) -> Result<pallet_revive::EthTransactInfo<Balance>, pallet_revive::EthTransactError>
-		{
-			let blockweights: BlockWeights = <Runtime as frame_system::Config>::BlockWeights::get();
-			let tx_fee = |pallet_call, mut dispatch_info: DispatchInfo| {
-				let call = RuntimeCall::Revive(pallet_call);
-				dispatch_info.extension_weight = EthExtraImpl::get_eth_extension(0, 0u32.into()).weight(&call);
-				let uxt: UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic::new_bare(call).into();
-
-				pallet_transaction_payment::Pallet::<Runtime>::compute_fee(
-					uxt.encoded_size() as u32,
-					&dispatch_info,
-					0u32.into(),
-				)
-			};
-
-			Revive::bare_eth_transact(tx, blockweights.max_block, tx_fee)
-		}
-
-		fn call(
-			origin: AccountId,
-			dest: H160,
-			value: Balance,
-			gas_limit: Option<Weight>,
-			storage_deposit_limit: Option<Balance>,
-			input_data: Vec<u8>,
-		) -> pallet_revive::ContractResult<pallet_revive::ExecReturnValue, Balance> {
-			let blockweights= <Runtime as frame_system::Config>::BlockWeights::get();
-			Revive::bare_call(
-				RuntimeOrigin::signed(origin),
-				dest,
-				value,
-				gas_limit.unwrap_or(blockweights.max_block),
-				pallet_revive::DepositLimit::Balance(storage_deposit_limit.unwrap_or(u128::MAX)),
-				input_data,
-			)
-		}
-
-		fn instantiate(
-			origin: AccountId,
-			value: Balance,
-			gas_limit: Option<Weight>,
-			storage_deposit_limit: Option<Balance>,
-			code: pallet_revive::Code,
-			data: Vec<u8>,
-			salt: Option<[u8; 32]>,
-		) -> pallet_revive::ContractResult<pallet_revive::InstantiateReturnValue, Balance>
-		{
-			let blockweights= <Runtime as frame_system::Config>::BlockWeights::get();
-			Revive::bare_instantiate(
-				RuntimeOrigin::signed(origin),
-				value,
-				gas_limit.unwrap_or(blockweights.max_block),
-				pallet_revive::DepositLimit::Balance(storage_deposit_limit.unwrap_or(u128::MAX)),
-				code,
-				data,
-				salt,
-			)
-		}
-
-		fn upload_code(
-			origin: AccountId,
-			code: Vec<u8>,
-			storage_deposit_limit: Option<Balance>,
-		) -> pallet_revive::CodeUploadResult<Balance>
-		{
-			Revive::bare_upload_code(
-				RuntimeOrigin::signed(origin),
-				code,
-				storage_deposit_limit.unwrap_or(u128::MAX),
-			)
-		}
-
-		fn get_storage(
-			address: H160,
-			key: [u8; 32],
-		) -> pallet_revive::GetStorageResult {
-			Revive::get_storage(
-				address,
-				key
-			)
-		}
-
-		fn trace_block(
-			block: Block,
-			tracer_type: pallet_revive::evm::TracerType,
-		) -> Vec<(u32, pallet_revive::evm::Trace)> {
-			use pallet_revive::tracing::trace;
-			let mut tracer = Revive::evm_tracer(tracer_type);
-			let mut traces = vec![];
-			let (header, extrinsics) = block.deconstruct();
-			Executive::initialize_block(&header);
-			for (index, ext) in extrinsics.into_iter().enumerate() {
-				trace(tracer.as_tracing(), || {
-					let _ = Executive::apply_extrinsic(ext);
-				});
-
-				if let Some(tx_trace) = tracer.collect_trace() {
-					traces.push((index as u32, tx_trace));
-				}
-			}
-
-			traces
-		}
-
-		fn trace_tx(
-			block: Block,
-			tx_index: u32,
-			tracer_type: pallet_revive::evm::TracerType,
-		) -> Option<pallet_revive::evm::Trace> {
-			use pallet_revive::tracing::trace;
-			let mut tracer = Revive::evm_tracer(tracer_type);
-			let (header, extrinsics) = block.deconstruct();
-
-			Executive::initialize_block(&header);
-			for (index, ext) in extrinsics.into_iter().enumerate() {
-				if index as u32 == tx_index {
-				trace(tracer.as_tracing(), || {
-						let _ = Executive::apply_extrinsic(ext);
-					});
-					break;
-				} else {
-					let _ = Executive::apply_extrinsic(ext);
-				}
-			}
-
-			tracer.collect_trace()
-		}
-
-		fn trace_call(
-			tx: pallet_revive::evm::GenericTransaction,
-			tracer_type: pallet_revive::evm::TracerType,
-			)
-			-> Result<pallet_revive::evm::Trace, pallet_revive::EthTransactError>
-		{
-			use pallet_revive::tracing::trace;
-			let mut tracer = Revive::evm_tracer(tracer_type);
-			let result = trace(tracer.as_tracing(), || Self::eth_transact(tx));
-
-			if let Some(trace) = tracer.collect_trace() {
-				Ok(trace)
-			} else if let Err(err) = result {
-				Err(err)
-			} else {
-				Ok(tracer.empty_trace())
-			}
-		}
-	}
-
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
@@ -2227,7 +2037,7 @@ impl_runtime_apis! {
 			Ok(batches)
 		}
 	}
-}
+);
 
 cumulus_pallet_parachain_system::register_validate_block! {
 	Runtime = Runtime,

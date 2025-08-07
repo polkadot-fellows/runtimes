@@ -15,11 +15,12 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::XcmOverBridgeHubKusama;
+use bridge_hub_common::DenyExportMessageFrom;
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balance, Balances,
-	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
-	Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balance, Balances, CollatorSelection, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::bridge_to_ethereum_config::SnowbridgeFrontendLocation;
 use core::marker::PhantomData;
@@ -27,7 +28,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		Everything, EverythingBut, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -38,27 +39,25 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
-use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
+pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+use system_parachains_constants::{
+	polkadot::locations::{AssetHubLocation, EthereumNetwork},
+	TREASURY_PALLET_ID,
+};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
-	AllowHrmpNotificationsFromRelayChain, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
-	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, ExternalConsensusLocationsConverterFor,
-	FrameTransactionalProcessor, FungibleAdapter, HandleFee, HashedDescription, IsConcrete,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	AllowHrmpNotificationsFromRelayChain, AllowKnownQueryResponses, AllowSubscriptionsFrom, ExternalConsensusLocationsConverterFor,
+	AllowTopLevelPaidExecutionFrom, DenyRecursively, DenyReserveTransferToRelayChain, DenyThenTry,
+	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
+	FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{
-	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export},
-	XcmExecutor,
-};
-
-pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -161,7 +160,15 @@ impl Contains<Location> for FellowsPlurality {
 
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
-		DenyReserveTransferToRelayChain,
+		(
+			DenyRecursively<DenyReserveTransferToRelayChain>,
+			DenyRecursively<
+				DenyExportMessageFrom<
+					EverythingBut<Equals<AssetHubLocation>>,
+					Equals<EthereumNetwork>,
+				>,
+			>,
+		),
 		(
 			// Allow local users to buy weight credit.
 			TakeWeightCredit,
@@ -178,6 +185,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						FellowsPlurality,
 						Equals<RelayTreasuryLocation>,
+						Equals<AssetHubLocation>,
 						Equals<SnowbridgeFrontendLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
@@ -244,19 +252,9 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	type FeeManager = XcmFeeManagerFromComponentsBridgeHub<
+	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		(
-			XcmExportFeeToSibling<
-				Balance,
-				AccountId,
-				DotRelayLocation,
-				EthereumNetwork,
-				Self::AssetTransactor,
-				crate::EthereumOutboundQueue,
-			>,
-			SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
-		),
+		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
 	>;
 	type MessageExporter = (
 		XcmOverBridgeHubKusama,
@@ -337,29 +335,4 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-
-/// A `FeeManager` implementation that forces fees for any message delivered to Ethereum.
-///
-/// Otherwise, it permits the specified `WaivedLocations` to not pay for fees and uses the provided
-/// `HandleFee` implementation.
-pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
-	PhantomData<(WaivedLocations, HandleFee)>,
-);
-impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
-	for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
-{
-	fn is_waived(origin: Option<&Location>, fee_reason: FeeReason) -> bool {
-		let Some(loc) = origin else { return false };
-		if let Export { network, destination: Here } = fee_reason {
-			if network == EthereumNetwork::get() {
-				return false;
-			}
-		}
-		WaivedLocations::contains(loc)
-	}
-
-	fn handle_fee(fee: Assets, context: Option<&XcmContext>, reason: FeeReason) {
-		FeeHandler::handle_fee(fee, context, reason);
-	}
 }
