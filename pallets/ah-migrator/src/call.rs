@@ -47,7 +47,6 @@ impl<T: Config> Pallet<T> {
 		let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
 			call
 		} else {
-			log::error!(target: LOG_TARGET, "Failed to convert call: {:?}", rc_bounded_call);
 			return Err(Error::<T>::FailedToConvertCall);
 		};
 
