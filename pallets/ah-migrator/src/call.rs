@@ -22,8 +22,9 @@ pub type BoundedCallOf<T> =
 
 impl<T: Config> Pallet<T> {
 	// Maps a RC BoundedCall to an AH BoundedCall.
-	// This function also unrequests the preimage if it was requested. As a side effect, it may
-	// delete the preimage hash from storage.
+	// The preimage from the RC BoundedCall is unrequested on the relay chain, then re-created on
+	// Asset Hub with translated parameters. Notice that the unrequest operation may delete the
+	// preimage hash from storage.
 	pub fn map_rc_ah_call(
 		rc_bounded_call: &BoundedCallOf<T>,
 	) -> Result<BoundedCallOf<T>, Error<T>> {
@@ -46,6 +47,7 @@ impl<T: Config> Pallet<T> {
 		let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
 			call
 		} else {
+			log::error!(target: LOG_TARGET, "Failed to convert call: {:?}", rc_bounded_call);
 			return Err(Error::<T>::FailedToConvertCall);
 		};
 
@@ -57,9 +59,8 @@ impl<T: Config> Pallet<T> {
 		})?;
 
 		if let Some(hash) = ah_bounded_call.lookup_hash() {
-			if unrequested_preimage {
-				log::debug!(target: LOG_TARGET, "Unrequesting preimage with hash {:?} which was unrequested on RC", hash);
-				T::Preimage::unrequest(&hash);
+			if T::Preimage::is_requested(&hash) && unrequested_preimage {
+				log::warn!(target: LOG_TARGET, "RC unrequested preimage has become requested on AH with hash {:?}", hash);
 			}
 		}
 

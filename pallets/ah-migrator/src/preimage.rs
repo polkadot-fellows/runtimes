@@ -297,17 +297,6 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			);
 		}
 
-		let new_preimages_count = pallet_preimage::PreimageFor::<T>::iter_keys().count();
-		// Some preimages may have been deleted as a side effect of being unrequested during
-		// migration.
-		if new_preimages_count != rc_pre_payload.len() {
-			log::warn!(
-				"Preimage::PreimageFor and relay chain payload have different size: {} vs {}",
-				new_preimages_count,
-				rc_pre_payload.len(),
-			);
-		}
-
 		// All items have been successfully migrated from the relay chain
 		// Assert storage "Preimage::PreimageFor::ah_post::correct"
 		for (hash, len) in rc_pre_payload.iter() {
@@ -362,7 +351,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 					);
 					assert!(
 						!requested,
-						"Preimage with hash {:?} should be requested on Asset Hub, but is unrequested instead",
+						"Preimage with hash {:?} was requested on the relay chain, but has become unrequested on Asset Hub",
 						hash
 					);
 				},
@@ -373,14 +362,14 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 					);
 					assert!(
 						requested,
-						"Preimage with hash {:?} should be unrequested on Asset Hub, but is requested instead",
+						"Preimage with hash {:?} was unrequested on the relay chain, but has become requested on Asset Hub",
 						hash
 					);
 				},
 				pallet_preimage::RequestStatus::Requested { .. } => {
 					assert!(
 						requested,
-						"Preimage with hash {:?} should be unrequested on Asset Hub, but is requested instead",
+						"Preimage with hash {:?} was requested on the relay chain, but has become unrequested on Asset Hub",
 						hash
 					);
 				},
