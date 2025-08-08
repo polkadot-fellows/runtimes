@@ -518,7 +518,7 @@ pub type XcmRouter = WithUniqueTopic<(
 	// TODO update when https://github.com/paritytech/polkadot-sdk/commit/40e3fcb050147c89e80c3dc1d47599ce23c619ed
 	PausableExporter<
 		crate::SnowbridgeSystemFrontend,
-		SovereignPaidRemoteExporter<
+		UnpaidRemoteExporter<
 			(
 				bridging::to_ethereum::EthereumNetworkExportTableV2,
 				bridging::to_ethereum::EthereumNetworkExportTableV1,

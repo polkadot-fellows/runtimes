@@ -23,7 +23,6 @@ use super::{
 	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::bridge_to_ethereum_config::SnowbridgeFrontendLocation;
-use core::marker::PhantomData;
 use frame_support::{
 	parameter_types,
 	traits::{

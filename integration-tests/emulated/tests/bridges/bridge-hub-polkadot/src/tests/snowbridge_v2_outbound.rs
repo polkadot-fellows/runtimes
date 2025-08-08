@@ -32,9 +32,7 @@ use xcm::v5::AssetTransferFilter;
 #[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
 pub enum EthereumSystemFrontendCall {
 	#[codec(index = 1)]
-	//RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset
-	// }, // TODO when upgraded
-	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata },
+	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset },
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -133,6 +131,8 @@ pub fn register_relay_token_from_asset_hub_with_sudo() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+		let fees_asset = Asset { id: AssetId(eth_location()), fun: Fungible(1) };
+
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
 				RuntimeOrigin::root(),
@@ -141,7 +141,8 @@ pub fn register_relay_token_from_asset_hub_with_sudo() {
 					name: "dot".as_bytes().to_vec().try_into().unwrap(),
 					symbol: "dot".as_bytes().to_vec().try_into().unwrap(),
 					decimals: 12,
-				}
+				},
+				fees_asset
 			)
 		);
 	});
@@ -165,6 +166,8 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+		let fees_asset = Asset { id: AssetId(eth_location()), fun: Fungible(1) };
+
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
 				RuntimeOrigin::signed(AssetHubPolkadotAssetOwner::get()),
@@ -174,6 +177,7 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 					symbol: "usdt".as_bytes().to_vec().try_into().unwrap(),
 					decimals: 6,
 				},
+				fees_asset
 			)
 		);
 	});
@@ -587,6 +591,7 @@ fn register_token_from_penpal() {
 			EthereumSystemFrontendCall::RegisterToken {
 				asset_id: Box::new(VersionedLocation::from(foreign_asset_at_asset_hub)),
 				metadata: Default::default(),
+				fee_asset: remote_fee_asset_on_ethereum.clone(),
 			},
 		);
 
@@ -879,7 +884,10 @@ fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode()
 				bx!(xcm),
 				Weight::from(EXECUTION_WEIGHT),
 			),
-			pallet_xcm::Error::<Runtime>::LocalExecutionIncomplete {}
+			pallet_xcm::Error::<Runtime>::LocalExecutionIncompleteWithError {
+				index: 2,
+				error: XcmError::Unroutable.into()
+			}
 		);
 	});
 }
