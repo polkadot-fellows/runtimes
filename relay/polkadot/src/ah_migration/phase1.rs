@@ -121,7 +121,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Paras(..) => (ON, ON),       // OK? WHY?
 		Initializer(..) => (ON, ON), // OK? WHY?
 		// Dmp has no calls and deprecated
-		Hrmp(..) => (ON, ON), // open close hrmp channels by parachains or root force calls
+		Hrmp(..) => (ON, ON), /* open close hrmp channels by parachains or root force calls. no
+		                        * concerns. */
 		// ParaSessionInfo has no calls
 		ParasDisputes(..) => (ON, ON), // OK? WHY?
 		ParasSlashing(..) => (ON, ON), // OK? WHY?
