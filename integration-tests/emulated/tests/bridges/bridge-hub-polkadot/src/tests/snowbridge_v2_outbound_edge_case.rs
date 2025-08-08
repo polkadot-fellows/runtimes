@@ -63,6 +63,7 @@ fn register_penpal_a_asset_from_penpal_b_will_fail() {
 			EthereumSystemFrontendCall::RegisterToken {
 				asset_id: Box::new(VersionedLocation::from(penpal_a_asset_at_asset_hub)),
 				metadata: Default::default(),
+				fee_asset: remote_fee_asset_on_ethereum.clone(),
 			},
 		);
 

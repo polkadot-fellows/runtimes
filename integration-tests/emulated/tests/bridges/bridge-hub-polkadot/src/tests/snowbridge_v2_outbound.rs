@@ -32,9 +32,7 @@ use xcm::v5::AssetTransferFilter;
 #[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
 pub enum EthereumSystemFrontendCall {
 	#[codec(index = 1)]
-	//RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset
-	// }, // TODO when upgraded
-	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata },
+	RegisterToken { asset_id: Box<VersionedLocation>, metadata: AssetMetadata, fee_asset: Asset },
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -593,6 +591,7 @@ fn register_token_from_penpal() {
 			EthereumSystemFrontendCall::RegisterToken {
 				asset_id: Box::new(VersionedLocation::from(foreign_asset_at_asset_hub)),
 				metadata: Default::default(),
+				fee_asset: remote_fee_asset_on_ethereum.clone(),
 			},
 		);
 
