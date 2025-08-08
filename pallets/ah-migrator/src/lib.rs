@@ -247,8 +247,7 @@ pub mod pallet {
 			Votes = u128,
 		> + pallet_nomination_pools::Config<
 			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
-		>
-		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
+		> + pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config

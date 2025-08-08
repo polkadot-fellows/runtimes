@@ -33,17 +33,13 @@
 
 use crate::porting_prelude::*;
 
-use super::{
-	accounts_translation_works::AccountTranslationWorks,
-	balances_test::BalancesCrossChecker,
-	checks::SanityChecks,
-	mock::*,
-	multisig_still_work::MultisigStillWork,
-	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::ProxyBasicWorks,
-};
 #[cfg(not(feature = "paseo"))]
 use super::proxy::ProxyWhaleWatching;
+use super::{
+	accounts_translation_works::AccountTranslationWorks, balances_test::BalancesCrossChecker,
+	checks::SanityChecks, mock::*, multisig_still_work::MultisigStillWork,
+	multisig_test::MultisigsAccountIdStaysTheSame, proxy::ProxyBasicWorks,
+};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
