@@ -79,21 +79,21 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 	const OFF: bool = false;
 
 	match call {
-		System(..) => (ON, ON),
+		System(..) => (ON, ON), // remark plust root calls
 		Scheduler(..) => (OFF, OFF),
 		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON),
-		Timestamp(..) => (ON, ON),
+		Babe(..) => (ON, ON),      // OK? WHY?
+		Timestamp(..) => (ON, ON), // only `set` inherit
 		Indices(..) => (OFF, OFF),
 		Balances(..) => (OFF, ON),
 		// TransactionPayment has no calls
 		// Authorship has no calls
 		Staking(..) => (OFF, OFF),
-		StakingAhClient(..) => (ON, ON),
+		StakingAhClient(..) => (ON, ON), // OK? WHY?
 		// Offences has no calls
 		// Historical has no calls
 		Session(..) => (OFF, ON), // TODO: should be OFF during migration?
-		Grandpa(..) => (ON, ON),
+		Grandpa(..) => (ON, ON),  // OK? WHY?
 		// AuthorityDiscovery has no calls
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
@@ -118,13 +118,13 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		ParaInclusion(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/74ec1ee226ace087748f38dfeffc869cd5534ac8/polkadot/runtime/parachains/src/inclusion/mod.rs#L352-L353 */
 		ParaInherent(..) => (ON, ON),    // only inherents
 		// ParaScheduler has no calls
-		Paras(..) => (ON, ON),
-		Initializer(..) => (ON, ON),
+		Paras(..) => (ON, ON),       // OK? WHY?
+		Initializer(..) => (ON, ON), // OK? WHY?
 		// Dmp has no calls and deprecated
-		Hrmp(..) => (ON, ON),
+		Hrmp(..) => (ON, ON), // open close hrmp channels by parachains or root force calls
 		// ParaSessionInfo has no calls
-		ParasDisputes(..) => (ON, ON),
-		ParasSlashing(..) => (ON, ON),
+		ParasDisputes(..) => (ON, ON), // OK? WHY?
+		ParasSlashing(..) => (ON, ON), // OK? WHY?
 		OnDemand(..) => (OFF, ON),
 		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
@@ -137,14 +137,15 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		) => (OFF, ON),
 		Crowdloan(..) => (OFF, OFF),
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
-		Coretime(..) => (ON, ON),
+		Coretime(..) => (ON, ON),             // OK? WHY?
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
-		XcmPallet(..) => (ON, ON),
-		MessageQueue(..) => (ON, ON),
+		XcmPallet(..) => (ON, ON),            /* during migration can only send XCMs to other */
+		// Parachains and cannot to Asset Hub.
+		MessageQueue(..) => (ON, ON), // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (ON, ON),
-		RcMigrator(..) => (ON, ON),
-		// Exhaustive match. Compiler ensures that we did not miss any.
+		Beefy(..) => (ON, ON), // OK? WHY?
+		RcMigrator(..) => (ON, ON), /* required for the migration, only permissioned calls
+		                         * Exhaustive match. Compiler ensures that we did not miss any. */
 	}
 }
 
