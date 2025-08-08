@@ -88,7 +88,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Balances(..) => (OFF, ON), // Disabled during migration to avoid confusing externals.
 		Staking(..) => (OFF, OFF),
 		StakingAhClient(..) => (ON, ON), // Only permissioned calls and needed for the migration.
-		Session(..) => (OFF, ON),        // TODO: should be OFF during migration?
+		Session(..) => (ON, ON),         // Does not affect any migrating pallet.
 		Grandpa(..) => (ON, ON),         // OK? WHY?
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),

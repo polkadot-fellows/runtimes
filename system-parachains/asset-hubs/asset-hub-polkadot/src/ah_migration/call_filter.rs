@@ -94,8 +94,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Nfts(..) => ON, // no reason to disable it, just convenience
 		NominationPools(..) => OFF,
 		ParachainInfo(parachain_info::Call::__Ignore { .. }) => OFF, // Has no calls
-		ParachainSystem(..) => ON,                                   /* Only inherent and root
-		                                                               * calls */
+		ParachainSystem(..) => ON,                                   /* Only inherent and root */
+		// calls
 		PolkadotXcm(..) => ON, // no reason to disable it, just convenience
 		PoolAssets(..) => ON,  // no reason to disable it, just convenience
 		Preimage(..) => OFF,
