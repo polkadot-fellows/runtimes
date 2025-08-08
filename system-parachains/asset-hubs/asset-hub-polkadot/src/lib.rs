@@ -673,7 +673,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						RuntimeCall::Session(..) |
 						RuntimeCall::Utility(..) |
 						RuntimeCall::NominationPools(..) |
-						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..)
 				)
 			},
@@ -1267,7 +1266,6 @@ construct_runtime!(
 		// Staking in the 80s
 		Staking: pallet_staking_async = 89,
 		NominationPools: pallet_nomination_pools = 80,
-		FastUnstake: pallet_fast_unstake = 81,
 		VoterList: pallet_bags_list::<Instance1> = 82,
 		DelegatedStaking: pallet_delegated_staking = 83,
 		StakingRcClient: pallet_staking_async_rc_client = 84,
@@ -1449,7 +1447,6 @@ mod benches {
 		// Staking
 		[pallet_staking_async, Staking]
 		// TODO @ggwpez [pallet_nomination_pools, NominationPools] Does not work since it depends on pallet-staking being deployed, but we only have pallet-staking-async :(
-		[pallet_fast_unstake, FastUnstake]
 		[pallet_bags_list, VoterList]
 		// DelegatedStaking has no calls
 		// TODO @ggwpez [pallet_staking_async_rc_client, StakingRcClient]

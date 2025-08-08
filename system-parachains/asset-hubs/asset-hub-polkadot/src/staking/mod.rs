@@ -106,27 +106,6 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	// 1% of the Relay Chain's deposit
-	pub const FastUnstakeDeposit: Balance = UNITS / 100;
-}
-
-impl pallet_fast_unstake::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type BatchSize = frame_support::traits::ConstU32<16>;
-	type Deposit = FastUnstakeDeposit;
-	type ControlOrigin = EnsureRoot<AccountId>;
-	type Staking = Staking;
-	type MaxErasToCheckPerBlock = ConstU32<1>;
-	// We use a special weight info here for the migration to allow us to pause the `on_idle` logic
-	// of the `fast_unstake` pallet by setting the idle weight to zero.
-	type WeightInfo = pallet_ah_migrator::MaxOnIdleOrInner<
-		AhMigrator,
-		weights::pallet_fast_unstake::WeightInfo<Runtime>,
-	>;
-}
-
-parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bags_thresholds::THRESHOLDS;
 }
 

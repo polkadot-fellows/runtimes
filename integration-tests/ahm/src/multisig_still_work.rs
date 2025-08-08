@@ -16,9 +16,7 @@
 
 //! Test that Multisig Account IDs result in the same IDs and they can still dispatch calls.
 
-use frame_support::{
-	dispatch::GetDispatchInfo, hypothetically, pallet_prelude::Weight, traits::Currency,
-};
+use frame_support::{dispatch::GetDispatchInfo, pallet_prelude::Weight, traits::Currency};
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use rand::{prelude::SliceRandom, Rng};

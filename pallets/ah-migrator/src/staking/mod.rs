@@ -21,6 +21,5 @@ pub mod bags_list;
 #[cfg(feature = "std")]
 pub mod checks;
 pub mod delegated_staking;
-pub mod fast_unstake;
 pub mod nom_pools;
 pub mod staking;
