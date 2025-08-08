@@ -40,8 +40,10 @@ use super::{
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+	proxy::ProxyBasicWorks,
 };
+#[cfg(not(feature = "paseo"))]
+use super::proxy::ProxyWhaleWatching;
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
@@ -117,6 +119,7 @@ pub type RcRuntimeSpecificChecks = (
 // Checks that are specific to Paseo.
 #[cfg(feature = "paseo")]
 pub type RcRuntimeSpecificChecks = (
+	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
@@ -166,6 +169,7 @@ pub type AhRuntimeSpecificChecks = (
 
 #[cfg(feature = "paseo")]
 pub type AhRuntimeSpecificChecks = (
+	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
