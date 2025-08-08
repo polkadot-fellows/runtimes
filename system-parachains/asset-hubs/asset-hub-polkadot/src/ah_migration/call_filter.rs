@@ -71,7 +71,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 
 	let during_migration = match call {
 		AhMigrator(..) => ON, // required for the migration, only permissioned calls
-		AhOps(..) => OFF,
+		AhOps(..) => OFF,     // Not needed during the migration
 		AssetConversion(..) => ON, // no reason to disable it, just convenience
 		AssetRate(..) => OFF,
 		Assets(..) => ON,   // no reason to disable it, just convenience
@@ -93,19 +93,20 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Multisig(..) => OFF,
 		Nfts(..) => ON, // no reason to disable it, just convenience
 		NominationPools(..) => OFF,
-		ParachainInfo(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		ParachainSystem(..) => ON, // Only inherent and root calls
-		PolkadotXcm(..) => ON,    // no reason to disable it, just convenience
-		PoolAssets(..) => ON,     // no reason to disable it, just convenience
+		ParachainInfo(parachain_info::Call::__Ignore { .. }) => OFF, // Has no calls
+		ParachainSystem(..) => ON,                                   /* Only inherent and root
+		                                                               * calls */
+		PolkadotXcm(..) => ON, // no reason to disable it, just convenience
+		PoolAssets(..) => ON,  // no reason to disable it, just convenience
 		Preimage(..) => OFF,
 		Proxy(..) => OFF,
 		Referenda(..) => OFF,
-		Scheduler(..) => ON, // only permissoned service calls
+		Scheduler(..) => ON, // only permissioned service calls
 		Session(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
-		System(..) => ON,              // remark plust root calls
+		System(..) => ON,              // remark plus root calls
 		Timestamp(..) => ON,           // only `set` inherit
 		ToKusamaXcmRouter(..) => ON,   // Allow to report bridge congestion
 		Treasury(..) => OFF,
@@ -114,9 +115,9 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Vesting(..) => OFF,
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
-		XcmpQueue(..) => ON, /* Allow updating XCM settings. Only by Fellowship and root.
-		                      * Exhaustive match. Compiler ensures that we did not miss any. */
+		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
 	};
+	// Exhaustive match. Compiler ensures that we did not miss any.
 
 	// All pallets are enabled on Asset Hub after the migration :)
 	let after_migration = ON;

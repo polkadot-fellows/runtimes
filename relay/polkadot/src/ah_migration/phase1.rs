@@ -79,55 +79,43 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 	const OFF: bool = false;
 
 	match call {
-		System(..) => (ON, ON), // remark plust root calls
-		Scheduler(..) => (OFF, OFF),
-		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON),      // OK? WHY?
+		System(..) => (ON, ON), // Remarks, root calls and `set_code` if we need for emergency.
+		Scheduler(..) => (OFF, OFF), // Only for governance, hence disabled.
+		Preimage(..) => (OFF, OFF), // Only for governance, hence disabled.
+		Babe(..) => (ON, ON),   // OK? WHY?
 		Timestamp(..) => (ON, ON), // only `set` inherit
-		Indices(..) => (OFF, OFF),
-		Balances(..) => (OFF, ON),
-		// TransactionPayment has no calls
-		// Authorship has no calls
+		Indices(..) => (OFF, OFF), // Not needed anymore and migrated to AH.
+		Balances(..) => (OFF, ON), // Disabled during migration to avoid confusing externals.
 		Staking(..) => (OFF, OFF),
-		StakingAhClient(..) => (ON, ON), // OK? WHY?
-		// Offences has no calls
-		// Historical has no calls
-		Session(..) => (OFF, ON), // TODO: should be OFF during migration?
-		Grandpa(..) => (ON, ON),  // OK? WHY?
-		// AuthorityDiscovery has no calls
+		StakingAhClient(..) => (ON, ON), // Only permissioned calls and needed for the migration.
+		Session(..) => (OFF, ON),        // TODO: should be OFF during migration?
+		Grandpa(..) => (ON, ON),         // OK? WHY?
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
 		Referenda(..) => (OFF, OFF),
-		// Origins has no calls
 		Whitelist(..) => (OFF, OFF),
 		Claims(..) => (OFF, OFF),
 		Vesting(..) => (OFF, OFF),
-		Utility(..) => (ON, ON), // batching etc
-		Proxy(..) => (OFF, ON),
-		Multisig(..) => (OFF, ON),
+		Utility(..) => (ON, ON),   // batching etc
+		Proxy(..) => (OFF, ON),    // On after the migration to keep proxy accounts accessible.
+		Multisig(..) => (OFF, ON), // On after the migration to keep multisig accounts accessible.
 		Bounties(..) => (OFF, OFF),
 		ChildBounties(..) => (OFF, OFF),
 		ElectionProviderMultiPhase(..) => (OFF, OFF),
 		VoterList(..) => (OFF, OFF),
 		NominationPools(..) => (OFF, OFF),
 		FastUnstake(..) => (OFF, OFF),
-		// DelegatedStaking has on calls
-		// ParachainsOrigin has no calls
 		Configuration(..) => (ON, ON), /* TODO allow this to be called by fellow origin during the migration https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928794490 */
-		ParasShared(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/ee803b74056fac5101c06ec5998586fa6eaac470/polkadot/runtime/parachains/src/shared.rs#L185-L186 */
-		ParaInclusion(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/74ec1ee226ace087748f38dfeffc869cd5534ac8/polkadot/runtime/parachains/src/inclusion/mod.rs#L352-L353 */
-		ParaInherent(..) => (ON, ON),    // only inherents
-		// ParaScheduler has no calls
-		Paras(..) => (ON, ON),       // OK? WHY?
-		Initializer(..) => (ON, ON), // OK? WHY?
-		// Dmp has no calls and deprecated
-		Hrmp(..) => (ON, ON), /* open close hrmp channels by parachains or root force calls. no
-		                        * concerns. */
-		// ParaSessionInfo has no calls
+		ParasShared(parachains_shared::Call::__Ignore { .. }) => (OFF, OFF), // Has no calls
+		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (OFF, OFF), // Has no calls
+		ParaInherent(..) => (ON, ON),  // only inherents
+		Paras(..) => (ON, ON),         // OK? WHY?
+		Initializer(..) => (ON, ON),   // OK? WHY?
+		Hrmp(..) => (ON, ON),          /* open close hrmp channels by parachains or root force. */
+		// no concerns.
 		ParasDisputes(..) => (ON, ON), // OK? WHY?
 		ParasSlashing(..) => (ON, ON), // OK? WHY?
 		OnDemand(..) => (OFF, ON),
-		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
 		Slots(..) => (OFF, OFF),
 		Auctions(..) => (OFF, OFF),
@@ -141,13 +129,12 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Coretime(..) => (ON, ON),             // OK? WHY?
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
 		XcmPallet(..) => (ON, ON),            /* during migration can only send XCMs to other */
-		// Parachains and cannot to Asset Hub.
-		MessageQueue(..) => (ON, ON), // contains non-permissioned service calls
+		MessageQueue(..) => (ON, ON),         // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (ON, ON), // OK? WHY?
-		RcMigrator(..) => (ON, ON), /* required for the migration, only permissioned calls
-		                         * Exhaustive match. Compiler ensures that we did not miss any. */
+		Beefy(..) => (ON, ON),      // OK? WHY?
+		RcMigrator(..) => (ON, ON), // Required for the migration, only permissioned calls
 	}
+	// Exhaustive match. Compiler ensures that we did not miss any.
 }
 
 // Type safe mapping of RC hold reason to portable format.
