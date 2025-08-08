@@ -72,15 +72,14 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 	let during_migration = match call {
 		AhMigrator(..) => ON,
 		AhOps(..) => OFF,
-		AssetConversion(..) => OFF,
+		AssetConversion(..) => ON,
 		AssetRate(..) => OFF,
-		Assets(..) => OFF,
-		Balances(..) => OFF, // TODO: @muharem enable
+		Assets(..) => ON,
+		Balances(..) => ON,
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
 		Claims(..) => OFF,
-		CollatorSelection(..) => OFF, /* TODO: @muharem maybe disable them since staking is also */
-		// disabled?
+		CollatorSelection(..) => OFF, // TODO: maybe disable them since staking is also disabled?
 		ConvictionVoting(..) => OFF,
 		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
 		FastUnstake(..) => OFF,
@@ -90,7 +89,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		MultiBlockElectionSigned(..) => OFF,
 		MultiBlockElectionUnsigned(..) => OFF,
 		MultiBlockElectionVerifier(..) => OFF,
-		MessageQueue(..) => ON, // TODO: @muharem think about this
+		MessageQueue(..) => ON,
 		Multisig(..) => OFF,
 		Nfts(..) => ON,
 		NominationPools(..) => OFF,

@@ -82,7 +82,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		System(..) => (ON, ON),
 		Scheduler(..) => (OFF, OFF),
 		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON), // TODO: @muharem double check
+		Babe(..) => (ON, ON),
 		Timestamp(..) => (ON, ON),
 		Indices(..) => (OFF, OFF),
 		Balances(..) => (OFF, ON),
@@ -92,8 +92,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		StakingAhClient(..) => (ON, ON),
 		// Offences has no calls
 		// Historical has no calls
-		Session(..) => (OFF, ON),
-		Grandpa(..) => (ON, ON), // TODO: @muharem double check
+		Session(..) => (OFF, ON), // TODO: should be OFF during migration?
+		Grandpa(..) => (ON, ON),
 		// AuthorityDiscovery has no calls
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
@@ -121,10 +121,10 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Paras(..) => (ON, ON),
 		Initializer(..) => (ON, ON),
 		// Dmp has no calls and deprecated
-		Hrmp(..) => (OFF, ON),
+		Hrmp(..) => (ON, ON),
 		// ParaSessionInfo has no calls
-		ParasDisputes(..) => (OFF, ON), // TODO: @muharem check with security
-		ParasSlashing(..) => (OFF, ON), // TODO: @muharem check with security
+		ParasDisputes(..) => (ON, ON),
+		ParasSlashing(..) => (ON, ON),
 		OnDemand(..) => (OFF, ON),
 		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
@@ -140,9 +140,9 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Coretime(..) => (ON, ON),
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
 		XcmPallet(..) => (ON, ON),
-		MessageQueue(..) => (ON, ON), // TODO: @muharem think about this
+		MessageQueue(..) => (ON, ON),
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
+		Beefy(..) => (ON, ON),
 		RcMigrator(..) => (ON, ON),
 		// Exhaustive match. Compiler ensures that we did not miss any.
 	}
