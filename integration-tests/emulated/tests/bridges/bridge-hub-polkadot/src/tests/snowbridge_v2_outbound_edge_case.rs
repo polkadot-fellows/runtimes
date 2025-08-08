@@ -176,6 +176,9 @@ pub fn register_usdt_not_from_owner_on_asset_hub_will_fail() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+		let fees_asset =
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+
 		assert_noop!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
 				// The owner is Alice, while AssetHubPolkadotReceiver is Bob, so it should fail
@@ -186,6 +189,7 @@ pub fn register_usdt_not_from_owner_on_asset_hub_will_fail() {
 					symbol: "usdt".as_bytes().to_vec().try_into().unwrap(),
 					decimals: 6,
 				},
+				fees_asset
 			),
 			BadOrigin
 		);
@@ -199,6 +203,9 @@ pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+		let fees_asset =
+			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+
 		assert_noop!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
 				RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
@@ -208,6 +215,7 @@ pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 					symbol: "DOT".as_bytes().to_vec().try_into().unwrap(),
 					decimals: 10,
 				},
+				fees_asset,
 			),
 			BadOrigin
 		);

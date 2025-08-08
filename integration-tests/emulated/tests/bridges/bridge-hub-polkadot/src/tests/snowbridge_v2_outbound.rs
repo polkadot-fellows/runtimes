@@ -133,6 +133,8 @@ pub fn register_relay_token_from_asset_hub_with_sudo() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+		let fees_asset = Asset { id: AssetId(eth_location()), fun: Fungible(1) };
+
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
 				RuntimeOrigin::root(),
@@ -141,7 +143,8 @@ pub fn register_relay_token_from_asset_hub_with_sudo() {
 					name: "dot".as_bytes().to_vec().try_into().unwrap(),
 					symbol: "dot".as_bytes().to_vec().try_into().unwrap(),
 					decimals: 12,
-				}
+				},
+				fees_asset
 			)
 		);
 	});
@@ -165,6 +168,8 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+		let fees_asset = Asset { id: AssetId(eth_location()), fun: Fungible(1) };
+
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::register_token(
 				RuntimeOrigin::signed(AssetHubPolkadotAssetOwner::get()),
@@ -174,6 +179,7 @@ pub fn register_usdt_from_owner_on_asset_hub() {
 					symbol: "usdt".as_bytes().to_vec().try_into().unwrap(),
 					decimals: 6,
 				},
+				fees_asset
 			)
 		);
 	});
@@ -879,7 +885,10 @@ fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode()
 				bx!(xcm),
 				Weight::from(EXECUTION_WEIGHT),
 			),
-			pallet_xcm::Error::<Runtime>::LocalExecutionIncomplete {}
+			pallet_xcm::Error::<Runtime>::LocalExecutionIncompleteWithError {
+				index: 2,
+				error: XcmError::Unroutable.into()
+			}
 		);
 	});
 }
