@@ -103,7 +103,7 @@ pub mod benchmark_helpers {
 			// Prefund the asset owner's account with DOT and Ether to create the pools
 			ForeignAssets::mint(
 				signed_owner.clone(),
-				asset.clone().into(),
+				asset.clone(),
 				asset_owner.clone().into(),
 				10_000_000_000_000,
 			)
@@ -131,7 +131,7 @@ pub mod benchmark_helpers {
 				2_000_000_000_000,
 				0,
 				0,
-				asset_owner.into(),
+				asset_owner,
 			)
 			.unwrap();
 		}
