@@ -180,36 +180,6 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type Helper = Runtime;
 }
 
-#[cfg(any(feature = "std", feature = "runtime-benchmarks", test))]
-parameter_types! {
-	pub const ChainForkVersions: ForkVersions = ForkVersions {
-		genesis: Fork {
-			version: hex!("00000000"),
-			epoch: 0,
-		},
-		altair: Fork {
-			version: hex!("01000000"),
-			epoch: 0,
-		},
-		bellatrix: Fork {
-			version: hex!("02000000"),
-			epoch: 0,
-		},
-		capella: Fork {
-			version: hex!("03000000"),
-			epoch: 0,
-		},
-		deneb: Fork {
-			version: hex!("04000000"),
-			epoch: 0,
-		},
-		electra: Fork {
-			version: hex!("05000000"),
-			epoch: 5000000, // Change to 0 when upgrading to stable-2507
-		}
-	};
-}
-
 #[cfg(not(any(feature = "std", feature = "runtime-benchmarks", test)))]
 parameter_types! {
 	pub const ChainForkVersions: ForkVersions = ForkVersions {
@@ -237,6 +207,36 @@ parameter_types! {
 			version: hex!("05000000"),
 			epoch: 364032,
 		},
+	};
+}
+
+#[cfg(any(feature = "std", feature = "runtime-benchmarks", test))]
+parameter_types! {
+	pub const ChainForkVersions: ForkVersions = ForkVersions {
+		genesis: Fork {
+			version: hex!("00000000"),
+			epoch: 0,
+		},
+		altair: Fork {
+			version: hex!("01000000"),
+			epoch: 0,
+		},
+		bellatrix: Fork {
+			version: hex!("02000000"),
+			epoch: 0,
+		},
+		capella: Fork {
+			version: hex!("03000000"),
+			epoch: 0,
+		},
+		deneb: Fork {
+			version: hex!("04000000"),
+			epoch: 0,
+		},
+		electra: Fork {
+			version: hex!("05000000"),
+			epoch: 5000000, // Change to 0 when upgrading to stable-2507
+		}
 	};
 }
 
