@@ -104,8 +104,6 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
 	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
-	#[codec(index = 9)]
-	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::PortableFastUnstakeMessage> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
 		values: Vec<(

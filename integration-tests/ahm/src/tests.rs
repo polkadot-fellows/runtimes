@@ -29,18 +29,21 @@
 //!
 //! ```
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+//! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
 
 use crate::porting_prelude::*;
 
+#[cfg(not(feature = "paseo"))]
+use super::proxy::ProxyWhaleWatching;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
-	checks::SanityChecks,
+	checks::{PalletsTryStateCheck, SanityChecks},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+	proxy::ProxyBasicWorks,
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -86,7 +89,6 @@ type RcChecks = (
 	pallet_rc_migrator::vesting::VestingMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<Polkadot>,
-	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<Polkadot>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
 	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
@@ -99,6 +101,7 @@ type RcChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
@@ -118,6 +121,7 @@ pub type RcRuntimeSpecificChecks = (
 // Checks that are specific to Paseo.
 #[cfg(feature = "paseo")]
 pub type RcRuntimeSpecificChecks = (
+	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
@@ -138,7 +142,6 @@ type AhChecks = (
 		<Polkadot as pallet_proxy::Config>::ProxyType,
 	>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
-	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
 	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
@@ -151,6 +154,7 @@ type AhChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 #[cfg(not(feature = "paseo"))]
@@ -168,6 +172,7 @@ pub type AhRuntimeSpecificChecks = (
 
 #[cfg(feature = "paseo")]
 pub type AhRuntimeSpecificChecks = (
+	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,

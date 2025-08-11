@@ -106,7 +106,6 @@ use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
 	delegated_staking::{DelegatedStakingMigrator, DelegatedStakingStage},
-	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
@@ -279,12 +278,6 @@ pub enum MigrationStage<
 		next_key: Option<AccountId>,
 	},
 	VestingMigrationDone,
-
-	FastUnstakeMigrationInit,
-	FastUnstakeMigrationOngoing {
-		next_key: Option<FastUnstakeStage<AccountId>>,
-	},
-	FastUnstakeMigrationDone,
 
 	DelegatedStakingMigrationInit,
 	DelegatedStakingMigrationOngoing {
@@ -1469,38 +1462,6 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::VestingMigrationDone => {
-					Self::transition(MigrationStage::FastUnstakeMigrationInit);
-				},
-				MigrationStage::FastUnstakeMigrationInit => {
-					Self::transition(MigrationStage::FastUnstakeMigrationOngoing {
-						next_key: None,
-					});
-				},
-				MigrationStage::FastUnstakeMigrationOngoing { next_key } => {
-					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match FastUnstakeMigrator::<T>::migrate_many(next_key, &mut weight_counter)
-						{
-							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
-							Err(e) => TransactionOutcome::Rollback(Err(e)),
-						}
-					})
-					.expect("Always returning Ok; qed");
-
-					match res {
-						Ok(None) => {
-							Self::transition(MigrationStage::FastUnstakeMigrationDone);
-						},
-						Ok(Some(next_key)) => {
-							Self::transition(MigrationStage::FastUnstakeMigrationOngoing {
-								next_key: Some(next_key),
-							});
-						},
-						e => {
-							defensive!("Error while migrating fast unstake: {:?}", e);
-						},
-					}
-				},
-				MigrationStage::FastUnstakeMigrationDone => {
 					Self::transition(MigrationStage::DelegatedStakingMigrationInit);
 				},
 				MigrationStage::DelegatedStakingMigrationInit => {
