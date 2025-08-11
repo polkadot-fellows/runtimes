@@ -83,7 +83,6 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// disabled?
 		ConvictionVoting(..) => OFF,
 		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		FastUnstake(..) => OFF,
 		ForeignAssets(..) => ON,
 		Indices(..) => OFF,
 		MultiBlockElection(..) => OFF,
