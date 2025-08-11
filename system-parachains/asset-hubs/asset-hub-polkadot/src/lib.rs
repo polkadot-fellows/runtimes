@@ -1196,6 +1196,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
 	type TreasuryAccounts = ah_migration::TreasuryAccounts;
 	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
+	type AhPreMigrationCalls = ah_migration::call_filter::CallsEnabledBeforeMigration;
 	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
 	type MessageQueue = MessageQueue;
