@@ -314,7 +314,7 @@ pub fn tip_to_invalid_nonce_is_added_to_lost_tips() {
 
 		let relayer_lost_tip = LostTips::<bridge_hub_polkadot_runtime::Runtime>::get::<
 			sp_runtime::AccountId32,
-		>(relayer.into());
+		>(relayer);
 		// Assert a tip was added to storage.
 		assert!(relayer_lost_tip > 0);
 	});

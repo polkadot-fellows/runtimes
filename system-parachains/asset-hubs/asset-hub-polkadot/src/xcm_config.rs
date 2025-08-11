@@ -512,20 +512,20 @@ pub type XcmRouter = WithUniqueTopic<(
 	ToKusamaXcmRouter,
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
 	// GlobalConsensus
-	// TODO(#837): remove and use vanilla UnpaidRemoteExporter for 2506-1 or newer, or 2507 or
-	// newer
-	// GlobalConsensus with a pausable flag, if the flag is set true then the Router is paused
-	// TODO update when https://github.com/paritytech/polkadot-sdk/commit/40e3fcb050147c89e80c3dc1d47599ce23c619ed
 	PausableExporter<
 		crate::SnowbridgeSystemFrontend,
-		UnpaidRemoteExporter<
-			(
+		(
+			UnpaidRemoteExporter<
 				bridging::to_ethereum::EthereumNetworkExportTableV2,
+				XcmpQueue,
+				UniversalLocation,
+			>,
+			UnpaidRemoteExporter<
 				bridging::to_ethereum::EthereumNetworkExportTableV1,
-			),
-			XcmpQueue,
-			UniversalLocation,
-		>,
+				XcmpQueue,
+				UniversalLocation,
+			>,
+		),
 	>,
 )>;
 
