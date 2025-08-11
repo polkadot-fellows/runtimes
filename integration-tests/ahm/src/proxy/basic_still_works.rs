@@ -193,12 +193,9 @@ impl ProxyBasicWorks {
 			permissions.contains(&Permission::NonTransfer) ||
 			permissions.contains(&Permission::Staking);
 		if allowed_staking {
-			assert!(Self::can_stake(delegatee, delegator, true), "`Any` or `Staking` can stake");
+			assert!(Self::can_stake(delegatee, delegator), "`Any` or `Staking` can stake");
 		} else {
-			assert!(
-				!Self::can_stake(delegatee, delegator, false),
-				"Only `Any` or `Staking` can stake"
-			);
+			assert!(!Self::can_stake(delegatee, delegator), "Only `Any` or `Staking` can stake");
 		}
 
 		// Alice cannot transfer
@@ -206,7 +203,7 @@ impl ProxyBasicWorks {
 		// Alice cannot do governance
 		assert!(!Self::can_governance(&alice, delegator, false), "Alice cannot do governance");
 		// Alice cannot stake
-		assert!(!Self::can_stake(&alice, delegator, false), "Alice cannot stake");
+		assert!(!Self::can_stake(&alice, delegator), "Alice cannot stake");
 	}
 
 	/// Check that the `delegatee` can transfer balances on behalf of the `delegator`.
@@ -291,7 +288,7 @@ impl ProxyBasicWorks {
 	/// Check that the `delegatee` can do staking on behalf of the `delegator`.
 	///
 	/// Uses the `bond` call
-	fn can_stake(delegatee: &AccountId32, delegator: &AccountId32, hint: bool) -> bool {
+	fn can_stake(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
 		frame_support::hypothetically!({
 			// Migration should have finished
 			assert!(
