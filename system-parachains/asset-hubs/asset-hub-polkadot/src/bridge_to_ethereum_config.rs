@@ -188,8 +188,8 @@ impl snowbridge_pallet_system_frontend::Config for Runtime {
 	type BridgeHubLocation = BridgeHubLocation;
 	type UniversalLocation = UniversalLocation;
 	type PalletLocation = SystemFrontendPalletLocation;
-	type BackendWeightInfo = weights::snowbridge_pallet_system_backend::WeightInfo<Runtime>;
 	type Swap = AssetConversion;
+	type BackendWeightInfo = weights::snowbridge_pallet_system_backend::WeightInfo<Runtime>;
 	type AccountIdConverter = LocationToAccountId;
 }
 
