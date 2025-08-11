@@ -23,7 +23,7 @@ use emulated_integration_tests_common::{PENPAL_B_ID, RESERVABLE_ASSET_ID};
 use frame_support::{assert_ok, traits::fungibles::Mutate, BoundedVec};
 use hex_literal::hex;
 use polkadot_system_emulated_network::penpal_emulated_chain::PARA_ID_B;
-use snowbridge_core::TokenIdOf;
+use snowbridge_core::{reward::MessageId, TokenIdOf};
 use snowbridge_inbound_queue_primitives::v2::{
 	EthereumAsset::{ForeignTokenERC20, NativeTokenERC20},
 	Message, Network, XcmPayload,
@@ -928,4 +928,42 @@ fn create_foreign_asset_deposit_is_equal_to_asset_hub_foreign_asset_pallet_depos
 		asset_hub_deposit,
 		"The BridgeHub asset creation deposit must be equal to or larger than the asset creation deposit configured on BridgeHub"
 	);
+}
+
+#[test]
+pub fn add_tip_from_asset_hub_user_origin() {
+	fund_on_bh();
+	prefund_accounts_on_polkadot_asset_hub();
+	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
+	let relayer = AssetHubPolkadotSender::get();
+
+	// Add the tip to a nonce that has not been processed.
+	let tip_message_id = MessageId::Inbound(2);
+
+	let dot = Location::new(1, Here);
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::SnowbridgeSystemFrontend::add_tip(
+				RuntimeOrigin::signed(relayer.clone()),
+				tip_message_id.clone(),
+				xcm::prelude::Asset::from((dot, 1_000_000_000u128)),
+			)
+		);
+	});
+
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+
+		let events = BridgeHubPolkadot::events();
+		assert!(
+			events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::EthereumSystemV2(snowbridge_pallet_system_v2::Event::TipProcessed { sender, message_id, success, ..})
+					if *sender == relayer &&*message_id == tip_message_id.clone() && *success, // expect success
+			)),
+			"tip added event found"
+		);
+	});
 }

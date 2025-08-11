@@ -192,3 +192,17 @@ impl snowbridge_pallet_system_frontend::Config for Runtime {
 	type Swap = AssetConversion;
 	type AccountIdConverter = LocationToAccountId;
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::SnowbridgeSystemFrontend;
+
+	#[test]
+	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
+		assert_eq!(
+			SystemFrontendPalletInstance::get(),
+			<SnowbridgeSystemFrontend as frame_support::traits::PalletInfoAccess>::index() as u8
+		);
+	}
+}

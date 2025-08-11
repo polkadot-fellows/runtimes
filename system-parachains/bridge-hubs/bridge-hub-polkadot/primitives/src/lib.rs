@@ -169,7 +169,7 @@ pub mod snowbridge {
 		/// The pallet index of the Ethereum inbound queue pallet in the BridgeHub runtime.
 		pub const InboundQueuePalletInstance: u8 = 80;
 		/// The pallet index of the Ethereum inbound queue v2 pallet in the BridgeHub runtime.
-		pub const InboundQueueV2PalletInstance: u8 = 90;
+		pub const InboundQueueV2PalletInstance: u8 = 91;
 		/// Default pricing parameters used to calculate bridging fees. Initialized to unit values,
 		/// as it is intended that these parameters should be updated with more
 		/// accurate values prior to bridge activation. This can be performed
