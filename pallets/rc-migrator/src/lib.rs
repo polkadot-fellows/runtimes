@@ -591,6 +591,8 @@ pub mod pallet {
 		InvalidParameter,
 		/// The AH UMP queue priority configuration is already set.
 		AhUmpQueuePriorityAlreadySet,
+		/// The account is referenced by some other pallet. It might have freezes or holds.
+		AccountReferenced,
 	}
 
 	#[pallet::event]
@@ -1012,6 +1014,13 @@ pub mod pallet {
 		#[pallet::weight(T::RcWeightInfo::set_manager())]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
 			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			if let Some(ref who) = new {
+				ensure!(
+					frame_system::Pallet::<T>::consumers(who) == 0,
+					Error::<T>::AccountReferenced
+				);
+				RcAccounts::<T>::insert(who, accounts::AccountState::Preserve);
+			}
 			let old = Manager::<T>::get();
 			Manager::<T>::set(new.clone());
 			Self::deposit_event(Event::ManagerSet { old, new });
