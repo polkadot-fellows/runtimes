@@ -1140,12 +1140,15 @@ pub mod tests {
 						let total_balance = <T as Config>::Currency::total_balance(&who);
 						let ed = <T as Config>::Currency::minimum_balance();
 						if total_balance >= ed {
+							let manager = Manager::<T>::get();
 							let on_demand_pallet_account: T::AccountId =
 								T::OnDemandPalletId::get().into_account_truncating();
-							assert_eq!(
-								who,
-								on_demand_pallet_account,
-								"currently only on-demand pallet account has `AccountState::Preserve` state on RC",
+							let is_manager = manager.as_ref().map_or(false, |m| *m == who);
+							let is_on_demand = who == on_demand_pallet_account;
+							assert!(
+								is_manager || is_on_demand,
+								"Only the on-demand pallet account or the manager (if set) may have \
+								`AccountState::Preserve` state on the Relay Chain"
 							);
 						}
 					},
