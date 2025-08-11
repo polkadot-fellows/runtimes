@@ -99,7 +99,7 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::PortableBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
-		fast_unstake::PortableFastUnstakeMessage, nom_pools::*,
+		nom_pools::*,
 	},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
@@ -141,7 +141,6 @@ type RcAccountFor<T> = RcAccount<
 )]
 pub enum PalletEventName {
 	Indices,
-	FastUnstake,
 	Crowdloan,
 	BagsList,
 	Vesting,
@@ -248,8 +247,7 @@ pub mod pallet {
 			Votes = u128,
 		> + pallet_nomination_pools::Config<
 			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
-		> + pallet_fast_unstake::Config<Currency = pallet_balances::Pallet<Self>>
-		+ pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
+		> + pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
 		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
@@ -691,17 +689,6 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_vesting_schedules(schedules).map_err(Into::into)
-		}
-
-		#[pallet::call_index(9)]
-		#[pallet::weight(T::AhWeightInfo::receive_fast_unstake_messages(messages.len() as u32))]
-		pub fn receive_fast_unstake_messages(
-			origin: OriginFor<T>,
-			messages: Vec<PortableFastUnstakeMessage>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
 		}
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.

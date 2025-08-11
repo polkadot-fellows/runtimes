@@ -100,13 +100,6 @@ fn test_bench_receive_vesting_schedules() {
 }
 
 #[test]
-fn test_bench_receive_fast_unstake_messages() {
-	new_test_ext().execute_with(|| {
-		test_receive_fast_unstake_messages::<AssetHub>(BENCHMARK_N);
-	});
-}
-
-#[test]
 fn test_bench_receive_referenda_values() {
 	new_test_ext().execute_with(|| {
 		test_receive_referenda_values::<AssetHub>();
