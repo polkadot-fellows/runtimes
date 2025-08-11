@@ -340,28 +340,6 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_fast_unstake_messages(n: Linear<1, 255>) {
-		let create_fast_unstake = |n: u8| -> PortableFastUnstakeMessage {
-			PortableFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
-		};
-
-		let messages =
-			(0..n).map(|i| create_fast_unstake(i.try_into().unwrap())).collect::<Vec<_>>();
-
-		#[extrinsic_call]
-		_(RawOrigin::Root, messages);
-
-		assert_last_event::<T>(
-			Event::BatchProcessed {
-				pallet: PalletEventName::FastUnstake,
-				count_good: n,
-				count_bad: 0,
-			}
-			.into(),
-		);
-	}
-
-	#[benchmark]
 	fn receive_referenda_values() {
 		let referendum_count = 50;
 		let mut deciding_count = vec![];
@@ -1105,15 +1083,6 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_vesting_schedules::<T>(n, true)
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_receive_fast_unstake_messages<T>(n: u32)
-	where
-		T: Config,
-		ConvictionVotingIndexOf<T>: From<u8>,
-	{
-		_receive_fast_unstake_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]

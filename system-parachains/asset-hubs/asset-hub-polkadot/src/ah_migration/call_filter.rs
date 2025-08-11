@@ -82,7 +82,6 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		CollatorSelection(..) => OFF, // TODO: maybe disable them since staking is also disabled?
 		ConvictionVoting(..) => OFF,
 		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		FastUnstake(..) => OFF,
 		ForeignAssets(..) => ON, // no reason to disable it, just convenience
 		Indices(..) => OFF,
 		MultiBlockElection(..) => OFF,
