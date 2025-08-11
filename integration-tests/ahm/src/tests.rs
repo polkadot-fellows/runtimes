@@ -29,6 +29,7 @@
 //!
 //! ```
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+//! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
 
 use crate::porting_prelude::*;
@@ -36,9 +37,13 @@ use crate::porting_prelude::*;
 #[cfg(not(feature = "paseo"))]
 use super::proxy::ProxyWhaleWatching;
 use super::{
-	accounts_translation_works::AccountTranslationWorks, balances_test::BalancesCrossChecker,
-	checks::SanityChecks, mock::*, multisig_still_work::MultisigStillWork,
-	multisig_test::MultisigsAccountIdStaysTheSame, proxy::ProxyBasicWorks,
+	accounts_translation_works::AccountTranslationWorks,
+	balances_test::BalancesCrossChecker,
+	checks::{PalletsTryStateCheck, SanityChecks},
+	mock::*,
+	multisig_still_work::MultisigStillWork,
+	multisig_test::MultisigsAccountIdStaysTheSame,
+	proxy::ProxyBasicWorks,
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -96,6 +101,7 @@ type RcChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
@@ -148,6 +154,7 @@ type AhChecks = (
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
+	PalletsTryStateCheck,
 );
 
 #[cfg(not(feature = "paseo"))]
