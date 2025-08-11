@@ -39,7 +39,7 @@ use super::proxy::ProxyWhaleWatching;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
-	checks::{PalletsTryStateCheck, SanityChecks},
+	checks::{EntireStateDecodes, PalletsTryStateCheck, SanityChecks},
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
@@ -102,6 +102,7 @@ type RcChecks = (
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
+	EntireStateDecodes,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
@@ -155,6 +156,7 @@ type AhChecks = (
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
+	EntireStateDecodes,
 );
 
 #[cfg(not(feature = "paseo"))]

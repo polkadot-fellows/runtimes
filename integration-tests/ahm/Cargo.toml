@@ -60,7 +60,7 @@ pallet-staking-async = { workspace = true, default-features = true }
 pallet-referenda = { workspace = true, default-features = true }
 
 [features]
-default = ["std"]
+default = ["std", "try-runtime"]
 std = [
 	"cumulus-pallet-parachain-system/std",
 	"frame-benchmarking/std",
