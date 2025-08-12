@@ -272,8 +272,8 @@ members = [
 	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
-#	TODO: fail-ci @pepoviola to publish new zombienet-sdk version and re-enable these tests
-#	"integration-tests/zombienet",
+	# TODO: fail-ci @pepoviola to publish new zombienet-sdk version and re-enable these tests
+	# "integration-tests/zombienet",
 	"pallets/remote-proxy",
 	"relay/common",
 	"relay/kusama",
@@ -293,7 +293,7 @@ members = [
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",
-#	"system-parachains/encointer",
+	# "system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
