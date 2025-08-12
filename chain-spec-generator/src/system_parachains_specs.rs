@@ -40,7 +40,7 @@ pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+// pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
@@ -180,7 +180,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::Ch
 		.build(),
 	))
 }
-
+/*
 #[cfg(feature = "encointer-kusama")]
 pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
 {
@@ -202,7 +202,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::
 		.build(),
 	))
 }
-
+*/
 #[cfg(feature = "coretime-kusama")]
 pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
