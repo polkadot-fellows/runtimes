@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     In statement-store, statements can contain a proof with the signature of the statement. This proof is useful to assert that the statement comes from the expected account. This proof also signs for all the statement's fields, which can also be useful information for the receiver.
 - Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/817](https://github.com/polkadot-fellows/runtimes/pull/817))
   - [#7953](https://github.com/paritytech/polkadot-sdk/pull/7953): Add deposit for setting session keys
+  - [#8684](https://github.com/paritytech/polkadot-sdk/pull/8684) Add optional auto-rebag within on-idle to enable incremental correction of account positions within the bags-list during the idle phase of block execution
 
 ### Changed
 
