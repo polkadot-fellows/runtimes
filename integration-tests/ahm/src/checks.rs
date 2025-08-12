@@ -16,18 +16,14 @@
 
 //! Generic checks for Relay and AH.
 
-#[cfg(not(feature = "try-runtime"))]
-compile_error!("Please enable `try-runtime` feature.");
-
 use crate::porting_prelude::*;
 
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 
-use frame_support::{
-	defensive_assert,
-	traits::{TryDecodeEntireStorage, TryDecodeEntireStorageError, TryState},
-};
+use frame_support::defensive_assert;
+#[cfg(feature = "try-runtime")]
+use frame_support::traits::{TryDecodeEntireStorage, TryDecodeEntireStorageError, TryState};
 
 pub struct SanityChecks;
 
@@ -88,13 +84,16 @@ impl RcMigrationCheck for PalletsTryStateCheck {
 	type RcPrePayload = ();
 
 	fn pre_check() -> Self::RcPrePayload {
-		let res = polkadot_runtime::AllPalletsWithSystem::try_state(
-			frame_system::Pallet::<polkadot_runtime::Runtime>::block_number(),
-			frame_support::traits::TryStateSelect::All,
-		);
-		if res.is_err() {
-			log::error!("Pallets try-state check failed: {res:?}");
-			defensive_assert!(false, "Pallets try-state check failed");
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = polkadot_runtime::AllPalletsWithSystem::try_state(
+				frame_system::Pallet::<polkadot_runtime::Runtime>::block_number(),
+				frame_support::traits::TryStateSelect::All,
+			);
+			if res.is_err() {
+				log::error!("Pallets try-state check failed: {res:?}");
+				defensive_assert!(false, "Pallets try-state check failed");
+			}
 		}
 	}
 	fn post_check(_: Self::RcPrePayload) {
@@ -111,14 +110,17 @@ impl AhMigrationCheck for PalletsTryStateCheck {
 	}
 
 	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
-			frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::block_number(),
-			frame_support::traits::TryStateSelect::All,
-		);
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
+				frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::block_number(),
+				frame_support::traits::TryStateSelect::All,
+			);
 
-		if let Err(es) = res {
-			log::error!("Pallets try-state check failed with error {:?}", es);
-			defensive_assert!(false, "Pallets try-state check failed");
+			if let Err(es) = res {
+				log::error!("Pallets try-state check failed with error {:?}", es);
+				defensive_assert!(false, "Pallets try-state check failed");
+			}
 		}
 	}
 }
@@ -131,14 +133,20 @@ impl RcMigrationCheck for EntireStateDecodes {
 	fn pre_check() -> Self::RcPrePayload {}
 
 	fn post_check(_: Self::RcPrePayload) {
-		let res = polkadot_runtime::AllPalletsWithSystem::try_decode_entire_state();
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = polkadot_runtime::AllPalletsWithSystem::try_decode_entire_state();
 
-		if let Err(es) = res {
-			log::error!("Pallets try-decode-entire-storage check failed with {} errors", es.len());
-			for e in es {
-				log::error!("- {}, value: {:?}", &e, e.raw.as_ref().map(hex::encode));
+			if let Err(es) = res {
+				log::error!(
+					"Pallets try-decode-entire-storage check failed with {} errors",
+					es.len()
+				);
+				for e in es {
+					log::error!("- {}, value: {:?}", &e, e.raw.as_ref().map(hex::encode));
+				}
+				defensive_assert!(false, "Pallets try-decode-entire-storage check failed");
 			}
-			defensive_assert!(false, "Pallets try-decode-entire-storage check failed");
 		}
 	}
 }
@@ -150,13 +158,19 @@ impl AhMigrationCheck for EntireStateDecodes {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {}
 
 	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_decode_entire_state();
-		if let Err(es) = res {
-			log::error!("Pallets try-decode-entire-storage check failed with {} errors", es.len());
-			for e in es {
-				log::error!("- {}, value: {:?}", &e, e.raw.as_ref().map(hex::encode));
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_decode_entire_state();
+			if let Err(es) = res {
+				log::error!(
+					"Pallets try-decode-entire-storage check failed with {} errors",
+					es.len()
+				);
+				for e in es {
+					log::error!("- {}, value: {:?}", &e, e.raw.as_ref().map(hex::encode));
+				}
+				defensive_assert!(false, "Pallets try-decode-entire-storage check failed");
 			}
-			defensive_assert!(false, "Pallets try-decode-entire-storage check failed");
 		}
 	}
 }
