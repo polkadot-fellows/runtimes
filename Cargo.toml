@@ -158,7 +158,7 @@ pallet-xcm-bridge-hub = { version = "0.18.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.20.0", default-features = false }
 parachain-info = { version = "0.22.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "23.0.0", default-features = false }
-parachains-runtimes-test-utils = "24.0.0"
+parachains-runtimes-test-utils = { version = "24.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.31.0" }
@@ -192,13 +192,13 @@ snowbridge-outbound-queue-runtime-api = { version = "0.15.0", default-features =
 snowbridge-outbound-queue-primitives = { version = "0.4.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.15.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.15.0", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = "0.23.0"
-snowbridge-pallet-ethereum-client-fixtures = "0.23.0"
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.23.0" }
+snowbridge-pallet-ethereum-client-fixtures = { version = "0.23.0" }
 snowbridge-pallet-outbound-queue = { version = "0.15.0", default-features = false }
 snowbridge-pallet-system = { version = "0.15.0", default-features = false }
 snowbridge-inbound-queue-primitives = { version = "0.4.0", default-features = false }
 snowbridge-runtime-common = { version = "0.15.0", default-features = false }
-snowbridge-runtime-test-common = "0.17.0"
+snowbridge-runtime-test-common = { version = "0.17.0" }
 snowbridge-system-runtime-api = { version = "0.15.0", default-features = false }
 sp-api = { version = "38.0.0", default-features = false }
 sp-application-crypto = { version = "42.0.0", default-features = false }
@@ -210,7 +210,7 @@ sp-debug-derive = { version = "14.0.0", default-features = false }
 sp-genesis-builder = { version = "0.19.0", default-features = false }
 sp-inherents = { version = "38.0.0", default-features = false }
 sp-io = { version = "42.0.0", default-features = false }
-sp-keyring = "43.0.0"
+sp-keyring = { version = "43.0.0" }
 sp-npos-elections = { version = "38.0.0", default-features = false }
 sp-offchain = { version = "38.0.0", default-features = false }
 sp-runtime = { version = "43.0.0", default-features = false }
@@ -224,16 +224,16 @@ sp-transaction-pool = { version = "38.0.0", default-features = false }
 sp-trie = { version = "41.0.0", default-features = false }
 sp-version = { version = "41.0.0", default-features = false }
 sp-weights = { version = "33.0.0", default-features = false }
-substrate-wasm-builder = "28.0.0"
+substrate-wasm-builder = { version = "28.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.45.0" }
 xcm = { version = "18.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "22.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = "0.21.0"
+xcm-emulator = { version = "0.21.0" }
 xcm-executor = { version = "21.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.9.0", default-features = false }
 anyhow = { version = "1.0.82" }
-subxt = "0.43.0"
+subxt = { version = "0.43.0" }
 tracing-subscriber = { version = "0.3.18" }
 zombienet-sdk = { version = "0.3.11" }
 tuplex = { version = "0.1.0", default-features = false }
