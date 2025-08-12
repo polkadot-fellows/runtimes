@@ -166,23 +166,55 @@ fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResu
 }
 
 fn system_para_to_para_transfer_assets(t: SystemParaToParaTest) -> DispatchResult {
-	<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets(
+	type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+	let remote_fee_id: AssetId = t
+		.args
+		.assets
+		.clone()
+		.into_inner()
+		.get(t.args.fee_asset_item as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+	<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
 		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
+		bx!(TransferType::Teleport),
+		bx!(remote_fee_id.into()),
+		bx!(TransferType::LocalReserve),
+		bx!(VersionedXcm::from(
+			Xcm::<()>::builder_unsafe()
+				.deposit_asset(AllCounted(2), t.args.beneficiary)
+				.build()
+		)),
 		t.args.weight_limit,
 	)
 }
 
 fn para_to_system_para_transfer_assets(t: ParaToSystemParaTest) -> DispatchResult {
-	<PenpalB as PenpalBPallet>::PolkadotXcm::transfer_assets(
+	type Runtime = <PenpalB as Chain>::Runtime;
+	let remote_fee_id: AssetId = t
+		.args
+		.assets
+		.clone()
+		.into_inner()
+		.get(t.args.fee_asset_item as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+	<PenpalB as PenpalBPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
 		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
+		bx!(TransferType::Teleport),
+		bx!(remote_fee_id.into()),
+		bx!(TransferType::DestinationReserve),
+		bx!(VersionedXcm::from(
+			Xcm::<()>::builder_unsafe()
+				.deposit_asset(AllCounted(2), t.args.beneficiary)
+				.build()
+		)),
 		t.args.weight_limit,
 	)
 }
