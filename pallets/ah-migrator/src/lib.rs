@@ -191,6 +191,11 @@ pub enum MigrationStage {
 }
 
 impl MigrationStage {
+	/// Whether the migration is pending and not yet started.
+	pub fn is_pending(&self) -> bool {
+		matches!(self, MigrationStage::Pending)
+	}
+
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
@@ -355,6 +360,9 @@ pub mod pallet {
 				(),
 			>,
 		>;
+
+		/// Calls that are allowed before the migration starts.
+		type AhPreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
 		/// Calls that are allowed during the migration.
 		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
@@ -1215,6 +1223,11 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		// We have to return whether the call is allowed:
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
+
+		// Check if the call is allowed before the migration started.
+		if stage.is_pending() && !T::AhPreMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
 
 		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
 		if stage.is_finished() && !T::AhPostMigrationCalls::contains(call) {
