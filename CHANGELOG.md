@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/817](https://github.com/polkadot-fellows/runtimes/pull/817))
   - [#7953](https://github.com/paritytech/polkadot-sdk/pull/7953): Add deposit for setting session keys
   - [#8684](https://github.com/paritytech/polkadot-sdk/pull/8684) Add optional auto-rebag within on-idle to enable incremental correction of account positions within the bags-list during the idle phase of block execution
+  - [#8693](https://github.com/paritytech/polkadot-sdk/pull/8693) Add XCM Precompile to pallet-xcm
 
 ### Changed
 
