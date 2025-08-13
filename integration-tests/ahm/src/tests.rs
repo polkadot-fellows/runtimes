@@ -35,7 +35,7 @@
 //! To run the pre+post migration checks against a set of snapshots from pre/post migration (created in `ahm-drynrun's CI`):
 //!
 //! ```
-//! SNAP_RC_PRE="rc-pre.snap" \                                                                                                                                                      kiz-only-post-ahm-tests  ✭
+//! SNAP_RC_PRE="rc-pre.snap" \                                                                                                                                                   
 //! SNAP_AH_PRE="ah-pre.snap" \
 //! SNAP_RC_POST="rc-post.snap" \
 //! SNAP_AH_POST="ah-post.snap" \
