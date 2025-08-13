@@ -516,12 +516,10 @@ pub type XcmRouter = WithUniqueTopic<(
 		crate::SnowbridgeSystemFrontend,
 		(
 			UnpaidRemoteExporter<
-				bridging::to_ethereum::EthereumNetworkExportTableV2,
-				XcmpQueue,
-				UniversalLocation,
-			>,
-			UnpaidRemoteExporter<
-				bridging::to_ethereum::EthereumNetworkExportTableV1,
+				(
+					bridging::to_ethereum::EthereumNetworkExportTableV2,
+					bridging::to_ethereum::EthereumNetworkExportTableV1,
+				),
 				XcmpQueue,
 				UniversalLocation,
 			>,
