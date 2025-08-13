@@ -1141,9 +1141,6 @@ pub mod pallet {
 					if now >= start {
 						weight_counter.consume(T::DbWeight::get().reads(2));
 
-						// stop any further staking elections
-						pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
-
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
 								Self::transition(MigrationStage::WaitingForAh);
@@ -1163,6 +1160,9 @@ pub mod pallet {
 					return weight_counter.consumed();
 				},
 				MigrationStage::WarmUp { end_at } => {
+					// stop any further staking elections
+					pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
+
 					// waiting for the warm-up period to end
 					if now >= end_at {
 						Self::transition(MigrationStage::Starting);
