@@ -46,6 +46,7 @@ mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub mod potoc;
 pub use ambassador::pallet_ambassador_origins;
 
 // Secretary Configuration
@@ -59,6 +60,7 @@ use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
 };
+use potoc::pallet_potoc_origins;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -752,16 +754,11 @@ construct_runtime!(
 		AllianceMotion: pallet_collective::<Instance1> = 51,
 
 		// The Fellowship.
-		// pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
 		FellowshipCollective: pallet_ranked_collective::<Instance1> = 60,
-		// pub type FellowshipReferendaInstance = pallet_referenda::Instance1;
 		FellowshipReferenda: pallet_referenda::<Instance1> = 61,
 		FellowshipOrigins: pallet_fellowship_origins = 62,
-		// pub type FellowshipCoreInstance = pallet_core_fellowship::Instance1;
 		FellowshipCore: pallet_core_fellowship::<Instance1> = 63,
-		// pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 		FellowshipSalary: pallet_salary::<Instance1> = 64,
-		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
 
 		// Ambassador Program.
@@ -777,6 +774,14 @@ construct_runtime!(
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
 		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
 		SecretarySalary: pallet_salary::<Instance3> = 81,
+
+		// Tooling Collective in the 90s
+		PotocCollective: pallet_ranked_collective::<Instance3> = 90,
+		PotocReferenda: pallet_referenda::<Instance3> = 91,
+		PotocOrigins: pallet_potoc_origins = 92,
+		PotocCore: pallet_core_fellowship::<Instance3> = 93,
+		PotocSalary: pallet_salary::<Instance3> = 94,
+		PotocTreasury: pallet_treasury::<Instance3> = 95
 	}
 );
 
@@ -808,6 +813,7 @@ pub type UncheckedExtrinsic =
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`. Included migrations must be idempotent.
 type Migrations = (
+	potoc::InsertSeedMembers,
 	pallet_session::migrations::v1::MigrateV0ToV1<
 		Runtime,
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
