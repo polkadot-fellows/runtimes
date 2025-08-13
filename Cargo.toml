@@ -235,7 +235,7 @@ xcm-runtime-apis = { version = "0.9.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
 tracing-subscriber = { version = "0.3.18" }
-zombienet-sdk = { version = "0.3.11" }
+zombienet-sdk = { version = "0.3.12" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
@@ -272,8 +272,7 @@ members = [
 	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
-	# TODO: fail-ci @pepoviola to publish new zombienet-sdk version and re-enable these tests
-	# "integration-tests/zombienet",
+	"integration-tests/zombienet",
 	"pallets/remote-proxy",
 	"relay/common",
 	"relay/kusama",
