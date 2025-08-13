@@ -959,7 +959,7 @@ fn invalid_nonce_for_delivery_receipt_fails() {
 }
 
 #[test]
-fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode() {
+fn export_message_from_asset_hub_to_ethereum_is_banned_when_set_operating_mode_is_halted() {
 	fund_on_bh();
 	prefund_accounts_on_polkadot_asset_hub();
 	set_bridge_hub_ethereum_base_fee();
