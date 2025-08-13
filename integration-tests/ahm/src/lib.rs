@@ -48,8 +48,8 @@ pub mod porting_prelude {
 		RuntimeOrigin as AhRuntimeOrigin,
 	};
 	pub use polkadot_runtime::{
-		OriginCaller as RcOriginCaller, Runtime as RcRuntime, RuntimeCall as RcRuntimeCall,
-		RuntimeEvent as RcRuntimeEvent, RuntimeOrigin as RcRuntimeOrigin,
+		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeEvent as RcRuntimeEvent,
+		RuntimeOrigin as RcRuntimeOrigin,
 	};
 
 	pub use polkadot_runtime_constants::proxy as rc_proxy_definition;
