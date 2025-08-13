@@ -1308,14 +1308,6 @@ async fn post_migration_checks_only() {
 	//!   SNAP_AH_PRE  - Asset Hub  (pre-migration) snapshot
 	//!   SNAP_RC_POST - Relay Chain (post-migration) snapshot
 	//!   SNAP_AH_POST - Asset Hub  (post-migration) snapshot
-	//!
-	//! Flow:
-	//! 1. Load pre-migration RC + AH snapshots, run RcChecks::pre_check and AhChecks::pre_check capturing payloads.
-	//! 2. Drop pre externalities.
-	//! 3. Load post-migration RC + AH snapshots, run RcChecks::post_check and AhChecks::post_check using captured payloads.
-	//!
-	//! SanityChecks will assert the expected stages on both snapshots (Scheduled/Pending pre, MigrationDone post).
-	//! Any deviation causes the test to fail early.
 
 	use remote_externalities::{Builder, Mode, OfflineConfig};
 	use polkadot_runtime::Block as PolkadotBlock;
