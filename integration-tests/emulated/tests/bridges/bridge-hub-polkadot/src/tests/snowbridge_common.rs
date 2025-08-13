@@ -328,10 +328,10 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotSender::get(), INITIAL_FUND)]);
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
-	let penpal_sovereign = AssetHubPolkadot::sovereign_account_id_of(
+	let penpal_sovereign_on_pah = AssetHubPolkadot::sovereign_account_id_of(
 		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
 	);
-	let penpal_user_sovereign = LocationToAccountId::convert_location(&Location::new(
+	let penpal_user_sovereign_on_pah = LocationToAccountId::convert_location(&Location::new(
 		1,
 		[
 			Parachain(PenpalB::para_id().into()),
@@ -343,12 +343,12 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			weth_location(),
-			&penpal_sovereign,
+			&penpal_sovereign_on_pah,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			weth_location(),
-			&penpal_user_sovereign,
+			&penpal_user_sovereign_on_pah,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
@@ -363,12 +363,12 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location(),
-			&penpal_sovereign,
+			&penpal_sovereign_on_pah,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location(),
-			&penpal_user_sovereign,
+			&penpal_user_sovereign_on_pah,
 			INITIAL_FUND,
 		));
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
@@ -384,8 +384,8 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 	});
 
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign(), INITIAL_FUND)]);
-	AssetHubPolkadot::fund_accounts(vec![(penpal_sovereign.clone(), INITIAL_FUND)]);
-	AssetHubPolkadot::fund_accounts(vec![(penpal_user_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(penpal_sovereign_on_pah.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(penpal_user_sovereign_on_pah.clone(), INITIAL_FUND)]);
 }
 
 /// Create a pool between DOT and ETH on Polkadot AssetHub to support paying for fees with ETH.
