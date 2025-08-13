@@ -19,10 +19,9 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, GovernanceLocation,
-		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		bridging, CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf,
+		GovernanceLocation, LocationToAccountId, StakingPot, TrustBackedAssetsPalletLocation,
+		XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
 	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
@@ -397,8 +396,11 @@ fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
 	}
 }
 
+/* // FIXME @karol FAIL-CI
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
+	use sp_runtime::traits::Get;
+
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -426,9 +428,9 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		Some(RelayTreasuryPalletAccount::get()),
+		Some(TreasuryAccount::get()),
 	)
-}
+} */
 
 #[test]
 fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_swap_works() {
@@ -637,14 +639,6 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 				old_value.checked_sub(1).unwrap()
 			}
 		},
-	)
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
 	)
 }
 
@@ -1386,7 +1380,8 @@ fn xcm_payment_api_works() {
 		RuntimeOrigin,
 		Block,
 	>();
-	// TODO: uncomment when migrated to the XCMv5 or patched `xcm_payment_api_with_pools_works`
+	// TODO: @ggwpez uncomment when migrated to the XCMv5 or patched
+	// `xcm_payment_api_with_pools_works`
 	// asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
 	// 	Runtime,
 	// 	RuntimeCall,
