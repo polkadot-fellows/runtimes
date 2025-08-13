@@ -87,6 +87,11 @@ use pallet_rc_migrator::{
 };
 use system_parachains_common::pay::VersionedLocatableAccount;
 
+pub mod exports {
+	pub use system_parachains_common::pay::VersionedLocatableAccount;
+	use polkadot_runtime_common::impls::VersionedLocatableAsset;
+}
+
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::traits::EnqueueMessage;
 use pallet_message_queue::ForceSetHead;
