@@ -593,6 +593,10 @@ pub mod pallet {
 		AhUmpQueuePriorityAlreadySet,
 		/// The account is referenced by some other pallet. It might have freezes or holds.
 		AccountReferenced,
+		/// The XCM version is invalid.
+		BadXcmVersion,
+		/// The origin is invalid.
+		InvalidOrigin,
 	}
 
 	#[pallet::event]
@@ -668,6 +672,8 @@ pub mod pallet {
 			/// The new manager account id.
 			new: Option<T::AccountId>,
 		},
+		/// An XCM message was sent.
+		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
 	}
 
 	/// The Relay Chain migration state.
@@ -1024,6 +1030,60 @@ pub mod pallet {
 			let old = Manager::<T>::get();
 			Manager::<T>::set(new.clone());
 			Self::deposit_event(Event::ManagerSet { old, new });
+			Ok(())
+		}
+
+		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
+		/// [Config::SendXcm] router which will be able to send messages to the Asset Hub during
+		/// the migration.
+		#[pallet::call_index(8)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn send_xcm_message(
+			origin: OriginFor<T>,
+			dest: Box<VersionedLocation>,
+			message: Box<VersionedXcm<()>>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin.clone())?;
+
+			let origin_location = <T as pallet_xcm::Config>::SendXcmOrigin::ensure_origin(origin)?;
+			let interior: Junctions =
+				origin_location.clone().try_into().map_err(|_| Error::<T>::InvalidOrigin)?;
+			let dest = Location::try_from(*dest).map_err(|()| Error::<T>::BadXcmVersion)?;
+			let mut message: Xcm<()> =
+				(*message).try_into().map_err(|()| Error::<T>::BadXcmVersion)?;
+
+			if interior != Junctions::Here {
+				message.0.insert(0, DescendOrigin(interior.clone()));
+			}
+
+			// validate
+			let (ticket, _price) =
+				validate_send::<<T as Config>::SendXcm>(dest.clone(), message.clone()).map_err(
+					|error| {
+						log::error!(
+							target: LOG_TARGET,
+							"XCM validation failed with error: {:?}; destination: {:?}; message: {:?}",
+							error, dest, message
+						);
+						Error::<T>::XcmError
+					},
+				)?;
+			// send
+			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
+				log::error!(
+					target: LOG_TARGET,
+					"XCM send failed with error: {:?}; destination: {:?}; message: {:?}",
+					error, dest, message
+				);
+				Error::<T>::XcmError
+			})?;
+
+			Self::deposit_event(Event::XcmSent {
+				origin: origin_location,
+				destination: dest,
+				message,
+				message_id,
+			});
 			Ok(())
 		}
 	}

@@ -40,6 +40,7 @@ pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-timestamp = { workspace = true }
+pallet-xcm = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
@@ -97,6 +98,7 @@ std = [
 	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
+	"pallet-xcm/std",
 	"pallet-timestamp/std",
 	"pallet-treasury/std",
 	"pallet-vesting/std",
@@ -150,6 +152,7 @@ runtime-benchmarks = [
 	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
@@ -191,6 +194,7 @@ try-runtime = [
 	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
+	"pallet-xcm/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
