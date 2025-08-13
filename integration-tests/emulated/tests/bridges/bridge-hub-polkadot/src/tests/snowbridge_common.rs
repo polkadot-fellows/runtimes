@@ -275,8 +275,6 @@ pub fn prefund_accounts_on_penpal_b() {
 			&sudo_account,
 			INITIAL_FUND,
 		));
-	});
-	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::Assets::mint_into(
 			TELEPORTABLE_ASSET_ID,
 			&PenpalBReceiver::get(),
@@ -292,8 +290,6 @@ pub fn prefund_accounts_on_penpal_b() {
 			&sudo_account,
 			INITIAL_FUND,
 		));
-	});
-	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
 			weth_location(),
 			&PenpalBReceiver::get(),
@@ -365,7 +361,6 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 			&AssetHubPolkadotSender::get(),
 			INITIAL_FUND,
 		));
-
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location(),
 			&penpal_sovereign,
