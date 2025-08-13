@@ -163,7 +163,7 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 		initial_fund,
 		initial_liquidity,
 	);
-	let previous_owner = snowbridge_sovereign();
+	let previous_owner = ethereum_sovereign();
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::start_destroy(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(previous_owner),

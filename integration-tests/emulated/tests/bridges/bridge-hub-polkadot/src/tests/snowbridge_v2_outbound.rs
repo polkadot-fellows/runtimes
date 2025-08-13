@@ -322,7 +322,7 @@ pub fn tip_to_invalid_nonce_is_added_to_lost_tips() {
 
 #[test]
 fn transfer_relay_token_from_ah() {
-	let ethereum_sovereign: AccountId = snowbridge_sovereign();
+	let ethereum_sovereign: AccountId = ethereum_sovereign();
 	fund_on_bh();
 	// register token in either of the follow way should work
 	// a. register_relay_token_on_bh();

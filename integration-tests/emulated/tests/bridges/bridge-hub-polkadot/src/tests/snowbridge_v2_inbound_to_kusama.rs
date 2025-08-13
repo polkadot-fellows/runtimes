@@ -68,14 +68,14 @@ fn send_token_to_kusama_v2() {
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
 	// Register the token on AH Polkadot and Kusama
-	let snowbridge_sovereign = snowbridge_sovereign();
+	let ethereum_sovereign = ethereum_sovereign();
 	AssetHubKusama::execute_with(|| {
 		type RuntimeOrigin = <AssetHubKusama as Chain>::RuntimeOrigin;
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::force_create(
 			RuntimeOrigin::root(),
 			token_location.clone(),
-			snowbridge_sovereign.clone().into(),
+			ethereum_sovereign.clone().into(),
 			true,
 			1000,
 		));
@@ -92,7 +92,7 @@ fn send_token_to_kusama_v2() {
 	);
 	AssetHubPolkadot::fund_accounts(vec![(sov_ahw_on_ahr.clone(), INITIAL_FUND)]);
 
-	register_foreign_asset(token_location.clone(), snowbridge_sovereign, false);
+	register_foreign_asset(token_location.clone(), ethereum_sovereign, false);
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_ksm_pool_on_kusama_asset_hub();
 
@@ -355,7 +355,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
-	let ethereum_sovereign: AccountId = snowbridge_sovereign();
+	let ethereum_sovereign: AccountId = ethereum_sovereign();
 	let bridged_roc_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
 	create_foreign_on_ah_polkadot(bridged_roc_at_asset_hub_polkadot.clone(), true, vec![]);
 

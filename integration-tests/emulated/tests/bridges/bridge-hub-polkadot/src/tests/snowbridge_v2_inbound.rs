@@ -38,7 +38,7 @@ use xcm_executor::traits::ConvertLocation;
 fn register_token_v2() {
 	let relayer_account = BridgeHubPolkadotSender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
-	let bridge_owner = snowbridge_sovereign();
+	let bridge_owner = ethereum_sovereign();
 	BridgeHubPolkadot::fund_accounts(vec![(relayer_account.clone(), INITIAL_FUND)]);
 	AssetHubPolkadot::fund_accounts(vec![(bridge_owner.clone(), INITIAL_FUND)]);
 
@@ -125,7 +125,7 @@ fn send_token_v2() {
 	let beneficiary =
 		Location::new(0, AccountId32 { network: None, id: beneficiary_acc_id.into() });
 
-	let snowbridge_sovereign = snowbridge_sovereign();
+	let ethereum_sovereign = ethereum_sovereign();
 
 	// To satisfy ED
 	AssetHubPolkadot::fund_accounts(vec![(
@@ -133,7 +133,7 @@ fn send_token_v2() {
 		INITIAL_FUND,
 	)]);
 
-	register_foreign_asset(token_location.clone(), snowbridge_sovereign.clone(), false);
+	register_foreign_asset(token_location.clone(), ethereum_sovereign.clone(), false);
 
 	let assets = vec![
 		// the token being transferred
@@ -333,7 +333,7 @@ fn register_and_send_multiple_tokens_v2() {
 	let token: H160 = TOKEN_ID.into();
 	let token_location = erc20_token_location(token);
 
-	let bridge_owner = snowbridge_sovereign();
+	let bridge_owner = ethereum_sovereign();
 
 	let beneficiary_acc_id: H256 = H256::random();
 	let beneficiary_acc_bytes: [u8; 32] = beneficiary_acc_id.into();
@@ -494,17 +494,17 @@ fn send_token_to_penpal_v2() {
 	// To pay fees on Penpal.
 	let eth_fee_penpal_ah: Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
-	let snowbridge_sovereign = snowbridge_sovereign();
+	let ethereum_sovereign = ethereum_sovereign();
 
 	// To satisfy ED
 	AssetHubPolkadot::fund_para_sovereign(PENPAL_B_ID.into(), 3_000_000_000_000);
 
-	register_foreign_asset(token_location.clone(), snowbridge_sovereign.clone(), false);
+	register_foreign_asset(token_location.clone(), ethereum_sovereign.clone(), false);
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			eth_location(),
-			&snowbridge_sovereign,
+			&ethereum_sovereign,
 			INITIAL_FUND,
 		));
 	});
@@ -516,7 +516,7 @@ fn send_token_to_penpal_v2() {
 	)]);
 
 	register_ethereum_assets_on_penpal();
-	register_foreign_asset_on_penpal(token_location.clone(), snowbridge_sovereign.clone(), true);
+	register_foreign_asset_on_penpal(token_location.clone(), ethereum_sovereign.clone(), true);
 	set_trust_reserve_on_penpal();
 	set_up_eth_and_dot_pool_on_polkadot_asset_hub();
 	set_up_eth_and_dot_pool_on_penpal();
@@ -688,7 +688,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 		12,
 	);
 
-	let ethereum_sovereign: AccountId = snowbridge_sovereign();
+	let ethereum_sovereign: AccountId = ethereum_sovereign();
 
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 

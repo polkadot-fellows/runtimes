@@ -118,7 +118,7 @@ pub fn penpal_root_sovereign() -> sp_runtime::AccountId32 {
 	penpal_root_sovereign
 }
 
-pub fn snowbridge_sovereign() -> sp_runtime::AccountId32 {
+pub fn ethereum_sovereign() -> sp_runtime::AccountId32 {
 	use asset_hub_polkadot_runtime::xcm_config::UniversalLocation as AssetHubPolkadotUniversalLocation;
 	AssetHubPolkadot::execute_with(|| {
 		ExternalConsensusLocationsConverterFor::<
@@ -182,7 +182,7 @@ pub fn register_asset_native_polkadot_asset_on_snowbridge(
 
 /// Register Ether and Weth on Penpal B.
 pub fn register_ethereum_assets_on_penpal() {
-	let ethereum_sovereign: AccountId = snowbridge_sovereign();
+	let ethereum_sovereign: AccountId = ethereum_sovereign();
 	register_foreign_asset_on_penpal(weth_location(), ethereum_sovereign.clone(), true);
 	register_foreign_asset_on_penpal(eth_location(), ethereum_sovereign, true);
 }
@@ -388,7 +388,7 @@ pub fn prefund_accounts_on_polkadot_asset_hub() {
 		));
 	});
 
-	AssetHubPolkadot::fund_accounts(vec![(snowbridge_sovereign(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign(), INITIAL_FUND)]);
 	AssetHubPolkadot::fund_accounts(vec![(penpal_sovereign.clone(), INITIAL_FUND)]);
 	AssetHubPolkadot::fund_accounts(vec![(penpal_user_sovereign.clone(), INITIAL_FUND)]);
 }
@@ -400,12 +400,12 @@ pub(crate) fn set_up_eth_and_dot_pool_on_polkadot_asset_hub() {
 
 /// Create a pool between DOT and a foreign asset on Polkadot AssetHub.
 pub(crate) fn set_up_foreign_asset_and_dot_pool_on_polkadot_asset_hub(asset: Location) {
-	let snowbridge_sovereign = snowbridge_sovereign();
-	AssetHubPolkadot::fund_accounts(vec![(snowbridge_sovereign.clone(), INITIAL_FUND)]);
+	let ethereum_sovereign = ethereum_sovereign();
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint_into(
 			asset.clone(),
-			&snowbridge_sovereign.clone(),
+			&ethereum_sovereign.clone(),
 			INITIAL_FUND,
 		));
 	});
@@ -413,7 +413,7 @@ pub(crate) fn set_up_foreign_asset_and_dot_pool_on_polkadot_asset_hub(asset: Loc
 		AssetHubPolkadot,
 		asset,
 		true,
-		snowbridge_sovereign.clone(),
+		ethereum_sovereign.clone(),
 		DOT_POOL_AMOUNT,
 		ETH_POOL_AMOUNT
 	);
@@ -421,12 +421,12 @@ pub(crate) fn set_up_foreign_asset_and_dot_pool_on_polkadot_asset_hub(asset: Loc
 
 /// Create a pool between DOT and ETH on Penpal to support paying for fees with ETH.
 pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
-	let snowbridge_sovereign = snowbridge_sovereign();
-	PenpalB::fund_accounts(vec![(snowbridge_sovereign.clone(), INITIAL_FUND)]);
+	let ethereum_sovereign = ethereum_sovereign();
+	PenpalB::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::mint_into(
 			eth_location(),
-			&snowbridge_sovereign.clone(),
+			&ethereum_sovereign.clone(),
 			INITIAL_FUND,
 		));
 	});
@@ -434,7 +434,7 @@ pub(crate) fn set_up_eth_and_dot_pool_on_penpal() {
 		PenpalB,
 		eth_location(),
 		true,
-		snowbridge_sovereign.clone(),
+		ethereum_sovereign.clone(),
 		DOT_POOL_AMOUNT,
 		ETH_POOL_AMOUNT
 	);
