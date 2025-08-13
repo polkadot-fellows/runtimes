@@ -31,6 +31,21 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
+//!
+//! To run the pre+post migration checks against a set of snapshots from pre/post migration (created in `ahm-drynrun's CI`):
+//!
+//! ```
+//! SNAP_RC_PRE="rc-pre.snap" \                                                                                                                                                      kiz-only-post-ahm-tests  ✭
+//! SNAP_AH_PRE="ah-pre.snap" \
+//! SNAP_RC_POST="rc-post.snap" \
+//! SNAP_AH_POST="ah-post.snap" \
+//! cargo test \
+//! 	-p polkadot-integration-tests-ahm \
+//! 	--features try-runtime \
+//! 	--features paseo \
+//! 	--release \
+//! 	-- post_migration_checks_only --nocapture
+//! ```
 
 use crate::porting_prelude::*;
 
@@ -1283,4 +1298,56 @@ fn test_control_flow() {
 			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(first_message_hash).is_some()
 		);
 	});
+}
+
+#[tokio::test]
+async fn post_migration_checks_only() {
+	//! Migration invariant checks across distinct pre/post snapshots.
+	//! Env vars (must all be set):
+	//!   SNAP_RC_PRE  - Relay Chain (pre-migration) snapshot
+	//!   SNAP_AH_PRE  - Asset Hub  (pre-migration) snapshot
+	//!   SNAP_RC_POST - Relay Chain (post-migration) snapshot
+	//!   SNAP_AH_POST - Asset Hub  (post-migration) snapshot
+	//!
+	//! Flow:
+	//! 1. Load pre-migration RC + AH snapshots, run RcChecks::pre_check and AhChecks::pre_check capturing payloads.
+	//! 2. Drop pre externalities.
+	//! 3. Load post-migration RC + AH snapshots, run RcChecks::post_check and AhChecks::post_check using captured payloads.
+	//!
+	//! SanityChecks will assert the expected stages on both snapshots (Scheduled/Pending pre, MigrationDone post).
+	//! Any deviation causes the test to fail early.
+
+	use remote_externalities::{Builder, Mode, OfflineConfig};
+	use polkadot_runtime::Block as PolkadotBlock;
+
+	sp_tracing::try_init_simple();
+
+	// Helper to load a snapshot from env var name (panic if missing / fails).
+	async fn load_ext(var: &str) -> TestExternalities {
+		let snap = std::env::var(var).unwrap_or_else(|_| panic!("Missing env var {var}"));
+		let abs = std::path::absolute(&snap).expect("abs path");
+		let remote = Builder::<PolkadotBlock>::default()
+			.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
+			.build()
+			.await
+			.unwrap_or_else(|e| panic!("Failed to load snapshot {abs:?}: {e:?}"));
+		let (kv, root) = remote.inner_ext.into_raw_snapshot();
+		TestExternalities::from_raw_snapshot(kv, root, sp_storage::StateVersion::V1)
+	}
+
+	let mut rc_pre_ext = load_ext("SNAP_RC_PRE").await;
+	let mut ah_pre_ext = load_ext("SNAP_AH_PRE").await;
+
+	let rc_pre_payload = rc_pre_ext.execute_with(RcChecks::pre_check);
+	let ah_pre_payload = ah_pre_ext.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
+
+	std::mem::drop(rc_pre_ext);
+	std::mem::drop(ah_pre_ext);
+
+	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
+	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
+
+	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
+	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
+
 }

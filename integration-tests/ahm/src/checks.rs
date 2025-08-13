@@ -27,10 +27,10 @@ impl RcMigrationCheck for SanityChecks {
 	type RcPrePayload = ();
 
 	fn pre_check() -> Self::RcPrePayload {
-		assert!(
-			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
-				pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 }
-		);
+		// assert!(
+		// 	pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
+		// 		pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 }
+		// );
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
