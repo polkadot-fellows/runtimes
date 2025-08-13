@@ -220,7 +220,8 @@ asset_test_utils::include_teleports_for_native_asset_works!(
 	Runtime,
 	AllPalletsWithoutSystem,
 	XcmConfig,
-	CheckingAccount,
+	// TODO: after AHM change this from `()` to `CheckingAccount`
+	(),
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
