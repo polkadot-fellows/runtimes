@@ -21,8 +21,7 @@ mod send;
 mod set_xcm_versions;
 mod swap;
 mod teleport;
-// TODO: fail-ci @cisco to backport missing https://github.com/paritytech/polkadot-sdk/pull/9137 to unstable2507 and publish patch version of pallet-xcm
-// mod transfer_assets_validation;
+mod transfer_assets_validation;
 mod treasury;
 mod xcm_fee_estimation;
 

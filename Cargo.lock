@@ -9462,14 +9462,15 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "21.0.0"
+version = "21.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8312095053e29593e46cf90cd25b62024f5852feca35c4251c5ea39aca4caec1"
+checksum = "edb770f7bc90409c111d8a9faec29cd78366122ea66866322bd2b9609c20953e"
 dependencies = [
  "bounded-collections 0.3.2",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "pallet-balances",
  "pallet-revive",
  "pallet-timestamp",
