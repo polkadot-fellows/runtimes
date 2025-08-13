@@ -808,13 +808,19 @@ pub mod pallet {
 		/// Schedule the migration to start at a given moment.
 		///
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start. Must be a point within
-		/// the current era before the validator election process has started. Typically, this
-		/// corresponds to the final session of the era, just prior to the election kickoff.
-		/// - `warm_up`: The block number at which the pre migration warm-up period will end. The
+		/// - `start`: The block number at which the migration will start.
+		/// - `warm_up`: The block number at which the pre migration warm-up period will end. This
+		/// should be at least 1 session of blocks to allow for any queued validator set to be
+		/// applied.
 		///   `DispatchTime` calculated at the moment of the transition to the warm-up stage.
 		/// - `cool_off`: The block number at which the post migration cool-off period will end. The
 		///   `DispatchTime` calculated at the moment of the transition to the cool-off stage.
+		///
+		/// Note: If the staking election for next era is already complete, and the next
+		/// validator set is queued in `pallet-session`, we want to avoid starting the data migration
+		/// at this point as it can lead to some missed validator rewards. To address this, we
+		/// stop staking election at the start of migration and must wait atleast 1 session (set via
+		/// warm_up) before starting the data migration.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
@@ -1135,17 +1141,8 @@ pub mod pallet {
 					if now >= start {
 						weight_counter.consume(T::DbWeight::get().reads(2));
 
-						#[cfg(not(feature = "std"))] // Skip in tests since snapshot can be off
-						{
-							let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-							// ensure new era is not planned when starting migration.
-							if current_era > active_era {
-								defensive!("Migration must start before the election starts on the chain.");
-								Self::transition(MigrationStage::Pending);
-								return weight_counter.consumed();
-							}
-						}
+						// stop any further staking elections
+						pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
