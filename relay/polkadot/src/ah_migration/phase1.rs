@@ -82,14 +82,14 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		System(..) => (ON, ON), // Remarks, root calls and `set_code` if we need for emergency.
 		Scheduler(..) => (OFF, OFF), // Only for governance, hence disabled.
 		Preimage(..) => (OFF, OFF), // Only for governance, hence disabled.
-		Babe(..) => (ON, ON),   // For offence reports
+		Babe(..) => (ON, ON),   // For equivocation proof submissions; security relevant
 		Timestamp(..) => (ON, ON), // only `set` inherit
 		Indices(..) => (OFF, OFF), // Not needed anymore and migrated to AH.
 		Balances(..) => (OFF, ON), // Disabled during migration to avoid confusing externals.
 		Staking(..) => (OFF, OFF),
 		StakingAhClient(..) => (ON, ON), // Only permissioned calls and needed for the migration.
 		Session(..) => (ON, ON),         // Does not affect any migrating pallet.
-		Grandpa(..) => (ON, ON),         // OK? WHY?
+		Grandpa(..) => (ON, ON),         // For equivocation proof submissions; security relevant
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
 		Referenda(..) => (OFF, OFF),
@@ -110,11 +110,11 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (ON, ON), // Has no calls
 		ParaInherent(..) => (ON, ON),  // only inherents
 		Paras(..) => (ON, ON),         // OK? WHY?
-		Initializer(..) => (ON, ON),   // OK? WHY?
+		Initializer(..) => (ON, ON),   // Only root calls. Fine to keep.
 		Hrmp(..) => (ON, ON),          /* open close hrmp channels by parachains or root force. */
 		// no concerns.
-		ParasDisputes(..) => (ON, ON), // OK? WHY?
-		ParasSlashing(..) => (ON, ON), // OK? WHY?
+		ParasDisputes(..) => (ON, ON), // Only a single root call. Fine to keep.
+		ParasSlashing(..) => (ON, ON), // Security critical. If disabled there will be no slashes or offences generated for malicious validators.
 		OnDemand(..) => (OFF, ON),
 		Registrar(..) => (OFF, ON),
 		Slots(..) => (OFF, OFF),
@@ -131,7 +131,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		XcmPallet(..) => (ON, ON),            /* during migration can only send XCMs to other */
 		MessageQueue(..) => (ON, ON),         // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (ON, ON),      // OK? WHY?
+		Beefy(..) => (ON, ON),      // For reporting equivocation proofs; security relevant
 		RcMigrator(..) => (ON, ON), // Required for the migration, only permissioned calls
 	}
 	// Exhaustive match. Compiler ensures that we did not miss any.
