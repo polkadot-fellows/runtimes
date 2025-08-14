@@ -107,7 +107,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
+	type Verifier = EthereumBeaconClient;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type XcmSender = xcm_config::XcmRouter;
 	#[cfg(feature = "runtime-benchmarks")]
