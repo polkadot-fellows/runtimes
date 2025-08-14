@@ -143,6 +143,7 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	StakingMigratedCorrectly<Polkadot>,
 );
 
 type AhChecks = (
@@ -186,8 +187,6 @@ pub type AhRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
-// TODO: staking missing for Paseo
-
 #[cfg(feature = "paseo")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
@@ -196,6 +195,7 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	StakingMigratedCorrectly<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
