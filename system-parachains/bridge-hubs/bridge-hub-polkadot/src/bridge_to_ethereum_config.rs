@@ -19,7 +19,7 @@ use crate::{
 	xcm_config::{self, RelayNetwork, RelayTreasuryPalletAccount, RootLocation, UniversalLocation},
 	Balances, BridgeRelayers, EthereumInboundQueue, EthereumInboundQueueV2, EthereumOutboundQueue,
 	EthereumOutboundQueueV2, EthereumSystem, EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent,
-	TransactionByteFee,
+	TransactionByteFee, EthereumBeaconClient,
 };
 use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
 use bp_bridge_hub_polkadot::snowbridge::{
@@ -107,7 +107,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
+	type Verifier = EthereumBeaconClient;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type XcmSender = xcm_config::XcmRouter;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -169,7 +169,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type GasMeter = ConstantGasMeterV2;
 	type Balance = Balance;
 	type WeightToFee = WeightToFee;
-	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
+	type Verifier = EthereumBeaconClient;
 	type GatewayAddress = EthereumGatewayAddress;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
 	type EthereumNetwork = EthereumNetwork;
