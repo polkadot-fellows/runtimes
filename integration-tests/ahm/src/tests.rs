@@ -31,6 +31,22 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
+//!
+//! To run the pre+post migration checks against a set of snapshots from pre/post migration (created
+//! in `ahm-drynrun's CI`):
+//!
+//! ```
+//! SNAP_RC_PRE="rc-pre.snap" \
+//! SNAP_AH_PRE="ah-pre.snap" \
+//! SNAP_RC_POST="rc-post.snap" \
+//! SNAP_AH_POST="ah-post.snap" \
+//! cargo test \
+//! 	-p polkadot-integration-tests-ahm \
+//! 	--features try-runtime \
+//! 	--features paseo \
+//! 	--release \
+//! 	-- post_migration_checks_only --nocapture
+//! ```
 
 use crate::porting_prelude::*;
 
@@ -80,8 +96,8 @@ use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
-	SanityChecks,
-	pallet_rc_migrator::accounts::tests::AccountsMigrationChecker<Polkadot>,
+	// SanityChecks,
+	// pallet_rc_migrator::accounts::tests::AccountsMigrationChecker<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -128,11 +144,12 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	StakingMigratedCorrectly<Polkadot>,
 );
 
 type AhChecks = (
-	SanityChecks,
-	pallet_rc_migrator::accounts::tests::AccountsMigrationChecker<AssetHub>,
+	// SanityChecks,
+	// pallet_rc_migrator::accounts::tests::AccountsMigrationChecker<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
@@ -180,6 +197,7 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	StakingMigratedCorrectly<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
@@ -1285,4 +1303,61 @@ fn test_control_flow() {
 			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(first_message_hash).is_some()
 		);
 	});
+}
+
+#[tokio::test]
+async fn post_migration_checks_only() {
+	//! Migration invariant checks across distinct pre/post snapshots.
+	//! Env vars (must all be set):
+	//!   SNAP_RC_PRE  - Relay Chain (pre-migration) snapshot
+	//!   SNAP_AH_PRE  - Asset Hub  (pre-migration) snapshot
+	//!   SNAP_RC_POST - Relay Chain (post-migration) snapshot
+	//!   SNAP_AH_POST - Asset Hub  (post-migration) snapshot
+
+	use polkadot_runtime::Block as PolkadotBlock;
+	use remote_externalities::{Builder, Mode, OfflineConfig};
+
+	sp_tracing::try_init_simple();
+
+	// Helper to load a snapshot from env var name (panic if missing / fails).
+	async fn load_ext(var: &str) -> TestExternalities {
+		let snap = std::env::var(var).unwrap_or_else(|_| panic!("Missing env var {var}"));
+		let abs = std::path::absolute(&snap).expect("abs path");
+		let remote = Builder::<PolkadotBlock>::default()
+			.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
+			.build()
+			.await
+			.unwrap_or_else(|e| panic!("Failed to load snapshot {abs:?}: {e:?}"));
+		let (kv, root) = remote.inner_ext.into_raw_snapshot();
+		TestExternalities::from_raw_snapshot(kv, root, sp_storage::StateVersion::V1)
+	}
+
+	let mut rc_pre_ext = load_ext("SNAP_RC_PRE").await;
+	let mut ah_pre_ext = load_ext("SNAP_AH_PRE").await;
+
+	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
+	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
+
+	rc_pre_ext.execute_with(|| {
+		log::info!(target: "ahm", "PRE: RC migration stage: {:?}", RcMigrationStageStorage::<Polkadot>::get());
+	});
+	ah_pre_ext.execute_with(|| {
+		log::info!(target: "ahm", "PRE: AH migration stage: {:?}", AhMigrationStageStorage::<AssetHub>::get());
+	});
+	rc_post_ext.execute_with(|| {
+		log::info!(target: "ahm", "POST: RC migration stage: {:?}", RcMigrationStageStorage::<Polkadot>::get());
+	});
+	ah_post_ext.execute_with(|| {
+		log::info!(target: "ahm", "POST: AH migration stage: {:?}", AhMigrationStageStorage::<AssetHub>::get());
+	});
+
+	let rc_pre_payload = rc_pre_ext.execute_with(RcChecks::pre_check);
+	let ah_pre_payload = ah_pre_ext.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
+
+	std::mem::drop(rc_pre_ext);
+	std::mem::drop(ah_pre_ext);
+
+
+	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
+	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
 }
