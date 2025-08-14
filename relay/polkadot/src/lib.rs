@@ -475,6 +475,11 @@ impl_opaque_keys! {
 	}
 }
 
+parameter_types! {
+	// all keys are 32 bytes, except beefy being 33
+	pub KeyDeposit: Balance = deposit(1, 5 * 32 + 33);
+}
+
 impl pallet_session::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
@@ -487,7 +492,7 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 	type Currency = Balances;
-	type KeyDeposit = ();
+	type KeyDeposit = KeyDeposit;
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -3195,7 +3200,7 @@ mod remote_tests {
 
 	async fn remote_ext_test_setup() -> RemoteExternalities<Block> {
 		let transport: Transport =
-			var("WS").unwrap_or("wss://rpc.polkadot.io:443".to_string()).into();
+			var("WS").unwrap_or("wss://polkadot-rpc.dwellir.com".to_string()).into();
 		let maybe_state_snapshot: Option<SnapshotConfig> = var("SNAP").map(|s| s.into()).ok();
 		Builder::<Block>::default()
 			.mode(if let Some(state_snapshot) = maybe_state_snapshot {
@@ -3213,6 +3218,29 @@ mod remote_tests {
 			.build()
 			.await
 			.unwrap()
+	}
+
+	#[tokio::test]
+	#[ignore = "this test is meant to be executed manually"]
+	async fn validators_who_cannot_afford_session_key_deposit() {
+		use frame_support::traits::fungible::InspectHold;
+		sp_tracing::try_init_simple();
+		let mut ext = remote_ext_test_setup().await;
+		ext.execute_with(|| {
+			let amount = <Runtime as pallet_session::Config>::KeyDeposit::get();
+			let reason = pallet_session::HoldReason::Keys;
+			let cannot_pay = pallet_staking::Validators::<Runtime>::iter()
+				.map(|(v, _prefs)| v)
+				.filter(|v| {
+					pallet_balances::Pallet::<Runtime>::ensure_can_hold(&reason.into(), &v, amount)
+						.is_err()
+				})
+				.collect::<Vec<_>>();
+
+			for v in cannot_pay {
+				log::warn!(target: "runtime", "validator {:?} cannot pay a deposit of {:?}", v, amount)
+			}
+		})
 	}
 
 	#[tokio::test]
@@ -3276,25 +3304,7 @@ mod remote_tests {
 	#[ignore = "this test is meant to be executed manually"]
 	async fn try_fast_unstake_all() {
 		sp_tracing::try_init_simple();
-		let transport: Transport =
-			var("WS").unwrap_or("wss://rpc.polkadot.io:443".to_string()).into();
-		let maybe_state_snapshot: Option<SnapshotConfig> = var("SNAP").map(|s| s.into()).ok();
-		let mut ext = Builder::<Block>::default()
-			.mode(if let Some(state_snapshot) = maybe_state_snapshot {
-				Mode::OfflineOrElseOnline(
-					OfflineConfig { state_snapshot: state_snapshot.clone() },
-					OnlineConfig {
-						transport,
-						state_snapshot: Some(state_snapshot),
-						..Default::default()
-					},
-				)
-			} else {
-				Mode::Online(OnlineConfig { transport, ..Default::default() })
-			})
-			.build()
-			.await
-			.unwrap();
+		let mut ext = remote_ext_test_setup().await;
 		ext.execute_with(|| {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
