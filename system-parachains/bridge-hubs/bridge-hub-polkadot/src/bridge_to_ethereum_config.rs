@@ -59,7 +59,7 @@ pub type SnowbridgeExporter = EthereumBlobExporter<
 pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	UniversalLocation,
 	EthereumNetwork,
-	snowbridge_pallet_outbound_queue_v2::Pallet<Runtime>,
+	EthereumOutboundQueueV2,
 	EthereumSystemV2,
 	AssetHubParaId,
 >;
