@@ -35,7 +35,7 @@
 //! To run the pre+post migration checks against a set of snapshots from pre/post migration (created in `ahm-drynrun's CI`):
 //!
 //! ```
-//! SNAP_RC_PRE="rc-pre.snap" \                                                                                                                                                   
+//! SNAP_RC_PRE="rc-pre.snap" \
 //! SNAP_AH_PRE="ah-pre.snap" \
 //! SNAP_RC_POST="rc-post.snap" \
 //! SNAP_AH_POST="ah-post.snap" \
@@ -184,6 +184,8 @@ pub type AhRuntimeSpecificChecks = (
 	StakingMigratedCorrectly<AssetHub>,
 	ChildBountiesMigratedCorrectly<AssetHub>,
 );
+
+// TODO: staking missing for Paseo
 
 #[cfg(feature = "paseo")]
 pub type AhRuntimeSpecificChecks = (
@@ -1338,6 +1340,14 @@ async fn post_migration_checks_only() {
 
 	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
 	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
+
+	rc_post_ext.execute_with(|| {
+		// print rc migration stage
+		log::info!(
+			"RC migration stage: {:?}",
+			RcMigrationStageStorage::<Polkadot>::get()
+		);
+	});
 
 	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
 	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
