@@ -177,9 +177,9 @@ impl snowbridge_pallet_system_frontend::Config for Runtime {
 		EnsureRootWithSuccess<AccountId, RootLocation>,
 	>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type XcmSender = XcmRouter;
+	type XcmSender = xcm_config::XcmRouter;
 	#[cfg(feature = "runtime-benchmarks")]
-	type XcmSender = DoNothingRouter;
+	type XcmSender = benchmark_helpers::DoNothingRouter;
 	type AssetTransactor = AssetTransactors;
 	type EthereumLocation = FeeAsset;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
