@@ -257,6 +257,7 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type MessageExporter = (
 		XcmOverBridgeHubKusama,
+		// `SnowbridgeExporterV2` should always be checked before legacy `SnowbridgeExporter`
 		crate::bridge_to_ethereum_config::SnowbridgeExporterV2,
 		crate::bridge_to_ethereum_config::SnowbridgeExporter,
 	);
