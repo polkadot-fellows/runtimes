@@ -106,8 +106,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		NominationPools(..) => (OFF, OFF),
 		FastUnstake(..) => (OFF, OFF),
 		Configuration(..) => (ON, ON), /* TODO allow this to be called by fellow origin during the migration https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928794490 */
-		ParasShared(parachains_shared::Call::__Ignore { .. }) => (OFF, OFF), // Has no calls
-		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (OFF, OFF), // Has no calls
+		ParasShared(parachains_shared::Call::__Ignore { .. }) => (ON, ON), // Has no calls
+		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (ON, ON), // Has no calls
 		ParaInherent(..) => (ON, ON),  // only inherents
 		Paras(..) => (ON, ON),         // OK? WHY?
 		Initializer(..) => (ON, ON),   // OK? WHY?

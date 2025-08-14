@@ -92,7 +92,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Multisig(..) => OFF,
 		Nfts(..) => ON, // no reason to disable it, just convenience
 		NominationPools(..) => OFF,
-		ParachainInfo(parachain_info::Call::__Ignore { .. }) => OFF, // Has no calls
+		ParachainInfo(parachain_info::Call::__Ignore { .. }) => ON, // Has no calls
 		ParachainSystem(..) => ON,                                   /* Only inherent and root */
 		// calls
 		PolkadotXcm(..) => ON, // no reason to disable it, just convenience
