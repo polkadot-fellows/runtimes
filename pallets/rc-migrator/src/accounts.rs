@@ -1155,13 +1155,6 @@ pub mod tests {
 					// This corresponds to AccountState::Migrate: the account should be fully
 					// migrated to Asset Hub.
 					Some(AccountState::Migrate) | None => {
-						if who.to_ss58check() == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY" ||
-							who.to_ss58check() ==
-								"15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5"
-						{
-							// Alice
-							continue;
-						}
 						// Assert storage "Balances::Account::rc_post::empty"
 						let total_balance = <T as Config>::Currency::total_balance(&who);
 						assert_eq!(
