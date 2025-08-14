@@ -32,7 +32,7 @@ use frame_support::{parameter_types, traits::EitherOf};
 use frame_system::EnsureRootWithSuccess;
 use parachains_common::AssetIdForTrustBackedAssets;
 use snowbridge_runtime_common::{ForeignAssetOwner, LocalAssetOwner};
-use xcm::prelude::{InteriorLocation, Location, PalletInstance, Parachain};
+use xcm::prelude::{InteriorLocation, Location, PalletInstance};
 use xcm_executor::XcmExecutor;
 
 #[cfg(feature = "runtime-benchmarks")]
