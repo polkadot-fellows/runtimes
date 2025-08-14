@@ -224,8 +224,8 @@ pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 	});
 }
 
-// Malicious can add an AliasOrigin in the remoteXcm routing to V2, try to exploit the bridge, while
-// it should fail on BH
+// A malicious user attempted to exploit the bridge by manually adding an AliasOrigin in the
+// remoteXcm, successfully routing to the V2 path, but ultimately failing at the BH Exporter.
 #[test]
 pub fn exploit_v2_route_with_legacy_v1_transfer_will_fail() {
 	prefund_accounts_on_polkadot_asset_hub();
