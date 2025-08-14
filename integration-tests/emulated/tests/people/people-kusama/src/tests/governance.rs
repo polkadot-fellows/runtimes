@@ -48,10 +48,7 @@ fn relay_commands_add_registrar() {
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,
-						// TODO:
-						// This and the below weight data in the XCM can be removed once XCMv5 is
-						// used.
-						fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
+						fallback_max_weight: None,
 						call: add_registrar_call.encode().into(),
 					}
 				]))),
@@ -110,7 +107,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: add_registrar_call.encode().into(),
 				}
 			]))),
