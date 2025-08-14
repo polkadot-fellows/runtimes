@@ -3189,13 +3189,13 @@ mod remote_tests {
 			let cannot_pay = pallet_staking::Validators::<Runtime>::iter()
 				.map(|(v, _prefs)| v)
 				.filter(|v| {
-					pallet_balances::Pallet::<Runtime>::ensure_can_hold(&reason.into(), &v, amount)
+					pallet_balances::Pallet::<Runtime>::ensure_can_hold(&reason.into(), v, amount)
 						.is_err()
 				})
 				.collect::<Vec<_>>();
 
 			for v in cannot_pay {
-				log::warn!(target: "runtime", "validator {:?} cannot pay a deposit of {:?}", v, amount)
+				log::warn!(target: "runtime", "validator {v:?} cannot pay a deposit of {amount:?}")
 			}
 		})
 	}
