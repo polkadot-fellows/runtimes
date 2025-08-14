@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(not(feature = "runtime-benchmarks"))]
-use crate::xcm_config::XcmRouter;
 use crate::{
 	weights, xcm_config,
 	xcm_config::{
