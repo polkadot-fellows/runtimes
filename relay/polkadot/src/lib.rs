@@ -1730,6 +1730,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
 	type TreasuryPaymaster = TreasuryPaymaster;
+	type SessionDuration = EpochDuration; // Session == Epoch
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;

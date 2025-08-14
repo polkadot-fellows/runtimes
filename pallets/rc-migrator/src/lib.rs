@@ -100,7 +100,7 @@ use runtime_parachains::{
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
 	traits::{BadOrigin, BlockNumberProvider, Hash, One, Zero},
-	AccountId32,
+	AccountId32, Saturating,
 };
 use sp_std::prelude::*;
 use staking::{
@@ -489,6 +489,8 @@ pub mod pallet {
 			AssetKind = VersionedLocatableAsset,
 		>;
 
+		type SessionDuration: Get<u64>;
+
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
 			+ VariantCount
@@ -575,6 +577,10 @@ pub mod pallet {
 		FailedToWithdrawAccount,
 		/// Indicates that the specified block number is in the past.
 		PastBlockNumber,
+		/// Indicates that there is not enough time for staking to lock.
+		///
+		/// Schedule the migration at least two sessions before the current era ends.
+		EraEndsTooSoon,
 		/// Balance accounting overflow.
 		BalanceOverflow,
 		/// Balance accounting underflow.
@@ -808,19 +814,22 @@ pub mod pallet {
 		/// Schedule the migration to start at a given moment.
 		///
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start.
-		/// - `warm_up`: The block number at which the pre migration warm-up period will end. This
-		/// should be at least 1 session of blocks to allow for any queued validator set to be
-		/// applied.
-		///   `DispatchTime` calculated at the moment of the transition to the warm-up stage.
+		/// - `start`: The block number at which the migration will start. `DispatchTime` calculated
+		///   at the moment of the extrinsic execution.
+		/// - `warm_up`: Duration or timepoint that will be used to prepare for the migration. Calls
+		///   are filtered during this period. It is intended to give enough time for UMP and DMP
+		///   queues to empty. `DispatchTime` calculated at the moment of the transition to the
+		///   warm-up stage.
 		/// - `cool_off`: The block number at which the post migration cool-off period will end. The
 		///   `DispatchTime` calculated at the moment of the transition to the cool-off stage.
+		/// - `unsafe_ignore_staking_lock_check`: ONLY FOR TESTING. Ignore the check whether the
+		///   scheduled time point is far enough in the future.
 		///
 		/// Note: If the staking election for next era is already complete, and the next
-		/// validator set is queued in `pallet-session`, we want to avoid starting the data migration
-		/// at this point as it can lead to some missed validator rewards. To address this, we
-		/// stop staking election at the start of migration and must wait atleast 1 session (set via
-		/// warm_up) before starting the data migration.
+		/// validator set is queued in `pallet-session`, we want to avoid starting the data
+		/// migration at this point as it can lead to some missed validator rewards. To address
+		/// this, we stop staking election at the start of migration and must wait atleast 1
+		/// session (set via warm_up) before starting the data migration.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
@@ -830,16 +839,30 @@ pub mod pallet {
 			start: DispatchTime<BlockNumberFor<T>>,
 			warm_up: DispatchTime<BlockNumberFor<T>>,
 			cool_off: DispatchTime<BlockNumberFor<T>>,
+			unsafe_ignore_staking_lock_check: bool,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
 			let start = start.evaluate(now);
+
 			ensure!(start > now, Error::<T>::PastBlockNumber);
 			ensure!(warm_up.evaluate(now) >= start, Error::<T>::PastBlockNumber);
 			ensure!(cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
+
+			if !unsafe_ignore_staking_lock_check {
+				let until_start = start.saturating_sub(now);
+				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
+					.saturating_mul(2)
+					.try_into()
+					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
+
+				ensure!(until_start >= two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+			}
+
 			WarmUpPeriod::<T>::put(warm_up);
 			CoolOffPeriod::<T>::put(cool_off);
+
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
 		}

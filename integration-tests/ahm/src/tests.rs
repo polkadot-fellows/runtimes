@@ -48,9 +48,12 @@ use super::{
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
-use frame_support::traits::{
-	fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
-	OnInitialize, ReservableCurrency,
+use frame_support::{
+	hypothetically, hypothetically_ok,
+	traits::{
+		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
+		OnInitialize, ReservableCurrency,
+	},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
@@ -68,6 +71,7 @@ use pallet_rc_migrator::{
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::slots as pallet_slots;
+use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::{crypto::Ss58Codec, ByteArray};
 use sp_io::TestExternalities;
@@ -755,6 +759,7 @@ async fn scheduled_migration_works() {
 			DispatchTime::At(start),
 			DispatchTime::At(warm_up_end),
 			cool_off_end,
+			Default::default(),
 		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
@@ -1284,5 +1289,54 @@ fn test_control_flow() {
 		assert!(
 			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(first_message_hash).is_some()
 		);
+	});
+}
+
+// Works if we schedule the migration at least two sessions before the era ends.
+#[test]
+fn schedule_migration_works() {
+	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
+	new_test_rc_ext().execute_with(|| {
+		let now = u16::MAX as u32 * 2;
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
+		let rng = rand::thread_rng().gen_range(1..=u16::MAX) as u32;
+
+		// Scheduling two sessions into the future works
+		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2), // start
+			DispatchTime::At(u32::MAX),                   // no-op
+			DispatchTime::At(u32::MAX),                   // no-op
+			Default::default(),
+		));
+
+		// Scheduling more than two sessions into the future works
+		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2 + rng), // start
+			DispatchTime::At(u32::MAX),                         // no-op
+			DispatchTime::At(u32::MAX),                         // no-op
+			Default::default(),
+		));
+
+		// Scheduling less than two sessions into the future fails
+		hypothetically!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2 - 1), // start
+			DispatchTime::At(u32::MAX),                       // no-op
+			DispatchTime::At(u32::MAX),                       // no-op
+			Default::default(),
+		)
+		.unwrap_err());
+
+		hypothetically!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2 - 1), // start
+			DispatchTime::At(u32::MAX),                       // no-op
+			DispatchTime::At(u32::MAX),                       // no-op
+			Default::default(),
+		)
+		.unwrap_err());
 	});
 }
