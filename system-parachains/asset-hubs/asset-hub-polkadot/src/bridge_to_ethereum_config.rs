@@ -18,8 +18,8 @@ use crate::xcm_config::XcmRouter;
 use crate::{
 	weights, xcm_config,
 	xcm_config::{
-		AssetTransactors, LocationToAccountId, TrustBackedAssetsPalletLocation, UniversalLocation,
-		XcmConfig,
+		bridging::SiblingBridgeHub, AssetTransactors, LocationToAccountId, RootLocation,
+		TrustBackedAssetsPalletLocation, UniversalLocation, XcmConfig,
 	},
 	AccountId, AssetConversion, Assets, ForeignAssets, Runtime, RuntimeEvent,
 };
@@ -146,9 +146,7 @@ parameter_types! {
 				EthereumNetwork::get().into(),
 			],
 	);
-	pub BridgeHubLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::BRIDGE_HUB_ID)]);
 	pub SystemFrontendPalletLocation: InteriorLocation = [PalletInstance(SystemFrontendPalletInstance::get())].into();
-	pub const RootLocation: Location = Location::here();
 }
 
 impl snowbridge_pallet_system_frontend::Config for Runtime {
@@ -185,7 +183,7 @@ impl snowbridge_pallet_system_frontend::Config for Runtime {
 	type AssetTransactor = AssetTransactors;
 	type EthereumLocation = FeeAsset;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type BridgeHubLocation = BridgeHubLocation;
+	type BridgeHubLocation = SiblingBridgeHub;
 	type UniversalLocation = UniversalLocation;
 	type PalletLocation = SystemFrontendPalletLocation;
 	type Swap = AssetConversion;

@@ -17,9 +17,9 @@
 use crate::{
 	bridge_common_config::BridgeReward,
 	xcm_config::{self, RelayNetwork, RelayTreasuryPalletAccount, RootLocation, UniversalLocation},
-	Balances, BridgeRelayers, EthereumInboundQueue, EthereumInboundQueueV2, EthereumOutboundQueue,
-	EthereumOutboundQueueV2, EthereumSystem, EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent,
-	TransactionByteFee, EthereumBeaconClient,
+	Balances, BridgeRelayers, EthereumBeaconClient, EthereumInboundQueue, EthereumInboundQueueV2,
+	EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem, EthereumSystemV2, MessageQueue,
+	Runtime, RuntimeEvent, TransactionByteFee,
 };
 use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
 use bp_bridge_hub_polkadot::snowbridge::{
