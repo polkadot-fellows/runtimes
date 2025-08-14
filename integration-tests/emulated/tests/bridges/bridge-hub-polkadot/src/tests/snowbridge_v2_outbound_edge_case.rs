@@ -1,9 +1,5 @@
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
-
-use frame_support::{assert_noop, BoundedVec};
-use snowbridge_core::AssetMetadata;
-use sp_runtime::DispatchError::BadOrigin;
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,6 +12,7 @@ use sp_runtime::DispatchError::BadOrigin;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 use crate::{
 	tests::{
 		snowbridge::CHAIN_ID,
@@ -25,7 +22,11 @@ use crate::{
 	},
 	*,
 };
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
+use frame_support::{assert_noop, BoundedVec};
 use kusama_polkadot_system_emulated_network::asset_hub_kusama_emulated_chain::genesis::PenpalATeleportableAssetLocation;
+use snowbridge_core::AssetMetadata;
+use sp_runtime::DispatchError::BadOrigin;
 use xcm::v5::AssetTransferFilter;
 
 #[test]
@@ -221,4 +222,60 @@ pub fn register_relay_token_from_asset_hub_user_origin_will_fail() {
 			BadOrigin
 		);
 	});
+}
+
+// Malicious can add an AliasOrigin in the remoteXcm routing to V2, try to exploit the bridge, while
+// it should fail on BH
+#[test]
+pub fn exploit_v2_route_with_legacy_v1_transfer_will_fail() {
+	prefund_accounts_on_polkadot_asset_hub();
+	set_bridge_hub_ethereum_base_fee();
+
+	// Set base transfer fee to Ethereum on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
+			RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), 1_000_000_000_u128.encode())],
+		));
+	});
+
+	set_bridge_hub_ethereum_base_fee();
+
+	let remote_fee_asset =
+		Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
+
+	let reserve_asset = Asset { id: AssetId(eth_location()), fun: Fungible(TOKEN_AMOUNT) };
+
+	let assets = vec![reserve_asset.clone(), remote_fee_asset.clone()];
+
+	let custom_xcm_on_dest = Xcm::<()>(vec![
+		AliasOrigin(Location::parent()),
+		DepositAsset { assets: Wild(AllCounted(2)), beneficiary: beneficiary() },
+	]);
+
+	assert_ok!(AssetHubPolkadot::execute_with(|| {
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+ 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+ 			bx!(eth_location().into()),
+ 			bx!(assets.into()),
+ 			bx!(TransferType::DestinationReserve),
+ 			bx!(AssetId(eth_location()).into()),
+ 			bx!(TransferType::DestinationReserve),
+ 			bx!(VersionedXcm::from(custom_xcm_on_dest)),
+ 			Unlimited,
+ 		)
+	}));
+
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+		// Check that the Ethereum message was queue in the Outbound Queue
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed{ success: false, .. }) => {},
+			]
+		);
+	})
 }
