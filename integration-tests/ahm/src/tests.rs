@@ -1292,9 +1292,8 @@ fn test_control_flow() {
 	});
 }
 
-// Works if we schedule the migration at least two sessions before the era ends.
 #[test]
-fn schedule_migration_works() {
+fn schedule_migration() {
 	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
 	new_test_rc_ext().execute_with(|| {
 		let now = u16::MAX as u32 * 2;
@@ -1305,9 +1304,9 @@ fn schedule_migration_works() {
 		// Scheduling two sessions into the future works
 		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
 			RcRuntimeOrigin::root(),
-			DispatchTime::At(now + session_duration * 2), // start
-			DispatchTime::At(u32::MAX),                   // no-op
-			DispatchTime::At(u32::MAX),                   // no-op
+			DispatchTime::At(now + session_duration * 2 + 1), // start
+			DispatchTime::At(u32::MAX),                       // no-op
+			DispatchTime::At(u32::MAX),                       // no-op
 			Default::default(),
 		));
 
@@ -1323,20 +1322,83 @@ fn schedule_migration_works() {
 		// Scheduling less than two sessions into the future fails
 		hypothetically!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
 			RcRuntimeOrigin::root(),
-			DispatchTime::At(now + session_duration * 2 - 1), // start
-			DispatchTime::At(u32::MAX),                       // no-op
-			DispatchTime::At(u32::MAX),                       // no-op
+			DispatchTime::At(now + session_duration * 2), // start
+			DispatchTime::At(u32::MAX),                   // no-op
+			DispatchTime::At(u32::MAX),                   // no-op
 			Default::default(),
 		)
 		.unwrap_err());
 
+		// Scheduling less than two sessions into the future fails
 		hypothetically!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
 			RcRuntimeOrigin::root(),
-			DispatchTime::At(now + session_duration * 2 - 1), // start
-			DispatchTime::At(u32::MAX),                       // no-op
-			DispatchTime::At(u32::MAX),                       // no-op
+			DispatchTime::At(now + session_duration * 2 - rng), // start
+			DispatchTime::At(u32::MAX),                         // no-op
+			DispatchTime::At(u32::MAX),                         // no-op
 			Default::default(),
 		)
 		.unwrap_err());
+
+		// Disabling the check makes it always work
+		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2), // start
+			DispatchTime::At(u32::MAX),                   // no-op
+			DispatchTime::At(u32::MAX),                   // no-op
+			true,
+		));
+	});
+}
+
+#[test]
+fn schedule_migration_staking_pause_works() {
+	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
+	new_test_rc_ext().execute_with(|| {
+		let now = u16::MAX as u32 * 2;
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
+		let rng = rand::thread_rng().gen_range(1..=10) as u32;
+
+		// Scheduling two sessions into the future works
+		hypothetically!({
+			pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+				RcRuntimeOrigin::root(),
+				DispatchTime::At(now + session_duration * 2 + rng), // start
+				DispatchTime::At(u32::MAX),                         // no-op
+				DispatchTime::At(u32::MAX),                         // no-op
+				Default::default(),
+			)
+			.unwrap();
+
+			for _ in 0..rng {
+				next_block_rc();
+			}
+
+			assert!(frame_system::Pallet::<RcRuntime>::events().iter().any(|record| {
+				match &record.event {
+					RcRuntimeEvent::RcMigrator(
+						pallet_rc_migrator::Event::StakingElectionsPaused,
+					) => true,
+					_ => false,
+				}
+			}));
+		});
+
+		// If we ignore the check and schedule too soon, then it will not be paused
+		hypothetically!({
+			pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+				RcRuntimeOrigin::root(),
+				DispatchTime::At(now + session_duration * 2 - rng), // start
+				DispatchTime::At(u32::MAX),                         // no-op
+				DispatchTime::At(u32::MAX),                         // no-op
+				true,
+			)
+			.unwrap();
+
+			for _ in 0..session_duration * 2 {
+				next_block_rc();
+				assert_eq!(frame_system::Pallet::<RcRuntime>::events(), Vec::new());
+			}
+		});
 	});
 }

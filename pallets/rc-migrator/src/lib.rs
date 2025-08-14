@@ -680,6 +680,8 @@ pub mod pallet {
 		},
 		/// An XCM message was sent.
 		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
+		/// The staking elections were paused.
+		StakingElectionsPaused,
 	}
 
 	/// The Relay Chain migration state.
@@ -857,7 +859,8 @@ pub mod pallet {
 					.try_into()
 					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
 
-				ensure!(until_start >= two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+				// We check > and not >= here since the on_initialize for this block already ran.
+				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
 			}
 
 			WarmUpPeriod::<T>::put(warm_up);
@@ -1160,7 +1163,16 @@ pub mod pallet {
 				MigrationStage::Pending => {
 					return weight_counter.consumed();
 				},
-				MigrationStage::Scheduled { start } =>
+				MigrationStage::Scheduled { start } => {
+					// Two sessions before the migration starts we pause staking election
+					let staking_pause_time = start.saturating_sub((T::SessionDuration::get().saturating_mul(2) as u32).into());
+
+					if now == staking_pause_time {
+						// stop any further staking elections
+						pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
+						Self::deposit_event(Event::StakingElectionsPaused);
+					}
+
 					if now >= start {
 						weight_counter.consume(T::DbWeight::get().reads(2));
 
@@ -1175,7 +1187,8 @@ pub mod pallet {
 								);
 							},
 						}
-					},
+					}
+				},
 				MigrationStage::WaitingForAh => {
 					// waiting AH to send a message and to start sending the data.
 					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
@@ -1183,9 +1196,6 @@ pub mod pallet {
 					return weight_counter.consumed();
 				},
 				MigrationStage::WarmUp { end_at } => {
-					// stop any further staking elections
-					pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
-
 					// waiting for the warm-up period to end
 					if now >= end_at {
 						Self::transition(MigrationStage::Starting);
