@@ -79,7 +79,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
 		Claims(..) => OFF,
-		CollatorSelection(..) => OFF, // TODO: maybe disable them since staking is also disabled?
+		CollatorSelection(..) => ON, // Why?
 		ConvictionVoting(..) => OFF,
 		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
 		ForeignAssets(..) => ON, // no reason to disable it, just convenience
