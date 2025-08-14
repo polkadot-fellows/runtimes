@@ -32,7 +32,8 @@
 //! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
 //!
-//! To run the pre+post migration checks against a set of snapshots from pre/post migration (created in `ahm-drynrun's CI`):
+//! To run the pre+post migration checks against a set of snapshots from pre/post migration (created
+//! in `ahm-drynrun's CI`):
 //!
 //! ```
 //! SNAP_RC_PRE="rc-pre.snap" \
@@ -1311,8 +1312,8 @@ async fn post_migration_checks_only() {
 	//!   SNAP_RC_POST - Relay Chain (post-migration) snapshot
 	//!   SNAP_AH_POST - Asset Hub  (post-migration) snapshot
 
-	use remote_externalities::{Builder, Mode, OfflineConfig};
 	use polkadot_runtime::Block as PolkadotBlock;
+	use remote_externalities::{Builder, Mode, OfflineConfig};
 
 	sp_tracing::try_init_simple();
 
@@ -1332,24 +1333,29 @@ async fn post_migration_checks_only() {
 	let mut rc_pre_ext = load_ext("SNAP_RC_PRE").await;
 	let mut ah_pre_ext = load_ext("SNAP_AH_PRE").await;
 
+	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
+	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
+
+	rc_pre_ext.execute_with(|| {
+		log::info!(target: "ahm", "PRE: RC migration stage: {:?}", RcMigrationStageStorage::<Polkadot>::get());
+	});
+	ah_pre_ext.execute_with(|| {
+		log::info!(target: "ahm", "PRE: AH migration stage: {:?}", AhMigrationStageStorage::<AssetHub>::get());
+	});
+	rc_post_ext.execute_with(|| {
+		log::info!(target: "ahm", "POST: RC migration stage: {:?}", RcMigrationStageStorage::<Polkadot>::get());
+	});
+	ah_post_ext.execute_with(|| {
+		log::info!(target: "ahm", "POST: AH migration stage: {:?}", AhMigrationStageStorage::<AssetHub>::get());
+	});
+
 	let rc_pre_payload = rc_pre_ext.execute_with(RcChecks::pre_check);
 	let ah_pre_payload = ah_pre_ext.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
 
 	std::mem::drop(rc_pre_ext);
 	std::mem::drop(ah_pre_ext);
 
-	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
-	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
-
-	rc_post_ext.execute_with(|| {
-		// print rc migration stage
-		log::info!(
-			"RC migration stage: {:?}",
-			RcMigrationStageStorage::<Polkadot>::get()
-		);
-	});
 
 	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
 	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
-
 }
