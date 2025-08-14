@@ -232,11 +232,12 @@ impl Convert<Rank, Votes> for Unit {
 /// Vote-weight scheme where all voters get one vote plus an additional vote for every excess rank
 /// they have. I.e.:
 ///
-/// - Each member with an excess rank of 0 gets 1 vote;
-/// - ...with an excess rank of 1 gets 2 votes;
+/// - Each member with an excess rank of 0 gets 0 votes;
+/// - ...with an excess rank of 1 gets 1 vote;
 /// - ...with an excess rank of 2 gets 3 votes;
-/// - ...with an excess rank of 3 gets 4 votes;
-/// - ...with an excess rank of 4 gets 5 votes.
+/// - ...with an excess rank of 3 gets 6 votes;
+/// - ...with an excess rank of 4 gets 10 votes;
+/// - ...with an excess rank of 5 gets 15 votes;
 pub struct Linear;
 impl Convert<Rank, Votes> for Linear {
 	fn convert(r: Rank) -> Votes {
@@ -244,6 +245,7 @@ impl Convert<Rank, Votes> for Linear {
 	}
 }
 
+// TODO: Change documentation to reflect the new vote weight scheme.
 /// Vote-weight scheme where all voters get one vote plus additional votes for every excess rank
 /// they have incrementing by one vote for each excess rank. I.e.:
 ///
@@ -255,8 +257,7 @@ impl Convert<Rank, Votes> for Linear {
 pub struct Geometric;
 impl Convert<Rank, Votes> for Geometric {
 	fn convert(r: Rank) -> Votes {
-		// let v = (r + 1) as Votes;
-		(r * (r + 1) / 2).into()
+		(r * (r + 1) / 2) as Votes
 	}
 }
 

@@ -31,6 +31,9 @@ const SEED: u32 = 0;
 
 type BenchResult = Result<(), BenchmarkError>;
 
+type BalanceOf<T, I> =
+	<<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 #[instance_benchmarks]
 mod benchmarks {
 	use super::*;

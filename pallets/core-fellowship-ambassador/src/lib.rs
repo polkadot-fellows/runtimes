@@ -88,9 +88,6 @@ pub mod weights;
 pub use pallet::*;
 pub use weights::*;
 
-type BalanceOf<T, I> =
-	<<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
 /// The desired outcome for which evidence is presented.
 #[derive(
 	Encode,

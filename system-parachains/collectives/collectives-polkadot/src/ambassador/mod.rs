@@ -42,11 +42,11 @@ use origins::pallet_origins::{
 	EnsureAmbassadorsFrom, EnsureCanFastPromoteTo, EnsureCanPromoteTo, EnsureCanRetainAt,
 	GlobalHeadAmbassador, Spender,
 };
-use pallet_ranked_collective_ambassador::{MemberIndex, Rank, Votes};
+use pallet_ranked_collective_ambassador::{Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use polkadot_runtime_constants::time::HOURS;
 use sp_runtime::{
-	traits::{CheckedReduceBy, Convert, IdentityLookup, MaybeConvert, Replace},
+	traits::{CheckedReduceBy, IdentityLookup, Replace},
 	Permill,
 };
 use xcm::prelude::*;
@@ -112,24 +112,11 @@ impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> f
 	type VoteWeight = pallet_ranked_collective_ambassador::Geometric;
 	type ExchangeOrigin = OpenGovOrGlobalHeadAmbassador;
 	type MemberSwappedHandler = crate::AmbassadorCore;
-	#[cfg(feature = "runtime-benchmarks")]
 	type MaxMemberCount = ();
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxMemberCount = AmbassadorMemberCount;
 	type Currency = Balances;
 	type InductionDeposit = InductionDeposit;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = crate::AmbassadorCore;
-}
-
-/// Limits the number of Global Head Ambassadors to 21.
-///
-/// The value of 21 comes from the initial OpenGov proposal: <https://github.com/polkadot-fellows/runtimes/issues/264>
-pub struct AmbassadorMemberCount;
-impl MaybeConvert<Rank, MemberIndex> for AmbassadorMemberCount {
-	fn maybe_convert(rank: Rank) -> Option<MemberIndex> {
-		(rank == 6).then_some(21)
-	}
 }
 
 parameter_types! {
@@ -277,17 +264,16 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 #[cfg(all(test, not(feature = "runtime-benchmarks")))]
 mod tests {
 	use super::*;
+	use sp_runtime::traits::MaybeConvert;
 
-	type Limit = <Runtime as pallet_ranked_collective_ambassador::Config<
-		AmbassadorCollectiveInstance,
-	>>::MaxMemberCount;
+	type MaxMemberCount =
+		<Runtime as pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance>>::MaxMemberCount;
 
 	#[test]
-	fn ambassador_rank_limit_works() {
-		assert_eq!(Limit::maybe_convert(0), None);
-		assert_eq!(Limit::maybe_convert(1), None);
-		assert_eq!(Limit::maybe_convert(2), None);
-		assert_eq!(Limit::maybe_convert(3), Some(21));
-		assert_eq!(Limit::maybe_convert(4), None);
+	fn max_member_count_correct() {
+		for i in 0..10 {
+			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
+			assert!(limit.is_none(), "Ambassador has no member limit");
+		}
 	}
 }
