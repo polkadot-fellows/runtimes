@@ -36,8 +36,8 @@ pub use bp_messages::LegacyLaneId;
 pub use emulated_integration_tests_common::{
 	accounts::{ALICE, BOB},
 	impls::Inspect,
-	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
-	test_relay_is_trusted_teleporter,
+	create_pool_with_native_on, test_parachain_is_trusted_teleporter,
+	test_parachain_is_trusted_teleporter_for_relay,	test_relay_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
@@ -47,7 +47,6 @@ pub use emulated_integration_tests_common::{
 };
 pub use integration_tests_helpers::{
 	common::snowbridge::{MIN_ETHER_BALANCE, WETH},
-	create_pool_with_native_on,
 };
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
