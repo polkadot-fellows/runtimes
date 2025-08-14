@@ -169,7 +169,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type GasMeter = ConstantGasMeterV2;
 	type Balance = Balance;
 	type WeightToFee = WeightToFee;
-	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
+	type Verifier = EthereumBeaconClient;
 	type GatewayAddress = EthereumGatewayAddress;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
 	type EthereumNetwork = EthereumNetwork;
