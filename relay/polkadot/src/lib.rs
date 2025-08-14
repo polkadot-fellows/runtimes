@@ -634,7 +634,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
-	pub const AutoRebagNumber: u32 = 10;
+	pub const AutoRebagNumber: u32 = 0;
 }
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
