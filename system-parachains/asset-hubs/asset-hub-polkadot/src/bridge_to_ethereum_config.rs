@@ -22,8 +22,6 @@ use crate::{
 	AccountId, AssetConversion, Assets, ForeignAssets, Runtime, RuntimeEvent,
 };
 use assets_common::{matching::FromSiblingParachain, AssetIdForTrustBackedAssetsConvert};
-#[cfg(feature = "runtime-benchmarks")]
-use benchmark_helpers::DoNothingRouter;
 use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use frame_support::{parameter_types, traits::EitherOf};
