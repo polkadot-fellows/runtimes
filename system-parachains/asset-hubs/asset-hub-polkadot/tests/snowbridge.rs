@@ -20,13 +20,14 @@ extern crate alloc;
 use alloc::{vec, vec::Vec};
 use asset_hub_polkadot_runtime::xcm_config::bridging::{
 	to_ethereum::{
-		BridgeHubEthereumBaseFee, EthereumBridgeTableV1, EthereumBridgeTableV2, EthereumNetwork,
+		BridgeHubEthereumBaseFee, EthereumNetwork, EthereumNetworkExportTableV1,
+		EthereumNetworkExportTableV2,
 	},
 	SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
 };
 use sp_core::H160;
 use xcm::latest::prelude::*;
-use xcm_builder::{ExporterFor, NetworkExportTable};
+use xcm_builder::ExporterFor;
 
 #[test]
 fn network_export_table_works() {
@@ -64,7 +65,7 @@ fn network_export_table_works() {
 
 		for (network, remote_location, expected_result) in test_data {
 			assert_eq!(
-				NetworkExportTable::<EthereumBridgeTableV1>::exporter_for(
+				EthereumNetworkExportTableV1::exporter_for(
 					&network,
 					&remote_location,
 					&Xcm::default()
@@ -74,7 +75,7 @@ fn network_export_table_works() {
 			);
 
 			assert_eq!(
-				NetworkExportTable::<EthereumBridgeTableV2>::exporter_for(
+				EthereumNetworkExportTableV2::exporter_for(
 					&network,
 					&remote_location,
 					&Xcm::default()
