@@ -45,36 +45,26 @@ fn asset_hub_weights_should_be_equal_or_gte_bridge_hub_weights() {
 
 	assert!(
 		ah_register_token.any_gte(bh_register_token),
-		"Asset Hub register_token weight ({:?}) should be >= Bridge Hub weight ({:?})",
-		ah_register_token,
-		bh_register_token
+		"Asset Hub register_token weight ({ah_register_token:?}) should be >= Bridge Hub weight ({bh_register_token:?})"
 	);
 
 	assert!(
 		ah_add_tip.any_gte(bh_add_tip),
-		"Asset Hub add_tip weight ({:?}) should be >= Bridge Hub weight ({:?})",
-		ah_add_tip,
-		bh_add_tip
+		"Asset Hub add_tip weight ({ah_add_tip:?}) should be >= Bridge Hub weight ({bh_add_tip:?})"
 	);
 
 	assert!(
 		ah_do_process_message.any_gte(bh_do_process_message),
-		"Asset Hub do_process_message weight ({:?}) should be >= Bridge Hub weight ({:?})",
-		ah_do_process_message,
-		bh_do_process_message
+		"Asset Hub do_process_message weight ({ah_do_process_message:?}) should be >= Bridge Hub weight ({bh_do_process_message:?})"
 	);
 
 	assert!(
 		ah_commit_single.any_gte(bh_commit_single),
-		"Asset Hub commit_single weight ({:?}) should be >= Bridge Hub weight ({:?})",
-		ah_commit_single,
-		bh_commit_single
+		"Asset Hub commit_single weight ({ah_commit_single:?}) should be >= Bridge Hub weight ({bh_commit_single:?})"
 	);
 
 	assert!(
 		ah_submit_delivery_receipt.any_gte(bh_submit_delivery_receipt),
-		"Asset Hub submit_delivery_receipt weight ({:?}) should be >= Bridge Hub weight ({:?})",
-		ah_submit_delivery_receipt,
-		bh_submit_delivery_receipt
+		"Asset Hub submit_delivery_receipt weight ({ah_submit_delivery_receipt:?}) should be >= Bridge Hub weight ({bh_submit_delivery_receipt:?})"
 	);
 }
