@@ -44,27 +44,27 @@ fn asset_hub_weights_should_be_equal_or_gte_bridge_hub_weights() {
 	let ah_submit_delivery_receipt = <AhRuntime as snowbridge_pallet_system_frontend::Config>::BackendWeightInfo::submit_delivery_receipt();
 
 	assert!(
-		ah_register_token.any_gte(bh_register_token),
+		ah_register_token.all_gte(bh_register_token),
 		"Asset Hub register_token weight ({ah_register_token:?}) should be >= Bridge Hub weight ({bh_register_token:?})"
 	);
 
 	assert!(
-		ah_add_tip.any_gte(bh_add_tip),
+		ah_add_tip.all_gte(bh_add_tip),
 		"Asset Hub add_tip weight ({ah_add_tip:?}) should be >= Bridge Hub weight ({bh_add_tip:?})"
 	);
 
 	assert!(
-		ah_do_process_message.any_gte(bh_do_process_message),
+		ah_do_process_message.all_gte(bh_do_process_message),
 		"Asset Hub do_process_message weight ({ah_do_process_message:?}) should be >= Bridge Hub weight ({bh_do_process_message:?})"
 	);
 
 	assert!(
-		ah_commit_single.any_gte(bh_commit_single),
+		ah_commit_single.all_gte(bh_commit_single),
 		"Asset Hub commit_single weight ({ah_commit_single:?}) should be >= Bridge Hub weight ({bh_commit_single:?})"
 	);
 
 	assert!(
-		ah_submit_delivery_receipt.any_gte(bh_submit_delivery_receipt),
+		ah_submit_delivery_receipt.all_gte(bh_submit_delivery_receipt),
 		"Asset Hub submit_delivery_receipt weight ({ah_submit_delivery_receipt:?}) should be >= Bridge Hub weight ({bh_submit_delivery_receipt:?})"
 	);
 }
