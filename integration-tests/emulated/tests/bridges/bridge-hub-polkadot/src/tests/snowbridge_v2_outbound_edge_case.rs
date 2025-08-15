@@ -241,8 +241,6 @@ pub fn exploit_v2_route_with_legacy_v1_transfer_will_fail() {
 		));
 	});
 
-	set_bridge_hub_ethereum_base_fee();
-
 	let remote_fee_asset =
 		Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
