@@ -195,6 +195,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
@@ -229,7 +230,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type FastPromoteOrigin = frame_support::traits::NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
-	type MaxRank = ConstU32<9>;
+	type MaxRank = ConstU16<9>;
 }
 
 parameter_types! {
@@ -348,12 +349,13 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
 	type BalanceConverter = AssetRateWithNative;
-	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ 90 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = System;
 }
 
 #[cfg(all(test, not(feature = "runtime-benchmarks")))]

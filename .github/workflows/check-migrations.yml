@@ -54,6 +54,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      # We need to fetch the upstream tags, as they are used to determine the latest release
+      - name: “Fetch upstream tags”
+        run: |
+          git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
+          git fetch upstream --tags
+
       - name: Install updates and dependencies
         run: .github/install-deps.sh
 
@@ -103,7 +109,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 

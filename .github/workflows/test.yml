@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2506
 
 # cancel previous runs
 concurrency:
@@ -65,7 +65,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -104,8 +104,14 @@ jobs:
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
           # run benchmarking
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+            EXCLUDE_EXTRINSICS=""
+          else
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
+            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+          fi
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
@@ -134,7 +140,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -170,7 +176,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -181,7 +187,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Check
-        run: cargo check -p chain-spec-generator --release --locked -q --features=runtime-benchmarks,all-runtimes
+        run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
@@ -207,7 +213,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -250,7 +256,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -272,7 +278,7 @@ jobs:
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
             FEATURES="--features=metadata-hash"
           fi
-          
+
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
           cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
@@ -311,8 +317,8 @@ jobs:
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-          done 
-          
+          done
+
       - name: Installing dependencies of ecosystem tests
         working-directory: ./ecosystem-tests
         run: yarn install
@@ -320,7 +326,7 @@ jobs:
       - name: Running ecosystem tests
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 60
+          timeout_minutes: 90
           max_attempts: 3
           command: cd ecosystem-tests && yarn test
 

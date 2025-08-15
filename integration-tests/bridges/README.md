@@ -33,8 +33,16 @@ command.
     - Copy the binary to `~/local_bridge_testing/bin/chain-spec-generator-polkadot`.
 - check/change the `POLKADOT_BINARY` and `POLKADOT_PARACHAIN_BINARY` paths (and ensure that the nearby variables
 have correct values) in the `./run-test.sh`.
+- `./run-test.sh` needs polkadot-sdk testing framework, so:
+  - do nothing and it will checkout automatically `master` branch
+  - or specify `FRAMEWORK_REPO_TAG_OR_COMMIT` variable for specific tag/commit (useful for CI)
+  - or specify `FRAMEWORK_REPO_PATH` to the polkadot-sdk directory
 
-After that, you can run `./run-tests.sh <test_name>` command.
-E.g. `./run-test.sh 0001-polkadot-kusama-asset-transfer`.
+After that, you can run `./run-tests.sh <test_name>` command, for example:
+```
+./run-test.sh 0001-polkadot-kusama-asset-transfer
 or
-E.g. `FRAMEWORK_REPO_PATH=/home/username/polkadot-sdk ./run-test.sh 0001-polkadot-kusama-asset-transfer`.
+FRAMEWORK_REPO_PATH=/home/username/polkadot-sdk ./run-test.sh 0001-polkadot-kusama-asset-transfer
+or
+FRAMEWORK_REPO_TAG_OR_COMMIT=7d875655ea38b734d6f1a3a79aef227e846f227c ./run-test.sh 0001-polkadot-kusama-asset-transfer
+```

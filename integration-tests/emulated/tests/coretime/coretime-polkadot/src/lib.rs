@@ -32,6 +32,7 @@ pub use xcm::{
 
 // Cumulus
 pub use asset_test_utils::xcm_helpers;
+pub use coretime_polkadot_runtime::ExistentialDeposit as CoretimeExistentialDeposit;
 pub use emulated_integration_tests_common::{
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
@@ -42,15 +43,27 @@ pub use emulated_integration_tests_common::{
 };
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
-	coretime_polkadot_emulated_chain::{
-		genesis::ED as CORETIME_POLKADOT_ED, CoretimePolkadotParaPallet as CoretimePolkadotPallet,
+	asset_hub_polkadot_emulated_chain::{
+		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
+	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
+	collectives_polkadot_emulated_chain::CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
+	coretime_polkadot_emulated_chain::{
+		self, coretime_polkadot_runtime, genesis::ED as CORETIME_POLKADOT_ED,
+		CoretimePolkadotParaPallet as CoretimePolkadotPallet,
+	},
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
+	people_polkadot_emulated_chain::PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
+	AssetHubPolkadotPara as AssetHubPolkadot,
+	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
+	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
+	BridgeHubPolkadotPara as BridgeHubPolkadot, CollectivesPolkadotPara as CollectivesPolkadot,
 	CoretimePolkadotPara as CoretimePolkadot,
 	CoretimePolkadotParaReceiver as CoretimePolkadotReceiver,
 	CoretimePolkadotParaSender as CoretimePolkadotSender, PenpalAPara as PenpalA,
-	PolkadotRelay as Polkadot, PolkadotRelayReceiver as PolkadotReceiver,
-	PolkadotRelaySender as PolkadotSender,
+	PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
+	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 
 #[cfg(test)]

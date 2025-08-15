@@ -155,7 +155,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -167,8 +167,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 			Err(e) => log::error!(
 				target: "runtime::coretime",
-				"Failed to send request to update schedulable cores: {:?}",
-				e
+				"Failed to send request to update schedulable cores: {e:?}"
 			),
 		}
 	}
@@ -187,13 +186,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -205,8 +201,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 			Err(e) => log::error!(
 				target: "runtime::coretime",
-				"Request for revenue info failed to send: {:?}",
-				e
+				"Request for revenue info failed to send: {e:?}"
 			),
 		}
 	}
@@ -270,13 +265,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: assign_core_call.encode().into(),
 			},
 		]);
@@ -288,8 +280,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 			Err(e) => log::error!(
 				target: "runtime::coretime",
-				"Core assignment failed to send: {:?}",
-				e
+				"Core assignment failed to send: {e:?}"
 			),
 		}
 	}
@@ -324,6 +315,8 @@ impl CoretimeInterface for CoretimeAllocator {
 
 parameter_types! {
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
+	pub const MinimumCreditPurchase: Balance = UNITS / 10;
+	pub const MinimumEndPrice: Balance = 10 * UNITS;
 }
 
 pub struct SovereignAccountOf;
@@ -349,5 +342,6 @@ impl pallet_broker::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
 	type MaxAutoRenewals = ConstU32<100>;
-	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
+	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
+	type MinimumCreditPurchase = MinimumCreditPurchase;
 }

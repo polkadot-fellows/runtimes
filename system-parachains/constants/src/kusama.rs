@@ -23,6 +23,16 @@ pub mod consensus {
 	pub const BLOCK_PROCESSING_VELOCITY: u32 = 1;
 	/// Relay chain slot duration, in milliseconds.
 	pub const RELAY_CHAIN_SLOT_DURATION_MILLIS: u32 = 6000;
+
+	/// Parameters enabling async backing functionality.
+	///
+	/// Once all system chains have migrated to the new async backing mechanism, the parameters
+	/// in this namespace will replace those currently defined in `super::*`.
+	pub mod async_backing {
+		/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included into
+		/// the relay chain.
+		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 3;
+	}
 }
 
 /// Constants relating to KSM.
@@ -131,5 +141,20 @@ pub mod fee {
 
 	pub fn calculate_weight_to_fee(weight: &Weight) -> Balance {
 		<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
+	}
+}
+
+pub mod locations {
+	use frame_support::parameter_types;
+	pub use kusama_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
+	use xcm::latest::prelude::{Junction::*, Location};
+
+	parameter_types! {
+		pub AssetHubLocation: Location =
+			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID));
+		pub PeopleLocation: Location =
+			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::PEOPLE_ID));
+
+		pub GovernanceLocation: Location = Location::parent();
 	}
 }

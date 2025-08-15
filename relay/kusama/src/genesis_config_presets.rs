@@ -17,21 +17,22 @@
 //! Genesis configs presets for the Kusama runtime
 
 use crate::*;
+#[cfg(not(feature = "std"))]
+use alloc::format;
 use babe_primitives::AuthorityId as BabeId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::{Forcing, StakerStatus};
-use polkadot_primitives::{AccountPublic, AssignmentId, AsyncBackingParams};
+use polkadot_primitives::{
+	node_features::FeatureIndex, AccountPublic, AssignmentId, AsyncBackingParams,
+};
 use runtime_parachains::configuration::HostConfiguration;
 use sp_core::{sr25519, Pair, Public};
 use sp_genesis_builder::PresetId;
 use sp_runtime::{traits::IdentifyAccount, Perbill};
-#[cfg(not(feature = "std"))]
-use sp_std::alloc::format;
-use sp_std::vec::Vec;
 
 /// Helper function to generate a crypto pair from seed
 fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-	TPublic::Pair::from_string(&format!("//{}", seed), None)
+	TPublic::Pair::from_string(&format!("//{seed}"), None)
 		.expect("static values are valid; qed")
 		.public()
 }
@@ -58,7 +59,7 @@ fn get_authority_keys_from_seed(
 	BeefyId,
 ) {
 	(
-		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+		get_account_id_from_seed::<sr25519::Public>(&format!("{seed}//stash")),
 		get_account_id_from_seed::<sr25519::Public>(seed),
 		get_from_seed::<BabeId>(seed),
 		get_from_seed::<GrandpaId>(seed),
@@ -123,7 +124,10 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		},
 		dispute_post_conclusion_acceptance_period: 100u32,
 		minimum_backing_votes: 1,
-		node_features: NodeFeatures::EMPTY,
+		node_features: NodeFeatures::from_element(
+			(1u8 << (FeatureIndex::ElasticScalingMVP as usize)) |
+				(1u8 << (FeatureIndex::EnableAssignmentsV2 as usize)),
+		),
 		async_backing_params: AsyncBackingParams {
 			max_candidate_depth: 2,
 			allowed_ancestry_len: 2,
@@ -227,14 +231,17 @@ pub fn kusama_development_config_genesis() -> serde_json::Value {
 
 /// Provides the names of the predefined genesis configs for this runtime.
 pub fn preset_names() -> Vec<PresetId> {
-	vec![PresetId::from("development"), PresetId::from("local_testnet")]
+	vec![
+		PresetId::from(sp_genesis_builder::DEV_RUNTIME_PRESET),
+		PresetId::from(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET),
+	]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
-pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
-	let patch = match id.try_into() {
-		Ok("development") => kusama_development_config_genesis(),
-		Ok("local_testnet") => kusama_local_testnet_genesis(),
+pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
+	let patch = match id.as_ref() {
+		sp_genesis_builder::DEV_RUNTIME_PRESET => kusama_development_config_genesis(),
+		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => kusama_local_testnet_genesis(),
 		_ => return None,
 	};
 	Some(

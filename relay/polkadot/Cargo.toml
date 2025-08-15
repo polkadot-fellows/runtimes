@@ -24,7 +24,6 @@ sp-transaction-pool = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
 sp-genesis-builder = { workspace = true }
-sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
@@ -210,7 +209,6 @@ std = [
 	"sp-runtime/std",
 	"sp-session/std",
 	"sp-staking/std",
-	"sp-std/std",
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
@@ -258,6 +256,7 @@ runtime-benchmarks = [
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
@@ -268,12 +267,14 @@ runtime-benchmarks = [
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",

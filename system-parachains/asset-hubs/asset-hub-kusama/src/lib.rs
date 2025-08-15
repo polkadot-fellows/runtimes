@@ -24,40 +24,24 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+extern crate alloc;
+
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 mod impls;
 mod weights;
 pub mod xcm_config;
 
+use alloc::{borrow::Cow, vec, vec::Vec};
 use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
 	matching::FromSiblingParachain,
 	AssetIdForTrustBackedAssetsConvert,
 };
-use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
-use pallet_proxy::ProxyDefinition;
-use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
-	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		Verify,
-	},
-	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill,
-};
-
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
-use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -68,46 +52,68 @@ use frame_support::{
 		ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, Equals, EverythingBut,
 		InstanceFilter, TransformOrigin, WithdrawReasons,
 	},
-	weights::{ConstantMultiplier, Weight, WeightToFee as _},
+	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
+use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
+use pallet_assets::precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
+use pallet_proxy::ProxyDefinition;
+use pallet_revive::evm::runtime::EthExtra;
+use pallet_xcm::{precompiles::XcmPrecompile, EnsureXcm, IsVoiceOfBody};
 use parachains_common::{
 	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
 	Header, Nonce, Signature,
 };
-use sp_runtime::RuntimeDebug;
-pub use system_parachains_constants::SLOT_DURATION;
-use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use sp_api::impl_runtime_apis;
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+	generic, impl_opaque_keys,
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
+		Verify,
+	},
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
 };
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
+pub use system_parachains_constants::async_backing::SLOT_DURATION;
+use system_parachains_constants::{
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	},
+	kusama::{
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
+};
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId, BodyId},
-	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
+	latest::prelude::*, Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets,
+	VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
-	FellowshipLocation, ForeignAssetsConvertedConcreteId, ForeignCreatorsSovereignAccountOf,
-	GovernanceLocation, KsmLocation, PoolAssetsConvertedConcreteId,
+	FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation, KsmLocation,
+	LocationToAccountId, PoolAssetsConvertedConcreteId, StakingPot,
 	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
-
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-
-// Polkadot imports
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-
-use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -120,14 +126,14 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// Note: "statemine" is the legacy name for this chain. It has been renamed to
 	// "asset-hub-kusama". Many wallets/tools depend on the `spec_name`, so it remains "statemine"
 	// for the time being. Wallets/tools should update to treat "asset-hub-kusama" equally.
-	spec_name: create_runtime_str!("statemine"),
-	impl_name: create_runtime_str!("statemine"),
+	spec_name: Cow::Borrowed("statemine"),
+	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 1_004_002,
+	spec_version: 1_006_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -191,9 +197,10 @@ impl frame_system::Config for Runtime {
 	type OnKilledAccount = ();
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-	type MaxConsumers = frame_support::traits::ConstU32<256>;
+	type MaxConsumers = ConstU32<256>;
 	type SingleBlockMigrations = ();
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
@@ -205,7 +212,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -236,6 +243,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
 	type MaxFreezes = ConstU32<0>;
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -254,14 +262,13 @@ impl pallet_vesting::Config for Runtime {
 	/// block number of the Relay Chain, not the parachain. This is because with Coretime and Async
 	/// Backing, parachain block numbers may not be a good proxy for time. Vesting schedules should
 	/// be set accordingly.
-	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
 	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
-	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -275,6 +282,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
+	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
 
 parameter_types! {
@@ -309,6 +317,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -350,6 +359,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ConstU32<50>;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
 	type CallbackHandle = ();
@@ -362,11 +372,11 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 	Assets,
 	ForeignAssets,
 	LocalFromLeft<
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation, xcm::v4::Location>,
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation, Location>,
 		AssetIdForTrustBackedAssets,
-		xcm::v4::Location,
+		Location,
 	>,
-	xcm::v4::Location,
+	Location,
 	AccountId,
 >;
 
@@ -374,19 +384,19 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 pub type NativeAndAssets = fungible::UnionOf<
 	Balances,
 	LocalAndForeignAssets,
-	TargetFromLeft<KsmLocation, xcm::v4::Location>,
-	xcm::v4::Location,
+	TargetFromLeft<KsmLocation, Location>,
+	Location,
 	AccountId,
 >;
 
 pub type PoolIdToAccountId =
-	pallet_asset_conversion::AccountIdConverterNoSeed<(xcm::v4::Location, xcm::v4::Location)>;
+	pallet_asset_conversion::AccountIdConverterNoSeed<(Location, Location)>;
 
 impl pallet_asset_conversion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type HigherPrecisionBalance = sp_core::U256;
-	type AssetKind = xcm::v4::Location;
+	type AssetKind = Location;
 	type Assets = NativeAndAssets;
 	type PoolId = (Self::AssetKind, Self::AssetKind);
 	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
@@ -411,7 +421,7 @@ impl pallet_asset_conversion::Config for Runtime {
 		KsmLocation,
 		parachain_info::Pallet<Runtime>,
 		xcm_config::TrustBackedAssetsPalletIndex,
-		xcm::v4::Location,
+		Location,
 	>;
 }
 
@@ -434,17 +444,17 @@ pub type ForeignAssetsInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = xcm::v4::Location;
-	type AssetIdParameter = xcm::v4::Location;
+	type AssetId = Location;
+	type AssetIdParameter = Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
 		(
-			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v4::Location>,
+			FromSiblingParachain<parachain_info::Pallet<Runtime>, Location>,
 			xcm_config::bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,
 		),
-		ForeignCreatorsSovereignAccountOf,
+		LocationToAccountId,
 		AccountId,
-		xcm::v4::Location,
+		Location,
 	>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ForeignAssetsAssetDeposit;
@@ -453,6 +463,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ForeignAssetsAssetsStringLimit;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
 	type CallbackHandle = ();
@@ -478,6 +489,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -509,6 +521,7 @@ parameter_types! {
 	PartialOrd,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	RuntimeDebug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
@@ -669,6 +682,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -689,6 +703,8 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
+	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
+	type RelayParentOffset = ConstU32<0>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -733,7 +749,7 @@ parameter_types! {
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = AssetId(xcm_config::KsmLocation::get());
+	pub FeeAssetId: AssetId = AssetId(KsmLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -794,13 +810,16 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = ();
+	type Currency = Balances;
+	type KeyDeposit = ();
 }
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -835,13 +854,17 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type AssetId = xcm::latest::Location;
+	type AssetId = Location;
 	type OnChargeAssetTransaction = pallet_asset_conversion_tx_payment::SwapAssetAdapter<
 		KsmLocation,
 		NativeAndAssets,
 		AssetConversion,
 		ResolveAssetTo<StakingPot, NativeAndAssets>,
 	>;
+	type WeightInfo = weights::pallet_asset_conversion_tx_payment::WeightInfo<Self>;
+
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = AssetConversionTxHelper;
 }
 
 parameter_types! {
@@ -937,6 +960,7 @@ impl pallet_nfts::Config for Runtime {
 	type WeightInfo = weights::pallet_nfts::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 /// XCM router instance to BridgeHub with bridging capabilities for `Polkadot` global
@@ -1008,6 +1032,43 @@ impl pallet_remote_proxy::Config for Runtime {
 	type WeightInfo = weights::pallet_remote_proxy::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub const DepositPerItem: Balance = system_para_deposit(1, 0);
+	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
+	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
+}
+
+impl pallet_revive::Config for Runtime {
+	type Time = Timestamp;
+	type Currency = Balances;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type DepositPerItem = DepositPerItem;
+	type DepositPerByte = DepositPerByte;
+	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
+	// TODO(#840): use `weights::pallet_revive::WeightInfo` here
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type Precompiles = (
+		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
+		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
+		// ERC20<Self, InlineIdConfig<0x220>, ForeignAssetsInstance>,
+		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
+		XcmPrecompile<Self>,
+	);
+	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
+	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
+	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
+	type UnsafeUnstableInterface = ConstBool<false>;
+	type UploadOrigin = EnsureSigned<Self::AccountId>;
+	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type ChainId = ConstU64<420_420_418>;
+	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
+	type EthGasEncoder = ();
+	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1056,6 +1117,8 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 55,
 		AssetConversion: pallet_asset_conversion = 56,
 
+		Revive: pallet_revive = 60,
+
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
 	}
@@ -1069,8 +1132,8 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
-/// The SignedExtension to the basic transaction logic.
-pub type SignedExtra = (
+/// The TransactionExtension to the basic transaction logic.
+pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -1081,12 +1144,41 @@ pub type SignedExtra = (
 	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
+
+/// Default extensions applied to Ethereum transactions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EthExtraImpl;
+
+impl EthExtra for EthExtraImpl {
+	type Config = Runtime;
+	type Extension = TxExtension;
+
+	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
+		(
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckMortality::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(nonce),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+		)
+	}
+}
+
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
+	pallet_session::migrations::v1::MigrateV0ToV1<
+		Runtime,
+		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
+	>,
+	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -1102,15 +1194,90 @@ pub type Executive = frame_executive::Executive<
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
+pub struct AssetConversionTxHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub type AssetConversionAssetIdFor<T> = <T as pallet_asset_conversion_tx_payment::Config>::AssetId;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl
+	pallet_asset_conversion_tx_payment::BenchmarkHelperTrait<
+		AccountId,
+		AssetConversionAssetIdFor<Runtime>,
+		AssetConversionAssetIdFor<Runtime>,
+	> for AssetConversionTxHelper
+{
+	fn create_asset_id_parameter(
+		seed: u32,
+	) -> (AssetConversionAssetIdFor<Runtime>, AssetConversionAssetIdFor<Runtime>) {
+		// Use a different parachain' foreign assets pallet so that the asset is indeed foreign.
+		let asset_id = Location::new(
+			1,
+			[
+				Junction::Parachain(3000),
+				Junction::PalletInstance(53),
+				Junction::GeneralIndex(seed.into()),
+			],
+		);
+		(asset_id.clone(), asset_id)
+	}
+
+	fn setup_balances_and_pool(asset_id: AssetConversionAssetIdFor<Runtime>, account: AccountId) {
+		use alloc::boxed::Box;
+		use frame_support::{assert_ok, traits::fungibles::Mutate};
+
+		assert_ok!(ForeignAssets::force_create(
+			RuntimeOrigin::root(),
+			asset_id.clone(),
+			account.clone().into(), /* owner */
+			true,                   /* is_sufficient */
+			1,
+		));
+
+		let lp_provider = account.clone();
+		use frame_support::traits::Currency;
+		let _ = Balances::deposit_creating(&lp_provider, u64::MAX.into());
+		assert_ok!(ForeignAssets::mint_into(asset_id.clone(), &lp_provider, u64::MAX.into()));
+
+		let token_native = Box::new(KsmLocation::get());
+		let token_second = Box::new(asset_id);
+
+		assert_ok!(AssetConversion::create_pool(
+			RuntimeOrigin::signed(lp_provider.clone()),
+			token_native.clone(),
+			token_second.clone()
+		));
+
+		assert_ok!(AssetConversion::add_liquidity(
+			RuntimeOrigin::signed(lp_provider.clone()),
+			token_native,
+			token_second,
+			(u32::MAX / 8).into(), // 1 desired
+			u32::MAX.into(),       // 2 desired
+			1,                     // 1 min
+			1,                     // 2 min
+			lp_provider,
+		));
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::*;
+	use alloc::boxed::Box;
+	use frame_support::assert_ok;
+	use kusama_runtime_constants::system_parachain::PeopleParaId;
+	use system_parachains_constants::kusama::locations::PeopleLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_assets, Local]
 		[pallet_assets, Foreign]
 		[pallet_assets, Pool]
 		[pallet_asset_conversion, AssetConversion]
+		// TODO: Somehow, benchmarks for this pallet are not visible outside the pallet
+		[pallet_asset_conversion_tx_payment, AssetTxPayment]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -1118,16 +1285,19 @@ mod benches {
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
 		[pallet_remote_proxy, RemoteProxyRelayChain]
+		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
+		// [pallet_revive, Revive]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
 		[pallet_timestamp, Timestamp]
+		[pallet_transaction_payment, TransactionPayment]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
-		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
+		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		// Bridges
 		[pallet_xcm_bridge_hub_router, ToPolkadot]
 		// NOTE: Make sure you point to the individual modules below.
@@ -1137,12 +1307,12 @@ mod benches {
 
 	use frame_benchmarking::BenchmarkError;
 	use xcm::latest::prelude::{
-		Asset, Assets as XcmAssets, Fungible, Here, InteriorLocation, Junction, Junction::*,
-		Location, NetworkId, NonFungible, Parent, ParentThen, Response, XCM_VERSION,
+		Asset, Assets as XcmAssets, Fungible, Here, InteriorLocation, Junction, Location,
+		NetworkId, NonFungible, Parent, ParentThen, Response, XCM_VERSION,
 	};
 
 	impl frame_system_benchmarking::Config for Runtime {
-		fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+		fn setup_set_code_requirements(code: &Vec<u8>) -> Result<(), BenchmarkError> {
 			ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
 			Ok(())
 		}
@@ -1169,11 +1339,6 @@ mod benches {
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
 		type DeliveryHelper = (
-			cumulus_primitives_utility::ToParentDeliveryHelper<
-				xcm_config::XcmConfig,
-				ExistentialDepositAsset,
-				PriceForParentDelivery,
-			>,
 			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 				xcm_config::XcmConfig,
 				ExistentialDepositAsset,
@@ -1181,17 +1346,24 @@ mod benches {
 				RandomParaId,
 				ParachainSystem,
 			>,
+			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				xcm_config::XcmConfig,
+				ExistentialDepositAsset,
+				PriceForSiblingParachainDelivery,
+				PeopleParaId,
+				ParachainSystem,
+			>,
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			Some(Parent.into())
+			Some(PeopleLocation::get())
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay/native token can be teleported between AH and Relay.
+			// Relay/native token can be teleported between AH and People.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
-				Parent.into(),
+				PeopleLocation::get(),
 			))
 		}
 
@@ -1205,10 +1377,10 @@ mod benches {
 
 		fn set_up_complex_asset_transfer() -> Option<(XcmAssets, u32, Location, Box<dyn FnOnce()>)>
 		{
-			// Transfer to Relay some local AH asset (local-reserve-transfer) while paying
+			// Transfer to People some local AH asset (local-reserve-transfer) while paying
 			// fees using teleported native token.
 			// (We don't care that Relay doesn't accept incoming unknown AH local asset)
-			let dest = Parent.into();
+			let dest = PeopleLocation::get();
 
 			let fee_amount = ExistentialDeposit::get();
 			let fee_asset: Asset = (Location::parent(), fee_amount).into();
@@ -1251,20 +1423,39 @@ mod benches {
 		}
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
+			use frame_support::traits::tokens::fungible;
+			let account = frame_benchmarking::whitelisted_caller();
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				<Balances as fungible::Inspect<_>>::minimum_balance(),
+			));
+			let asset_id = 1984;
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				asset_id.into(),
+				account.into(),
+				true,
+				1u128,
+			));
+			let amount = 1_000_000u128;
+			let asset_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
+			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
 	}
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
 		type XcmConfig = xcm_config::XcmConfig;
 		type AccountIdConverter = xcm_config::LocationToAccountId;
-		type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+		type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 			xcm_config::XcmConfig,
 			ExistentialDepositAsset,
-			PriceForParentDelivery,
+			PriceForSiblingParachainDelivery,
+			PeopleParaId,
+			ParachainSystem,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
-			Ok(KsmLocation::get())
+			Ok(PeopleLocation::get())
 		}
 		fn worst_case_holding(depositable_count: u32) -> XcmAssets {
 			// A mix of fungible, non-fungible, and concrete assets.
@@ -1296,8 +1487,8 @@ mod benches {
 	}
 
 	parameter_types! {
-		pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
-			KsmLocation::get(),
+		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
+			PeopleLocation::get(),
 			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
@@ -1307,7 +1498,7 @@ mod benches {
 				xcm_config::bridging::to_polkadot::AssetHubPolkadot::get(),
 				Asset::from((
 					xcm_config::bridging::to_polkadot::DotLocation::get(),
-					10000000000 as u128,
+					10000000000_u128,
 				))
 			)
 		);
@@ -1321,7 +1512,24 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(KsmLocation::get()), fun: Fungible(UNITS) }
+			use frame_support::traits::tokens::fungible;
+			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get(),
+			));
+			let asset_id = 1984;
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				asset_id.into(),
+				account.into(),
+				true,
+				1u128,
+			));
+			let amount = 1_000_000u128;
+			let asset_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
+			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
 	}
 
@@ -1334,7 +1542,56 @@ mod benches {
 		}
 
 		fn worst_case_asset_exchange() -> Result<(XcmAssets, XcmAssets), BenchmarkError> {
-			Err(BenchmarkError::Skip)
+			let native_asset_location = Location::parent();
+			let native_asset_id = AssetId(native_asset_location.clone());
+			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
+			let origin = RuntimeOrigin::signed(account.clone());
+			let asset_location = Location::new(1, [Junction::Parachain(2001)]);
+			let asset_id = AssetId(asset_location.clone());
+
+			// We set everything up, initial amounts, liquidity pools, liquidity...
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get() + (2_000 * UNITS)
+			));
+
+			assert_ok!(ForeignAssets::force_create(
+				RuntimeOrigin::root(),
+				asset_location.clone(),
+				account.clone().into(),
+				true,
+				1,
+			));
+
+			assert_ok!(ForeignAssets::mint(
+				origin.clone(),
+				asset_location.clone(),
+				account.clone().into(),
+				4_000 * UNITS,
+			));
+
+			assert_ok!(AssetConversion::create_pool(
+				origin.clone(),
+				native_asset_location.clone().into(),
+				asset_location.clone().into(),
+			));
+
+			// 1 UNIT of the native asset is worth 2 UNITS of the foreign asset.
+			assert_ok!(AssetConversion::add_liquidity(
+				origin,
+				native_asset_location.into(),
+				asset_location.into(),
+				1_000 * UNITS,
+				2_000 * UNITS,
+				1,
+				1,
+				account,
+			));
+
+			let give_assets: XcmAssets = (native_asset_id, 500 * UNITS).into();
+			let receive_assets: XcmAssets = (asset_id, 660 * UNITS).into();
+
+			Ok((give_assets, receive_assets))
 		}
 
 		fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
@@ -1344,24 +1601,27 @@ mod benches {
 
 		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 			Ok((
-				KsmLocation::get(),
+				PeopleLocation::get(),
 				frame_system::Call::remark_with_event { remark: vec![] }.into(),
 			))
 		}
 
 		fn subscribe_origin() -> Result<Location, BenchmarkError> {
-			Ok(KsmLocation::get())
+			Ok(PeopleLocation::get())
 		}
 
 		fn claimable_asset() -> Result<(Location, Location, XcmAssets), BenchmarkError> {
-			let origin = KsmLocation::get();
+			let origin = PeopleLocation::get();
 			let assets: XcmAssets = (AssetId(KsmLocation::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
 		}
 
-		fn fee_asset() -> Result<Asset, BenchmarkError> {
-			Ok(Asset { id: AssetId(KsmLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+		fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
+			Ok((
+				Asset { id: AssetId(KsmLocation::get()), fun: Fungible(1_000 * UNITS) },
+				Limited(Weight::from_parts(5000, 5000)),
+			))
 		}
 
 		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
@@ -1374,7 +1634,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Err(BenchmarkError::Skip)
+			Ok((
+				Location::new(1, [Parachain(1001)]),
+				Location::new(1, [Parachain(1001), AccountId32 { id: [111u8; 32], network: None }]),
+			))
 		}
 	}
 
@@ -1392,7 +1655,7 @@ mod benches {
 				xcm_config::bridging::SiblingBridgeHubParaId::get().into(),
 			);
 			let bridged_asset_hub = xcm_config::bridging::to_polkadot::AssetHubPolkadot::get();
-			let _ = PolkadotXcm::force_xcm_version(
+			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
 				Box::new(bridged_asset_hub.clone()),
 				XCM_VERSION,
@@ -1412,10 +1675,12 @@ mod benches {
 	}
 
 	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkList};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
-	pub use frame_system_benchmarking::Pallet as SystemBench;
-	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+	pub use frame_system_benchmarking::{
+		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
+	};
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub use pallet_xcm_bridge_hub_router::benchmarking::Pallet as XcmBridgeHubRouterBench;
 	pub use sp_storage::TrackedStorageKey;
 	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
@@ -1429,7 +1694,10 @@ mod benches {
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
-impl_runtime_apis! {
+pallet_revive::impl_runtime_apis_plus_revive!(
+	Runtime,
+	Executive,
+	EthExtraImpl,
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
 		fn slot_duration() -> sp_consensus_aura::SlotDuration {
 			sp_consensus_aura::SlotDuration::from_millis(SLOT_DURATION)
@@ -1437,6 +1705,12 @@ impl_runtime_apis! {
 
 		fn authorities() -> Vec<AuraId> {
 			pallet_aura::Authorities::<Runtime>::get().into_inner()
+		}
+	}
+
+	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
+		fn relay_parent_offset() -> u32 {
+			0
 		}
 	}
 
@@ -1472,7 +1746,7 @@ impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -1535,18 +1809,18 @@ impl_runtime_apis! {
 	impl pallet_asset_conversion::AssetConversionApi<
 		Block,
 		Balance,
-		xcm::v4::Location,
+		Location,
 	> for Runtime
 	{
-		fn quote_price_exact_tokens_for_tokens(asset1: xcm::v4::Location, asset2: xcm::v4::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+		fn quote_price_exact_tokens_for_tokens(asset1: Location, asset2: Location, amount: Balance, include_fee: bool) -> Option<Balance> {
 			AssetConversion::quote_price_exact_tokens_for_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn quote_price_tokens_for_exact_tokens(asset1: xcm::v4::Location, asset2: xcm::v4::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+		fn quote_price_tokens_for_exact_tokens(asset1: Location, asset2: Location, amount: Balance, include_fee: bool) -> Option<Balance> {
 			AssetConversion::quote_price_tokens_for_exact_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn get_reserves(asset1: xcm::v4::Location, asset2: xcm::v4::Location) -> Option<(Balance, Balance)> {
+		fn get_reserves(asset1: Location, asset2: Location) -> Option<(Balance, Balance)> {
 			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
@@ -1597,7 +1871,7 @@ impl_runtime_apis! {
 
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let native_asset = xcm_config::KsmLocation::get();
+			let native_asset = KsmLocation::get();
 			// We accept the native asset to pay fees.
 			let mut acceptable_assets = vec![AssetId(native_asset.clone())];
 			// We also accept all assets in a pool with the native token.
@@ -1609,33 +1883,9 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			let native_asset = xcm_config::KsmLocation::get();
-			let fee_in_native = WeightToFee::weight_to_fee(&weight);
-			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
-			match latest_asset_id {
-				Ok(asset_id) if asset_id.0 == native_asset => {
-					// for native asset
-					Ok(fee_in_native)
-				},
-				Ok(asset_id) => {
-					// Try to get current price of `asset_id` in `native_asset`.
-					if let Ok(Some(swapped_in_native)) = assets_common::PoolAdapter::<Runtime>::quote_price_tokens_for_exact_tokens(
-							asset_id.0.clone(),
-							native_asset,
-							fee_in_native,
-							true, // We include the fee.
-						) {
-						Ok(swapped_in_native)
-					} else {
-						log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
-						Err(XcmPaymentApiError::AssetNotFound)
-					}
-				},
-				Err(_) => {
-					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
-					Err(XcmPaymentApiError::VersionedConversionFailed)
-				}
-			}
+			use crate::xcm_config::XcmConfig;
+			type Trader = <XcmConfig as xcm_executor::Config>::Trader;
+			PolkadotXcm::query_weight_to_asset_fee::<Trader>(weight, asset)
 		}
 
 		fn query_xcm_weight(message: VersionedXcm<()>) -> Result<Weight, XcmPaymentApiError> {
@@ -1666,6 +1916,30 @@ impl_runtime_apis! {
 				AccountId,
 				xcm_config::LocationToAccountId,
 			>::convert_location(location)
+		}
+	}
+
+	impl xcm_runtime_apis::trusted_query::TrustedQueryApi<Block> for Runtime {
+		fn is_trusted_reserve(asset: VersionedAsset, location: VersionedLocation) -> xcm_runtime_apis::trusted_query::XcmTrustedQueryResult {
+			PolkadotXcm::is_trusted_reserve(asset, location)
+		}
+		fn is_trusted_teleporter(asset: VersionedAsset, location: VersionedLocation) -> xcm_runtime_apis::trusted_query::XcmTrustedQueryResult {
+			PolkadotXcm::is_trusted_teleporter(asset, location)
+		}
+	}
+
+	impl xcm_runtime_apis::authorized_aliases::AuthorizedAliasersApi<Block> for Runtime {
+		fn authorized_aliasers(target: VersionedLocation) -> Result<
+			Vec<xcm_runtime_apis::authorized_aliases::OriginAliaser>,
+			xcm_runtime_apis::authorized_aliases::Error
+		> {
+			PolkadotXcm::authorized_aliasers(target)
+		}
+		fn is_authorized_alias(origin: VersionedLocation, target: VersionedLocation) -> Result<
+			bool,
+			xcm_runtime_apis::authorized_aliases::Error
+		> {
+			PolkadotXcm::is_authorized_alias(origin, target)
 		}
 	}
 
@@ -1763,7 +2037,7 @@ impl_runtime_apis! {
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
@@ -1772,7 +2046,7 @@ impl_runtime_apis! {
 			Ok(batches)
 		}
 	}
-}
+);
 
 cumulus_pallet_parachain_system::register_validate_block! {
 	Runtime = Runtime,
@@ -1829,7 +2103,7 @@ mod tests {
 			base + weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 
 		let fit = block.checked_div_per_component(&transfer).unwrap_or_default();
-		assert!(fit >= 1000, "{} should be at least 1000", fit);
+		assert!(fit >= 1000, "{fit} should be at least 1000");
 	}
 
 	/// The fee for one transfer is at most 1 CENT.
@@ -1866,9 +2140,9 @@ mod tests {
 			fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
 
 		let proof_o_time = proof_fee.checked_div(time_fee).unwrap_or_default();
-		assert!(proof_o_time <= 30, "{} should be at most 30", proof_o_time);
+		assert!(proof_o_time <= 30, "{proof_o_time} should be at most 30");
 		let time_o_proof = time_fee.checked_div(proof_fee).unwrap_or_default();
-		assert!(time_o_proof <= 30, "{} should be at most 30", time_o_proof);
+		assert!(time_o_proof <= 30, "{time_o_proof} should be at most 30");
 	}
 
 	#[test]

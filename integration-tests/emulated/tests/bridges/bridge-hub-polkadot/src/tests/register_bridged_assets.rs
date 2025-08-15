@@ -13,10 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::tests::{
-	snowbridge::{CHAIN_ID, WETH},
-	*,
-};
+use crate::tests::{snowbridge::CHAIN_ID, *};
+use sp_core::H160;
 
 const XCM_FEE: u128 = 40_000_000_000;
 
@@ -24,13 +22,13 @@ const XCM_FEE: u128 = 40_000_000_000;
 #[test]
 fn register_polkadot_asset_on_kah_from_pah() {
 	// Polkadot Asset Hub asset when bridged to Kusama Asset Hub.
-	let bridged_asset_at_kah = v4::Location::new(
+	let bridged_asset_at_kah = Location::new(
 		2,
 		[
-			v4::Junction::GlobalConsensus(v4::NetworkId::Polkadot),
-			v4::Junction::Parachain(AssetHubPolkadot::para_id().into()),
-			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v4::Junction::GeneralIndex(ASSET_ID.into()),
+			GlobalConsensus(NetworkId::Polkadot),
+			Parachain(AssetHubPolkadot::para_id().into()),
+			PalletInstance(ASSETS_PALLET_ID),
+			GeneralIndex(ASSET_ID.into()),
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
@@ -41,18 +39,19 @@ fn register_polkadot_asset_on_kah_from_pah() {
 #[test]
 fn register_ethereum_asset_on_kah_from_pah() {
 	// Ethereum asset when bridged to Kusama Asset Hub.
-	let bridged_asset_at_kah = v4::Location::new(
+	let token_id = H160::random();
+	let bridged_asset_at_kah = Location::new(
 		2,
 		[
-			v4::Junction::GlobalConsensus(v4::NetworkId::Ethereum { chain_id: CHAIN_ID }),
-			v4::Junction::AccountKey20 { network: None, key: WETH },
+			GlobalConsensus(NetworkId::Ethereum { chain_id: CHAIN_ID }),
+			AccountKey20 { network: None, key: token_id.into() },
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
 	register_asset_on_kah_from_pah(bridged_asset_at_kah);
 }
 
-fn register_asset_on_kah_from_pah(bridged_asset_at_kah: v4::Location) {
+fn register_asset_on_kah_from_pah(bridged_asset_at_kah: Location) {
 	let sa_of_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		Polkadot,
 		AssetHubPolkadot::para_id(),

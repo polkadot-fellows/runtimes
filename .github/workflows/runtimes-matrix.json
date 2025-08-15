@@ -6,7 +6,11 @@
     "uri": "wss://try-runtime.polkadot.io:443",
     "is_relay": true,
     "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "kusama",
@@ -15,7 +19,12 @@
     "uri": "wss://try-runtime-kusama.polkadot.io:443",
     "is_relay": true,
     "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks"
+    "benchmarks_exclude_extrinsics": "pallet_nomination_pools::apply_slash_fail",
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "glutton-kusama",
@@ -31,9 +40,13 @@
     "path": "system-parachains/asset-hubs/asset-hub-kusama",
     "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
-    "try_runtime_args": "--overwrite-state-version 1"
+    "try_runtime_args": "--overwrite-state-version 1",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "asset-hub-polkadot",
@@ -41,9 +54,13 @@
     "path": "system-parachains/asset-hubs/asset-hub-polkadot",
     "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
-    "try_runtime_args": "--overwrite-state-version 1"
+    "try_runtime_args": "--overwrite-state-version 1",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "bridge-hub-kusama",
@@ -52,7 +69,11 @@
     "uri": "wss://kusama-bridge-hub-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "bridge-hub-polkadot",
@@ -61,7 +82,11 @@
     "uri": "wss://polkadot-bridge-hub-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "collectives-polkadot",
@@ -70,7 +95,11 @@
     "uri": "wss://polkadot-collectives-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "coretime-kusama",
@@ -79,7 +108,11 @@
     "uri": "wss://kusama-coretime-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "coretime-polkadot",
@@ -88,7 +121,11 @@
     "is_relay": false,
     "blocktime": 12000,
     "uri": "wss://polkadot-coretime-rpc.polkadot.io:443",
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "people-kusama",
@@ -97,7 +134,10 @@
     "uri": "wss://kusama-people-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks"
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "people-polkadot",
@@ -106,7 +146,10 @@
     "uri": "wss://polkadot-people-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   },
   {
     "name": "encointer-kusama",
@@ -115,6 +158,10 @@
     "uri": "wss://kusama.api.encointer.org:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   }
 ]

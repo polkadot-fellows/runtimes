@@ -89,7 +89,8 @@ if args.command == 'bench':
 
     # loop over remaining runtimes to collect available pallets
     for runtime in runtimesMatrix.values():
-        os.system(f"cargo build -p {runtime['package']} --profile {profile} --features runtime-benchmarks")
+        print(f'-- compiling the runtime {runtime["name"]}')
+        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features runtime-benchmarks")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
         output = os.popen(
@@ -138,7 +139,10 @@ if args.command == 'bench':
             default_path = f"./{config['path']}/src/weights"
             xcm_path = f"./{config['path']}/src/weights/xcm"
             output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
-            print(f'-- benchmarking {pallet} in {runtime} into {output_path}')
+            templates = config.get("benchmarks_templates", {}) or {}
+            template = templates.get(pallet)
+
+            print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template}')
 
             status = os.system(f"frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
@@ -150,6 +154,7 @@ if args.command == 'bench':
                                f"--steps=50 "
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
+                               f"{f'--template={template} ' if template else ''}"
                                )
             if status != 0 and not args.continue_on_fail:
                 print(f'Failed to benchmark {pallet} in {runtime}')

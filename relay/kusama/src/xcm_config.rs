@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals, Everything, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
@@ -34,13 +34,14 @@ use polkadot_runtime_common::{
 use sp_core::ConstU32;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
-	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
-	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
-	OriginToPluralityVoice, SendXcmFeeToAccount, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
+	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	ChildParachainAsNative, ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily,
+	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsChildSystemParachain,
+	IsConcrete, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	XcmFeeManagerFromComponents,
 };
 
 parameter_types! {
@@ -221,11 +222,14 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Nothing;
+	// We let locations alias into child locations of their own.
+	// This is a simple aliasing rule, mimicking the behaviour of the `DescendOrigin` instruction.
+	type Aliasers = AliasChildLocation;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
+	type XcmEventEmitter = XcmPallet;
 }
 
 parameter_types! {
@@ -304,46 +308,6 @@ impl pallet_xcm::Config for Runtime {
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
 	type AdminOrigin = EnsureRoot<AccountId>;
-}
-
-#[test]
-fn karura_liquid_staking_xcm_has_sane_weight_upper_limit() {
-	use codec::Decode;
-	use frame_support::dispatch::GetDispatchInfo;
-	use xcm::VersionedXcm;
-	use xcm_executor::traits::WeightBounds;
-
-	// should be [WithdrawAsset, BuyExecution, Transact, RefundSurplus, DepositAsset]
-	let blob = hex_literal::hex!("02140004000000000700e40b540213000000000700e40b54020006010700c817a804341801000006010b00c490bf4302140d010003ffffffff000100411f");
-	#[allow(deprecated)] // `xcm::v2` is deprecated
-	let Ok(VersionedXcm::V2(old_xcm_v2)) = VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..]) else {
-		panic!("can't decode XCM blob")
-	};
-	let old_xcm_v3: xcm::v3::Xcm<super::RuntimeCall> =
-		old_xcm_v2.try_into().expect("conversion from v2 to v3 works");
-	let mut xcm: Xcm<super::RuntimeCall> =
-		old_xcm_v3.try_into().expect("conversion from v3 to latest works");
-	let weight = <XcmConfig as xcm_executor::Config>::Weigher::weight(&mut xcm)
-		.expect("weighing XCM failed");
-
-	// Test that the weigher gives us a sensible weight but don't exactly hard-code it, otherwise it
-	// will be out of date after each re-run.
-	assert!(weight.all_lte(Weight::from_parts(30_313_281_000, 72_722)));
-
-	let Some(Transact { require_weight_at_most, call, .. }) =
-		xcm.inner_mut().iter_mut().find(|inst| matches!(inst, Transact { .. }))
-	else {
-		panic!("no Transact instruction found")
-	};
-	// should be pallet_utility.as_derivative { index: 0, call: pallet_staking::bond_extra {
-	// max_additional: 2490000000000 } }
-	let message_call = call.take_decoded().expect("can't decode Transact call");
-	let call_weight = message_call.get_dispatch_info().weight;
-	// Ensure that the Transact instruction is giving a sensible `require_weight_at_most` value
-	assert!(
-		call_weight.all_lte(*require_weight_at_most),
-		"call weight ({:?}) was not less than or equal to require_weight_at_most ({:?})",
-		call_weight,
-		require_weight_at_most
-	);
+	// Custom aliasing is disabled: xcm_executor::Config::Aliasers allows only `AliasChildLocation`.
+	type AuthorizedAliasConsideration = Disabled;
 }

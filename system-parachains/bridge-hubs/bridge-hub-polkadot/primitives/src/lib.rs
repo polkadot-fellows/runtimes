@@ -19,6 +19,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
@@ -102,7 +104,7 @@ frame_support::parameter_types! {
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 86_255_432;
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 86_267_609;
 }
 
 /// Compute the total estimated fee that needs to be paid in DOTs by the sender when sending

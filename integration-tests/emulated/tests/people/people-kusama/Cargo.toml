@@ -36,3 +36,24 @@ kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 people-kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
+	"kusama-runtime-constants/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
+	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-identity/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"people-kusama-runtime/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+]

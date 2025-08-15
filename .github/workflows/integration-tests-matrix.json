@@ -26,5 +26,13 @@
   {
     "name": "collectives-polkadot",
     "package": "collectives-polkadot-integration-tests"
+  },
+  {
+    "name": "coretime-kusama",
+    "package": "coretime-kusama-integration-tests"
+  },
+  {
+    "name": "coretime-polkadot",
+    "package": "coretime-polkadot-integration-tests"
   }
 ]

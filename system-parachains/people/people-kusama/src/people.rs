@@ -15,19 +15,18 @@
 
 use super::*;
 use crate::xcm_config::LocationToAccountId;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use enumflags2::{bitflags, BitFlags};
 use frame_support::{
 	parameter_types, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
 use pallet_identity::{Data, IdentityInformationProvider};
-use parachains_common::{impls::ToParentTreasury, DAYS};
+use parachains_common::impls::ToParentTreasury;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, Verify},
 	RuntimeDebug,
 };
-use sp_std::prelude::*;
 
 parameter_types! {
 	//   27 | Min encoded size of `Registration`
@@ -36,6 +35,7 @@ parameter_types! {
 	//   17 | Min size without `IdentityInfo` (accounted for in byte deposit)
 	pub const BasicDeposit: Balance = system_para_deposit(1, 17);
 	pub const ByteDeposit: Balance = system_para_deposit(0, 1);
+	pub const UsernameDeposit: Balance = system_para_deposit(0, 32);
 	pub const SubAccountDeposit: Balance = system_para_deposit(1, 53);
 	pub RelayTreasuryAccount: AccountId =
 		parachains_common::TREASURY_PALLET_ID.into_account_truncating();
@@ -52,6 +52,7 @@ impl pallet_identity::Config for Runtime {
 	type Currency = Balances;
 	type BasicDeposit = BasicDeposit;
 	type ByteDeposit = ByteDeposit;
+	type UsernameDeposit = UsernameDeposit;
 	type SubAccountDeposit = SubAccountDeposit;
 	type MaxSubAccounts = ConstU32<100>;
 	type IdentityInformation = IdentityInfo;
@@ -63,8 +64,11 @@ impl pallet_identity::Config for Runtime {
 	type SigningPublicKey = <Signature as Verify>::Signer;
 	type UsernameAuthorityOrigin = IdentityAdminOrigin;
 	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
+	type UsernameGracePeriod = ConstU32<{ 7 * DAYS }>;
 	type MaxSuffixLength = ConstU32<7>;
 	type MaxUsernameLength = ConstU32<32>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 	type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
@@ -91,6 +95,7 @@ pub enum IdentityField {
 	CloneNoBound,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	EqNoBound,
 	MaxEncodedLen,
 	PartialEqNoBound,
@@ -99,8 +104,8 @@ pub enum IdentityField {
 )]
 #[codec(mel_bound())]
 pub struct IdentityInfo {
-	/// A reasonable display name for the controller of the account. This should be whatever the  
-	/// account is typically known as and should not be confusable with other entities, given  
+	/// A reasonable display name for the controller of the account. This should be whatever the
+	/// account is typically known as and should not be confusable with other entities, given
 	/// reasonable context.
 	///
 	/// Stored as UTF-8.

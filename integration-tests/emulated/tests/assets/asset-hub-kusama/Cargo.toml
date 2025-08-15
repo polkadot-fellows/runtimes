@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
+hex-literal = { workspace = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
@@ -41,3 +42,28 @@ kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
 system-parachains-constants = { workspace = true, default-features = true }
 kusama-runtime-constants = { workspace = true, default-features = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
+	"kusama-runtime-constants/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
+	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-treasury/runtime-benchmarks",
+	"pallet-utility/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+]
