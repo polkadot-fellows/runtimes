@@ -332,6 +332,11 @@ pub mod pallet {
 			Self::RcPalletsOrigin,
 			<<Self as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 		>;
+		
+		/// Config for Kusama pallets.
+		#[cfg(feature = "kusama")]
+		type KusamaConfig: pallet_recovery::Config;
+
 		/// Preimage registry.
 		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
 		/// Convert a Relay Chain Call to a local AH one.

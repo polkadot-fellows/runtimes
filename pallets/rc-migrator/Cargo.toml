@@ -39,6 +39,7 @@ pallet-treasury = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-recovery = { workspace = true, optional = true }
 pallet-staking-async-ah-client = { workspace = true }
 pallet-session = { workspace = true }
 pallet-nomination-pools = { workspace = true }
@@ -58,6 +59,7 @@ frame-election-provider-support = { workspace = true }
 [features]
 default = ["std"]
 
+kusama = ["pallet-recovery"]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",

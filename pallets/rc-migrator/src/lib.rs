@@ -54,6 +54,8 @@ pub mod conviction_voting;
 pub mod scheduler;
 pub mod treasury;
 pub mod xcm_config;
+#[cfg(feature = "kusama")]
+pub mod recovery;
 
 pub use weights::*;
 
@@ -344,11 +346,22 @@ pub enum MigrationStage<
 	},
 	TreasuryMigrationDone,
 
+	#[cfg(feature = "kusama")]
+	RecoveryMigrationInit,
+	#[cfg(feature = "kusama")]
+	RecoveryMigrationOngoing {
+		last_key: Option<recovery::RecoveryStage>,
+	},
+	#[cfg(feature = "kusama")]
+	RecoveryMigrationDone,
+
 	StakingMigrationInit,
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
 	},
 	StakingMigrationDone,
+
+
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
 		///
@@ -476,6 +489,14 @@ pub mod pallet {
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
 
+		/// Config for Kusama pallets.
+		#[cfg(feature = "kusama")]
+		type KusamaConfig: pallet_recovery::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+			MaxFriends = ConstU32<{recovery::MAX_FRIENDS}>,
+		> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+
 		/// Block number provider of the treasury pallet.
 		///
 		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
@@ -488,6 +509,9 @@ pub mod pallet {
 			Beneficiary = VersionedLocation,
 			AssetKind = VersionedLocatableAsset,
 		>;
+
+		/// Block number provider of the recovery pallet.
+		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
@@ -1901,6 +1925,21 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::TreasuryMigrationDone => {
+					#[cfg(feature = "kusama")]
+					Self::transition(MigrationStage::RecoveryMigrationInit);
+					#[cfg(not(feature = "kusama"))]
+					Self::transition(MigrationStage::StakingMigrationInit);
+				},
+				#[cfg(feature = "kusama")]
+				MigrationStage::RecoveryMigrationInit => {
+					Self::transition(MigrationStage::RecoveryMigrationOngoing { last_key: None });
+				},
+				#[cfg(feature = "kusama")]
+				MigrationStage::RecoveryMigrationOngoing { last_key } => {
+					todo!()
+				},
+				#[cfg(feature = "kusama")]
+				MigrationStage::RecoveryMigrationDone => {
 					Self::transition(MigrationStage::StakingMigrationInit);
 				},
 				MigrationStage::StakingMigrationInit => {

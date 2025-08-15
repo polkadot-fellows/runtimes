@@ -8916,6 +8916,7 @@ dependencies = [
  "pallet-nomination-pools",
  "pallet-preimage",
  "pallet-proxy",
+ "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
