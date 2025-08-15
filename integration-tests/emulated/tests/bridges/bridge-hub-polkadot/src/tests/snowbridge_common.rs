@@ -18,10 +18,11 @@ use asset_hub_polkadot_runtime::xcm_config::{
 	bridging::to_ethereum::BridgeHubEthereumBaseFeeV2, LocationToAccountId,
 };
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
-use emulated_integration_tests_common::PenpalBTeleportableAssetLocation;
+use emulated_integration_tests_common::{
+	create_pool_with_native_on, PenpalBTeleportableAssetLocation,
+};
 use frame_support::traits::fungibles::Mutate;
 use hex_literal::hex;
-use integration_tests_helpers::create_pool_with_native_on;
 use polkadot_system_emulated_network::penpal_emulated_chain::{
 	penpal_runtime::xcm_config::{CheckingAccount, TELEPORTABLE_ASSET_ID},
 	PenpalAssetOwner,
