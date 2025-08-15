@@ -170,7 +170,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let bridged_weth_at_ah = weth_at_asset_hubs();
 	let bridged_weth_at_ah_latest: Location = bridged_weth_at_ah.clone();
 
-	let snowbridge_sovereign: AccountId =
+	let ethereum_sovereign: AccountId =
 		EthereumLocationsConverterFor::<[u8; 32]>::convert_location(&Location::new(
 			2,
 			[GlobalConsensus(EthereumNetwork::get())],
@@ -186,7 +186,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		amount * 2,
 	);
 	AssetHubPolkadot::mint_foreign_asset(
-		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(snowbridge_sovereign),
+		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(ethereum_sovereign),
 		bridged_weth_at_ah.clone(),
 		sender.clone(),
 		MIN_ETHER_BALANCE,

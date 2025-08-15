@@ -22,9 +22,9 @@ use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 	xcm_config::{GovernanceLocation, UniversalLocation, XcmConfig},
-	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, TxExtension,
-	UncheckedExtrinsic,
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, EthereumBeaconClient,
+	Executive, MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	SessionKeys, TxExtension, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::GovernanceOrigin;
 use codec::{Decode, Encode};
@@ -282,8 +282,8 @@ pub fn ethereum_extrinsic<Runtime>(
 			let alice_account: <Runtime as frame_system::Config>::AccountId = alice_account.into();
 			let balance_before = <pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
-			assert_ok!(<snowbridge_pallet_ethereum_client::Pallet<Runtime>>::force_checkpoint(
-				RuntimeHelper::<Runtime>::root_origin(),
+			assert_ok!(EthereumBeaconClient::force_checkpoint(
+				RuntimeOrigin::root(),
 				initial_checkpoint.clone(),
 			));
 			let balance_after_checkpoint =
