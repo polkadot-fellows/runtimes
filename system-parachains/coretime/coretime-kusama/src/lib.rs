@@ -533,18 +533,24 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(
+			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::Balances { .. } |
-				// `purchase`, `renew`, `transfer` and `purchase_credit` are pretty self explanatory.
-				RuntimeCall::Broker(pallet_broker::Call::purchase { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::renew { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::transfer { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }) |
-				// `pool` doesn't transfer, but it defines the account to be paid for contributions
-				RuntimeCall::Broker(pallet_broker::Call::pool { .. }) |
-				// `assign` is essentially a transfer of a region NFT
-				RuntimeCall::Broker(pallet_broker::Call::assign { .. })
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					// We don't allow `purchase`, `renew`, `transfer`, `purchase_credit`,
+					// `pool` doesn't transfer, but it defines the account to be paid for contributions,
+					// `assign` is essentially a transfer of a region NFT.
+					RuntimeCall::Broker(pallet_broker::Call::claim_revenue { .. }) |
+					RuntimeCall::Broker(pallet_broker::Call::drop_region { .. }) |
+					RuntimeCall::Broker(pallet_broker::Call::drop_contribution { .. }) |
+					RuntimeCall::Broker(pallet_broker::Call::drop_history { .. }) |
+					RuntimeCall::Broker(pallet_broker::Call::drop_renewal { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
