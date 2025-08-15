@@ -82,12 +82,11 @@ fn send_weth_from_asset_hub_to_ethereum() {
 		]));
 
 		// Send the Weth back to Ethereum
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
 			RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
 			bx!(xcm),
 			Weight::from(EXECUTION_WEIGHT),
-		)
-		.unwrap();
+		));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -234,12 +233,11 @@ pub fn add_tip_from_asset_hub_user_origin() {
 		]));
 
 		// Send the Weth back to Ethereum
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
 			RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
 			bx!(xcm),
 			Weight::from(EXECUTION_WEIGHT),
-		)
-		.unwrap();
+		));
 	});
 
 	// Add the tip.
@@ -373,12 +371,11 @@ fn transfer_relay_token_from_ah() {
 		]));
 
 		// Send DOT to Ethereum
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
 			RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
 			bx!(xcm),
 			Weight::from(EXECUTION_WEIGHT),
-		)
-		.unwrap();
+		));
 
 		// Check that the native asset transferred to some reserved account(sovereign of Ethereum)
 		let events = AssetHubPolkadot::events();
@@ -469,12 +466,11 @@ fn send_weth_and_dot_from_asset_hub_to_ethereum() {
 			},
 		]));
 
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
 			RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
 			bx!(xcms),
 			Weight::from(EXECUTION_WEIGHT),
-		)
-		.unwrap();
+		));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -561,12 +557,11 @@ fn transact_with_agent_from_asset_hub() {
 			},
 		]));
 
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
 			RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
 			bx!(xcms),
 			Weight::from(EXECUTION_WEIGHT),
-		)
-		.unwrap();
+		));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -642,12 +637,11 @@ fn transact_with_agent_from_asset_hub_without_any_asset_transfer() {
 			},
 		]));
 
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
 			RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
 			bx!(xcms),
 			Weight::from(EXECUTION_WEIGHT),
-		)
-		.unwrap();
+		));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {

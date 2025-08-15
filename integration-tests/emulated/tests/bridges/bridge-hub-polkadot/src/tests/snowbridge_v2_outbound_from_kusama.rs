@@ -241,12 +241,12 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 		},
 	]));
 
-	let _ = AssetHubKusama::execute_with(|| {
-		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::execute(
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::execute(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sender),
 			bx!(xcm),
 			Weight::from(EXECUTION_WEIGHT),
-		)
+		));
 	});
 
 	assert_bridge_hub_kusama_message_accepted(true);
