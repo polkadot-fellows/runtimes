@@ -31,6 +31,73 @@ use snowbridge_runtime_common::{ForeignAssetOwner, LocalAssetOwner};
 use xcm::prelude::{InteriorLocation, Location, PalletInstance};
 use xcm_executor::XcmExecutor;
 
+parameter_types! {
+	/// Fee asset for the execution cost on ethereum
+	pub storage FeeAsset: Location = Location::new(
+			2,
+			[
+				EthereumNetwork::get().into(),
+			],
+	);
+	pub SystemFrontendPalletLocation: InteriorLocation = [PalletInstance(SystemFrontendPalletInstance::get())].into();
+}
+
+impl snowbridge_pallet_system_frontend::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::snowbridge_pallet_system_frontend::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = ();
+	type RegisterTokenOrigin = EitherOf<
+		EitherOf<
+			LocalAssetOwner<
+				AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation, Location>,
+				Assets,
+				AccountId,
+				AssetIdForTrustBackedAssets,
+				Location,
+			>,
+			ForeignAssetOwner<
+				(
+					FromSiblingParachain<parachain_info::Pallet<Runtime>, Location>,
+					xcm_config::bridging::to_kusama::KusamaAssetFromAssetHubKusama,
+				),
+				ForeignAssets,
+				AccountId,
+				LocationToAccountId,
+				Location,
+			>,
+		>,
+		EnsureRootWithSuccess<AccountId, RootLocation>,
+	>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type XcmSender = xcm_config::XcmRouter;
+	#[cfg(feature = "runtime-benchmarks")]
+	type XcmSender = benchmark_helpers::DoNothingRouter;
+	type AssetTransactor = AssetTransactors;
+	type EthereumLocation = FeeAsset;
+	type XcmExecutor = XcmExecutor<XcmConfig>;
+	type BridgeHubLocation = SiblingBridgeHub;
+	type UniversalLocation = UniversalLocation;
+	type PalletLocation = SystemFrontendPalletLocation;
+	type Swap = AssetConversion;
+	type BackendWeightInfo = weights::snowbridge_pallet_system_backend::WeightInfo<Runtime>;
+	type AccountIdConverter = LocationToAccountId;
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::SnowbridgeSystemFrontend;
+
+	#[test]
+	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
+		assert_eq!(
+			SystemFrontendPalletInstance::get(),
+			<SnowbridgeSystemFrontend as frame_support::traits::PalletInfoAccess>::index() as u8
+		);
+	}
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
 	use crate::{
@@ -131,72 +198,5 @@ pub mod benchmark_helpers {
 			)
 			.unwrap();
 		}
-	}
-}
-
-parameter_types! {
-	/// Fee asset for the execution cost on ethereum
-	pub storage FeeAsset: Location = Location::new(
-			2,
-			[
-				EthereumNetwork::get().into(),
-			],
-	);
-	pub SystemFrontendPalletLocation: InteriorLocation = [PalletInstance(SystemFrontendPalletInstance::get())].into();
-}
-
-impl snowbridge_pallet_system_frontend::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = weights::snowbridge_pallet_system_frontend::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = ();
-	type RegisterTokenOrigin = EitherOf<
-		EitherOf<
-			LocalAssetOwner<
-				AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation, Location>,
-				Assets,
-				AccountId,
-				AssetIdForTrustBackedAssets,
-				Location,
-			>,
-			ForeignAssetOwner<
-				(
-					FromSiblingParachain<parachain_info::Pallet<Runtime>, Location>,
-					xcm_config::bridging::to_kusama::KusamaAssetFromAssetHubKusama,
-				),
-				ForeignAssets,
-				AccountId,
-				LocationToAccountId,
-				Location,
-			>,
-		>,
-		EnsureRootWithSuccess<AccountId, RootLocation>,
-	>;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type XcmSender = xcm_config::XcmRouter;
-	#[cfg(feature = "runtime-benchmarks")]
-	type XcmSender = benchmark_helpers::DoNothingRouter;
-	type AssetTransactor = AssetTransactors;
-	type EthereumLocation = FeeAsset;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type BridgeHubLocation = SiblingBridgeHub;
-	type UniversalLocation = UniversalLocation;
-	type PalletLocation = SystemFrontendPalletLocation;
-	type Swap = AssetConversion;
-	type BackendWeightInfo = weights::snowbridge_pallet_system_backend::WeightInfo<Runtime>;
-	type AccountIdConverter = LocationToAccountId;
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use crate::SnowbridgeSystemFrontend;
-
-	#[test]
-	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
-		assert_eq!(
-			SystemFrontendPalletInstance::get(),
-			<SnowbridgeSystemFrontend as frame_support::traits::PalletInfoAccess>::index() as u8
-		);
 	}
 }
