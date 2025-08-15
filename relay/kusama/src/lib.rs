@@ -20,6 +20,9 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit.
 #![recursion_limit = "512"]
 
+#[cfg(not(feature = "kusama"))]
+compile_error!("Asset Hub migration requires the `kusama` feature");
+
 extern crate alloc;
 
 use alloc::{

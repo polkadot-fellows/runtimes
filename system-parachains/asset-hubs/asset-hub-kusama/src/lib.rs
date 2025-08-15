@@ -24,6 +24,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(not(feature = "kusama"))]
+compile_error!("Asset Hub migration requires the `kusama` feature");
+
 extern crate alloc;
 
 // Genesis preset configurations.

@@ -1,6 +1,6 @@
 [package]
 name = "polkadot-integration-tests-ahm"
-version = "0.1.0"                                                      # Wont work in the SDK otherwise
+version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
