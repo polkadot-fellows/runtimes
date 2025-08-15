@@ -51,14 +51,13 @@ use xcm_builder::{
 	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, ExternalConsensusLocationsConverterFor,
-	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription,
-	InspectMessageQueues, IsConcrete, LocalMint, MatchedConvertedConcreteId, NoChecking,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SingleAssetExchangeAdapter, SovereignSignedViaLocation, StartsWith,
-	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId,
-	UnpaidRemoteExporter, UsingComponents, WeightInfoBounds, WithComputedOrigin,
-	WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
+	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
+	LocalMint, MatchedConvertedConcreteId, NoChecking, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SingleAssetExchangeAdapter,
+	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
+	TrailingSetTopicAsId, UnpaidRemoteExporter, UsingComponents, WeightInfoBounds,
+	WithComputedOrigin, WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
@@ -724,7 +723,6 @@ pub mod bridging {
 		use bp_bridge_hub_polkadot::snowbridge::{
 			InboundQueuePalletInstance, InboundQueueV2PalletInstance,
 		};
-		use xcm::{VersionedLocation, VersionedXcm};
 
 		parameter_types! {
 			/// User fee for transfers from Polkadot to Ethereum.
@@ -799,38 +797,6 @@ pub mod bridging {
 		impl Contains<(Location, Junction)> for UniversalAliases {
 			fn contains(alias: &(Location, Junction)) -> bool {
 				UniversalAliases::get().contains(alias)
-			}
-		}
-
-		// TODO(#837): remove and use vanilla UnpaidRemoteExporter for 2506-1 or newer, or 2507 or
-		// newer
-		pub struct InspectMessageWrapper<Inner>(PhantomData<Inner>);
-		impl<Inner: SendXcm> SendXcm for InspectMessageWrapper<Inner> {
-			type Ticket = Inner::Ticket;
-
-			fn validate(
-				dest: &mut Option<Location>,
-				msg: &mut Option<Xcm<()>>,
-			) -> SendResult<Inner::Ticket> {
-				Inner::validate(dest, msg)
-			}
-
-			fn deliver(validation: Self::Ticket) -> Result<XcmHash, SendError> {
-				Inner::deliver(validation)
-			}
-
-			#[cfg(feature = "runtime-benchmarks")]
-			fn ensure_successful_delivery(location: Option<Location>) {
-				Inner::ensure_successful_delivery(location);
-			}
-		}
-		impl<Inner> InspectMessageQueues for InspectMessageWrapper<Inner> {
-			fn clear_messages() {}
-
-			/// This router needs to implement `InspectMessageQueues` but doesn't have to
-			/// return any messages, since it just reuses the `XcmpQueue` router.
-			fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
-				Vec::new()
 			}
 		}
 	}
