@@ -62,6 +62,7 @@ snowbridge-pallet-inbound-queue-v2 = { workspace = true }
 snowbridge-pallet-outbound-queue = { workspace = true }
 snowbridge-pallet-outbound-queue-v2 = { workspace = true }
 snowbridge-pallet-system = { workspace = true }
+snowbridge-pallet-system-frontend = { workspace = true }
 snowbridge-pallet-system-v2 = { workspace = true }
 
 [features]
@@ -93,6 +94,7 @@ runtime-benchmarks = [
 	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
 	"snowbridge-pallet-outbound-queue-v2/runtime-benchmarks",
 	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
+	"snowbridge-pallet-system-frontend/runtime-benchmarks",
 	"snowbridge-pallet-system-v2/runtime-benchmarks",
 	"snowbridge-pallet-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",

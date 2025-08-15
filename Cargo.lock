@@ -2109,6 +2109,7 @@ dependencies = [
  "snowbridge-pallet-outbound-queue",
  "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-pallet-system",
+ "snowbridge-pallet-system-frontend",
  "snowbridge-pallet-system-v2",
  "sp-core 37.0.0",
  "sp-io",
