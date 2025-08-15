@@ -60,8 +60,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_v2::WeightInfo for Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `112`
 		//  Estimated: `4115`
-		// Minimum execution time: 64_289_000 picoseconds.
-		Weight::from_parts(66_072_000, 0)
+		// Minimum execution time: 48_830_000 picoseconds.
+		Weight::from_parts(51_731_000, 0)
 			.saturating_add(Weight::from_parts(0, 4115))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -78,9 +78,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_v2::WeightInfo for Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `38`
 		//  Estimated: `3601`
-		// Minimum execution time: 52_436_000 picoseconds.
-		Weight::from_parts(54_003_000, 0)
-			.saturating_add(Weight::from_parts(0, 3601))
+		// Minimum execution time: 40_640_000 picoseconds.
+			Weight::from_parts(42_970_000, 0)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -96,23 +95,22 @@ impl<T: frame_system::Config> snowbridge_pallet_system_v2::WeightInfo for Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `38`
 		//  Estimated: `3601`
-		// Minimum execution time: 45_180_000 picoseconds.
-		Weight::from_parts(46_741_000, 0)
-			.saturating_add(Weight::from_parts(0, 3601))
+		// Minimum execution time: 34_410_000 picoseconds.
+			Weight::from_parts(35_978_000, 0)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `EthereumInboundQueueV2::NonceBitmap` (r:1 w:0)
 	/// Proof: `EthereumInboundQueueV2::NonceBitmap` (`max_values`: None, `max_size`: Some(32), added: 2507, mode: `MaxEncodedLen`)
 	/// Storage: `EthereumInboundQueueV2::Tips` (r:1 w:1)
-	/// Proof: `EthereumInboundQueueV2::Tips` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
+	/// Proof: `EthereumInboundQueueV2::Tips` (`max_values`: None, `max_size`: Some(32), added: 2507, mode: `MaxEncodedLen`)
 	fn add_tip() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `3`
 		//  Estimated: `3505`
-		// Minimum execution time: 16_491_000 picoseconds.
-		Weight::from_parts(17_015_000, 0)
-			.saturating_add(Weight::from_parts(0, 3505))
+		// Minimum execution time: 12_019_000 picoseconds.
+		Weight::from_parts(13_130_000, 0)
+			.saturating_add(Weight::from_parts(0, 3497))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

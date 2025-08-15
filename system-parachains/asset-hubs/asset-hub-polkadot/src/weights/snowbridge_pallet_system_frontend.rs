@@ -19,7 +19,7 @@
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 50.0.0
 //! DATE: 2025-08-14, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
-//! HOSTNAME: `ip-172-31-3-187`, CPU: `Intel(R) Xeon(R) Platinum 8275CL CPU @ 3.00GHz`
+//! HOSTNAME: `58bdc404b8a5`, CPU: `QEMU Virtual CPU version 2.5+`
 //! WASM-EXECUTION: `Compiled`, CHAIN: `None`, DB CACHE: 1024
 
 // Executed Command:
@@ -27,13 +27,15 @@
 // v1
 // benchmark
 // pallet
-// --runtime
-// target/release/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.wasm
-// --pallet=snowbridge_pallet_system_frontend
-// --header=.github/scripts/cmd/file_header.txt
-// --output=./system-parachains/asset-hubs/asset-hub-polkadot/src/weights/snowbridge_pallet_system_frontend.rs
-// --wasm-execution=compiled
 // --extrinsic=*
+// --runtime=target/production/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.wasm
+// --pallet=snowbridge_pallet_system_frontend
+// --header=/_work/fellowship-001/runtimes/runtimes/.github/scripts/cmd/file_header.txt
+// --output=./system-parachains/asset-hubs/asset-hub-polkadot/src/weights
+// --wasm-execution=compiled
+// --steps=50
+// --repeat=20
+// --heap-pages=4096
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
@@ -62,8 +64,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_frontend::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `1077`
 		//  Estimated: `7556`
-		// Minimum execution time: 221_288_000 picoseconds.
-		Weight::from_parts(223_037_000, 0)
+		// Minimum execution time: 200_150_000 picoseconds.
+		Weight::from_parts(224_979_000, 0)
 			.saturating_add(Weight::from_parts(0, 7556))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(5))
@@ -82,8 +84,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_frontend::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `603`
 		//  Estimated: `7404`
-		// Minimum execution time: 200_152_000 picoseconds.
-		Weight::from_parts(203_290_000, 0)
+		// Minimum execution time: 177_870_000 picoseconds.
+		Weight::from_parts(185_560_000, 0)
 			.saturating_add(Weight::from_parts(0, 7404))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
