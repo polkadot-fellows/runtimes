@@ -35,6 +35,7 @@ pub use bp_messages::LegacyLaneId;
 // Cumulus
 pub use emulated_integration_tests_common::{
 	accounts::{ALICE, BOB},
+	create_pool_with_native_on,
 	impls::Inspect,
 	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
 	test_relay_is_trusted_teleporter,
@@ -45,10 +46,7 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
-pub use integration_tests_helpers::{
-	common::snowbridge::{MIN_ETHER_BALANCE, WETH},
-	create_pool_with_native_on,
-};
+pub use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
