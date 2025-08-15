@@ -489,13 +489,17 @@ pub mod pallet {
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
 
-		/// Config for Kusama pallets.
+		/// Config for pallets that are only on Kusama.
 		#[cfg(feature = "kusama")]
 		type KusamaConfig: pallet_recovery::Config<
 			Currency = pallet_balances::Pallet<Self>,
 			BlockNumberProvider = Self::RecoveryBlockNumberProvider,
 			MaxFriends = ConstU32<{recovery::MAX_FRIENDS}>,
 		> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+
+		/// Block number provider of the recovery pallet.
+		#[cfg(feature = "kusama")]
+		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// Block number provider of the treasury pallet.
 		///
@@ -509,9 +513,6 @@ pub mod pallet {
 			Beneficiary = VersionedLocation,
 			AssetKind = VersionedLocatableAsset,
 		>;
-
-		/// Block number provider of the recovery pallet.
-		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter

@@ -7952,6 +7952,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-staking",

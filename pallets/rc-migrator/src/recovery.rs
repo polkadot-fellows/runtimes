@@ -15,6 +15,8 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
+use crate::types::DefensiveTruncateInto;
+use crate::types::TranslateAccounts;
 
 /// Hard-code the number of max friends in Kusama for simplicity.
 pub const MAX_FRIENDS: u32 = 9;
@@ -54,6 +56,23 @@ pub struct PortableRecoveryFriends {
 	pub friends: BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>,
 }
 
+// Acc Translation
+impl TranslateAccounts for PortableRecoveryMessage {
+	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+		match self {
+			PortableRecoveryMessage::Recoverable((who, config)) => {
+				PortableRecoveryMessage::Recoverable((f(who), config.translate_accounts(f)))
+			},
+			PortableRecoveryMessage::ActiveRecoveries((w1, w2, config)) => {
+				PortableRecoveryMessage::ActiveRecoveries((f(w1), f(w2), config.translate_accounts(f)))
+			},
+			PortableRecoveryMessage::Proxy((w1, w2)) => {
+				PortableRecoveryMessage::Proxy((f(w1), f(w2)))
+			},
+		}
+	}
+}
+
 // RC -> Portable
 impl IntoPortable for pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> {
 	type Portable = PortableRecoveryConfig;
@@ -68,6 +87,16 @@ impl IntoPortable for pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<Acco
 	}
 }
 
+// Acc Translation
+impl TranslateAccounts for PortableRecoveryConfig {
+	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+		Self {
+			friends: self.friends.translate_accounts(f),
+			..self
+		}
+	}
+}
+
 // Portable -> AH
 impl Into<pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>> for PortableRecoveryConfig {
 	fn into(self) -> pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> {
@@ -76,6 +105,16 @@ impl Into<pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, Con
 			deposit: self.deposit,
 			friends: self.friends.into(),
 			threshold: self.threshold,
+		}
+	}
+}
+
+// Acc Translation
+impl TranslateAccounts for PortableActiveRecovery {
+	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+		Self {
+			friends: self.friends.translate_accounts(f),
+			..self
 		}
 	}
 }
@@ -110,6 +149,13 @@ impl IntoPortable for BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>{
 
 	fn into_portable(self) -> Self::Portable {
 		PortableRecoveryFriends { friends: self }
+	}
+}
+
+// Acc Translation
+impl TranslateAccounts for PortableRecoveryFriends {
+	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+		Self { friends: self.friends.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into() } // TODO @ggwpez iter_mut?
 	}
 }
 

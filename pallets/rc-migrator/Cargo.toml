@@ -108,6 +108,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"pallet-recovery?/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -146,6 +147,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-recovery?/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -178,4 +180,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-recovery?/try-runtime"
 ]

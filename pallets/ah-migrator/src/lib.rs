@@ -55,6 +55,8 @@ pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 pub mod xcm_translation;
+#[cfg(feature = "kusama")]
+pub mod recovery;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
@@ -84,6 +86,10 @@ use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
 	treasury::PortableTreasuryMessage, types::MigrationStatus,
+};
+#[cfg(feature = "kusama")]
+use pallet_rc_migrator::recovery::{
+	PortableRecoveryMessage, MAX_FRIENDS
 };
 use system_parachains_common::pay::VersionedLocatableAccount;
 
@@ -140,31 +146,32 @@ type RcAccountFor<T> = RcAccount<
 	MaxEncodedLen,
 )]
 pub enum PalletEventName {
-	Indices,
-	Crowdloan,
+	AssetRates,
 	BagsList,
-	Vesting,
+	Balances,
 	Bounties,
 	ChildBounties,
-	Treasury,
-	Balances,
-	Multisig,
 	Claims,
-	ProxyProxies,
-	ProxyAnnouncements,
-	PreimageChunk,
-	PreimageRequestStatus,
-	PreimageLegacyStatus,
+	ConvictionVoting,
+	Crowdloan,
+	DelegatedStaking,
+	Indices,
+	Multisig,
 	NomPools,
-	ReferendaValues,
+	PreimageChunk,
+	PreimageLegacyStatus,
+	PreimageRequestStatus,
+	ProxyAnnouncements,
+	ProxyProxies,
+	Recovery,
 	ReferendaMetadata,
 	ReferendaReferendums,
+	ReferendaValues,
 	Scheduler,
 	SchedulerAgenda,
-	ConvictionVoting,
-	AssetRates,
 	Staking,
-	DelegatedStaking,
+	Treasury,
+	Vesting,
 }
 
 /// The migration stage on the Asset Hub.
@@ -297,6 +304,18 @@ pub mod pallet {
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
+
+		/// Config for pallets that are only on Kusama.
+		#[cfg(feature = "kusama")]
+		type KusamaConfig: pallet_recovery::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+			MaxFriends = ConstU32<{MAX_FRIENDS}>,
+		> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+
+		#[cfg(feature = "kusama")]
+		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+
 		/// All supported assets registry.
 		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
@@ -332,10 +351,6 @@ pub mod pallet {
 			Self::RcPalletsOrigin,
 			<<Self as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 		>;
-		
-		/// Config for Kusama pallets.
-		#[cfg(feature = "kusama")]
-		type KusamaConfig: pallet_recovery::Config;
 
 		/// Preimage registry.
 		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
@@ -944,6 +959,18 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_staking_messages(messages).map_err(Into::into)
+		}
+
+		#[cfg(feature = "kusama")]
+		#[pallet::call_index(26)]
+		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @ggwpez weight
+		pub fn receive_recovery_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableRecoveryMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			
+			Self::do_receive_recovery_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.
