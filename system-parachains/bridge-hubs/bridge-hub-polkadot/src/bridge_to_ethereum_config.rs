@@ -235,7 +235,7 @@ parameter_types! {
 		},
 		electra: Fork {
 			version: hex!("05000000"),
-			epoch: 5000000, // TODO: Change to 0 when upgrading to stable-2507
+			epoch: 0, 
 		}
 	};
 }
