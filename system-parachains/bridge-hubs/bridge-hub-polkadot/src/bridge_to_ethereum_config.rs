@@ -235,7 +235,7 @@ parameter_types! {
 		},
 		electra: Fork {
 			version: hex!("05000000"),
-			epoch: 0, 
+			epoch: 0,
 		}
 	};
 }
