@@ -36,7 +36,6 @@ fn treasury_location_on_ah() -> Location {
 	// Transact the parents native asset on parachain 1000.
 	let asset_kind = VersionedLocatableAsset::V5 {
 		location: (Parent, Parachain(1000)).into(),
-		// Will
 		asset_id: v5::AssetId(Location::parent()),
 	};
 
