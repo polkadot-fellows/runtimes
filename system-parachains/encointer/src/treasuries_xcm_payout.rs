@@ -185,13 +185,12 @@ impl<
 		let origin_location_on_remote = Self::origin_location_on_remote(&asset_location)?;
 
 		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
-			log::error!("Could not convert `from` into Location: {:?}", e);
+			log::error!("Could not convert `from` into Location: {e:?}");
 			Error::InvalidLocation
 		})?;
-		log::trace!("From Location: {:?}", from_location);
 
 		let beneficiary = TransactorRefToLocation::try_convert(to).map_err(|e| {
-			log::error!("Could not convert `beneficiary` into Location: {:?}", e);
+			log::error!("Could not convert `beneficiary` into Location: {e:?}");
 			Error::InvalidLocation
 		})?;
 
@@ -224,7 +223,7 @@ impl<
 		asset_kind: <Self as Transfer>::AssetKind,
 	) -> Result<Location, Error> {
 		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
-			log::error!("Could not convert `from` into Location: {:?}", e);
+			log::error!("Could not convert `from` into Location: {e:?}");
 			Error::InvalidLocation
 		})?;
 
@@ -240,7 +239,6 @@ impl<
 		let origin_on_remote = Querier::UniversalLocation::get()
 			.invert_target(asset_location)
 			.map_err(|()| Error::LocationNotInvertible)?;
-		log::trace!("Origin on destination: {:?}", origin_on_remote);
 		Ok(origin_on_remote)
 	}
 
@@ -248,7 +246,7 @@ impl<
 		asset_kind: <Self as Transfer>::AssetKind,
 	) -> Result<LocatableAssetId, Error> {
 		AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
-			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
+			log::error!("Could not convert asset kind to locatable asset: {e:?}");
 			Error::InvalidLocation
 		})
 	}
@@ -266,7 +264,6 @@ pub fn remote_transfer_xcm(
 	// Transform `from` into Location::new(1, XX([Parachain(source), from.interior }])
 	// We need this one for the refunds.
 	let from_at_target = append_from_to_target(from_location.clone(), destination.clone())?;
-	log::trace!("From at target: {:?}", from_at_target);
 
 	let xcm = Xcm(vec![
 		// Transform origin into Location::new(1, X2([Parachain(SourceParaId), from.interior }])
