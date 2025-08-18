@@ -759,7 +759,7 @@ async fn scheduled_migration_works() {
 			DispatchTime::At(start),
 			DispatchTime::At(warm_up_end),
 			cool_off_end,
-			Default::default(),
+			true, // Ignore the staking era check
 		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
