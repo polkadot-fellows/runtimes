@@ -20,14 +20,12 @@ use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade, weights::Weight
 
 pub(crate) mod add_accounts {
 	use super::*;
-	#[cfg(feature = "try-runtime")]
-	use crate::ambassador::AmbassadorCollectiveInstance;
 	use frame_support::parameter_types;
 	use pallet_ranked_collective::{
 		Config, IdToIndex, IndexToId, MemberCount, MemberRecord, Members, Rank,
 	};
 	#[cfg(feature = "try-runtime")]
-	use sp_std::vec::Vec;
+	use alloc::vec::Vec;
 
 	parameter_types! {
 		// Public key (hex)
@@ -59,7 +57,7 @@ pub(crate) mod add_accounts {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			let has_members =
-				pallet_ranked_collective::Members::<T, AmbassadorCollectiveInstance>::iter()
+				<Members<T, I>>::iter()
 					.next()
 					.is_some();
 			ensure!(!has_members, "the collective must be uninitialized.");
