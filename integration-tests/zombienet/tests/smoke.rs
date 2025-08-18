@@ -25,7 +25,7 @@ fn dump_provider_and_versions() {
 				log::info!("{} binary version: {}", image, stdout.trim());
 			} else {
 				let stderr = String::from_utf8_lossy(&output.stderr);
-				log::error!("Error: {}", stderr);
+				log::error!("Error: {stderr}");
 			}
 		}
 	}
@@ -44,7 +44,7 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	let now = Instant::now();
 	let network = spawn_fn(config).await.unwrap();
 	let elapsed = now.elapsed();
-	log::info!("🚀🚀🚀🚀 network deployed in {:.2?}", elapsed);
+	log::info!("🚀🚀🚀🚀 network deployed in {elapsed:.2?}");
 
 	let alice = network.get_node("alice")?;
 	// wait until the subxt client is ready

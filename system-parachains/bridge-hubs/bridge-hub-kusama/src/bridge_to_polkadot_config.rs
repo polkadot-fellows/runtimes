@@ -190,6 +190,7 @@ impl pallet_bridge_parachains::Config<BridgeParachainPolkadotInstance> for Runti
 		SingleParaStoredHeaderDataBuilder<bp_bridge_hub_polkadot::BridgeHubPolkadot>;
 	type HeadsToKeep = ParachainHeadsToKeep;
 	type MaxParaHeadDataSize = MaxParaHeadDataSize;
+	type OnNewHead = ();
 }
 
 /// Add XCM messages support for exchanging messages with BridgeHubPolkadot.
