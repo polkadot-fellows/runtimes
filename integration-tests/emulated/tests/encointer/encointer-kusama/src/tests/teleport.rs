@@ -14,12 +14,12 @@
 // limitations under the License.
 
 use crate::*;
+use encointer_kusama_runtime::xcm_config::XcmConfig as EncointerKusamaXcmConfig;
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	traits::fungible::Mutate,
 };
 use integration_tests_helpers::test_parachain_is_trusted_teleporter;
-use encointer_kusama_runtime::xcm_config::XcmConfig as EncointerKusamaXcmConfig;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
