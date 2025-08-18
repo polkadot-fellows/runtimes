@@ -7,7 +7,7 @@ use zombienet_sdk_tests::{
 
 fn dump_provider_and_versions() {
 	let provider = get_provider_from_env();
-	log::info!("Using zombienet provider: {:?}", provider);
+	log::info!("Using zombienet provider: {provider:?}");
 
 	if let Provider::Docker = provider {
 		let images = get_images_from_env();
@@ -25,7 +25,7 @@ fn dump_provider_and_versions() {
 				log::info!("{} binary version: {}", image, stdout.trim());
 			} else {
 				let stderr = String::from_utf8_lossy(&output.stderr);
-				log::error!("Error: {}", stderr);
+				log::error!("Error: {stderr}");
 			}
 		}
 	}
@@ -44,7 +44,7 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	let now = Instant::now();
 	let network = spawn_fn(config).await.unwrap();
 	let elapsed = now.elapsed();
-	log::info!("🚀🚀🚀🚀 network deployed in {:.2?}", elapsed);
+	log::info!("🚀🚀🚀🚀 network deployed in {elapsed:.2?}");
 
 	let alice = network.get_node("alice")?;
 	// wait until the subxt client is ready
@@ -53,18 +53,29 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	// wait 10 blocks
 	let mut blocks = alice_client.blocks().subscribe_finalized().await.unwrap().take(10);
 
+	let mut now = Instant::now();
 	while let Some(block) = blocks.next().await {
-		log::info!("Block #{}", block.unwrap().header().number);
+		log::info!(
+			"Block #{} in {} seconds",
+			block.unwrap().header().number,
+			now.elapsed().as_secs()
+		);
+		now = Instant::now();
 	}
 
 	// wait 10 blocks on the parachain
 	let collator = network.get_node("collator")?;
 	let collator_client: OnlineClient<PolkadotConfig> = collator.wait_client().await?;
 
-	let mut blocks = collator_client.blocks().subscribe_finalized().await.unwrap().take(10);
-
+	let mut blocks = collator_client.blocks().subscribe_finalized().await.unwrap().take(20);
+	let mut now = Instant::now();
 	while let Some(block) = blocks.next().await {
-		log::info!("Parachain Block #{}", block.unwrap().header().number);
+		log::info!(
+			"Parachain Block #{} in {} seconds",
+			block.unwrap().header().number,
+			now.elapsed().as_secs()
+		);
+		now = Instant::now();
 	}
 
 	Ok(())

@@ -23,15 +23,14 @@ use alloc::boxed::Box;
 use asset_hub_kusama_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, ForeignCreatorsSovereignAccountOf, GovernanceLocation, KsmLocation,
-		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
+		CheckingAccount, GovernanceLocation, KsmLocation, LocationToAccountId,
+		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
-	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
-	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
-	SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
+	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
+	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
 };
 use asset_test_utils::{
 	include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works,
@@ -42,16 +41,21 @@ use asset_test_utils::{
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
 use codec::{Decode, Encode};
-use core::ops::Mul;
-use frame_support::{assert_ok, traits::fungibles::InspectEnumerable};
+use frame_support::{
+	assert_err, assert_ok,
+	traits::{fungibles::InspectEnumerable, ContainsPair},
+};
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::{traits::MaybeEquivalence, TryRuntimeError};
+use sp_runtime::{traits::MaybeEquivalence, Either, TryRuntimeError};
 use system_parachains_constants::kusama::{
-	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
+	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::UNITS, fee::WeightToFee,
 };
-use xcm::latest::prelude::{Assets as XcmAssets, *};
+use xcm::latest::{
+	prelude::{Assets as XcmAssets, *},
+	WESTEND_GENESIS_HASH,
+};
 use xcm_builder::WithLatestLocationConverter;
 use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
@@ -83,55 +87,10 @@ fn slot_durations() -> SlotDurations {
 	}
 }
 
-fn setup_pool_for_paying_fees_with_foreign_assets(
-	(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
-		AccountId,
-		Location,
-		Balance,
-	),
-) {
-	let existential_deposit = ExistentialDeposit::get();
-
-	// setup a pool to pay fees with `foreign_asset_id_location` tokens
-	let pool_owner: AccountId = [14u8; 32].into();
-	let native_asset = Location::parent();
-	let pool_liquidity: Balance =
-		existential_deposit.max(foreign_asset_id_minimum_balance).mul(100_000);
-
-	let _ = Balances::force_set_balance(
-		RuntimeOrigin::root(),
-		pool_owner.clone().into(),
-		(existential_deposit + pool_liquidity).mul(2),
-	);
-
-	assert_ok!(ForeignAssets::mint(
-		RuntimeOrigin::signed(foreign_asset_owner),
-		foreign_asset_id_location.clone(),
-		pool_owner.clone().into(),
-		(foreign_asset_id_minimum_balance + pool_liquidity).mul(2),
-	));
-
-	assert_ok!(AssetConversion::create_pool(
-		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset.clone()),
-		Box::new(foreign_asset_id_location.clone())
-	));
-
-	assert_ok!(AssetConversion::add_liquidity(
-		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset),
-		Box::new(foreign_asset_id_location),
-		pool_liquidity,
-		pool_liquidity,
-		1,
-		1,
-		pool_owner,
-	));
-}
-
 #[test]
 fn test_ed_is_one_hundredth_of_relay() {
 	ExtBuilder::<Runtime>::default()
+		.with_tracing()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
 			AccountId::from(ALICE),
@@ -151,6 +110,7 @@ fn test_assets_balances_api_works() {
 	use assets_common::runtime_api::runtime_decl_for_fungibles_api::FungiblesApi;
 
 	ExtBuilder::<Runtime>::default()
+		.with_tracing()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
 			AccountId::from(ALICE),
@@ -260,7 +220,8 @@ asset_test_utils::include_teleports_for_native_asset_works!(
 	Runtime,
 	AllPalletsWithoutSystem,
 	XcmConfig,
-	CheckingAccount,
+	// TODO: after AHM change this from `()` to `CheckingAccount`
+	(),
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
@@ -282,7 +243,7 @@ include_teleports_for_foreign_assets_works!(
 	CheckingAccount,
 	WeightToFee,
 	ParachainSystem,
-	ForeignCreatorsSovereignAccountOf,
+	LocationToAccountId,
 	ForeignAssetsInstance,
 	collator_session_keys(),
 	slot_durations(),
@@ -356,7 +317,7 @@ include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_wo
 	Runtime,
 	XcmConfig,
 	WeightToFee,
-	ForeignCreatorsSovereignAccountOf,
+	LocationToAccountId,
 	ForeignAssetsInstance,
 	Location,
 	WithLatestLocationConverter<Location>,
@@ -458,7 +419,10 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 		1000000000000,
 		|| {
 			// setup pool for paying fees to touch `SwapFirstAssetTrader`
-			setup_pool_for_paying_fees_with_foreign_assets(foreign_asset_create_params);
+			asset_test_utils::test_cases::setup_pool_for_paying_fees_with_foreign_assets::<
+				Runtime,
+				RuntimeOrigin,
+			>(ExistentialDeposit::get(), foreign_asset_create_params);
 			// staking pot account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
@@ -567,9 +531,7 @@ fn check_sane_weight_report_bridge_status() {
 	let max_weight = bp_asset_hub_kusama::XcmBridgeHubRouterTransactCallMaxWeight::get();
 	assert!(
 		actual.all_lte(max_weight),
-		"max_weight: {:?} should be adjusted to actual {:?}",
-		max_weight,
-		actual
+		"max_weight: {max_weight:?} should be adjusted to actual {actual:?}"
 	);
 }
 
@@ -747,13 +709,23 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
 	asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
 		Runtime,
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
+	asset_test_utils::test_cases::xcm_payment_api_foreign_asset_pool_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		LocationToAccountId,
+		Block,
+		WeightToFee,
+	>(ExistentialDeposit::get(), WESTEND_GENESIS_HASH);
 }
 
 #[test]
@@ -809,4 +781,122 @@ fn test_xcm_v4_to_v5_works() {
 		// encode/decode is compatible
 		assert_eq!(encoded_v4, decoded_v5.encode(), "V4 encoded should match V5 re-encoded");
 	}
+}
+
+#[test]
+fn authorized_aliases_work() {
+	ExtBuilder::<Runtime>::default()
+		.with_tracing()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::sr25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			use frame_support::traits::fungible::Mutate;
+			let alice: AccountId = ALICE.into();
+			let local_alice = Location::new(0, AccountId32 { network: None, id: ALICE });
+			let alice_on_sibling_para =
+				Location::new(1, [Parachain(42), AccountId32 { network: None, id: ALICE }]);
+			let alice_on_relay = Location::new(1, AccountId32 { network: None, id: ALICE });
+			let bob_on_relay = Location::new(1, AccountId32 { network: None, id: [42_u8; 32] });
+
+			assert_ok!(Balances::mint_into(&alice, 2 * UNITS));
+
+			// neither `alice_on_sibling_para`, `alice_on_relay`, `bob_on_relay` are allowed to
+			// alias into `local_alice`
+			for aliaser in [&alice_on_sibling_para, &alice_on_relay, &bob_on_relay] {
+				assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+					aliaser,
+					&local_alice
+				));
+			}
+
+			// Alice explicitly authorizes `alice_on_sibling_para` to alias her local account
+			assert_ok!(PolkadotXcm::add_authorized_alias(
+				RuntimeHelper::origin_of(alice.clone()),
+				Box::new(alice_on_sibling_para.clone().into()),
+				None
+			));
+
+			// `alice_on_sibling_para` now explicitly allowed to alias into `local_alice`
+			assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+				&alice_on_sibling_para,
+				&local_alice
+			));
+			// as expected, `alice_on_relay` and `bob_on_relay` still can't alias into `local_alice`
+			for aliaser in [&alice_on_relay, &bob_on_relay] {
+				assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+					aliaser,
+					&local_alice
+				));
+			}
+
+			// Alice explicitly authorizes `alice_on_relay` to alias her local account
+			assert_ok!(PolkadotXcm::add_authorized_alias(
+				RuntimeHelper::origin_of(alice.clone()),
+				Box::new(alice_on_relay.clone().into()),
+				None
+			));
+			// Now both `alice_on_relay` and `alice_on_sibling_para` can alias into her local
+			// account
+			for aliaser in [&alice_on_relay, &alice_on_sibling_para] {
+				assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+					aliaser,
+					&local_alice
+				));
+			}
+
+			// Alice removes authorization for `alice_on_relay` to alias her local account
+			assert_ok!(PolkadotXcm::remove_authorized_alias(
+				RuntimeHelper::origin_of(alice.clone()),
+				Box::new(alice_on_relay.clone().into())
+			));
+
+			// `alice_on_relay` no longer allowed to alias into `local_alice`
+			assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+				&alice_on_relay,
+				&local_alice
+			));
+
+			// `alice_on_sibling_para` still allowed to alias into `local_alice`
+			assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+				&alice_on_sibling_para,
+				&local_alice
+			));
+		})
+}
+
+#[test]
+fn governance_authorize_upgrade_works() {
+	use kusama_runtime_constants::system_parachain::ASSET_HUB_ID;
+
+	// no - random para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+	// no - AssetHub
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(Location::parent())));
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(GovernanceLocation::get())));
 }

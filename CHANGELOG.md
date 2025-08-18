@@ -6,9 +6,113 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Use `pallet-assets` instead of `pallet-balances` for XCM benchmarks on asset hubs ([polkadot-fellows/runtimes/pull/758](https://github.com/polkadot-fellows/runtimes/pull/758))
+  - This means XCM benchmarks will have a higher weight.
+- All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub ([polkadot-fellows/runtimes/pull/709](https://github.com/polkadot-fellows/runtimes/pull/709))
+
+### Added
+- Integrate "Empowered XCM Origins" features to System Chains ([polkadot-fellows/runtimes/pull/799](https://github.com/polkadot-fellows/runtimes/pull/799))
+- Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
+- Add Secretary Salary Pay Test Over XCM ([https://github.com/polkadot-fellows/runtimes/pull/778](https://github.com/polkadot-fellows/runtimes/pull/778))
+- Upgrade to Polkadot-SDK `stable2506` ([polkadot-fellows/runtimes/pull/817](https://github.com/polkadot-fellows/runtimes/pull/817))
+  - [#7833](https://github.com/paritytech/polkadot-sdk/pull/7833): Add `poke_deposit` extrinsic to pallet-society
+  - [#7995](https://github.com/paritytech/polkadot-sdk/pull/7995): Add `PureKilled` event to pallet-proxy
+  - [#8254]((https://github.com/paritytech/polkadot-sdk/pull/9202)): Introduce `remove_upgrade_cooldown`
+    This dispatchable enables anyone to pay for removing an active upgrade cooldown from a parachain instead of waiting for the cooldown to be finished. It is useful for times when a parachain needs to apply an upgrade faster than the upgrade cooldown, but it will need to pay in this case. The dispatchable enables anyone to remove an upgrade cooldown of any parachain. The caller needs to pay for the removal and the tokens are burned on a successful removal.
+  - [#8171](https://github.com/paritytech/polkadot-sdk/pull/8171): Add event `VestingCreated` and emit on vested transfer.
+  - [#8382](https://github.com/paritytech/polkadot-sdk/pull/8382): Add `poke_deposit` extrinsic to pallet-bounties
+  - [#7592](https://github.com/paritytech/polkadot-sdk/pull/7592): Add Paras `authorize_code_hash` + `apply_authorized_code` feature
+    This feature is useful when triggering a Paras pallet call from a different chain than the one where the Paras pallet is deployed. For example, we may want to send `Paras::force_set_current_code(para, code)` from the Collectives and/or Asset Hub to the Relay Chain (because the Relay Chain governance will be migrated to the Asset Hub as a part of AHM).
+    The primary reason for this approach is to avoid transferring the entire `new_code` Wasm blob between chains. Instead, we authorize the `code_hash` using root via `fn authorize_force_set_current_code_hash(new_authorization, expire_at)`. This authorization can later be applied by anyone using `Paras::apply_authorized_force_set_current_code(para, new_code)`. If `expire_at` is reached without the authorization being used, it is automatically removed.
+  - [#7882](https://github.com/paritytech/polkadot-sdk/pull/7882): Add `poke_deposit` extrinsic to pallet-recovery
+    Historically, the collection of storage deposits was running in an infallible context. Meaning we needed to make sure that the caller was able to pay the deposits when the last contract execution returns. To achieve that, we capped the storage deposit limit to the maximum balance of the origin. This made the code more complex: It conflated the deposit limit with the amount of balance the origin has.
+    In the meantime, we changed code around to make the deposit collection fallible. But never changed this aspect.
+    This PR rectifies that by doing:
+    The root storage meter and all its nested meter's limits are completely independent of the origin's balance. This makes it way easier to argue about the limit that a nested meter has at any point.
+    Consistently use `StorageDepositNotEnoughFunds` (limit not reached) and `StorageDepositLimitExhausted` (limit reached).
+    Origin not being able to pay the existential deposit (ED) for a new account is now `StorageDepositNotEnoughFunds` and traps the caller rather then being a `TransferFailed` return code. Important since we are hiding the ED from contracts, so it should also not be an error code that must be handled.
+  - [#8314](https://github.com/paritytech/polkadot-sdk/pull/8314): Add RPCs in the statement store to get the statements and not just the statement data.
+    In statement-store, statements can contain a proof with the signature of the statement. This proof is useful to assert that the statement comes from the expected account. This proof also signs for all the statement's fields, which can also be useful information for the receiver.
+- Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
+  - [#8684](https://github.com/paritytech/polkadot-sdk/pull/8684) Add optional auto-rebag within on-idle to enable incremental correction of account positions within the bags-list during the idle phase of block execution
+  - [#8693](https://github.com/paritytech/polkadot-sdk/pull/8693) Add XCM Precompile to pallet-xcm
+
 ### Changed
 
+- Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
+  - [#7953](https://github.com/paritytech/polkadot-sdk/pull/7953): Add deposit for setting session keys
+    🚨 Setting session keys now charges a storage deposit for them. Validators should make sure they have some free balance to cover this deposit the next time they want to rotate their keys.
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
+- Configure block providers for pallets requiring block context ([polkadot-fellows/runtimes/pull/813](https://github.com/polkadot-fellows/runtimes/pull/813)):
+  - vesting: keep using Relay Chain block provider
+  - multisig: switch to local block provider (for unique multisig IDs)
+  - proxy: use Relay Chain block provider (for delayed announcements)
+  - nfts: use Relay Chain block provider (for minting start/end blocks)
+- PolkadotAssetHub: Enable Async Backing ([polkadot-fellows/runtimes/pull/763](https://github.com/polkadot-fellows/runtimes/pull/763))
+- Upgrade to Polkadot-SDK `stable2506` ([polkadot-fellows/runtimes/pull/817](https://github.com/polkadot-fellows/runtimes/pull/817))
+  - [#9137](https://github.com/paritytech/polkadot-sdk/pull/9137): Pallet XCM - transfer_assets pre-ahm patch
+    🚨 Pallet XCM's `transfer_assets` extrinsic now returns an error when it determines that a reserve transfer of DOT|KSM has to be done.
+    This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
+    After the migration, another patch will remove this error case and use the correct reserve.
+    🚨 For DOT|KSM cross-chain transfers please use `limited_reserve_transfer_assets` or `transfer_assets_using_type_and_then`.
+  - [#8718](https://github.com/paritytech/polkadot-sdk/pull/8718): Contracts: Record ED as part of the storage deposit.
+  - [#8554](https://github.com/paritytech/polkadot-sdk/pull/8554): Contracts: pallet-assets ERC20 precompile
+  - [#7762](https://github.com/paritytech/polkadot-sdk/pull/7762): Contracts: ERC20 XCM Asset Transactor
+    This PR introduces an Asset Transactor for dealing with ERC20 tokens and adds it to Asset Hub Westend.
+    This means asset ids of the form `{ parents: 0, interior: X1(AccountKey20 { key, network }) }` will be matched by this transactor and the corresponding transfer function will be called in the smart contract whose address is key.
+    If your chain uses pallet-revive, you can support ERC20s as well by adding the transactor, which lives in assets-common.
+  - [#8197](https://github.com/paritytech/polkadot-sdk/pull/8197): [pallet-revive] Add `fee_history`
+  - [#8148](https://github.com/paritytech/polkadot-sdk/pull/8148): [pallet-revive] eth-rpc refactoring
+      - Refactor eth-rpc.
+      - Get rid of the in-memory cache; we can just store receipts / logs into sqlite.
+      - Track both best and finalized blocks so that we can properly index transactions in case of a Relay Chain re-org.
+      - Keep reference to the latest finalized block so that we can use that for queries that use the finalized block tag.
+      - Use `--index-last-n-blocks` CLI parameter to re-index the last `n` blocks when the server starts.
+      - Fix issue with `gas_price` calculation for EIP1559.
+  - [#8545](https://github.com/paritytech/polkadot-sdk/pull/8545): [pallet-revive] eth-rpc improved healthcheck
+  - [#8587](https://github.com/paritytech/polkadot-sdk/pull/8587): [pallet-revive] Make subscription task panic on error
+  - [#8664](https://github.com/paritytech/polkadot-sdk/pull/8664): [pallet-revive] Fix rpc-types
+  - [#8311](https://github.com/paritytech/polkadot-sdk/pull/8311): [pallet-revive] Update tracing RPC methods parameters
+    Update `debug_trace*` methods to support extra parameters supported by geth.
+    The method now can specify a timeout and whether we should only return a trace for the top call.
+  - [#8734](https://github.com/paritytech/polkadot-sdk/pull/8734): [pallet-revive] Contract's nonce starts at 1
+  - [#8274](https://github.com/paritytech/polkadot-sdk/pull/8274): [pallet-revive] Add `get_storage_var_key` for variable-sized keys
+  - [#8103](https://github.com/paritytech/polkadot-sdk/pull/8103): [pallet-revive] Add genesis config
+  - [#8273](https://github.com/paritytech/polkadot-sdk/pull/8273): [pallet-revive] Add net-listening rpc
+  - [#8667](https://github.com/paritytech/polkadot-sdk/pull/8667): [pallet-revive] Simplify the storage meter
+  - [#7867](https://github.com/paritytech/polkadot-sdk/pull/7867): Make read/write benchmarks more accurate
+  - [#8281](https://github.com/paritytech/polkadot-sdk/pull/8281): `XcmPaymentApi::query_weight_to_asset_fee` simple common impl
+  - [#8535](https://github.com/paritytech/polkadot-sdk/pull/8535): Make `WeightBounds` return `XcmError` to surface failures
+    Improved XCM weight calculation error handling and traceability. The `WeightBounds` trait now returns detailed `XcmError` types instead of opaque results, allowing downstream consumers to access specific error context for failures like instruction decoding issues, weight overflows, and instruction limit violations. Added structured debug logging with contextual information to aid in diagnosing weight estimation failures during message preparation and execution.
+  - [#8122](https://github.com/paritytech/polkadot-sdk/pull/8122): Accommodate small changes to unstable V16 metadata format
+    🚨 The frame-metadata version is bumped, which leads to a few minor changes to our sp-metadata-ir crate to accommodate small changes in the unstable V16 metadata format.
+  - [#8234](https://github.com/paritytech/polkadot-sdk/pull/8234): Set a 16 MiB heap memory limit when decoding an `UncheckedExtrinsic`
+  - [#7730](https://github.com/paritytech/polkadot-sdk/pull/7730): Nest errors in pallet-xcm
+    To address the issue of vague `LocalExecutionIncomplete` errors in pallet-xcm, the PR introduces `LocalExecutionIncompleteWithError(ExecutionError)`, which nests a compact `ExecutionError` enum—aligned with `XcmError` and excluding strings like in `FailedToTransactAsset`: to provide detailed error information within FRAME's 4-byte limit. This enhances error reporting by specifying causes like insufficient balance or asset transaction failures, with strings logged for debugging.
+  - [#7220](https://github.com/paritytech/polkadot-sdk/pull/7220): Yet Another Parachain is introduced, with the main purpose to be a target for the Spammening events, but also to be used like one more general-purpose testing parachain runtime.
+  - [#3811](https://github.com/paritytech/polkadot-sdk/pull/3811): Implicit `chill` when full unbonding in pallet-staking.
+    Modifies the `unbond` extrinsic to forcefully `chill` stash when unbonding, if the full stake is unbonded.
+  - [#8724](https://github.com/paritytech/polkadot-sdk/pull/8724): Implement detailed logging for XCM failures
+    Improves diagnostics in XCM-related code by adding detailed error logging, especially within map_err paths. It includes clearer messages, standardized log targets, and richer context to aid runtime developers and node operators in debugging and monitoring.
+  - [#7960](https://github.com/paritytech/polkadot-sdk/pull/7960): Stabilize pallet view functions
+    Pallet view functions are no longer marked as experimental, and their use is suggested starting from this PR.
+  - [#7597](https://github.com/paritytech/polkadot-sdk/pull/7597): Introduce `CreateBare`, deprecated `CreateInherent`
+    Rename `CreateInherent` to `CreateBare`, add method `create_bare` and deprecate `create_inherent`.
+    Both unsigned transaction and inherent use the extrinsic type `Bare`.
+    Before this PR CreateInherent trait was use to generate unsigned transaction, now unsigned transaction can be generated using a proper trait `CreateBare`.
+  - [#8599](https://github.com/paritytech/polkadot-sdk/pull/8599): Snowbridge: Unpaid execution when bridging to Ethereum
+    In Snowbridge V2, the execution fee on Ethereum is estimated dynamically and injected into the XCM, eliminating the need to preconfigure the bridge fee.
+    Additionally, we also aim to avoid maintaining the Asset Hub’s sovereign account on the Bridge Hub.
+  - [#8327](https://github.com/paritytech/polkadot-sdk/pull/8327): Update to the latest unstable V16 metadata.
+  - [#8038](https://github.com/paritytech/polkadot-sdk/pull/8038): Fix penpal runtime
+    Allow using Penpal native asset (PEN) for paying local fees and allow teleporting it from/to AH. Also allow unpaid execution from relay chain for sudo calls.
+  - [#8344](https://github.com/paritytech/polkadot-sdk/pull/8344): XCMP weight metering: account for the MQ page position
+  - [#8021](https://github.com/paritytech/polkadot-sdk/pull/8021): XCMP: use batching when enqueuing inbound messages
+    This PR implements batching for the XCMP inbound enqueueing logic, which leads to an about ~75x performance improvement for that specific code.
+  - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
+- Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
 
 ## [1.6.1] 24.06.2025
 
