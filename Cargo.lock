@@ -4211,10 +4211,9 @@ dependencies = [
 [[package]]
 name = "encointer-balances-tx-payment"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "397b34bbcee048d599efc22a7688b4532a911438782328b19b2e6d289411735e"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-support",
  "frame-system",
  "log",
@@ -4228,10 +4227,9 @@ dependencies = [
 [[package]]
 name = "encointer-balances-tx-payment-rpc-runtime-api"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62e4fce7992cf5099e6670ffdb7c96991465d8e6dc6c4201119bd1e43ddbf7df"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-support",
  "parity-scale-codec",
  "scale-info",
@@ -4242,12 +4240,59 @@ dependencies = [
 [[package]]
 name = "encointer-ceremonies-assignment"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89986c66ff66121b5fa3335a43b22572703625ca34ddb5c2f180db1e9580ef99"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "encointer-kusama-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "encointer-kusama-runtime",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-emulated-chain",
+ "parachains-common",
+ "polkadot-parachain-primitives",
+ "sp-core 38.0.0",
+ "sp-keyring",
+ "staging-xcm",
+ "staging-xcm-builder",
+]
+
+[[package]]
+name = "encointer-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-test-utils",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "encointer-kusama-runtime",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-runtime-constants",
+ "kusama-system-emulated-network",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-message-queue",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "sp-runtime",
+ "sp-tracing 18.0.0",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -4264,7 +4309,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "encointer-balances-tx-payment",
  "encointer-balances-tx-payment-rpc-runtime-api",
- "encointer-primitives",
+ "encointer-primitives 20.4.0",
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
@@ -4277,6 +4322,7 @@ dependencies = [
  "kusama-runtime-constants",
  "log",
  "pallet-asset-tx-payment",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -4323,9 +4369,11 @@ dependencies = [
  "sp-core 38.0.0",
  "sp-genesis-builder",
  "sp-inherents",
+ "sp-io",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
+ "sp-tracing 18.0.0",
  "sp-transaction-pool",
  "sp-version",
  "staging-parachain-info",
@@ -4340,10 +4388,9 @@ dependencies = [
 [[package]]
 name = "encointer-meetup-validation"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ba685514c10a80504b665cb70d9c89366cfc920da260a09cfd3f1e552d4e210"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4359,7 +4406,27 @@ checksum = "b3f3eb8c27de173898f75ba824e4a69a6cc88500006c0b8724cd467f9c524163"
 dependencies = [
  "bs58",
  "crc",
- "ep-core",
+ "ep-core 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "frame-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core 38.0.0",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "substrate-geohash",
+]
+
+[[package]]
+name = "encointer-primitives"
+version = "20.5.0"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
+dependencies = [
+ "bs58",
+ "crc",
+ "ep-core 20.0.0 (git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout)",
  "frame-support",
  "log",
  "parity-scale-codec",
@@ -4459,6 +4526,23 @@ name = "ep-core"
 version = "20.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbbc538bcc7452ae72554b3f1e022e5736fb9dd1eecb025c45383f36dd589030"
+dependencies = [
+ "array-bytes 6.2.3",
+ "impl-serde",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core 38.0.0",
+ "sp-runtime",
+ "sp-std",
+ "substrate-fixed",
+]
+
+[[package]]
+name = "ep-core"
+version = "20.0.0"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
  "array-bytes 6.2.3",
  "impl-serde",
@@ -6862,6 +6946,7 @@ dependencies = [
  "bridge-hub-kusama-emulated-chain",
  "coretime-kusama-emulated-chain",
  "emulated-integration-tests-common",
+ "encointer-kusama-emulated-chain",
  "kusama-emulated-chain",
  "penpal-emulated-chain",
  "people-kusama-emulated-chain",
@@ -8848,11 +8933,10 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-balances"
 version = "20.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11ec6f4ff2017c12e7f6771805f1718be52303c31e7332e08b2b30bf9c2384f1"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
  "approx",
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8868,10 +8952,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-bazaar"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcc6638f3f51fc6dbea1822a2c4f2bd65af748b54ee2f94b9a439228f1101e6c"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8886,10 +8969,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-bazaar-rpc-runtime-api"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3a81093a8550f5ab4caddff3c3e19eec717d01a77bd41080f75ccd7109934a8"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-support",
  "parity-scale-codec",
  "sp-api",
@@ -8899,12 +8981,11 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-ceremonies"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "154f548c8a9cbe1e6ac328c20c01c21bd1268c9476029cc86fe6905213dfc586"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8925,10 +9006,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-ceremonies-rpc-runtime-api"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4fd62fc2b88dbbf2ef0b8e19adbc2c208b1ce24bb847e60967ceb6e9c1bf856"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-support",
  "parity-scale-codec",
  "sp-api",
@@ -8938,10 +9018,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-communities"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "943b2e805a9e8f9e487ff39de2aca34cd52fa7a18e6fd8e88262a408e7352dcc"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8958,10 +9037,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-communities-rpc-runtime-api"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeec11cb0ab312ccef1b63b40de6cf71d5b47dfef7b32557c7d3cf38eb1dd39c"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "parity-scale-codec",
  "sp-api",
  "sp-std",
@@ -8973,7 +9051,7 @@ version = "20.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0038e34f1d9c2f3063bf2799eb1442141d56583b898b9b163738f93d9db0b6d"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.4.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8996,11 +9074,10 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-faucet"
 version = "20.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e75add1dcdfd397397ae6f21535e2fe543a07544d8249098e09b0a5fcbbf297e"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
  "approx",
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -9017,11 +9094,10 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-reputation-commitments"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b683d57a39f9c605ddc642c173b1d768ad4c1973c08800ccf4b9faa77a9768f"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
  "approx",
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -9040,10 +9116,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-scheduler"
 version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46911a93c68e57a4c6cf495da03fcf08e7853afab1955d53026c2e721e83dbd1"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -9063,7 +9138,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb256efa55f3dab869ebbfb8956e3bfbafde77142fba1d354784d1901d6960b7"
 dependencies = [
  "approx",
- "encointer-primitives",
+ "encointer-primitives 20.4.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -9082,10 +9157,9 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-treasuries-rpc-runtime-api"
 version = "20.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41e37c6da7e18e2b6e44903556c683f1c25689aa7bb9c063fe3341689412c15c"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
 dependencies = [
- "encointer-primitives",
+ "encointer-primitives 20.5.0",
  "frame-support",
  "parity-scale-codec",
  "scale-info",
@@ -18275,3 +18349,13 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "pallet-encointer-democracy"
+version = "20.5.0"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
+
+[[patch.unused]]
+name = "pallet-encointer-treasuries"
+version = "20.5.0"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#3e8a292f3a4a8880044fba1bb9e30a1bba7dedb9"
