@@ -45,7 +45,7 @@ use frame_support::{
 		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains,
 		EitherOfDiverse, EverythingBut, InstanceFilter, TransformOrigin,
 	},
-	weights::{ConstantMultiplier, Weight, WeightToFee as _},
+	weights::{ConstantMultiplier, Weight},
 	PalletId,
 };
 use frame_system::{
@@ -324,6 +324,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
+	type RelayParentOffset = ConstU32<0>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -432,6 +433,8 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = ();
+	type Currency = Balances;
+	type KeyDeposit = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -671,7 +674,8 @@ construct_runtime!(
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
-	use system_parachains_constants::kusama::locations::{AssetHubLocation, AssetHubParaId};
+	use kusama_runtime_constants::system_parachain::AssetHubParaId;
+	use system_parachains_constants::kusama::locations::AssetHubLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -721,11 +725,6 @@ mod benches {
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
 		type DeliveryHelper = (
-			cumulus_primitives_utility::ToParentDeliveryHelper<
-				xcm_config::XcmConfig,
-				ExistentialDepositAsset,
-				PriceForParentDelivery,
-			>,
 			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 				xcm_config::XcmConfig,
 				ExistentialDepositAsset,
@@ -743,14 +742,14 @@ mod benches {
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			Some(Parent.into())
+			Some(AssetHubLocation::get())
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay/native token can be teleported between Coretime and Relay.
+			// Relay/native token can be teleported between Coretime and Asset Hub.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
-				Parent.into(),
+				AssetHubLocation::get(),
 			))
 		}
 
@@ -784,11 +783,6 @@ mod benches {
 			let native_location = Parent.into();
 			let dest = AssetHubLocation::get();
 
-			// TODO: Remove below line once we update to polkadot-sdk stable2503
-			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
-				AssetHubParaId::get(),
-			);
-
 			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
 				native_location,
 				dest,
@@ -802,24 +796,17 @@ mod benches {
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
 		type XcmConfig = xcm_config::XcmConfig;
-		type DeliveryHelper = (
-			cumulus_primitives_utility::ToParentDeliveryHelper<
-				xcm_config::XcmConfig,
-				ExistentialDepositAsset,
-				PriceForParentDelivery,
-			>,
-			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
-				xcm_config::XcmConfig,
-				ExistentialDepositAsset,
-				PriceForSiblingParachainDelivery,
-				RandomParaId,
-				ParachainSystem,
-			>,
-		);
+		type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+			xcm_config::XcmConfig,
+			ExistentialDepositAsset,
+			PriceForSiblingParachainDelivery,
+			AssetHubParaId,
+			ParachainSystem,
+		>;
 
 		type AccountIdConverter = xcm_config::LocationToAccountId;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
-			Ok(KsmRelayLocation::get())
+			Ok(AssetHubLocation::get())
 		}
 		fn worst_case_holding(_depositable_count: u32) -> Assets {
 			// just concrete assets according to relay chain.
@@ -832,8 +819,8 @@ mod benches {
 	}
 
 	parameter_types! {
-		pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
-			KsmRelayLocation::get(),
+		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
+			AssetHubLocation::get(),
 			Asset { fun: Fungible(UNITS), id: AssetId(KsmRelayLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
@@ -870,24 +857,27 @@ mod benches {
 
 		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 			Ok((
-				KsmRelayLocation::get(),
+				AssetHubLocation::get(),
 				frame_system::Call::remark_with_event { remark: vec![] }.into(),
 			))
 		}
 
 		fn subscribe_origin() -> Result<Location, BenchmarkError> {
-			Ok(KsmRelayLocation::get())
+			Ok(AssetHubLocation::get())
 		}
 
 		fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
-			let origin = KsmRelayLocation::get();
+			let origin = AssetHubLocation::get();
 			let assets: Assets = (AssetId(KsmRelayLocation::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
 		}
 
-		fn fee_asset() -> Result<Asset, BenchmarkError> {
-			Ok(Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+		fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
+			Ok((
+				Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) },
+				Limited(Weight::from_parts(5000, 5000)),
+			))
 		}
 
 		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
@@ -931,6 +921,12 @@ impl_runtime_apis! {
 
 		fn authorities() -> Vec<AuraId> {
 			pallet_aura::Authorities::<Runtime>::get().into_inner()
+		}
+	}
+
+	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
+		fn relay_parent_offset() -> u32 {
+			0
 		}
 	}
 
@@ -1077,21 +1073,9 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
-			match latest_asset_id {
-				Ok(asset_id) if asset_id.0 == xcm_config::KsmRelayLocation::get() => {
-					// for native token
-					Ok(WeightToFee::weight_to_fee(&weight))
-				},
-				Ok(asset_id) => {
-					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
-					Err(XcmPaymentApiError::AssetNotFound)
-				},
-				Err(_) => {
-					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
-					Err(XcmPaymentApiError::VersionedConversionFailed)
-				}
-			}
+			use crate::xcm_config::XcmConfig;
+			type Trader = <XcmConfig as xcm_executor::Config>::Trader;
+			PolkadotXcm::query_weight_to_asset_fee::<Trader>(weight, asset)
 		}
 
 		fn query_xcm_weight(message: VersionedXcm<()>) -> Result<Weight, XcmPaymentApiError> {
@@ -1122,6 +1106,30 @@ impl_runtime_apis! {
 				AccountId,
 				xcm_config::LocationToAccountId,
 			>::convert_location(location)
+		}
+	}
+
+	impl xcm_runtime_apis::trusted_query::TrustedQueryApi<Block> for Runtime {
+		fn is_trusted_reserve(asset: VersionedAsset, location: VersionedLocation) -> xcm_runtime_apis::trusted_query::XcmTrustedQueryResult {
+			PolkadotXcm::is_trusted_reserve(asset, location)
+		}
+		fn is_trusted_teleporter(asset: VersionedAsset, location: VersionedLocation) -> xcm_runtime_apis::trusted_query::XcmTrustedQueryResult {
+			PolkadotXcm::is_trusted_teleporter(asset, location)
+		}
+	}
+
+	impl xcm_runtime_apis::authorized_aliases::AuthorizedAliasersApi<Block> for Runtime {
+		fn authorized_aliasers(target: VersionedLocation) -> Result<
+			Vec<xcm_runtime_apis::authorized_aliases::OriginAliaser>,
+			xcm_runtime_apis::authorized_aliases::Error
+		> {
+			PolkadotXcm::authorized_aliasers(target)
+		}
+		fn is_authorized_alias(origin: VersionedLocation, target: VersionedLocation) -> Result<
+			bool,
+			xcm_runtime_apis::authorized_aliases::Error
+		> {
+			PolkadotXcm::is_authorized_alias(origin, target)
 		}
 	}
 

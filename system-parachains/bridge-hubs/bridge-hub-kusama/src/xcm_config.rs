@@ -17,40 +17,40 @@
 use crate::XcmOverBridgeHubPolkadot;
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balances, CollatorSelection, ParachainInfo, ParachainSystem,
-	PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balance, Balances, CollatorSelection, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstU32, Contains, Disabled, Equals, Everything, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
+		Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
-use pallet_xcm::XcmPassthrough;
+use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
+pub use system_parachains_constants::kusama::locations::GovernanceLocation;
+use system_parachains_constants::{kusama::locations::AssetHubLocation, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowHrmpNotificationsFromRelayChain,
-	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
+	AllowHrmpNotificationsFromRelayChain, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
+	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
+	FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
-
-pub use system_parachains_constants::kusama::locations::GovernanceLocation;
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -151,6 +151,7 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowExplicitUnpaidExecutionFrom<(
 						ParentOrParentsPlurality,
 						Equals<RelayTreasuryLocation>,
+						Equals<AssetHubLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
@@ -176,6 +177,12 @@ pub type WaivedLocations = (
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 /// - KSM with the parent Relay Chain and sibling parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<KsmRelayLocation>;
+
+/// Defines origin aliasing rules for this chain.
+///
+/// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
+/// - Allow origins explicitly authorized by the alias target location.
+pub type TrustedAliasers = (AliasChildLocation, AuthorizedAliasers<Runtime>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -217,7 +224,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Nothing;
+	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
@@ -238,6 +245,13 @@ pub type XcmRouter = WithUniqueTopic<(
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 )>;
+
+parameter_types! {
+	pub const DepositPerItem: Balance = crate::system_para_deposit(1, 0);
+	pub const DepositPerByte: Balance = crate::system_para_deposit(0, 1);
+	pub const AuthorizeAliasHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::PolkadotXcm(pallet_xcm::HoldReason::AuthorizeAlias);
+}
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -269,8 +283,13 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
-	// Aliasing is disabled: xcm_executor::Config::Aliasers allows `Nothing`.
-	type AuthorizedAliasConsideration = Disabled;
+	// xcm_executor::Config::Aliasers uses pallet_xcm::AuthorizedAliasers.
+	type AuthorizedAliasConsideration = HoldConsideration<
+		AccountId,
+		Balances,
+		AuthorizeAliasHoldReason,
+		LinearStoragePrice<DepositPerItem, DepositPerByte, Balance>,
+	>;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {

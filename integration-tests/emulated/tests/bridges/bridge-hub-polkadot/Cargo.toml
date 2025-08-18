@@ -30,6 +30,7 @@ xcm-runtime-apis = { workspace = true, default-features = true }
 # Cumulus
 emulated-integration-tests-common = { workspace = true }
 parachains-common = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
 
 # Bridges
@@ -38,6 +39,7 @@ pallet-bridge-messages = { workspace = true, default-features = true }
 
 # Local
 bp-bridge-hub-polkadot = { workspace = true, default-features = true }
+bridge-hub-common = { workspace = true, default-features = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 asset-hub-polkadot-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
@@ -58,7 +60,9 @@ snowbridge-outbound-queue-primitives = { workspace = true }
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"bp-bridge-hub-polkadot/runtime-benchmarks",
+	"bridge-hub-common/runtime-benchmarks",
 	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",

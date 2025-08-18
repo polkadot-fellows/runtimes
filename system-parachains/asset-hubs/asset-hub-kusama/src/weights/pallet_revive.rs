@@ -887,6 +887,10 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(Weight::from_parts(0, 2517).saturating_mul(t.into()))
 	}
+	// FAIL-CI: dummy max weight, needs benchmark
+	fn seal_call_precompile(_: u32, _: u32, ) -> Weight {
+		Weight::from_parts(18_446_744_073_709_551_000, 0)
+	}
 	/// Storage: `Revive::ContractInfoOf` (r:1 w:0)
 	/// Proof: `Revive::ContractInfoOf` (`max_values`: None, `max_size`: Some(242), added: 2717, mode: `Measured`)
 	/// Storage: `Revive::CodeInfoOf` (r:1 w:0)
