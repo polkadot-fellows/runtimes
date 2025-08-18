@@ -336,7 +336,30 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(c, RuntimeCall::Balances { .. }),
+			ProxyType::NonTransfer => matches!(
+				c,
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Preimage(_) |
+					RuntimeCall::Alliance(_) |
+					RuntimeCall::AllianceMotion(_) |
+					RuntimeCall::FellowshipCollective(_) |
+					RuntimeCall::FellowshipReferenda(_) |
+					RuntimeCall::FellowshipCore(_) |
+					RuntimeCall::FellowshipSalary(_) |
+					RuntimeCall::FellowshipTreasury(_) |
+					RuntimeCall::AmbassadorCollective(_) |
+					RuntimeCall::AmbassadorReferenda(_) |
+					RuntimeCall::AmbassadorCore(_) |
+					RuntimeCall::AmbassadorSalary(_) |
+					RuntimeCall::AmbassadorTreasury(_)
+			),
 			ProxyType::CancelProxy => matches!(
 				c,
 				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
