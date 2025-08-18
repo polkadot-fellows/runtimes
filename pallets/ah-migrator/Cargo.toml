@@ -61,7 +61,6 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
-system-parachains-common = { workspace = true }
 
 # [dev-dependencies]
 # asset-hub-polkadot-runtime = { workspace = true, default-features = true }
@@ -124,7 +123,6 @@ std = [
 	"sp-runtime/std",
 	"sp-staking/std",
 	"sp-std/std",
-	"system-parachains-common/std",
 	"xcm-builder/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
@@ -172,7 +170,6 @@ runtime-benchmarks = [
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
-	"system-parachains-common/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
@@ -180,6 +177,7 @@ runtime-benchmarks = [
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
+	"assets-common/try-runtime",
 	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
@@ -207,9 +205,8 @@ try-runtime = [
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-xcm/try-runtime",
+	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"system-parachains-common/try-runtime",
-	"pallet-recovery?/try-runtime"
 ]

@@ -164,7 +164,6 @@ impl frame_election_provider_support::onchain::Config for OnChainConfig {
 }
 
 impl multi_block::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Pages = Pages;
 	type UnsignedPhase = UnsignedPhase;
 	type SignedPhase = SignedPhase;
@@ -193,7 +192,6 @@ impl multi_block::Config for Runtime {
 }
 
 impl multi_block::verifier::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type MaxWinnersPerPage = MaxWinnersPerPage;
 	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type MaxBackersPerWinnerFinal = MaxBackersPerWinnerFinal;
@@ -212,7 +210,6 @@ parameter_types! {
 }
 
 impl multi_block::signed::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BailoutGraceRatio = BailoutGraceRatio;
 	type EjectGraceRatio = EjectGraceRatio;
@@ -307,7 +304,6 @@ parameter_types! {
 }
 
 impl pallet_staking_async::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Filter = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
@@ -341,7 +337,6 @@ impl pallet_staking_async::Config for Runtime {
 }
 
 impl pallet_staking_async_rc_client::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;

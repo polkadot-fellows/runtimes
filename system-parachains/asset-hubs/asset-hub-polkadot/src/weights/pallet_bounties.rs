@@ -48,6 +48,12 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_bounties`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_bounties::WeightInfo for WeightInfo<T> {
+	fn poke_deposit() -> Weight { // FAIL-CI re-run
+		Weight::from_parts(36_041_148, 0)
+			.saturating_add(Weight::from_parts(0, 3593))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
 	/// Storage: `Bounties::BountyCount` (r:1 w:1)
 	/// Proof: `Bounties::BountyCount` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)

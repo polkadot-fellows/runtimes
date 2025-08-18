@@ -19,7 +19,8 @@
 use frame_support::{dispatch::GetDispatchInfo, pallet_prelude::Weight, traits::Currency};
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
-use rand::{prelude::SliceRandom, Rng};
+use rand::{Rng};
+use rand::seq::IteratorRandom;
 use sp_core::Get;
 use sp_runtime::{traits::StaticLookup, AccountId32};
 
@@ -48,18 +49,18 @@ impl RcMigrationCheck for MultisigStillWork {
 			.map(|(id, _)| id)
 			.collect::<Vec<_>>();
 		let mut multisigs = Vec::new();
-		let mut rng = rand::thread_rng();
+		let mut rng = rand::rng();
 
 		for _i in 0..100 {
 			// Threshold must be at least 2, otherwise it's not really a multisig and the TX fails.
 			// We can use `as_multi_1` if we really want to test this as well
-			let num_signatories = rng.gen_range(2..=10);
+			let num_signatories = rng.random_range(2..=10);
 			// pick num_signatories random accounts
 			let mut signatories =
-				accounts.choose_multiple(&mut rng, num_signatories).cloned().collect::<Vec<_>>();
+				accounts.iter().cloned().choose_multiple(&mut rng, num_signatories);
 			signatories.sort();
 
-			let threshold = rng.gen_range(2..=num_signatories) as u16;
+			let threshold = rng.random_range(2..=num_signatories) as u16;
 			let pure =
 				pallet_multisig::Pallet::<RelayRuntime>::multi_account_id(&signatories, threshold);
 			let multisig = Multisig { signatories, threshold, pure };

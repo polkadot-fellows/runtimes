@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use collectives_polkadot_runtime::{Block, Runtime, RuntimeCall, RuntimeOrigin};
+use system_parachains_constants::polkadot::fee::WeightToFee;
 
 #[test]
 fn xcm_payment_api_works() {
@@ -22,5 +23,6 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
 }

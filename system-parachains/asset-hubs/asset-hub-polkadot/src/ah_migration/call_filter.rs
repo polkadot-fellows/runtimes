@@ -119,6 +119,7 @@ pub fn call_allowed_status(
 		Referenda(..) => OFF,
 		Scheduler(..) => ON,
 		Session(..) => OFF,
+		SnowbridgeSystemFrontend(..) => ON, // FAIL-CI @ggwpez TODO
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
@@ -190,6 +191,7 @@ pub fn call_allowed_before_migration(
 		Proxy(..) |
 		Scheduler(..) |
 		Session(..) |
+		SnowbridgeSystemFrontend(..) | // TODO: @ggwpez
 		StakingRcClient(..) |
 		StateTrieMigration(..) |
 		System(..) |

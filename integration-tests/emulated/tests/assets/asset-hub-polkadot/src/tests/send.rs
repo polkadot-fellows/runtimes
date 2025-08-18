@@ -36,17 +36,11 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 	let para_sovereign_account = AssetHubPolkadot::sovereign_account_id_of(
 		AssetHubPolkadot::sibling_location_of(PenpalA::para_id()),
 	);
-	let asset_location_on_penpal = xcm::v4::Location::new(
-		0,
-		[
-			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
-		],
-	);
-	let foreign_asset_at_asset_hub =
-		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
-			.appended_with(asset_location_on_penpal)
-			.unwrap();
+	let asset_location_on_penpal =
+		Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())]);
+	let foreign_asset_at_asset_hub = Location::new(1, [Parachain(PenpalA::para_id().into())])
+		.appended_with(asset_location_on_penpal)
+		.unwrap();
 
 	// Encoded `create_asset` call to be executed in AssetHub
 	let call = AssetHubPolkadot::create_foreign_asset_call(
@@ -116,15 +110,10 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native: xcm::v4::Location =
-		asset_hub_polkadot_runtime::xcm_config::DotLocation::get().try_into().unwrap();
-	let asset_one = xcm::v4::Location {
+	let asset_native: Location = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one = Location {
 		parents: 0,
-		interior: [
-			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
-		]
-		.into(),
+		interior: [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())].into(),
 	};
 	let penpal = AssetHubPolkadot::sovereign_account_id_of(AssetHubPolkadot::sibling_location_of(
 		PenpalB::para_id(),
