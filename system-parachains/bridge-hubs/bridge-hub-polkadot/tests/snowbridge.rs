@@ -339,6 +339,8 @@ pub fn ethereum_extrinsic<Runtime>(
 			let balance_after_sync_com_update =
 				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
+			let _ = RuntimeHelper::<Runtime>::run_to_block(3, AccountId::from(alice).into());
+
 			// Invalid sync committee update
 			let invalid_sync_committee_outcome =
 				construct_and_apply_extrinsic(alice, invalid_update_sync_committee_call.into());
