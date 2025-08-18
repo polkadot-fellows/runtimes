@@ -86,7 +86,7 @@ impl pallet_ambassador_origins::Config for Runtime {}
 
 /// Demotion is by any of:
 /// - Root can demote arbitrarily;
-/// - the FellowshipAdmin voice (i.e. token holder referendum) can demote arbitrarily;
+/// - the FellowshipAdmin voice (i.e. token holder referendum) can demote all but Global Head;
 /// - Senior Ambassadors voice can demote Ambassador.
 pub type DemoteOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
@@ -186,7 +186,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	// Parameters are set by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote among all Head Ambassadors.
+	// - a vote among all Global Head Ambassadors.
 	type ParamsOrigin = OpenGovOrGlobalHead;
 	type ApproveOrigin = EitherOf<
 		MapSuccess<
@@ -206,7 +206,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type FastPromoteOrigin = EnsureCanFastPromoteTo;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
-	type MaxRank = ConstU32<6>;
+	type MaxRank = ConstU16<6>;
 }
 
 parameter_types! {
