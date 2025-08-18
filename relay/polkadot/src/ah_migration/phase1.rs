@@ -109,12 +109,15 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		ParasShared(parachains_shared::Call::__Ignore { .. }) => (ON, ON), // Has no calls
 		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (ON, ON), // Has no calls
 		ParaInherent(..) => (ON, ON),  // only inherents
-		Paras(..) => (ON, ON),         // OK? WHY?
-		Initializer(..) => (ON, ON),   // Only root calls. Fine to keep.
-		Hrmp(..) => (ON, ON),          /* open close hrmp channels by parachains or root force. */
+		Paras(..) => (ON, ON),         /* Only root and one security relevant call: */
+		// `include_pvf_check_statement`
+		Initializer(..) => (ON, ON), // Only root calls. Fine to keep.
+		Hrmp(..) => (ON, ON),        /* open close hrmp channels by parachains or root force. */
 		// no concerns.
 		ParasDisputes(..) => (ON, ON), // Only a single root call. Fine to keep.
-		ParasSlashing(..) => (ON, ON), // Security critical. If disabled there will be no slashes or offences generated for malicious validators.
+		ParasSlashing(..) => (ON, ON), /* Security critical. If disabled there will be no */
+		// slashes or offences generated for malicious
+		// validators.
 		OnDemand(..) => (OFF, ON),
 		Registrar(..) => (OFF, ON),
 		Slots(..) => (OFF, OFF),
@@ -126,12 +129,12 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		) => (OFF, ON),
 		Crowdloan(..) => (OFF, OFF),
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
-		Coretime(..) => (ON, ON),             // OK? WHY?
+		Coretime(..) => (ON, ON),             // Only permissioned calls.
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
-		XcmPallet(..) => (ON, ON),            /* during migration can only send XCMs to other */
+		XcmPallet(..) => (ON, ON),            // during migration can only send XCMs to other
 		MessageQueue(..) => (ON, ON),         // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (ON, ON),      // For reporting equivocation proofs; security relevant
+		Beefy(..) => (ON, ON), // For reporting equivocation proofs; security relevant
 		RcMigrator(..) => (ON, ON), // Required for the migration, only permissioned calls
 	}
 	// Exhaustive match. Compiler ensures that we did not miss any.
