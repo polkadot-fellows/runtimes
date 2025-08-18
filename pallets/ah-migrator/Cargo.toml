@@ -168,6 +168,7 @@ runtime-benchmarks = [
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
+	"assets-common/try-runtime",
 	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
@@ -195,6 +196,7 @@ try-runtime = [
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-xcm/try-runtime",
+	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
