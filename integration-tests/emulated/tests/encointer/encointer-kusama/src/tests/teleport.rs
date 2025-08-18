@@ -190,8 +190,7 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	});
 
 	// Sender's balance is reduced
-	// Todo: This is off by a tiny amount
-	// assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
+	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
 	// Receiver's balance does not change
 	assert_eq!(receiver_balance_after, receiver_balance_before);
 }
