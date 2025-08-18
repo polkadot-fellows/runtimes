@@ -19,6 +19,7 @@ use frame_support::{
 	traits::fungible::Mutate,
 };
 use integration_tests_helpers::test_parachain_is_trusted_teleporter;
+use encointer_kusama_runtime::xcm_config::XcmConfig as EncointerKusamaXcmConfig;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
@@ -104,7 +105,7 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 
 #[test]
 fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
-	let amount = ENCOINTER_KUSAMA_ED * 1000;
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
@@ -114,7 +115,7 @@ fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_work
 		limited_teleport_assets
 	);
 
-	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let amount = ENCOINTER_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
@@ -127,7 +128,7 @@ fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_work
 
 #[test]
 fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
-	let amount = ENCOINTER_KUSAMA_ED * 1000;
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
@@ -137,7 +138,7 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 		transfer_assets
 	);
 
-	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let amount = ENCOINTER_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
@@ -153,10 +154,13 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 #[test]
 fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	// Init values for Relay Chain
-	let amount_to_send: Balance = ENCOINTER_KUSAMA_ED * 1000;
+	let amount_to_send: Balance = KUSAMA_ED * 1000;
 	let destination = EncointerKusama::parent_location();
 	let beneficiary_id = KusamaReceiver::get();
 	let assets = (Parent, amount_to_send).into();
+
+	// Fund a sender
+	EncointerKusama::fund_accounts(vec![(EncointerKusamaSender::get(), KUSAMA_ED * 2_000u128)]);
 
 	let test_args = TestContext {
 		sender: EncointerKusamaSender::get(),
@@ -166,7 +170,7 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 
 	let mut test = EncointerParaToRelayTest::new(test_args);
 
-	// let sender_balance_before = test.sender.balance;
+	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;
 
 	test.set_assertion::<EncointerKusama>(para_origin_assertions);
@@ -174,20 +178,20 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	test.set_dispatchable::<EncointerKusama>(system_para_limited_teleport_assets);
 	test.assert();
 
-	// Receiver's balance does not change
+	let sender_balance_after = test.sender.balance;
 	let receiver_balance_after = test.receiver.balance;
-	assert_eq!(receiver_balance_after, receiver_balance_before);
 
-	// let sender_balance_after = test.sender.balance;
-	//
-	// let delivery_fees = EncointerKusama::execute_with(|| {
-	// 	xcm_helpers::teleport_assets_delivery_fees::<
-	// 		<EncointerKusamaXcmConfig as xcm_executor::Config>::XcmSender,
-	// 	>(
-	// 		test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
-	// 	)
-	// });
+	let delivery_fees = EncointerKusama::execute_with(|| {
+		xcm_helpers::teleport_assets_delivery_fees::<
+			<EncointerKusamaXcmConfig as xcm_executor::Config>::XcmSender,
+		>(
+			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
+		)
+	});
+
 	// Sender's balance is reduced
-	// Todo: this assertion fails. It is off by a tiny amount
+	// Todo: This is off by a tiny amount
 	// assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
+	// Receiver's balance does not change
+	assert_eq!(receiver_balance_after, receiver_balance_before);
 }
