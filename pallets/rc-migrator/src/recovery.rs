@@ -14,14 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::*;
-use crate::types::DefensiveTruncateInto;
-use crate::types::TranslateAccounts;
+use crate::{
+	types::{DefensiveTruncateInto, TranslateAccounts},
+	*,
+};
 
 /// Hard-code the number of max friends in Kusama for simplicity.
 pub const MAX_FRIENDS: u32 = 9;
 
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum RecoveryStage {
 	Recoverable(Option<AccountId32>),
 	ActiveRecoveries(Option<(AccountId32, AccountId32)>),
@@ -29,14 +40,34 @@ pub enum RecoveryStage {
 	Finished,
 }
 
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub enum PortableRecoveryMessage {
 	Recoverable((AccountId32, PortableRecoveryConfig)),
 	ActiveRecoveries((AccountId32, AccountId32, PortableActiveRecovery)),
 	Proxy((AccountId32, AccountId32)),
 }
 
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub struct PortableRecoveryConfig {
 	pub delay_period: u32,
 	pub deposit: u128,
@@ -44,14 +75,34 @@ pub struct PortableRecoveryConfig {
 	pub threshold: u16,
 }
 
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub struct PortableActiveRecovery {
 	pub created: u32,
 	pub deposit: u128,
 	pub friends: PortableRecoveryFriends,
 }
 
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
 pub struct PortableRecoveryFriends {
 	pub friends: BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>,
 }
@@ -60,21 +111,24 @@ pub struct PortableRecoveryFriends {
 impl TranslateAccounts for PortableRecoveryMessage {
 	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
 		match self {
-			PortableRecoveryMessage::Recoverable((who, config)) => {
-				PortableRecoveryMessage::Recoverable((f(who), config.translate_accounts(f)))
-			},
-			PortableRecoveryMessage::ActiveRecoveries((w1, w2, config)) => {
-				PortableRecoveryMessage::ActiveRecoveries((f(w1), f(w2), config.translate_accounts(f)))
-			},
-			PortableRecoveryMessage::Proxy((w1, w2)) => {
-				PortableRecoveryMessage::Proxy((f(w1), f(w2)))
-			},
+			PortableRecoveryMessage::Recoverable((who, config)) =>
+				PortableRecoveryMessage::Recoverable((f(who), config.translate_accounts(f))),
+			PortableRecoveryMessage::ActiveRecoveries((w1, w2, config)) =>
+				PortableRecoveryMessage::ActiveRecoveries((
+					f(w1),
+					f(w2),
+					config.translate_accounts(f),
+				)),
+			PortableRecoveryMessage::Proxy((w1, w2)) =>
+				PortableRecoveryMessage::Proxy((f(w1), f(w2))),
 		}
 	}
 }
 
 // RC -> Portable
-impl IntoPortable for pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> {
+impl IntoPortable
+	for pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>
+{
 	type Portable = PortableRecoveryConfig;
 
 	fn into_portable(self) -> Self::Portable {
@@ -90,16 +144,19 @@ impl IntoPortable for pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<Acco
 // Acc Translation
 impl TranslateAccounts for PortableRecoveryConfig {
 	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
-		Self {
-			friends: self.friends.translate_accounts(f),
-			..self
-		}
+		Self { friends: self.friends.translate_accounts(f), ..self }
 	}
 }
 
 // Portable -> AH
-impl Into<pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>> for PortableRecoveryConfig {
-	fn into(self) -> pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> {
+impl
+	Into<pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>>
+	for PortableRecoveryConfig
+{
+	fn into(
+		self,
+	) -> pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>
+	{
 		pallet_recovery::RecoveryConfig {
 			delay_period: self.delay_period,
 			deposit: self.deposit,
@@ -112,15 +169,14 @@ impl Into<pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, Con
 // Acc Translation
 impl TranslateAccounts for PortableActiveRecovery {
 	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
-		Self {
-			friends: self.friends.translate_accounts(f),
-			..self
-		}
+		Self { friends: self.friends.translate_accounts(f), ..self }
 	}
 }
 
 // RC -> Portable
-impl IntoPortable for pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> {
+impl IntoPortable
+	for pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>
+{
 	type Portable = PortableActiveRecovery;
 
 	fn into_portable(self) -> Self::Portable {
@@ -133,8 +189,14 @@ impl IntoPortable for pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<Acco
 }
 
 // Portable -> AH
-impl Into<pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>> for PortableActiveRecovery {
-	fn into(self) -> pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> {
+impl
+	Into<pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>>
+	for PortableActiveRecovery
+{
+	fn into(
+		self,
+	) -> pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>
+	{
 		pallet_recovery::ActiveRecovery {
 			created: self.created,
 			deposit: self.deposit,
@@ -144,7 +206,7 @@ impl Into<pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, Con
 }
 
 // RC -> Portable
-impl IntoPortable for BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>{
+impl IntoPortable for BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>> {
 	type Portable = PortableRecoveryFriends;
 
 	fn into_portable(self) -> Self::Portable {
@@ -155,7 +217,9 @@ impl IntoPortable for BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>{
 // Acc Translation
 impl TranslateAccounts for PortableRecoveryFriends {
 	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
-		Self { friends: self.friends.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into() } // TODO @ggwpez iter_mut?
+		Self {
+			friends: self.friends.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into(),
+		} // TODO @ggwpez iter_mut?
 	}
 }
 
@@ -174,7 +238,10 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 	type Key = RecoveryStage;
 	type Error = Error<T>;
 
-	fn migrate_many(last_key: Option<Self::Key>, weight_counter: &mut WeightMeter) -> Result<Option<Self::Key>, Self::Error> {
+	fn migrate_many(
+		last_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(RecoveryStage::Recoverable(None));
 		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
@@ -214,19 +281,23 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 			last_key = match last_key {
 				RecoveryStage::Recoverable(last_key) => {
 					let mut iter = match last_key {
-						Some(last_key) => pallet_recovery::Recoverable::<T::KusamaConfig>::iter_from_key(last_key),
+						Some(last_key) =>
+							pallet_recovery::Recoverable::<T::KusamaConfig>::iter_from_key(last_key),
 						None => pallet_recovery::Recoverable::<T::KusamaConfig>::iter(),
 					};
 
 					match iter.next() {
 						Some((who, config)) => {
 							pallet_recovery::Recoverable::<T::KusamaConfig>::remove(&who);
-							messages.push(PortableRecoveryMessage::Recoverable((who.clone(), config.into_portable())));
+							messages.push(PortableRecoveryMessage::Recoverable((
+								who.clone(),
+								config.into_portable(),
+							)));
 							RecoveryStage::Recoverable(Some(who))
 						},
 						None => RecoveryStage::ActiveRecoveries(None),
 					}
-				}
+				},
 				RecoveryStage::ActiveRecoveries(last_key) => {
 					let mut iter = match last_key {
 						Some((w1, w2)) => pallet_recovery::ActiveRecoveries::<T::KusamaConfig>::iter_from(
@@ -238,15 +309,20 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 					match iter.next() {
 						Some((w1, w2, config)) => {
 							pallet_recovery::ActiveRecoveries::<T::KusamaConfig>::remove(&w1, &w2);
-							messages.push(PortableRecoveryMessage::ActiveRecoveries((w1.clone(), w2.clone(), config.into_portable())));
+							messages.push(PortableRecoveryMessage::ActiveRecoveries((
+								w1.clone(),
+								w2.clone(),
+								config.into_portable(),
+							)));
 							RecoveryStage::ActiveRecoveries(Some((w1, w2)))
 						},
 						None => RecoveryStage::Proxy(None),
 					}
-				}
+				},
 				RecoveryStage::Proxy(last_key) => {
 					let mut iter = match last_key {
-						Some(last_key) => pallet_recovery::Proxy::<T::KusamaConfig>::iter_from_key(last_key),
+						Some(last_key) =>
+							pallet_recovery::Proxy::<T::KusamaConfig>::iter_from_key(last_key),
 						None => pallet_recovery::Proxy::<T::KusamaConfig>::iter(),
 					};
 

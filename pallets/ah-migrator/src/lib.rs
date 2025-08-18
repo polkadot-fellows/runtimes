@@ -46,6 +46,8 @@ pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
+#[cfg(feature = "kusama")]
+pub mod recovery;
 pub mod referenda;
 pub mod scheduler;
 pub mod sovereign_account_translation;
@@ -55,8 +57,6 @@ pub mod types;
 pub mod vesting;
 pub mod xcm_config;
 pub mod xcm_translation;
-#[cfg(feature = "kusama")]
-pub mod recovery;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{
@@ -82,14 +82,12 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
+#[cfg(feature = "kusama")]
+use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
 	treasury::PortableTreasuryMessage, types::MigrationStatus,
-};
-#[cfg(feature = "kusama")]
-use pallet_rc_migrator::recovery::{
-	PortableRecoveryMessage, MAX_FRIENDS
 };
 use parachains_common::pay::VersionedLocatableAccount;
 
@@ -308,10 +306,10 @@ pub mod pallet {
 		/// Config for pallets that are only on Kusama.
 		#[cfg(feature = "kusama")]
 		type KusamaConfig: pallet_recovery::Config<
-			Currency = pallet_balances::Pallet<Self>,
-			BlockNumberProvider = Self::RecoveryBlockNumberProvider,
-			MaxFriends = ConstU32<{MAX_FRIENDS}>,
-		> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxFriends = ConstU32<{ MAX_FRIENDS }>,
+			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
 
 		#[cfg(feature = "kusama")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
@@ -969,7 +967,7 @@ pub mod pallet {
 			messages: Vec<PortableRecoveryMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
-			
+
 			Self::do_receive_recovery_messages(messages).map_err(Into::into)
 		}
 

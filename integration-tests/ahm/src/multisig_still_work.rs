@@ -19,8 +19,7 @@
 use frame_support::{dispatch::GetDispatchInfo, pallet_prelude::Weight, traits::Currency};
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
-use rand::{Rng};
-use rand::seq::IteratorRandom;
+use rand::{seq::IteratorRandom, Rng};
 use sp_core::Get;
 use sp_runtime::{traits::StaticLookup, AccountId32};
 

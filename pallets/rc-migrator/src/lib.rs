@@ -51,11 +51,11 @@ pub mod benchmarking;
 pub mod bounties;
 pub mod child_bounties;
 pub mod conviction_voting;
+#[cfg(feature = "kusama")]
+pub mod recovery;
 pub mod scheduler;
 pub mod treasury;
 pub mod xcm_config;
-#[cfg(feature = "kusama")]
-pub mod recovery;
 
 pub use weights::*;
 
@@ -361,7 +361,6 @@ pub enum MigrationStage<
 	},
 	StakingMigrationDone,
 
-
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
 		///
@@ -492,10 +491,10 @@ pub mod pallet {
 		/// Config for pallets that are only on Kusama.
 		#[cfg(feature = "kusama")]
 		type KusamaConfig: pallet_recovery::Config<
-			Currency = pallet_balances::Pallet<Self>,
-			BlockNumberProvider = Self::RecoveryBlockNumberProvider,
-			MaxFriends = ConstU32<{recovery::MAX_FRIENDS}>,
-		> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxFriends = ConstU32<{ recovery::MAX_FRIENDS }>,
+			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
 
 		/// Block number provider of the recovery pallet.
 		#[cfg(feature = "kusama")]

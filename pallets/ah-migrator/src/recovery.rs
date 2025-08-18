@@ -19,7 +19,9 @@ use crate::*;
 use pallet_rc_migrator::types::TranslateAccounts;
 
 impl<T: Config> Pallet<T> {
-	pub fn do_receive_recovery_messages(messages: Vec<PortableRecoveryMessage>) -> Result<(), Error<T>> {
+	pub fn do_receive_recovery_messages(
+		messages: Vec<PortableRecoveryMessage>,
+	) -> Result<(), Error<T>> {
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::Recovery,
 			count: messages.len() as u32,

@@ -22,6 +22,7 @@
 
 extern crate alloc;
 
+use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{BTreeMap, VecDeque},
 	vec,
@@ -45,8 +46,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, Everything, FromContains,
+		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
@@ -55,7 +56,6 @@ use frame_support::{
 	},
 	PalletId,
 };
-use ah_migration::phase1 as ahm_phase1;
 pub use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 pub use pallet_balances::Call as BalancesCall;
@@ -79,7 +79,6 @@ use polkadot_primitives::{
 	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
 	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
-use frame_support::traits::Equals;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
