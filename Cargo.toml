@@ -10,8 +10,8 @@ license = "GPL-3.0-only"                                        # TODO <https://
 pallet-ah-migrator = { path = "pallets/ah-migrator" }
 pallet-rc-migrator = { path = "pallets/rc-migrator" }
 pallet-ah-ops = { path = "pallets/ah-ops" }
-pallet-election-provider-multi-block = { version = "0.2.0", default-features = false }
-pallet-staking-async = { version = "0.2.0", default-features = false }
+pallet-election-provider-multi-block = { version = "0.3.0", default-features = false }
+pallet-staking-async = { version = "0.3.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 impl-trait-for-tuples = { version = "0.2.3", default-features = false }
 # AHM END
