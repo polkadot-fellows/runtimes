@@ -52,13 +52,12 @@ fn treasury_location_on_ah() -> Location {
 
 fn treasury_account_on_ah() -> AccountId {
 	let treasury_location_on_ah = treasury_location_on_ah();
-	let treasury_account_on_ah =
-		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+	
+
+	encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
 			&treasury_location_on_ah,
 		)
-		.unwrap();
-
-	treasury_account_on_ah
+		.unwrap()
 }
 
 #[test]
