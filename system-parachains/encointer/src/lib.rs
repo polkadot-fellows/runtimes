@@ -117,7 +117,7 @@ use xcm::{
 		NetworkId,
 	},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
-    VersionedXcm,
+	VersionedXcm,
 };
 use xcm_builder::AliasesIntoAccountId32;
 use xcm_runtime_apis::{
