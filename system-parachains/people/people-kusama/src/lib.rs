@@ -519,7 +519,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Identity(pallet_identity::Call::accept_username { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::remove_expired_approval { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::set_primary_username { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::remove_dangling_username { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
