@@ -16,22 +16,20 @@ use crate::{
 	tests::{
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
 		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
-		dot_at_ah_polkadot,
+		dot_at_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };
-use asset_hub_polkadot_runtime::xcm_config::{
-	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
-	RelayTreasuryPalletAccount,
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
+	BridgeHubEthereumBaseFee, EthereumNetwork,
 };
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
-	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
-	Runtime, RuntimeOrigin,
+	bridge_to_ethereum_config::EthereumGatewayAddress, xcm_config::RelayTreasuryPalletAccount,
+	EthereumBeaconClient, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
-use codec::{Decode, DecodeWithMemTracking, Encode};
+use codec::Encode;
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
-use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{
@@ -47,7 +45,6 @@ use snowbridge_inbound_queue_primitives::{
 	v1::{Command, Destination, MessageV1, VersionedMessage},
 	EthereumLocationsConverterFor, EventFixture, EventProof, Log, Proof,
 };
-use snowbridge_outbound_queue_primitives::OperatingMode;
 use snowbridge_pallet_system::PricingParametersOf;
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
@@ -63,21 +60,6 @@ const XCM_FEE: u128 = 4_000_000_000;
 const TOKEN_AMOUNT: u128 = 20_000_000_000_000;
 const AH_BASE_FEE: u128 = 2_750_872_500_000u128;
 const ETHER_TOKEN_ADDRESS: [u8; 20] = [0; 20];
-
-#[derive(Encode, Decode, DecodeWithMemTracking, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub enum ControlCall {
-	#[codec(index = 3)]
-	CreateAgent,
-	#[codec(index = 4)]
-	CreateChannel { mode: OperatingMode },
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Encode, Decode, DecodeWithMemTracking, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub enum SnowbridgeControl {
-	#[codec(index = 83)]
-	Control(ControlCall),
-}
 
 pub fn send_inbound_message(fixture: EventFixture) -> DispatchResult {
 	EthereumBeaconClient::store_finalized_header(
@@ -155,15 +137,7 @@ fn send_token_from_ethereum_to_penpal() {
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
-	PenpalB::execute_with(|| {
-		assert_ok!(<PenpalB as Chain>::System::set_storage(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			vec![(
-				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
-				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
-			)],
-		));
-	});
+	set_trust_reserve_on_penpal();
 
 	// Create asset on the Penpal parachain.
 	PenpalB::execute_with(|| {
