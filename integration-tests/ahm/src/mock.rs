@@ -19,6 +19,7 @@ use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
+use frame_support::traits::QueueFootprintQuery;
 use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{

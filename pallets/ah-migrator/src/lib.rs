@@ -85,7 +85,7 @@ use pallet_rc_migrator::{
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
 	treasury::PortableTreasuryMessage, types::MigrationStatus,
 };
-use system_parachains_common::pay::VersionedLocatableAccount;
+use parachains_common::pay::VersionedLocatableAccount;
 
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::traits::EnqueueMessage;

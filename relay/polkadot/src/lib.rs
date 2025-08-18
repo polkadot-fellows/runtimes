@@ -55,6 +55,7 @@ use frame_support::{
 	},
 	PalletId,
 };
+use ah_migration::phase1 as ahm_phase1;
 pub use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 pub use pallet_balances::Call as BalancesCall;
@@ -78,6 +79,7 @@ use polkadot_primitives::{
 	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
 	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
+use frame_support::traits::Equals;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
@@ -88,6 +90,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
+
 use relay_common::apis::InflationInfo;
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
@@ -111,7 +114,7 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConstBool, ConvertInto,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
 		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
@@ -487,7 +490,6 @@ parameter_types! {
 
 impl pallet_session::Config for Runtime {
 	type Currency = Balances;
-	type KeyDeposit = SessionKeyDeposit;
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
 	type ValidatorIdOf = ConvertInto;
@@ -498,7 +500,6 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
-	type Currency = Balances;
 	type KeyDeposit = KeyDeposit;
 }
 
@@ -585,8 +586,6 @@ impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
 		as
 		frame_election_provider_support::ElectionDataProvider
 	>::MaxVotesPerVoter;
-	type MaxBackersPerWinner = MaxBackersPerWinner;
-	type MaxWinners = MaxWinnersPerPage;
 
 	// The unsigned submissions have to respect the weight of the submit_unsigned call, thus their
 	// weight estimate function is wired to this call's weight.
@@ -623,7 +622,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type MaxWinners = MaxWinnersPerPage;
 	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type DataProvider = Staking;
-	type MaxBackersPerWinner = MaxBackersPerWinner;
 	#[cfg(any(feature = "fast-runtime", feature = "runtime-benchmarks"))]
 	type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
 	#[cfg(not(any(feature = "fast-runtime", feature = "runtime-benchmarks")))]
@@ -657,12 +655,11 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type ScoreProvider = Staking;
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
-	type MaxAutoRebagPerBlock = AutoRebagNumber;
 	type Score = sp_npos_elections::VoteWeight;
 	#[cfg(any(feature = "paseo", feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
 	#[cfg(not(any(feature = "paseo", feature = "runtime-benchmarks")))]
-	type MaxAutoRebagPerBlock = ConstU32<0>;
+	type MaxAutoRebagPerBlock = AutoRebagNumber;
 }
 
 /// Defines how much should the inflation be for an era given its duration.
@@ -1533,7 +1530,6 @@ impl pallet_delegated_staking::Config for Runtime {
 }
 
 impl pallet_staking_async_ah_client::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type CurrencyBalance = Balance;
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;

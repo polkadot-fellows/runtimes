@@ -18,6 +18,7 @@
 
 use crate::*;
 use pallet_rc_migrator::types::PortableFreezeReason;
+use frame_support::traits::Contains;
 
 /// Contains all calls that are enabled during the migration.
 pub struct CallsEnabledDuringMigration;

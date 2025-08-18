@@ -86,7 +86,7 @@ fn asset_hub_polkadot_genesis(
 		"staking": {
 			"validatorCount": 1000,
 			"devStakers": Some((2_000, 25_000)),
-		}
+		},
 		"foreignAssets": ForeignAssetsConfig {
 			assets: foreign_assets
 				.into_iter()

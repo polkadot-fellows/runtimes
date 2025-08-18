@@ -131,7 +131,6 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 
-use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
@@ -554,6 +553,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
+			ProxyType::Auction | ProxyType::ParaRegistration => false, // Only for remote proxy
 			ProxyType::NonTransfer => matches!(
 				c,
 				RuntimeCall::System(_) |
@@ -847,8 +847,6 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = ();
-	type Currency = Balances;
-	type KeyDeposit = ();
 }
 
 impl pallet_aura::Config for Runtime {
