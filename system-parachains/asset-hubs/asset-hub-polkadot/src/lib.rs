@@ -62,6 +62,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
 // Genesis preset configurations.
+pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 mod impls;
 mod weights;
@@ -1029,6 +1030,7 @@ construct_runtime!(
 		// DmpQueue: cumulus_pallet_dmp_queue = 33, removed
 		ToKusamaXcmRouter: pallet_xcm_bridge_hub_router::<Instance1> = 34,
 		MessageQueue: pallet_message_queue = 35,
+		SnowbridgeSystemFrontend: snowbridge_pallet_system_frontend = 36,
 
 		// Handy utilities.
 		Utility: pallet_utility = 40,
@@ -1195,6 +1197,7 @@ mod benches {
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		// Bridges
 		[pallet_xcm_bridge_hub_router, ToKusama]
+		[snowbridge_pallet_system_frontend, SnowbridgeSystemFrontend]
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
