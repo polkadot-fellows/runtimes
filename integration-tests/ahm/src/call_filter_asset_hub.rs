@@ -63,7 +63,10 @@ fn call_filter_works() {
 			AhMigrationStage::<T>::put(MigrationStage::DataMigrationOngoing);
 
 			assert!(is_allowed(&mq_call));
-			assert!(!is_allowed(&balances_call));
+			assert!(
+				is_allowed(&balances_call),
+				"Balance transfers are allowed on AH during the migration"
+			);
 			assert!(!is_allowed(&indices_call));
 			assert!(!is_allowed(&staking_call));
 		}
@@ -102,7 +105,10 @@ fn call_filter_works() {
 			AhMigrationStage::<T>::put(MigrationStage::DataMigrationOngoing);
 
 			assert!(!is_forbidden(&mq_call));
-			assert!(is_forbidden(&balances_call));
+			assert!(
+				!is_forbidden(&balances_call),
+				"Balance transfers are allowed on AH during the migration"
+			);
 			assert!(is_forbidden(&indices_call));
 			assert!(is_forbidden(&staking_call));
 		}

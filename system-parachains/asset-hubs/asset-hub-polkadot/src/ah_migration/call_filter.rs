@@ -87,53 +87,53 @@ pub fn call_allowed_status(
 	let before_migration = call_allowed_before_migration(call);
 
 	let during_migration = match call {
-		AhMigrator(..) => ON,
-		AhOps(..) => OFF,
-		AssetConversion(..) => OFF,
+		AhMigrator(..) => ON, // required for the migration, only permissioned calls
+		AhOps(..) => OFF,     // Not needed during the migration
+		AssetConversion(..) => ON, // no reason to disable it, just convenience
 		AssetRate(..) => OFF,
-		Assets(..) => OFF,
-		Balances(..) => OFF, // TODO: @muharem enable
+		Assets(..) => ON,   // no reason to disable it, just convenience
+		Balances(..) => ON, // no reason to disable it, just convenience
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
 		Claims(..) => OFF,
-		CollatorSelection(..) => OFF, /* TODO: @muharem maybe disable them since staking is also */
-		// disabled?
+		CollatorSelection(..) => ON, // Why?
 		ConvictionVoting(..) => OFF,
 		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		ForeignAssets(..) => ON,
+		ForeignAssets(..) => ON, // no reason to disable it, just convenience
 		Indices(..) => OFF,
 		MultiBlockElection(..) => OFF,
 		MultiBlockElectionSigned(..) => OFF,
 		MultiBlockElectionUnsigned(..) => OFF,
 		MultiBlockElectionVerifier(..) => OFF,
-		MessageQueue(..) => ON, // TODO: @muharem think about this
+		MessageQueue(..) => ON, // contains non-permissioned service calls
 		Multisig(..) => OFF,
-		Nfts(..) => ON,
+		Nfts(..) => ON, // no reason to disable it, just convenience
 		NominationPools(..) => OFF,
-		ParachainInfo(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		ParachainSystem(..) => ON, // Only inherent and root calls
-		PolkadotXcm(..) => ON,
-		PoolAssets(..) => ON,
+		ParachainInfo(parachain_info::Call::__Ignore { .. }) => ON, // Has no calls
+		ParachainSystem(..) => ON,                                  // Only inherent and root calls
+		PolkadotXcm(..) => ON,                                      /* no reason to disable it, */
+		// just convenience
+		PoolAssets(..) => ON, // no reason to disable it, just convenience
 		Preimage(..) => OFF,
 		Proxy(..) => OFF,
 		Referenda(..) => OFF,
-		Scheduler(..) => ON,
+		Scheduler(..) => ON, // only permissioned service calls
 		Session(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
-		System(..) => ON,
-		Timestamp(..) => ON,
-		ToKusamaXcmRouter(..) => ON, // Allow to report bridge congestion
+		System(..) => ON,              // remark plus root calls
+		Timestamp(..) => ON,           // only `set` inherit
+		ToKusamaXcmRouter(..) => ON,   // Allow to report bridge congestion
 		Treasury(..) => OFF,
 		Uniques(..) => OFF,
-		Utility(..) => ON,
+		Utility(..) => ON, // batching etc, just convenience
 		Vesting(..) => OFF,
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
-		XcmpQueue(..) => ON, /* Allow updating XCM settings. Only by Fellowship and root.
-		                      * Exhaustive match. Compiler ensures that we did not miss any. */
+		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
 	};
+	// Exhaustive match. Compiler ensures that we did not miss any.
 
 	// All pallets are enabled on Asset Hub after the migration :)
 	let after_migration = ON;
