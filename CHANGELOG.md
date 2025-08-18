@@ -112,6 +112,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#8021](https://github.com/paritytech/polkadot-sdk/pull/8021): XCMP: use batching when enqueuing inbound messages
     This PR implements batching for the XCMP inbound enqueueing logic, which leads to an about ~75x performance improvement for that specific code.
   - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
+- Proxy type `NonTranfer`: Use a whitelist of calls and remove some not useful calls from the whitelist ([polkadot-fellows/runtimes/pull/646](https://github.com/polkadot-fellows/runtimes/pull/646))
 - Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
 
 ## [1.6.1] 24.06.2025
