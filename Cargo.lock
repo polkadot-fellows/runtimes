@@ -16233,9 +16233,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-prometheus-endpoint"
-version = "0.17.6"
+version = "0.17.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73389cae0245dee48633a2346fa7b82b5c77e586ff44493ea54f4e0ffa0ef827"
+checksum = "41a20e2daeebc8c3c6f646d9a867df9fc2f879c6955c4a61860873a041c88ea4"
 dependencies = [
  "http-body-util",
  "hyper 1.6.0",
