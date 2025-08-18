@@ -20,7 +20,7 @@ const fn percent(x: i32) -> sp_arithmetic::FixedI64 {
 }
 use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS, MINUTES};
 use alloc::borrow::Cow;
-use pallet_ranked_collective_ambassador::Rank;
+use pallet_ranked_collective::Rank;
 use pallet_referenda::Curve;
 use sp_runtime::{str_array as s, traits::Convert, Perbill};
 
@@ -146,10 +146,7 @@ pub struct TracksInfo;
 /// Information on the voting tracks.
 impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 	type Id = TrackId;
-
 	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
-
-	/// Return the array of available tracks and their information.
 	fn tracks(
 	) -> impl Iterator<Item = Cow<'static, pallet_referenda::Track<Self::Id, Balance, BlockNumber>>>
 	{
@@ -474,7 +471,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				info: pallet_referenda::TrackInfo {
 					name: s("tip"),
 					max_deciding: 200,
-					decision_deposit: DOLLARS * 10, // 1 DOT
+					decision_deposit: DOLLARS * 10,
 					prepare_period: MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 10 * MINUTES,
@@ -488,7 +485,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				info: pallet_referenda::TrackInfo {
 					name: s("treasurer"),
 					max_deciding: 10,
-					decision_deposit: DOLLARS, // 1,000 DOT
+					decision_deposit: DOLLARS,
 					prepare_period: 2 * HOURS,
 					decision_period: 28 * DAYS,
 					confirm_period: 7 * DAYS,
@@ -501,7 +498,6 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		DATA.iter().map(Cow::Borrowed)
 	}
 
-	/// Determine the voting track for the given `origin`.
 	fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
 		use super::origins::Origin;
 		use constants as tracks;
@@ -517,26 +513,26 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		}
 
 		match Origin::try_from(id.clone()) {
-			Ok(Origin::AssociateAmbassador) => Ok(tracks::ASSOCIATE),
-			Ok(Origin::LeadAmbassador) => Ok(tracks::LEAD),
-			Ok(Origin::SeniorAmbassador) => Ok(tracks::SENIOR),
-			Ok(Origin::PrincipalAmbassador) => Ok(tracks::PRINCIPAL),
-			Ok(Origin::GlobalAmbassador) => Ok(tracks::GLOBAL),
-			Ok(Origin::GlobalHeadAmbassador) => Ok(tracks::GLOBAL_HEAD),
+			Ok(Origin::Associate) => Ok(tracks::ASSOCIATE),
+			Ok(Origin::Lead) => Ok(tracks::LEAD),
+			Ok(Origin::Senior) => Ok(tracks::SENIOR),
+			Ok(Origin::Principal) => Ok(tracks::PRINCIPAL),
+			Ok(Origin::Global) => Ok(tracks::GLOBAL),
+			Ok(Origin::GlobalHead) => Ok(tracks::GLOBAL_HEAD),
 
-			Ok(Origin::RetainAtAssociateAmbassador) => Ok(tracks::RETAIN_AT_ASSOCIATE),
-			Ok(Origin::RetainAtLeadAmbassador) => Ok(tracks::RETAIN_AT_LEAD),
-			Ok(Origin::RetainAtSeniorAmbassador) => Ok(tracks::RETAIN_AT_SENIOR),
-			Ok(Origin::RetainAtPrincipalAmbassador) => Ok(tracks::RETAIN_AT_PRINCIPAL),
+			Ok(Origin::RetainAtAssociate) => Ok(tracks::RETAIN_AT_ASSOCIATE),
+			Ok(Origin::RetainAtLead) => Ok(tracks::RETAIN_AT_LEAD),
+			Ok(Origin::RetainAtSenior) => Ok(tracks::RETAIN_AT_SENIOR),
+			Ok(Origin::RetainAtPrincipal) => Ok(tracks::RETAIN_AT_PRINCIPAL),
 
-			Ok(Origin::PromoteToAssociateAmbassador) => Ok(tracks::PROMOTE_TO_ASSOCIATE),
-			Ok(Origin::PromoteToLeadAmbassador) => Ok(tracks::PROMOTE_TO_LEAD),
-			Ok(Origin::PromoteToSeniorAmbassador) => Ok(tracks::PROMOTE_TO_SENIOR),
-			Ok(Origin::PromoteToPrincipalAmbassador) => Ok(tracks::PROMOTE_TO_PRINCIPAL),
+			Ok(Origin::PromoteToAssociate) => Ok(tracks::PROMOTE_TO_ASSOCIATE),
+			Ok(Origin::PromoteToLead) => Ok(tracks::PROMOTE_TO_LEAD),
+			Ok(Origin::PromoteToSenior) => Ok(tracks::PROMOTE_TO_SENIOR),
+			Ok(Origin::PromoteToPrincipal) => Ok(tracks::PROMOTE_TO_PRINCIPAL),
 
-			Ok(Origin::FastPromoteToAssociateAmbassador) => Ok(tracks::FAST_PROMOTE_TO_ASSOCIATE),
-			Ok(Origin::FastPromoteToLeadAmbassador) => Ok(tracks::FAST_PROMOTE_TO_LEAD),
-			Ok(Origin::FastPromoteToSeniorAmbassador) => Ok(tracks::FAST_PROMOTE_TO_SENIOR),
+			Ok(Origin::FastPromoteToAssociate) => Ok(tracks::FAST_PROMOTE_TO_ASSOCIATE),
+			Ok(Origin::FastPromoteToLead) => Ok(tracks::FAST_PROMOTE_TO_LEAD),
+			Ok(Origin::FastPromoteToSenior) => Ok(tracks::FAST_PROMOTE_TO_SENIOR),
 
 			Ok(Origin::Tip) => Ok(tracks::TIP),
 			Ok(Origin::Treasurer) => Ok(tracks::TREASURER),
