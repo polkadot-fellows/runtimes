@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Encointer.  If not, see <http://www.gnu.org/licenses/>.
 
-//! `PayOverXcm` struct for paying through XCM and getting the status back.
+//! `TransferOverXcm` struct for paying through XCM and getting the status back.
 
 use crate::xcm_config::KsmLocation;
 use alloc::vec;
