@@ -492,7 +492,8 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 	type Currency = Balances;
-	type KeyDeposit = KeyDeposit;
+	// TODO: we will set this post-AHM
+	type KeyDeposit = ();
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -639,6 +640,15 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
+}
+
+// TODO: remove feature gate and keep 10, when we want to activate it for Polkadot
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub const AutoRebagNumber: u32 = 10;
+}
+#[cfg(not(feature = "runtime-benchmarks"))]
+parameter_types! {
 	pub const AutoRebagNumber: u32 = 0;
 }
 
