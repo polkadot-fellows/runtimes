@@ -102,7 +102,7 @@ use runtime_parachains::{
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
 	traits::{BadOrigin, BlockNumberProvider, Hash, One, Zero},
-	AccountId32,
+	AccountId32, Saturating,
 };
 use sp_std::prelude::*;
 use staking::{
@@ -513,6 +513,8 @@ pub mod pallet {
 			AssetKind = VersionedLocatableAsset,
 		>;
 
+		type SessionDuration: Get<u64>;
+
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
 			+ VariantCount
@@ -599,6 +601,10 @@ pub mod pallet {
 		FailedToWithdrawAccount,
 		/// Indicates that the specified block number is in the past.
 		PastBlockNumber,
+		/// Indicates that there is not enough time for staking to lock.
+		///
+		/// Schedule the migration at least two sessions before the current era ends.
+		EraEndsTooSoon,
 		/// Balance accounting overflow.
 		BalanceOverflow,
 		/// Balance accounting underflow.
@@ -698,6 +704,8 @@ pub mod pallet {
 		},
 		/// An XCM message was sent.
 		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
+		/// The staking elections were paused.
+		StakingElectionsPaused,
 	}
 
 	/// The Relay Chain migration state.
@@ -832,13 +840,22 @@ pub mod pallet {
 		/// Schedule the migration to start at a given moment.
 		///
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start. Must be a point within
-		/// the current era before the validator election process has started. Typically, this
-		/// corresponds to the final session of the era, just prior to the election kickoff.
-		/// - `warm_up`: The block number at which the pre migration warm-up period will end. The
-		///   `DispatchTime` calculated at the moment of the transition to the warm-up stage.
+		/// - `start`: The block number at which the migration will start. `DispatchTime` calculated
+		///   at the moment of the extrinsic execution.
+		/// - `warm_up`: Duration or timepoint that will be used to prepare for the migration. Calls
+		///   are filtered during this period. It is intended to give enough time for UMP and DMP
+		///   queues to empty. `DispatchTime` calculated at the moment of the transition to the
+		///   warm-up stage.
 		/// - `cool_off`: The block number at which the post migration cool-off period will end. The
 		///   `DispatchTime` calculated at the moment of the transition to the cool-off stage.
+		/// - `unsafe_ignore_staking_lock_check`: ONLY FOR TESTING. Ignore the check whether the
+		///   scheduled time point is far enough in the future.
+		///
+		/// Note: If the staking election for next era is already complete, and the next
+		/// validator set is queued in `pallet-session`, we want to avoid starting the data
+		/// migration at this point as it can lead to some missed validator rewards. To address
+		/// this, we stop staking election at the start of migration and must wait atleast 1
+		/// session (set via warm_up) before starting the data migration.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
@@ -848,16 +865,31 @@ pub mod pallet {
 			start: DispatchTime<BlockNumberFor<T>>,
 			warm_up: DispatchTime<BlockNumberFor<T>>,
 			cool_off: DispatchTime<BlockNumberFor<T>>,
+			unsafe_ignore_staking_lock_check: bool,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
 			let start = start.evaluate(now);
+
 			ensure!(start > now, Error::<T>::PastBlockNumber);
 			ensure!(warm_up.evaluate(now) >= start, Error::<T>::PastBlockNumber);
 			ensure!(cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
+
+			if !unsafe_ignore_staking_lock_check {
+				let until_start = start.saturating_sub(now);
+				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
+					.saturating_mul(2)
+					.try_into()
+					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
+
+				// We check > and not >= here since the on_initialize for this block already ran.
+				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+			}
+
 			WarmUpPeriod::<T>::put(warm_up);
 			CoolOffPeriod::<T>::put(cool_off);
+
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
 		}
@@ -1155,21 +1187,18 @@ pub mod pallet {
 				MigrationStage::Pending => {
 					return weight_counter.consumed();
 				},
-				MigrationStage::Scheduled { start } =>
+				MigrationStage::Scheduled { start } => {
+					// Two sessions before the migration starts we pause staking election
+					let staking_pause_time = start.saturating_sub((T::SessionDuration::get().saturating_mul(2) as u32).into());
+
+					if now == staking_pause_time {
+						// stop any further staking elections
+						pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
+						Self::deposit_event(Event::StakingElectionsPaused);
+					}
+
 					if now >= start {
 						weight_counter.consume(T::DbWeight::get().reads(2));
-
-						#[cfg(not(feature = "std"))] // Skip in tests since snapshot can be off
-						{
-							let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-							// ensure new era is not planned when starting migration.
-							if current_era > active_era {
-								defensive!("Migration must start before the election starts on the chain.");
-								Self::transition(MigrationStage::Pending);
-								return weight_counter.consumed();
-							}
-						}
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
@@ -1182,7 +1211,8 @@ pub mod pallet {
 								);
 							},
 						}
-					},
+					}
+				},
 				MigrationStage::WaitingForAh => {
 					// waiting AH to send a message and to start sending the data.
 					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
