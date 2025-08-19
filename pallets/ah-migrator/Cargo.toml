@@ -44,8 +44,6 @@ pallet-xcm = { workspace = true }
 pallet-recovery = { workspace = true, optional = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
-polkadot-runtime-constants = { workspace = true }
-collectives-polkadot-runtime-constants = { workspace = true }
 runtime-parachains = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 serde = { features = ["derive"], optional = true, workspace = true }
@@ -113,8 +111,6 @@ std = [
 	"parachains-common/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
-	"polkadot-runtime-constants/std",
-	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
@@ -167,7 +163,6 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
