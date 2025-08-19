@@ -99,6 +99,7 @@ std = [
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
+	"pallet-recovery?/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-staking-async/std",
@@ -128,7 +129,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"pallet-recovery?/std"
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
@@ -153,6 +153,7 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-recovery?/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
@@ -173,7 +174,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-recovery?/runtime-benchmarks"
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
