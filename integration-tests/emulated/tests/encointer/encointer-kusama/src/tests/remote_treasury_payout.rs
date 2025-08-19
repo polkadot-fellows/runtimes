@@ -66,7 +66,7 @@ fn treasury_location_on_ah() -> Location {
 	})
 }
 
-fn treasury_account_on_ah() -> AccountId {
+fn encointer_treasury_sov_account_on_ah() -> AccountId {
 	let treasury_location_on_ah = treasury_location_on_ah();
 
 	encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
@@ -145,7 +145,7 @@ fn remote_treasury_usdt_payout_works() {
 		asset_id: AssetId((PalletInstance(50), GeneralIndex(USDT_ID.into())).into()),
 	};
 
-	let treasury_account_on_ah = treasury_account_on_ah();
+	let treasury_account_on_ah = encointer_treasury_sov_account_on_ah();
 	println!("treasury_account: {treasury_account_on_ah:?}");
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
@@ -205,7 +205,7 @@ fn remote_treasury_native_payout_works() {
 		asset_id: AssetId(KsmLocation::get()),
 	};
 
-	let treasury_account_on_ah = treasury_account_on_ah();
+	let treasury_account_on_ah = encointer_treasury_sov_account_on_ah();
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
