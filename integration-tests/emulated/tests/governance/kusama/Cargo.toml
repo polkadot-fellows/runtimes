@@ -27,5 +27,6 @@ xcm = { workspace = true, default-features = true }
 # Local
 asset-hub-kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
+people-kusama-runtime = { workspace = true }
 kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }

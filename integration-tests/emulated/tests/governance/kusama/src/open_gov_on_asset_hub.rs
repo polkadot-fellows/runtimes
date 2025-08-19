@@ -13,23 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::collectives_send_whitelist;
+use crate::{common::collectives_send_whitelist, imports::*};
 use asset_hub_kusama_runtime::governance::pallet_custom_origins::Origin;
-use codec::Encode;
-use emulated_integration_tests_common::{
-	impls::RelayChain,
-	xcm_emulator::{Chain, Parachain, TestExt},
-};
-use frame_support::{assert_err, assert_ok};
-use integration_tests_helpers::{
-	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
-	dispatch_whitelisted_call_with_preimage,
-};
-use kusama_system_emulated_network::{
-	AssetHubKusamaPara as AssetHubKusama, BridgeHubKusamaPara as BridgeHubKusama,
-	CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama, PeopleKusamaPara as PeopleKusama,
-};
-use sp_runtime::DispatchError;
 
 #[test]
 fn assethub_can_authorize_upgrade_for_itself() {

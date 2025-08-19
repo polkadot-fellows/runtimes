@@ -39,7 +39,8 @@ pub mod pallet_preimage;
 pub mod pallet_proxy;
 pub mod pallet_referenda_referenda;
 pub mod pallet_remote_proxy;
-pub mod pallet_revive;
+// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
+// pub mod pallet_revive;
 pub mod pallet_scheduler;
 pub mod pallet_session;
 pub mod pallet_timestamp;

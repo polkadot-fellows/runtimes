@@ -107,6 +107,9 @@ polkadot-core-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
 system-parachains-constants = { workspace = true }
 
+[dev-dependencies]
+parachains-runtimes-test-utils = { workspace = true }
+
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
 
@@ -278,6 +281,7 @@ try-runtime = [
 	"pallet-utility/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
+	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 ]

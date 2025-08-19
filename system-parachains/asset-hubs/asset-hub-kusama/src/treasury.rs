@@ -20,11 +20,12 @@ use super::*;
 
 use crate::governance::{Treasurer, TreasurySpender};
 
-use frame_support::traits::tokens::{Pay, PaymentStatus, UnityAssetBalanceConversion};
-use frame_support::traits::{Currency, Get, OnUnbalanced};
+use frame_support::traits::{
+	tokens::{Pay, PaymentStatus, UnityAssetBalanceConversion},
+	Currency, Get, OnUnbalanced,
+};
 use scale_info::TypeInfo;
-use sp_runtime::traits::IdentityLookup;
-use sp_runtime::DispatchError;
+use sp_runtime::{traits::IdentityLookup, DispatchError};
 use xcm::prelude::*;
 
 parameter_types! {
