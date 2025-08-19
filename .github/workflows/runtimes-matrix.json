@@ -41,7 +41,6 @@
     "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks",
     "try_runtime_args": "--overwrite-state-version 1",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
