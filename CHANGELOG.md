@@ -43,7 +43,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
   - [#7953](https://github.com/paritytech/polkadot-sdk/pull/7953): Add deposit for setting session keys
-    🚨 Setting session keys now might charge a storage deposit. The amount can be inspected in the Session::KeyDeposit of the runtime metadata. This value is intended to be set post AHM. Validators should make sure they have some free balance to cover this deposit the next time they want to rotate their keys.
+    * 🚨 Setting session keys now might charge a storage deposit. The amount can be inspected in the Session::KeyDeposit of the runtime metadata. This value is intended to be set post AHM. Validators should make sure they have some free balance to cover this deposit the next time they want to rotate their keys.
+    * Session keys previously could be set only by the associated controller account of a stash. Now, this filter no longer exists, and they can be set by anyone (ergo, the deposit). For validators, please make sure to submit your session keys (henceforth) **from the stash account**.
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
 - Configure block providers for pallets requiring block context ([polkadot-fellows/runtimes/pull/813](https://github.com/polkadot-fellows/runtimes/pull/813)):
   - vesting: keep using Relay Chain block provider
@@ -112,6 +113,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#8021](https://github.com/paritytech/polkadot-sdk/pull/8021): XCMP: use batching when enqueuing inbound messages
     This PR implements batching for the XCMP inbound enqueueing logic, which leads to an about ~75x performance improvement for that specific code.
   - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
+- Proxy type `NonTranfer`: Use a whitelist of calls and remove some not useful calls from the whitelist ([polkadot-fellows/runtimes/pull/646](https://github.com/polkadot-fellows/runtimes/pull/646))
 - Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
 
 ## [1.6.1] 24.06.2025
