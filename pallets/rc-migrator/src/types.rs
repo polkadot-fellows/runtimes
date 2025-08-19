@@ -613,6 +613,8 @@ pub enum PortableHoldReason {
 	DelegatedStaking(pallet_delegated_staking::HoldReason),
 	Session(pallet_session::HoldReason),
 	XcmPallet(pallet_xcm::HoldReason),
+	#[cfg(feature = "kusama")]
+	Nis(pallet_nis::HoldReason),
 }
 
 impl BenchmarkingDefault for PortableHoldReason {
