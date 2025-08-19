@@ -1,6 +1,6 @@
 [package]
 name = "polkadot-integration-tests-ahm"
-version = "0.1.0"                                                      # Wont work in the SDK otherwise
+version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -89,11 +89,11 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm/try-runtime",
+	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"polkadot-runtime/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"parachains-common/try-runtime"
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",

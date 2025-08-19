@@ -41,6 +41,7 @@ pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-xcm = { workspace = true }
+pallet-recovery = { workspace = true, optional = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
@@ -66,6 +67,12 @@ pallet-ah-ops = { workspace = true }
 
 [features]
 default = ["std"]
+
+kusama = [
+	"pallet-rc-migrator/kusama",
+	"pallet-recovery",
+]
+
 std = [
 	"assets-common/std",
 	"assets-common/std",
@@ -92,6 +99,7 @@ std = [
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
+	"pallet-recovery?/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-staking-async/std",
@@ -145,6 +153,7 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-recovery?/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
