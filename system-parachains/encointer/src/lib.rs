@@ -606,8 +606,7 @@ pub type TransferOverXcm = crate::treasuries_xcm_payout::TransferOverXcm<
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
-	// Needs to match AssetKind of the encointer_treasuries::Config
-	VersionedLocatableAsset,
+	VersionedLocatableAsset, // Use this as AssetKind in encointer_treasuries::Config too!
 	LocatableAssetConverter,
 	AliasesIntoAccountId32<AnyNetwork, AccountId>,
 	ConstantKsmFee,
