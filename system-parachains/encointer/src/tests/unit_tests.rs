@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Tests for making sure `PayOverXcm::pay` generates the correct message and sends it to the
+//! Tests for making sure `TransferOverXcm::transfer` generates the correct message and sends it to the
 //! correct destination
 
 use super::{mock::*, xcm_mock::*, *};
