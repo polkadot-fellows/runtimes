@@ -612,6 +612,9 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 
 		// Assert storage 'Referenda::ReferendumInfoFor::ah_post::correct'
 		for i in 0..current_ah_referenda.len() {
+			// Notice that referendums_equal method may unrequest the referenda preimage if it was
+			// requested. This should not be a problem since preimage migration tests are run before
+			// referenda migration tests.
 			assert!(
 				referendums_equal::<T>(
 					&current_ah_referenda[i].1,
