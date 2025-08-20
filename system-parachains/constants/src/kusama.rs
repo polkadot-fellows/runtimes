@@ -156,6 +156,6 @@ pub mod locations {
 		pub PeopleLocation: Location =
 			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::PEOPLE_ID));
 
-		pub GovernanceLocation: Location = Location::parent();
+		pub GovernanceLocation: Location = AssetHubLocation::get();
 	}
 }
