@@ -107,8 +107,7 @@ where
 				account_id,
 			_ => return Err(()),
 		};
-		let account_id_v5 = account_id.clone().try_into().map_err(|_| ())?;
-		C::convert_location(&account_id_v5).ok_or(())
+		C::convert_location(account_id).ok_or(())
 	}
 	fn match_asset(asset: &VersionedLocatableAsset) -> Result<xcm::v5::Location, ()> {
 		match asset {

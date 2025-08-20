@@ -218,7 +218,7 @@ snowbridge-pallet-system = { version = "0.15.0", default-features = false }
 snowbridge-pallet-system-v2 = { version = "0.4.0", default-features = false }
 snowbridge-pallet-system-frontend = { version = "0.4.0", default-features = false }
 snowbridge-inbound-queue-primitives = { version = "0.4.0", default-features = false }
-snowbridge-runtime-common = { version = "0.15.0", default-features = false }
+snowbridge-runtime-common = { version = "0.16.0", default-features = false }
 snowbridge-runtime-test-common = { version = "0.18.0" }
 snowbridge-system-runtime-api = { version = "0.15.0", default-features = false }
 sp-api = { version = "38.0.0", default-features = false }

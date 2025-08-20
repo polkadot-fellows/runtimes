@@ -23,8 +23,7 @@ use super::{
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, Contains, Everything,
-		LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, Contains, Equals, Everything, LinearStoragePrice, Nothing
 	},
 };
 use frame_system::EnsureRoot;

@@ -849,7 +849,7 @@ dependencies = [
  "pallet-message-queue",
  "pallet-treasury",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-runtime-common",
@@ -911,7 +911,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-referenda",
  "pallet-remote-proxy",
- "pallet-revive 0.9.0",
+ "pallet-revive",
  "pallet-scheduler",
  "pallet-session",
  "pallet-state-trie-migration",
@@ -923,7 +923,7 @@ dependencies = [
  "pallet-utility",
  "pallet-vesting",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
@@ -999,7 +999,7 @@ dependencies = [
  "pallet-balances",
  "pallet-message-queue",
  "pallet-treasury",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-runtime",
@@ -1062,7 +1062,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
@@ -1119,7 +1119,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-session",
  "pallet-timestamp",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -1146,9 +1146,9 @@ dependencies = [
  "impl-trait-for-tuples",
  "pallet-asset-conversion",
  "pallet-assets",
- "pallet-revive 0.9.0",
- "pallet-revive-uapi 0.7.0",
- "pallet-xcm 22.0.0",
+ "pallet-revive",
+ "pallet-revive-uapi",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "scale-info",
@@ -1973,7 +1973,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-messages",
  "pallet-message-queue",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "scale-info",
@@ -2044,7 +2044,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
  "parachains-common",
@@ -2119,7 +2119,7 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-bridge-relayers",
  "pallet-message-queue",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-system-emulated-network",
@@ -2199,7 +2199,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
  "parachains-common",
@@ -2280,7 +2280,7 @@ dependencies = [
  "pallet-bridge-relayers",
  "pallet-timestamp",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-bridge-hub",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -2669,7 +2669,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-runtime",
@@ -2729,7 +2729,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -2960,7 +2960,7 @@ dependencies = [
  "pallet-broker",
  "pallet-identity",
  "pallet-message-queue",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-runtime-common",
@@ -3008,7 +3008,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -3065,7 +3065,7 @@ dependencies = [
  "pallet-balances",
  "pallet-broker",
  "pallet-message-queue",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-runtime",
@@ -3114,7 +3114,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -4182,7 +4182,7 @@ dependencies = [
  "pallet-message-queue",
  "pallet-preimage",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-bridge-hub",
  "parachains-common",
  "parity-scale-codec",
@@ -4317,7 +4317,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -5421,7 +5421,7 @@ dependencies = [
  "kusama-system-emulated-network",
  "pallet-utility",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parity-scale-codec",
  "people-kusama-runtime",
  "sp-runtime",
@@ -5441,7 +5441,7 @@ dependencies = [
  "integration-tests-helpers",
  "pallet-utility",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parity-scale-codec",
  "polkadot-runtime",
  "polkadot-system-emulated-network",
@@ -6315,7 +6315,7 @@ dependencies = [
  "pallet-balances",
  "pallet-message-queue",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "paste",
  "sp-core 38.0.0",
  "sp-runtime",
@@ -8433,7 +8433,7 @@ dependencies = [
  "frame-system",
  "impl-trait-for-tuples",
  "log",
- "pallet-revive 0.9.0",
+ "pallet-revive",
  "parity-scale-codec",
  "scale-info",
  "sp-core 38.0.0",
@@ -9581,53 +9581,6 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69db4304e610a6e5b1a0cb68f6f9c65c4e615687d9bf6b00008db2e8b07f4711"
-dependencies = [
- "alloy-core",
- "derive_more 0.99.20",
- "environmental",
- "ethereum-standards",
- "ethereum-types",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal",
- "humantime-serde",
- "impl-trait-for-tuples",
- "log",
- "num-bigint",
- "num-integer",
- "num-traits",
- "pallet-revive-fixtures 0.5.0",
- "pallet-revive-proc-macro 0.3.1",
- "pallet-revive-uapi 0.6.0",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "paste",
- "polkavm 0.26.0",
- "polkavm-common 0.26.0",
- "rand 0.8.5",
- "rand_pcg",
- "ripemd",
- "rlp 0.6.1",
- "scale-info",
- "serde",
- "sp-api",
- "sp-arithmetic",
- "sp-consensus-aura",
- "sp-consensus-babe",
- "sp-consensus-slots",
- "sp-core 38.0.0",
- "sp-io",
- "sp-runtime",
- "substrate-bn",
- "subxt-signer 0.41.0",
-]
-
-[[package]]
-name = "pallet-revive"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb75207e6a983d292de1fa281c8c09e67b995928dbbdf44ced5bd2b75ad19fae"
@@ -9647,9 +9600,9 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "pallet-revive-fixtures 0.6.0",
- "pallet-revive-proc-macro 0.4.0",
- "pallet-revive-uapi 0.7.0",
+ "pallet-revive-fixtures",
+ "pallet-revive-proc-macro",
+ "pallet-revive-uapi",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "paste",
@@ -9675,43 +9628,17 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive-fixtures"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03fa732b27df96baa80df94665f29a145bcc6c20ba4bd8b1684463733551e83c"
-dependencies = [
- "anyhow",
- "cargo_metadata",
- "pallet-revive-uapi 0.6.0",
- "polkavm-linker 0.26.0",
- "sp-core 38.0.0",
- "sp-io",
- "toml 0.8.23",
-]
-
-[[package]]
-name = "pallet-revive-fixtures"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "140b59f0454fd411fce85c0ac0347a5c4efa73b451a342109ac04ec00d870112"
 dependencies = [
  "anyhow",
  "cargo_metadata",
- "pallet-revive-uapi 0.7.0",
+ "pallet-revive-uapi",
  "polkavm-linker 0.27.0",
  "sp-core 38.0.0",
  "sp-io",
  "toml 0.8.23",
-]
-
-[[package]]
-name = "pallet-revive-proc-macro"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28e6f8804b110cf9ef67848207c0ab2702ad62c75425fa50e6df990055e00d0d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
 ]
 
 [[package]]
@@ -9727,25 +9654,12 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive-uapi"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eea0e7aabde1cb26343b1abe39ecd0daf231251a1a9eef547cebb5d2879821a0"
-dependencies = [
- "bitflags 1.3.2",
- "pallet-revive-proc-macro 0.3.1",
- "parity-scale-codec",
- "polkavm-derive 0.26.0",
- "scale-info",
-]
-
-[[package]]
-name = "pallet-revive-uapi"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e340813d94f380bc531d4cd5f28685065a14dbbff87ab23507f72c7d2792b82c"
 dependencies = [
  "bitflags 1.3.2",
- "pallet-revive-proc-macro 0.4.0",
+ "pallet-revive-proc-macro",
  "parity-scale-codec",
  "polkavm-derive 0.27.0",
  "scale-info",
@@ -10056,33 +9970,6 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "21.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edb770f7bc90409c111d8a9faec29cd78366122ea66866322bd2b9609c20953e"
-dependencies = [
- "bounded-collections 0.3.2",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal",
- "pallet-balances",
- "pallet-revive 0.8.0",
- "pallet-timestamp",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 38.0.0",
- "sp-io",
- "sp-runtime",
- "staging-xcm",
- "staging-xcm-builder",
- "staging-xcm-executor",
- "tracing",
- "xcm-runtime-apis",
-]
-
-[[package]]
-name = "pallet-xcm"
 version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b65504a059ba2a54c221a7a0fe681ae347fd085dbd932c69df3ccb268e97febf"
@@ -10093,7 +9980,7 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "pallet-balances",
- "pallet-revive 0.9.0",
+ "pallet-revive",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
@@ -10188,7 +10075,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-message-queue",
  "pallet-treasury",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -10219,7 +10106,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-session",
  "pallet-timestamp",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
@@ -10434,14 +10321,14 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-message-queue",
- "pallet-revive 0.9.0",
+ "pallet-revive",
  "pallet-session",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
@@ -10501,7 +10388,7 @@ dependencies = [
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "people-kusama-runtime",
@@ -10551,7 +10438,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -10609,7 +10496,7 @@ dependencies = [
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "people-polkadot-runtime",
@@ -10660,7 +10547,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
  "parachains-runtimes-test-utils",
@@ -10960,7 +10847,7 @@ dependencies = [
  "pallet-utility",
  "pallet-vesting",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
@@ -11242,7 +11129,6 @@ version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49a5794b695626ba70d29e66e3f4f4835767452a6723f3a0bc20884b07088fe8"
 dependencies = [
- "blake3",
  "log",
  "polkavm-assembler 0.26.0",
 ]
@@ -14293,14 +14179,14 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-runtime-common"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c7e5dd97e837b9c4687a20c2a23897c0f13274ef5ff7ebe08b9241f93ba4ac"
+checksum = "1ec6cf765ac0ccd83605895fdfb3ed224a94dac3d8c3c68099157e63872c43d9"
 dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "pallet-xcm 21.0.1",
+ "pallet-xcm",
  "parity-scale-codec",
  "snowbridge-core",
  "snowbridge-outbound-queue-primitives",
@@ -14326,7 +14212,7 @@ dependencies = [
  "pallet-session",
  "pallet-timestamp",
  "pallet-utility",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "snowbridge-core",
@@ -15397,7 +15283,7 @@ dependencies = [
  "pallet-utility",
  "pallet-vesting",
  "pallet-whitelist",
- "pallet-xcm 22.0.0",
+ "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parity-scale-codec",
  "polkadot-primitives",
