@@ -20,8 +20,7 @@ use super::*;
 
 use crate::governance::{Treasurer, TreasurySpender};
 use frame_support::traits::{
-	tokens::UnityOrOuterConversion,
-	Currency, FromContains, Get, OnUnbalanced,
+	tokens::UnityOrOuterConversion, Currency, FromContains, Get, OnUnbalanced,
 };
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 use scale_info::TypeInfo;

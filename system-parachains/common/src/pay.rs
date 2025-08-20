@@ -40,7 +40,7 @@ use xcm_executor::traits::ConvertLocation;
 pub enum VersionedLocatableAccount {
 	#[codec(index = 4)]
 	V4 { location: xcm::v4::Location, account_id: xcm::v4::Location },
-    #[codec(index = 5)]
+	#[codec(index = 5)]
 	V5 { location: xcm::v5::Location, account_id: xcm::v5::Location },
 }
 
