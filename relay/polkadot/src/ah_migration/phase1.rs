@@ -79,54 +79,46 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 	const OFF: bool = false;
 
 	match call {
-		System(..) => (ON, ON),
-		Scheduler(..) => (OFF, OFF),
-		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON), // TODO: @muharem double check
-		Timestamp(..) => (ON, ON),
-		Indices(..) => (OFF, OFF),
-		Balances(..) => (OFF, ON),
-		// TransactionPayment has no calls
-		// Authorship has no calls
+		System(..) => (ON, ON), // Remarks, root calls and `set_code` if we need for emergency.
+		Scheduler(..) => (OFF, OFF), // Only for governance, hence disabled.
+		Preimage(..) => (OFF, OFF), // Only for governance, hence disabled.
+		Babe(..) => (ON, ON),   // For equivocation proof submissions; security relevant
+		Timestamp(..) => (ON, ON), // only `set` inherit
+		Indices(..) => (OFF, OFF), // Not needed anymore and migrated to AH.
+		Balances(..) => (OFF, ON), // Disabled during migration to avoid confusing externals.
 		Staking(..) => (OFF, OFF),
-		StakingAhClient(..) => (ON, ON),
-		// Offences has no calls
-		// Historical has no calls
-		Session(..) => (OFF, ON),
-		Grandpa(..) => (ON, ON), // TODO: @muharem double check
-		// AuthorityDiscovery has no calls
+		StakingAhClient(..) => (ON, ON), // Only permissioned calls and needed for the migration.
+		Session(..) => (ON, ON),         // Does not affect any migrating pallet.
+		Grandpa(..) => (ON, ON),         // For equivocation proof submissions; security relevant
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),
 		Referenda(..) => (OFF, OFF),
-		// Origins has no calls
 		Whitelist(..) => (OFF, OFF),
 		Claims(..) => (OFF, OFF),
 		Vesting(..) => (OFF, OFF),
-		Utility(..) => (ON, ON), // batching etc
-		Proxy(..) => (OFF, ON),
-		Multisig(..) => (OFF, ON),
+		Utility(..) => (ON, ON),   // batching etc
+		Proxy(..) => (OFF, ON),    // On after the migration to keep proxy accounts accessible.
+		Multisig(..) => (OFF, ON), // On after the migration to keep multisig accounts accessible.
 		Bounties(..) => (OFF, OFF),
 		ChildBounties(..) => (OFF, OFF),
 		ElectionProviderMultiPhase(..) => (OFF, OFF),
 		VoterList(..) => (OFF, OFF),
 		NominationPools(..) => (OFF, OFF),
 		FastUnstake(..) => (OFF, OFF),
-		// DelegatedStaking has on calls
-		// ParachainsOrigin has no calls
 		Configuration(..) => (ON, ON), /* TODO allow this to be called by fellow origin during the migration https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928794490 */
-		ParasShared(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/ee803b74056fac5101c06ec5998586fa6eaac470/polkadot/runtime/parachains/src/shared.rs#L185-L186 */
-		ParaInclusion(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/74ec1ee226ace087748f38dfeffc869cd5534ac8/polkadot/runtime/parachains/src/inclusion/mod.rs#L352-L353 */
-		ParaInherent(..) => (ON, ON),    // only inherents
-		// ParaScheduler has no calls
-		Paras(..) => (ON, ON),
-		Initializer(..) => (ON, ON),
-		// Dmp has no calls and deprecated
-		Hrmp(..) => (OFF, ON),
-		// ParaSessionInfo has no calls
-		ParasDisputes(..) => (OFF, ON), // TODO: @muharem check with security
-		ParasSlashing(..) => (OFF, ON), // TODO: @muharem check with security
+		ParasShared(parachains_shared::Call::__Ignore { .. }) => (ON, ON), // Has no calls
+		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (ON, ON), // Has no calls
+		ParaInherent(..) => (ON, ON),  // only inherents
+		Paras(..) => (ON, ON),         /* Only root and one security relevant call: */
+		// `include_pvf_check_statement`
+		Initializer(..) => (ON, ON), // Only root calls. Fine to keep.
+		Hrmp(..) => (ON, ON),        /* open close hrmp channels by parachains or root force. */
+		// no concerns.
+		ParasDisputes(..) => (ON, ON), // Only a single root call. Fine to keep.
+		ParasSlashing(..) => (ON, ON), /* Security critical. If disabled there will be no */
+		// slashes or offences generated for malicious
+		// validators.
 		OnDemand(..) => (OFF, ON),
-		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
 		Slots(..) => (OFF, OFF),
 		Auctions(..) => (OFF, OFF),
@@ -137,15 +129,15 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		) => (OFF, ON),
 		Crowdloan(..) => (OFF, OFF),
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
-		Coretime(..) => (ON, ON),
+		Coretime(..) => (ON, ON),             // Only permissioned calls.
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
-		XcmPallet(..) => (ON, ON),
-		MessageQueue(..) => (ON, ON), // TODO: @muharem think about this
+		XcmPallet(..) => (ON, ON),            // during migration can only send XCMs to other
+		MessageQueue(..) => (ON, ON),         // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
-		RcMigrator(..) => (ON, ON),
-		// Exhaustive match. Compiler ensures that we did not miss any.
+		Beefy(..) => (ON, ON), // For reporting equivocation proofs; security relevant
+		RcMigrator(..) => (ON, ON), // Required for the migration, only permissioned calls
 	}
+	// Exhaustive match. Compiler ensures that we did not miss any.
 }
 
 // Type safe mapping of RC hold reason to portable format.

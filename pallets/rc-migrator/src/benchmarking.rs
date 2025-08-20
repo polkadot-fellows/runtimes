@@ -79,7 +79,7 @@ pub mod benchmarks {
 		let cool_off = DispatchTime::<BlockNumberFor<T>>::After(20u32.into());
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, start, warm_up, cool_off);
+		_(RawOrigin::Root, start, warm_up, cool_off, true);
 
 		assert_last_event::<T>(
 			Event::StageTransition {

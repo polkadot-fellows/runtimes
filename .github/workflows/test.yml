@@ -195,7 +195,7 @@ jobs:
           lz4 -d ah-paseo.snap.lz4 ah-paseo.snap
 
       - name: Test Asset Hub Migration (Paseo)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features paseo -- --nocapture --test-threads 1
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features paseo --features try-runtime -- --nocapture --test-threads 1
         env:
           RUST_BACKTRACE: 1
           SNAP_RC: "../../paseo.snap"
@@ -211,7 +211,7 @@ jobs:
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
       - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r -- --nocapture --test-threads 1
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features try-runtime -- --nocapture --test-threads 1
         env:
           RUST_BACKTRACE: 1
           SNAP_RC: "../../polkadot.snap"

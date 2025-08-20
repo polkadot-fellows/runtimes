@@ -191,6 +191,11 @@ pub enum MigrationStage {
 }
 
 impl MigrationStage {
+	/// Whether the migration is pending and not yet started.
+	pub fn is_pending(&self) -> bool {
+		matches!(self, MigrationStage::Pending)
+	}
+
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
@@ -266,6 +271,7 @@ pub mod pallet {
 			Beneficiary = VersionedLocatableAccount,
 		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_staking_async::Config<CurrencyBalance = u128>
+		+ pallet_xcm::Config
 	{
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
@@ -355,6 +361,9 @@ pub mod pallet {
 				(),
 			>,
 		>;
+
+		/// Calls that are allowed before the migration starts.
+		type AhPreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
 		/// Calls that are allowed during the migration.
 		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
@@ -465,6 +474,10 @@ pub mod pallet {
 		PreimageChunkMissing,
 		/// Preimage status invalid.
 		PreimageStatusInvalid,
+		/// The XCM version is invalid.
+		BadXcmVersion,
+		/// The origin is invalid.
+		InvalidOrigin,
 	}
 
 	#[pallet::event]
@@ -548,6 +561,13 @@ pub mod pallet {
 			from: T::AccountId,
 			to: T::AccountId,
 			derivation_index: u16,
+		},
+		/// An XCM message was sent.
+		XcmSent {
+			origin: Location,
+			destination: Location,
+			message: Xcm<()>,
+			message_id: XcmHash,
 		},
 	}
 
@@ -1001,6 +1021,60 @@ pub mod pallet {
 
 			Self::migration_finish_hook(data).map_err(Into::into)
 		}
+
+		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
+		/// [Config::SendXcm] router which will be able to send messages to the Asset Hub during
+		/// the migration.
+		#[pallet::call_index(111)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn send_xcm_message(
+			origin: OriginFor<T>,
+			dest: Box<VersionedLocation>,
+			message: Box<VersionedXcm<()>>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin.clone())?;
+
+			let origin_location = <T as pallet_xcm::Config>::SendXcmOrigin::ensure_origin(origin)?;
+			let interior: Junctions =
+				origin_location.clone().try_into().map_err(|_| Error::<T>::InvalidOrigin)?;
+			let dest = Location::try_from(*dest).map_err(|()| Error::<T>::BadXcmVersion)?;
+			let mut message: Xcm<()> =
+				(*message).try_into().map_err(|()| Error::<T>::BadXcmVersion)?;
+
+			if interior != Junctions::Here {
+				message.0.insert(0, DescendOrigin(interior.clone()));
+			}
+
+			// validate
+			let (ticket, _price) =
+				validate_send::<<T as Config>::SendXcm>(dest.clone(), message.clone()).map_err(
+					|error| {
+						log::error!(
+							target: LOG_TARGET,
+							"XCM validation failed with error: {:?}; destination: {:?}; message: {:?}",
+							error, dest, message
+						);
+						Error::<T>::XcmError
+					},
+				)?;
+			// send
+			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
+				log::error!(
+					target: LOG_TARGET,
+					"XCM send failed with error: {:?}; destination: {:?}; message: {:?}",
+					error, dest, message
+				);
+				Error::<T>::XcmError
+			})?;
+
+			Self::deposit_event(Event::XcmSent {
+				origin: origin_location,
+				destination: dest,
+				message,
+				message_id,
+			});
+			Ok(())
+		}
 	}
 
 	#[pallet::hooks]
@@ -1215,6 +1289,11 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		// We have to return whether the call is allowed:
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
+
+		// Check if the call is allowed before the migration started.
+		if stage.is_pending() && !T::AhPreMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
 
 		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
 		if stage.is_finished() && !T::AhPostMigrationCalls::contains(call) {

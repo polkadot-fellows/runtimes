@@ -18,11 +18,23 @@
 
 use crate::*;
 
+/// Contains all calls that are enabled before the migration.
+pub struct CallsEnabledBeforeMigration;
+impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledBeforeMigration {
+	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
+		let (before, _, _) = call_allowed_status(call);
+		if !before {
+			log::warn!("Call bounced by the filter before the migration: {:?}", call);
+		}
+		before
+	}
+}
+
 /// Contains all calls that are enabled during the migration.
 pub struct CallsEnabledDuringMigration;
 impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDuringMigration {
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
-		let (during, _after) = call_allowed_status(call);
+		let (_before, during, _after) = call_allowed_status(call);
 		if !during {
 			log::warn!("Call bounced by the filter during the migration: {:?}", call);
 		}
@@ -34,7 +46,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDu
 pub struct CallsEnabledAfterMigration;
 impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAfterMigration {
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
-		let (_during, after) = call_allowed_status(call);
+		let (_before, _during, after) = call_allowed_status(call);
 		if !after {
 			log::warn!("Call bounced by the filter after the migration: {:?}", call);
 		}
@@ -42,83 +54,150 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 	}
 }
 
-/// Return whether a call should be enabled during and/or after the migration.
+/// Return whether a call should be enabled before, during and/or after the migration.
 ///
 /// Time line of the migration looks like this:
 ///
 /// --------|-----------|--------->
 ///       Start        End
 ///
-/// We now define 2 periods:
+/// We now define 3 periods:
 ///
-/// 1. During the migration: [Start, End]
-/// 2. After the migration: (End, ∞)
+/// 1. Before the migration: [0, Start)
+/// 2. During the migration: [Start, End]
+/// 3. After the migration: (End, ∞)
 ///
 /// Visually:
 ///
 /// ```text
-///         |-----1-----|
-///                      |---2---->
+/// |--1---|
+///         |-----2-----|
+///                      |---3---->
 /// --------|-----------|--------->
 ///       Start        End
 /// ```
 ///
-/// This call returns a 2-tuple to indicate whether a call is enabled during these periods.
-pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall) -> (bool, bool) {
+/// This call returns a 3-tuple to indicate whether a call is enabled during these periods.
+pub fn call_allowed_status(
+	call: &<Runtime as frame_system::Config>::RuntimeCall,
+) -> (bool, bool, bool) {
 	use RuntimeCall::*;
 	const ON: bool = true;
 	const OFF: bool = false;
+	let before_migration = call_allowed_before_migration(call);
 
 	let during_migration = match call {
-		AhMigrator(..) => ON,
-		AhOps(..) => OFF,
-		AssetConversion(..) => OFF,
+		AhMigrator(..) => ON, // required for the migration, only permissioned calls
+		AhOps(..) => OFF,     // Not needed during the migration
+		AssetConversion(..) => ON, // no reason to disable it, just convenience
 		AssetRate(..) => OFF,
-		Assets(..) => OFF,
-		Balances(..) => OFF, // TODO: @muharem enable
+		Assets(..) => ON,   // no reason to disable it, just convenience
+		Balances(..) => ON, // no reason to disable it, just convenience
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
 		Claims(..) => OFF,
-		CollatorSelection(..) => OFF, /* TODO: @muharem maybe disable them since staking is also */
-		// disabled?
+		CollatorSelection(..) => ON, // Why?
 		ConvictionVoting(..) => OFF,
 		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		ForeignAssets(..) => ON,
+		ForeignAssets(..) => ON, // no reason to disable it, just convenience
 		Indices(..) => OFF,
 		MultiBlockElection(..) => OFF,
 		MultiBlockElectionSigned(..) => OFF,
 		MultiBlockElectionUnsigned(..) => OFF,
 		MultiBlockElectionVerifier(..) => OFF,
-		MessageQueue(..) => ON, // TODO: @muharem think about this
+		MessageQueue(..) => ON, // contains non-permissioned service calls
 		Multisig(..) => OFF,
-		Nfts(..) => ON,
+		Nfts(..) => ON, // no reason to disable it, just convenience
 		NominationPools(..) => OFF,
-		ParachainInfo(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
-		ParachainSystem(..) => ON, // Only inherent and root calls
-		PolkadotXcm(..) => ON,
-		PoolAssets(..) => ON,
+		ParachainInfo(parachain_info::Call::__Ignore { .. }) => ON, // Has no calls
+		ParachainSystem(..) => ON,                                  // Only inherent and root calls
+		PolkadotXcm(..) => ON,                                      /* no reason to disable it, */
+		// just convenience
+		PoolAssets(..) => ON, // no reason to disable it, just convenience
 		Preimage(..) => OFF,
 		Proxy(..) => OFF,
 		Referenda(..) => OFF,
-		Scheduler(..) => ON,
+		Scheduler(..) => ON, // only permissioned service calls
 		Session(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
-		System(..) => ON,
-		Timestamp(..) => ON,
-		ToKusamaXcmRouter(..) => ON, // Allow to report bridge congestion
+		System(..) => ON,              // remark plus root calls
+		Timestamp(..) => ON,           // only `set` inherit
+		ToKusamaXcmRouter(..) => ON,   // Allow to report bridge congestion
 		Treasury(..) => OFF,
 		Uniques(..) => OFF,
-		Utility(..) => ON,
+		Utility(..) => ON, // batching etc, just convenience
 		Vesting(..) => OFF,
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
-		XcmpQueue(..) => ON, /* Allow updating XCM settings. Only by Fellowship and root.
-		                      * Exhaustive match. Compiler ensures that we did not miss any. */
+		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
 	};
+	// Exhaustive match. Compiler ensures that we did not miss any.
 
 	// All pallets are enabled on Asset Hub after the migration :)
 	let after_migration = ON;
-	(during_migration, after_migration)
+	(before_migration, during_migration, after_migration)
+}
+
+/// Whether a call is enabled before the migration starts.
+pub fn call_allowed_before_migration(
+	call: &<Runtime as frame_system::Config>::RuntimeCall,
+) -> bool {
+	use RuntimeCall::*;
+	const ON: bool = true;
+	const OFF: bool = false;
+
+	match call {
+		// Disabled to avoid state insert conflicts.
+		Staking(..) => OFF,
+		// Not needed since staking is off.
+		MultiBlockElection(..) => OFF,
+		MultiBlockElectionSigned(..) => OFF,
+		MultiBlockElectionUnsigned(..) => OFF,
+		MultiBlockElectionVerifier(..) => OFF,
+		NominationPools(..) => OFF,
+		VoterList(..) => OFF,
+		// To avoid insert issues.
+		Indices(..) => OFF,
+		Vesting(..) => OFF,
+		// Governance disabled before migration starts.
+		Bounties(..) => OFF,
+		ChildBounties(..) => OFF,
+		ConvictionVoting(..) => OFF,
+		Referenda(..) => OFF,
+		Treasury(..) => OFF,
+		// Everything else is enabled before the migration.
+		// Exhaustive match in case a pallet is added:
+		AhMigrator(..) |
+		AhOps(..) |
+		AssetConversion(..) |
+		AssetRate(..) |
+		Assets(..) |
+		Balances(..) |
+		Claims(..) |
+		CollatorSelection(..) |
+		CumulusXcm(..) |
+		ForeignAssets(..) |
+		MessageQueue(..) |
+		Multisig(..) |
+		Nfts(..) |
+		ParachainInfo(..) |
+		ParachainSystem(..) |
+		PolkadotXcm(..) |
+		PoolAssets(..) |
+		Preimage(..) |
+		Proxy(..) |
+		Scheduler(..) |
+		Session(..) |
+		StakingRcClient(..) |
+		StateTrieMigration(..) |
+		System(..) |
+		Timestamp(..) |
+		ToKusamaXcmRouter(..) |
+		Uniques(..) |
+		Utility(..) |
+		Whitelist(..) |
+		XcmpQueue(..) => ON,
+	}
 }
