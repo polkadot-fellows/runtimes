@@ -22,6 +22,7 @@ pub mod frame_system;
 pub mod frame_system_extensions;
 pub mod pallet_asset_conversion;
 pub mod pallet_asset_conversion_tx_payment;
+pub mod pallet_asset_rate;
 pub mod pallet_assets_foreign;
 pub mod pallet_assets_local;
 pub mod pallet_assets_pool;
@@ -39,7 +40,8 @@ pub mod pallet_preimage;
 pub mod pallet_proxy;
 pub mod pallet_referenda_referenda;
 pub mod pallet_remote_proxy;
-pub mod pallet_revive;
+// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
+// pub mod pallet_revive;
 pub mod pallet_scheduler;
 pub mod pallet_session;
 pub mod pallet_timestamp;

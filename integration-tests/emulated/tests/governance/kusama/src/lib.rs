@@ -14,53 +14,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use emulated_integration_tests_common::impls::{
-	assert_expected_events, bx, Chain, Parachain, TestExt,
-};
-use frame_support::assert_ok;
-use kusama_runtime::Dmp;
-use kusama_system_emulated_network::{AssetHubKusamaPara as AssetHubKusama, KusamaRelay as Kusama};
-use sp_runtime::traits::Dispatchable;
-use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
+#[cfg(test)]
+mod imports {
+	pub(crate) use codec::Encode;
+	pub(crate) use emulated_integration_tests_common::{
+		assert_whitelisted,
+		impls::{assert_expected_events, bx, Parachain, RelayChain, TestExt},
+		xcm_emulator::Chain,
+		xcm_helpers::{
+			build_xcm_send_authorize_upgrade_call, call_hash_of,
+			dispatch_whitelisted_call_with_preimage,
+		},
+	};
+	pub(crate) use frame_support::{assert_err, assert_ok};
+	pub(crate) use kusama_runtime::{governance::pallet_custom_origins::Origin, Dmp};
+	pub(crate) use sp_runtime::{traits::Dispatchable, DispatchError};
+	pub(crate) use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
+
+	pub(crate) use kusama_system_emulated_network::{
+		AssetHubKusamaPara as AssetHubKusama, BridgeHubKusamaPara as BridgeHubKusama,
+		CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama,
+		PeopleKusamaPara as PeopleKusama,
+	};
+}
+
+#[cfg(test)]
+mod common;
 
 #[cfg(test)]
 mod open_gov_on_asset_hub;
 
-/// Kusama Collectives/Fellows **stays on the RC** and dispatches `pallet_xcm::send`
-/// with `OriginKind:Xcm` to the dest with encoded whitelisted call hash.
-pub fn collectives_send_whitelist(
-	dest: Location,
-	encoded_whitelist_call: impl FnOnce() -> Vec<u8>,
-) {
-	Kusama::execute_with(|| {
-		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
-		type RuntimeCall = <Kusama as Chain>::RuntimeCall;
-		type RuntimeOrigin = <Kusama as Chain>::RuntimeOrigin;
-		type Runtime = <Kusama as Chain>::Runtime;
-
-		Dmp::make_parachain_reachable(AssetHubKusama::para_id());
-
-		let whitelist_call = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(dest)),
-			message: bx!(VersionedXcm::from(Xcm(vec![
-				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-				Transact {
-					origin_kind: OriginKind::Xcm,
-					fallback_max_weight: None,
-					call: encoded_whitelist_call().into(),
-				}
-			]))),
-		});
-
-		// Fellows origin can trigger
-		use kusama_runtime::governance::pallet_custom_origins::Origin::Fellows as FellowsOrigin;
-		let fellows_origin: RuntimeOrigin = FellowsOrigin.into();
-		assert_ok!(whitelist_call.dispatch(fellows_origin));
-		assert_expected_events!(
-			Kusama,
-			vec![
-				RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
-			]
-		);
-	});
-}
+#[cfg(test)]
+mod open_gov_on_relay;

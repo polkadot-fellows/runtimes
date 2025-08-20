@@ -35,6 +35,7 @@ pub use bp_messages::LegacyLaneId;
 // Cumulus
 pub use emulated_integration_tests_common::{
 	accounts::{ALICE, BOB},
+	create_pool_with_native_on,
 	impls::Inspect,
 	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
 	test_relay_is_trusted_teleporter,
@@ -58,12 +59,13 @@ pub use kusama_polkadot_system_emulated_network::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
+	kusama_emulated_chain::KusamaRelayPallet as KusamaPallet,
 	penpal_emulated_chain::{
 		penpal_runtime::xcm_config::{
 			CustomizableAssetFromSystemAssetHub as PenpalCustomizableAssetFromSystemAssetHub,
 			UniversalLocation as PenpalUniversalLocation,
 		},
-		PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
+		PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
 	},
 	polkadot_emulated_chain::{
 		genesis::ED as POLKADOT_ED,
@@ -76,7 +78,9 @@ pub use kusama_polkadot_system_emulated_network::{
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PenpalBPara as PenpalB,
+	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, KusamaRelay as Kusama,
+	KusamaRelayReceiver as KusamaReceiver, PenpalAPara as PenpalA,
+	PenpalAParaReceiver as PenpalAReceiver, PenpalBPara as PenpalB,
 	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
 	PolkadotRelay as Polkadot, PolkadotRelayReceiver as PolkadotReceiver,
 	PolkadotRelaySender as PolkadotSender,

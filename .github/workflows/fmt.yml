@@ -26,7 +26,7 @@ jobs:
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rustfmt"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 

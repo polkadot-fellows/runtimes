@@ -36,7 +36,7 @@ fn fellows_whitelist_call() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::Xcm,
-					fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: PolkadotCall::Whitelist(
 						pallet_whitelist::Call::<PolkadotRuntime>::whitelist_call { call_hash }
 					)
