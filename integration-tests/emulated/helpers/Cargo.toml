@@ -28,11 +28,8 @@ emulated-integration-tests-common = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
-	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]
