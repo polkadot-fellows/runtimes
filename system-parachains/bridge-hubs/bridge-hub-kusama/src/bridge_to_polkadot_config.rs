@@ -138,7 +138,7 @@ parameter_types! {
 	pub const RelayerStakeLease: u32 = 300;
 
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
-	pub PriorityBoostPerMessage: u64 = 328_162_135_442_412;
+	pub PriorityBoostPerMessage: u64 = 364_179_930_795_847;
 }
 
 /// Proof of messages, coming from Polkadot.
