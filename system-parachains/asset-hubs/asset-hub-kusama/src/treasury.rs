@@ -19,14 +19,14 @@
 use super::*;
 
 use crate::governance::{Treasurer, TreasurySpender};
-
 use frame_support::traits::{
-	tokens::{Pay, PaymentStatus, UnityAssetBalanceConversion},
-	Currency, Get, OnUnbalanced,
+	tokens::UnityOrOuterConversion,
+	Currency, FromContains, Get, OnUnbalanced,
 };
+use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::IdentityLookup, DispatchError};
-use xcm::prelude::*;
+use sp_runtime::traits::IdentityLookup;
+use system_parachains_common::pay::VersionedLocatableAccount;
 
 parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
@@ -40,7 +40,14 @@ parameter_types! {
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 18).
 	// pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
+
+pub type TreasuryPaymaster = system_parachains_common::pay::LocalPay<
+	NativeAndAssets,
+	TreasuryAccount,
+	xcm_config::LocationToAccountId,
+>;
 
 #[derive(
 	Default,
@@ -106,19 +113,19 @@ impl pallet_treasury::Config for Runtime {
 	type SpendOrigin = TreasurySpender;
 
 	// TODO: Do we still need `VersionedLocatableAsset`? (Check treasury migration!)
-	type AssetKind = VersionedAssetId;
-	type Beneficiary = VersionedLocation;
+	type AssetKind = VersionedLocatableAsset;
+	type Beneficiary = VersionedLocatableAccount;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
 	// TODO: confirm `RelayTreasuryLocation` (RC PalletId = 18) after AHM - the same or other?
 	// Only local payments to the local accounts.
-	type Paymaster = LocalPayments<AccountId, NativeAndAssets>;
+	type Paymaster = TreasuryPaymaster;
 
-	// TODO: can we replace with pools? Do we really need `AssetRateWithNative` on AH?
-	// type BalanceConverter = AssetRateWithNative;
-	type BalanceConverter = UnityAssetBalanceConversion; /* TMP to get compile */
+	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
+	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayArguments<
+		xcm_config::TrustBackedAssetsPalletIndex,
+	>;
 	// TODO: check System or RC?
 	type BlockNumberProvider = System;
 }
@@ -164,27 +171,29 @@ impl pallet_child_bounties::Config for Runtime {
 	type WeightInfo = weights::pallet_child_bounties::WeightInfo<Runtime>;
 }
 
-/// TODO: finish local payments
+/// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
+/// `AssetRate` pallet instance.
+///
+/// With additional decoration to identify different IDs/locations of native asset and provide a
+/// one-to-one balance conversion for them.
+pub type AssetRateWithNative = UnityOrOuterConversion<
+	ContainsParts<
+		FromContains<
+			xcm_builder::IsChildSystemParachain<ParaId>,
+			xcm_builder::IsParentsOnly<ConstU8<1>>,
+		>,
+	>,
+	AssetRate,
+>;
 
-pub struct LocalPayments<A, F>(core::marker::PhantomData<(A, F)>);
-impl<A: Eq, F: fungibles::Mutate<A>> Pay for LocalPayments<A, F> {
-	type Balance = F::Balance;
-	type Beneficiary = VersionedLocation;
-	type AssetKind = VersionedAssetId;
-	// TODO: query id - use QueryId
-	type Id = ();
-	type Error = DispatchError;
-
-	fn pay(
-		who: &Self::Beneficiary,
-		asset_kind: Self::AssetKind,
-		amount: Self::Balance,
-	) -> Result<Self::Id, Self::Error> {
-		// TODO: F::transfer() - Preservation::Expendable,
-		todo!()
-	}
-
-	fn check_payment(id: Self::Id) -> PaymentStatus {
-		todo!()
-	}
+impl pallet_asset_rate::Config for Runtime {
+	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+	type CreateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type RemoveOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type UpdateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type Currency = Balances;
+	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }

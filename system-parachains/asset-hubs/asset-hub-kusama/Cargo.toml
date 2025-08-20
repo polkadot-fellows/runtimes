@@ -35,6 +35,7 @@ frame-try-runtime = { optional = true, workspace = true }
 pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-conversion = { workspace = true }
+pallet-asset-rate = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
@@ -107,6 +108,7 @@ pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
+system-parachains-common = { workspace = true }
 assets-common = { workspace = true }
 
 # Bridges
@@ -174,6 +176,7 @@ runtime-benchmarks = [
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"system-parachains-common/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
@@ -312,6 +315,7 @@ std = [
 	"sp-weights/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
+	"system-parachains-common/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",

@@ -1254,6 +1254,7 @@ construct_runtime!(
 		Treasury: pallet_treasury = 75,
 		Bounties: pallet_bounties = 76,
 		ChildBounties: pallet_child_bounties = 77,
+		AssetRate: pallet_asset_rate = 78,
 
 		// TODO: do we need?
 		// Parameters: pallet_parameters = 46,
