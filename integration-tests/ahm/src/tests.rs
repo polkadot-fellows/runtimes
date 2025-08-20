@@ -1365,6 +1365,8 @@ async fn post_migration_checks_only() {
 
 	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
 	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
+}
+
 #[test]
 fn schedule_migration() {
 	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
