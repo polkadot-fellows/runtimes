@@ -357,7 +357,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::AmbassadorCollective(_) |
 					RuntimeCall::AmbassadorReferenda(_) |
 					RuntimeCall::AmbassadorCore(_) |
-					RuntimeCall::AmbassadorSalary(_) |
 					RuntimeCall::AmbassadorTreasury(_)
 			),
 			ProxyType::CancelProxy => matches!(
