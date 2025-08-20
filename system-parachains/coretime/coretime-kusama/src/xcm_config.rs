@@ -63,7 +63,7 @@ parameter_types! {
 		PalletInstance(<Broker as PalletInfoAccess>::index() as u8).into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub const FellowshipLocation: Location = Location::parent();
+	pub const FellowshipLocation: Location = RelayChainLocation::get();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 

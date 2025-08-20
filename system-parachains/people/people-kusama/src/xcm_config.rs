@@ -62,7 +62,7 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 
-	pub const FellowshipLocation: Location = Location::parent();
+	pub const FellowshipLocation: Location = RelayChainLocation::get();
 	/// The asset ID for the asset that we use to pay for message delivery fees. Just KSM.
 	pub FeeAssetId: AssetId = AssetId(RelayChainLocation::get());
 	/// The base fee for the message delivery fees.
