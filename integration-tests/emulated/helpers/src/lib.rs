@@ -18,7 +18,6 @@ pub use paste;
 // Substrate
 pub use pallet_balances;
 pub use pallet_message_queue;
-pub use pallet_whitelist;
 
 // Polkadot
 pub use pallet_xcm;

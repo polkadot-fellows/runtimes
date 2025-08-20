@@ -1114,8 +1114,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
-	// TODO: check RC or AH?
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -1188,6 +1187,16 @@ pub mod dynamic_params {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::Treasury(dynamic_params::treasury::Parameters::BurnPortion(
+			dynamic_params::treasury::BurnPortion,
+			Some(Permill::from_percent(0)),
+		))
+	}
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1255,9 +1264,6 @@ construct_runtime!(
 		Bounties: pallet_bounties = 76,
 		ChildBounties: pallet_child_bounties = 77,
 		AssetRate: pallet_asset_rate = 78,
-
-		// TODO: do we need?
-		// Parameters: pallet_parameters = 46,
 	}
 );
 
@@ -1423,6 +1429,7 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_nft_fractionalization, NftFractionalization]
 		[pallet_nfts, Nfts]
+		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_scheduler, Scheduler]
