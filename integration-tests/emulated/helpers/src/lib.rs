@@ -24,10 +24,9 @@ pub use pallet_xcm;
 pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 
 // Cumulus
-pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
 pub use emulated_integration_tests_common::macros::Dmp;
-pub use xcm_emulator::Chain;
+pub use xcm_emulator::{assert_expected_events, Chain};
 
 pub mod common;
 

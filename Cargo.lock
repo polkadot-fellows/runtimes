@@ -2641,6 +2641,7 @@ dependencies = [
 name = "collectives-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -2920,6 +2921,7 @@ dependencies = [
 name = "coretime-kusama-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -3027,6 +3029,7 @@ dependencies = [
 name = "coretime-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -5073,6 +5076,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "kusama-system-emulated-network",
+ "pallet-utility",
+ "pallet-whitelist",
+ "parity-scale-codec",
+ "people-kusama-runtime",
+ "sp-runtime",
+ "staging-kusama-runtime",
+]
+
+[[package]]
+name = "governance-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-polkadot-runtime",
+ "collectives-polkadot-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "pallet-utility",
+ "pallet-whitelist",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-system-emulated-network",
+ "sp-runtime",
+ "staging-xcm",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5948,10 +5989,8 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
- "frame-support",
  "hex-literal",
  "pallet-balances",
  "pallet-message-queue",
@@ -9847,6 +9886,7 @@ dependencies = [
 name = "people-kusama-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -9957,6 +9997,7 @@ dependencies = [
 name = "people-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-test-utils",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",

@@ -170,6 +170,7 @@ pub mod locations {
 	use xcm::latest::prelude::{Junction::*, Location};
 
 	parameter_types! {
+		pub RelayChainLocation: Location = Location::parent();
 		pub AssetHubLocation: Location =
 			Location::new(1, Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID));
 	}

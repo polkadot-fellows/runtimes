@@ -26,7 +26,7 @@ use bridge_hub_polkadot_runtime::{
 		XcmOverBridgeHubKusamaInstance,
 	},
 	xcm_config::{
-		DotRelayLocation, GovernanceLocation, LocationToAccountId, RelayNetwork,
+		AssetHubLocation, DotRelayLocation, LocationToAccountId, RelayChainLocation, RelayNetwork,
 		RelayTreasuryLocation, RelayTreasuryPalletAccount, XcmConfig,
 	},
 	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
@@ -35,14 +35,16 @@ use bridge_hub_polkadot_runtime::{
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, GovernanceOrigin, SlotDurations};
 use codec::{Decode, Encode};
-use frame_support::{dispatch::GetDispatchInfo, parameter_types, traits::ConstU8};
+use frame_support::{
+	assert_err, assert_ok, dispatch::GetDispatchInfo, parameter_types, traits::ConstU8,
+};
 use parachains_common::{AccountId, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::Sr25519Keyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
-	AccountId32,
+	AccountId32, Either,
 };
 use system_parachains_constants::polkadot::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
@@ -76,6 +78,8 @@ type RuntimeTestsAdapter = from_parachain::WithRemoteParachainHelperAdapter<
 
 parameter_types! {
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
+	// Local OpenGov
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Origin(RuntimeOrigin::root());
 }
 
 fn construct_extrinsic(
@@ -167,7 +171,7 @@ fn initialize_bridge_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -180,7 +184,7 @@ fn change_bridge_grandpa_pallet_mode_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -193,7 +197,7 @@ fn change_bridge_parachains_pallet_mode_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -206,7 +210,7 @@ fn change_bridge_messages_pallet_mode_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 	)
 }
 
@@ -219,7 +223,7 @@ fn change_delivery_reward_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| (DeliveryRewardInBalance::key().to_vec(), DeliveryRewardInBalance::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
@@ -234,7 +238,7 @@ fn change_required_stake_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| (RequiredStakeForStakeAndSlash::key().to_vec(), RequiredStakeForStakeAndSlash::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
@@ -563,4 +567,50 @@ fn xcm_payment_api_works() {
 		RuntimeOrigin,
 		Block,
 	>();
+}
+
+#[test]
+fn governance_authorize_upgrade_works() {
+	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;
+
+	// no - random para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(XcmError::Barrier)
+	);
+
+	// no - Collectives
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
+		Either::Right(XcmError::Barrier)
+	);
+	// no - Collectives Voice of Fellows plurality
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::LocationAndDescendOrigin(
+			Location::new(1, Parachain(COLLECTIVES_ID)),
+			Plurality { id: BodyId::Technical, part: BodyPart::Voice }.into()
+		)),
+		Either::Right(XcmError::BadOrigin)
+	);
+
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+
+	// ok - AssetHub
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }

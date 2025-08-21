@@ -152,5 +152,7 @@ pub mod locations {
 	parameter_types! {
 		pub AssetHubLocation: Location =
 			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID));
+
+		pub GovernanceLocation: Location = Location::parent();
 	}
 }

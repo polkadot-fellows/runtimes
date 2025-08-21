@@ -77,9 +77,15 @@ impl pallet_ambassador_origins::Config for Runtime {}
 pub type DemoteOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+			>,
 		>,
 		TryMapSuccess<
 			EnsureAmbassadorsFrom<ConstU16<{ ranks::SENIOR_AMBASSADOR }>>,
@@ -100,7 +106,10 @@ pub type OpenGovOrHeadAmbassadors = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<
 		HeadAmbassadors,
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		EitherOf<
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+		>,
 	>,
 >;
 
@@ -217,7 +226,10 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type InductOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+			EitherOf<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+			>,
 			pallet_ranked_collective::EnsureMember<
 				Runtime,
 				AmbassadorCollectiveInstance,
@@ -328,9 +340,15 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	type SpendOrigin = EitherOf<
 		EitherOf<
 			EnsureRootWithSuccess<AccountId, MaxBalance>,
-			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
-				Replace<ConstU128<{ 10_000 * GRAND }>>,
+			EitherOf<
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+					Replace<ConstU128<{ 10_000 * GRAND }>>,
+				>,
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
+					Replace<ConstU128<{ 10_000 * GRAND }>>,
+				>,
 			>,
 		>,
 		EitherOf<
