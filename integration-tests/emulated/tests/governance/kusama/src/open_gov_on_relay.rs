@@ -13,22 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use emulated_integration_tests_common::{
-	assert_whitelisted,
-	impls::RelayChain,
-	xcm_emulator::{Chain, Parachain, TestExt},
-	xcm_helpers::{
-		build_xcm_send_authorize_upgrade_call, call_hash_of,
-		dispatch_whitelisted_call_with_preimage,
-	},
-};
-use frame_support::{assert_err, assert_ok};
-use kusama_runtime::{governance::pallet_custom_origins::Origin, Dmp};
+use crate::imports::*;
+
 use kusama_system_emulated_network::{
-	AssetHubKusamaPara as AssetHubKusama, BridgeHubKusamaPara as BridgeHubKusama,
-	CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama, PeopleKusamaPara as PeopleKusama,
+	BridgeHubKusamaPara as BridgeHubKusama, CoretimeKusamaPara as CoretimeKusama,
+	PeopleKusamaPara as PeopleKusama,
 };
-use sp_runtime::{traits::Dispatchable, DispatchError};
 
 #[test]
 fn relaychain_can_authorize_upgrade_for_itself() {

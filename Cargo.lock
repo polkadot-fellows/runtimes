@@ -892,28 +892,38 @@ dependencies = [
  "log",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
+ "pallet-asset-rate",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
+ "pallet-conviction-voting",
  "pallet-message-queue",
  "pallet-migrations",
  "pallet-multisig",
  "pallet-nft-fractionalization",
  "pallet-nfts",
  "pallet-nfts-runtime-api",
+ "pallet-parameters",
+ "pallet-preimage",
  "pallet-proxy",
+ "pallet-referenda",
  "pallet-remote-proxy",
  "pallet-revive",
+ "pallet-scheduler",
  "pallet-session",
  "pallet-state-trie-migration",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
+ "pallet-whitelist",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
@@ -928,6 +938,7 @@ dependencies = [
  "serde_json",
  "snowbridge-inbound-queue-primitives",
  "sp-api",
+ "sp-arithmetic",
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core 38.0.0",
@@ -946,6 +957,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -5410,10 +5422,12 @@ dependencies = [
  "kusama-system-emulated-network",
  "pallet-utility",
  "pallet-whitelist",
+ "pallet-xcm",
  "parity-scale-codec",
  "people-kusama-runtime",
  "sp-runtime",
  "staging-kusama-runtime",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -15933,6 +15947,23 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "scale-info",
+ "sp-api",
+ "sp-core 38.0.0",
+ "sp-runtime",
+ "sp-std",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
