@@ -75,6 +75,8 @@ pub mod ranks {
 /// - ...with an excess rank of 2 gets 3 votes;
 /// - ...with an excess rank of 3 gets 6 votes;
 /// - ...with an excess rank of 4 gets 10 votes.
+/// - ...with an excess rank of 5 gets 15 votes.
+/// - ...with an excess rank of 6 gets 21 votes.
 pub struct Geometric;
 impl Convert<Rank, Votes> for Geometric {
 	fn convert(r: Rank) -> Votes {
