@@ -324,8 +324,8 @@ mod tests {
 			assert_eq!(
 				Geometric::convert(rank),
 				expected_votes as Votes,
-				"Vote weight conversion failed for rank {}",
-				rank
+				format!("Vote weight conversion failed for rank {}",
+				rank)
 			);
 		}
 
