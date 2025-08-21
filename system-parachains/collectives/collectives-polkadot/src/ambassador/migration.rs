@@ -23,9 +23,9 @@ pub(crate) mod add_accounts {
 	#[cfg(feature = "try-runtime")]
 	use alloc::vec::Vec;
 	use frame_support::{parameter_types, traits::RankedMembers};
-	use pallet_ranked_collective::{
-		Config, MemberCount, Members, Pallet as RankedCollective, Rank,
-	};
+	use pallet_ranked_collective::{Config, Pallet as RankedCollective, Rank};
+	#[cfg(feature = "try-runtime")]
+	use pallet_ranked_collective::{MemberCount, Members};
 
 	parameter_types! {
 		// Public key (hex)
