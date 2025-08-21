@@ -18,7 +18,7 @@
 //! The module defines the following on-chain functionality of the Ambassador Program:
 //!
 //! - Managed set of program members, where every member has a [rank](ranks) (via
-//!   [AmbassadorCollective](pallet_ranked_collective_ambassador)).
+//!   [AmbassadorCollective](pallet_ranked_collective)).
 //! - Referendum functionality for the program members to propose, vote on, and execute proposals on
 //!   behalf of the members of a certain [rank](Origin) (via
 //!   [AmbassadorReferenda](pallet_referenda)).

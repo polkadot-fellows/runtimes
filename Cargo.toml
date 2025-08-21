@@ -260,7 +260,7 @@ zombienet-sdk = { version = "0.3.12" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
-impl-trait-for-tuples = { version = "0.2.2" }
+impl-trait-for-tuples = { version = "0.2.3" }
 
 [workspace]
 resolver = "2"

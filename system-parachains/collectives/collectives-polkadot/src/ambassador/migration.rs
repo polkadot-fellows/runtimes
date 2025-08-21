@@ -29,7 +29,14 @@ pub(crate) mod add_accounts {
 
 	parameter_types! {
 		// Public key (hex)
-		pub const Addresses: [(Rank, [u8; 32]); 125] = [
+		// This list was created by collating community-submitted addresses from an off-chain document source
+		// https://docs.google.com/spreadsheets/d/1uE5nDKuMZDqlj9q2tvnk_tngyU1Cokl0tQKwSigvJLA/edit?gid=0#gid=0,
+		// then converting each Polkadot SS58 address to its raw public key (32-byte hex) using:
+		// `subkey inspect <SS58_ADDRESS>`
+		// 
+		// Ensuring compatibility with the runtime's account system.
+		pub const Addresses: [(Rank, [u8; 32]); 126] = [
+			(0, hex_literal::hex!("54361bceb4403e1af7c893688a76c35357477da7e36371b981728ddf8f978e0c")),
 			(0, hex_literal::hex!("c0c799b66754bfb56799dfef8071772d8c5ea2a87dd0c969493066aed94e645c")),
 			(0, hex_literal::hex!("30c9d60350b04b6bce9b4c692b2db6ab91a16cd990952716de59e4dfbc79406f")),
 			(0, hex_literal::hex!("ea0ab1b08b58a3708b50ba9928c4e25ad71d68efcbb868a2f75b987d0e8e4108")),
@@ -58,7 +65,7 @@ pub(crate) mod add_accounts {
 			(0, hex_literal::hex!("24bd04480522d65a8e7fe8d4537d7780ce1d75693e02a5d08ec9aa4ce60c1735")),
 			(0, hex_literal::hex!("8c1860117351602843d192a9b4eb3b3641da38ab14c7974398761e7b7f3f3a14")),
 			(0, hex_literal::hex!("7ef71c2632780ed5f5e2534b441e3dd57754644aa629c7297564fe7b5a74c12f")),
-			(0, hex_literal::hex!("5e71bc8d34c9270330e524544df34af4113a66bf1a300cfd6e67e6bc522cdd1a")),
+			(0, hex_literal::hex!("ea614ce8bc4baa3c39e8019636cc6f8d9a67291f19dabb2d898a308b6b93b72e")),
 			(0, hex_literal::hex!("525a7278bbbfd26c7ed1d83365d7ee6cab307d0419a0e41cfbeefc0682803576")),
 			(0, hex_literal::hex!("4ebc7602bade859ea93f2a43445db8b8d140da3f58dacd74f165f3dc8c288e1f")),
 			(0, hex_literal::hex!("68bb9a3ef8b0732fae1a1eb2ccd0c0ba134cef99bacb3f31caa8dedff4d19823")),
@@ -158,17 +165,17 @@ pub(crate) mod add_accounts {
 		];
 	}
 
-	/// Implements `OnRuntimeUpgrade` trait.
+	/// Adds the initial members of the Ambassador Fellowship.
 	#[allow(dead_code)]
-	pub struct Migration<T, I = ()>(PhantomData<(T, I)>);
+	pub struct InitialMemberSetup<T, I = ()>(PhantomData<(T, I)>);
 
-	impl<T: Config<I>, I: 'static> OnRuntimeUpgrade for Migration<T, I>
+	impl<T: Config<I>, I: 'static> OnRuntimeUpgrade for InitialMemberSetup<T, I>
 	where
 		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
 	{
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			let has_members = <Members<T, I>>::iter().next().is_some();
+			let has_members = <Members<T, I>>::iter_keys().next().is_some();
 			ensure!(!has_members, "the collective must be uninitialized.");
 			Ok(Vec::new())
 		}
@@ -221,7 +228,8 @@ pub mod tests {
 	#[test]
 	fn check_addresses() {
 		let addresses = Addresses::get();
-		let ambassador_ss58: [(Rank, _); 125] = [
+		let ambassador_ss58: [(Rank, _); 126] = [
+			(0, "12uR6ZinxBstfeh9zX5d415Z29XkSfNR4Nfkn6afAusKc52n"),
 			(0, "15MmVHDWD5gkJzJfGVRGeHewNmRFqbuMXUSZN4spR22Lu9cM"),
 			(0, "126yFs7wRkEsknx7NKWrw4UHhUcgcxR8XsiSdPfcpaoLXfe3"),
 			(0, "16HsP9V3D2WQsKdaeyBBLmvSRXLsH5So62vnXoJumqGj5j8U"),
@@ -250,7 +258,7 @@ pub mod tests {
 			(0, "1qAsfc59XsRLiy3DZfc4buS4umW6Q4xaJcWALj1eguZTi75"),
 			(0, "14AgwoPjcRiEEJgjfHmvAqkjdERCG26WEvQUoGLuBzcXKMS2"),
 			(0, "13sUSYigbmzszbAoLPDs5xKPAgQW7QBd2sjoWs5gpE66smkX"),
-			(0, "138qHhjBFVCgxtcmvFBWQAjVkiH62Kru9RbC4cYnVeJrcdqT"),
+			(0, "16JK7LdoTGVoQy42YUiQcKjn1jz5WgUWjTENpGdFhg3PGX9X"),
 			(0, "12ryo7Fp21tKkFQWJ2vSVMY2BH3t9syk65FUaywraHLs3T4T"),
 			(0, "12nEijmsvxXbmdatam12kE6xT1K3Wd1xiHvvbWwDg5GLhPVJ"),
 			(0, "13NKiA6MbAy5EVFfTgifbFUcAsPfc19mAzNzD7kNq1qTNmst"),
@@ -359,7 +367,7 @@ pub mod tests {
 
 	#[test]
 	fn test_add_accounts() {
-		use super::add_accounts::Migration;
+		use super::add_accounts::InitialMemberSetup;
 		use pallet_ranked_collective::{IdToIndex, IndexToId, MemberCount, MemberRecord, Members};
 
 		let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
@@ -367,8 +375,8 @@ pub mod tests {
 		ext.execute_with(|| System::set_block_number(1));
 		ext.execute_with(|| {
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 0);
-			Migration::<Runtime, Ambassador>::on_runtime_upgrade();
-			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 37);
+			InitialMemberSetup::<Runtime, Ambassador>::on_runtime_upgrade();
+			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 38);
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(1), 22);
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(2), 30);
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(3), 32);
