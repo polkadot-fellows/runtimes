@@ -210,8 +210,9 @@ pub(crate) mod add_accounts {
 
 pub(crate) mod change_params {
 	use super::*;
+	use alloc::vec;
 	#[cfg(feature = "try-runtime")]
-	use alloc::{vec, vec::Vec};
+	use alloc::vec::Vec;
 	use pallet_core_fellowship::{
 		Config, Params, ParamsType
 	};
