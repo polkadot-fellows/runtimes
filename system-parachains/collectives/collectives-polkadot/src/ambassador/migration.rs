@@ -208,53 +208,6 @@ pub(crate) mod add_accounts {
 	}
 }
 
-pub(crate) mod change_params {
-	use super::*;
-	use alloc::vec;
-	#[cfg(feature = "try-runtime")]
-	use alloc::vec::Vec;
-	use pallet_core_fellowship::{
-		Config, Params, ParamsType
-	};
-	use frame_support::traits::DefensiveTruncateFrom;
-
-	/// Implements `OnRuntimeUpgrade` trait.
-	#[allow(dead_code)]
-	pub struct Migration<T, I = ()>(PhantomData<(T, I)>);
-
-	impl<T: Config<I>, I: 'static> OnRuntimeUpgrade for Migration<T, I>
-	where
-		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
-	{
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			// Verify old storage exists
-            ensure!(
-                Params::<T, I>::exists(),
-                "Old AmbassadorCore::Params should exist"
-            );
-            
-            // Return old value for comparison
-            Ok(Params::<T, I>::get().encode())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			let weight = T::DbWeight::get().reads(1);
-            Params::<T, I>::kill();
-			// Set default values if no existing data
-            let default_params = ParamsType {
-                active_salary: BoundedVec::defensive_truncate_from(vec![]),
-                passive_salary: BoundedVec::defensive_truncate_from(vec![]),
-                demotion_period: BoundedVec::defensive_truncate_from(vec![]),
-                min_promotion_period: BoundedVec::defensive_truncate_from(vec![]),
-                offboard_timeout: Zero::zero(),
-			};
-			Params::<T, I>::put(default_params);
-			weight.saturating_add(T::DbWeight::get().writes(1))
-        }
-	}
-}
-
 #[cfg(test)]
 pub mod tests {
 	use super::add_accounts::Addresses;
