@@ -86,7 +86,10 @@ fn assethub_can_authorize_upgrade_for_itself() {
 
 	// check after - authorized
 	AssetHubKusama::execute_with(|| {
-		assert!(<AssetHubKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<AssetHubKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash
+		)
 	});
 }
 
@@ -159,7 +162,9 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	));
 
 	// check after - authorized
-	Kusama::execute_with(|| assert!(<Kusama as Chain>::System::authorized_upgrade().is_some()));
+	Kusama::execute_with(|| {
+		assert_eq!(<Kusama as Chain>::System::authorized_upgrade().unwrap().code_hash(), &code_hash)
+	});
 }
 
 #[test]
@@ -255,12 +260,21 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 
 	// check after - authorized
 	BridgeHubKusama::execute_with(|| {
-		assert!(<BridgeHubKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<BridgeHubKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_bridge_hub
+		)
 	});
 	CoretimeKusama::execute_with(|| {
-		assert!(<CoretimeKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<CoretimeKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_coretime
+		)
 	});
 	PeopleKusama::execute_with(|| {
-		assert!(<PeopleKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<PeopleKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_people
+		)
 	});
 }
