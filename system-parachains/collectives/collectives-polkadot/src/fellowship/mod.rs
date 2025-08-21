@@ -23,8 +23,8 @@ use crate::{
 	impls::ToParentTreasury,
 	weights,
 	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
-	AccountId, AhGovernanceLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
-	PolkadotTreasuryAccount, Preimage, RcGovernanceLocation, Runtime, RuntimeCall, RuntimeEvent,
+	AccountId, AssetHubLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
+	PolkadotTreasuryAccount, Preimage, RelayChainLocation, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
 use frame_support::{
@@ -136,11 +136,11 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 		EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
 		EitherOf<
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::DAN_9 }>>,
 			>,
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::DAN_9 }>>,
 			>,
 		>,
@@ -174,8 +174,8 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	// - a vote among all Fellows.
 	type ParamsOrigin = EitherOfDiverse<
 		EitherOf<
-			EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
-			EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 		>,
 		Fellows,
 	>;
@@ -186,8 +186,8 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	// - a vote among all Members.
 	type InductOrigin = EitherOfDiverse<
 		EitherOf<
-			EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
-			EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 		>,
 		EitherOfDiverse<
 			pallet_ranked_collective::EnsureMember<
@@ -205,11 +205,11 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	type ApproveOrigin = EitherOf<
 		EitherOf<
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::DAN_9 }>>,
 			>,
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::DAN_9 }>>,
 			>,
 		>,
@@ -222,11 +222,11 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	type PromoteOrigin = EitherOf<
 		EitherOf<
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::DAN_9 }>>,
 			>,
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::DAN_9 }>>,
 			>,
 		>,
@@ -324,8 +324,8 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EitherOf<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, TreasurerBodyId>>,
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
 			>,
 			Fellows,
 		>,
@@ -340,11 +340,11 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 			EnsureRootWithSuccess<AccountId, MaxBalance>,
 			EitherOf<
 				MapSuccess<
-					EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, TreasurerBodyId>>,
+					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
 					Replace<ConstU128<{ 10_000 * GRAND }>>,
 				>,
 				MapSuccess<
-					EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, TreasurerBodyId>>,
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
 					Replace<ConstU128<{ 10_000 * GRAND }>>,
 				>,
 			>,

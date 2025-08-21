@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::porting_prelude::*;
-
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent};
 use codec::Decode;
 use cumulus_primitives_core::{
@@ -51,12 +49,16 @@ pub enum Chain {
 	AssetHub,
 }
 
-impl ToString for Chain {
-	fn to_string(&self) -> String {
-		match self {
-			Chain::Relay => "SNAP_RC".to_string(),
-			Chain::AssetHub => "SNAP_AH".to_string(),
-		}
+impl std::fmt::Display for Chain {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"{}",
+			match self {
+				Chain::Relay => "SNAP_RC",
+				Chain::AssetHub => "SNAP_AH",
+			}
+		)
 	}
 }
 
@@ -77,7 +79,7 @@ pub async fn load_externalities() -> Option<(TestExternalities, TestExternalitie
 
 pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 	sp_tracing::try_init_simple();
-	log::info!("Checking {} snapshot cache", chain.to_string());
+	log::info!("Checking {chain} snapshot cache");
 
 	let cache = match chain {
 		Chain::Relay => &RC_CACHE,
@@ -86,10 +88,10 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 
 	let snapshot = cache
 		.get_or_init(|| async {
-			log::info!("Loading {} snapshot", chain.to_string());
+			log::info!("Loading {chain} snapshot");
 
 			// Load snapshot.
-			let snap = std::env::var(chain.to_string()).ok().expect("Env var not set");
+			let snap = std::env::var(chain.to_string()).expect("Env var not set");
 			let abs = std::path::absolute(snap.clone());
 
 			let ext = Builder::<PolkadotBlock>::default()
@@ -97,7 +99,7 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 				.build()
 				.await
 				.map_err(|e| {
-					eprintln!("Could not load from snapshot: {:?}: {:?}", abs, e);
+					eprintln!("Could not load from snapshot: {abs:?}: {e:?}");
 				})
 				.unwrap();
 
@@ -109,7 +111,7 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 
 	let ext = TestExternalities::from_raw_snapshot(
 		snapshot.0.clone(),
-		snapshot.1.clone(),
+		snapshot.1,
 		sp_storage::StateVersion::V1,
 	);
 
@@ -119,7 +121,7 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 pub fn next_block_rc() {
 	let past = frame_system::Pallet::<Polkadot>::block_number();
 	let now = past + 1;
-	log::debug!(target: LOG_RC, "Executing RC block: {:?}", now);
+	log::debug!(target: LOG_RC, "Executing RC block: {now:?}");
 	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
 	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -137,7 +139,7 @@ pub fn next_block_rc() {
 					..
 				})
 			) {
-				log::error!(target: LOG_RC, "Message processing error: {:?}", events);
+				log::error!(target: LOG_RC, "Message processing error: {events:?}");
 				true
 			} else {
 				false
@@ -149,16 +151,14 @@ pub fn next_block_rc() {
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
-		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
-		weight,
-		limit
+		"Weight exceeded 80% of limit: {weight:?}, limit: {limit:?}"
 	);
 }
 
 pub fn next_block_ah() {
 	let past = frame_system::Pallet::<AssetHub>::block_number();
 	let now = past + 1;
-	log::debug!(target: LOG_AH, "Executing AH block: {:?}", now);
+	log::debug!(target: LOG_AH, "Executing AH block: {now:?}");
 	frame_system::Pallet::<AssetHub>::set_block_number(now);
 	frame_system::Pallet::<AssetHub>::reset_events();
 	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -176,7 +176,7 @@ pub fn next_block_ah() {
 					..
 				})
 			) {
-				log::error!(target: LOG_AH, "Message processing error: {:?}", events);
+				log::error!(target: LOG_AH, "Message processing error: {events:?}");
 				true
 			} else {
 				false
@@ -188,9 +188,7 @@ pub fn next_block_ah() {
 	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
-		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
-		weight,
-		limit
+		"Weight exceeded 80% of limit: {weight:?}, limit: {limit:?}"
 	);
 }
 
@@ -236,50 +234,32 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	match xcm {
 		VersionedXcm::V3(inner) =>
 			for instruction in inner.0 {
-				match instruction {
-					xcm::v3::Instruction::Transact { call, .. } => {
-						// Interesting part here: ensure that the receiving runtime can decode the
-						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
-							.expect("Must decode DMP XCM call");
-					},
-					_ => (), // Fine, we only check Transacts
+				if let xcm::v3::Instruction::Transact { call, .. } = instruction {
+					// Interesting part here: ensure that the receiving runtime can decode the
+					// call
+					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						.expect("Must decode DMP XCM call");
 				}
 			},
 		VersionedXcm::V4(inner) =>
 			for instruction in inner.0 {
-				match instruction {
-					xcm::v4::Instruction::Transact { call, .. } => {
-						// Interesting part here: ensure that the receiving runtime can decode the
-						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
-							.expect("Must decode DMP XCM call");
-					},
-					_ => (), // Fine, we only check Transacts
+				if let xcm::v4::Instruction::Transact { call, .. } = instruction {
+					// Interesting part here: ensure that the receiving runtime can decode the
+					// call
+					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						.expect("Must decode DMP XCM call");
 				}
 			},
-		_ => panic!("Wrong XCM version: {:?}", xcm),
-	};
-}
-
-#[cfg(feature = "stable2503")] // XCM V5
-fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
-	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
-	let xcm = match xcm {
-		VersionedXcm::V5(inner) => inner.0,
-		_ => panic!("Wrong XCM version: {:?}", xcm),
-	};
-
-	for instruction in xcm {
-		match instruction {
-			xcm::v5::Instruction::Transact { call, .. } => {
-				// Interesting part here: ensure that the receiving runtime can decode the call
-				let call: Call = Decode::decode(&mut &call.into_encoded()[..])
-					.expect("Must decode DMP XCM call");
+		VersionedXcm::V5(inner) =>
+			for instruction in inner.0 {
+				if let xcm::v5::Instruction::Transact { call, .. } = instruction {
+					// Interesting part here: ensure that the receiving runtime can decode the
+					// call
+					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						.expect("Must decode DMP XCM call");
+				}
 			},
-			_ => (), // Fine, we only check Transacts
-		}
-	}
+	};
 }
 
 // Sets the initial migration stage on the Relay Chain.
@@ -298,7 +278,7 @@ pub fn set_initial_migration_stage(
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStage::Scheduled { start: 0u32.into(), cool_off_end: 0u32.into() }
+			RcMigrationStage::Scheduled { start: 0u32 }
 		};
 		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
 		stage
@@ -329,7 +309,7 @@ pub fn rc_migrate(relay_chain: &mut TestExternalities) -> Vec<InboundDownwardMes
 			dmps.extend(new_dmps);
 
 			match RcMigrationStageStorage::<Polkadot>::get() {
-				RcMigrationStage::WaitingForAh { .. } => {
+				RcMigrationStage::WaitingForAh => {
 					log::info!("Migration waiting for AH signal");
 					break dmps;
 				},
@@ -356,7 +336,7 @@ pub fn ah_migrate(asset_hub: &mut TestExternalities, dmp_messages: Vec<InboundDo
 	asset_hub.execute_with(|| {
 		let mut fp =
 			asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
-		enqueue_dmp((dmp_messages, 0u32.into()));
+		enqueue_dmp((dmp_messages, 0u32));
 
 		// Loop until no more DMPs are queued
 		loop {
@@ -374,7 +354,7 @@ pub fn ah_migrate(asset_hub: &mut TestExternalities, dmp_messages: Vec<InboundDo
 
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use
 		// contains some overweight ones.
-		// TODO compare with the number of messages before the migration
+		// TODO: @re-gius compare with the number of messages before the migration
 	});
 	asset_hub.commit_all().unwrap();
 }

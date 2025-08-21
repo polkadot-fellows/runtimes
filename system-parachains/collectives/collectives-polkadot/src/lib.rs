@@ -101,7 +101,7 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	AhGovernanceLocation, LocationToAccountId, RcGovernanceLocation, SelfParaId, StakingPot,
+	AssetHubLocation, LocationToAccountId, RelayChainLocation, SelfParaId, StakingPot,
 	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
@@ -518,6 +518,8 @@ pub const PERIOD: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
@@ -551,8 +553,8 @@ parameter_types! {
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOf<
-		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
-		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
 	>,
 >;
 
@@ -703,8 +705,8 @@ impl pallet_asset_rate::Config for Runtime {
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EitherOf<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, TreasurerBodyId>>,
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
 			>,
 			Fellows,
 		>,

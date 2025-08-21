@@ -77,8 +77,8 @@ use xcm::{
 	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
-	AhGovernanceLocation, FellowshipLocation, PriceForSiblingParachainDelivery,
-	RcGovernanceLocation, StakingPot, XcmConfig, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, FellowshipLocation, PriceForSiblingParachainDelivery, RelayChainLocation,
+	StakingPot, XcmConfig, XcmOriginToTransactDispatchOrigin,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -361,6 +361,8 @@ pub const PERIOD: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
@@ -394,8 +396,8 @@ parameter_types! {
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOf<
-		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
-		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
 	>,
 >;
 

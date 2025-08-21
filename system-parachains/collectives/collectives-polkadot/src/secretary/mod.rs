@@ -56,11 +56,11 @@ type ApproveOrigin = EitherOf<
 	EitherOf<
 		EitherOf<
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<65535>>,
 			>,
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<65535>>,
 			>,
 		>,

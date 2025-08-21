@@ -55,8 +55,13 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
 				break;
 			}
 
@@ -82,11 +87,11 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveAssetRates { asset_rates: messages },
-				|len| T::AhWeightInfo::receive_asset_rates(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| types::AhMigratorCall::<
+				T,
+			>::ReceiveAssetRates {
+				asset_rates: messages,
+			})?;
 		}
 
 		Ok(last_key)

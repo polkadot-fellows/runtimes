@@ -15,7 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{preimage::*, types::*, *};
+#![allow(deprecated)] // StatusFor is deprecated
+
+use crate::{types::*, *};
 
 /// An entry of the `StatusFor` storage map. Should only be used to unreserve funds on AH.
 #[derive(
@@ -41,7 +43,7 @@ pub struct RcPreimageLegacyStatus<AccountId, Balance> {
 }
 
 pub type RcPreimageLegacyStatusOf<T> =
-	RcPreimageLegacyStatus<<T as frame_system::Config>::AccountId, super::alias::BalanceOf<T>>;
+	RcPreimageLegacyStatus<<T as frame_system::Config>::AccountId, pallet_preimage::BalanceOf<T>>;
 
 pub struct PreimageLegacyRequestStatusMigrator<T: pallet_preimage::Config> {
 	_phantom: PhantomData<T>,
@@ -80,6 +82,15 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break next_key;
+			}
+
 			let next_key_inner = match next_key {
 				Some(key) => key,
 				None => {
@@ -90,18 +101,22 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				},
 			};
 
-			let Some(request_status) = alias::StatusFor::<T>::get(next_key_inner) else {
+			let Some(request_status) = pallet_preimage::StatusFor::<T>::get(next_key_inner) else {
 				defensive!("Storage corruption");
 				next_key = Self::next_key(Some(next_key_inner));
 				continue;
 			};
 
 			match request_status {
-				alias::OldRequestStatus::Unrequested { deposit: (depositor, deposit), .. } => {
+				pallet_preimage::OldRequestStatus::Unrequested {
+					deposit: (depositor, deposit),
+					..
+				} => {
 					batch.push(RcPreimageLegacyStatus { hash: next_key_inner, depositor, deposit });
 				},
-				alias::OldRequestStatus::Requested {
-					deposit: Some((depositor, deposit)), ..
+				pallet_preimage::OldRequestStatus::Requested {
+					deposit: Some((depositor, deposit)),
+					..
 				} => {
 					batch.push(RcPreimageLegacyStatus { hash: next_key_inner, depositor, deposit });
 				},
@@ -111,7 +126,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 			log::debug!(target: LOG_TARGET, "Exported legacy preimage status for: {:?}", next_key_inner);
 			next_key = Self::next_key(Some(next_key_inner));
 			// Remove the migrated key from the relay chain
-			alias::StatusFor::<T>::remove(next_key_inner);
+			pallet_preimage::StatusFor::<T>::remove(next_key_inner);
 
 			if next_key.is_none() {
 				break next_key;
@@ -119,13 +134,9 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus {
-					legacy_status: batch,
-				},
-				|len| T::AhWeightInfo::receive_preimage_legacy_status(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus { legacy_status: batch }
+			})?;
 		}
 
 		Ok(new_next_key)
@@ -136,10 +147,11 @@ impl<T: Config> PreimageLegacyRequestStatusMigrator<T> {
 	/// Get the next key after the given one or the first one for `None`.
 	pub fn next_key(key: Option<H256>) -> Option<H256> {
 		match key {
-			None => alias::StatusFor::<T>::iter_keys().next(),
-			Some(key) =>
-				alias::StatusFor::<T>::iter_keys_from(alias::StatusFor::<T>::hashed_key_for(key))
-					.next(),
+			None => pallet_preimage::StatusFor::<T>::iter_keys().next(),
+			Some(key) => pallet_preimage::StatusFor::<T>::iter_keys_from(
+				pallet_preimage::StatusFor::<T>::hashed_key_for(key),
+			)
+			.next(),
 		}
 	}
 }
@@ -148,14 +160,14 @@ impl<T: Config> RcMigrationCheck for PreimageLegacyRequestStatusMigrator<T> {
 	type RcPrePayload = Vec<H256>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		alias::StatusFor::<T>::iter().map(|(hash, _)| hash).collect()
+		pallet_preimage::StatusFor::<T>::iter().map(|(hash, _)| hash).collect()
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		for hash in rc_pre_payload {
 			// "Assert storage 'Preimage::StatusFor::rc_post::empty'"
 			assert!(
-				!alias::StatusFor::<T>::contains_key(hash),
+				!pallet_preimage::StatusFor::<T>::contains_key(hash),
 				"migrated key in Preimage::StatusFor must be deleted"
 			);
 		}

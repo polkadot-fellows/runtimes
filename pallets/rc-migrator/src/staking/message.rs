@@ -19,22 +19,18 @@
 extern crate alloc;
 
 use crate::{
-	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
+	staking::{BalanceOf, StakingMigrator},
+	types::DefensiveTruncateInto,
 	*,
 };
 use alloc::collections::BTreeMap;
-use codec::{EncodeLike, HasCompact};
-use core::fmt::Debug;
-pub use frame_election_provider_support::PageIndex;
-use frame_support::traits::DefensiveTruncateInto;
-use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
-	ValidatorPrefs,
-};
+use pallet_staking::RewardDestination;
 use sp_runtime::{Perbill, Percent};
-use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
+use sp_staking::{EraIndex, Page, SessionIndex};
 
+/// Portable staking migration message.
+///
+/// It is portable since it does not have any generic type parameters.
 #[derive(
 	Encode,
 	Decode,
@@ -45,150 +41,77 @@ use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionInd
 	PartialEqNoBound,
 	EqNoBound,
 )]
-#[scale_info(skip_type_params(T))]
-pub enum RcStakingMessage<
-	AccountId,
-	Balance,
-	StakingLedger,
-	Nominations,
-	SpanRecord,
-	EraRewardPoints,
-	RewardDestination,
-	ValidatorPrefs,
-	UnappliedSlash,
-	SlashingSpans,
->
-// We do not want to pull in the Config trait; hence this
-where
-	AccountId: Ord + Debug + Clone,
-	Balance: HasCompact + MaxEncodedLen + Debug + PartialEq + Clone,
-	StakingLedger: Debug + PartialEq + Clone,
-	Nominations: Debug + PartialEq + Clone,
-	SpanRecord: Debug + PartialEq + Clone,
-	EraRewardPoints: Debug + PartialEq + Clone,
-	RewardDestination: Debug + PartialEq + Clone,
-	ValidatorPrefs: Debug + PartialEq + Clone,
-	UnappliedSlash: Debug + PartialEq + Clone,
-	SlashingSpans: Debug + PartialEq + Clone,
-{
-	Values(StakingValues<Balance>),
-	Invulnerables(Vec<AccountId>),
+pub enum PortableStakingMessage {
+	Values(PortableStakingValues),
+	Invulnerables(Vec<AccountId32>),
 	Bonded {
-		stash: AccountId,
-		controller: AccountId,
+		stash: AccountId32,
+		controller: AccountId32,
 	},
 	// Stupid staking pallet forces us to use `T` since its staking ledger requires that...
 	Ledger {
-		controller: AccountId,
-		ledger: StakingLedger,
+		controller: AccountId32,
+		ledger: PortableStakingLedger,
 	},
 	Payee {
-		stash: AccountId,
-		payment: RewardDestination,
+		stash: AccountId32,
+		payment: PortableRewardDestination,
 	},
 	Validators {
-		stash: AccountId,
-		validators: ValidatorPrefs,
+		stash: AccountId32,
+		validators: PortableValidatorPrefs,
 	},
 	Nominators {
-		stash: AccountId,
-		nominations: Nominations,
+		stash: AccountId32,
+		nominations: PortableNominations,
 	},
-	VirtualStakers(AccountId),
+	VirtualStakers(AccountId32),
 	ErasStakersOverview {
 		era: EraIndex,
-		validator: AccountId,
-		exposure: PagedExposureMetadata<Balance>,
+		validator: AccountId32,
+		exposure: PortablePagedExposureMetadata,
 	},
 	ErasStakersPaged {
 		era: EraIndex,
-		validator: AccountId,
+		validator: AccountId32,
 		page: Page,
-		exposure: ExposurePage<AccountId, Balance>,
+		exposure: PortableExposurePage,
 	},
 	ClaimedRewards {
 		era: EraIndex,
-		validator: AccountId,
+		validator: AccountId32,
 		rewards: Vec<Page>,
 	},
 	ErasValidatorPrefs {
 		era: EraIndex,
-		validator: AccountId,
-		prefs: ValidatorPrefs,
+		validator: AccountId32,
+		prefs: PortableValidatorPrefs,
 	},
 	ErasValidatorReward {
 		era: EraIndex,
-		reward: Balance,
+		reward: u128,
 	},
 	ErasRewardPoints {
 		era: EraIndex,
-		points: EraRewardPoints,
+		points: PortableEraRewardPoints,
 	},
 	ErasTotalStake {
 		era: EraIndex,
-		total_stake: Balance,
+		total_stake: u128,
 	},
 	UnappliedSlashes {
 		era: EraIndex,
-		slash: UnappliedSlash,
+		slash: PortableUnappliedSlash,
 	},
 	BondedEras(Vec<(EraIndex, SessionIndex)>),
 	ValidatorSlashInEra {
 		era: EraIndex,
-		validator: AccountId,
-		slash: (Perbill, Balance),
-	},
-	NominatorSlashInEra {
-		era: EraIndex,
-		validator: AccountId,
-		slash: Balance,
-	},
-	SlashingSpans {
-		account: AccountId,
-		spans: SlashingSpans,
-	},
-	SpanSlash {
-		account: AccountId,
-		span: SpanIndex,
-		slash: SpanRecord,
+		validator: AccountId32,
+		slash: (Perbill, u128),
 	},
 }
 
-/// Untranslated message for the staking migration.
-pub type RcStakingMessageOf<T> = RcStakingMessage<
-	<T as frame_system::Config>::AccountId,
-	<T as pallet_staking::Config>::CurrencyBalance,
-	pallet_staking::StakingLedger<T>,
-	pallet_staking::Nominations<T>,
-	pallet_staking::slashing::SpanRecord<<T as pallet_staking::Config>::CurrencyBalance>,
-	pallet_staking::EraRewardPoints<<T as frame_system::Config>::AccountId>,
-	pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,
-	pallet_staking::ValidatorPrefs,
-	pallet_staking::UnappliedSlash<
-		<T as frame_system::Config>::AccountId,
-		<T as pallet_staking::Config>::CurrencyBalance,
-	>,
-	pallet_staking::slashing::SlashingSpans,
->;
-
-/// Translated staking message that the Asset Hub can understand.
-///
-/// This will normally have been created by using `RcStakingMessage::convert`.
-pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
-	<T as frame_system::Config>::AccountId,
-	<T as pallet_staking_async::Config>::CurrencyBalance,
-	pallet_staking_async::StakingLedger<T>,
-	pallet_staking_async::Nominations<T>,
-	pallet_staking_async::slashing::SpanRecord<
-		<T as pallet_staking_async::Config>::CurrencyBalance,
-	>,
-	pallet_staking_async::EraRewardPoints<T>,
-	pallet_staking_async::RewardDestination<<T as frame_system::Config>::AccountId>,
-	pallet_staking_async::ValidatorPrefs,
-	pallet_staking_async::UnappliedSlash<T>,
-	pallet_staking_async::slashing::SlashingSpans,
->;
-
+/// Generic staking storage values.
 #[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct StakingValues<Balance> {
 	pub validator_count: Option<u32>,
@@ -200,8 +123,8 @@ pub struct StakingValues<Balance> {
 	pub max_validators_count: Option<u32>,
 	pub max_nominators_count: Option<u32>,
 	pub current_era: Option<EraIndex>,
-	pub active_era: Option<ActiveEraInfo>,
-	pub force_era: Option<Forcing>,
+	pub active_era: Option<PortableActiveEraInfo>,
+	pub force_era: Option<PortableForcing>,
 	pub max_staked_rewards: Option<Percent>,
 	pub slash_reward_fraction: Option<Perbill>,
 	pub canceled_slash_payout: Option<Balance>,
@@ -209,239 +132,9 @@ pub struct StakingValues<Balance> {
 	pub chill_threshold: Option<Percent>,
 }
 
-pub type RcStakingValuesOf<T> = StakingValues<<T as pallet_staking::Config>::CurrencyBalance>;
-pub type AhStakingValuesOf<T> = StakingValues<<T as pallet_staking_async::Config>::CurrencyBalance>;
-
-impl<T, Ah> IntoAh<pallet_staking::StakingLedger<T>, pallet_staking_async::StakingLedger<Ah>>
-	for pallet_staking::StakingLedger<T>
-where
-	T: pallet_staking::Config,
-	Ah: pallet_staking_async::Config<AccountId = AccountIdOf<T>, CurrencyBalance = BalanceOf<T>>,
-{
-	fn intoAh(ledger: pallet_staking::StakingLedger<T>) -> pallet_staking_async::StakingLedger<Ah> {
-		pallet_staking_async::StakingLedger {
-			stash: ledger.stash,
-			total: ledger.total,
-			active: ledger.active,
-			unlocking: ledger
-				.unlocking
-				.into_iter()
-				.map(pallet_staking::UnlockChunk::intoAh)
-				.collect::<Vec<_>>()
-				.defensive_truncate_into(),
-			// legacy_claimed_rewards not migrated
-			controller: ledger.controller,
-		}
-	}
-}
-
-// NominationsQuota is an associated trait - not a type, therefore more mental gymnastics are needed
-impl<T, Ah, SNomQuota, SSNomQuota>
-	IntoAh<pallet_staking::Nominations<T>, pallet_staking_async::Nominations<Ah>>
-	for pallet_staking::Nominations<T>
-where
-	T: pallet_staking::Config<NominationsQuota = SNomQuota>,
-	Ah: pallet_staking_async::Config<
-		AccountId = AccountIdOf<T>,
-		CurrencyBalance = BalanceOf<T>,
-		NominationsQuota = SSNomQuota,
-	>,
-	SNomQuota: pallet_staking::NominationsQuota<BalanceOf<T>>,
-	SSNomQuota: pallet_staking_async::NominationsQuota<
-		pallet_staking_async::BalanceOf<Ah>,
-		MaxNominations = SNomQuota::MaxNominations,
-	>,
-{
-	fn intoAh(
-		nominations: pallet_staking::Nominations<T>,
-	) -> pallet_staking_async::Nominations<Ah> {
-		pallet_staking_async::Nominations {
-			targets: nominations.targets,
-			submitted_in: nominations.submitted_in,
-			suppressed: nominations.suppressed,
-		}
-	}
-}
-
-impl<Balance>
-	IntoAh<
-		pallet_staking::slashing::SpanRecord<Balance>,
-		pallet_staking_async::slashing::SpanRecord<Balance>,
-	> for pallet_staking::slashing::SpanRecord<Balance>
-{
-	fn intoAh(
-		record: pallet_staking::slashing::SpanRecord<Balance>,
-	) -> pallet_staking_async::slashing::SpanRecord<Balance> {
-		pallet_staking_async::slashing::SpanRecord {
-			slashed: record.slashed,
-			paid_out: record.paid_out,
-		}
-	}
-}
-
-impl<AccountId: Ord, Ah: pallet_staking_async::Config<AccountId = AccountId>>
-	IntoAh<pallet_staking::EraRewardPoints<AccountId>, pallet_staking_async::EraRewardPoints<Ah>>
-	for pallet_staking::EraRewardPoints<AccountId>
-where
-	AccountId: Ord,
-	Ah: pallet_staking_async::Config<AccountId = AccountId>,
-{
-	fn intoAh(
-		points: pallet_staking::EraRewardPoints<AccountId>,
-	) -> pallet_staking_async::EraRewardPoints<Ah> {
-		let bounded = points
-			.individual
-			.into_iter()
-			.take(<Ah as pallet_staking_async::Config>::MaxValidatorSet::get() as usize)
-			.collect::<BTreeMap<_, _>>();
-		pallet_staking_async::EraRewardPoints {
-			total: points.total,
-			individual: BoundedBTreeMap::try_from(bounded).defensive().unwrap_or_default(),
-		}
-	}
-}
-
-impl<AccountId>
-	IntoAh<
-		pallet_staking::RewardDestination<AccountId>,
-		pallet_staking_async::RewardDestination<AccountId>,
-	> for pallet_staking::RewardDestination<AccountId>
-{
-	fn intoAh(
-		destination: pallet_staking::RewardDestination<AccountId>,
-	) -> pallet_staking_async::RewardDestination<AccountId> {
-		match destination {
-			pallet_staking::RewardDestination::Staked =>
-				pallet_staking_async::RewardDestination::Staked,
-			pallet_staking::RewardDestination::Stash =>
-				pallet_staking_async::RewardDestination::Stash,
-			pallet_staking::RewardDestination::Controller =>
-				pallet_staking_async::RewardDestination::Controller,
-			pallet_staking::RewardDestination::Account(account) =>
-				pallet_staking_async::RewardDestination::Account(account),
-			pallet_staking::RewardDestination::None =>
-				pallet_staking_async::RewardDestination::None,
-		}
-	}
-}
-
-impl IntoAh<pallet_staking::ValidatorPrefs, pallet_staking_async::ValidatorPrefs>
-	for pallet_staking::ValidatorPrefs
-{
-	fn intoAh(prefs: pallet_staking::ValidatorPrefs) -> pallet_staking_async::ValidatorPrefs {
-		pallet_staking_async::ValidatorPrefs {
-			commission: prefs.commission,
-			blocked: prefs.blocked,
-		}
-	}
-}
-impl<Balance: HasCompact + MaxEncodedLen>
-	IntoAh<pallet_staking::UnlockChunk<Balance>, pallet_staking_async::UnlockChunk<Balance>>
-	for pallet_staking::UnlockChunk<Balance>
-{
-	fn intoAh(
-		chunk: pallet_staking::UnlockChunk<Balance>,
-	) -> pallet_staking_async::UnlockChunk<Balance> {
-		pallet_staking_async::UnlockChunk { value: chunk.value, era: chunk.era }
-	}
-}
-
-impl IntoAh<pallet_staking::slashing::SlashingSpans, pallet_staking_async::slashing::SlashingSpans>
-	for pallet_staking::slashing::SlashingSpans
-{
-	fn intoAh(
-		spans: pallet_staking::slashing::SlashingSpans,
-	) -> pallet_staking_async::slashing::SlashingSpans {
-		pallet_staking_async::slashing::SlashingSpans {
-			span_index: spans.span_index,
-			last_start: spans.last_start,
-			last_nonzero_slash: spans.last_nonzero_slash,
-			prior: spans.prior,
-		}
-	}
-}
-// StakingLedger requires a T instead of having a `StakingLedgerOf` :(
-impl<T, Ah, SNomQuota, SSNomQuota> IntoAh<RcStakingMessageOf<T>, AhEquivalentStakingMessageOf<Ah>>
-	for RcStakingMessageOf<T>
-where
-	T: pallet_staking::Config<NominationsQuota = SNomQuota>,
-	Ah: pallet_staking_async::Config<
-		NominationsQuota = SSNomQuota,
-		CurrencyBalance = BalanceOf<T>,
-		AccountId = AccountIdOf<T>,
-	>,
-	SNomQuota: pallet_staking::NominationsQuota<BalanceOf<T>>,
-	SSNomQuota: pallet_staking_async::NominationsQuota<
-		pallet_staking_async::BalanceOf<Ah>,
-		MaxNominations = SNomQuota::MaxNominations,
-	>,
-{
-	fn intoAh(message: RcStakingMessageOf<T>) -> AhEquivalentStakingMessageOf<Ah> {
-		use RcStakingMessage::*;
-		match message {
-			// It looks like nothing happens here, but it does. We swap the omitted generics of
-			// `RcStakingMessage` from `T` to `Ah`:
-			Values(values) => Values(values),
-			Invulnerables(invulnerables) => Invulnerables(invulnerables),
-			Bonded { stash, controller } => Bonded { stash, controller },
-			Ledger { controller, ledger } =>
-				Ledger { controller, ledger: pallet_staking::StakingLedger::intoAh(ledger) },
-			Payee { stash, payment } =>
-				Payee { stash, payment: pallet_staking::RewardDestination::intoAh(payment) },
-			Validators { stash, validators } =>
-				Validators { stash, validators: pallet_staking::ValidatorPrefs::intoAh(validators) },
-			Nominators { stash, nominations } =>
-				Nominators { stash, nominations: pallet_staking::Nominations::intoAh(nominations) },
-			VirtualStakers(staker) => VirtualStakers(staker),
-			ErasStakersOverview { era, validator, exposure } =>
-				ErasStakersOverview { era, validator, exposure },
-			ErasStakersPaged { era, validator, page, exposure } =>
-				ErasStakersPaged { era, validator, page, exposure },
-			ClaimedRewards { era, validator, rewards } =>
-				ClaimedRewards { era, validator, rewards },
-			ErasValidatorPrefs { era, validator, prefs } => ErasValidatorPrefs {
-				era,
-				validator,
-				prefs: pallet_staking::ValidatorPrefs::intoAh(prefs),
-			},
-			ErasValidatorReward { era, reward } => ErasValidatorReward { era, reward },
-			ErasRewardPoints { era, points } =>
-				ErasRewardPoints { era, points: pallet_staking::EraRewardPoints::intoAh(points) },
-			ErasTotalStake { era, total_stake } => ErasTotalStake { era, total_stake },
-			UnappliedSlashes { era, slash } => {
-				// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
-				UnappliedSlashes {
-					era,
-					slash: pallet_staking_async::UnappliedSlash {
-						validator: slash.validator,
-						own: slash.own,
-						// TODO defensive truncate
-						others: WeakBoundedVec::force_from(slash.others, None),
-						payout: slash.payout,
-						reporter: slash.reporters.first().cloned(),
-					},
-				}
-			},
-			BondedEras(eras) => BondedEras(eras),
-			ValidatorSlashInEra { era, validator, slash } =>
-				ValidatorSlashInEra { era, validator, slash },
-			NominatorSlashInEra { era, validator, slash } =>
-				NominatorSlashInEra { era, validator, slash },
-			SlashingSpans { account, spans } => SlashingSpans {
-				account,
-				spans: pallet_staking::slashing::SlashingSpans::intoAh(spans),
-			},
-			SpanSlash { account, span, slash } => SpanSlash {
-				account,
-				span,
-				slash: pallet_staking::slashing::SpanRecord::intoAh(slash),
-			},
-		}
-	}
-}
-
 impl<T: pallet_staking::Config> StakingMigrator<T> {
-	pub fn take_values() -> RcStakingValuesOf<T> {
+	/// Take and remove the values from the storage.
+	pub fn take_values() -> StakingValues<BalanceOf<T>> {
 		use pallet_staking::*;
 
 		StakingValues {
@@ -455,8 +148,10 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 			max_validators_count: MaxValidatorsCount::<T>::take(),
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
-			active_era: ActiveEra::<T>::take(),
-			force_era: ForceEra::<T>::exists().then(ForceEra::<T>::take),
+			active_era: ActiveEra::<T>::take().map(IntoPortable::into_portable),
+			force_era: ForceEra::<T>::exists()
+				.then(ForceEra::<T>::take)
+				.map(IntoPortable::into_portable),
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
 			slash_reward_fraction: SlashRewardFraction::<T>::exists()
 				.then(SlashRewardFraction::<T>::take),
@@ -470,7 +165,8 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 }
 
 impl<T: pallet_staking_async::Config> StakingMigrator<T> {
-	pub fn put_values(values: AhStakingValuesOf<T>) {
+	/// Put the values into the storage.
+	pub fn put_values(values: StakingValues<pallet_staking_async::BalanceOf<T>>) {
 		use pallet_staking_async::*;
 
 		values.validator_count.map(ValidatorCount::<T>::put);
@@ -482,12 +178,13 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 		values.max_validators_count.map(MaxValidatorsCount::<T>::put);
 		values.max_nominators_count.map(MaxNominatorsCount::<T>::put);
 		values.active_era.map(|active_era| {
-			let active_era = pallet_staking::ActiveEraInfo::intoAh(active_era);
-			ActiveEra::<T>::put(active_era);
-			CurrentEra::<T>::put(active_era.map(|a| a.index));
+			let active_era: pallet_staking_async::ActiveEraInfo = active_era.into();
+			ActiveEra::<T>::put(&active_era);
+			CurrentEra::<T>::put(active_era.index);
 		});
 		values.force_era.map(|force_era| {
-			ForceEra::<T>::put(pallet_staking::Forcing::intoAh(force_era));
+			let force_era: pallet_staking_async::Forcing = force_era.into();
+			ForceEra::<T>::put(force_era);
 		});
 		values.max_staked_rewards.map(MaxStakedRewards::<T>::put);
 		values.slash_reward_fraction.map(SlashRewardFraction::<T>::put);
@@ -497,21 +194,551 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 	}
 }
 
-impl IntoAh<pallet_staking::Forcing, pallet_staking_async::Forcing> for pallet_staking::Forcing {
-	fn intoAh(forcing: pallet_staking::Forcing) -> pallet_staking_async::Forcing {
-		match forcing {
-			pallet_staking::Forcing::NotForcing => pallet_staking_async::Forcing::NotForcing,
-			pallet_staking::Forcing::ForceNew => pallet_staking_async::Forcing::ForceNew,
-			pallet_staking::Forcing::ForceNone => pallet_staking_async::Forcing::ForceNone,
-			pallet_staking::Forcing::ForceAlways => pallet_staking_async::Forcing::ForceAlways,
+pub type PortableStakingValues = StakingValues<u128>;
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct PortableActiveEraInfo {
+	pub index: EraIndex,
+	pub start: Option<u64>,
+}
+
+impl IntoPortable for pallet_staking::ActiveEraInfo {
+	type Portable = PortableActiveEraInfo;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableActiveEraInfo { index: self.index, start: self.start }
+	}
+}
+
+impl Into<pallet_staking_async::ActiveEraInfo> for PortableActiveEraInfo {
+	fn into(self) -> pallet_staking_async::ActiveEraInfo {
+		pallet_staking_async::ActiveEraInfo { index: self.index, start: self.start }
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableForcing {
+	NotForcing,
+	ForceNew,
+	ForceNone,
+	ForceAlways,
+}
+
+// Forcing: RC -> Portable
+impl IntoPortable for pallet_staking::Forcing {
+	type Portable = PortableForcing;
+
+	fn into_portable(self) -> Self::Portable {
+		match self {
+			pallet_staking::Forcing::NotForcing => PortableForcing::NotForcing,
+			pallet_staking::Forcing::ForceNew => PortableForcing::ForceNew,
+			pallet_staking::Forcing::ForceNone => PortableForcing::ForceNone,
+			pallet_staking::Forcing::ForceAlways => PortableForcing::ForceAlways,
 		}
 	}
 }
 
-impl IntoAh<pallet_staking::ActiveEraInfo, pallet_staking_async::ActiveEraInfo>
-	for pallet_staking::ActiveEraInfo
+// Forcing: Portable -> AH
+impl Into<pallet_staking_async::Forcing> for PortableForcing {
+	fn into(self) -> pallet_staking_async::Forcing {
+		match self {
+			PortableForcing::NotForcing => pallet_staking_async::Forcing::NotForcing,
+			PortableForcing::ForceNew => pallet_staking_async::Forcing::ForceNew,
+			PortableForcing::ForceNone => pallet_staking_async::Forcing::ForceNone,
+			PortableForcing::ForceAlways => pallet_staking_async::Forcing::ForceAlways,
+		}
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct PortableStakingLedger {
+	pub stash: AccountId32,
+	pub total: u128,
+	pub active: u128,
+	// Expected to be around 32, but we can use 100 as upper bound.
+	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>,
+}
+
+// StakingLedger: RC -> Portable
+impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
+	type Portable = PortableStakingLedger;
+
+	fn into_portable(self) -> Self::Portable {
+		// We drop the `legacy_claimed_rewards` field, as they are not used anymore.
+
+		PortableStakingLedger {
+			stash: self.stash,
+			total: self.total,
+			active: self.active,
+			unlocking: self
+				.unlocking
+				.into_iter()
+				.map(IntoPortable::into_portable)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			// self.controller is ignored since its not part of the storage.
+		}
+	}
+}
+
+// StakingLedger: Portable -> AH
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::StakingLedger<T>> for PortableStakingLedger
 {
-	fn intoAh(active_era: pallet_staking::ActiveEraInfo) -> pallet_staking_async::ActiveEraInfo {
-		pallet_staking_async::ActiveEraInfo { index: active_era.index, start: active_era.start }
+	fn into(self) -> pallet_staking_async::StakingLedger<T> {
+		pallet_staking_async::StakingLedger {
+			stash: self.stash,
+			total: self.total,
+			active: self.active,
+			unlocking: self
+				.unlocking
+				.into_iter()
+				.map(Into::into)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			controller: None, // Not needed
+		}
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct PortableUnlockChunk {
+	pub value: u128,
+	pub era: EraIndex,
+}
+
+// UnlockChunk: RC -> Portable
+impl IntoPortable for pallet_staking::UnlockChunk<u128> {
+	type Portable = PortableUnlockChunk;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableUnlockChunk { value: self.value, era: self.era }
+	}
+}
+
+// UnlockChunk: Portable -> AH
+impl Into<pallet_staking_async::UnlockChunk<u128>> for PortableUnlockChunk {
+	fn into(self) -> pallet_staking_async::UnlockChunk<u128> {
+		pallet_staking_async::UnlockChunk { value: self.value, era: self.era }
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct PortableUnappliedSlash {
+	pub validator: AccountId32,
+	pub own: u128,
+	pub others: BoundedVec<(AccountId32, u128), ConstU32<600>>, // Range 0-512
+	pub reporters: BoundedVec<AccountId32, ConstU32<10>>,       // Range 0-1
+	pub payout: u128,
+}
+
+// UnappliedSlash: RC -> Portable
+impl IntoPortable for pallet_staking::UnappliedSlash<AccountId32, u128> {
+	type Portable = PortableUnappliedSlash;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableUnappliedSlash {
+			validator: self.validator,
+			own: self.own,
+			others: self.others.defensive_truncate_into(),
+			reporters: self.reporters.defensive_truncate_into(),
+			payout: self.payout,
+		}
+	}
+}
+
+// UnappliedSlash: Portable -> AH
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::UnappliedSlash<T>> for PortableUnappliedSlash
+{
+	fn into(self) -> pallet_staking_async::UnappliedSlash<T> {
+		if self.others.len() > T::MaxExposurePageSize::get() as usize {
+			defensive!("UnappliedSlash longer than the weak bound");
+		}
+
+		pallet_staking_async::UnappliedSlash {
+			validator: self.validator,
+			own: self.own,
+			others: WeakBoundedVec::<_, T::MaxExposurePageSize>::force_from(
+				self.others.into_inner(),
+				None,
+			),
+			reporter: self.reporters.first().cloned(),
+			payout: self.payout,
+		}
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableRewardDestination {
+	Staked,
+	Stash,
+	Controller,
+	Account(AccountId32),
+	None,
+}
+
+// RewardDestination: RC -> Portable
+impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
+	type Portable = PortableRewardDestination;
+
+	#[allow(deprecated)]
+	fn into_portable(self) -> Self::Portable {
+		use PortableRewardDestination::*;
+
+		match self {
+			RewardDestination::Staked => Staked,
+			RewardDestination::Stash => Stash,
+			RewardDestination::Controller => Controller,
+			RewardDestination::Account(account) => Account(account),
+			RewardDestination::None => None,
+		}
+	}
+}
+
+// RewardDestination: Portable -> AH
+impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewardDestination {
+	#[allow(deprecated)]
+	fn into(self) -> pallet_staking_async::RewardDestination<AccountId32> {
+		use pallet_staking_async::RewardDestination::*;
+		match self {
+			PortableRewardDestination::Staked => Staked,
+			PortableRewardDestination::Stash => Stash,
+			PortableRewardDestination::Controller => Controller,
+			PortableRewardDestination::Account(account) => Account(account),
+			PortableRewardDestination::None => None,
+		}
+	}
+}
+
+#[derive(
+	PartialEqNoBound,
+	EqNoBound,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebugNoBound,
+	TypeInfo,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
+)]
+pub struct PortableNominations {
+	pub targets: BoundedVec<AccountId32, ConstU32<32>>, // Range up to 16
+	pub submitted_in: EraIndex,
+	pub suppressed: bool,
+}
+
+// Nominations: RC -> Portable
+impl<T: Config> IntoPortable for pallet_staking::Nominations<T> {
+	type Portable = PortableNominations;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableNominations {
+			targets: self.targets.into_inner().defensive_truncate_into(),
+			submitted_in: self.submitted_in,
+			suppressed: self.suppressed,
+		}
+	}
+}
+
+// Nominations: Portable -> AH
+impl<T: pallet_staking_async::Config<CurrencyBalance = u128>>
+	Into<pallet_staking_async::Nominations<T>> for PortableNominations
+where
+	<T as frame_system::Config>::AccountId: From<AccountId32>,
+{
+	fn into(self) -> pallet_staking_async::Nominations<T> {
+		pallet_staking_async::Nominations {
+			targets: self
+				.targets
+				.into_iter()
+				.map(Into::into)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			submitted_in: self.submitted_in,
+			suppressed: self.suppressed,
+		}
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	TypeInfo,
+	Default,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
+)]
+pub struct PortablePagedExposureMetadata {
+	pub total: u128,
+	pub own: u128,
+	pub nominator_count: u32,
+	pub page_count: Page,
+}
+
+// PagedExposureMetadata: RC -> Portable
+impl IntoPortable for sp_staking::PagedExposureMetadata<u128> {
+	type Portable = PortablePagedExposureMetadata;
+
+	fn into_portable(self) -> Self::Portable {
+		PortablePagedExposureMetadata {
+			total: self.total,
+			own: self.own,
+			nominator_count: self.nominator_count,
+			page_count: self.page_count,
+		}
+	}
+}
+
+// PagedExposureMetadata: Portable -> AH
+impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMetadata {
+	fn into(self) -> sp_staking::PagedExposureMetadata<u128> {
+		sp_staking::PagedExposureMetadata {
+			total: self.total,
+			own: self.own,
+			nominator_count: self.nominator_count,
+			page_count: self.page_count,
+		}
+	}
+}
+
+/// A snapshot of the stake backing a single validator in the system.
+#[derive(
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	TypeInfo,
+	DecodeWithMemTracking,
+)]
+pub struct PortableExposurePage {
+	pub page_total: u128,
+	pub others: BoundedVec<PortableIndividualExposure, ConstU32<600>>, // Range 0-512
+}
+
+// ExposurePage: RC -> Portable
+impl IntoPortable for sp_staking::ExposurePage<AccountId32, u128> {
+	type Portable = PortableExposurePage;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableExposurePage {
+			page_total: self.page_total,
+			others: self
+				.others
+				.into_iter()
+				.map(IntoPortable::into_portable)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+		}
+	}
+}
+
+// ExposurePage: Portable -> AH (part 1)
+impl Into<sp_staking::ExposurePage<AccountId32, u128>> for PortableExposurePage {
+	fn into(self) -> sp_staking::ExposurePage<AccountId32, u128> {
+		sp_staking::ExposurePage {
+			page_total: self.page_total,
+			others: self.others.into_iter().map(Into::into).collect::<Vec<_>>(),
+		}
+	}
+}
+
+// ExposurePage: Portable -> AH (part 2)
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::BoundedExposurePage<T>> for PortableExposurePage
+{
+	fn into(self) -> pallet_staking_async::BoundedExposurePage<T> {
+		let page: sp_staking::ExposurePage<_, _> = self.into();
+		pallet_staking_async::BoundedExposurePage::from(page)
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+)]
+pub struct PortableIndividualExposure {
+	pub who: AccountId32,
+	pub value: u128,
+}
+
+// IndividualExposure: RC -> Portable
+impl IntoPortable for sp_staking::IndividualExposure<AccountId32, u128> {
+	type Portable = PortableIndividualExposure;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableIndividualExposure { who: self.who, value: self.value }
+	}
+}
+
+// IndividualExposure: Portable -> AH
+impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndividualExposure {
+	fn into(self) -> sp_staking::IndividualExposure<AccountId32, u128> {
+		sp_staking::IndividualExposure { who: self.who, value: self.value }
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	Clone,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
+)]
+pub struct PortableEraRewardPoints {
+	pub total: u32,
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, //  Up to MaxValidatorSize
+}
+
+// EraRewardPoints: RC -> Portable
+impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
+	type Portable = PortableEraRewardPoints;
+
+	fn into_portable(self) -> Self::Portable {
+		let individual: BoundedVec<_, ConstU32<600>> =
+			self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into();
+
+		PortableEraRewardPoints { total: self.total, individual }
+	}
+}
+
+// EraRewardPoints: Portable -> AH
+impl<
+		T: pallet_staking_async::Config<CurrencyBalance = u128>
+			+ frame_system::Config<AccountId = AccountId32>,
+	> Into<pallet_staking_async::EraRewardPoints<T>> for PortableEraRewardPoints
+{
+	fn into(self) -> pallet_staking_async::EraRewardPoints<T> {
+		let individual = self
+			.individual
+			.into_iter()
+			.take(T::MaxValidatorSet::get() as usize)
+			.collect::<BTreeMap<_, _>>();
+		let bounded = BoundedBTreeMap::<_, _, T::MaxValidatorSet>::try_from(individual)
+			.defensive()
+			.unwrap_or_default();
+
+		pallet_staking_async::EraRewardPoints { total: self.total, individual: bounded }
+	}
+}
+
+#[derive(
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Clone,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	RuntimeDebug,
+	TypeInfo,
+)]
+pub struct PortableValidatorPrefs {
+	pub commission: Perbill,
+	pub blocked: bool,
+}
+
+// ValidatorPrefs: RC -> Portable
+impl IntoPortable for pallet_staking::ValidatorPrefs {
+	type Portable = PortableValidatorPrefs;
+
+	fn into_portable(self) -> Self::Portable {
+		PortableValidatorPrefs { commission: self.commission, blocked: self.blocked }
+	}
+}
+
+// ValidatorPrefs: Portable -> AH
+impl Into<pallet_staking_async::ValidatorPrefs> for PortableValidatorPrefs {
+	fn into(self) -> pallet_staking_async::ValidatorPrefs {
+		pallet_staking_async::ValidatorPrefs { commission: self.commission, blocked: self.blocked }
 	}
 }

@@ -97,8 +97,13 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
 				break;
 			}
 
@@ -169,11 +174,9 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages.into_inner(),
-				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
-				|len| T::AhWeightInfo::receive_bounties_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages.into_inner(), |messages| {
+				types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages }
+			})?;
 		}
 
 		if last_key == BountiesStage::Finished {
@@ -192,7 +195,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 pub mod alias {
 	use super::*;
-	use pallet_bounties::BountyStatus;
+	pub use pallet_bounties::BountyStatus;
 
 	/// Alias of [pallet_bounties::BalanceOf].
 	pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;

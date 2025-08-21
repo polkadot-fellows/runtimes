@@ -75,7 +75,7 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
-	AhGovernanceLocation, FellowshipLocation, RcGovernanceLocation, StakingPot,
+	AssetHubLocation, FellowshipLocation, RelayChainLocation, StakingPot,
 	XcmOriginToTransactDispatchOrigin,
 };
 
@@ -466,6 +466,8 @@ pub const PERIOD: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
@@ -499,8 +501,8 @@ parameter_types! {
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOf<
-		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
-		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
 	>,
 >;
 

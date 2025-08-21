@@ -78,7 +78,7 @@ use system_parachains_constants::{
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::prelude::*;
 use xcm_config::{
-	AhGovernanceLocation, DotRelayLocation, FellowshipLocation, RcGovernanceLocation, StakingPot,
+	AssetHubLocation, DotRelayLocation, FellowshipLocation, RelayChainLocation, StakingPot,
 	XcmOriginToTransactDispatchOrigin,
 };
 use xcm_runtime_apis::{
@@ -426,6 +426,8 @@ pub const SESSION_LENGTH: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// We don't have stash and controller, thus we don't need the convert as well.
@@ -460,8 +462,8 @@ parameter_types! {
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOf<
-		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
-		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
 	>,
 >;
 

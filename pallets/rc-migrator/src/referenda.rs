@@ -106,11 +106,9 @@ impl<T: Config> ReferendaMigrator<T> {
 		batch.push((referendum_count, deciding_count, track_queue));
 		weight_counter.consume(batch.consume_weight());
 
-		Pallet::<T>::send_chunked_xcm_and_track(
-			batch,
-			|batch| types::AhMigratorCall::<T>::ReceiveReferendaValues { values: batch },
-			|_| T::AhWeightInfo::receive_referenda_values(),
-		)?;
+		Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+			types::AhMigratorCall::<T>::ReceiveReferendaValues { values: batch }
+		})?;
 
 		Ok(())
 	}
@@ -148,6 +146,15 @@ impl<T: Config> ReferendaMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break last_key;
+			}
+
 			let next_key = match last_key {
 				Some(last_key) => {
 					let Some(next_key) = MetadataOf::<T, ()>::iter_keys_from_key(last_key).next()
@@ -175,11 +182,9 @@ impl<T: Config> ReferendaMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveReferendaMetadata { metadata: batch },
-				|len| T::AhWeightInfo::receive_referenda_metadata(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveReferendaMetadata { metadata: batch }
+			})?;
 		}
 
 		Ok(last_key)
@@ -207,6 +212,15 @@ impl<T: Config> ReferendaMigrator<T> {
 				} else {
 					break last_key;
 				}
+			}
+
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break last_key;
 			}
 
 			let next_key = match last_key {
@@ -251,11 +265,9 @@ impl<T: Config> ReferendaMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch },
-				|len| T::AhWeightInfo::receive_complete_referendums(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch }
+			})?;
 		}
 
 		Ok(last_key)

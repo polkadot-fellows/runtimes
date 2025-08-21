@@ -20,21 +20,14 @@ pub use pallet_balances;
 pub use pallet_message_queue;
 
 // Polkadot
-pub use pallet_whitelist;
 pub use pallet_xcm;
 pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 
 // Cumulus
-pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
+pub use emulated_integration_tests_common::macros::Dmp;
 pub use xcm_emulator::{assert_expected_events, Chain};
 
-use emulated_integration_tests_common::impls::{bx, Encode};
-pub use emulated_integration_tests_common::macros::Dmp;
-use frame_support::dispatch::{DispatchResultWithPostInfo, PostDispatchInfo};
-use sp_core::H256;
-use sp_runtime::traits::{Dispatchable, Hash};
-use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 pub mod common;
 
 /// TODO: when bumping to polkadot-sdk v1.8.0,
@@ -557,83 +550,4 @@ macro_rules! test_chain_can_claim_assets {
 			});
 		}
 	};
-}
-
-/// Wraps a runtime call in a whitelist preimage call and dispatches it
-pub fn dispatch_whitelisted_call_with_preimage<T>(
-	call: T::RuntimeCall,
-	origin: T::RuntimeOrigin,
-) -> DispatchResultWithPostInfo
-where
-	T: Chain,
-	T::Runtime: pallet_whitelist::Config,
-	T::RuntimeCall: From<pallet_whitelist::Call<T::Runtime>>
-		+ Into<<T::Runtime as pallet_whitelist::Config>::RuntimeCall>
-		+ Dispatchable<RuntimeOrigin = T::RuntimeOrigin, PostInfo = PostDispatchInfo>,
-{
-	T::execute_with(|| {
-		let whitelist_call: T::RuntimeCall =
-			pallet_whitelist::Call::<T::Runtime>::dispatch_whitelisted_call_with_preimage {
-				call: Box::new(call.into()),
-			}
-			.into();
-		whitelist_call.dispatch(origin)
-	})
-}
-
-#[macro_export]
-macro_rules! assert_whitelisted {
-    ($chain:ident, $expected_call_hash:expr) => {
-		type RuntimeEvent = <$chain as $crate::Chain>::RuntimeEvent;
-		$crate::assert_expected_events!(
-			$chain,
-			vec![
-				RuntimeEvent::Whitelist($crate::pallet_whitelist::Event::CallWhitelisted { call_hash }) => {
-						call_hash: *call_hash == $expected_call_hash,
-				},
-			]
-		);
-    };
-}
-
-/// Encodes a runtime call and returns its H256 hash
-pub fn call_hash_of<T>(call: &T::RuntimeCall) -> H256
-where
-	T: Chain,
-	T::Runtime: frame_system::Config<Hash = H256>,
-	T::RuntimeCall: Encode,
-{
-	T::execute_with(|| {
-		let call_hash = <T::Runtime as frame_system::Config>::Hashing::hash_of(&call);
-		call_hash
-	})
-}
-
-/// Builds an XCM call to send an authorize upgrade message using the provided location
-pub fn build_xcm_send_authorize_upgrade_call<T, D>(location: Location) -> T::RuntimeCall
-where
-	T: Chain,
-	T::Runtime: pallet_xcm::Config,
-	T::RuntimeCall: Encode + From<pallet_xcm::Call<T::Runtime>>,
-	D: Chain,
-	D::Runtime: frame_system::Config<Hash = H256>,
-	D::RuntimeCall: Encode + From<frame_system::Call<D::Runtime>>,
-{
-	let code_hash = [1u8; 32].into();
-
-	let transact_call: D::RuntimeCall = frame_system::Call::authorize_upgrade { code_hash }.into();
-
-	let call: T::RuntimeCall = pallet_xcm::Call::send {
-		dest: bx!(VersionedLocation::from(location)),
-		message: bx!(VersionedXcm::from(Xcm(vec![
-			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-			Transact {
-				origin_kind: OriginKind::Superuser,
-				fallback_max_weight: None,
-				call: transact_call.encode().into(),
-			}
-		]))),
-	}
-	.into();
-	call
 }

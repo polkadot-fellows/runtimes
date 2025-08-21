@@ -13,12 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub use TreasuryAccount as RelayTreasuryPalletAccount;
+
 use super::{
-	AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CollatorSelection, FellowshipAdmin, ForeignAssets, GeneralAdmin,
-	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
-	ToKusamaXcmRouter, Treasurer, TrustBackedAssetsInstance, WeightToFee, XcmpQueue,
+	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
+	CollatorSelection, FellowshipAdmin, ForeignAssets, GeneralAdmin, NativeAndAssets,
+	ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, ToKusamaXcmRouter, Treasurer,
+	WeightToFee, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -31,7 +33,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Disabled, Equals, Everything, FromContains, Nothing,
+		ConstU32, Contains, ContainsPair, Disabled, Equals, Everything, FromContains,
 		PalletInfoAccess,
 	},
 };
@@ -48,8 +50,7 @@ use polkadot_runtime_constants::{
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
-use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
-use system_parachains_constants::TREASURY_PALLET_ID;
+use sp_runtime::traits::TryConvertInto;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
@@ -57,15 +58,17 @@ use xcm_builder::{
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
 	EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter,
 	GlobalConsensusParachainConvertsFor, HashedDescription, IsConcrete, LocalMint,
-	MatchedConvertedConcreteId, MintLocation, NoChecking, ParentAsSuperuser, ParentIsPreset,
-	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SingleAssetExchangeAdapter,
-	SovereignPaidRemoteExporter, SovereignSignedViaLocation, StartsWith, OriginToPluralityVoice,
-	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithLatestLocationConverter, WithUniqueTopic,
-	XcmFeeManagerFromComponents,
+	MatchedConvertedConcreteId, MintLocation, NoChecking, OriginToPluralityVoice,
+	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SingleAssetExchangeAdapter, SovereignPaidRemoteExporter,
+	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin,
+	WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+
+pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -83,7 +86,6 @@ parameter_types! {
 		xcm::v4::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	pub const RcGovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
@@ -95,16 +97,11 @@ parameter_types! {
 	// Account address: `14xmwinmCEz6oRrFdczHKqHgWNMiCysE2KrA4jXXAAM1Eogk`
 	pub PreMigrationRelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(system_parachains_constants::TREASURY_PALLET_ID.into_account_truncating());
-	pub PostMigrationTreasuryAccount: AccountId = crate::Treasury::account_id();
+			.unwrap_or(treasury::TreasuryAccount::get());
+	pub PostMigrationTreasuryAccount: AccountId = treasury::TreasuryAccount::get();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
 	pub const Here: Location = Location::here();
-
-	// FAIL-CI remove. Only here to make other tests compile
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
 }
 
 /// Treasury account that changes once migration ends.

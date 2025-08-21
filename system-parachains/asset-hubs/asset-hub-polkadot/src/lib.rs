@@ -53,7 +53,7 @@
 //! as other local assets.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -71,7 +71,6 @@ pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
-use ah_migration::{RcToAhFreezeReason, RcToAhHoldReason};
 use alloc::{borrow::Cow, vec, vec::Vec};
 use assets_common::{
 	foreign_creators::ForeignCreators,
@@ -90,7 +89,7 @@ use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUT
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
@@ -116,8 +115,8 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
-		EitherOfDiverse, Equals, EverythingBut, InstanceFilter, LinearStoragePrice,
-		NeverEnsureOrigin, PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
+		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
+		PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -134,18 +133,28 @@ use parachains_common::{
 
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use sp_runtime::RuntimeDebug;
-pub use system_parachains_constants::SLOT_DURATION;
+pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
-	polkadot::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	},
+	polkadot::{
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
 };
+
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
 	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
 	DotLocation, DotLocationV4, FellowshipLocation, ForeignAssetsConvertedConcreteId,
-	ForeignCreatorsSovereignAccountOf, RcGovernanceLocation, PoolAssetsConvertedConcreteId,
+	ForeignCreatorsSovereignAccountOf, PoolAssetsConvertedConcreteId, RelayChainLocation,
 	StakingPot, TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV4,
 	XcmOriginToTransactDispatchOrigin,
 };
@@ -257,7 +266,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -307,7 +316,7 @@ impl pallet_vesting::Config for Runtime {
 	/// block number of the Relay Chain, not the parachain. This is because with Coretime and Async
 	/// Backing, parachain block numbers may not be a good proxy for time. Vesting schedules should
 	/// be set accordingly.
-	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
@@ -464,7 +473,7 @@ impl pallet_indices::Config for Runtime {
 	type Currency = Balances;
 	type Deposit = IndexDeposit;
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO weights::pallet_indices::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -525,14 +534,14 @@ pub enum ProxyType {
 	///
 	/// Contains the `NominationPools` and `Utility` pallets.
 	NominationPools,
-	/// Placeholder variant for old migrated `Auction` proxy type from the Relay chain.
+	/// To be used with the remote proxy pallet to manage parachain lease auctions on the relay.
 	///
-	/// Cannot do anything.
-	OldAuction,
-	/// Placeholder variant for old migrated `ParaRegistration` proxy type from the Relay chain.
+	/// This variant cannot do anything on Asset Hub itself.
+	Auction,
+	/// To be used with the remote proxy pallet to manage parachain registration on the relay.
 	///
-	/// Cannot do anything.
-	OldParaRegistration,
+	/// This variant cannot do anything on Asset Hub itself.
+	ParaRegistration,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -544,7 +553,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::OldAuction | ProxyType::OldParaRegistration => false,
+			ProxyType::Auction | ProxyType::ParaRegistration => false,
 			ProxyType::NonTransfer => !matches!(
 				c,
 				RuntimeCall::Balances { .. } |
@@ -553,7 +562,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					//RuntimeCall::Bounties(..) | # TODO more
+					RuntimeCall::Bounties(..) |
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
@@ -648,9 +657,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-
 			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			// TODO: Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
 				RuntimeCall::Treasury(..) |
@@ -664,16 +671,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Staking => {
 				matches!(
 					c,
-					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) |
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
 						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
-					                                   *RuntimeCall::VoterList(..)
-					                                   */
+						RuntimeCall::NominationPools(..) |
+						RuntimeCall::VoterList(..)
 				)
 			},
 			ProxyType::NominationPools => {
-				matches!(c, /* RuntimeCall::NominationPools(..) | */ RuntimeCall::Utility(..))
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
 		}
 	}
@@ -710,7 +716,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -827,6 +833,8 @@ parameter_types! {
 }
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
@@ -845,7 +853,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -859,7 +867,7 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
+	EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
@@ -923,7 +931,7 @@ impl pallet_uniques::Config for Runtime {
 
 parameter_types! {
 	pub NftsPalletFeatures: PalletFeatures = PalletFeatures::all_enabled();
-	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
+	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 30 * RC_DAYS;
 	// re-use the Uniques deposits
 	pub const NftsCollectionDeposit: Balance = system_para_deposit(1, 130);
 	pub const NftsItemDeposit: Balance = system_para_deposit(1, 164) / 40;
@@ -959,7 +967,7 @@ impl pallet_nfts::Config for Runtime {
 	type WeightInfo = weights::pallet_nfts::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 /// XCM router instance to BridgeHub with bridging capabilities for `Kusama` global
@@ -1124,7 +1132,6 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	}
 }
 
-// TODO: should be set with Relay Chain Block Number Provider
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
@@ -1138,7 +1145,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -1167,21 +1174,21 @@ parameter_types! {
 
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type PortableHoldReason = pallet_rc_migrator::types::PortableHoldReason;
+	type PortableFreezeReason = pallet_rc_migrator::types::PortableFreezeReason;
 	type RuntimeEvent = RuntimeEvent;
-	type ManagerOrigin = EitherOfDiverse<
+	type AdminOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
 	>;
 	type Currency = Balances;
+	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type TreasuryPaymaster = treasury::TreasuryPaymaster;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
-	type RcHoldReason = ah_migration::RcHoldReason;
-	type RcFreezeReason = ah_migration::RcFreezeReason;
-	type RcToAhHoldReason = RcToAhHoldReason;
-	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = ah_migration::RcProxyType;
 	type RcToProxyType = ah_migration::RcToProxyType;
-	type RcToAhDelay = ah_migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type RcToAhCall = ah_migration::RcToAhCall;
 	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
@@ -1191,10 +1198,10 @@ impl pallet_ah_migrator::Config for Runtime {
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
 	type TreasuryAccounts = ah_migration::TreasuryAccounts;
 	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
+	type AhPreMigrationCalls = ah_migration::call_filter::CallsEnabledBeforeMigration;
 	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
-	// TODO: set actual message queue instance when upgraded to sdk/2503
-	type MessageQueue = ();
+	type MessageQueue = MessageQueue;
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 
@@ -1260,10 +1267,15 @@ construct_runtime!(
 		StateTrieMigration: pallet_state_trie_migration = 70,
 
 		// Staking in the 80s
+		Staking: pallet_staking_async = 89,
 		NominationPools: pallet_nomination_pools = 80,
-		FastUnstake: pallet_fast_unstake = 81,
 		VoterList: pallet_bags_list::<Instance1> = 82,
 		DelegatedStaking: pallet_delegated_staking = 83,
+		StakingRcClient: pallet_staking_async_rc_client = 84,
+		MultiBlockElection: pallet_election_provider_multi_block = 85,
+		MultiBlockElectionVerifier: pallet_election_provider_multi_block::verifier = 86,
+		MultiBlockElectionUnsigned: pallet_election_provider_multi_block::unsigned = 87,
+		MultiBlockElectionSigned: pallet_election_provider_multi_block::signed = 88,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
@@ -1399,6 +1411,7 @@ mod benches {
 		[pallet_asset_conversion, AssetConversion]
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]
 		[pallet_balances, Balances]
+		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
@@ -1421,11 +1434,10 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
-		// FIXME [pallet_ah_migrator, AhMigrator]
+		[pallet_ah_migrator, AhMigrator]
+		[pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
-		// TODO: [pallet_bags_list, VoterList]
-		// TODO: [pallet_fast_unstake, FastUnstake]
 
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
@@ -1434,6 +1446,17 @@ mod benches {
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
+
+		// Staking
+		[pallet_staking_async, Staking]
+		// TODO @ggwpez [pallet_nomination_pools, NominationPools] Does not work since it depends on pallet-staking being deployed, but we only have pallet-staking-async :(
+		[pallet_bags_list, VoterList]
+		// DelegatedStaking has no calls
+		// TODO @ggwpez [pallet_staking_async_rc_client, StakingRcClient]
+		[pallet_election_provider_multi_block, MultiBlockElection]
+		[pallet_election_provider_multi_block_verifier, MultiBlockElectionVerifier]
+		[pallet_election_provider_multi_block_unsigned, MultiBlockElectionUnsigned]
+		[pallet_election_provider_multi_block_signed, MultiBlockElectionSigned]
 	);
 
 	use frame_benchmarking::BenchmarkError;
@@ -1773,9 +1796,7 @@ mod benches {
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
-	pub use pallet_xcm::benchmarking::{
-		Pallet as PalletXcmExtrinsiscsBenchmark, Pallet as PalletXcmExtrinsicsBenchmark,
-	};
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub use pallet_xcm_bridge_hub_router::benchmarking::Pallet as XcmBridgeHubRouterBench;
 	pub use sp_storage::TrackedStorageKey;
 

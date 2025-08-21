@@ -24,18 +24,20 @@
 //! types directly.
 
 use super::Permission;
-use crate::porting_prelude::*;
 
 use frame_support::{
 	pallet_prelude::*,
-	traits::{Currency, Defensive},
+	traits::{schedule::DispatchTime, Currency, StorePreimage},
 };
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, RawOrigin};
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
+use pallet_staking_async::RewardDestination;
 use sp_runtime::{
 	traits::{Dispatchable, TryConvert},
 	AccountId32,
+	DispatchError::Module,
+	ModuleError,
 };
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -62,7 +64,7 @@ pub struct Proxy {
 	pub permissions: Vec<Permission>,
 	/// Can control `who`.
 	pub delegatee: AccountId32,
-	// TODO also check the delay
+	// TODO: @ggwpez also check the delay
 }
 
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
@@ -105,7 +107,7 @@ impl AhMigrationCheck for ProxyBasicWorks {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Not empty in this case
 		assert!(
-			!pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_none(),
+			pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_some(),
 			"Assert storage 'Proxy::Proxies::ah_pre::empty'"
 		);
 	}
@@ -113,21 +115,23 @@ impl AhMigrationCheck for ProxyBasicWorks {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		for ((delegatee, delegator), permissions) in rc_pre_payload.iter() {
 			// Assert storage "Proxy::Proxies::ah_post::correct"
-			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);
+			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(delegator);
 			if entry.is_empty() {
-				// FIXME possibly bug
-				log::error!(
-					"Storage entry must exist for {:?} -> {:?}",
-					delegator.to_polkadot_ss58(),
-					delegatee.to_polkadot_ss58()
-				);
-				continue
+				defensive!("Storage entry must exist");
 			}
 
 			let maybe_delay =
 				entry.iter().find(|proxy| proxy.delegate == *delegatee).map(|proxy| proxy.delay);
 
-			Self::check_proxy(delegatee, delegator, permissions, maybe_delay.unwrap_or(0));
+			let delegatee =
+				pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(
+					delegatee.clone(),
+				);
+			let delegator =
+				pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(
+					delegator.clone(),
+				);
+			Self::check_proxy(&delegatee, &delegator, permissions, maybe_delay.unwrap_or(0));
 		}
 	}
 }
@@ -164,7 +168,6 @@ impl ProxyBasicWorks {
 		}
 
 		let allowed_transfer = permissions.contains(&Permission::Any);
-
 		if allowed_transfer {
 			assert!(Self::can_transfer(delegatee, delegator, true), "`Any` can transfer");
 		} else {
@@ -172,7 +175,7 @@ impl ProxyBasicWorks {
 		}
 
 		let allowed_governance = permissions.contains(&Permission::Any) ||
-			permissions.contains(&Permission::NonTransfer) ||
+			// NonTransfer is not allowed to do governance
 			permissions.contains(&Permission::Governance);
 		if allowed_governance {
 			assert!(
@@ -182,17 +185,25 @@ impl ProxyBasicWorks {
 		} else {
 			assert!(
 				!Self::can_governance(delegatee, delegator, false),
-				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {:?}",
-				permissions
+				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {permissions:?}"
 			);
 		}
 
-		// TODO add staking etc
+		let allowed_staking = permissions.contains(&Permission::Any) ||
+			permissions.contains(&Permission::NonTransfer) ||
+			permissions.contains(&Permission::Staking);
+		if allowed_staking {
+			assert!(Self::can_stake(delegatee, delegator), "`Any` or `Staking` can stake");
+		} else {
+			assert!(!Self::can_stake(delegatee, delegator), "Only `Any` or `Staking` can stake");
+		}
 
 		// Alice cannot transfer
-		assert!(!Self::can_transfer(&alice, &delegator, false), "Alice cannot transfer");
+		assert!(!Self::can_transfer(&alice, delegator, false), "Alice cannot transfer");
 		// Alice cannot do governance
-		assert!(!Self::can_governance(&alice, &delegator, false), "Alice cannot do governance");
+		assert!(!Self::can_governance(&alice, delegator, false), "Alice cannot do governance");
+		// Alice cannot stake
+		assert!(!Self::can_stake(&alice, delegator), "Alice cannot stake");
 	}
 
 	/// Check that the `delegatee` can transfer balances on behalf of the `delegator`.
@@ -238,8 +249,17 @@ impl ProxyBasicWorks {
 			Self::fund_accounts(delegatee, delegator);
 
 			let value = <AssetHubRuntime as pallet_bounties::Config>::BountyValueMinimum::get() * 2;
-			let call: asset_hub_polkadot_runtime::RuntimeCall =
+			let proposal_call =
 				pallet_bounties::Call::propose_bounty { value, description: vec![] }.into();
+			let proposal =
+				<pallet_preimage::Pallet<AssetHubRuntime> as StorePreimage>::bound(proposal_call)
+					.unwrap();
+			let call: asset_hub_polkadot_runtime::RuntimeCall = pallet_referenda::Call::submit {
+				proposal_origin: Box::new(RawOrigin::Root.into()),
+				proposal: proposal.into(),
+				enactment_moment: DispatchTime::At(0),
+			}
+			.into();
 
 			let proxy_call: asset_hub_polkadot_runtime::RuntimeCall = pallet_proxy::Call::proxy {
 				real: delegator.clone().into(),
@@ -261,7 +281,48 @@ impl ProxyBasicWorks {
 			let _ = proxy_call
 				.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
 
-			Self::find_bounty_event()
+			Self::find_referenda_submitted_event()
+		})
+	}
+
+	/// Check that the `delegatee` can do staking on behalf of the `delegator`.
+	///
+	/// Uses the `bond` call
+	fn can_stake(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
+		frame_support::hypothetically!({
+			// Migration should have finished
+			assert!(
+				pallet_ah_migrator::AhMigrationStage::<AssetHubRuntime>::get() ==
+					pallet_ah_migrator::MigrationStage::MigrationDone,
+				"Migration should have finished"
+			);
+			Self::fund_accounts(delegatee, delegator);
+
+			let call: asset_hub_polkadot_runtime::RuntimeCall =
+				pallet_staking_async::Call::set_payee { payee: RewardDestination::Staked }.into();
+
+			// The proxy pallet is stupid and does not work when there are multiple delegations for
+			// the same account. So we need to force and try which it is...
+			frame_system::Pallet::<AssetHubRuntime>::reset_events();
+			for force_proxy_type in [
+				None,
+				Some(asset_hub_polkadot_runtime::ProxyType::Staking),
+				Some(asset_hub_polkadot_runtime::ProxyType::Any),
+				Some(asset_hub_polkadot_runtime::ProxyType::NonTransfer),
+			] {
+				let proxy_call: asset_hub_polkadot_runtime::RuntimeCall =
+					pallet_proxy::Call::proxy {
+						real: delegator.clone().into(),
+						force_proxy_type,
+						call: Box::new(call.clone()),
+					}
+					.into();
+
+				let _ = proxy_call
+					.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
+			}
+
+			Self::find_proxy_executed_event()
 		})
 	}
 
@@ -272,12 +333,12 @@ impl ProxyBasicWorks {
 	) -> <AssetHubRuntime as pallet_balances::Config>::Balance {
 		let ed = <AssetHubRuntime as pallet_balances::Config>::ExistentialDeposit::get();
 		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
-			&delegatee.clone().into(),
-			ed * 10000000,
+			&delegatee.clone(),
+			ed * 100_000_000_000,
 		);
 		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
-			&delegator.clone().into(),
-			ed * 10000000,
+			&delegator.clone(),
+			ed * 100_000_000_000,
 		);
 		ed
 	}
@@ -298,14 +359,37 @@ impl ProxyBasicWorks {
 		false
 	}
 
-	/// Check if there is a `BountyProposed` event.
-	fn find_bounty_event() -> bool {
+	/// Check if there is a `ReferendaSubmitted` event.
+	fn find_referenda_submitted_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
-			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(
-				pallet_bounties::Event::BountyProposed { .. },
+			if let asset_hub_polkadot_runtime::RuntimeEvent::Referenda(
+				pallet_referenda::Event::Submitted { .. },
 			) = event.event
 			{
 				return true
+			}
+		}
+
+		false
+	}
+
+	/// Check that the proxy call was executed.
+	///
+	/// Some operations of a pallet do not emit an event themselves so we rely on the Proxy pallet.
+	fn find_proxy_executed_event() -> bool {
+		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
+			match event.event {
+				asset_hub_polkadot_runtime::RuntimeEvent::Proxy(
+					pallet_proxy::Event::ProxyExecuted { result: Ok(()) },
+				) => return true,
+				// Pallet 89 is the staking pallet, if it fails in there then that means that the
+				// proxy already succeeded.
+				asset_hub_polkadot_runtime::RuntimeEvent::Proxy(
+					pallet_proxy::Event::ProxyExecuted {
+						result: Err(Module(ModuleError { index: 89, .. })),
+					},
+				) => return true,
+				_ => (),
 			}
 		}
 

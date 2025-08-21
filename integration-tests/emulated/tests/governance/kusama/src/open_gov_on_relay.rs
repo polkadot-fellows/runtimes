@@ -12,21 +12,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use emulated_integration_tests_common::{
-	impls::RelayChain,
-	xcm_emulator::{Chain, Parachain, TestExt},
-};
-use frame_support::{assert_err, assert_ok};
-use integration_tests_helpers::{
-	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
-	dispatch_whitelisted_call_with_preimage,
-};
-use kusama_runtime::governance::pallet_custom_origins::Origin;
-use kusama_system_emulated_network::{
-	AssetHubKusamaPara as AssetHubKusama, BridgeHubKusamaPara as BridgeHubKusama,
-	CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama, PeopleKusamaPara as PeopleKusama,
-};
-use sp_runtime::{traits::Dispatchable, DispatchError};
+
+use crate::imports::*;
 
 #[test]
 fn relaychain_can_authorize_upgrade_for_itself() {
@@ -91,7 +78,9 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	assert_ok!(dispatch_whitelisted_call_with_preimage::<Kusama>(authorize_upgrade, ok_origin));
 
 	// check after - authorized
-	Kusama::execute_with(|| assert!(<Kusama as Chain>::System::authorized_upgrade().is_some()));
+	Kusama::execute_with(|| {
+		assert_eq!(<Kusama as Chain>::System::authorized_upgrade().unwrap().code_hash(), &code_hash)
+	});
 }
 
 #[test]
@@ -100,20 +89,40 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	type KusamaRuntimeCall = <Kusama as Chain>::RuntimeCall;
 	type KusamaRuntimeOrigin = <Kusama as Chain>::RuntimeOrigin;
 
+	Kusama::execute_with(|| {
+		Dmp::make_parachain_reachable(AssetHubKusama::para_id());
+		Dmp::make_parachain_reachable(BridgeHubKusama::para_id());
+		Dmp::make_parachain_reachable(CoretimeKusama::para_id());
+		Dmp::make_parachain_reachable(PeopleKusama::para_id());
+	});
+
+	let code_hash_asset_hub = [1u8; 32].into();
+	let code_hash_bridge_hub = [2u8; 32].into();
+	let code_hash_coretime = [4u8; 32].into();
+	let code_hash_people = [5u8; 32].into();
+
 	let authorize_upgrade =
 		KusamaRuntimeCall::Utility(pallet_utility::Call::<KusamaRuntime>::force_batch {
 			calls: vec![
 				build_xcm_send_authorize_upgrade_call::<Kusama, AssetHubKusama>(
 					Kusama::child_location_of(AssetHubKusama::para_id()),
+					&code_hash_asset_hub,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Kusama, BridgeHubKusama>(
 					Kusama::child_location_of(BridgeHubKusama::para_id()),
+					&code_hash_bridge_hub,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Kusama, CoretimeKusama>(
 					Kusama::child_location_of(CoretimeKusama::para_id()),
+					&code_hash_coretime,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<Kusama, PeopleKusama>(
 					Kusama::child_location_of(PeopleKusama::para_id()),
+					&code_hash_people,
+					None,
 				),
 			],
 		});
@@ -147,6 +156,7 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 		use kusama_runtime::governance::pallet_custom_origins::Origin::Fellows as FellowsOrigin;
 		let fellows_origin: KusamaRuntimeOrigin = FellowsOrigin.into();
 		assert_ok!(whitelist_call.dispatch(fellows_origin));
+		assert_whitelisted!(Kusama, call_hash);
 	});
 
 	// Err - when dispatch wrong origin
@@ -176,16 +186,28 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	assert_ok!(dispatch_whitelisted_call_with_preimage::<Kusama>(authorize_upgrade, ok_origin));
 
 	AssetHubKusama::execute_with(|| {
-		assert!(<AssetHubKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<AssetHubKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_asset_hub
+		)
 	});
 	// check after - authorized
 	BridgeHubKusama::execute_with(|| {
-		assert!(<BridgeHubKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<BridgeHubKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_bridge_hub
+		)
 	});
 	CoretimeKusama::execute_with(|| {
-		assert!(<CoretimeKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<CoretimeKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_coretime
+		)
 	});
 	PeopleKusama::execute_with(|| {
-		assert!(<PeopleKusama as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<PeopleKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_people
+		)
 	});
 }

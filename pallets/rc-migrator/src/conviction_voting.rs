@@ -96,10 +96,16 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
 				break;
 			}
+
 			made_progress = true;
 
 			last_key = match last_key {
@@ -148,11 +154,9 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
-				|len| T::AhWeightInfo::receive_conviction_voting_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages }
+			})?;
 		}
 
 		if last_key == ConvictionVotingStage::Finished {

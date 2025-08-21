@@ -19,9 +19,8 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf,
-		LocationToAccountId, RelayTreasuryLocation, StakingPot, TrustBackedAssetsPalletLocation,
+		bridging, CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf,
+		LocationToAccountId, RelayChainLocation, StakingPot, TrustBackedAssetsPalletLocation,
 		XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
@@ -36,13 +35,13 @@ use asset_test_utils::{
 };
 use codec::{Decode, Encode};
 use core::ops::Mul;
-use frame_support::{assert_ok, traits::fungibles::InspectEnumerable};
+use frame_support::{assert_err, assert_ok, traits::fungibles::InspectEnumerable};
 use parachains_common::{
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance,
 };
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::traits::MaybeEquivalence;
+use sp_runtime::{traits::MaybeEquivalence, Either};
 use system_parachains_constants::{
 	kusama::consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, polkadot::fee::WeightToFee,
 };
@@ -402,9 +401,11 @@ fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
 	}
 }
 
-/* FIXME @karol FAIL-CI
+/* // FIXME @karol FAIL-CI
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
+	use sp_runtime::traits::Get;
+
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -432,9 +433,9 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		Some(RelayTreasuryPalletAccount::get()),
+		Some(TreasuryAccount::get()),
 	)
-}*/
+}  */
 
 #[test]
 fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_swap_works() {
@@ -597,7 +598,7 @@ fn change_xcm_bridge_hub_router_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-        Governance::get(),
+		Governance::get(),
 		|| {
 			log::error!(
 				target: "bridges::estimate",
@@ -629,7 +630,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-        Governance::get(),
+		Governance::get(),
 		|| {
 			(
 				bridging::XcmBridgeHubRouterByteFee::key().to_vec(),
@@ -655,7 +656,7 @@ fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-        Governance::get(),
+		Governance::get(),
 		|| {
 			(
 				bridging::to_ethereum::BridgeHubEthereumBaseFee::key().to_vec(),
@@ -1384,7 +1385,8 @@ fn xcm_payment_api_works() {
 		RuntimeOrigin,
 		Block,
 	>();
-	// TODO: uncomment when migrated to the XCMv5 or patched `xcm_payment_api_with_pools_works`
+	// TODO: @ggwpez uncomment when migrated to the XCMv5 or patched
+	// `xcm_payment_api_with_pools_works`
 	// asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
 	// 	Runtime,
 	// 	RuntimeCall,
@@ -1772,4 +1774,51 @@ pub mod remove_when_asset_test_utils_doesnt_use_latest_xcm_location {
 		}
 	}
 );
+}
+
+#[test]
+fn governance_authorize_upgrade_works() {
+	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
+
+	// no - random para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(XcmError::Barrier)
+	);
+	// no - AssetHub
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
+		Either::Right(XcmError::Barrier)
+	);
+	// no - Collectives
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
+		Either::Right(XcmError::BadOrigin)
+	);
+	// no - Collectives Voice of Fellows plurality
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::LocationAndDescendOrigin(
+			Location::new(1, Parachain(COLLECTIVES_ID)),
+			Plurality { id: BodyId::Technical, part: BodyPart::Voice }.into()
+		)),
+		Either::Right(XcmError::BadOrigin)
+	);
+
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
 }

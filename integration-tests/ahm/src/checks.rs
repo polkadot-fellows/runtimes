@@ -18,18 +18,12 @@
 
 use crate::porting_prelude::*;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
-use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
-use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
-	AccountId32,
-};
-use std::{collections::BTreeMap, str::FromStr};
+use pallet_rc_migrator::types::RcMigrationCheck;
+
+use frame_support::defensive_assert;
+#[cfg(feature = "try-runtime")]
+use frame_support::traits::{TryDecodeEntireStorage, TryDecodeEntireStorageError, TryState};
 
 pub struct SanityChecks;
 
@@ -39,10 +33,7 @@ impl RcMigrationCheck for SanityChecks {
 	fn pre_check() -> Self::RcPrePayload {
 		assert!(
 			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
-				pallet_rc_migrator::MigrationStage::Scheduled {
-					start: 0u32.into(),
-					cool_off_end: 0u32.into(),
-				}
+				pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 }
 		);
 	}
 
@@ -65,7 +56,7 @@ impl AhMigrationCheck for SanityChecks {
 		);
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(
 			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get() ==
 				pallet_ah_migrator::MigrationStage::MigrationDone
@@ -76,10 +67,110 @@ impl AhMigrationCheck for SanityChecks {
 /// Assert that the root hash is what we expect.
 pub fn assert_root_hash(chain: &str, want_hex: &str) {
 	let got = hex::encode(sp_io::storage::root(sp_runtime::StateVersion::V1));
-	println!("{chain} root hash: {:?}", got);
+	println!("{chain} root hash: {got:?}");
 	if got == want_hex {
 		return
 	}
 
-	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {}\nGot:      {}", want_hex, got);
+	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {want_hex}\nGot:      {got}");
+}
+
+/// Runs the try-state checks for all pallets once pre-migration on RC, and once post-migration on
+/// AH.
+///
+/// noop if `feature = "try-runtime"` is not enabled.
+pub struct PalletsTryStateCheck;
+impl RcMigrationCheck for PalletsTryStateCheck {
+	type RcPrePayload = ();
+
+	fn pre_check() -> Self::RcPrePayload {
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = polkadot_runtime::AllPalletsWithSystem::try_state(
+				frame_system::Pallet::<polkadot_runtime::Runtime>::block_number(),
+				frame_support::traits::TryStateSelect::All,
+			);
+			if res.is_err() {
+				log::error!("Pallets try-state check failed: {res:?}");
+				defensive_assert!(false, "Pallets try-state check failed");
+			}
+		}
+	}
+	fn post_check(_: Self::RcPrePayload) {
+		// nada
+	}
+}
+
+impl AhMigrationCheck for PalletsTryStateCheck {
+	type AhPrePayload = ();
+	type RcPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// nada
+	}
+
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_state(
+				frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::block_number(),
+				frame_support::traits::TryStateSelect::All,
+			);
+
+			if let Err(es) = res {
+				log::error!("Pallets try-state check failed with error {:?}", es);
+				defensive_assert!(false, "Pallets try-state check failed");
+			}
+		}
+	}
+}
+
+pub struct EntireStateDecodes;
+
+impl RcMigrationCheck for EntireStateDecodes {
+	type RcPrePayload = ();
+
+	fn pre_check() -> Self::RcPrePayload {}
+
+	fn post_check(_: Self::RcPrePayload) {
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = polkadot_runtime::AllPalletsWithSystem::try_decode_entire_state();
+
+			if let Err(es) = res {
+				log::error!(
+					"Pallets try-decode-entire-storage check failed with {} errors",
+					es.len()
+				);
+				for e in es {
+					log::error!("- {}, value: {:?}", &e, e.raw.as_ref().map(hex::encode));
+				}
+				defensive_assert!(false, "Pallets try-decode-entire-storage check failed");
+			}
+		}
+	}
+}
+
+impl AhMigrationCheck for EntireStateDecodes {
+	type RcPrePayload = ();
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {}
+
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
+		#[cfg(feature = "try-runtime")]
+		{
+			let res = asset_hub_polkadot_runtime::AllPalletsWithSystem::try_decode_entire_state();
+			if let Err(es) = res {
+				log::error!(
+					"Pallets try-decode-entire-storage check failed with {} errors",
+					es.len()
+				);
+				for e in es {
+					log::error!("- {}, value: {:?}", &e, e.raw.as_ref().map(hex::encode));
+				}
+				defensive_assert!(false, "Pallets try-decode-entire-storage check failed");
+			}
+		}
+	}
 }

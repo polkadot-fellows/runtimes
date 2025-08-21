@@ -12,21 +12,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::*;
+use crate::{common::*, imports::*};
+
 use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin;
-use codec::Encode;
-use emulated_integration_tests_common::xcm_emulator::{Chain, Parachain, TestExt};
-use frame_support::assert_err;
-use integration_tests_helpers::{
-	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
-	dispatch_whitelisted_call_with_preimage,
-};
-use polkadot_system_emulated_network::{
-	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
-	CoretimePolkadotPara as CoretimePolkadot, PeoplePolkadotPara as PeoplePolkadot,
-	PolkadotRelay as Polkadot,
-};
-use sp_runtime::DispatchError;
 
 #[test]
 fn assethub_can_authorize_upgrade_for_itself() {
@@ -98,7 +86,10 @@ fn assethub_can_authorize_upgrade_for_itself() {
 
 	// check after - authorized
 	AssetHubPolkadot::execute_with(|| {
-		assert!(<AssetHubPolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<AssetHubPolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash
+		)
 	});
 }
 
@@ -108,10 +99,14 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	type AssetHubRuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
 	type AssetHubRuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+	let code_hash = [1u8; 32].into();
+
 	let authorize_upgrade =
 		AssetHubRuntimeCall::Utility(pallet_utility::Call::<AssetHubRuntime>::force_batch {
 			calls: vec![build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, Polkadot>(
 				AssetHubPolkadot::parent_location(),
+				&code_hash,
+				None,
 			)],
 		});
 
@@ -168,7 +163,12 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	));
 
 	// check after - authorized
-	Polkadot::execute_with(|| assert!(<Polkadot as Chain>::System::authorized_upgrade().is_some()));
+	Polkadot::execute_with(|| {
+		assert_eq!(
+			<Polkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash
+		)
+	});
 }
 
 #[test]
@@ -177,20 +177,33 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 	type AssetHubRuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
 	type AssetHubRuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
+	let code_hash_bridge_hub = [2u8; 32].into();
+	let code_hash_collectives = [3u8; 32].into();
+	let code_hash_coretime = [4u8; 32].into();
+	let code_hash_people = [5u8; 32].into();
+
 	let authorize_upgrade =
 		AssetHubRuntimeCall::Utility(pallet_utility::Call::<AssetHubRuntime>::force_batch {
 			calls: vec![
 				build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, BridgeHubPolkadot>(
 					AssetHubPolkadot::sibling_location_of(BridgeHubPolkadot::para_id()),
+					&code_hash_bridge_hub,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, CollectivesPolkadot>(
 					AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+					&code_hash_collectives,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, CoretimePolkadot>(
 					AssetHubPolkadot::sibling_location_of(CoretimePolkadot::para_id()),
+					&code_hash_coretime,
+					None,
 				),
 				build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, PeoplePolkadot>(
 					AssetHubPolkadot::sibling_location_of(PeoplePolkadot::para_id()),
+					&code_hash_people,
+					None,
 				),
 			],
 		});
@@ -260,15 +273,29 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 
 	// check after - authorized
 	BridgeHubPolkadot::execute_with(|| {
-		assert!(<BridgeHubPolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<BridgeHubPolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_bridge_hub
+		)
 	});
 	CollectivesPolkadot::execute_with(|| {
-		assert!(<CollectivesPolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<CollectivesPolkadot as Chain>::System::authorized_upgrade()
+				.unwrap()
+				.code_hash(),
+			&code_hash_collectives
+		)
 	});
 	CoretimePolkadot::execute_with(|| {
-		assert!(<CoretimePolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<CoretimePolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_coretime
+		)
 	});
 	PeoplePolkadot::execute_with(|| {
-		assert!(<PeoplePolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<PeoplePolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_people
+		)
 	});
 }

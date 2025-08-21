@@ -24,7 +24,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_vesting_schedules(
 		messages: Vec<RcVestingSchedule<T>>,
 	) -> Result<(), Error<T>> {
-		alias::StorageVersion::<T>::put(alias::Releases::V1);
+		pallet_vesting::StorageVersion::<T>::put(pallet_vesting::Releases::V1);
 		log::info!(target: LOG_TARGET, "Integrating {} vesting schedules", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::Vesting,
@@ -53,7 +53,10 @@ impl<T: Config> Pallet<T> {
 
 	/// Integrate vesting schedules.
 	pub fn do_process_vesting_schedule(message: RcVestingSchedule<T>) -> Result<(), Error<T>> {
-		let mut ah_schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
+		let translated_account = Self::translate_account_rc_to_ah(message.who);
+
+		let mut ah_schedules =
+			pallet_vesting::Vesting::<T>::get(&translated_account).unwrap_or_default();
 
 		if !ah_schedules.is_empty() {
 			defensive!("We disabled vesting, looks like someone used it. Manually verify this and then remove this defensive assert.");
@@ -66,27 +69,10 @@ impl<T: Config> Pallet<T> {
 				.map_err(|_| Error::<T>::FailedToIntegrateVestingSchedule)?;
 		}
 
-		pallet_vesting::Vesting::<T>::insert(&message.who, &ah_schedules);
-		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
+		pallet_vesting::Vesting::<T>::insert(&translated_account, &ah_schedules);
+		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", translated_account, ah_schedules.len());
 
 		Ok(())
-	}
-}
-
-pub mod alias {
-	use super::*;
-
-	#[frame_support::storage_alias(pallet_name)]
-	pub type StorageVersion<T: pallet_vesting::Config> =
-		StorageValue<pallet_vesting::Pallet<T>, Releases, ValueQuery>;
-
-	#[derive(
-		Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, Default, TypeInfo,
-	)]
-	pub enum Releases {
-		#[default]
-		V0,
-		V1,
 	}
 }
 
@@ -101,8 +87,8 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 		let vesting_schedules: Vec<_> = pallet_vesting::Vesting::<T>::iter().collect();
 		assert!(vesting_schedules.is_empty(), "Assert storage 'Vesting::Vesting::ah_pre::empty'");
 		assert_eq!(
-			alias::StorageVersion::<T>::get(),
-			alias::Releases::V0,
+			pallet_vesting::StorageVersion::<T>::get(),
+			pallet_vesting::Releases::V0,
 			"Vesting::StorageVersion::ah_post::empty"
 		)
 	}
@@ -110,12 +96,15 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
 
-		let rc_pre: BTreeMap<
-			Vec<u8>,
-			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
-		> = rc_pre_payload
+		// Apply account translation to RC pre-check data for consistent comparison
+
+		let rc_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
-			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
+			.map(|(who_encoded, balances, vesting_info)| {
+				let translated_encoded =
+					Pallet::<T>::translate_encoded_account_rc_to_ah(who_encoded);
+				(translated_encoded, (balances, vesting_info))
+			})
 			.collect();
 
 		let all_post: BTreeMap<
@@ -156,6 +145,6 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 
 		// Assert storage "Vesting::StorageVersion::ah_post::correct"
 		// Assert storage "Vesting::StorageVersion::ah_post::consistent"
-		assert_eq!(alias::StorageVersion::<T>::get(), alias::Releases::V1, "Vesting StorageVersion mismatch: Asset Hub schedules differ from original Relay Chain schedules")
+		assert_eq!(pallet_vesting::StorageVersion::<T>::get(), pallet_vesting::Releases::V1, "Vesting StorageVersion mismatch: Asset Hub schedules differ from original Relay Chain schedules")
 	}
 }

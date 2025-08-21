@@ -25,6 +25,7 @@ fix this by either block number or on an era and submit this to the Relay Chain.
 ### Migration
 
 The migration will begin to run from the fixed block number and emit the following events to notify of this:
+
 - `pallet_rc_migrator::AssetHubMigrationStarted` on the Relay Chain
 - `pallet_ah_migrator::AssetHubMigrationStarted` on the Asset Hub
 
