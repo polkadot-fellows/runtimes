@@ -147,31 +147,30 @@ parameter_types! {
 	pub const NativeToForeignIdKey: &'static str = "NativeToForeignId";
 }
 
-/// Migrations to apply on runtime upgrade.
-pub type Migrations = (
-	// Unreleased
-	bridge_to_kusama_config::migration::MigrateToXcm5<
-		Runtime,
-		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
-	>,
-	frame_support::migrations::RemoveStorage<
+/// All migrations that will run on the next runtime upgrade.
+///
+/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
+/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
+
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
+
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = frame_support::migrations::RemoveStorage<
 		EthereumSystemPalletName,
 		NativeToForeignIdKey,
 		RocksDbWeight,
-	>,
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	pallet_bridge_relayers::migration::v2::MigrationToV2<
-		Runtime,
-		bridge_common_config::BridgeRelayersInstance,
-		bp_messages::LegacyLaneId,
-	>,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
+	>;
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations = ();
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
