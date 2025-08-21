@@ -11,6 +11,7 @@ repository.workspace = true
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
+frame-election-provider-support = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
@@ -22,8 +23,8 @@ pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
 pallet-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
-pallet-fast-unstake = { workspace = true }
 pallet-delegated-staking = { workspace = true }
+pallet-child-bounties = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
@@ -34,10 +35,12 @@ pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-async = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-timestamp = { workspace = true }
+pallet-xcm = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
@@ -57,6 +60,7 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
+system-parachains-common = { workspace = true }
 
 # [dev-dependencies]
 # asset-hub-polkadot-runtime = { workspace = true, default-features = true }
@@ -69,6 +73,7 @@ std = [
 	"codec/std",
 	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
+	"frame-election-provider-support/std",
 	"frame-support/std",
 	"frame-system/std",
 	"hex/std",
@@ -78,9 +83,9 @@ std = [
 	"pallet-bags-list/std",
 	"pallet-balances/std",
 	"pallet-bounties/std",
+	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-delegated-staking/std",
-	"pallet-fast-unstake/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-multisig/std",
@@ -90,11 +95,13 @@ std = [
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
+	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-treasury/std",
 	"pallet-vesting/std",
+	"pallet-xcm/std",
 	"parachains-common/std",
 	"parachains-common/std",
 	"polkadot-parachain-primitives/std",
@@ -110,6 +117,7 @@ std = [
 	"sp-runtime/std",
 	"sp-staking/std",
 	"sp-std/std",
+	"system-parachains-common/std",
 	"xcm-builder/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
@@ -121,6 +129,7 @@ runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
@@ -128,9 +137,9 @@ runtime-benchmarks = [
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
+	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
-	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
@@ -140,11 +149,13 @@ runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
@@ -153,12 +164,14 @@ runtime-benchmarks = [
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
+	"system-parachains-common/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
+	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-ah-ops/try-runtime",
@@ -166,9 +179,9 @@ try-runtime = [
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-bounties/try-runtime",
+	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
 	"pallet-delegated-staking/try-runtime",
-	"pallet-fast-unstake/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
@@ -178,12 +191,15 @@ try-runtime = [
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
+	"pallet-xcm/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"system-parachains-common/try-runtime",
 ]

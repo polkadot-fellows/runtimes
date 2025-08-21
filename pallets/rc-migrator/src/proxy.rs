@@ -110,11 +110,9 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|n| T::AhWeightInfo::receive_proxy_proxies(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch }
+			})?;
 		}
 
 		// Return last processed key if there are more items, None if we're done
@@ -151,6 +149,15 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 
 		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch.len() + 1)) {
 			log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+			return Err(OutOfWeightError);
+		}
+
+		if batch.len() > MAX_ITEMS_PER_BLOCK {
+			log::info!(
+				"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+				MAX_ITEMS_PER_BLOCK,
+				batch.len()
+			);
 			return Err(OutOfWeightError);
 		}
 
@@ -213,6 +220,15 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break;
+			}
+
 			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });
 			pallet_proxy::Announcements::<T>::remove(&acc);
 			last_processed = Some(acc);
@@ -220,13 +236,9 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveProxyAnnouncements {
-					announcements: batch,
-				},
-				|n| T::AhWeightInfo::receive_proxy_announcements(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveProxyAnnouncements { announcements: batch }
+			})?;
 		}
 
 		// Return last processed key if there are more items, None if we're done

@@ -28,6 +28,11 @@ pub type RcScheduledOf<T> =
 	Scheduled<call::BoundedCallOf<T>, BlockNumberFor<T>, <T as Config>::RcPalletsOrigin>;
 
 impl<T: Config> Pallet<T> {
+	// NOTE: no direct account migration is provided for scheduler. The scheduler doesn't store
+	// direct account fields but it stores origins and calls. Origins are properly converted via
+	// T::RcToAhPalletsOrigin::try_convert(). Calls are properly converted via
+	// Self::map_rc_ah_call() which should handle account translation. The post-check reconstruct
+	// the expected state using the same conversion logic.
 	pub fn do_receive_scheduler_messages(
 		messages: Vec<RcSchedulerMessageOf<T>>,
 	) -> Result<(), Error<T>> {

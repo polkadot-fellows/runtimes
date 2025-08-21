@@ -67,13 +67,6 @@ mod aliases {
 			<T as pallet_multisig::Config>::MaxSignatories,
 		>,
 	>;
-
-	pub type MultisigOf<T> = Multisig<
-		BlockNumberFor<T>,
-		BalanceOf<T>,
-		AccountIdOf<T>,
-		<T as pallet_multisig::Config>::MaxSignatories,
-	>;
 }
 
 /// A multi sig that was migrated out and is ready to be received by AH.
@@ -142,6 +135,15 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				}
 			}
 
+			if batch.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					batch.len()
+				);
+				break;
+			}
+
 			let kv = iter.next();
 
 			let Some((k1, k2, multisig)) = kv else {
@@ -150,7 +152,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				break;
 			};
 
-			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
+			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {k1:?}");
 
 			batch.push(RcMultisig {
 				creator: multisig.depositor,
@@ -163,11 +165,9 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				batch,
-				|batch| types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch },
-				|n| T::AhWeightInfo::receive_multisigs(n),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch }
+			})?;
 		}
 
 		Ok(last_key)

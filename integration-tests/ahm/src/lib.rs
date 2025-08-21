@@ -18,6 +18,8 @@
 
 #![cfg(test)]
 
+pub mod accounts_translation_works;
+pub mod balances_test;
 pub mod bench_ah;
 pub mod bench_ops;
 pub mod bench_rc;
@@ -34,15 +36,7 @@ pub mod xcm_route;
 
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
-	// Dependency renaming depending on runtimes or SDK names:
-	#[cfg(not(feature = "ahm-kusama"))]
-	pub mod dependency_alias {
-		// Polkadot it is the canonical code
-	}
-	pub use dependency_alias::*;
-
-	// Import renaming depending on runtimes or SDK names:
-	#[cfg(not(feature = "ahm-kusama"))]
+	// For Kusama, we will add a feature here. For now it is just a stub.
 	pub mod import_alias {
 		pub use polkadot_runtime_constants::DOLLARS as RC_DOLLARS;
 	}
@@ -58,6 +52,5 @@ pub mod porting_prelude {
 		RuntimeOrigin as RcRuntimeOrigin,
 	};
 
-	#[cfg(not(feature = "ahm-kusama"))]
 	pub use polkadot_runtime_constants::proxy as rc_proxy_definition;
 }

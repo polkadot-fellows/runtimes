@@ -21,7 +21,7 @@ use crate::{types::*, *};
 use alias::{RewardPool, SubPools};
 use frame_support::traits::{ConstU32, Get};
 use pallet_nomination_pools::{BondedPoolInner, ClaimPermission, PoolId, PoolMember};
-use sp_runtime::{Perbill, Saturating};
+use sp_runtime::Perbill;
 
 /// The stages of the nomination pools pallet migration.
 ///
@@ -122,7 +122,7 @@ pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	/// Entry of the `Metadata` map.
 	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>) },
 	/// Entry of the `ReversePoolIdLookup` map.
-	// TODO check if inserting None into an option map is the same as deleting the key
+	// TODO: @ggwpez check if inserting None into an option map is the same as deleting the key
 	ReversePoolIdLookup { lookups: (T::AccountId, PoolId) },
 	/// Entry of the `ClaimPermissions` map.
 	ClaimPermissions { perms: (T::AccountId, ClaimPermission) },
@@ -165,8 +165,13 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!("Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
 				break;
 			}
 
@@ -326,11 +331,9 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
-				|messages| types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages },
-				|len| T::AhWeightInfo::receive_nom_pools_messages(len),
-			)?;
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages }
+			})?;
 		}
 
 		if inner_key == NomPoolsStage::Finished {
@@ -506,19 +509,13 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 		}
 
 		// Collect bonded pools
-		for (pool_id, mut pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
-			if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
-				{
-					change_rate.min_delay = change_rate.min_delay / 2u32.into();
-				}
-				change_rate.min_delay = change_rate.min_delay.saturating_add(tests::One::one());
-			}
+		for (pool_id, pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
 			let generic_pool = tests::GenericBondedPoolInner {
 				commission: tests::GenericCommission {
 					current: pool.commission.current,
 					max: pool.commission.max,
 					change_rate: pool.commission.change_rate,
-					throttle_from: None, // None to avoid discrepancies during the AH postcheck
+					throttle_from: pool.commission.throttle_from,
 					claim_permission: pool.commission.claim_permission,
 				},
 				member_counter: pool.member_counter,

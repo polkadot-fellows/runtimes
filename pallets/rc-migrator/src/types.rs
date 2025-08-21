@@ -20,8 +20,9 @@ extern crate alloc;
 
 use super::*;
 use alloc::string::String;
-use frame_support::traits::ContainsPair;
+use frame_support::traits::{tokens::IdAmount, ContainsPair};
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
+use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
 use xcm_builder::InspectMessageQueues;
@@ -34,6 +35,43 @@ impl ToPolkadotSs58 for AccountId32 {
 	fn to_polkadot_ss58(&self) -> String {
 		self.to_ss58check_with_version(sp_core::crypto::Ss58AddressFormat::custom(0))
 	}
+}
+
+/// Convert a type into its portable format.
+///
+/// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
+/// format, send portable format from AH to RC, convert portable format to AH object.
+pub trait IntoPortable {
+	type Portable;
+
+	fn into_portable(self) -> Self::Portable;
+}
+
+impl<Id: IntoPortable, Balance> IntoPortable for IdAmount<Id, Balance> {
+	type Portable = IdAmount<Id::Portable, Balance>;
+
+	fn into_portable(self) -> Self::Portable {
+		IdAmount { id: self.id.into_portable(), amount: self.amount }
+	}
+}
+
+/// Defensively truncate a value and convert it into its bounded form.
+pub trait DefensiveTruncateInto<T> {
+	/// Defensively truncate a value and convert it into its bounded form.
+	fn defensive_truncate_into(self) -> T;
+}
+
+impl<T, U: DefensiveTruncateFrom<T>> DefensiveTruncateInto<U> for T {
+	fn defensive_truncate_into(self) -> U {
+		U::defensive_truncate_from(self)
+	}
+}
+
+/// Generate a default instance for benchmarking purposes.
+pub trait BenchmarkingDefault {
+	/// Default for benchmarking purposes only.
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self;
 }
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -59,15 +97,13 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 4)]
 	ReceivePreimageChunks { chunks: Vec<preimage::RcPreimageChunk> },
 	#[codec(index = 5)]
-	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
+	ReceivePreimageRequestStatus { request_status: Vec<preimage::PortableRequestStatus> },
 	#[codec(index = 6)]
 	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 	#[codec(index = 7)]
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
 	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
-	#[codec(index = 9)]
-	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
 		values: Vec<(
@@ -84,7 +120,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
-	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
+	ReceiveBagsListMessages { messages: Vec<staking::bags_list::PortableBagsListMessage> },
 	#[codec(index = 14)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 	#[codec(index = 15)]
@@ -102,7 +138,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
 	#[codec(index = 21)]
-	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
+	ReceiveTreasuryMessages { messages: Vec<treasury::PortableTreasuryMessage> },
 	#[codec(index = 22)]
 	ReceiveSchedulerAgendaMessages {
 		messages: Vec<(
@@ -112,11 +148,12 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
-		messages: Vec<staking::delegated_staking::RcDelegatedStakingMessageOf<T>>,
+		messages: Vec<staking::delegated_staking::PortableDelegatedStakingMessage>,
 	},
-	#[codec(index = 30)]
-	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
-	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
+	#[codec(index = 24)]
+	ReceiveChildBountiesMessages { messages: Vec<child_bounties::PortableChildBountiesMessage> },
+	#[codec(index = 25)]
+	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]
@@ -140,7 +177,7 @@ pub enum AhMigratorCall<T: Config> {
 	PartialEq,
 	Eq,
 )]
-pub struct MigrationFinishedData<Balance: Default> {
+pub struct MigrationFinishedData<Balance> {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: Balance,
 }
@@ -254,6 +291,10 @@ impl<
 	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
 		Inner::deliver(ticket)
 	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful_delivery(location: Option<Location>) {
+		Inner::ensure_successful_delivery(location);
+	}
 }
 
 impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueues
@@ -282,24 +323,6 @@ impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querie
 	}
 }
 
-// TODO: replace by pallet_message_queue::ForceSetHead once the 2503 merged from master.
-/// Allows to force the processing head to a specific queue.
-pub trait ForceSetHead<O> {
-	/// Set the `ServiceHead` to `origin`.
-	///
-	/// This function:
-	/// - `Err`: Queue did not exist, not enough weight or other error.
-	/// - `Ok(true)`: The service head was updated.
-	/// - `Ok(false)`: The service head was not updated since the queue is empty.
-	fn force_set_head(weight: &mut WeightMeter, origin: &O) -> Result<bool, ()>;
-}
-
-impl<O> ForceSetHead<O> for () {
-	fn force_set_head(_weight: &mut WeightMeter, _origin: &O) -> Result<bool, ()> {
-		Ok(true)
-	}
-}
-
 /// The priority of the DMP/UMP queue during migration.
 ///
 /// Controls how the DMP (Downward Message Passing) or UMP (Upward Message Passing) queue is
@@ -318,7 +341,7 @@ impl<O> ForceSetHead<O> for () {
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub enum QueuePriority<BlockNumber: Copy> {
+pub enum QueuePriority<BlockNumber> {
 	/// Use the default priority pattern from the pallet configuration.
 	#[default]
 	Config,
@@ -564,6 +587,57 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	}
 }
 
+/// Relay Chain Hold Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableHoldReason {
+	Preimage(pallet_preimage::HoldReason),
+	Staking(pallet_staking::HoldReason),
+	StateTrieMigration(pallet_state_trie_migration::HoldReason),
+	DelegatedStaking(pallet_delegated_staking::HoldReason),
+	Session(pallet_session::HoldReason),
+	XcmPallet(pallet_xcm::HoldReason),
+}
+
+impl BenchmarkingDefault for PortableHoldReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		PortableHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
+
+/// Relay Chain Freeze Reason
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PortableFreezeReason {
+	NominationPools(pallet_nomination_pools::FreezeReason),
+}
+
+impl BenchmarkingDefault for PortableFreezeReason {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn benchmarking_default() -> Self {
+		PortableFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
+	}
+}
+
 #[cfg(test)]
 mod xcm_batch_tests {
 	use super::*;
@@ -685,6 +759,21 @@ mod xcm_batch_tests {
 		// Should be empty now
 		assert!(batch.is_empty());
 		assert_eq!(batch.len(), 0);
+	}
+}
+
+/// Sort collections of encodable items.
+///
+/// This is a escape hatch that removes the need to implement `PartialOrd` for all types nested (and
+/// possibly private) types.
+pub trait SortByEncoded {
+	/// Sort by value encoding.
+	fn sort_by_encoded(&mut self);
+}
+
+impl<T: Encode> SortByEncoded for Vec<T> {
+	fn sort_by_encoded(&mut self) {
+		self.sort_by_key(|a| a.encode());
 	}
 }
 

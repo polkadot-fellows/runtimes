@@ -23,34 +23,37 @@ use frame_support::traits::{
 };
 use frame_system::RawOrigin;
 use pallet_asset_rate::AssetKindFactory;
-use pallet_bounties::BountyStatus;
 use pallet_conviction_voting::{AccountVote, Casting, Delegations, Vote, Voting};
 use pallet_nomination_pools::TotalUnbondingPools;
+use pallet_preimage::PreimageFor;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
-	bounties::{alias::Bounty, RcBountiesMessage},
-	claims::{alias::EthereumAddress, RcClaimsMessage},
+	bounties::{
+		alias::{Bounty, BountyStatus},
+		RcBountiesMessage, RcBountiesMessageOf,
+	},
+	child_bounties::PortableChildBountiesMessage,
+	claims::{RcClaimsMessage, RcClaimsMessageOf},
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
-	preimage::{
-		alias::{PreimageFor, RequestStatus as PreimageRequestStatus, MAX_SIZE},
-		CHUNK_SIZE,
-	},
+	preimage::{PortableRequestStatus, PortableRequestStatusInner, CHUNK_SIZE},
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::RcSchedulerMessage,
 	staking::{
-		bags_list::alias::Node,
-		delegated_staking::RcDelegatedStakingMessage,
+		bags_list::PortableNode,
+		delegated_staking::PortableDelegatedStakingMessage,
+		message::PortableUnappliedSlash,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
-	treasury::{alias::SpendStatus, RcTreasuryMessage},
+	treasury::{PortablePaymentState, PortableSpendStatus, PortableTreasuryMessage},
+	types::{BenchmarkingDefault, DefensiveTruncateInto},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
-use pallet_treasury::PaymentState;
+use polkadot_runtime_common::claims::EthereumAddress;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
-use xcm::v4::{Junction, Location};
+use xcm::v4::Location;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -105,11 +108,16 @@ pub mod benchmarks {
 			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
 
 			let hold_amount = ed;
-			let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
+			let holds = vec![IdAmount {
+				id: T::PortableHoldReason::benchmarking_default(),
+				amount: hold_amount,
+			}];
 
 			let freeze_amount = 2 * ed;
-			let freezes =
-				vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
+			let freezes = vec![IdAmount {
+				id: T::PortableFreezeReason::benchmarking_default(),
+				amount: freeze_amount,
+			}];
 
 			let lock_amount = 3 * ed;
 			let locks = vec![pallet_balances::BalanceLock::<u128> {
@@ -332,28 +340,6 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_fast_unstake_messages(n: Linear<1, 255>) {
-		let create_fast_unstake = |n: u8| -> RcFastUnstakeMessage<T> {
-			RcFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
-		};
-
-		let messages =
-			(0..n).map(|i| create_fast_unstake(i.try_into().unwrap())).collect::<Vec<_>>();
-
-		#[extrinsic_call]
-		_(RawOrigin::Root, messages);
-
-		assert_last_event::<T>(
-			Event::BatchProcessed {
-				pallet: PalletEventName::FastUnstake,
-				count_good: n,
-				count_bad: 0,
-			}
-			.into(),
-		);
-	}
-
-	#[benchmark]
 	fn receive_referenda_values() {
 		let referendum_count = 50;
 		let mut deciding_count = vec![];
@@ -509,10 +495,10 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_bags_list_messages(n: Linear<1, 255>) {
-		let create_bags_list = |n: u8| -> RcBagsListMessage<T> {
-			RcBagsListMessage::Node {
+		let create_bags_list = |n: u8| -> PortableBagsListMessage {
+			PortableBagsListMessage::Node {
 				id: [n; 32].into(),
-				node: Node {
+				node: PortableNode {
 					id: [n; 32].into(),
 					prev: Some([n; 32].into()),
 					next: Some([n; 32].into()),
@@ -714,10 +700,10 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_treasury_messages(n: Linear<1, 255>) {
-		let create_treasury = |n: u8| -> RcTreasuryMessageOf<T> {
-			RcTreasuryMessage::Spends {
+		let create_treasury = |n: u8| -> PortableTreasuryMessage {
+			PortableTreasuryMessage::Spends {
 				id: n.into(),
-				status: SpendStatus {
+				status: PortableSpendStatus {
 					asset_kind: VersionedLocatableAsset::V4 {
 						location: Location::new(0, [xcm::v4::Junction::Parachain(1000)]),
 						asset_id: Location::new(
@@ -736,7 +722,7 @@ pub mod benchmarks {
 					)),
 					valid_from: n.into(),
 					expire_at: n.into(),
-					status: PaymentState::Pending,
+					status: PortablePaymentState::Pending,
 				},
 			}
 		};
@@ -758,8 +744,8 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_delegated_staking_messages(n: Linear<1, 255>) {
-		let create_delegated_staking = |n: u8| -> RcDelegatedStakingMessageOf<T> {
-			RcDelegatedStakingMessage::Agents {
+		let create_delegated_staking = |n: u8| -> PortableDelegatedStakingMessage {
+			PortableDelegatedStakingMessage::Agents {
 				agent: [n; 32].into(),
 				payee: [n; 32].into(),
 				total_delegated: n.into(),
@@ -819,7 +805,7 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_preimage_request_status(n: Linear<1, 255>) {
-		let create_preimage_request_status = |n: u8| -> RcPreimageRequestStatusOf<T> {
+		let create_preimage_request_status = |n: u8| -> PortableRequestStatus {
 			let preimage = vec![n; 512];
 			let hash = T::Preimage::note(preimage.into()).unwrap();
 
@@ -832,10 +818,10 @@ pub mod benchmarks {
 			let consideration =
 				<T as pallet_preimage::Config>::Consideration::new(&depositor, old_footprint)
 					.unwrap();
-			RcPreimageRequestStatusOf::<T> {
+			PortableRequestStatus {
 				hash,
-				request_status: PreimageRequestStatus::Unrequested {
-					ticket: (depositor, consideration),
+				request_status: PortableRequestStatusInner::Unrequested {
+					ticket: (depositor, consideration.encode().defensive_truncate_into()),
 					len: 512, // smaller than old footprint
 				},
 			}
@@ -870,7 +856,7 @@ pub mod benchmarks {
 		let preimage_ah_part = preimage[..(preimage_len - CHUNK_SIZE) as usize].to_vec();
 
 		if preimage_ah_part.len() > 0 {
-			let preimage_ah_part: BoundedVec<u8, ConstU32<MAX_SIZE>> =
+			let preimage_ah_part: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
 				preimage_ah_part.try_into().unwrap();
 			PreimageFor::<T>::insert((hash, preimage_len), preimage_ah_part);
 		}
@@ -892,6 +878,60 @@ pub mod benchmarks {
 				count_bad: 0,
 			}
 			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_child_bounties_messages(n: Linear<1, 100>) {
+		// Use the ChildBountyDescriptionsV1 variant since it has this big description
+		let create_child_bounties = |n: u32| -> PortableChildBountiesMessage {
+			PortableChildBountiesMessage::ChildBountyDescriptionsV1 {
+				parent_id: n,
+				child_id: n,
+				description: vec![n as u8; 17000].try_into().unwrap(),
+			}
+		};
+
+		let messages = (0..n).map(create_child_bounties).collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ChildBounties,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_staking_messages(n: Linear<1, 100>) {
+		let create_staking = |n: u32| -> PortableStakingMessage {
+			let alice = AccountId32::from([n as u8; 32]);
+
+			PortableStakingMessage::UnappliedSlashes {
+				era: n,
+				slash: PortableUnappliedSlash {
+					validator: alice.clone(),
+					own: n.into(),
+					others: vec![(alice.clone(), n.into()); 512].defensive_truncate_into(),
+					reporters: vec![alice; 1].defensive_truncate_into(),
+					payout: n.into(),
+				},
+			}
+		};
+
+		let messages = (0..n).map(create_staking).collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed { pallet: PalletEventName::Staking, count_good: n, count_bad: 0 }
+				.into(),
 		);
 	}
 
@@ -938,6 +978,13 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn force_dmp_queue_priority() {
+		use frame_support::BoundedSlice;
+
+		T::MessageQueue::enqueue_message(
+			BoundedSlice::defensive_truncate_from(&[1]),
+			AggregateMessageOrigin::Parent,
+		);
+
 		let now = BlockNumberFor::<T>::from(1u32);
 		let priority_blocks = BlockNumberFor::<T>::from(10u32);
 		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);
@@ -972,6 +1019,16 @@ pub mod benchmarks {
 		_(RawOrigin::Root, new.clone());
 
 		assert_last_event::<T>(Event::DmpQueuePriorityConfigSet { old, new }.into());
+	}
+
+	#[benchmark]
+	fn set_manager() {
+		let old = Manager::<T>::get();
+		let new = Some([0; 32].into());
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::ManagerSet { old, new }.into());
 	}
 
 	#[cfg(feature = "std")]
@@ -1026,15 +1083,6 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_receive_vesting_schedules::<T>(n, true)
-	}
-
-	#[cfg(feature = "std")]
-	pub fn test_receive_fast_unstake_messages<T>(n: u32)
-	where
-		T: Config,
-		ConvictionVotingIndexOf<T>: From<u8>,
-	{
-		_receive_fast_unstake_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
@@ -1236,6 +1284,24 @@ pub mod benchmarks {
 	}
 
 	#[cfg(feature = "std")]
+	pub fn test_receive_child_bounties_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_child_bounties_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_staking_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_staking_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
 	pub fn test_force_dmp_queue_priority<T>()
 	where
 		T: Config,
@@ -1251,5 +1317,14 @@ pub mod benchmarks {
 		ConvictionVotingIndexOf<T>: From<u8>,
 	{
 		_set_dmp_queue_priority::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_manager<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_set_manager::<T>(true)
 	}
 }

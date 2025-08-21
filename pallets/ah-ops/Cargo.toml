@@ -11,11 +11,14 @@ repository.workspace = true
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
 frame-support = { workspace = true }
-frame-system = { workspace = true }
+frame-system = { workspace = true, features = ["experimental"] }
 log = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-timestamp = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
+sp-application-crypto = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
@@ -32,6 +35,9 @@ std = [
 	"pallet-balances/std",
 	"pallet-timestamp/std",
 	"scale-info/std",
+	"sp-application-crypto/std",
+	"sp-core/std",
+	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]

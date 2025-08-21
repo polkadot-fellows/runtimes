@@ -39,16 +39,13 @@ impl pallet_conviction_voting::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type VoteLockingPeriod = VoteLockingPeriod;
-	// TODO: the `512` value is migrated from Relay Chain.
-	// Check that weights are sane, an overly large value can lead to extrinsics with large weight
-	// estimation: see `delegate` for instance.
 	type MaxVotes = ConstU32<512>;
 	// TODO: review - after/before migration check?
 	type MaxTurnout =
 		frame_support::traits::tokens::currency::ActiveIssuanceOf<Balances, Self::AccountId>;
 	type Polls = Referenda;
-	type BlockNumberProvider = System; // FAIL-CI check
-	type VotingHooks = (); // FAIL-CI
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type VotingHooks = ();
 }
 
 parameter_types! {
@@ -99,5 +96,5 @@ impl pallet_referenda::Config for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = TracksInfo;
 	type Preimages = Preimage;
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>; // FAIL-CI check
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }

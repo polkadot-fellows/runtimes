@@ -67,7 +67,7 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			pallet_multisig::Multisigs::<RcRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
-				multisig_info.call_hash.clone()
+				multisig_info.call_hash
 			),
 			"Sample multisig {:?} should have been correctly created on the relay chain.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -81,7 +81,7 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			!pallet_multisig::Multisigs::<RcRuntime>::contains_key(
 				multisig_info.depositor.clone(),
-				multisig_info.call_hash.clone()
+				multisig_info.call_hash
 			),
 			"Sample multisig {:?} should have been removed from the relay chain after migration.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -101,7 +101,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			!pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.depositor.clone(),
-				multisig_info.call_hash.clone()
+				multisig_info.call_hash
 			),
 			"Sample multisig {:?} should not be present on Asset Hub before migration.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -115,7 +115,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert!(
 			pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
-				call_hash.clone()
+				call_hash
 			),
 			"Sample multisig {:?} should have been correctly re-created on Asset Hub.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -123,13 +123,13 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		// Remove the multisig from the Asset Hub to avoid messing up with the next tests.
 		pallet_multisig::Multisigs::<AhRuntime>::remove(
 			multisig_info.multisig_id.clone(),
-			call_hash.clone(),
+			call_hash,
 		);
 		// Check that the multisig has been effectively removed
 		assert!(
 			!pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
-				call_hash.clone()
+				call_hash
 			),
 			"Sample multisig {:?} should have been correctly removed from Asset Hub after tests.",
 			multisig_info.multisig_id.clone().to_ss58check()
@@ -148,13 +148,16 @@ impl MultisigsAccountIdStaysTheSame {
 			AccountId32::from_str("1eTPAR2TuqLyidmPT9rMmuycHVm9s9czu78sePqg2KHMDrE").unwrap();
 		let mut other_signatories = vec![basti.clone(), kian.clone()];
 		let mut signatories = vec![shawn.clone(), basti.clone(), kian.clone()];
+
 		signatories.sort();
 		other_signatories.sort();
+		signatories.iter().for_each(Self::fund_account);
+
 		let multisig_id = pallet_multisig::Pallet::<RcRuntime>::multi_account_id(&signatories, 2);
 		// Just a placeholder call to make the multisig valid.
 		let call = Box::new(RcRuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
 			dest: shawn.clone().into(),
-			value: 10000000000,
+			value: 1,
 		}));
 		let threshold = 2;
 		frame_support::assert_ok!(pallet_multisig::Pallet::<RcRuntime>::as_multi(
@@ -181,7 +184,7 @@ impl MultisigsAccountIdStaysTheSame {
 		// Just a placeholder call to make the multisig valid.
 		let call = Box::new(AhRuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
 			dest: multisig_info.depositor.clone().into(),
-			value: 10000000000,
+			value: 1,
 		}));
 		// Recreate the multisig on Asset Hub.
 		frame_support::assert_ok!(pallet_multisig::Pallet::<AhRuntime>::as_multi(
@@ -193,5 +196,13 @@ impl MultisigsAccountIdStaysTheSame {
 			Weight::zero(),
 		));
 		blake2_256(&call.encode())
+	}
+
+	fn fund_account(account: &AccountId32) {
+		// Amount does not mater, just deposit a lot
+		let _ = pallet_balances::Pallet::<AhRuntime>::deposit_creating(
+			&account,
+			10_000_000_000_000_000_000,
+		);
 	}
 }

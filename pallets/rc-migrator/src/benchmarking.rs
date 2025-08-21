@@ -62,8 +62,7 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn force_set_stage() {
-		let stage =
-			MigrationStageOf::<T>::Scheduled { start: 1u32.into(), cool_off_end: 2u32.into() };
+		let stage = MigrationStageOf::<T>::Scheduled { start: 1u32.into() };
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, Box::new(stage.clone()));
@@ -76,18 +75,16 @@ pub mod benchmarks {
 	#[benchmark]
 	fn schedule_migration() {
 		let start = DispatchTime::<BlockNumberFor<T>>::At(10u32.into());
-		let cool_off_end = DispatchTime::<BlockNumberFor<T>>::At(20u32.into());
+		let warm_up = DispatchTime::<BlockNumberFor<T>>::At(20u32.into());
+		let cool_off = DispatchTime::<BlockNumberFor<T>>::After(20u32.into());
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, start, cool_off_end);
+		_(RawOrigin::Root, start, warm_up, cool_off, true);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: MigrationStageOf::<T>::Pending,
-				new: MigrationStageOf::<T>::Scheduled {
-					start: 10u32.into(),
-					cool_off_end: 20u32.into(),
-				},
+				new: MigrationStageOf::<T>::Scheduled { start: 10u32.into() },
 			}
 			.into(),
 		);
@@ -95,8 +92,10 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn start_data_migration() {
-		let cool_off_end = 20u32.into();
-		let initial_stage = MigrationStageOf::<T>::WaitingForAh { cool_off_end };
+		let now = frame_system::Pallet::<T>::block_number();
+		let warm_up = DispatchTime::<BlockNumberFor<T>>::At(200u32.into());
+		WarmUpPeriod::<T>::put(warm_up);
+		let initial_stage = MigrationStageOf::<T>::WaitingForAh;
 		RcMigrationStage::<T>::put(&initial_stage);
 
 		#[extrinsic_call]
@@ -105,7 +104,7 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: initial_stage,
-				new: MigrationStageOf::<T>::CoolOff { cool_off_end },
+				new: MigrationStageOf::<T>::WarmUp { end_at: warm_up.evaluate(now) },
 			}
 			.into(),
 		);
@@ -120,11 +119,12 @@ pub mod benchmarks {
 
 		#[block]
 		{
-			let res = Pallet::<T>::send_chunked_xcm_and_track(
-				batches,
-				|batch| types::AhMigratorCall::<T>::TestCall { data: batch },
-				|_| Weight::from_all(1),
-			);
+			let res =
+				Pallet::<T>::send_chunked_xcm_and_track(batches, |batch| types::AhMigratorCall::<
+					T,
+				>::TestCall {
+					data: batch,
+				});
 			assert_eq!(res.unwrap(), 1);
 		}
 	}
@@ -136,7 +136,9 @@ pub mod benchmarks {
 			weight_limit: WeightLimit::Unlimited,
 			check_origin: None,
 		}]);
-		PendingXcmMessages::<T>::insert(query_id, xcm);
+		let message_hash = T::Hashing::hash_of(&xcm);
+		PendingXcmMessages::<T>::insert(message_hash, xcm);
+		PendingXcmQueries::<T>::insert(query_id, message_hash);
 
 		let maybe_error = MaybeErrorCode::Success;
 		let response = Response::DispatchResult(maybe_error.clone());
@@ -144,7 +146,7 @@ pub mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Root, query_id, response);
 
-		assert!(PendingXcmMessages::<T>::get(query_id).is_none());
+		assert!(PendingXcmMessages::<T>::get(message_hash).is_none());
 		assert_last_event::<T>(
 			Event::QueryResponseReceived { query_id, response: maybe_error }.into(),
 		);
@@ -152,19 +154,26 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn resend_xcm() {
-		let query_id = 1;
+		let query_id = 10;
+		let next_query_id = 0;
 		let xcm = Xcm(vec![Instruction::UnpaidExecution {
 			weight_limit: WeightLimit::Unlimited,
 			check_origin: None,
 		}]);
-		PendingXcmMessages::<T>::insert(query_id, xcm);
+		let message_hash = T::Hashing::hash_of(&xcm);
+		PendingXcmMessages::<T>::insert(message_hash, xcm);
+		PendingXcmQueries::<T>::insert(query_id, message_hash);
 		parachains_dmp::Pallet::<T>::make_parachain_reachable(1000);
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, query_id);
 
-		assert!(PendingXcmMessages::<T>::get(query_id).is_some());
-		assert_last_event::<T>(Event::XcmResendAttempt { query_id, send_error: None }.into());
+		assert!(PendingXcmMessages::<T>::get(message_hash).is_some());
+		assert!(PendingXcmQueries::<T>::get(query_id).is_some());
+		assert!(PendingXcmQueries::<T>::get(next_query_id).is_some());
+		assert_last_event::<T>(
+			Event::XcmResendAttempt { query_id: next_query_id, send_error: None }.into(),
+		);
 	}
 
 	#[benchmark]
@@ -181,6 +190,12 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn force_ah_ump_queue_priority() {
+		use frame_support::BoundedSlice;
+
+		T::MessageQueue::enqueue_message(
+			BoundedSlice::defensive_truncate_from(&[1]),
+			AggregateMessageOrigin::Ump(UmpQueueId::Para(1000.into())),
+		);
 		let now = BlockNumberFor::<T>::from(1u32);
 		let priority_blocks = BlockNumberFor::<T>::from(10u32);
 		let round_robin_blocks = BlockNumberFor::<T>::from(1u32);
@@ -215,6 +230,16 @@ pub mod benchmarks {
 		_(RawOrigin::Root, new.clone());
 
 		assert_last_event::<T>(Event::AhUmpQueuePriorityConfigSet { old, new }.into());
+	}
+
+	#[benchmark]
+	fn set_manager() {
+		let old = Manager::<T>::get();
+		let new = Some([0; 32].into());
+		#[extrinsic_call]
+		_(RawOrigin::Root, new.clone());
+
+		assert_last_event::<T>(Event::ManagerSet { old, new }.into());
 	}
 
 	#[cfg(feature = "std")]
@@ -264,5 +289,10 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_set_ah_ump_queue_priority<T: Config>() {
 		_set_ah_ump_queue_priority::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_set_manager<T: Config>() {
+		_set_manager::<T>(true /* enable checks */);
 	}
 }

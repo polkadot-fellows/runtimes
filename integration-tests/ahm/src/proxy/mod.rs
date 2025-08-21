@@ -22,19 +22,8 @@ pub use whale_watching::ProxyWhaleWatching;
 
 use crate::porting_prelude::*;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
-use frame_system::pallet_prelude::*;
-use hex_literal::hex;
-use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
-use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
-	AccountId32,
-};
-use std::{collections::BTreeMap, str::FromStr};
+use frame_support::pallet_prelude::*;
+use sp_runtime::traits::TryConvert;
 
 /// Intent based permission.
 ///
@@ -93,8 +82,8 @@ impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permissio
 			ProxyType::Governance => Permission::Governance,
 			ProxyType::NominationPools => Permission::NominationPools,
 			ProxyType::NonTransfer => Permission::NonTransfer,
-			ProxyType::OldAuction => Permission::Old,
-			ProxyType::OldParaRegistration => Permission::Old,
+			ProxyType::Auction => Permission::Old,
+			ProxyType::ParaRegistration => Permission::Old,
 			ProxyType::Staking => Permission::Staking,
 		})
 	}

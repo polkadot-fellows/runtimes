@@ -54,7 +54,7 @@
     "path": "system-parachains/asset-hubs/asset-hub-polkadot",
     "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
     "try_runtime_args": "--overwrite-state-version 1",
     "benchmarks_templates": {
@@ -146,19 +146,6 @@
     "uri": "wss://polkadot-people-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "benchmarks_templates": {
-      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
-      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
-    }
-  },
-  {
-    "name": "encointer-kusama",
-    "package": "encointer-kusama-runtime",
-    "path": "system-parachains/encointer",
-    "uri": "wss://kusama.api.encointer.org:443",
-    "is_relay": false,
-    "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"

@@ -54,7 +54,10 @@ pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
-rand = { workspace = true, default-feature = true }
+rand = { workspace = true }
+pallet-preimage = { workspace = true, default-features = true }
+pallet-staking-async = { workspace = true, default-features = true }
+pallet-referenda = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
@@ -65,6 +68,31 @@ std = [
 	"log/std",
 	"polkadot-runtime/std",
 	"rand/std",
+]
+try-runtime = [
+	"asset-hub-polkadot-runtime/try-runtime",
+	"cumulus-pallet-parachain-system/try-runtime",
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-ah-migrator/try-runtime",
+	"pallet-ah-ops/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-bounties/try-runtime",
+	"pallet-indices/try-runtime",
+	"pallet-message-queue/try-runtime",
+	"pallet-multisig/try-runtime",
+	"pallet-preimage/try-runtime",
+	"pallet-proxy/try-runtime",
+	"pallet-rc-migrator/try-runtime",
+	"pallet-referenda/try-runtime",
+	"pallet-staking-async/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"pallet-whitelist/try-runtime",
+	"pallet-xcm/try-runtime",
+	"polkadot-runtime-common/try-runtime",
+	"polkadot-runtime/try-runtime",
+	"runtime-parachains/try-runtime",
+	"sp-runtime/try-runtime",
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
@@ -80,8 +108,11 @@ runtime-benchmarks = [
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-referenda/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
@@ -96,3 +127,4 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]
+paseo = []

@@ -111,7 +111,7 @@ jobs:
             EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
           fi
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
@@ -185,20 +185,39 @@ jobs:
           shared-key: "fellowship-cache-integration-tests-ahm"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Download AHM test snapshots
+      - name: Download Paseo snaps
         run: |
-          curl -sL 'https://tasty.limo/uploads/polkadot-2025-05-09.snap.lz4' -o polkadot.snap.lz4
-          curl -sL 'https://tasty.limo/uploads/ah-polkadot-2025-05-09.snap.lz4' -o ah-polkadot.snap.lz4
+          python3 -m pip install gdown
+          gdown "1AoIyspAe4MzRTlxzQHWqeWNK-kGlWvP6" # 2025-07-29
+          gdown "1yjY4fuzJjxSxzfRb8jESqDojfr8Eu2CV" # 2025-07-29
+
+          lz4 -d paseo.snap.lz4 paseo.snap
+          lz4 -d ah-paseo.snap.lz4 ah-paseo.snap
+
+      - name: Test Asset Hub Migration (Paseo)
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features paseo --features try-runtime -- --nocapture --test-threads 1
+        env:
+          RUST_BACKTRACE: 1
+          SNAP_RC: "../../paseo.snap"
+          SNAP_AH: "../../ah-paseo.snap"
+          RUST_LOG: "warn"
+
+      - name: Download Polkadot snaps
+        run: |
+          gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR # 2025-07-28
+          gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z # 2025-07-28
+
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
       - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r -- --nocapture --test-threads 1
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features try-runtime -- --nocapture --test-threads 1
         env:
           RUST_BACKTRACE: 1
           SNAP_RC: "../../polkadot.snap"
           SNAP_AH: "../../ah-polkadot.snap"
           RUST_LOG: "warn"
+
       - name: Test Benchmarks Asset Hub Migration (Polkadot)
         run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
         env:
@@ -376,7 +395,7 @@ jobs:
       - name: Running ecosystem tests
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 60
+          timeout_minutes: 90
           max_attempts: 3
           command: cd ecosystem-tests && yarn test
 

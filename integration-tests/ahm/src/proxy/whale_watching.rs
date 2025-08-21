@@ -14,23 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::Permission;
-use crate::porting_prelude::*;
-
-use super::ProxyBasicWorks;
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
-use frame_system::pallet_prelude::*;
+use crate::proxy::{Permission, ProxyBasicWorks};
 use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
-use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
-	AccountId32,
-};
-use std::{collections::BTreeMap, str::FromStr};
+use pallet_rc_migrator::types::RcMigrationCheck;
+use sp_runtime::{traits::TryConvert, AccountId32};
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -39,10 +27,10 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 ///
 /// We also store the number of proxies.
 const WHALES: &[(AccountId32, usize)] = &[
-	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 7),
-	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 7),
-	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 6),
-	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 6),
+	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 5),
+	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 5),
+	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 4),
+	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 4),
 ];
 
 const MILLION_DOT: polkadot_primitives::Balance =
@@ -68,12 +56,11 @@ impl RcMigrationCheck for ProxyWhaleWatching {
 				"Whales are rich on the relay"
 			);
 
-			let delegations = pallet_proxy::Proxies::<RelayRuntime>::get(&whale).0;
+			let delegations = pallet_proxy::Proxies::<RelayRuntime>::get(whale).0;
 			assert_eq!(
 				delegations.len(),
 				*num_proxies,
-				"Number of proxies is correct for whale {:?}",
-				whale
+				"Number of proxies is correct for whale {whale:?}"
 			);
 		}
 	}
@@ -87,7 +74,7 @@ impl AhMigrationCheck for ProxyWhaleWatching {
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		// Whales still afloat
 		for (whale, num_proxies) in WHALES {
 			let acc = frame_system::Account::<AssetHubRuntime>::get(whale);
@@ -96,7 +83,7 @@ impl AhMigrationCheck for ProxyWhaleWatching {
 				"Whales are rich on the asset hub"
 			);
 
-			let delegations = pallet_proxy::Proxies::<AssetHubRuntime>::get(&whale).0;
+			let delegations = pallet_proxy::Proxies::<AssetHubRuntime>::get(whale).0;
 			assert_eq!(delegations.len(), *num_proxies, "Number of proxies is correct");
 
 			for delegation in delegations.iter() {
