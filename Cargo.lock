@@ -902,6 +902,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-conviction-voting",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-multisig",
  "pallet-nft-fractionalization",
  "pallet-nfts",
