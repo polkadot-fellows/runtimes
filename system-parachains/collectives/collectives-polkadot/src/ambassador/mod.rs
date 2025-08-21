@@ -67,9 +67,6 @@ pub mod ranks {
 	pub const GLOBAL_HEAD: Rank = 6;
 }
 
-/// Vote-weight scheme where voters get a number of votes equal to the triangular number of their
-/// excess rank. The triangular number of a non-negative integer `r` is `r * (r + 1) / 2`. I.e.:
-///
 /// - Each member with an excess rank of 0 gets 0 votes;
 /// - ...with an excess rank of 1 gets 1 vote;
 /// - ...with an excess rank of 2 gets 3 votes;
@@ -80,7 +77,17 @@ pub mod ranks {
 pub struct Geometric;
 impl Convert<Rank, Votes> for Geometric {
 	fn convert(r: Rank) -> Votes {
-		(r * (r + 1) / 2) as Votes
+		match r {
+			0 => 0,
+			1 => 1,
+			2 => 3,
+			3 => 6,
+			4 => 10,
+			5 => 15,
+			6 => 21,
+			// For ranks beyond 6, we return 0 since it's undefined
+			_ => 0,
+		}
 	}
 }
 
@@ -113,6 +120,12 @@ pub type OpenGovOrGlobalHead = EitherOfDiverse<
 	>,
 >;
 
+/// Root orFellowshipAdmin
+pub type RootOrOpenGov = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+>;
+
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective::Instance2;
 
 impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime {
@@ -128,8 +141,8 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
 	type VoteWeight = Geometric;
-	type AddOrigin = OpenGovOrGlobalHead;
-	type ExchangeOrigin = OpenGovOrGlobalHead;
+	type AddOrigin = RootOrOpenGov;
+	type ExchangeOrigin = RootOrOpenGov;
 	type MemberSwappedHandler = crate::AmbassadorCore;
 	type MaxMemberCount = ();
 	#[cfg(feature = "runtime-benchmarks")]
@@ -289,5 +302,36 @@ mod tests {
 			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
 			assert!(limit.is_none(), "Ambassador has no member limit");
 		}
+	}
+
+	#[test]
+	fn geometric_vote_weight_conversion() {
+		use super::Geometric;
+		use pallet_ranked_collective::Votes;
+
+		// Test the Geometric vote weight conversion for ranks 0 to 6
+		let test_cases = [
+			(0, 0),  // rank 0 -> 0 votes
+			(1, 1),  // rank 1 -> 1 vote
+			(2, 3),  // rank 2 -> 3 votes
+			(3, 6),  // rank 3 -> 6 votes
+			(4, 10), // rank 4 -> 10 votes
+			(5, 15), // rank 5 -> 15 votes
+			(6, 21), // rank 6 -> 21 votes
+		];
+
+		for (rank, expected_votes) in test_cases {
+			assert_eq!(
+				Geometric::convert(rank),
+				expected_votes as Votes,
+				"Vote weight conversion failed for rank {}",
+				rank
+			);
+		}
+
+		// Test that ranks beyond 6 return 0
+		assert_eq!(Geometric::convert(7), 0);
+		assert_eq!(Geometric::convert(8), 0);
+		assert_eq!(Geometric::convert(100), 0);
 	}
 }

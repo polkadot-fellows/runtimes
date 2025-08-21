@@ -22,9 +22,9 @@ pub(crate) mod add_accounts {
 	use super::*;
 	#[cfg(feature = "try-runtime")]
 	use alloc::vec::Vec;
-	use frame_support::parameter_types;
+	use frame_support::{parameter_types, traits::RankedMembers};
 	use pallet_ranked_collective::{
-		Config, IdToIndex, IndexToId, MemberCount, MemberRecord, Members, Rank,
+		Config, MemberCount, Members, Pallet as RankedCollective, Rank,
 	};
 
 	parameter_types! {
@@ -33,7 +33,7 @@ pub(crate) mod add_accounts {
 		// https://docs.google.com/spreadsheets/d/1uE5nDKuMZDqlj9q2tvnk_tngyU1Cokl0tQKwSigvJLA/edit?gid=0#gid=0,
 		// then converting each Polkadot SS58 address to its raw public key (32-byte hex) using:
 		// `subkey inspect <SS58_ADDRESS>`
-		// 
+		//
 		// Ensuring compatibility with the runtime's account system.
 		pub const Addresses: [(Rank, [u8; 32]); 126] = [
 			(0, hex_literal::hex!("54361bceb4403e1af7c893688a76c35357477da7e36371b981728ddf8f978e0c")),
@@ -186,21 +186,17 @@ pub(crate) mod add_accounts {
 			for (desired_rank, account_id32) in Addresses::get() {
 				let who: T::AccountId = account_id32.into();
 
-				// Set collective pallet storage
-				let record = MemberRecord::new(desired_rank);
-				<Members<T, I>>::insert(&who, record);
-				MemberCount::<T, I>::mutate(desired_rank, |count| *count = count.saturating_add(1));
-				let count_at_rank = MemberCount::<T, I>::get(desired_rank);
-				IdToIndex::<T, I>::insert(
-					desired_rank,
-					who.clone(),
-					count_at_rank.saturating_sub(1),
-				);
-				IndexToId::<T, I>::insert(desired_rank, count_at_rank.saturating_sub(1), who);
-
-				weight = weight
-					.saturating_add(T::DbWeight::get().writes(2))
-					.saturating_add(T::DbWeight::get().reads_writes(2, 2));
+				// Use RankedMembers trait to induct and promote
+				let _ = <RankedCollective<T, I> as RankedMembers>::induct(&who);
+				for _ in 0..desired_rank {
+					let _ = <RankedCollective<T, I> as RankedMembers>::promote(&who);
+					// 1 write to `IdToIndex` and `IndexToId` per promotion
+					weight.saturating_accrue(T::DbWeight::get().writes(2));
+				}
+				// 1 write to `IdToIndex` and `IndexToId` for induction
+				weight.saturating_accrue(T::DbWeight::get().writes(2));
+				// 1 read and 1 write to `Members` and `MemberCount` per member
+				weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
 			}
 
 			weight
@@ -208,8 +204,8 @@ pub(crate) mod add_accounts {
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			ensure!(MemberCount::<T, I>::get(0) == 37, "invalid members count at rank 0.");
-			ensure!(MemberCount::<T, I>::get(1) == 22, "invalid members count at rank 1.");
+			ensure!(MemberCount::<T, I>::get(0) == 126, "invalid members count at rank 0.");
+			ensure!(MemberCount::<T, I>::get(4) == 4, "invalid members count at rank 1.");
 			Ok(())
 		}
 	}
@@ -376,10 +372,7 @@ pub mod tests {
 		ext.execute_with(|| {
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 0);
 			InitialMemberSetup::<Runtime, Ambassador>::on_runtime_upgrade();
-			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 38);
-			assert_eq!(MemberCount::<Runtime, Ambassador>::get(1), 22);
-			assert_eq!(MemberCount::<Runtime, Ambassador>::get(2), 30);
-			assert_eq!(MemberCount::<Runtime, Ambassador>::get(3), 32);
+			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 126);
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(4), 4);
 			for (rank, account_id32) in Addresses::get() {
 				let who = <Runtime as frame_system::Config>::AccountId::from(account_id32);
