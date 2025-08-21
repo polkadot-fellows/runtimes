@@ -20,7 +20,7 @@
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
 		bridging, CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf,
-		LocationToAccountId, RcGovernanceLocation, StakingPot, TrustBackedAssetsPalletLocation,
+		LocationToAccountId, RelayChainLocation, StakingPot, TrustBackedAssetsPalletLocation,
 		XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
@@ -1802,7 +1802,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(XcmError::BadOrigin)
 	);
 	// no - Collectives Voice of Fellows plurality
 	assert_err!(
@@ -1820,9 +1820,5 @@ fn governance_authorize_upgrade_works() {
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(Location::parent())));
-	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
-		Runtime,
-		RuntimeOrigin,
-	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
 }

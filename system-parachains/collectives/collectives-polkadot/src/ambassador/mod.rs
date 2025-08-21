@@ -79,11 +79,11 @@ pub type DemoteOrigin = EitherOf<
 	EitherOf<
 		EitherOf<
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
 			>,
 			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 				Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
 			>,
 		>,
@@ -107,8 +107,8 @@ pub type OpenGovOrHeadAmbassadors = EitherOfDiverse<
 	EitherOfDiverse<
 		HeadAmbassadors,
 		EitherOf<
-			EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
-			EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 		>,
 	>,
 >;
@@ -227,8 +227,8 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EitherOf<
-				EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, FellowshipAdminBodyId>>,
-				EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
 			>,
 			pallet_ranked_collective::EnsureMember<
 				Runtime,
@@ -342,11 +342,11 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 			EnsureRootWithSuccess<AccountId, MaxBalance>,
 			EitherOf<
 				MapSuccess<
-					EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, TreasurerBodyId>>,
+					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
 					Replace<ConstU128<{ 10_000 * GRAND }>>,
 				>,
 				MapSuccess<
-					EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, TreasurerBodyId>>,
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
 					Replace<ConstU128<{ 10_000 * GRAND }>>,
 				>,
 			>,

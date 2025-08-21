@@ -46,8 +46,8 @@ parameter_types! {
 pub type IdentityAdminOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOf<
-		EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, GeneralAdminBodyId>>,
-		EnsureXcm<IsVoiceOfBody<AhGovernanceLocation, GeneralAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, GeneralAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
 	>,
 >;
 

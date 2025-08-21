@@ -154,7 +154,7 @@ use xcm::{
 };
 use xcm_config::{
 	DotLocation, DotLocationV4, FellowshipLocation, ForeignAssetsConvertedConcreteId,
-	ForeignCreatorsSovereignAccountOf, PoolAssetsConvertedConcreteId, RcGovernanceLocation,
+	ForeignCreatorsSovereignAccountOf, PoolAssetsConvertedConcreteId, RelayChainLocation,
 	StakingPot, TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV4,
 	XcmOriginToTransactDispatchOrigin,
 };
@@ -867,7 +867,7 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<RcGovernanceLocation, StakingAdminBodyId>>,
+	EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
