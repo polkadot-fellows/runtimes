@@ -5997,7 +5997,6 @@ dependencies = [
  "hex-literal",
  "pallet-balances",
  "pallet-message-queue",
- "pallet-preimage",
  "pallet-whitelist",
  "pallet-xcm",
  "paste",
