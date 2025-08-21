@@ -140,8 +140,6 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// Kusama specific calls
 		Society(..) => (OFF, OFF),  // migrating pallet
 		Recovery(..) => (OFF, OFF), // migrating pallet
-		Nis(..) => (OFF, OFF),
-		NisCounterpartBalances(..) => (OFF, OFF),
 		Parameters(..) => (ON, ON),
 		FellowshipCollective(..) => (ON, ON),
 		FellowshipReferenda(..) => (ON, ON),
@@ -163,7 +161,6 @@ impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
 			RuntimeHoldReason::Staking(inner) => PortableHoldReason::Staking(inner),
 			RuntimeHoldReason::Session(inner) => PortableHoldReason::Session(inner),
 			RuntimeHoldReason::XcmPallet(inner) => PortableHoldReason::XcmPallet(inner),
-			RuntimeHoldReason::Nis(inner) => PortableHoldReason::Nis(inner),
 		}
 	}
 }
