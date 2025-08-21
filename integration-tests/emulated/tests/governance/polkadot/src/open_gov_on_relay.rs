@@ -12,24 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::*;
-use codec::Encode;
-use emulated_integration_tests_common::{
-	impls::RelayChain,
-	xcm_emulator::{Chain, Parachain, TestExt},
-};
-use frame_support::assert_err;
-use integration_tests_helpers::{
-	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
-	dispatch_whitelisted_call_with_preimage,
-};
-use polkadot_runtime::{governance::pallet_custom_origins::Origin, Dmp};
-use polkadot_system_emulated_network::{
-	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
-	CoretimePolkadotPara as CoretimePolkadot, PeoplePolkadotPara as PeoplePolkadot,
-	PolkadotRelay as Polkadot,
-};
-use sp_runtime::DispatchError;
+use crate::{common::*, imports::*};
 
 #[test]
 fn relaychain_can_authorize_upgrade_for_itself() {

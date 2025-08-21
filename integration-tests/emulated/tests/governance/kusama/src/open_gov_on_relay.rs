@@ -13,21 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use emulated_integration_tests_common::{
-	impls::RelayChain,
-	xcm_emulator::{Chain, Parachain, TestExt},
-};
-use frame_support::{assert_err, assert_ok};
-use integration_tests_helpers::{
-	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
-	dispatch_whitelisted_call_with_preimage,
-};
-use kusama_runtime::{governance::pallet_custom_origins::Origin, Dmp};
-use kusama_system_emulated_network::{
-	AssetHubKusamaPara as AssetHubKusama, BridgeHubKusamaPara as BridgeHubKusama,
-	CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama, PeopleKusamaPara as PeopleKusama,
-};
-use sp_runtime::{traits::Dispatchable, DispatchError};
+use crate::imports::*;
 
 #[test]
 fn relaychain_can_authorize_upgrade_for_itself() {
@@ -199,13 +185,13 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	// ok - authorized
 	assert_ok!(dispatch_whitelisted_call_with_preimage::<Kusama>(authorize_upgrade, ok_origin));
 
-	// check after - authorized
 	AssetHubKusama::execute_with(|| {
 		assert_eq!(
 			<AssetHubKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),
 			&code_hash_asset_hub
 		)
 	});
+	// check after - authorized
 	BridgeHubKusama::execute_with(|| {
 		assert_eq!(
 			<BridgeHubKusama as Chain>::System::authorized_upgrade().unwrap().code_hash(),

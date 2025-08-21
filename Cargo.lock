@@ -5989,19 +5989,13 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
- "frame-support",
- "frame-system",
  "hex-literal",
  "pallet-balances",
  "pallet-message-queue",
- "pallet-whitelist",
  "pallet-xcm",
  "paste",
- "sp-core 36.1.0",
- "sp-runtime",
  "staging-xcm",
  "xcm-emulator",
 ]
