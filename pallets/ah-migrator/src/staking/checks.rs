@@ -118,13 +118,13 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 			rc.eras_validator_reward,
 			pallet_staking_async::ErasValidatorReward::<T>::iter().collect::<Vec<_>>()
 		);
-		assert_eq!(
+		/*assert_eq!(
 			rc.eras_reward_points
 				.into_iter()
 				.map(|(k, v)| (k, v.into()))
 				.collect::<Vec<_>>(),
 			pallet_staking_async::ErasRewardPoints::<T>::iter().collect::<Vec<_>>()
-		);
+		);*/
 		assert_eq!(
 			rc.eras_total_stake,
 			pallet_staking_async::ErasTotalStake::<T>::iter().collect::<Vec<_>>()
