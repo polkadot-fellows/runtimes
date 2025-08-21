@@ -93,7 +93,12 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	assert_ok!(dispatch_whitelisted_call_with_preimage::<Polkadot>(authorize_upgrade, ok_origin));
 
 	// check after - authorized
-	Polkadot::execute_with(|| assert!(<Polkadot as Chain>::System::authorized_upgrade().is_some()));
+	Polkadot::execute_with(|| {
+		assert_eq!(
+			<Polkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash
+		)
+	});
 }
 
 #[test]
@@ -207,20 +212,37 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	// ok - authorized
 	assert_ok!(dispatch_whitelisted_call_with_preimage::<Polkadot>(authorize_upgrade, ok_origin));
 
-	AssetHubPolkadot::execute_with(|| {
-		assert!(<AssetHubPolkadot as Chain>::System::authorized_upgrade().is_some())
-	});
 	// check after - authorized
+	AssetHubPolkadot::execute_with(|| {
+		assert_eq!(
+			<AssetHubPolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_asset_hub
+		)
+	});
 	BridgeHubPolkadot::execute_with(|| {
-		assert!(<BridgeHubPolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<BridgeHubPolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_bridge_hub
+		)
 	});
 	CollectivesPolkadot::execute_with(|| {
-		assert!(<CollectivesPolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<CollectivesPolkadot as Chain>::System::authorized_upgrade()
+				.unwrap()
+				.code_hash(),
+			&code_hash_collectives
+		)
 	});
 	CoretimePolkadot::execute_with(|| {
-		assert!(<CoretimePolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<CoretimePolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_coretime
+		)
 	});
 	PeoplePolkadot::execute_with(|| {
-		assert!(<PeoplePolkadot as Chain>::System::authorized_upgrade().is_some())
+		assert_eq!(
+			<PeoplePolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_people
+		)
 	});
 }
