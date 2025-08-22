@@ -46,6 +46,7 @@ pub mod benchmarks {
 
 			// open HRMP channel
 			if let ChannelStatus::Closed = ParachainSystem::get_channel_status(para_id.into()) {
+				log::info!("OpenHrmpChannel: opening channel");
 				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(para_id.into())
 			}
 

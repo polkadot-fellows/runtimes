@@ -118,7 +118,7 @@ pallet-encointer-democracy = { version = "~20.6.0", default-features = false }
 pallet-encointer-faucet = { version = "~20.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~20.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~20.1.0", default-features = false }
-pallet-encointer-treasuries = { version = "~20.6.0", default-features = false }
+pallet-encointer-treasuries = { version = "~20.7.0", default-features = false }
 pallet-encointer-treasuries-rpc-runtime-api = { version = "~20.3.0", default-features = false }
 pallet-fast-unstake = { version = "41.0.0", default-features = false }
 pallet-glutton = { version = "28.0.0", default-features = false }

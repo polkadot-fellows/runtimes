@@ -621,13 +621,14 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Paymaster = TransferOverXcm;
+
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = impls::benchmarks::TransferWithEnsure<
 		TransferOverXcm,
 		impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = benchmarks_helper::TreasuryArguments;
+	type BenchmarkHelper = benchmarks_helper::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
