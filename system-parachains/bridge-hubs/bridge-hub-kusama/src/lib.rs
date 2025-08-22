@@ -137,26 +137,38 @@ bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
-/// All migrations that will run on the next runtime upgrade.
-///
-/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
-/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = (migrations::Unreleased, migrations::Permanent);
-
-/// The runtime migrations per release.
-#[allow(deprecated, missing_docs)]
-pub mod migrations {
-	use super::*;
-
-	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
-	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
+parameter_types! {
+	pub EthereumInboundQueueName: &'static str = "EthereumInboundQueue";
+	pub EthereumOutboundQueueName: &'static str = "EthereumOutboundQueue";
+	pub EthereumBeaconClientName: &'static str = "EthereumBeaconClient";
+	pub EthereumSystemName: &'static str = "EthereumSystem";
 }
+
+parameter_types! {
+	pub const BridgePolkadotMessagesPalletName: &'static str = "BridgePolkadotMessages";
+	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+}
+
+/// Migrations to apply on runtime upgrade.
+pub type Migrations = (
+	// Unreleased
+	bridge_to_polkadot_config::migration::MigrateToXcm5<
+		Runtime,
+		bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
+	>,
+	pallet_session::migrations::v1::MigrateV0ToV1<
+		Runtime,
+		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
+	>,
+	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	pallet_bridge_relayers::migration::v2::MigrationToV2<
+		Runtime,
+		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
+		bp_messages::LegacyLaneId,
+	>,
+	// permanent
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
+);
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
