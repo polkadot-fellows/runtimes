@@ -18,21 +18,15 @@
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarks {
-	use crate::{ParachainSystem};
+	use crate::{ParachainSystem, PolkadotXcm, RuntimeOrigin};
 	use core::marker::PhantomData;
 	use cumulus_primitives_core::{ChannelStatus, GetChannelInfo};
-	use frame_support::traits::{
-		tokens::{PaymentStatus},
-	};
+	use frame_support::traits::tokens::PaymentStatus;
 	use pallet_encointer_treasuries::Transfer;
 	use sp_core::Get;
-	use xcm::opaque::latest::Junction::Parachain;
-    use crate::PolkadotXcm;
-    use crate::RuntimeOrigin;
-    use xcm::latest::Location;
-    use xcm::GetVersion;
+	use xcm::{latest::Location, opaque::latest::Junction::Parachain, GetVersion};
 
-    /// Trait for setting up any prerequisites for successful execution of benchmarks.
+	/// Trait for setting up any prerequisites for successful execution of benchmarks.
 	pub trait EnsureSuccessful {
 		fn ensure_successful();
 	}

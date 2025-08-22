@@ -628,7 +628,8 @@ impl pallet_encointer_treasuries::Config for Runtime {
 		impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = benchmarks_helper::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
+	type BenchmarkHelper =
+		benchmarks_helper::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
