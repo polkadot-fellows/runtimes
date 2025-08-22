@@ -111,10 +111,10 @@ system-parachains-constants = { workspace = true }
 substrate-wasm-builder = { optional = true, workspace = true }
 
 [dev-dependencies]
-pallet-assets = { workspace = true, features = ["std"] }
-parachains-runtimes-test-utils = { workspace = true }
-sp-io = { workspace = true, features = ["std"] }
-sp-tracing = { workspace = true, features = ["std"] }
+pallet-assets = { workspace = true, default-features = true }
+parachains-runtimes-test-utils = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
+sp-tracing = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
