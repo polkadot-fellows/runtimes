@@ -39,6 +39,7 @@ pub mod treasuries_xcm_payout;
 mod weights;
 pub mod xcm_config;
 
+mod impls;
 #[cfg(test)]
 pub mod tests;
 
@@ -618,7 +619,13 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
 	type AssetKind = VersionedLocatableAsset;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Paymaster = TransferOverXcm;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Paymaster = impls::benchmarks::TransferWithEnsure<
+		TransferOverXcm,
+		impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
+	>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmarks_helper::TreasuryArguments;
 }
