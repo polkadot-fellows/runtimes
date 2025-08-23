@@ -35,9 +35,15 @@ extern crate alloc;
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod treasuries_xcm_payout;
 mod weights;
 pub mod xcm_config;
 
+mod impls;
+#[cfg(test)]
+pub mod tests;
+
+use crate::treasuries_xcm_payout::ConstantKsmFee;
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -86,7 +92,10 @@ pub use parachains_common::{
 	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
 	Hash, Header, Nonce, Signature,
 };
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{
+	impls::{LocatableAssetConverter, VersionedLocatableAsset},
+	BlockHashCount, SlowAdjustingFeeUpdate,
+};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
@@ -104,10 +113,14 @@ use sp_version::RuntimeVersion;
 use system_parachains_constants::kusama::{consensus::*, currency::*, fee::WeightToFee};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId as XcmAssetId, BodyId},
+	latest::{
+		prelude::{AssetId as XcmAssetId, BodyId},
+		NetworkId,
+	},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
 	VersionedXcm,
 };
+use xcm_builder::AliasesIntoAccountId32;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -585,12 +598,72 @@ impl pallet_encointer_democracy::Config for Runtime {
 
 parameter_types! {
 	pub const TreasuriesPalletId: PalletId = PalletId(*b"trsrysId");
+
+	pub const AnyNetwork: Option<NetworkId> = None;
 }
+
+pub type TransferOverXcm = crate::treasuries_xcm_payout::TransferOverXcm<
+	crate::xcm_config::XcmRouter,
+	crate::PolkadotXcm,
+	ConstU32<{ 6 * HOURS }>,
+	AccountId,
+	VersionedLocatableAsset, // Use this as AssetKind in encointer_treasuries::Config too!
+	LocatableAssetConverter,
+	AliasesIntoAccountId32<AnyNetwork, AccountId>,
+	ConstantKsmFee,
+>;
+
 impl pallet_encointer_treasuries::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
+	type AssetKind = VersionedLocatableAsset;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Paymaster = TransferOverXcm;
+
+	#[cfg(feature = "runtime-benchmarks")]
+	type Paymaster = impls::benchmarks::TransferWithEnsure<
+		TransferOverXcm,
+		impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
+	>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper =
+		benchmarks_helper::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarks_helper {
+	use super::VersionedLocatableAsset;
+	use core::marker::PhantomData;
+	use frame_support::traits::Get;
+	use pallet_encointer_treasuries::benchmarking::ArgumentsFactory as TreasuryArgumentsFactory;
+	use sp_core::{ConstU32, ConstU8};
+	use xcm::prelude::*;
+
+	// The below implementation is basically the same as for:
+	// polkadot_runtime_common::impls::benchmarks::TreasuryArguments
+
+	/// Provide factory methods for the [`VersionedLocatableAsset`].
+	/// The location of the asset is determined as a Parachain with an
+	/// ID equal to the passed seed.
+	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
+		PhantomData<(Parents, ParaId)>,
+	);
+	impl<Parents: Get<u8>, ParaId: Get<u32>> TreasuryArgumentsFactory<VersionedLocatableAsset>
+		for TreasuryArguments<Parents, ParaId>
+	{
+		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
+			(
+				Location::new(Parents::get(), [Junction::Parachain(ParaId::get())]),
+				AssetId(Location::new(
+					0,
+					[PalletInstance(seed.try_into().unwrap()), GeneralIndex(seed.into())],
+				)),
+			)
+				.into()
+		}
+	}
 }
 
 impl pallet_aura::Config for Runtime {
