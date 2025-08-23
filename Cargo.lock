@@ -4252,6 +4252,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "encointer-kusama-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "encointer-kusama-runtime",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-emulated-chain",
+ "parachains-common",
+ "polkadot-parachain-primitives",
+ "sp-core 38.0.0",
+ "sp-keyring",
+ "staging-xcm",
+ "staging-xcm-builder",
+]
+
+[[package]]
+name = "encointer-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-test-utils",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "encointer-kusama-runtime",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-runtime-constants",
+ "kusama-system-emulated-network",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-message-queue",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "sp-runtime",
+ "sp-tracing 18.0.0",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+ "xcm-runtime-apis",
+]
+
+[[package]]
 name = "encointer-kusama-runtime"
 version = "1.0.0"
 dependencies = [
@@ -4278,6 +4326,7 @@ dependencies = [
  "kusama-runtime-constants",
  "log",
  "pallet-asset-tx-payment",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -4324,9 +4373,11 @@ dependencies = [
  "sp-core 38.0.0",
  "sp-genesis-builder",
  "sp-inherents",
+ "sp-io",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
+ "sp-tracing 18.0.0",
  "sp-transaction-pool",
  "sp-version",
  "staging-parachain-info",
@@ -4354,9 +4405,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-primitives"
-version = "20.4.0"
+version = "20.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3f3eb8c27de173898f75ba824e4a69a6cc88500006c0b8724cd467f9c524163"
+checksum = "d5fd87346c56bb7b2034bbecae6a40e604f62b357aff07e482f343be1f11f37c"
 dependencies = [
  "bs58",
  "crc",
@@ -6863,6 +6914,7 @@ dependencies = [
  "bridge-hub-kusama-emulated-chain",
  "coretime-kusama-emulated-chain",
  "emulated-integration-tests-common",
+ "encointer-kusama-emulated-chain",
  "kusama-emulated-chain",
  "penpal-emulated-chain",
  "people-kusama-emulated-chain",
@@ -8970,9 +9022,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-democracy"
-version = "20.4.0"
+version = "20.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0038e34f1d9c2f3063bf2799eb1442141d56583b898b9b163738f93d9db0b6d"
+checksum = "3d9dc656fbebbf9f59591642d6f23470d8a912882bcaefc7582659e936aade68"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -9059,9 +9111,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-treasuries"
-version = "20.4.0"
+version = "20.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb256efa55f3dab869ebbfb8956e3bfbafde77142fba1d354784d1901d6960b7"
+checksum = "884fc4e531d51ffc69c20d1a0d8695fd28497080df2d6be4d839cdf2c70e7d1d"
 dependencies = [
  "approx",
  "encointer-primitives",
