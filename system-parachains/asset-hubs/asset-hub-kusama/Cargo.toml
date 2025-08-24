@@ -52,6 +52,7 @@ pallet-conviction-voting = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
+pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-nft-fractionalization = { workspace = true }
@@ -172,8 +173,7 @@ runtime-benchmarks = [
 	"pallet-election-provider-multi-block/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
-	"pallet-message-queue/runtime-benchmarks",
-	"pallet-multisig/runtime-benchmarks",
+	"pallet-migrations/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nft-fractionalization/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
@@ -240,8 +240,7 @@ try-runtime = [
 	"pallet-election-provider-multi-block/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
-	"pallet-message-queue/try-runtime",
-	"pallet-multisig/try-runtime",
+	"pallet-migrations/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nft-fractionalization/try-runtime",
 	"pallet-nfts/try-runtime",
@@ -316,8 +315,7 @@ std = [
 	"pallet-election-provider-multi-block/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
-	"pallet-message-queue/std",
-	"pallet-multisig/std",
+	"pallet-migrations/std",
 	"pallet-multisig/std",
 	"pallet-nft-fractionalization/std",
 	"pallet-nfts-runtime-api/std",

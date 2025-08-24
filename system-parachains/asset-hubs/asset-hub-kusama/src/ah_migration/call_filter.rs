@@ -135,7 +135,8 @@ pub fn call_allowed_status(
 		RemoteProxyRelayChain(..) => OFF,
 		NftFractionalization(..) => OFF,
 		Recovery(..) => OFF,
-		Revive(..) => OFF, // TODO: OFF or ON?
+		MultiBlockMigrations(..) => OFF, // has not calls
+		Revive(..) => OFF,               // TODO: OFF or ON?
 	};
 	// Exhaustive match. Compiler ensures that we did not miss any.
 
@@ -172,6 +173,7 @@ pub fn call_allowed_before_migration(
 		Referenda(..) => OFF,
 		Treasury(..) => OFF,
 		Recovery(..) => OFF,
+		MultiBlockMigrations(..) => OFF, // has not calls
 		// Everything else is enabled before the migration.
 		// Exhaustive match in case a pallet is added:
 		AhMigrator(..) |

@@ -516,7 +516,8 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 	type Currency = Balances;
-	type KeyDeposit = KeyDeposit;
+	// TODO: we will set this post-AHM
+	type KeyDeposit = ();
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -2153,7 +2154,6 @@ mod benches {
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
-		[pallet_balances, NisCounterpart]
 		[pallet_bags_list, VoterList]
 		[pallet_beefy_mmr, BeefyMmrLeaf]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
@@ -2194,7 +2194,10 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
-	use xcm_config::{AssetHubLocation, SovereignAccountOf, TokenLocation, XcmConfig};
+	use xcm_builder::MintLocation;
+	use xcm_config::{
+		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
+	};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
 	impl pallet_offences_benchmarking::Config for Runtime {}
@@ -2378,7 +2381,6 @@ mod benches {
 	}
 
 	pub type Native = pallet_balances::Pallet<Runtime, ()>;
-	pub type NisCounterpart = pallet_balances::Pallet<Runtime, NisCounterpartInstance>;
 	pub use frame_benchmarking::{
 		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList,
 	};
