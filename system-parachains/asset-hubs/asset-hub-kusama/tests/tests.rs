@@ -43,7 +43,7 @@ use asset_test_utils::{
 use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
-	traits::{fungibles::InspectEnumerable, ContainsPair},
+	traits::{fungibles::InspectEnumerable, ContainsPair, Get},
 };
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
@@ -360,6 +360,9 @@ fn bridging_to_asset_hub_polkadot() -> TestBridgingConfig {
 
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works() {
+	ExtBuilder::<Runtime>::default()
+	.build()
+	.execute_with(|| {
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -388,7 +391,8 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works(
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
 		Some(RelayTreasuryPalletAccount::get()),
-	)
+		)
+	});
 }
 
 #[test]
@@ -595,10 +599,13 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 
 #[test]
 fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		let relay_treasury_account: AccountId = RelayTreasuryPalletAccount::get();
+		assert_eq!(
+			relay_treasury_account,
+			LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
+		)
+	});
 }
 
 #[test]
@@ -887,7 +894,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 
 	// ok - relaychain

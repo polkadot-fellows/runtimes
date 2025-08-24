@@ -22,10 +22,10 @@ use alloc::boxed::Box;
 use codec::DecodeAll;
 use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
 use pallet_ah_migrator::LOG_TARGET;
+use parachains_common::pay::VersionedLocatableAccount;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
 use sp_core::Get;
 use sp_runtime::traits::{Convert, TryConvert};
-use parachains_common::pay::VersionedLocatableAccount;
 
 impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
 	fn from(reason: pallet_rc_migrator::types::PortableHoldReason) -> Self {

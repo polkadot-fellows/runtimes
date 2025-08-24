@@ -67,7 +67,7 @@ impl snowbridge_pallet_system_frontend::Config for Runtime {
 				Location,
 			>,
 		>,
-		EnsureRootWithSuccess<AccountId, RootLocation>,
+		EnsureRootWithSuccess<AccountId, RootLocation>, // TODO: Here or Parent?
 	>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type XcmSender = xcm_config::XcmRouter;

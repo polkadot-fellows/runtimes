@@ -135,7 +135,7 @@ use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	},
 	polkadot::{
 		consensus::{
