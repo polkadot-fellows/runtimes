@@ -191,26 +191,6 @@ impl<T: frame_system::Config> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3672).saturating_mul(n.into()))
 	}
-	/// Storage: `FastUnstake::Queue` (r:255 w:255)
-	/// Proof: `FastUnstake::Queue` (`max_values`: None, `max_size`: Some(56), added: 2531, mode: `MaxEncodedLen`)
-	/// Storage: `FastUnstake::CounterForQueue` (r:1 w:1)
-	/// Proof: `FastUnstake::CounterForQueue` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_fast_unstake_messages(n: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `42`
-		//  Estimated: `1489 + n * (2531 ±0)`
-		// Minimum execution time: 8_000_000 picoseconds.
-		Weight::from_parts(3_337_171, 0)
-			.saturating_add(Weight::from_parts(0, 1489))
-			// Standard Error: 6_848
-			.saturating_add(Weight::from_parts(2_491_678, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
-			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 2531).saturating_mul(n.into()))
-	}
 	/// Storage: `Referenda::DecidingCount` (r:0 w:16)
 	/// Proof: `Referenda::DecidingCount` (`max_values`: None, `max_size`: Some(14), added: 2489, mode: `MaxEncodedLen`)
 	/// Storage: `Referenda::ReferendumCount` (r:0 w:1)
