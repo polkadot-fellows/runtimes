@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Update Kusama submission deposit to 3.333KSM as per ref#558
+
 ## [1.7.0] 22.08.2025
 
 ### Fixed
