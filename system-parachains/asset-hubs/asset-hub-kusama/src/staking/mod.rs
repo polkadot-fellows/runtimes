@@ -182,7 +182,7 @@ impl multi_block::Config for Runtime {
 	type OnRoundRotation = multi_block::CleanRound<Self>;
 	// Note: these pallets are currently not "easily" benchmark-able in CIs. They provide a set of
 	// weights for polkadot/kusama/westend. Using the polkadot-variant is good enough for now.
-	type WeightInfo = multi_block::weights::polkadot::MultiBlockWeightInfo<Self>;
+	type WeightInfo = multi_block::weights::kusama::MultiBlockWeightInfo<Self>;
 }
 
 impl multi_block::verifier::Config for Runtime {
