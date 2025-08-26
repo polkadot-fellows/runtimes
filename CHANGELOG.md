@@ -5,9 +5,9 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-- Support Snowbridge bridge reward payouts on AssetHub ([polkadot-fellows/runtimes/pull/865](https://github.com/polkadot-fellows/runtimes/pull/865))
 
 ### Added
+- Support Snowbridge bridge reward payouts on AssetHub ([polkadot-fellows/runtimes/pull/865](https://github.com/polkadot-fellows/runtimes/pull/865))
 
 ## [1.7.0] 22.08.2025
 
