@@ -14,13 +14,13 @@
 // limitations under the License.
 
 use crate::{
-	tests::snowbridge_common::{eth_location, set_up_eth_and_dot_pool_on_polkadot_asset_hub},
+	tests::snowbridge_common::{
+		eth_location, set_up_eth_and_dot_pool_on_polkadot_asset_hub, INITIAL_FUND,
+	},
 	*,
 };
 use bridge_hub_polkadot_runtime::bridge_common_config::{BridgeReward, BridgeRewardBeneficiaries};
 use pallet_bridge_relayers::{Error::FailedToPayReward, RewardLedger};
-
-const INITIAL_FUND: u128 = 5_000_000_000_000;
 
 #[test]
 fn claim_rewards_works() {
