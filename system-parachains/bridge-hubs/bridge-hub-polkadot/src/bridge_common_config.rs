@@ -16,15 +16,23 @@
 
 //! Bridge definitions that can be used by multiple bridges.
 
-use crate::{weights, AccountId, Balance, Balances, BlockNumber, Runtime, RuntimeEvent};
+use crate::{
+	bridge_to_ethereum_config::InboundQueueV2Location,
+	weights,
+	xcm_config::{XcmConfig, XcmRouter},
+	AccountId, Balance, Balances, BlockNumber, Runtime, RuntimeCall, RuntimeEvent,
+};
 use alloc::boxed::Box;
+use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use bp_messages::LegacyLaneId;
 use bp_relayers::RewardsAccountParams;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::parameter_types;
 use polkadot_runtime_constants as constants;
 use scale_info::TypeInfo;
-use xcm::VersionedLocation;
+use system_parachains_constants::polkadot::locations::AssetHubLocation;
+use xcm::{opaque::latest::Location, VersionedLocation};
+use xcm_executor::XcmExecutor;
 
 parameter_types! {
 	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
@@ -111,7 +119,27 @@ impl bp_relayers::PaymentProcedure<AccountId, BridgeReward, u128> for BridgeRewa
 					BridgeRewardBeneficiaries::AssetHubLocation(_) => Err(Self::Error::Other("`AssetHubLocation` beneficiary is not supported for `PolkadotKusamaBridge` rewards!")),
 				}
 			},
-			BridgeReward::Snowbridge => Err(Self::Error::Other("Not supported for `Snowbridge` rewards yet!")),
+			BridgeReward::Snowbridge => {
+				match beneficiary {
+					BridgeRewardBeneficiaries::LocalAccount(_) => Err(Self::Error::Other("`LocalAccount` beneficiary is not supported for `Snowbridge` rewards!")),
+					BridgeRewardBeneficiaries::AssetHubLocation(account_location) => {
+						let account_location = Location::try_from(account_location.as_ref().clone())
+							.map_err(|_| Self::Error::Other("`AssetHubLocation` beneficiary location version is not supported for `Snowbridge` rewards!"))?;
+						snowbridge_core::reward::PayAccountOnLocation::<
+							AccountId,
+							u128,
+							EthereumNetwork,
+							AssetHubLocation,
+							InboundQueueV2Location,
+							XcmRouter,
+							XcmExecutor<XcmConfig>,
+							RuntimeCall
+						>::pay_reward(
+							relayer, (), reward, account_location
+						)
+					}
+				}
+			}
 		}
 	}
 }
