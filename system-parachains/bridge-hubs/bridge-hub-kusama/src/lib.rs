@@ -137,38 +137,26 @@ bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
-parameter_types! {
-	pub EthereumInboundQueueName: &'static str = "EthereumInboundQueue";
-	pub EthereumOutboundQueueName: &'static str = "EthereumOutboundQueue";
-	pub EthereumBeaconClientName: &'static str = "EthereumBeaconClient";
-	pub EthereumSystemName: &'static str = "EthereumSystem";
-}
+/// All migrations that will run on the next runtime upgrade.
+///
+/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
+/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 
-parameter_types! {
-	pub const BridgePolkadotMessagesPalletName: &'static str = "BridgePolkadotMessages";
-	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
-}
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
 
-/// Migrations to apply on runtime upgrade.
-pub type Migrations = (
-	// Unreleased
-	bridge_to_polkadot_config::migration::MigrateToXcm5<
-		Runtime,
-		bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
-	>,
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	pallet_bridge_relayers::migration::v2::MigrationToV2<
-		Runtime,
-		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
-		bp_messages::LegacyLaneId,
-	>,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = ();
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations = ();
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -191,7 +179,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-kusama"),
 	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_007_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
