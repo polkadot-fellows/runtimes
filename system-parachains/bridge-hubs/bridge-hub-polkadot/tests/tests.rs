@@ -608,7 +608,7 @@ pub fn bridge_rewards_works() {
 					reward1_for,
 				);
 			assert_ok!(Balances::mint_into(&expected_reward1_account, ExistentialDeposit::get()));
-			assert_ok!(Balances::mint_into(&expected_reward1_account, reward1.into()));
+			assert_ok!(Balances::mint_into(&expected_reward1_account, reward1));
 			assert_ok!(Balances::mint_into(&account1, ExistentialDeposit::get()));
 
 			// register rewards

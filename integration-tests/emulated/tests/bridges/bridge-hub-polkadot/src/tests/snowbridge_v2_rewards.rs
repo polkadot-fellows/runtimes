@@ -43,7 +43,7 @@ fn claim_rewards_works() {
 
 		type BridgeRelayers = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::BridgeRelayers;
 		BridgeRelayers::register_reward(
-			(&relayer_account.clone()).into(),
+			&relayer_account.clone(),
 			BridgeReward::Snowbridge,
 			reward_amount,
 		);
@@ -96,7 +96,7 @@ fn claim_rewards_works() {
 				// Check that the reward was paid on AH
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
 					asset_id: *asset_id == eth_location(),
-					owner: *owner == reward_address.clone().into(),
+					owner: *owner == reward_address.clone(),
 				},
 			]
 		);
@@ -125,7 +125,7 @@ fn claim_snowbridge_rewards_to_local_account_fails() {
 
 		type BridgeRelayers = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::BridgeRelayers;
 		BridgeRelayers::register_reward(
-			(&relayer_account.clone()).into(),
+			&relayer_account.clone(),
 			BridgeReward::Snowbridge,
 			reward_amount,
 		);
