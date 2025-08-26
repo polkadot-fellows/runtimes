@@ -59,7 +59,8 @@ emulated-integration-tests-common = { version = "24.0.0" }
 encointer-balances-tx-payment = { version = "~20.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~20.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-primitives = { version = "~20.4.0", default-features = false }
+encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
+encointer-primitives = { version = "~20.5.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "42.0.0", default-features = false }
 frame-election-provider-support = { version = "42.0.0", default-features = false }
@@ -113,11 +114,11 @@ pallet-encointer-ceremonies = { version = "~20.1.0", default-features = false }
 pallet-encointer-ceremonies-rpc-runtime-api = { version = "~20.1.0", default-features = false }
 pallet-encointer-communities = { version = "~20.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~20.1.0", default-features = false }
-pallet-encointer-democracy = { version = "~20.4.0", default-features = false }
+pallet-encointer-democracy = { version = "~20.6.0", default-features = false }
 pallet-encointer-faucet = { version = "~20.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~20.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~20.1.0", default-features = false }
-pallet-encointer-treasuries = { version = "~20.4.0", default-features = false }
+pallet-encointer-treasuries = { version = "~20.7.0", default-features = false }
 pallet-encointer-treasuries-rpc-runtime-api = { version = "~20.3.0", default-features = false }
 pallet-fast-unstake = { version = "41.0.0", default-features = false }
 pallet-glutton = { version = "28.0.0", default-features = false }
@@ -273,6 +274,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-polkadot",
+	"integration-tests/emulated/chains/parachains/encointer/encointer-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
@@ -289,6 +291,7 @@ members = [
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/coretime/coretime-polkadot",
+	"integration-tests/emulated/tests/encointer/encointer-kusama",
 	"integration-tests/emulated/tests/governance/kusama",
 	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
