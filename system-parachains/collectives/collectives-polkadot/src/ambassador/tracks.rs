@@ -74,7 +74,7 @@ impl Convert<TrackId, Rank> for MinRankOfClass {
 			fast_promote @ 31..=33 => fast_promote - 28,
 			// Tipping Origin SeniorAmbassador
 			41 => 3,
-			// Treasurer Orirign GlobalAmbassador
+			// Treasurer Origin GlobalAmbassador
 			42 => 5,
 			_ => Rank::MAX,
 		}

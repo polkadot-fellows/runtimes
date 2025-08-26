@@ -81,21 +81,6 @@ pub mod pallet_origins {
 		}
 	}
 
-	/*
-	/// A `TryMorph` implementation which is designed to convert an aggregate `RuntimeOrigin`
-	/// value into the Fellowship voice it represents if it is a Fellowship pallet origin an
-	/// appropriate variant.
-	///
-	/// See also [Origin::as_voice].
-	pub struct ToVoice;
-	impl<'a, O: 'a + TryInto<&'a Origin>> sp_runtime::traits::TryMorph<O> for ToVoice {
-		type Outcome = pallet_ranked_collective::Rank;
-		fn try_morph(o: O) -> Result<pallet_ranked_collective::Rank, ()> {
-			o.try_into().ok().and_then(Origin::as_voice).ok_or(())
-		}
-	}
-	*/
-
 	pub struct EnsureCanRetainAt;
 
 	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for EnsureCanRetainAt {

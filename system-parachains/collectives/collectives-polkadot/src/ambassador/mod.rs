@@ -120,7 +120,7 @@ pub type OpenGovOrGlobalHead = EitherOfDiverse<
 	>,
 >;
 
-/// Root orFellowshipAdmin
+/// Root or FellowshipAdmin
 pub type RootOrOpenGov = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
@@ -141,7 +141,10 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
 	type VoteWeight = Geometric;
-	type AddOrigin = RootOrOpenGov;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type AddOrigin = frame_support::traits::NeverEnsureOrigin<Rank>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type AddOrigin = EnsureRoot<AccountId>;
 	type ExchangeOrigin = RootOrOpenGov;
 	type MemberSwappedHandler = crate::AmbassadorCore;
 	type MaxMemberCount = ();
@@ -324,8 +327,7 @@ mod tests {
 			assert_eq!(
 				Geometric::convert(rank),
 				expected_votes as Votes,
-				format!("Vote weight conversion failed for rank {}",
-				rank)
+				"Vote weight conversion failed for rank {rank}"
 			);
 		}
 
