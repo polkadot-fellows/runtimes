@@ -261,9 +261,11 @@ pub mod tests {
 		ambassador::{AmbassadorCollectiveInstance as Ambassador, AmbassadorCoreInstance},
 		Runtime, System,
 	};
+	#[cfg(feature = "try-runtime")]
 	use codec::Encode;
+	#[cfg(feature = "try-runtime")]
+	use frame_support::assert_ok;
 	use frame_support::{
-		assert_ok,
 		traits::{DefensiveTruncateFrom, OnRuntimeUpgrade},
 		BoundedVec,
 	};
