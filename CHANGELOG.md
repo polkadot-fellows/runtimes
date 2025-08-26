@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- [#861](https://github.com/polkadot-fellows/runtimes/pull/861) Removed the custom fungible adapter used by Kusama AssetHub
+
 ## [1.7.0] 22.08.2025
 
 ### Fixed
