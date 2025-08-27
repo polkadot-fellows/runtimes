@@ -227,7 +227,7 @@ jobs:
 
       - name: Create try-runtime and logging enabled runtimes
         run: |
-          zip -j polkadot-fellows_logging_runtimes-v${{ env.SPEC }}-wasms.zip */*.compact.compressed.wasm
+          zip -j runtimes-with-try-runtime-and-logging.zip */*.compact.compressed.wasm
 
       - name: Upload archive to GitHub Release
         uses: actions/upload-release-asset@v1
@@ -235,6 +235,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
-          asset_path: polkadot-fellows_logging_runtimes-v${{ env.SPEC }}-wasms.zip
+          asset_path: runtimes-with-try-runtime-and-logging.zip
           asset_name: runtimes-with-try-runtime-and-logging.zip
           asset_content_type: application/zip
