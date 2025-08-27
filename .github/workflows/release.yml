@@ -236,5 +236,5 @@ jobs:
         with:
           upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
           asset_path: polkadot-fellows_logging_runtimes-v${{ env.SPEC }}-wasms.zip
-          asset_name: polkadot-fellows_logging_runtimes-v${{ env.SPEC }}-wasms.zip
+          asset_name: runtimes-with-try-runtime-and-logging.zip
           asset_content_type: application/zip
