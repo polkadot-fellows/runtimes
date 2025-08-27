@@ -251,7 +251,7 @@ impl<
 	}
 }
 
-pub fn remote_transfer_xcm(
+fn remote_transfer_xcm(
 	from_location: Location,
 	destination: Location,
 	beneficiary: Location,
@@ -285,7 +285,7 @@ pub fn remote_transfer_xcm(
 	Ok(xcm)
 }
 
-pub fn append_from_to_target(from: Location, target: Location) -> Result<Location, Error> {
+fn append_from_to_target(from: Location, target: Location) -> Result<Location, Error> {
 	let from_at_target = target.appended_with(from).map_err(|_| Error::LocationFull)?;
 	Ok(from_at_target)
 }
