@@ -81,6 +81,7 @@ To submit a fix to release `x.y.z` and make a point release:
 - Check for other planned releases which originally targeted the same semver version and post on the issue letting them know that they should bump
 - Once the release is out, amend the GitHub release and delete all unchanged runtime blobs. Highlight if this release only affects some runtimes (contact a maintainer)
 - Backport your changes to the `CHANGELOG.md` to the main branch
+
 ## Release guidelines
 
 Here is an overview of the recommended steps.
@@ -98,7 +99,6 @@ Here is an overview of the recommended steps.
 |8 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. |
 |9 |Close the issue for the release once the referendum is **approved and executed**. |
 |10 |Open an issue for **the next release** in the runtimes repo, if applicable.|
-
 
 ## Communication channels
 

@@ -20,8 +20,12 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit.
 #![recursion_limit = "512"]
 
+#[cfg(not(feature = "kusama"))]
+compile_error!("Asset Hub migration requires the `kusama` feature");
+
 extern crate alloc;
 
+use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
 	vec,
@@ -48,10 +52,10 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, Contains, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
-		EnsureOriginWithArg, EverythingBut, FromContains, InstanceFilter, KeyOwnerProofSystem,
+		ConstU32, ConstU8, ConstUint, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
+		EnsureOriginWithArg, Equals, FromContains, InstanceFilter, KeyOwnerProofSystem,
 		LinearStoragePrice, OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError,
-		StorageMapShim, WithdrawReasons,
+		WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -65,11 +69,11 @@ use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIM
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
-use pallet_nis::WithMaximumOf;
 use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
+use pallet_xcm::EnsureXcm;
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
@@ -130,6 +134,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
+use xcm_config::AssetHubLocation;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -157,6 +162,8 @@ mod past_payouts;
 
 // XCM configurations.
 pub mod xcm_config;
+
+pub mod ah_migration;
 
 // Governance configurations.
 pub mod governance;
@@ -200,14 +207,6 @@ pub fn native_version() -> NativeVersion {
 	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
 }
 
-/// Contains `Nis` and `NisCounterpartBalances` pallets calls.
-pub struct NisCalls;
-impl Contains<RuntimeCall> for NisCalls {
-	fn contains(call: &RuntimeCall) -> bool {
-		matches!(call, RuntimeCall::Nis(..) | RuntimeCall::NisCounterpartBalances(..))
-	}
-}
-
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub const SS58Prefix: u8 = 2;
@@ -215,7 +214,7 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type BaseCallFilter = EverythingBut<NisCalls>;
+	type BaseCallFilter = RcMigrator;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -248,6 +247,7 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
+	pub ZeroWeight: Weight = Weight::zero();
 	pub const MaxScheduledPerBlock: u32 = 50;
 	pub const NoPreimagePostponement: Option<u32> = Some(10);
 }
@@ -275,7 +275,8 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight = MaximumSchedulerWeight;
+	type MaximumWeight =
+		pallet_rc_migrator::types::LeftOrRight<RcMigrator, ZeroWeight, MaximumSchedulerWeight>;
 	// The goal of having ScheduleOrigin include AuctionAdmin is to allow the auctions track of
 	// OpenGov to schedule periodic auctions.
 	// Also allow Treasurer to schedule recurring payments.
@@ -484,7 +485,7 @@ impl pallet_timestamp::Config for Runtime {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-	type EventHandler = Staking;
+	type EventHandler = StakingAhClient;
 }
 
 impl_opaque_keys! {
@@ -509,7 +510,7 @@ impl pallet_session::Config for Runtime {
 	type ValidatorIdOf = ConvertInto;
 	type ShouldEndSession = Babe;
 	type NextSessionRotation = Babe;
-	type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
+	type SessionManager = session_historical::NoteHistoricalRoot<Self, StakingAhClient>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
@@ -522,7 +523,6 @@ impl pallet_session::Config for Runtime {
 impl pallet_session::historical::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-	#[allow(deprecated)] // will be removed with AHM
 	type FullIdentificationOf = pallet_staking::DefaultExposureOf<Runtime>;
 }
 
@@ -637,7 +637,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type BetterSignedThreshold = ();
 	type OffchainRepeat = OffchainRepeat;
 	type MinerTxPriority = NposSolutionPriority;
-	type MaxWinners = MaxWinnersPerPage;
 	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type DataProvider = Staking;
 	#[cfg(any(feature = "fast-runtime", feature = "runtime-benchmarks"))]
@@ -659,12 +658,12 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
+	type MaxWinners = MaxWinnersPerPage;
 	type ElectionBounds = ElectionBounds;
 }
 
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
-	pub const AutoRebagNumber: u32 = 10;
 }
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
@@ -673,8 +672,11 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type ScoreProvider = Staking;
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
-	type MaxAutoRebagPerBlock = AutoRebagNumber;
 	type Score = sp_npos_elections::VoteWeight;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MaxAutoRebagPerBlock = ConstU32<5>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 #[derive(
@@ -801,7 +803,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 
 		let params = relay_common::EraPayoutParams {
 			total_staked,
-			total_stakable: Nis::issuance().other,
+			total_stakable: 0, // TODO: double check
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
 			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
 			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
@@ -882,7 +884,7 @@ impl pallet_staking::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	type Filter = ();
+	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -893,7 +895,10 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
+	type WeightInfo = pallet_rc_migrator::types::MaxOnIdleOrInner<
+		RcMigrator,
+		weights::pallet_fast_unstake::WeightInfo<Runtime>,
+	>;
 }
 
 parameter_types! {
@@ -901,6 +906,7 @@ parameter_types! {
 	pub const ProposalBondMinimum: Balance = 2000 * CENTS;
 	pub const ProposalBondMaximum: Balance = GRAND;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
+	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 90 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
@@ -947,12 +953,24 @@ impl Get<Permill> for TreasuryBurnHandler {
 	}
 }
 
+pub type TreasuryPaymaster = PayOverXcm<
+	TreasuryInteriorLocation,
+	crate::xcm_config::XcmRouter,
+	crate::XcmPallet,
+	ConstU32<{ 6 * HOURS }>,
+	<Runtime as pallet_treasury::Config>::Beneficiary,
+	<Runtime as pallet_treasury::Config>::AssetKind,
+	LocatableAssetConverter,
+	VersionedLocationConverter,
+>;
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod = SpendPeriod;
+	type SpendPeriod =
+		pallet_rc_migrator::types::LeftOrRight<RcMigrator, DisableSpends, SpendPeriod>;
 	type Burn = TreasuryBurnHandler;
 	type BurnDestination = TreasuryBurnHandler;
 	type MaxApprovals = MaxApprovals;
@@ -962,16 +980,7 @@ impl pallet_treasury::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocation;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type Paymaster = PayOverXcm<
-		TreasuryInteriorLocation,
-		crate::xcm_config::XcmRouter,
-		crate::XcmPallet,
-		ConstU32<{ 6 * HOURS }>,
-		Self::Beneficiary,
-		Self::AssetKind,
-		LocatableAssetConverter,
-		VersionedLocationConverter,
-	>;
+	type Paymaster = TreasuryPaymaster;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -1020,8 +1029,8 @@ impl pallet_child_bounties::Config for Runtime {
 
 impl pallet_offences::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type IdentificationTuple = session_historical::IdentificationTuple<Self>;
-	type OnOffenceHandler = Staking;
+	type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
+	type OnOffenceHandler = StakingAhClient;
 }
 
 impl pallet_authority_discovery::Config for Runtime {
@@ -1122,15 +1131,6 @@ where
 	}
 }
 
-impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
-where
-	RuntimeCall: From<LocalCall>,
-{
-	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
-		UncheckedExtrinsic::new_bare(call)
-	}
-}
-
 parameter_types! {
 	pub Prefix: &'static [u8] = b"Pay KSMs to the Kusama account:";
 }
@@ -1172,7 +1172,6 @@ impl pallet_multisig::Config for Runtime {
 parameter_types! {
 	pub const ConfigDepositBase: Balance = 500 * CENTS;
 	pub const FriendDepositFactor: Balance = 50 * CENTS;
-	pub const MaxFriends: u16 = 9;
 	pub const RecoveryDeposit: Balance = 500 * CENTS;
 }
 
@@ -1183,7 +1182,7 @@ impl pallet_recovery::Config for Runtime {
 	type Currency = Balances;
 	type ConfigDepositBase = ConfigDepositBase;
 	type FriendDepositFactor = FriendDepositFactor;
-	type MaxFriends = MaxFriends;
+	type MaxFriends = ConstU32<9>;
 	type RecoveryDeposit = RecoveryDeposit;
 	type BlockNumberProvider = System;
 }
@@ -1256,7 +1255,13 @@ parameter_types! {
 	MaxEncodedLen,
 	Default,
 )]
-pub struct TransparentProxyType(ProxyType);
+pub struct TransparentProxyType(pub ProxyType);
+
+impl Into<ProxyType> for TransparentProxyType {
+	fn into(self) -> ProxyType {
+		self.0
+	}
+}
 
 impl scale_info::TypeInfo for TransparentProxyType {
 	type Identity = <ProxyType as TypeInfo>::Identity;
@@ -1307,7 +1312,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::Scheduler(..) |
 				RuntimeCall::Proxy(..) |
 				RuntimeCall::Multisig(..) |
-				RuntimeCall::Nis(..) |
 				RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
 				RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
 				// Specifically omitting Registrar `swap`
@@ -1423,7 +1427,7 @@ impl parachains_inclusion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type DisputesHandler = ParasDisputes;
 	type RewardValidators =
-		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, Staking>;
+		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
 	type MessageQueue = MessageQueue;
 	type WeightInfo = weights::runtime_parachains_inclusion::WeightInfo<Runtime>;
 }
@@ -1588,7 +1592,7 @@ impl parachains_initializer::Config for Runtime {
 impl parachains_disputes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RewardValidators =
-		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, Staking>;
+		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
 	type SlashingHandler = parachains_slashing::SlashValidatorsForDisputes<ParasSlashing>;
 	type WeightInfo = weights::runtime_parachains_disputes::WeightInfo<Runtime>;
 }
@@ -1679,65 +1683,6 @@ impl auctions::Config for Runtime {
 	type WeightInfo = weights::polkadot_runtime_common_auctions::WeightInfo<Runtime>;
 }
 
-type NisCounterpartInstance = pallet_balances::Instance2;
-impl pallet_balances::Config<NisCounterpartInstance> for Runtime {
-	type Balance = Balance;
-	type DustRemoval = ();
-	type RuntimeEvent = RuntimeEvent;
-	type ExistentialDeposit = ConstU128<10_000_000_000>; // One KTC cent
-	type AccountStore = StorageMapShim<
-		pallet_balances::Account<Runtime, NisCounterpartInstance>,
-		AccountId,
-		pallet_balances::AccountData<u128>,
-	>;
-	type MaxLocks = ConstU32<4>;
-	type MaxReserves = ConstU32<4>;
-	type ReserveIdentifier = [u8; 8];
-	type WeightInfo = weights::pallet_balances_nis_counterpart::WeightInfo<Runtime>;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = ();
-	type MaxFreezes = ConstU32<1>;
-	type DoneSlashHandler = ();
-}
-
-parameter_types! {
-	pub const NisBasePeriod: BlockNumber = 7 * DAYS;
-	pub const MinBid: Balance = 100 * QUID;
-	pub MinReceipt: Perquintill = Perquintill::from_rational(1u64, 10_000_000u64);
-	pub const IntakePeriod: BlockNumber = 5 * MINUTES;
-	pub MaxIntakeWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
-	pub const ThawThrottle: (Perquintill, BlockNumber) = (Perquintill::from_percent(25), 5);
-	pub storage NisTarget: Perquintill = Perquintill::zero();
-	pub const NisPalletId: PalletId = PalletId(*b"py/nis  ");
-}
-
-impl pallet_nis::Config for Runtime {
-	type WeightInfo = weights::pallet_nis::WeightInfo<Runtime>;
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type CurrencyBalance = Balance;
-	type FundOrigin = frame_system::EnsureSigned<AccountId>;
-	type Counterpart = NisCounterpartBalances;
-	type CounterpartAmount = WithMaximumOf<ConstU128<21_000_000_000_000_000_000u128>>;
-	type Deficit = (); // Mint
-	type IgnoredIssuance = ();
-	type Target = NisTarget;
-	type PalletId = NisPalletId;
-	type QueueCount = ConstU32<500>;
-	type MaxQueueLen = ConstU32<1000>;
-	type FifoQueueLen = ConstU32<250>;
-	type BasePeriod = NisBasePeriod;
-	type MinBid = MinBid;
-	type MinReceipt = MinReceipt;
-	type IntakePeriod = IntakePeriod;
-	type MaxIntakeWeight = MaxIntakeWeight;
-	type ThawThrottle = ThawThrottle;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkSetup = ();
-}
-
 parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
 	pub const MaxPointsToBalance: u8 = 10;
@@ -1760,7 +1705,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type Filter = ();
+	type Filter = pallet_staking::AllStakers<Runtime>;
 	type BlockNumberProvider = System;
 }
 
@@ -1778,6 +1723,118 @@ impl pallet_delegated_staking::Config for Runtime {
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
+}
+
+impl pallet_staking_async_ah_client::Config for Runtime {
+	type CurrencyBalance = Balance;
+	type AssetHubOrigin =
+		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
+	type AdminOrigin = EnsureRoot<AccountId>;
+	type SessionInterface = Self;
+	type SendToAssetHub = StakingXcmToAssetHub;
+	type MinimumValidatorSetSize = ConstU32<400>;
+	type UnixTime = Timestamp;
+	type PointsPerBlock = ConstU32<20>;
+	type MaxOffenceBatchSize = ConstU32<50>;
+	type Fallback = Staking;
+	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct EnsureAssetHub;
+impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
+	type Success = ();
+	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
+		match <RuntimeOrigin as Into<Result<parachains_origin::Origin, RuntimeOrigin>>>::into(
+			o.clone(),
+		) {
+			Ok(parachains_origin::Origin::Parachain(id))
+				if id == kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into() =>
+				Ok(()),
+			_ => Err(o),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+#[derive(Encode, Decode)]
+enum AssetHubRuntimePallets<AccountId> {
+	// TODO
+	#[codec(index = 84)]
+	RcClient(RcClientCalls<AccountId>),
+}
+
+#[derive(Encode, Decode)]
+enum RcClientCalls<AccountId> {
+	#[codec(index = 0)]
+	RelaySessionReport(pallet_staking_async_rc_client::SessionReport<AccountId>),
+	#[codec(index = 1)]
+	RelayNewOffence(SessionIndex, Vec<pallet_staking_async_rc_client::Offence<AccountId>>),
+}
+
+pub struct SessionReportToXcm;
+impl sp_runtime::traits::Convert<pallet_staking_async_rc_client::SessionReport<AccountId>, Xcm<()>>
+	for SessionReportToXcm
+{
+	fn convert(a: pallet_staking_async_rc_client::SessionReport<AccountId>) -> Xcm<()> {
+		Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Superuser,
+				fallback_max_weight: None,
+				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelaySessionReport(a))
+					.encode()
+					.into(),
+			},
+		])
+	}
+}
+
+pub struct StakingXcmToAssetHub;
+impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
+	type AccountId = AccountId;
+
+	fn relay_session_report(
+		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
+	) {
+		pallet_staking_async_rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			AssetHubLocation,
+			pallet_staking_async_rc_client::SessionReport<AccountId>,
+			SessionReportToXcm,
+		>::split_then_send(session_report, Some(8));
+	}
+
+	fn relay_new_offence(
+		session_index: SessionIndex,
+		offences: Vec<pallet_staking_async_rc_client::Offence<Self::AccountId>>,
+	) {
+		let message = Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Superuser,
+				fallback_max_weight: None,
+				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelayNewOffence(
+					session_index,
+					offences,
+				))
+				.encode()
+				.into(),
+			},
+		]);
+		if let Err(err) = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message) {
+			log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+		}
+	}
 }
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
@@ -1805,6 +1862,56 @@ impl pallet_asset_rate::Config for Runtime {
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
+}
+
+// Derived from `kusama_asset_hub_runtime::RuntimeBlockWeights`.
+const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
+
+parameter_types! {
+	// Exvivalent to `kusama_asset_hub_runtime::MessageQueueServiceWeight`.
+	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
+	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
+	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get();
+	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(60) * BlockWeights::get().max_block;
+	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
+	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
+	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
+}
+
+impl pallet_rc_migrator::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type RuntimeEvent = RuntimeEvent;
+	type AdminOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EitherOfDiverse<Fellows, EnsureXcm<Equals<AssetHubLocation>, Location>>,
+	>;
+	type Currency = Balances;
+	type CheckingAccount = xcm_config::CheckAccount;
+	type TreasuryBlockNumberProvider = System;
+	type TreasuryPaymaster = TreasuryPaymaster;
+	type SendXcm = xcm_config::XcmRouterWithoutException;
+	type MaxRcWeight = RcMigratorMaxWeight;
+	type MaxAhWeight = AhMigratorMaxWeight;
+	type AhExistentialDeposit = AhExistentialDeposit;
+	type RcWeightInfo = weights::pallet_rc_migrator::WeightInfo<Runtime>;
+	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
+	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
+	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
+	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
+	type OnDemandPalletId = OnDemandPalletId;
+	type UnprocessedMsgBuffer = ConstU32<50>;
+	type XcmResponseTimeout = XcmResponseTimeout;
+	type MessageQueue = MessageQueue;
+	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
+	type SessionDuration = EpochDuration; // Session == Epoch
+	type KusamaConfig = Runtime;
+	type RecoveryBlockNumberProvider = System;
 }
 
 construct_runtime! {
@@ -1881,9 +1988,9 @@ construct_runtime! {
 		// Election pallet. Only works with staking, but placed here to maintain indices.
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 37,
 
-		// NIS pallet.
-		Nis: pallet_nis = 38,
-		NisCounterpartBalances: pallet_balances::<Instance2> = 45,
+		// NIS pallets removed.
+		// Nis: pallet_nis = 38,
+		// NisCounterpartBalances: pallet_balances::<Instance2> = 45,
 
 		// Provides a semi-sorted list of nominators for staking.
 		VoterList: pallet_bags_list::<Instance1> = 39,
@@ -1896,6 +2003,8 @@ construct_runtime! {
 
 		// Staking extension for delegation
 		DelegatedStaking: pallet_delegated_staking = 47,
+
+		StakingAhClient: pallet_staking_async_ah_client = 48,
 
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
@@ -1936,6 +2045,20 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
+
+		// Relay Chain Migrator
+		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
+		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
+		RcMigrator: pallet_rc_migrator = 255,
+	}
+}
+
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_bare(call)
 	}
 }
 
@@ -2031,7 +2154,6 @@ mod benches {
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
-		[pallet_balances, NisCounterpart]
 		[pallet_bags_list, VoterList]
 		[pallet_beefy_mmr, BeefyMmrLeaf]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
@@ -2041,7 +2163,6 @@ mod benches {
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
-		[pallet_nis, Nis]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -2067,13 +2188,15 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		[pallet_parameters, Parameters]
+		[pallet_rc_migrator, RcMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
+	use xcm_builder::MintLocation;
 	use xcm_config::{
-		AssetHubLocation, LocalCheckAccount, SovereignAccountOf, TokenLocation, XcmConfig,
+		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
 	};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
@@ -2175,6 +2298,7 @@ mod benches {
 			Asset { fun: Fungible(UNITS), id: AssetId(TokenLocation::get()) },
 		));
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
+		pub LocalCheckAccount: (AccountId, MintLocation) = TeleportTracking::get().unwrap();
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -2257,7 +2381,6 @@ mod benches {
 	}
 
 	pub type Native = pallet_balances::Pallet<Runtime, ()>;
-	pub type NisCounterpart = pallet_balances::Pallet<Runtime, NisCounterpartInstance>;
 	pub use frame_benchmarking::{
 		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList,
 	};
@@ -2282,7 +2405,6 @@ impl Runtime {
 		let (staked, _start) = ActiveEra::<Runtime>::get()
 			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
 			.unwrap_or((0, 0));
-		let stake_able_issuance = Nis::issuance().other;
 
 		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
 		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
@@ -2300,11 +2422,8 @@ impl Runtime {
 
 		// We assume un-delayed 6h eras.
 		let era_duration = 6 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
-		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
-			staked,
-			stake_able_issuance,
-			era_duration,
-		);
+		let next_mint =
+			<Self as pallet_staking::Config>::EraPayout::era_payout(staked, 0, era_duration);
 
 		InflationInfo { inflation, next_mint }
 	}
@@ -3253,7 +3372,7 @@ mod remote_tests {
 					(pallet_staking::ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap())
 				})
 				.unwrap();
-			let total_issuance = Nis::issuance().other;
+			let total_issuance = 0;
 			let _real_era_duration_millis =
 				pallet_timestamp::Now::<Runtime>::get().saturating_sub(started);
 			// 6h in milliseconds

@@ -329,7 +329,7 @@ pub mod pallet {
 		/// dispatch. As in the example above, this could be useful for multisig operation that
 		/// depend on multiple members to approve a certain action, which can take multiple days.
 		#[pallet::call_index(1)]
-		#[pallet::weight({(WeightInfoOf::<T, I>::register_remote_proxy_proof(), DispatchClass::Normal)})]
+		#[pallet::weight(WeightInfoOf::<T, I>::register_remote_proxy_proof())]
 		pub fn register_remote_proxy_proof(
 			origin: OriginFor<T>,
 			proof: RemoteProxyProof<RemoteBlockNumberOf<T, I>>,
@@ -457,7 +457,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// TODO: Make upstream public and use that one.
+		// TODO: @ggwpez Make upstream public and use that one.
 		fn do_proxy(
 			def: ProxyDefinition<T::AccountId, T::ProxyType, BlockNumberFor<T>>,
 			real: T::AccountId,

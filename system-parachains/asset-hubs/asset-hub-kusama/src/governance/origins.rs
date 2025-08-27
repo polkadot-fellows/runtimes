@@ -42,7 +42,7 @@ pub mod pallet_custom_origins {
 	)]
 	#[pallet::origin]
 	pub enum Origin {
-		/// Origin for cancelling slashes.
+		/// Origin able to cancel slashes and manage minimum commission.
 		StakingAdmin,
 		/// Origin for spending (any amount of) funds.
 		Treasurer,
@@ -97,6 +97,7 @@ pub mod pallet_custom_origins {
 		/// Origin commanded by rank 9 of the Polkadot Fellowship and with a success of 9.
 		Fellowship9Dan,
 		/// Origin for signaling that the network wishes for some change.
+		#[codec(index = 27u8)]
 		WishForChange,
 	}
 

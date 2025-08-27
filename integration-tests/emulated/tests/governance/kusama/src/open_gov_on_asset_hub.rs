@@ -44,7 +44,7 @@ fn assethub_can_authorize_upgrade_for_itself() {
 			ok_origin.clone()
 		),
 		DispatchError::Module(sp_runtime::ModuleError {
-			index: 74,
+			index: 94,
 			error: [3, 0, 0, 0],
 			message: Some("CallIsNotWhitelisted")
 		})
@@ -123,7 +123,7 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 			ok_origin.clone()
 		),
 		DispatchError::Module(sp_runtime::ModuleError {
-			index: 74,
+			index: 94,
 			error: [3, 0, 0, 0],
 			message: Some("CallIsNotWhitelisted")
 		})
@@ -212,7 +212,7 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 			ok_origin.clone()
 		),
 		DispatchError::Module(sp_runtime::ModuleError {
-			index: 74,
+			index: 94,
 			error: [3, 0, 0, 0],
 			message: Some("CallIsNotWhitelisted")
 		})

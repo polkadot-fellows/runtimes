@@ -15,6 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Shared types between system-parachains runtimes.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod pay;

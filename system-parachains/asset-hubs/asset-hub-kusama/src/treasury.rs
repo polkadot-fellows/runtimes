@@ -22,27 +22,23 @@ use crate::governance::{Treasurer, TreasurySpender};
 use frame_support::traits::{
 	tokens::UnityOrOuterConversion, Currency, FromContains, Get, OnUnbalanced,
 };
+use parachains_common::pay::VersionedLocatableAccount;
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 use scale_info::TypeInfo;
 use sp_runtime::traits::IdentityLookup;
-use system_parachains_common::pay::VersionedLocatableAccount;
 
 parameter_types! {
+	pub const SpendPeriod: BlockNumber = 6 * RC_DAYS;
+	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
+	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub const PayoutSpendPeriod: BlockNumber = 90 * RC_DAYS;
 	pub const MaxApprovals: u32 = 100;
-
-	// TODO: AH or RC DAYS?
-	pub const SpendPeriod: BlockNumber = 6 * DAYS;
-	pub const PayoutSpendPeriod: BlockNumber = 90 * DAYS;
-
-	// TODO: revisit !!! Location on RC, find out how is
-	// The asset's interior location for the paying account. This is the Treasury
-	// pallet instance (which sits at index 18).
-	// pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
+	// Account address: `13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTB`
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
-pub type TreasuryPaymaster = system_parachains_common::pay::LocalPay<
+pub type TreasuryPaymaster = parachains_common::pay::LocalPay<
 	NativeAndAssets,
 	TreasuryAccount,
 	xcm_config::LocationToAccountId,
@@ -103,39 +99,35 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod = SpendPeriod;
+	type SpendPeriod = pallet_ah_migrator::LeftOrRight<AhMigrator, DisableSpends, SpendPeriod>;
 	type Burn = TreasuryBurnHandler;
 	type BurnDestination = TreasuryBurnHandler;
+	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
-	type SpendFunds = Bounties;
 	type SpendOrigin = TreasurySpender;
-
-	// TODO: Do we still need `VersionedLocatableAsset`? (Check treasury migration!)
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocatableAccount;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	// TODO: confirm `RelayTreasuryLocation` (RC PalletId = 18) after AHM - the same or other?
-	// Only local payments to the local accounts.
 	type Paymaster = TreasuryPaymaster;
-
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayArguments<
+	type BenchmarkHelper = parachains_common::pay::benchmarks::LocalPayArguments<
 		xcm_config::TrustBackedAssetsPalletIndex,
 	>;
-	// TODO: check System or RC?
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
-	// TODO: revisis all the params!!!
-	pub const BountyDepositBase: Balance = 100 * CENTS;
+	// where `176` is the size of the `Bounty` struct in bytes.
+	pub const BountyDepositBase: Balance = system_para_deposit(0, 176);
+	// per byte for the bounty description.
+	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
-	pub const BountyUpdatePeriod: BlockNumber = 10 * 12 * 30 * DAYS;
+	// Bounties expire after 10 years.
+	pub const BountyUpdatePeriod: BlockNumber = 10 * 12 * 30 * RC_DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
-	pub const DataDepositPerByte: Balance = CENTS / 10; /* TODO: system_para_deposit(0, 1); ? */
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
 	pub const CuratorDepositMin: Balance = 10 * CENTS;
 	pub const CuratorDepositMax: Balance = 500 * CENTS;
@@ -143,6 +135,7 @@ parameter_types! {
 }
 
 impl pallet_bounties::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
 	type BountyDepositBase = BountyDepositBase;
 	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
 	type BountyUpdatePeriod = BountyUpdatePeriod;
@@ -152,7 +145,6 @@ impl pallet_bounties::Config for Runtime {
 	type BountyValueMinimum = BountyValueMinimum;
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
-	type RuntimeEvent = RuntimeEvent;
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;

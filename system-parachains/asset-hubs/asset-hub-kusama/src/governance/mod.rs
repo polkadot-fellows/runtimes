@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! New governance configurations for the Kusama runtime.
+//! Governance configurations for the Asset Hub runtime.
+
+// TODO review all module (prices etc)
 
 use super::*;
 use frame_support::{
@@ -22,6 +24,8 @@ use frame_support::{
 	traits::{EitherOf, EitherOfDiverse},
 };
 use frame_system::EnsureRootWithSuccess;
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
+use xcm::latest::BodyId;
 
 mod origins;
 pub use origins::{
@@ -33,8 +37,7 @@ mod tracks;
 pub use tracks::TracksInfo;
 
 parameter_types! {
-	// TODO: verify DAYS from RC or SP/AH constants to use?
-	pub const VoteLockingPeriod: BlockNumber = 7 * kusama_runtime_constants::time::DAYS;
+	pub const VoteLockingPeriod: BlockNumber = 7 * RC_DAYS;
 }
 
 impl pallet_conviction_voting::Config for Runtime {
@@ -46,16 +49,14 @@ impl pallet_conviction_voting::Config for Runtime {
 	type MaxTurnout =
 		frame_support::traits::tokens::currency::ActiveIssuanceOf<Balances, Self::AccountId>;
 	type Polls = Referenda;
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type VotingHooks = ();
 }
 
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
-	// TODO: verify QUID from RC or SP/AH constants to use?
-	pub const SubmissionDeposit: Balance = kusama_runtime_constants::currency::QUID;
-	// TODO: verify DAYS from RC or SP/AH constants to use?
-	pub const UndecidingTimeout: BlockNumber = 14 * kusama_runtime_constants::time::DAYS;
+	pub const SubmissionDeposit: Balance = QUID;
+	pub const UndecidingTimeout: BlockNumber = 14 * RC_DAYS;
 }
 
 parameter_types! {
@@ -64,6 +65,11 @@ parameter_types! {
 pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
 
 impl origins::pallet_custom_origins::Config for Runtime {}
+
+parameter_types! {
+	// Fellows pluralistic body.
+	pub const FellowsBodyId: BodyId = BodyId::Technical;
+}
 
 impl pallet_whitelist::Config for Runtime {
 	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
@@ -78,7 +84,7 @@ impl pallet_whitelist::Config for Runtime {
 }
 
 impl pallet_referenda::Config for Runtime {
-	type WeightInfo = weights::pallet_referenda_referenda::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_referenda::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -95,5 +101,5 @@ impl pallet_referenda::Config for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = TracksInfo;
 	type Preimages = Preimage;
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
