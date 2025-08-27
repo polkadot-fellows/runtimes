@@ -1634,8 +1634,6 @@ mod benches {
 		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
-		[pallet_scheduler, Scheduler]
-		[pallet_referenda, Referenda]
 		[pallet_remote_proxy, RemoteProxyRelayChain]
 		[pallet_scheduler, Scheduler]
 		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
