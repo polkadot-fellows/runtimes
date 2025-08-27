@@ -70,32 +70,6 @@ pub mod pallet_custom_origins {
 		BigSpender,
 		/// Origin able to dispatch a whitelisted call.
 		WhitelistedCaller,
-		/// Origin commanded by any members of the Polkadot Fellowship (no Dan grade needed).
-		FellowshipInitiates,
-		/// Origin commanded by Polkadot Fellows (3rd Dan fellows or greater).
-		Fellows,
-		/// Origin commanded by Polkadot Experts (5th Dan fellows or greater).
-		FellowshipExperts,
-		/// Origin commanded by Polkadot Masters (7th Dan fellows of greater).
-		FellowshipMasters,
-		/// Origin commanded by rank 1 of the Polkadot Fellowship and with a success of 1.
-		Fellowship1Dan,
-		/// Origin commanded by rank 2 of the Polkadot Fellowship and with a success of 2.
-		Fellowship2Dan,
-		/// Origin commanded by rank 3 of the Polkadot Fellowship and with a success of 3.
-		Fellowship3Dan,
-		/// Origin commanded by rank 4 of the Polkadot Fellowship and with a success of 4.
-		Fellowship4Dan,
-		/// Origin commanded by rank 5 of the Polkadot Fellowship and with a success of 5.
-		Fellowship5Dan,
-		/// Origin commanded by rank 6 of the Polkadot Fellowship and with a success of 6.
-		Fellowship6Dan,
-		/// Origin commanded by rank 7 of the Polkadot Fellowship and with a success of 7.
-		Fellowship7Dan,
-		/// Origin commanded by rank 8 of the Polkadot Fellowship and with a success of 8.
-		Fellowship8Dan,
-		/// Origin commanded by rank 9 of the Polkadot Fellowship and with a success of 9.
-		Fellowship9Dan,
 		/// Origin for signaling that the network wishes for some change.
 		#[codec(index = 27u8)]
 		WishForChange,
