@@ -116,10 +116,6 @@ pub mod pallet_custom_origins {
 		ReferendumKiller,
 		WhitelistedCaller,
 		WishForChange,
-		FellowshipInitiates: u16 = 0,
-		Fellows: u16 = 3,
-		FellowshipExperts: u16 = 5,
-		FellowshipMasters: u16 = 7,
 	);
 
 	macro_rules! decl_ensure {
@@ -163,20 +159,6 @@ pub mod pallet_custom_origins {
 			MediumSpender = 100 * GRAND,
 			BigSpender = 1_000 * GRAND,
 			Treasurer = 10_000 * GRAND,
-		}
-	}
-
-	decl_ensure! {
-		pub type EnsureFellowship: EnsureOrigin<Success = u16> {
-			Fellowship1Dan = 1,
-			Fellowship2Dan = 2,
-			Fellowship3Dan = 3,
-			Fellowship4Dan = 4,
-			Fellowship5Dan = 5,
-			Fellowship6Dan = 6,
-			Fellowship7Dan = 7,
-			Fellowship8Dan = 8,
-			Fellowship9Dan = 9,
 		}
 	}
 }
