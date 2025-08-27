@@ -225,7 +225,7 @@ jobs:
         with:
           pattern: '*-compact'
 
-      - name: Create logging enabled runtimes
+      - name: Create try-runtime and logging enabled runtimes
         run: |
           zip -j polkadot-fellows_logging_runtimes-v${{ env.SPEC }}-wasms.zip */*.compact.compressed.wasm
 
