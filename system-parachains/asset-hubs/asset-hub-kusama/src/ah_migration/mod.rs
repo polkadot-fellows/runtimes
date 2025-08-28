@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO review all module (indexes, etc)
-
 pub mod call_filter;
 
 extern crate alloc;
@@ -99,7 +97,6 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 #[allow(non_camel_case_types)]
 #[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcPalletsOrigin {
-	// TODO
 	#[codec(index = 0u8)]
 	system(frame_system::Origin<Runtime>),
 	#[codec(index = 43u8)]
@@ -181,7 +178,7 @@ pub enum RcTreasuryCall {
 /// Relay Chain Utility Call obtained from cargo expand.
 ///
 /// The variants that are not generally used in Governance are not included.
-#[allow(non_camel_case_types)] // TODO
+#[allow(non_camel_case_types)]
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcUtilityCall {
 	/// Send a batch of dispatch calls.

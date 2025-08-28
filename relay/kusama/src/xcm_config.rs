@@ -27,6 +27,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
+use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
@@ -101,6 +102,8 @@ type LocalOriginConverter = (
 	ChildParachainAsNative<parachains_origin::Origin, RuntimeOrigin>,
 	// The AccountId32 location type can be expressed natively as a `Signed` origin.
 	SignedAccountId32AsNative<ThisNetwork, RuntimeOrigin>,
+	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
+	XcmPassthrough<RuntimeOrigin>,
 );
 
 parameter_types! {

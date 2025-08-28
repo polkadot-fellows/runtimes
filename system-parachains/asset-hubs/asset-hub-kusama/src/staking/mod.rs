@@ -18,8 +18,6 @@
 //!
 //! The large pallets have their config in a sub-module, the smaller ones are defined here.
 
-// TODO review all module
-
 pub mod bags_thresholds;
 pub mod nom_pools;
 
@@ -59,11 +57,12 @@ parameter_types! {
 	/// 30m for unsigned phase.
 	pub storage UnsignedPhase: u32 = 30 * MINUTES;
 
+	// TODO: devide by 8 like in RC?
 	/// Allow OCW miner to at most run 4 times in the entirety of the 10m Unsigned Phase.
-	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4; // TODO: devide by 8 like in RC?
+	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
 
-	/// Compatible with Polkadot, we allow up to 22_500 nominators to be considered for election
-	pub storage MaxElectingVoters: u32 = 22_500; // TODO: 12_500 like in RC?
+	// TODO: 12_500 like in RC?
+	pub storage MaxElectingVoters: u32 = 12_500;
 
 	/// Always equal to `staking.maxValidatorCount`.
 	pub storage TargetSnapshotPerBlock: u32 = 2000;
@@ -71,8 +70,9 @@ parameter_types! {
 	/// Number of nominators per page of the snapshot, and consequently number of backers in the solution.
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
 
+	// TODO: 2000 like in RC?
 	/// Maximum number of validators that we may want to elect. 1000 is the end target.
-	pub const MaxValidatorSet: u32 = 1000; // TODO: 2000 like in RC?
+	pub const MaxValidatorSet: u32 = 2000;
 
 	/// In each page, we may observe up to all of the validators.
 	pub MaxWinnersPerPage: u32 = MaxValidatorSet::get();
@@ -93,14 +93,12 @@ parameter_types! {
 
 frame_election_provider_support::generate_solution_type!(
 	#[compact]
-	pub struct NposCompactSolution16::<
-		// allows up to 4bn nominators
+	pub struct NposCompactSolution24::<
 		VoterIndex = u32,
-		// allows up to 64k validators
 		TargetIndex = u16,
 		Accuracy = sp_runtime::PerU16,
-		MaxVoters = VoterSnapshotPerBlock,
-	>(16)
+		MaxVoters = MaxElectingVoters,
+	>(24)
 );
 
 parameter_types! {
@@ -195,7 +193,7 @@ impl multi_block::verifier::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaxSubmissions: u32 = 8;
+	pub MaxSubmissions: u32 = 16; // TODO: 16 like in RC?
 	pub DepositBase: Balance = 5 * UNITS; // TODO: new deposit base?
 	pub DepositPerPage: Balance = 1 * UNITS; // TODO: new deposit per page?
 	pub BailoutGraceRatio: Perbill = Perbill::from_percent(50);
@@ -250,7 +248,7 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type MaxLength = MinerMaxLength;
 	type Solver = <Runtime as multi_block::unsigned::Config>::OffchainSolver;
 	type Pages = Pages;
-	type Solution = NposCompactSolution16;
+	type Solution = NposCompactSolution24;
 	type VoterSnapshotPerBlock = <Runtime as multi_block::Config>::VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
@@ -292,9 +290,9 @@ parameter_types! {
 	pub const RelaySessionDuration: BlockNumber = 1 * HOURS; // TODO: RC hours/minutes?
 	pub const BondingDuration: sp_staking::EraIndex = 28;
 	pub const SlashDeferDuration: sp_staking::EraIndex = 27;
-	pub const MaxControllersInDeprecationBatch: u32 = 751; // TODO: 5169 like in RC?
+	pub const MaxControllersInDeprecationBatch: u32 = 5169; // TODO: 5169 like in RC?
 	// alias for 16, which is the max nominations per nominator in the runtime.
-	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
+	pub const MaxNominations: u32 = <NposCompactSolution24 as frame_election_provider_support::NposSolution>::LIMIT as u32;
 	pub const MaxEraDuration: u64 = RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64;
 }
 

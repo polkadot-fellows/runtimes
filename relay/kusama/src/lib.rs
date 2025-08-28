@@ -1762,7 +1762,6 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
 
 #[derive(Encode, Decode)]
 enum AssetHubRuntimePallets<AccountId> {
-	// TODO
 	#[codec(index = 84)]
 	RcClient(RcClientCalls<AccountId>),
 }

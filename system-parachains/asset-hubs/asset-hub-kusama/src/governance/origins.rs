@@ -43,10 +43,9 @@ pub mod pallet_custom_origins {
 	)]
 	#[pallet::origin]
 	pub enum Origin {
-		/// Origin able to cancel slashes and manage minimum commission.
+		/// Origin for cancelling slashes.
 		StakingAdmin,
-		/// Origin for spending up to $10,000,000 DOT from the treasury as well as generally
-		/// administering it.
+		/// Origin for spending (any amount of) funds.
 		Treasurer,
 		/// Origin for managing the composition of the fellowship.
 		FellowshipAdmin,
@@ -60,20 +59,53 @@ pub mod pallet_custom_origins {
 		ReferendumCanceller,
 		/// Origin able to kill referenda.
 		ReferendumKiller,
-		/// Origin able to spend around $250 from the treasury at once.
+		/// Origin able to spend up to 1 KSM from the treasury at once.
 		SmallTipper,
-		/// Origin able to spend around $1,000 from the treasury at once.
+		/// Origin able to spend up to 5 KSM from the treasury at once.
 		BigTipper,
-		/// Origin able to spend around $10,000 from the treasury at once.
+		/// Origin able to spend up to 50 KSM from the treasury at once.
 		SmallSpender,
-		/// Origin able to spend around $100,000 from the treasury at once.
+		/// Origin able to spend up to 500 KSM from the treasury at once.
 		MediumSpender,
-		/// Origin able to spend up to $1,000,000 DOT from the treasury at once.
+		/// Origin able to spend up to 5,000 KSM from the treasury at once.
 		BigSpender,
 		/// Origin able to dispatch a whitelisted call.
 		WhitelistedCaller,
-		/// Origin for signaling that the network wishes for some change.
-		#[codec(index = 27u8)]
+
+		/* START: Fellowship Origins */
+		/*
+		Keep Fellowship Origins until the migration is not done to avoid any decoding issues.
+		These origins cannot be selected at the OpenGov and not used in the Asset Hub.
+		*/
+		/// Origin commanded by any members of the Polkadot Fellowship (no Dan grade needed).
+		FellowshipInitiates,
+		/// Origin commanded by Polkadot Fellows (3rd Dan fellows or greater).
+		Fellows,
+		/// Origin commanded by Polkadot Experts (5th Dan fellows or greater).
+		FellowshipExperts,
+		/// Origin commanded by Polkadot Masters (7th Dan fellows of greater).
+		FellowshipMasters,
+		/// Origin commanded by rank 1 of the Polkadot Fellowship and with a success of 1.
+		Fellowship1Dan,
+		/// Origin commanded by rank 2 of the Polkadot Fellowship and with a success of 2.
+		Fellowship2Dan,
+		/// Origin commanded by rank 3 of the Polkadot Fellowship and with a success of 3.
+		Fellowship3Dan,
+		/// Origin commanded by rank 4 of the Polkadot Fellowship and with a success of 4.
+		Fellowship4Dan,
+		/// Origin commanded by rank 5 of the Polkadot Fellowship and with a success of 5.
+		Fellowship5Dan,
+		/// Origin commanded by rank 6 of the Polkadot Fellowship and with a success of 6.
+		Fellowship6Dan,
+		/// Origin commanded by rank 7 of the Polkadot Fellowship and with a success of 7.
+		Fellowship7Dan,
+		/// Origin commanded by rank 8 of the Polkadot Fellowship and with a success of 8.
+		Fellowship8Dan,
+		/// Origin commanded by rank 9 of the Polkadot Fellowship and with a success of 9.
+		Fellowship9Dan,
+
+		/* END: Fellowship Origins */
+		#[codec(index = 27)]
 		WishForChange,
 	}
 

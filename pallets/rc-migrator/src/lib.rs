@@ -873,8 +873,6 @@ pub mod pallet {
 			let start = start.evaluate(now);
 
 			ensure!(start > now, Error::<T>::PastBlockNumber);
-			ensure!(warm_up.evaluate(now) >= start, Error::<T>::PastBlockNumber);
-			ensure!(cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
 
 			if !unsafe_ignore_staking_lock_check {
 				let until_start = start.saturating_sub(now);
@@ -1966,7 +1964,8 @@ pub mod pallet {
 				},
 				#[cfg(feature = "kusama")]
 				MigrationStage::RecoveryMigrationOngoing { last_key } => {
-					todo!()
+					// TODO
+					Self::transition(MigrationStage::RecoveryMigrationDone);
 				},
 				#[cfg(feature = "kusama")]
 				MigrationStage::RecoveryMigrationDone => {

@@ -16,8 +16,6 @@
 
 //! Governance configurations for the Asset Hub runtime.
 
-// TODO review all module (prices etc)
-
 use super::*;
 use crate::xcm_config::FellowshipLocation;
 use frame_support::traits::EitherOf;

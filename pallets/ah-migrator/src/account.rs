@@ -331,6 +331,11 @@ pub mod tests {
 
 				let mut ah_holds_diff = Vec::new();
 				for hold in pallet_balances::Holds::<T>::get(&who) {
+					let hold_id_encoded = hold.id.clone().encode();
+					if hold_id_encoded[0] == 60 {
+						// filter out pallet revive holds
+						continue;
+					}
 					let mut hold_amount = hold.amount;
 					if let Some(ah_hold_amount_pre) = ah_holds_pre.get(&hold.id.encode()) {
 						hold_amount -= ah_hold_amount_pre;

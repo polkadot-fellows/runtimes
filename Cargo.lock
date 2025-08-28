@@ -10991,6 +10991,7 @@ dependencies = [
 name = "polkadot-integration-tests-ahm"
 version = "0.1.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-hub-polkadot-runtime",
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -11001,6 +11002,7 @@ dependencies = [
  "frame-system",
  "hex",
  "hex-literal",
+ "kusama-runtime-constants",
  "log",
  "pallet-ah-migrator",
  "pallet-ah-ops",
@@ -11037,6 +11039,7 @@ dependencies = [
  "sp-runtime",
  "sp-storage",
  "sp-tracing 18.0.0",
+ "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-builder",
  "tokio",
