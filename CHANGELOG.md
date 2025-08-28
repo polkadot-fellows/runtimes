@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.2] 28.08.2025
+
+### Fixed
+
+- [#9564](https://github.com/paritytech/polkadot-sdk/pull/9564) Correctly map group indices to vote indices when filtering backing statements.
+
 ## [1.6.1] 24.06.2025
 
 ### Changed
