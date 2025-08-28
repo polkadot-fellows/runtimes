@@ -19,11 +19,8 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging,
-		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, GovernanceLocation,
-		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		bridging, CheckingAccount, DotLocation, GovernanceLocation, LocationToAccountId,
+		StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
@@ -915,7 +912,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 	// no - Collectives
 	assert_err!(
@@ -923,7 +920,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
-		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 	// no - Collectives Voice of Fellows plurality
 	assert_err!(

@@ -18,6 +18,9 @@
 
 #![cfg(test)]
 
+#[cfg(not(any(feature = "polkadot", feature = "paseo", feature = "kusama")))]
+compile_error!("Asset Hub migration requires the `polkadot`, `paseo` or `kusama` feature");
+
 pub mod accounts_translation_works;
 pub mod balances_test;
 pub mod bench_ah;
@@ -36,9 +39,17 @@ pub mod xcm_route;
 
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
-	// For Kusama, we will add a feature here. For now it is just a stub.
+	#[cfg(any(feature = "polkadot", feature = "paseo"))]
 	pub mod import_alias {
 		pub use polkadot_runtime_constants::DOLLARS as RC_DOLLARS;
+	}
+	#[cfg(feature = "kusama")]
+	pub mod import_alias {
+		pub use asset_hub_kusama_runtime as asset_hub_polkadot_runtime;
+		pub use kusama_runtime as polkadot_runtime;
+		pub use kusama_runtime_constants as polkadot_runtime_constants;
+
+		pub use kusama_runtime_constants::currency::UNITS as RC_DOLLARS;
 	}
 	pub use import_alias::*;
 

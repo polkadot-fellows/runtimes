@@ -16,6 +16,8 @@
 
 //! Test that account translation works (Para sovereign and derived).
 
+use crate::porting_prelude::*;
+
 use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::{accounts::AccountState, types::RcMigrationCheck};
@@ -27,6 +29,7 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
 pub struct AccountTranslationWorks;
 
+#[cfg(not(feature = "kusama"))]
 pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 	// para 2034: 5Ec4AhPbkXX97KXMcf9v9SkRNG4Gyc3VhcMMuQe9QXfAHnrC ->
 	// 5Eg2fntQqFi3EvFWAf71G66Ecjjah26bmFzoANAeHFgj9Lia
@@ -35,6 +38,9 @@ pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 		AccountId32::new(hex!("7369626cf2070000000000000000000000000000000000000000000000000000")),
 	),
 ];
+
+#[cfg(feature = "kusama")]
+pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[];
 
 impl RcMigrationCheck for AccountTranslationWorks {
 	type RcPrePayload = ();

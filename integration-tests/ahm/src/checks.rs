@@ -22,7 +22,10 @@ use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 
 #[cfg(feature = "try-runtime")]
-use frame_support::{defensive_assert, traits::{TryDecodeEntireStorage, TryDecodeEntireStorageError, TryState}};
+use frame_support::{
+	defensive_assert,
+	traits::{TryDecodeEntireStorage, TryDecodeEntireStorageError, TryState},
+};
 
 pub struct SanityChecks;
 

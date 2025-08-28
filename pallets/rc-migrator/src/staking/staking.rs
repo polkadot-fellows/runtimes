@@ -113,6 +113,8 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				break;
 			}
 
+			log::debug!("Migrating staking stage: {:?}", inner_key);
+
 			inner_key = match inner_key {
 				StakingStage::Values => {
 					let values = Self::take_values();

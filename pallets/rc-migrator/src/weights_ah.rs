@@ -60,7 +60,6 @@ pub trait WeightInfo {
 	fn receive_proxy_announcements(n: u32, ) -> Weight;
 	fn receive_vesting_schedules(n: u32, ) -> Weight;
 	fn receive_nom_pools_messages(n: u32, ) -> Weight;
-	fn receive_fast_unstake_messages(n: u32, ) -> Weight;
 	fn receive_referenda_values() -> Weight;
 	fn receive_single_active_referendums(m: u32, ) -> Weight;
 	fn receive_complete_referendums(n: u32, ) -> Weight;
@@ -223,25 +222,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3672).saturating_mul(n.into()))
-	}
-	/// Storage: `FastUnstake::Queue` (r:255 w:255)
-	/// Proof: `FastUnstake::Queue` (`max_values`: None, `max_size`: Some(56), added: 2531, mode: `MaxEncodedLen`)
-	/// Storage: `FastUnstake::CounterForQueue` (r:1 w:1)
-	/// Proof: `FastUnstake::CounterForQueue` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_fast_unstake_messages(n: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `42`
-		//  Estimated: `1489 + n * (2531 ±0)`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(4_553_762, 1489)
-			// Standard Error: 52_177
-			.saturating_add(Weight::from_parts(2_631_698, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
-			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 2531).saturating_mul(n.into()))
 	}
 	/// Storage: `Referenda::DecidingCount` (r:0 w:16)
 	/// Proof: `Referenda::DecidingCount` (`max_values`: None, `max_size`: Some(14), added: 2489, mode: `MaxEncodedLen`)
@@ -748,25 +728,6 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3672).saturating_mul(n.into()))
-	}
-	/// Storage: `FastUnstake::Queue` (r:255 w:255)
-	/// Proof: `FastUnstake::Queue` (`max_values`: None, `max_size`: Some(56), added: 2531, mode: `MaxEncodedLen`)
-	/// Storage: `FastUnstake::CounterForQueue` (r:1 w:1)
-	/// Proof: `FastUnstake::CounterForQueue` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_fast_unstake_messages(n: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `42`
-		//  Estimated: `1489 + n * (2531 ±0)`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(4_553_762, 1489)
-			// Standard Error: 52_177
-			.saturating_add(Weight::from_parts(2_631_698, 0).saturating_mul(n.into()))
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(n.into())))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
-			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 2531).saturating_mul(n.into()))
 	}
 	/// Storage: `Referenda::DecidingCount` (r:0 w:16)
 	/// Proof: `Referenda::DecidingCount` (`max_values`: None, `max_size`: Some(14), added: 2489, mode: `MaxEncodedLen`)

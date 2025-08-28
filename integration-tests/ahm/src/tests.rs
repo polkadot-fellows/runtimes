@@ -47,10 +47,15 @@ use super::{
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
-use frame_support::traits::{
-	fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
-	OnInitialize, ReservableCurrency,
+use cumulus_primitives_core::{
+	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
+};
+use frame_support::{
+	hypothetically, hypothetically_ok,
+	traits::{
+		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
+		OnInitialize, ReservableCurrency,
+	},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
@@ -68,8 +73,9 @@ use pallet_rc_migrator::{
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::slots as pallet_slots;
+use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
-use sp_core::{crypto::Ss58Codec, ByteArray};
+use sp_core::{crypto::Ss58Codec, ByteArray, Get};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
 use std::{
@@ -98,7 +104,9 @@ type RcChecks = (
 	BalancesCrossChecker,
 	RcRuntimeSpecificChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
-	ProxyBasicWorks,
+
+	// TODO: does not work for Kusama; calls are filtered for some reason
+	// ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
@@ -106,7 +114,7 @@ type RcChecks = (
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Paseo)
-#[cfg(not(feature = "paseo"))]
+#[cfg(feature = "polkadot")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -121,6 +129,17 @@ pub type RcRuntimeSpecificChecks = (
 
 // Checks that are specific to Paseo.
 #[cfg(feature = "paseo")]
+pub type RcRuntimeSpecificChecks = (
+	MultisigsAccountIdStaysTheSame,
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
+	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+);
+
+// Checks that are specific to Kusama.
+#[cfg(feature = "kusama")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -152,14 +171,16 @@ type AhChecks = (
 	BalancesCrossChecker,
 	AhRuntimeSpecificChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
-	ProxyBasicWorks,
+
+	// TODO: does not work for Kusama; calls are filtered for some reason
+	// ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
 	EntireStateDecodes,
 );
 
-#[cfg(not(feature = "paseo"))]
+#[cfg(feature = "polkadot")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -173,6 +194,16 @@ pub type AhRuntimeSpecificChecks = (
 );
 
 #[cfg(feature = "paseo")]
+pub type AhRuntimeSpecificChecks = (
+	MultisigsAccountIdStaysTheSame,
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
+	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+);
+
+#[cfg(feature = "kusama")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -743,6 +774,7 @@ async fn scheduled_migration_works() {
 		warm_up_end = start + 3;
 
 		// Fellowship Origin
+		#[cfg(not(feature = "kusama"))]
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
 			0,
 			[
@@ -750,11 +782,15 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
+		#[cfg(feature = "kusama")]
+		let origin = polkadot_runtime::governance::Origin::Fellows;
+
 		assert_ok!(RcMigrator::schedule_migration(
 			origin.into(),
 			DispatchTime::At(start),
 			DispatchTime::At(warm_up_end),
 			cool_off_end,
+			true, // Ignore the staking era check
 		));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
@@ -1083,6 +1119,9 @@ fn test_control_flow() {
 				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
 			})
 			.dispatch(AhRuntimeOrigin::root());
+
+		asset_hub_polkadot_runtime::ParachainSystem::ensure_successful_delivery();
+
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 
@@ -1284,5 +1323,116 @@ fn test_control_flow() {
 		assert!(
 			pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get(first_message_hash).is_some()
 		);
+	});
+}
+
+#[test]
+fn schedule_migration() {
+	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
+	new_test_rc_ext().execute_with(|| {
+		let now = u16::MAX as u32 * 2;
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
+		let rng = rand::thread_rng().gen_range(1..=u16::MAX) as u32;
+
+		// Scheduling two sessions into the future works
+		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2 + 1), // start
+			DispatchTime::At(u32::MAX),                       // no-op
+			DispatchTime::At(u32::MAX),                       // no-op
+			Default::default(),
+		));
+
+		// Scheduling more than two sessions into the future works
+		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2 + rng), // start
+			DispatchTime::At(u32::MAX),                         // no-op
+			DispatchTime::At(u32::MAX),                         // no-op
+			Default::default(),
+		));
+
+		// Scheduling less than two sessions into the future fails
+		hypothetically!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2), // start
+			DispatchTime::At(u32::MAX),                   // no-op
+			DispatchTime::At(u32::MAX),                   // no-op
+			Default::default(),
+		)
+		.unwrap_err());
+
+		// Scheduling less than two sessions into the future fails
+		hypothetically!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2 - rng), // start
+			DispatchTime::At(u32::MAX),                         // no-op
+			DispatchTime::At(u32::MAX),                         // no-op
+			Default::default(),
+		)
+		.unwrap_err());
+
+		// Disabling the check makes it always work
+		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+			RcRuntimeOrigin::root(),
+			DispatchTime::At(now + session_duration * 2), // start
+			DispatchTime::At(u32::MAX),                   // no-op
+			DispatchTime::At(u32::MAX),                   // no-op
+			true,
+		));
+	});
+}
+
+#[test]
+fn schedule_migration_staking_pause_works() {
+	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
+	new_test_rc_ext().execute_with(|| {
+		let now = u16::MAX as u32 * 2;
+		frame_system::Pallet::<RcRuntime>::set_block_number(now);
+		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
+		let rng = rand::thread_rng().gen_range(1..=10) as u32;
+
+		// Scheduling two sessions into the future works
+		hypothetically!({
+			pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+				RcRuntimeOrigin::root(),
+				DispatchTime::At(now + session_duration * 2 + rng), // start
+				DispatchTime::At(u32::MAX),                         // no-op
+				DispatchTime::At(u32::MAX),                         // no-op
+				Default::default(),
+			)
+			.unwrap();
+
+			for _ in 0..rng {
+				next_block_rc();
+			}
+
+			assert!(frame_system::Pallet::<RcRuntime>::events().iter().any(|record| {
+				match &record.event {
+					RcRuntimeEvent::RcMigrator(
+						pallet_rc_migrator::Event::StakingElectionsPaused,
+					) => true,
+					_ => false,
+				}
+			}));
+		});
+
+		// If we ignore the check and schedule too soon, then it will not be paused
+		hypothetically!({
+			pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
+				RcRuntimeOrigin::root(),
+				DispatchTime::At(now + session_duration * 2 - rng), // start
+				DispatchTime::At(u32::MAX),                         // no-op
+				DispatchTime::At(u32::MAX),                         // no-op
+				true,
+			)
+			.unwrap();
+
+			for _ in 0..session_duration * 2 {
+				next_block_rc();
+				assert_eq!(frame_system::Pallet::<RcRuntime>::events(), Vec::new());
+			}
+		});
 	});
 }

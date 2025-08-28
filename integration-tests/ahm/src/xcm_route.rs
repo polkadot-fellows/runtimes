@@ -15,12 +15,13 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{
 	xcm_config::XcmRouter as AhXcmRouter, BuildStorage, ParachainSystem as AhParachainSystem,
 };
 use codec::Encode;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::send_xcm;
+use cumulus_primitives_core::{send_xcm, UpwardMessageSender};
 use pallet_ah_migrator::{
 	AhMigrationStage as AhMigrationStageStorage, MigrationStage as AhMigrationStage,
 };
@@ -63,6 +64,9 @@ fn test_send_to_rc_from_ah() {
 				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
 			})
 			.dispatch(AhRuntimeOrigin::root());
+
+		asset_hub_polkadot_runtime::ParachainSystem::ensure_successful_delivery();
+
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 
 		// open the channel between AH and Collectives (1001)
@@ -270,6 +274,8 @@ fn test_send_to_rc_from_ah_via_extrinsic() {
 
 		// open the channel between AH and Collectives (1001)
 		AhParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(1001.into());
+
+		asset_hub_polkadot_runtime::ParachainSystem::ensure_successful_delivery();
 
 		let result =
 			AhRuntimeCall::AhMigrator(pallet_ah_migrator::Call::<AhRuntime>::set_manager {

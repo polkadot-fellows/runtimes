@@ -38,7 +38,7 @@ use sp_core::ConstU32;
 use xcm::latest::{prelude::*, BodyId};
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
-	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, Case,
 	ChildParachainAsNative, ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsChildSystemParachain,
 	IsConcrete, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
@@ -46,8 +46,6 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-
-pub use pallet_rc_migrator::xcm_config::{AssetHubLocation, CollectivesLocation};
 
 parameter_types! {
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
@@ -147,6 +145,30 @@ pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
 	crate::RcMigrator,
 >;
 
+parameter_types! {
+	pub const RootLocation: Location = Here.into_location();
+	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(Here.into_location()) });
+	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
+	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
+	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
+	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
+	pub CoretimeLocation: Location = Parachain(BROKER_ID).into_location();
+	pub DotForCoretime: (AssetFilter, Location) = (Dot::get(), CoretimeLocation::get());
+	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
+	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
+	pub People: Location = Parachain(PEOPLE_ID).into_location();
+	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
+}
+
+/// Polkadot Relay recognizes/respects System Parachains as teleporters.
+pub type TrustedTeleporters = (
+	Case<DotForAssetHub>,
+	Case<DotForCollectives>,
+	Case<DotForBridgeHub>,
+	Case<DotForCoretime>,
+	Case<DotForPeople>,
+);
+
 pub struct Fellows;
 impl Contains<Location> for Fellows {
 	fn contains(loc: &Location) -> bool {
@@ -161,6 +183,13 @@ pub struct OnlyParachains;
 impl Contains<Location> for OnlyParachains {
 	fn contains(loc: &Location) -> bool {
 		matches!(loc.unpack(), (0, [Parachain(_)]))
+	}
+}
+
+pub struct LocalPlurality;
+impl Contains<Location> for LocalPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Plurality { .. }]))
 	}
 }
 
@@ -184,6 +213,10 @@ pub type Barrier = TrailingSetTopicAsId<(
 	>,
 )>;
 
+/// Locations that will not be charged fees in the executor, neither for execution nor delivery.
+/// We only waive fees for system functions, which these locations represent.
+pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -193,7 +226,8 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter = pallet_rc_migrator::xcm_config::TrustedTeleporters<crate::RcMigrator>;
+	type IsTeleporter =
+		pallet_rc_migrator::xcm_config::FalseIfMigrating<crate::RcMigrator, TrustedTeleporters>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -213,7 +247,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
-		pallet_rc_migrator::xcm_config::WaivedLocations<crate::RcMigrator>,
+		WaivedLocations,
 		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
 		// of the new AH Treasury.
 		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
