@@ -211,7 +211,7 @@ jobs:
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
       - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features try-runtime -- --nocapture --test-threads 1
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features polkadot --features try-runtime -- --nocapture --test-threads 1
         env:
           RUST_BACKTRACE: 1
           SNAP_RC: "../../polkadot.snap"
@@ -219,7 +219,13 @@ jobs:
           RUST_LOG: "warn"
 
       - name: Test Benchmarks Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features polkadot --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
+        env:
+          RUST_BACKTRACE: 1
+          RUST_LOG: "warn"
+
+      - name: Test Benchmarks Asset Hub Migration (Kusama)
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features kusama --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
         env:
           RUST_BACKTRACE: 1
           RUST_LOG: "warn"
