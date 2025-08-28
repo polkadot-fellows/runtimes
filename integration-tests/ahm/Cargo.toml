@@ -80,6 +80,8 @@ kusama = [
 	"asset-hub-kusama-runtime/kusama",
 	"kusama-runtime-constants",
 	"kusama-runtime/kusama",
+	"pallet-ah-migrator/kusama",
+	"pallet-rc-migrator/kusama",
 ]
 std = [
 	"cumulus-pallet-parachain-system/std",

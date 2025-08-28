@@ -127,8 +127,9 @@ ss58-registry = { workspace = true }
 substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
-default = ["std"]
+default = ["kusama", "std"]
 no_std = []
+kusama = ["pallet-rc-migrator/kusama"]
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -352,5 +353,3 @@ fast-runtime = ["kusama-runtime-constants/fast-runtime"]
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
 force-debug = ["sp-debug-derive/force-debug"]
-
-kusama = ["pallet-rc-migrator/kusama"]

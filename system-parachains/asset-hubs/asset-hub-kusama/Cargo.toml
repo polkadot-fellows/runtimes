@@ -140,7 +140,8 @@ sp-io = { workspace = true, default-features = true }
 substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
-default = ["std"]
+default = ["kusama", "std"]
+kusama = ["pallet-ah-migrator/kusama", "pallet-rc-migrator/kusama"]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
@@ -386,5 +387,3 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
 on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
-
-kusama = ["pallet-ah-migrator/kusama", "pallet-rc-migrator/kusama"]
