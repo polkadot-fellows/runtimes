@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - [#9564](https://github.com/paritytech/polkadot-sdk/pull/9564) Correctly map group indices to vote indices when filtering backing statements.
+- Upgrade to Polkadot-SDK `stable2503-9` patch release:
+  - [#9137](https://github.com/paritytech/polkadot-sdk/pull/9137): Pallet XCM - transfer_assets pre-ahm patch
+    🚨 Pallet XCM's `transfer_assets` extrinsic now returns an error when it determines that a reserve transfer of DOT has to be done.
+    This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT will change from the Relay Chain to Asset Hub.
+    After the migration, another patch will remove this error case and use the correct reserve.
+    🚨 For DOT cross-chain transfers please use `transfer_assets_using_type_and_then` or `execute`.
 
 ## [1.6.1] 24.06.2025
 
