@@ -224,17 +224,46 @@ impl<T: Config> PreimageChunkMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
+pub mod preimage_tests {
+	use super::*;
+	use std::collections::BTreeSet;
+
+	// Returns the preimages that are mapped to new preimages during migration. Those won't
+	// necessarily be present on Asset Hub after migration.
+	pub fn get_mapped_preimage_hashes<T: Config>() -> BTreeSet<H256> {
+		let mut candidate_preimage_hashes = BTreeSet::new();
+		// Ongoing referenda are unrequested once during migration (count is decremented by 1).
+		for (_, referendum_info) in pallet_referenda::ReferendumInfoFor::<T>::iter() {
+			if let pallet_referenda::ReferendumInfo::Ongoing(status) = referendum_info {
+				let Some(hash) = status.proposal.lookup_hash() else { continue };
+				candidate_preimage_hashes.insert(hash);
+			}
+		}
+		// Scheduled tasks call are unrequested once during migration (count is decremented by 1).
+		for (_, agenda) in pallet_scheduler::Agenda::<T>::iter() {
+			for maybe_schedule in agenda {
+				if let Some(schedule) = maybe_schedule {
+					let Some(hash) = schedule.call.lookup_hash() else { continue };
+					candidate_preimage_hashes.insert(hash);
+				}
+			}
+		}
+		candidate_preimage_hashes
+	}
+}
+
+#[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 	type RcPrePayload = Vec<(H256, u32)>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		let all_keys = pallet_preimage::PreimageFor::<T>::iter_keys().count();
-		let good_keys = pallet_preimage::PreimageFor::<T>::iter_keys()
-			.filter(|(hash, _)| pallet_preimage::RequestStatusFor::<T>::contains_key(hash))
-			.count();
-		log::info!("Migrating {} keys out of {}", good_keys, all_keys);
+		let mapped_preimage_hashes = preimage_tests::get_mapped_preimage_hashes::<T>();
 		pallet_preimage::PreimageFor::<T>::iter_keys()
-			.filter(|(hash, _)| pallet_preimage::RequestStatusFor::<T>::contains_key(hash))
+			.filter(|(hash, _)| {
+				pallet_preimage::RequestStatusFor::<T>::contains_key(hash) &&
+					!mapped_preimage_hashes.contains(hash)
+			})
 			.collect()
 	}
 

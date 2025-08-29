@@ -21,6 +21,10 @@ pub type BoundedCallOf<T> =
 	Bounded<<T as frame_system::Config>::RuntimeCall, <T as frame_system::Config>::Hashing>;
 
 impl<T: Config> Pallet<T> {
+	// Maps a RC BoundedCall to an AH BoundedCall.
+	// The preimage from the RC BoundedCall is unrequested on the relay chain, then re-created on
+	// Asset Hub with translated parameters. Notice that the unrequest operation may delete the
+	// preimage hash from storage.
 	pub fn map_rc_ah_call(
 		rc_bounded_call: &BoundedCallOf<T>,
 	) -> Result<BoundedCallOf<T>, Error<T>> {
@@ -30,9 +34,13 @@ impl<T: Config> Pallet<T> {
 			return Err(Error::<T>::PreimageNotFound);
 		};
 
+		let mut unrequested_preimage = false;
+
 		if let Some(hash) = rc_bounded_call.lookup_hash() {
 			if T::Preimage::is_requested(&hash) {
 				T::Preimage::unrequest(&hash);
+			} else {
+				unrequested_preimage = true;
 			}
 		}
 
@@ -48,6 +56,12 @@ impl<T: Config> Pallet<T> {
 			defensive!("Failed to bound call: {:?}", err);
 			Error::<T>::FailedToBoundCall
 		})?;
+
+		if let Some(hash) = ah_bounded_call.lookup_hash() {
+			if T::Preimage::is_requested(&hash) && unrequested_preimage {
+				log::warn!(target: LOG_TARGET, "RC unrequested preimage has become requested on AH with hash {:?}", hash);
+			}
+		}
 
 		if ah_bounded_call.lookup_needed() {
 			// Noted preimages for referendums that did not pass will need to be manually removed

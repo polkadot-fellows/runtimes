@@ -218,25 +218,29 @@ impl<T: Config> PreimageRequestStatusMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
+	// Migrated preimage hashes and their request statuses as booleans.
+	// We remove preimages that are deleted or unrequested during the migration.
 	type RcPrePayload = Vec<(H256, bool)>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		pallet_preimage::RequestStatusFor::<T>::iter()
-			.filter(|(hash, _)| {
-				pallet_preimage::PreimageFor::<T>::iter_keys()
-					.any(|(key_hash, _)| key_hash == *hash)
-			})
-			.map(|(hash, request_status)| {
-				(
-					hash,
-					match request_status {
-						pallet_preimage::RequestStatus::Requested { .. } => true,
-						_ => false,
-					},
-				)
-			})
-			.collect()
+		let preimage_hashes = pallet_preimage::PreimageFor::<T>::iter_keys()
+			.map(|(hash, _)| hash)
+			.collect::<Vec<_>>();
+		// We remove preimages that are mapped to new preimages during migration.
+		let mapped_preimages = preimage::chunks::preimage_tests::get_mapped_preimage_hashes::<T>();
+		let mut migrated_request_statuses: Vec<(H256, bool)> = Vec::new();
+		for (hash, request_status) in pallet_preimage::RequestStatusFor::<T>::iter() {
+			if preimage_hashes.contains(&hash) && !mapped_preimages.contains(&hash) {
+				let requested = match request_status {
+					pallet_preimage::RequestStatus::Requested { .. } => true,
+					pallet_preimage::RequestStatus::Unrequested { .. } => false,
+				};
+				migrated_request_statuses.push((hash, requested));
+			}
+		}
+		migrated_request_statuses
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
