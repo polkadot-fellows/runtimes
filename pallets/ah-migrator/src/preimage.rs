@@ -297,39 +297,15 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			);
 		}
 
-		let new_preimages = pallet_preimage::PreimageFor::<T>::iter_keys().count();
-		// Pallet scheduler currently unrequests and deletes preimage with hash
-		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
-		if new_preimages != rc_pre_payload.len() {
-			log::warn!(
-				"Preimage::PreimageFor and relay chain payload have different size: {} vs {}",
-				new_preimages,
-				rc_pre_payload.len(),
-			);
-		}
-
 		// All items have been successfully migrated from the relay chain
 		// Assert storage "Preimage::PreimageFor::ah_post::correct"
 		for (hash, len) in rc_pre_payload.iter() {
-			// Pallet scheduler currently unrequests and deletes preimage with hash
-			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
-			if !pallet_preimage::PreimageFor::<T>::contains_key((hash, len)) {
-				log::warn!(
-					"Relay chain Preimage::PreimageFor storage item with key {:?} {:?} is not found on assethub",
-					hash,
-					len,
-				);
-			}
-		}
-
-		// All AssetHub items came from the relay chain
-		// Assert storage "Preimage::PreimageFor::ah_post::correct"
-		for (hash, len) in pallet_preimage::PreimageFor::<T>::iter_keys() {
-			// Preimages for referendums that did not pass on the relay chain can be noted when
-			// migrating to Asset Hub.
-			if !rc_pre_payload.contains(&(hash, len)) {
-				log::warn!("Asset Hub migrated Preimage::PreimageFor storage item with key {:?} {:?} was not present on the relay chain", hash, len);
-			}
+			assert!(
+				pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
+				"Relay chain Preimage::PreimageFor storage item with key {:?} {:?} is not found on Asset Hub",
+				hash,
+				len,
+			);
 		}
 
 		// Integrity check that all preimages have the correct hash and length
@@ -360,58 +336,43 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 
 	// The payload should come from the relay chain pre-check method on the same pallet
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-		let new_requests_len = pallet_preimage::RequestStatusFor::<T>::iter_keys().count();
-		// Pallet scheduler currently unrequests and deletes preimage with hash
-		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
-		if new_requests_len != rc_pre_payload.len() {
-			log::warn!(
-				"Preimage::RequestStatusFor and relay chain payload have different size: {} vs {}",
-				new_requests_len,
-				rc_pre_payload.len(),
-			);
-		}
-
 		for (hash, requested) in rc_pre_payload.iter() {
-			// Pallet scheduler currently unrequests and deletes preimage with hash
-			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 			// Assert storage "Preimage::RequestStatusFor::ah_post::correct"
-			if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
-				log::warn!(
-					"Relay chain Preimage::RequestStatusFor storage item with key {:?} is not found on assethub",
-					hash
-				);
-			} else {
-				match pallet_preimage::RequestStatusFor::<T>::get(hash).unwrap() {
-					pallet_preimage::RequestStatus::Unrequested { len, .. } => {
-						assert!(
-							pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
-							"Preimage::RequestStatusFor is missing preimage"
-						);
-					},
-					pallet_preimage::RequestStatus::Requested { maybe_len: Some(len), .. } => {
-						// TODO: @re-gius preimages that store referendums calls will be unrequested
-						// since the call of the preimage is mapped and a new preimage of the
-						// mapped call is noted. The unrequested preimage can be deletes since
-						// not needed anymore.
-						//
-						// assert!(
-						// 	requested,
-						// 	"Unrequested preimage with hash {:?} in the relay chain has become
-						// requested on assetHub", 	hash
-						// );
-						assert!(
-							pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
-							"Preimage::RequestStatusFor is missing preimage"
-						);
-					},
-					pallet_preimage::RequestStatus::Requested { .. } => {
-						assert!(
-							requested,
-							"Unrequested preimage with hash {:?} in the relay chain has become requested on assetHub",
-							hash
-						);
-					},
-				}
+			assert!(
+				pallet_preimage::RequestStatusFor::<T>::contains_key(hash),
+				"Relay chain Preimage::RequestStatusFor storage item with key {:?} is not found on Asset Hub",
+				hash
+			);
+			match pallet_preimage::RequestStatusFor::<T>::get(hash).unwrap() {
+				pallet_preimage::RequestStatus::Unrequested { len, .. } => {
+					assert!(
+						pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
+						"Preimage::RequestStatusFor is missing preimage"
+					);
+					assert!(
+						!requested,
+						"Preimage with hash {:?} was requested on the relay chain, but has become unrequested on Asset Hub",
+						hash
+					);
+				},
+				pallet_preimage::RequestStatus::Requested { maybe_len: Some(len), .. } => {
+					assert!(
+						pallet_preimage::PreimageFor::<T>::contains_key((hash, len)),
+						"Preimage::RequestStatusFor is missing preimage"
+					);
+					assert!(
+						requested,
+						"Preimage with hash {:?} was unrequested on the relay chain, but has become requested on Asset Hub",
+						hash
+					);
+				},
+				pallet_preimage::RequestStatus::Requested { .. } => {
+					assert!(
+						requested,
+						"Preimage with hash {:?} was requested on the relay chain, but has become unrequested on Asset Hub",
+						hash
+					);
+				},
 			}
 		}
 
