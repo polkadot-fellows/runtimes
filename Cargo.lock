@@ -1005,6 +1005,7 @@ dependencies = [
 name = "asset-hub-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "approx",
  "asset-test-utils",
  "assets-common",
  "bp-asset-hub-kusama",
