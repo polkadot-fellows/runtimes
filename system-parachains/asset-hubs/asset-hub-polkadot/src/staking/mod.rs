@@ -30,9 +30,11 @@ use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
 	transaction_validity::TransactionPriority, FixedPointNumber, SaturatedConversion,
+	traits::BlockNumberProvider,
 };
 use sp_staking::SessionIndex;
 use xcm::v5::prelude::*;
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 
 parameter_types! {
 	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots
@@ -261,6 +263,140 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
 
+// Wittled copy of the code from https://github.com/paritytech/polkadot-sdk/pull/9556
+// To be replaced after that is merged and available.
+pub mod temp_curve {
+	use super::*;
+	use sp_runtime::traits::{AtLeast32BitUnsigned, One};
+	use scale_info::TypeInfo;
+	use sp_arithmetic::traits::Saturating;
+
+	/// The step type for the stepped curve.
+	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
+	pub enum Step<V> {
+		/// Asymptotically move towards a desired value by a percentage at each step.
+		///
+		/// Step size will be (asymptote - current_value) * pct.
+		AsymptoticPct(V, Perbill),
+	}
+
+	/// A stepped curve.
+	///
+	/// Steps every `period` from the `initial_value` as defined by `step`.
+	/// First step from `initial_value` takes place at `start` + `period`.
+	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
+	pub struct SteppedCurve<P, V> {
+		/// The starting point for the curve.
+		pub start: P,
+		/// An optional point at which the curve ends. If `None`, the curve continues indefinitely.
+		pub end: Option<P>,
+		/// The initial value of the curve at the `start` point.
+		pub initial_value: V,
+		/// The change to apply at the end of each `period`.
+		pub step: Step<V>,
+		/// The duration of each step.
+		pub period: P,
+	}
+
+	impl<P, V> SteppedCurve<P, V>
+	where
+		P: AtLeast32BitUnsigned + Copy,
+		V: AtLeast32BitUnsigned + Copy + From<P>,
+	{
+		/// Creates a new `SteppedCurve`.
+		pub fn new(start: P, end: Option<P>, initial_value: V, step: Step<V>, period: P) -> Self {
+			Self { start, end, initial_value, step, period }
+		}
+
+		/// Returns the magnitude of the step size occuring at the start of this point's period.
+		/// If no step has occured, will return 0.
+		///
+		/// Ex. In period 4, the last step taken was 10 -> 7, it would return 3.
+		pub fn last_step_size(&self, point: P) -> V {
+			// No step taken yet.
+			if point < self.start {
+				return V::zero();
+			}
+
+			// If the period is zero, the value never changes.
+			if self.period.is_zero() {
+				return V::zero();
+			}
+
+			// Determine the effective point for calculation, capped by the end point if it exists.
+			let _effective_point = self.end.map_or(point, |e| point.min(e));
+
+			// Calculate how many full periods have passed.
+			let num_periods = (point - self.start) / self.period;
+
+			if num_periods.is_zero() {
+				return V::zero();
+			}
+
+			// Points for calculating step difference.
+			let prev_period_point = self.start + (num_periods - P::one()) * self.period;
+			let curr_period_point = self.start + num_periods * self.period;
+
+			// Evaluate the curve at those two points.
+			let val_prev = self.evaluate(prev_period_point);
+			let val_curr = self.evaluate(curr_period_point);
+
+			if val_curr >= val_prev {
+				return val_curr.saturating_sub(val_prev);
+			} else {
+				return val_prev.saturating_sub(val_curr);
+			}
+		}
+
+		/// Evaluate the curve at a given point.
+		pub fn evaluate(&self, point: P) -> V {
+			let initial = self.initial_value;
+
+			// If the point is before the curve starts, return the initial value.
+			if point < self.start {
+				return initial;
+			}
+
+			// If the period is zero, the value never changes.
+			if self.period.is_zero() {
+				return initial;
+			}
+
+			// Determine the effective point for calculation, capped by the end point if it exists.
+			let effective_point = self.end.map_or(point, |e| point.min(e));
+
+			// Calculate how many full periods have passed, capped by usize.
+			let num_periods = (effective_point - self.start) / self.period;
+			let num_periods_usize = num_periods.saturated_into::<usize>();
+
+			if num_periods.is_zero() {
+				return initial;
+			}
+
+			match self.step {
+				Step::AsymptoticPct(asymptote, percent) => {
+					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
+					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
+					let scale = ratio.saturating_pow(num_periods_usize);
+
+					let initial_fp = FixedU128::saturating_from_integer(initial);
+					let asymptote_fp = FixedU128::saturating_from_integer(asymptote);
+
+					let res = if initial >= asymptote {
+						let diff = initial_fp.saturating_sub(asymptote_fp);
+						asymptote_fp.saturating_add(diff.saturating_mul(scale))
+					} else {
+						let diff = asymptote_fp.saturating_sub(initial_fp);
+						asymptote_fp.saturating_sub(diff.saturating_mul(scale))
+					};
+
+					(res.into_inner() / FixedU128::DIV).saturated_into::<V>()
+				},
+			}
+		}
+	}
+}
+
 // We cannot re-use the one from the relay since that is for pallet-staking and will be removed soon
 // anyway.
 pub struct EraPayout;
@@ -271,14 +407,39 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = (1000 * 3600 * 24 * 36525) / 100;
-		// A normal-sized era will have 1 / 365.25 here:
+		// A normal-sized era will have 1 / 365.25 here, though the value wobbles a bit:
 		let relative_era_len =
 			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
 
-		// Fixed total TI that we use as baseline for the issuance.
-		let fixed_total_issuance: i128 = 5_216_342_402_773_185_773;
-		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
-		let yearly_emission = fixed_inflation_rate.saturating_mul_int(fixed_total_issuance);
+		// Branch based off the 12AM 14th March 2026 initial stepping date -[Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
+		let relay_block_num = <RelaychainDataProvider::<Runtime> as BlockNumberProvider>::current_block_number();
+		let march_14_2026: BlockNumber = 30_367_108; // Extrapolated block number at desired date. 
+		let yearly_emission = if relay_block_num < march_14_2026 {
+			// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
+			let fixed_total_issuance: u128 = 15_011_657_390_566_252_333;
+			let fixed_inflation_rate = FixedU128::from_rational(8, 100);
+			fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
+		} else {
+			// Extrapolated total issuance at time of first stepping. Based on a per era emission of ~328_774.593.
+			let march_14_2026_ti = 1_676_562_737u128;
+			let target_ti = 2_100_000_000u128;
+
+			let ti_curve = temp_curve::SteppedCurve::new(
+				// The start date of the curve. Set two years prior to the first step date.
+				march_14_2026 - (2 * RC_YEARS),
+				// No end to the stepping.
+				None,
+				// The initial value of the curve.
+				march_14_2026_ti,
+				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
+				temp_curve::Step::AsymptoticPct(target_ti, Perbill::from_float(0.2628)),
+				// Step every two years.
+				2 * RC_YEARS,
+			);
+			// The last step size tells us the expected TI increase over the current two year period. 
+			let two_year_emission = ti_curve.last_step_size(relay_block_num);
+			FixedU128::from_float(0.5).saturating_mul_int(two_year_emission)
+		};
 
 		let era_emission = relative_era_len.saturating_mul_int(yearly_emission);
 		// 15% to treasury, as per Polkadot ref 1139.
@@ -422,4 +583,9 @@ where
 	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
 		UncheckedExtrinsic::new_bare(call)
 	}
+}
+
+#[cfg(test)]
+mod inflation_tests {
+
 }
