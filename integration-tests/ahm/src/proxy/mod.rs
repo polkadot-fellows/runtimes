@@ -43,9 +43,9 @@ pub enum Permission {
 	AssetManager,
 	Collator,
 	Old,
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	Society,
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	Spokesperson,
 }
 
@@ -65,9 +65,9 @@ impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 			ProxyType::NonTransfer => Permission::NonTransfer,
 			ProxyType::ParaRegistration => Permission::ParaRegistration,
 			ProxyType::Staking => Permission::Staking,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Society => Permission::Society,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Spokesperson => Permission::Spokesperson,
 		})
 	}
@@ -93,9 +93,9 @@ impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permissio
 			ProxyType::Auction => Permission::Old,
 			ProxyType::ParaRegistration => Permission::Old,
 			ProxyType::Staking => Permission::Staking,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Society => Permission::Society,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Spokesperson => Permission::Spokesperson,
 		})
 	}

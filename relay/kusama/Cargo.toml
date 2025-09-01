@@ -129,7 +129,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [features]
 default = ["std"]
 no_std = []
-kusama = ["pallet-rc-migrator/kusama"]
+kusama-ahm = ["pallet-rc-migrator/kusama-ahm"]
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",

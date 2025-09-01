@@ -960,7 +960,7 @@ pub mod tests {
 
 	pub struct AccountsMigrationChecker<T>(sp_std::marker::PhantomData<T>);
 
-	#[cfg(not(feature = "kusama"))]
+	#[cfg(not(feature = "kusama-ahm"))]
 	impl<T> AccountsMigrationChecker<T> {
 		// Translate the RC freeze id encoding to the corresponding AH freeze id encoding.
 		pub fn rc_freeze_id_encoding_to_ah(freeze_id: Vec<u8>) -> Vec<u8> {
@@ -997,7 +997,7 @@ pub mod tests {
 		}
 	}
 
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	impl<T> AccountsMigrationChecker<T> {
 		// Translate the RC freeze id encoding to the corresponding AH freeze id encoding.
 		pub fn rc_freeze_id_encoding_to_ah(freeze_id: Vec<u8>) -> Vec<u8> {

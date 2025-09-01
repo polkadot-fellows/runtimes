@@ -46,7 +46,7 @@ pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub mod recovery;
 pub mod referenda;
 pub mod scheduler;
@@ -82,7 +82,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
@@ -304,14 +304,14 @@ pub mod pallet {
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 
 		/// Config for pallets that are only on Kusama.
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		type KusamaConfig: pallet_recovery::Config<
 				Currency = pallet_balances::Pallet<Self>,
 				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
 				MaxFriends = ConstU32<{ MAX_FRIENDS }>,
 			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
 
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// All supported assets registry.
@@ -959,7 +959,7 @@ pub mod pallet {
 			Self::do_receive_staking_messages(messages).map_err(Into::into)
 		}
 
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		#[pallet::call_index(26)]
 		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @ggwpez weight
 		pub fn receive_recovery_messages(

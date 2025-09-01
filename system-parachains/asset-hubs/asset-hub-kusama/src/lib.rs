@@ -24,7 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-#[cfg(all(not(feature = "kusama"), feature = "on-chain-release-build"))]
+#[cfg(all(not(feature = "kusama-ahm"), feature = "on-chain-release-build"))]
 compile_error!("Asset Hub migration requires the `kusama` feature");
 
 extern crate alloc;
@@ -1299,9 +1299,9 @@ impl pallet_ah_migrator::Config for Runtime {
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
 	type MessageQueue = MessageQueue;
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	type KusamaConfig = Runtime;
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 

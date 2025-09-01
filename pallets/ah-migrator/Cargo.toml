@@ -66,8 +66,8 @@ pallet-ah-ops = { workspace = true }
 [features]
 default = ["std"]
 
-kusama = [
-	"pallet-rc-migrator/kusama",
+kusama-ahm = [
+	"pallet-rc-migrator/kusama-ahm",
 	"pallet-recovery",
 ]
 

@@ -112,7 +112,7 @@ type RcChecks = (
 );
 
 // Checks that are specific to Polkadot, and not available on other chains
-#[cfg(feature = "polkadot")]
+#[cfg(feature = "polkadot-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -126,7 +126,7 @@ pub type RcRuntimeSpecificChecks = (
 );
 
 // Checks that are specific to Kusama.
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -167,7 +167,7 @@ type AhChecks = (
 	EntireStateDecodes,
 );
 
-#[cfg(feature = "polkadot")]
+#[cfg(feature = "polkadot-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -180,7 +180,7 @@ pub type AhRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -751,7 +751,7 @@ async fn scheduled_migration_works() {
 		warm_up_end = start + 3;
 
 		// Fellowship Origin
-		#[cfg(not(feature = "kusama"))]
+		#[cfg(not(feature = "kusama-ahm"))]
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
 			0,
 			[
@@ -759,7 +759,7 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		let origin = polkadot_runtime::governance::Origin::Fellows;
 
 		assert_ok!(RcMigrator::schedule_migration(
