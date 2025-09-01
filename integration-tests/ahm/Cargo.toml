@@ -71,11 +71,6 @@ polkadot = [
 	"polkadot-runtime",
 	"polkadot-runtime-constants",
 ]
-paseo = [
-	"asset-hub-polkadot-runtime",
-	"polkadot-runtime",
-	"polkadot-runtime-constants",
-]
 kusama = [
 	"asset-hub-kusama-runtime/kusama",
 	"kusama-runtime-constants",

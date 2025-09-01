@@ -648,7 +648,7 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
 
-// TODO: remove feature gate and keep 10, when we want to activate it for Polkadot
+// TODO @kianenigma: remove feature gate and keep 10, when we want to activate it for Polkadot
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
 	pub const AutoRebagNumber: u32 = 10;
@@ -665,9 +665,9 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	#[cfg(any(feature = "paseo", feature = "runtime-benchmarks"))]
+	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
-	#[cfg(not(any(feature = "paseo", feature = "runtime-benchmarks")))]
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = AutoRebagNumber;
 }
 
@@ -1545,10 +1545,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	#[cfg(feature = "paseo")]
-	type MinimumValidatorSetSize = ConstU32<50>;
-	#[cfg(not(feature = "paseo"))]
-	type MinimumValidatorSetSize = ConstU32<400>;
+	type MinimumValidatorSetSize = ConstU32<400>; // TODO @kianenigma
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<50>;

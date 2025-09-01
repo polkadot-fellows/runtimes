@@ -282,7 +282,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
-// See:
+// See: TODO @kianenigma
 // https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/src/lib.rs#L662
 // https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/constants/src/lib.rs#L49
 parameter_types! {

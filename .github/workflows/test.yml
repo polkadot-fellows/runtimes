@@ -185,23 +185,6 @@ jobs:
           shared-key: "fellowship-cache-integration-tests-ahm"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Download Paseo snaps
-        run: |
-          python3 -m pip install gdown
-          gdown "1AoIyspAe4MzRTlxzQHWqeWNK-kGlWvP6" # 2025-07-29
-          gdown "1yjY4fuzJjxSxzfRb8jESqDojfr8Eu2CV" # 2025-07-29
-
-          lz4 -d paseo.snap.lz4 paseo.snap
-          lz4 -d ah-paseo.snap.lz4 ah-paseo.snap
-
-      - name: Test Asset Hub Migration (Paseo)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features paseo --features try-runtime -- --nocapture --test-threads 1
-        env:
-          RUST_BACKTRACE: 1
-          SNAP_RC: "../../paseo.snap"
-          SNAP_AH: "../../ah-paseo.snap"
-          RUST_LOG: "warn"
-
       - name: Download Polkadot snaps
         run: |
           gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR # 2025-07-28
