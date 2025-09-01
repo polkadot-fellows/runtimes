@@ -826,6 +826,22 @@ pub const DERIVED_TRANSLATIONS: &[(
 	u16,
 	(AccountId32, &'static str),
 )] = &[
+	// para 2012 (derivation index 2)
+	(
+		(
+			AccountId32::new(hex!(
+				"06926c6bab20739b8d4710e56a9ce6db7b0f67986a4f29664919620653f3a435"
+			)),
+			"5CDKe9iak7oYywsYUF37ThPcvAVysueu3TuUAJawZospbwkF",
+		),
+		2,
+		(
+			AccountId32::new(hex!(
+				"d06990044418b18883108cf323580cc769414ddbee42bcebaf72331c175a9d90"
+			)),
+			"5GmyB9gUJYn1pyUdRYF9LxWNrRFGc9wC38pb72MfSr2WFZ9e",
+		),
+	),
 	// para 2012 (derivation index 5)
 	(
 		(
@@ -856,6 +872,22 @@ pub const DERIVED_TRANSLATIONS: &[(
 				"d9c2775f1255eaaf78a22fdebb5471ca6392c2441118caad3f15b58f52686800"
 			)),
 			"5GzE1vRVr8nG4WAPmX76RtLWK1XxxBfMwCTcKWQTKkugD2iQ",
+		),
+	),
+	// para 2001 (derivation index 0)
+	(
+		(
+			AccountId32::new(hex!(
+				"5a53736d8e96f1c007cf0d630acf5209b20611617af23ce924c8e25328eb5d28"
+			)),
+			"5E78xTBiaN3nAGYtcNnqTJQJqYAkSDGggKqaDfpNsKyPpbcb",
+		),
+		0,
+		(
+			AccountId32::new(hex!(
+				"290bf94235666a351d9c8082c77e689813a905d0bbffdbd8b4a619ec5303ba27"
+			)),
+			"5CzXNqgBZT5yMpMETdfH55saYNKQoJBXsSfnu4d2s1ejYFir",
 		),
 	),
 	// para 2030 (derivation index 2)
@@ -890,6 +922,54 @@ pub const DERIVED_TRANSLATIONS: &[(
 			"5CY9tzuRaRxKpFZxdfobKdAUJqyz3GNaM6gYdbH7LrEwcJQw",
 		),
 	),
+	// para 2030 (derivation index 1)
+	(
+		(
+			AccountId32::new(hex!(
+				"96d16ffaae52a6a195b6d9f0b365677aedb77675f423813112c5ef5434523622"
+			)),
+			"5FUTFngRdSAPG4BVXCEs7nV6dAsMk8MV4ZU3CDGvx66nXHnR",
+		),
+		1,
+		(
+			AccountId32::new(hex!(
+				"39d0a3c793549eda79b5cd3f8ab1c5879326352eb6583696249e38684b9451c1"
+			)),
+			"5DNWZkkAxLhqF8tevcbRGyARAVM7abukftmqvoDFUN5dDDDz",
+		),
+	),
+	// para 2012 (derivation index 1)
+	(
+		(
+			AccountId32::new(hex!(
+				"aa006b3de1565c48ade1c1f3b646090be49389327f6b214076e5d2bd2ba0fb02"
+			)),
+			"5Fuc82fy32ccsRXWyovjsLms4AsPYToHnXuvGjCjYGcPvcEA",
+		),
+		1,
+		(
+			AccountId32::new(hex!(
+				"26b0b1d07bded0e85c829f664ff9440b3ad0d8855fc7634d547e99ecd70d78cf"
+			)),
+			"5CwSAaoAnoN3t5Ui15g3xr5SmrEqQj8DJvFPBmXgcKpFYmN4",
+		),
+	),
+	// para 2030 (derivation index 0)
+	(
+		(
+			AccountId32::new(hex!(
+				"adcea185416af2d3e8df8c1c8ee8a634bf1c3275b3820cb6d935300d42c73b2a"
+			)),
+			"5FzbXK46dYRXsTaXuUb3uJ1QCNBRf3KV8Tpue2Ec6iAj8nxL",
+		),
+		0,
+		(
+			AccountId32::new(hex!(
+				"69f880852768f2d00acfa7824533aa4378e48d1b9fbc6b44500e8b98debeaccd"
+			)),
+			"5ETehspFKFNpBbe5DsfuziN6BWq5Qwp1J8qcTQQoAxwa7BsS",
+		),
+	),
 	// para 2000 (derivation index 0)
 	(
 		(
@@ -920,6 +1000,54 @@ pub const DERIVED_TRANSLATIONS: &[(
 				"c94f02677ffb78dc23fbd3b95beb2650fe4fa5c466e5aedee74e89d96351800c"
 			)),
 			"5GcexD4YNqcKTbW1YWDRczQzpxic61byeNeLaHgqQHk8pxQJ",
+		),
+	),
+	// para 2012 (derivation index 4)
+	(
+		(
+			AccountId32::new(hex!(
+				"f60aa184555b35cfcd6dc246424240068da18dd1bfeefccf8d5a26713b9917f7"
+			)),
+			"5HdJo46v12tW24Nveanm1T4qkkVfd6XDD7cvemroTuritRrr",
+		),
+		4,
+		(
+			AccountId32::new(hex!(
+				"0891c74febe45a39b18715a5c4a0f9592203f53efee5c75e648a0388974b2ca7"
+			)),
+			"5CFwYbNXv57T58auh8JHGxopJu91cBsDoCNE7tEymkcV1wb3",
+		),
+	),
+	// para 2012 (derivation index 0)
+	(
+		(
+			AccountId32::new(hex!(
+				"f82777e46281c5f5000af5dbb01fa41cdf0ff53ac4167b7297e386d834ff7c0e"
+			)),
+			"5Hg5TTyFP8NKXXs7rvDNBvDsa23E7kh5Xxr55xoCFkQCmbB9",
+		),
+		0,
+		(
+			AccountId32::new(hex!(
+				"2e007ed75739bb293788b83c94dee3247d1561337b69f593cc044cf11606f573"
+			)),
+			"5D72CxkFjKEC9QXDpoAZAxdBn9q8JhJzAdHXqwwTVTALxC7q",
+		),
+	),
+	// para 2012 (derivation index 3)
+	(
+		(
+			AccountId32::new(hex!(
+				"fe5326ff816ac945120d53cffdd00919268032f0e478d40c23dea72a69e53660"
+			)),
+			"5HpAindoSKd56yA1UsAmcv6PvoTbhCgZSy1ah5DY3r4rFYZ6",
+		),
+		3,
+		(
+			AccountId32::new(hex!(
+				"ceca601fde11eed1f4c6fe4f0a2ba581b75c1011a94d0426226c79e9f23ca956"
+			)),
+			"5GjqqeHW7am6pbBoD6Afw6Pnytgsm4uP6JzdQHsRpL3FYRFE",
 		),
 	),
 ];
