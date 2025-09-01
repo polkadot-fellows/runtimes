@@ -187,6 +187,7 @@ jobs:
 
       - name: Download Polkadot snaps
         run: |
+          python3 -m pip install gdown
           gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR # 2025-07-28
           gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z # 2025-07-28
 
