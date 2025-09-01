@@ -1106,9 +1106,8 @@ mod inflation_tests {
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let yearly_rate = Perbill::from_float(TWO_YEAR_STEP_RATE) * Perbill::from_float(0.5);
-			let assumed_payout = 
-				yearly_rate * (TARGET_TI - MARCH_TI) * (MILLISECONDS_PER_DAY as u128/365250);
+			let era_rate = Perbill::from_float(TWO_YEAR_STEP_RATE) * Perbill::from_float(0.5) * Perbill::from_float(1.0/365.25);
+			let assumed_payout = era_rate * (TARGET_TI - MARCH_TI);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
 				(assumed_payout * UNITS) as f64,
