@@ -504,6 +504,8 @@ parameter_types! {
 }
 
 impl pallet_session::Config for Runtime {
+	type Currency = Balances;
+	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
 	type ValidatorIdOf = ConvertInto;
@@ -522,7 +524,6 @@ impl pallet_session::Config for Runtime {
 impl pallet_session::historical::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-	#[allow(deprecated)] // will be removed with AHM
 	type FullIdentificationOf = pallet_staking::DefaultExposureOf<Runtime>;
 }
 
@@ -593,6 +594,7 @@ impl onchain::Config for OnChainSeqPhragmen {
 }
 
 impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
+	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type AccountId = AccountId;
 	type MaxLength = OffchainSolutionLengthLimit;
 	type MaxWeight = OffchainSolutionWeightLimit;
@@ -617,6 +619,7 @@ impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
 }
 
 impl pallet_election_provider_multi_phase::Config for Runtime {
+	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EstimateCallFee = TransactionPayment;
@@ -659,6 +662,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
+	type MaxWinners = MaxWinnersPerPage;
 	type ElectionBounds = ElectionBounds;
 }
 
@@ -675,6 +679,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type BagThresholds = BagThresholds;
 	type MaxAutoRebagPerBlock = AutoRebagNumber;
 	type Score = sp_npos_elections::VoteWeight;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MaxAutoRebagPerBlock = ConstU32<5>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 #[derive(
@@ -852,6 +860,7 @@ parameter_types! {
 }
 
 impl pallet_staking::Config for Runtime {
+	type MaxValidatorSet = MaxActiveValidators;
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
@@ -1119,15 +1128,6 @@ where
 
 	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
 		UncheckedExtrinsic::new_transaction(call, extension)
-	}
-}
-
-impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
-where
-	RuntimeCall: From<LocalCall>,
-{
-	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
-		UncheckedExtrinsic::new_bare(call)
 	}
 }
 
@@ -1805,6 +1805,15 @@ impl pallet_asset_rate::Config for Runtime {
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
+}
+
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_bare(call)
+	}
 }
 
 construct_runtime! {
