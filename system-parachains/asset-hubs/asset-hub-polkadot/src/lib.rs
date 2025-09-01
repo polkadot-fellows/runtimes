@@ -55,6 +55,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 
+#[cfg(feature = "kusama")]
+compile_error!("Polkadot AHM cannot run with `kusama` feature");
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));

@@ -140,7 +140,7 @@ sp-io = { workspace = true, default-features = true }
 substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
-default = ["kusama", "std"]
+default = ["std"]
 kusama = ["pallet-ah-migrator/kusama", "pallet-rc-migrator/kusama"]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",

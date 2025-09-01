@@ -20,7 +20,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit.
 #![recursion_limit = "512"]
 
-#[cfg(not(feature = "kusama"))]
+#[cfg(all(not(feature = "kusama"), feature = "on-chain-release-build"))]
 compile_error!("Asset Hub migration requires the `kusama` feature");
 
 extern crate alloc;
@@ -1909,7 +1909,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
 	type SessionDuration = EpochDuration; // Session == Epoch
+	#[cfg(feature = "kusama")]
 	type KusamaConfig = Runtime;
+	#[cfg(feature = "kusama")]
 	type RecoveryBlockNumberProvider = System;
 }
 

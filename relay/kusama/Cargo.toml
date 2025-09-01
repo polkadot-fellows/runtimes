@@ -127,7 +127,7 @@ ss58-registry = { workspace = true }
 substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
-default = ["kusama", "std"]
+default = ["std"]
 no_std = []
 kusama = ["pallet-rc-migrator/kusama"]
 std = [

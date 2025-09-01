@@ -20,6 +20,9 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
+#[cfg(feature = "kusama")]
+compile_error!("Polkadot AHM cannot run with `kusama` feature");
+
 extern crate alloc;
 
 use ah_migration::phase1 as ahm_phase1;
