@@ -274,10 +274,10 @@ pub mod temp_curve {
 	/// The step type for the stepped curve.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
 	pub enum Step<V> {
-		/// Asymptotically move towards a desired value by a percentage at each step.
+		/// Move towards a desired value by a percentage of the remaining difference at each step.
 		///
-		/// Step size will be (asymptote - current_value) * pct.
-		AsymptoticPct(V, Perbill),
+		/// Step size will be (target_total - current_value) * pct.
+		RemainingPct(V, Perbill),
 	}
 
 	/// A stepped curve.
@@ -374,7 +374,7 @@ pub mod temp_curve {
 			}
 
 			match self.step {
-				Step::AsymptoticPct(asymptote, percent) => {
+				Step::RemainingPct(asymptote, percent) => {
 					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
 					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
 					let scale = ratio.saturating_pow(num_periods_usize);
@@ -433,7 +433,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 				// The initial value of the curve.
 				march_14_2026_ti,
 				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
-				temp_curve::Step::AsymptoticPct(target_ti, two_year_rate),
+				temp_curve::Step::RemainingPct(target_ti, two_year_rate),
 				// Step every two years.
 				2 * RC_YEARS,
 			);
