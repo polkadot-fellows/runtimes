@@ -18,7 +18,6 @@
 #![doc = include_str!("multisig.md")]
 
 use frame_support::traits::Currency;
-use sp_runtime::traits::Zero;
 
 extern crate alloc;
 use crate::{types::*, *};

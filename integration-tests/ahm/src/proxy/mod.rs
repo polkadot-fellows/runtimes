@@ -43,9 +43,9 @@ pub enum Permission {
 	AssetManager,
 	Collator,
 	Old,
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	Society,
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	Spokesperson,
 }
 
@@ -65,9 +65,9 @@ impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 			ProxyType::NonTransfer => Permission::NonTransfer,
 			ProxyType::ParaRegistration => Permission::ParaRegistration,
 			ProxyType::Staking => Permission::Staking,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Society => Permission::Society,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Spokesperson => Permission::Spokesperson,
 		})
 	}
@@ -93,10 +93,39 @@ impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permissio
 			ProxyType::Auction => Permission::Old,
 			ProxyType::ParaRegistration => Permission::Old,
 			ProxyType::Staking => Permission::Staking,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Society => Permission::Society,
-			#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama-ahm")]
 			ProxyType::Spokesperson => Permission::Spokesperson,
+		})
+	}
+}
+
+// Permission -> Maybe(AH)
+impl TryConvert<Permission, asset_hub_polkadot_runtime::ProxyType> for Permission {
+	fn try_convert(
+		permission: Permission,
+	) -> Result<asset_hub_polkadot_runtime::ProxyType, Permission> {
+		use asset_hub_polkadot_runtime::ProxyType;
+
+		Ok(match permission {
+			Permission::Any => ProxyType::Any,
+			Permission::NonTransfer => ProxyType::NonTransfer,
+			Permission::Governance => ProxyType::Governance,
+			Permission::Staking => ProxyType::Staking,
+			Permission::CancelProxy => ProxyType::CancelProxy,
+			Permission::Auction => ProxyType::Auction,
+			Permission::NominationPools => ProxyType::NominationPools,
+			Permission::ParaRegistration => ProxyType::ParaRegistration,
+			Permission::Assets => ProxyType::Assets,
+			Permission::AssetOwner => ProxyType::AssetOwner,
+			Permission::AssetManager => ProxyType::AssetManager,
+			Permission::Collator => ProxyType::Collator,
+			Permission::Old => return Err(permission),
+			#[cfg(feature = "kusama-ahm")]
+			Permission::Society => ProxyType::Society,
+			#[cfg(feature = "kusama-ahm")]
+			Permission::Spokesperson => ProxyType::Spokesperson,
 		})
 	}
 }

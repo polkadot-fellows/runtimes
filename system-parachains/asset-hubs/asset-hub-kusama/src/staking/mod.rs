@@ -113,7 +113,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 	// We have to enable it for benchmarks since the benchmark otherwise panics.
-	#[cfg(any(feature = "runtime-benchmarks"))]
+	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
 	#[cfg(not(any(feature = "runtime-benchmarks")))]
 	type MaxAutoRebagPerBlock = ConstU32<0>;
@@ -282,7 +282,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
-// See:
+// See: TODO @kianenigma
 // https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/src/lib.rs#L662
 // https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/constants/src/lib.rs#L49
 parameter_types! {

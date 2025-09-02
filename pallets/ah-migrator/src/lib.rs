@@ -46,11 +46,11 @@ pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub mod recovery;
 pub mod referenda;
 pub mod scheduler;
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub mod society;
 pub mod sovereign_account_translation;
 pub mod staking;
@@ -84,17 +84,14 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
+#[cfg(feature = "kusama-ahm")]
+use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{
-	bounties::RcBountiesMessageOf,
-	child_bounties::PortableChildBountiesMessage,
-	claims::RcClaimsMessageOf,
-	crowdloan::RcCrowdloanMessageOf,
-	society::{PortableSocietyMessage, MAX_PAYOUTS},
-	staking::PortableStakingMessage,
-	treasury::PortableTreasuryMessage,
-	types::MigrationStatus,
+	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
+	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
+	treasury::PortableTreasuryMessage, types::MigrationStatus,
 };
 use parachains_common::pay::VersionedLocatableAccount;
 
@@ -312,7 +309,7 @@ pub mod pallet {
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 
 		/// Config for pallets that are only on Kusama.
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		type KusamaConfig: pallet_recovery::Config<
 				Currency = pallet_balances::Pallet<Self>,
 				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
@@ -327,7 +324,7 @@ pub mod pallet {
 				MaxPayouts = ConstU32<{ MAX_PAYOUTS }>,
 			>;
 
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// All supported assets registry.
@@ -975,7 +972,7 @@ pub mod pallet {
 			Self::do_receive_staking_messages(messages).map_err(Into::into)
 		}
 
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		#[pallet::call_index(26)]
 		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @ggwpez weight
 		pub fn receive_recovery_messages(
@@ -987,7 +984,7 @@ pub mod pallet {
 			Self::do_receive_recovery_messages(messages).map_err(Into::into)
 		}
 
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		#[pallet::call_index(27)]
 		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @muharem weight
 		pub fn receive_society_messages(

@@ -675,9 +675,9 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
-	#[cfg(not(feature = "kusama"))]
+	#[cfg(not(feature = "kusama-ahm"))]
 	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, // Up to MaxValidatorSize
-	#[cfg(feature = "kusama")]
+	#[cfg(feature = "kusama-ahm")]
 	pub individual: BoundedVec<(AccountId32, u32), ConstU32<12500>>,
 }
 

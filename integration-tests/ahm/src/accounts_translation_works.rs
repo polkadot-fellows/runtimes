@@ -29,7 +29,7 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
 pub struct AccountTranslationWorks;
 
-#[cfg(not(feature = "kusama"))]
+#[cfg(not(feature = "kusama-ahm"))]
 pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 	// para 2034: 5Ec4AhPbkXX97KXMcf9v9SkRNG4Gyc3VhcMMuQe9QXfAHnrC ->
 	// 5Eg2fntQqFi3EvFWAf71G66Ecjjah26bmFzoANAeHFgj9Lia
@@ -39,7 +39,7 @@ pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 	),
 ];
 
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[];
 
 impl RcMigrationCheck for AccountTranslationWorks {

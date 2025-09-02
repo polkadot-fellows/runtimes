@@ -34,8 +34,6 @@
 
 use crate::porting_prelude::*;
 
-#[cfg(not(feature = "paseo"))]
-use super::proxy::ProxyWhaleWatching;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
@@ -43,7 +41,7 @@ use super::{
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::ProxyBasicWorks,
+	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -106,15 +104,15 @@ type RcChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 
 	// TODO: does not work for Kusama; calls are filtered for some reason
-	// ProxyBasicWorks,
+	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
 	EntireStateDecodes,
 );
 
-// Checks that are specific to Polkadot, and not available on other chains (like Paseo)
-#[cfg(feature = "polkadot")]
+// Checks that are specific to Polkadot, and not available on other chains
+#[cfg(feature = "polkadot-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -127,19 +125,8 @@ pub type RcRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
-// Checks that are specific to Paseo.
-#[cfg(feature = "paseo")]
-pub type RcRuntimeSpecificChecks = (
-	MultisigsAccountIdStaysTheSame,
-	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
-	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
-	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
-	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
-	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
-);
-
 // Checks that are specific to Kusama.
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -173,14 +160,14 @@ type AhChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 
 	// TODO: does not work for Kusama; calls are filtered for some reason
-	// ProxyBasicWorks,
+	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
 	EntireStateDecodes,
 );
 
-#[cfg(feature = "polkadot")]
+#[cfg(feature = "polkadot-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -193,17 +180,7 @@ pub type AhRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
-#[cfg(feature = "paseo")]
-pub type AhRuntimeSpecificChecks = (
-	MultisigsAccountIdStaysTheSame,
-	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
-	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
-	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
-	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
-	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
-);
-
-#[cfg(feature = "kusama")]
+#[cfg(feature = "kusama-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -265,6 +242,7 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 	}
 }
 
+#[cfg(feature = "polkadot-ahm")] // TODO @ggwpez
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
@@ -774,7 +752,7 @@ async fn scheduled_migration_works() {
 		warm_up_end = start + 3;
 
 		// Fellowship Origin
-		#[cfg(not(feature = "kusama"))]
+		#[cfg(not(feature = "kusama-ahm"))]
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
 			0,
 			[
@@ -782,7 +760,7 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
-		#[cfg(feature = "kusama")]
+		#[cfg(feature = "kusama-ahm")]
 		let origin = polkadot_runtime::governance::Origin::Fellows;
 
 		assert_ok!(RcMigrator::schedule_migration(

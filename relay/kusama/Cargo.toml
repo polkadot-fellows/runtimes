@@ -127,9 +127,9 @@ ss58-registry = { workspace = true }
 substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
-default = ["kusama", "std"]
+default = ["std"]
 no_std = []
-kusama = ["pallet-rc-migrator/kusama"]
+kusama-ahm = ["pallet-rc-migrator/kusama-ahm"]
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -184,6 +184,8 @@ std = [
 	"pallet-session-benchmarking?/std",
 	"pallet-session/std",
 	"pallet-society/std",
+	"pallet-staking-async-ah-client/std",
+	"pallet-staking-async-rc-client/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-timestamp/std",
@@ -265,6 +267,8 @@ runtime-benchmarks = [
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
+	"pallet-staking-async-ah-client/runtime-benchmarks",
+	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
