@@ -34,8 +34,6 @@
 
 use crate::porting_prelude::*;
 
-#[cfg(not(feature = "paseo"))]
-use super::proxy::ProxyWhaleWatching;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
@@ -43,11 +41,13 @@ use super::{
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::ProxyBasicWorks,
+	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
+use cumulus_primitives_core::{
+	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
+};
 use frame_support::{
 	hypothetically, hypothetically_ok,
 	traits::{
@@ -73,7 +73,7 @@ use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::slots as pallet_slots;
 use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
-use sp_core::{crypto::Ss58Codec, ByteArray};
+use sp_core::{crypto::Ss58Codec, ByteArray, Get};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
 use std::{
@@ -102,6 +102,8 @@ type RcChecks = (
 	BalancesCrossChecker,
 	RcRuntimeSpecificChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
+
+	// TODO: does not work for Kusama; calls are filtered for some reason
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
@@ -109,8 +111,8 @@ type RcChecks = (
 	EntireStateDecodes,
 );
 
-// Checks that are specific to Polkadot, and not available on other chains (like Paseo)
-#[cfg(not(feature = "paseo"))]
+// Checks that are specific to Polkadot, and not available on other chains
+#[cfg(feature = "polkadot-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -123,8 +125,8 @@ pub type RcRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
-// Checks that are specific to Paseo.
-#[cfg(feature = "paseo")]
+// Checks that are specific to Kusama.
+#[cfg(feature = "kusama-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -156,6 +158,8 @@ type AhChecks = (
 	BalancesCrossChecker,
 	AhRuntimeSpecificChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
+
+	// TODO: does not work for Kusama; calls are filtered for some reason
 	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
@@ -163,7 +167,7 @@ type AhChecks = (
 	EntireStateDecodes,
 );
 
-#[cfg(not(feature = "paseo"))]
+#[cfg(feature = "polkadot-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -176,7 +180,7 @@ pub type AhRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
-#[cfg(feature = "paseo")]
+#[cfg(feature = "kusama-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -238,6 +242,7 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 	}
 }
 
+#[cfg(feature = "polkadot-ahm")] // TODO @ggwpez
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
@@ -747,6 +752,7 @@ async fn scheduled_migration_works() {
 		warm_up_end = start + 3;
 
 		// Fellowship Origin
+		#[cfg(not(feature = "kusama-ahm"))]
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
 			0,
 			[
@@ -754,6 +760,9 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
+		#[cfg(feature = "kusama-ahm")]
+		let origin = polkadot_runtime::governance::Origin::Fellows;
+
 		assert_ok!(RcMigrator::schedule_migration(
 			origin.into(),
 			DispatchTime::At(start),
@@ -1088,6 +1097,9 @@ fn test_control_flow() {
 				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
 			})
 			.dispatch(AhRuntimeOrigin::root());
+
+		asset_hub_polkadot_runtime::ParachainSystem::ensure_successful_delivery();
+
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 

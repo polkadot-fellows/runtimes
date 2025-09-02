@@ -276,10 +276,10 @@ ss58-registry = { version = "1.47.0" }
 resolver = "2"
 
 members = [
-	"pallets/ah-migrator",
-	"pallets/rc-migrator",
-	"pallets/ah-ops",
 	"integration-tests/ahm",
+	"pallets/ah-migrator",
+	"pallets/ah-ops",
+	"pallets/rc-migrator",
 
 	"chain-spec-generator",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
