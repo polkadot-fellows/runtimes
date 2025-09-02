@@ -65,4 +65,19 @@ pub mod porting_prelude {
 
 	#[cfg(feature = "polkadot-ahm")]
 	pub use polkadot_runtime_constants::proxy as rc_proxy_definition;
+
+	// Convenience aliases:
+	#[cfg(feature = "kusama-ahm")]
+	pub use asset_hub_kusama_runtime::{
+		Runtime as AhRuntime, RuntimeCall as AhRuntimeCall, RuntimeEvent as AhRuntimeEvent,
+		RuntimeOrigin as AhRuntimeOrigin,
+	};
+	#[cfg(feature = "kusama-ahm")]
+	pub use kusama_runtime::{
+		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeEvent as RcRuntimeEvent,
+		RuntimeOrigin as RcRuntimeOrigin,
+	};
+
+	#[cfg(feature = "kusama-ahm")]
+	pub use kusama_runtime_constants::proxy as rc_proxy_definition;
 }

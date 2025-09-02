@@ -104,7 +104,7 @@ type RcChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 
 	// TODO: does not work for Kusama; calls are filtered for some reason
-	// ProxyBasicWorks,
+	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,
@@ -160,7 +160,7 @@ type AhChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 
 	// TODO: does not work for Kusama; calls are filtered for some reason
-	// ProxyBasicWorks,
+	ProxyBasicWorks,
 	MultisigStillWork,
 	AccountTranslationWorks,
 	PalletsTryStateCheck,

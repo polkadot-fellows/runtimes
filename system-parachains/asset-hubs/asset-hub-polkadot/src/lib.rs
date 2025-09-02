@@ -571,7 +571,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Session(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_)
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Staking(_) |
+					// TODO @ggwpez add more
+					RuntimeCall::Staking(_) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::ChildBounties(..)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,

@@ -103,7 +103,7 @@ impl RcMigrationCheck for ProxyBasicWorks {
 
 impl AhMigrationCheck for ProxyBasicWorks {
 	type RcPrePayload = PureProxies;
-	type AhPrePayload = ();
+	type AhPrePayload = PureProxies;
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Not empty in this case
@@ -111,10 +111,51 @@ impl AhMigrationCheck for ProxyBasicWorks {
 			pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_some(),
 			"Assert storage 'Proxy::Proxies::ah_pre::empty'"
 		);
+
+		let mut pre_payload = BTreeMap::new();
+
+		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<AssetHubRuntime>::iter() {
+			for proxy in proxies.into_iter() {
+				let inner = proxy.proxy_type;
+
+				let permission = match Permission::try_convert(inner) {
+					Ok(permission) => permission,
+					Err(e) => {
+						defensive!("Proxy could not be converted: {:?}", e);
+						continue;
+					},
+				};
+				pre_payload
+					.entry((proxy.delegate, delegator.clone()))
+					.or_insert_with(Vec::new)
+					.push(permission);
+			}
+		}
+
+		pre_payload
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		for ((delegatee, delegator), permissions) in rc_pre_payload.iter() {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+		let mut pre_and_post = rc_pre_payload;
+		for ((delegatee, delegator), permissions) in ah_pre_payload.iter() {
+			pre_and_post
+				.entry((delegatee.clone(), delegator.clone()))
+				.or_insert_with(Vec::new)
+				.extend(permissions.clone());
+		}
+
+		for ((delegatee, delegator), permissions) in pre_and_post.iter() {
+			println!(
+				"Pre and post: {:?} -> {:?} ({:?})",
+				delegatee.to_polkadot_ss58(),
+				delegator.to_polkadot_ss58(),
+				permissions
+			);
+			// 19rH7Zv1zQFFkxyxUhce27yrxMxHWF89MoqCoSJKnPKRFZG
+			// 121Rs6fKm8nguHnvPfG1Cq3ctFuNAVZGRmghwkJwHpKxKjbx
+		}
+
+		for ((delegatee, delegator), permissions) in pre_and_post.iter() {
 			// Assert storage "Proxy::Proxies::ah_post::correct"
 			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(delegator);
 			if entry.is_empty() {
@@ -170,9 +211,15 @@ impl ProxyBasicWorks {
 
 		let allowed_transfer = permissions.contains(&Permission::Any);
 		if allowed_transfer {
-			assert!(Self::can_transfer(delegatee, delegator, true), "`Any` can transfer");
+			assert!(
+				Self::can_transfer(delegatee, delegator, permissions, true),
+				"`Any` can transfer"
+			);
 		} else {
-			assert!(!Self::can_transfer(delegatee, delegator, false), "Only `Any` can transfer");
+			assert!(
+				!Self::can_transfer(delegatee, delegator, permissions, false),
+				"Only `Any` can transfer"
+			);
 		}
 
 		let allowed_governance = permissions.contains(&Permission::Any) ||
@@ -180,12 +227,12 @@ impl ProxyBasicWorks {
 			permissions.contains(&Permission::Governance);
 		if allowed_governance {
 			assert!(
-				Self::can_governance(delegatee, delegator, true),
+				Self::can_governance(delegatee, delegator, permissions, true),
 				"`Any`, `NonTransfer`, or `Governance` can do governance"
 			);
 		} else {
 			assert!(
-				!Self::can_governance(delegatee, delegator, false),
+				!Self::can_governance(delegatee, delegator, permissions, false),
 				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {permissions:?}"
 			);
 		}
@@ -194,21 +241,54 @@ impl ProxyBasicWorks {
 			permissions.contains(&Permission::NonTransfer) ||
 			permissions.contains(&Permission::Staking);
 		if allowed_staking {
-			assert!(Self::can_stake(delegatee, delegator), "`Any` or `Staking` can stake");
+			assert!(
+				Self::can_stake(delegatee, delegator, permissions, true),
+				"`Any` or `Staking` can stake"
+			);
 		} else {
-			assert!(!Self::can_stake(delegatee, delegator), "Only `Any` or `Staking` can stake");
+			assert!(
+				!Self::can_stake(delegatee, delegator, permissions, false),
+				"Only `Any` or `Staking` can stake"
+			);
 		}
 
 		// Alice cannot transfer
-		assert!(!Self::can_transfer(&alice, delegator, false), "Alice cannot transfer");
+		assert!(!Self::can_transfer_impl(&alice, delegator, None, false), "Alice cannot transfer");
 		// Alice cannot do governance
-		assert!(!Self::can_governance(&alice, delegator, false), "Alice cannot do governance");
+		assert!(
+			!Self::can_governance_impl(&alice, delegator, None, false),
+			"Alice cannot do governance"
+		);
 		// Alice cannot stake
-		assert!(!Self::can_stake(&alice, delegator), "Alice cannot stake");
+		assert!(!Self::can_stake_impl(&alice, delegator, None, false), "Alice cannot stake");
 	}
 
 	/// Check that the `delegatee` can transfer balances on behalf of the `delegator`.
-	fn can_transfer(delegatee: &AccountId32, delegator: &AccountId32, hint: bool) -> bool {
+	fn can_transfer(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		permissions: &Vec<Permission>,
+		hint: bool,
+	) -> bool {
+		let mut force_types = permissions
+			.iter()
+			.map(|p| Permission::try_convert(p.clone()).ok())
+			.collect::<Vec<_>>();
+		// Also always check without a force type
+		force_types.push(None);
+
+		force_types
+			.into_iter()
+			.map(|p| Self::can_transfer_impl(delegatee, delegator, p, hint))
+			.any(|r| r)
+	}
+
+	fn can_transfer_impl(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		force_proxy_type: Option<asset_hub_polkadot_runtime::ProxyType>,
+		hint: bool,
+	) -> bool {
 		frame_support::hypothetically!({
 			let ed = Self::fund_accounts(delegatee, delegator);
 
@@ -221,7 +301,7 @@ impl ProxyBasicWorks {
 
 			let proxy_call: asset_hub_polkadot_runtime::RuntimeCall = pallet_proxy::Call::proxy {
 				real: delegator.clone().into(),
-				force_proxy_type: None,
+				force_proxy_type,
 				call: Box::new(transfer),
 			}
 			.into();
@@ -245,7 +325,31 @@ impl ProxyBasicWorks {
 	/// Check that the `delegatee` can do governance on behalf of the `delegator`.
 	///
 	/// Currently only checks the `bounties::propose_bounty` call.
-	fn can_governance(delegatee: &AccountId32, delegator: &AccountId32, hint: bool) -> bool {
+	fn can_governance(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		permissions: &Vec<Permission>,
+		hint: bool,
+	) -> bool {
+		let mut force_types = permissions
+			.iter()
+			.map(|p| Permission::try_convert(p.clone()).ok())
+			.collect::<Vec<_>>();
+		// Also always check without a force type
+		force_types.push(None);
+
+		force_types
+			.into_iter()
+			.map(|p| Self::can_governance_impl(delegatee, delegator, p, hint))
+			.any(|r| r)
+	}
+
+	fn can_governance_impl(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		force_proxy_type: Option<asset_hub_polkadot_runtime::ProxyType>,
+		hint: bool,
+	) -> bool {
 		frame_support::hypothetically!({
 			Self::fund_accounts(delegatee, delegator);
 
@@ -264,7 +368,7 @@ impl ProxyBasicWorks {
 
 			let proxy_call: asset_hub_polkadot_runtime::RuntimeCall = pallet_proxy::Call::proxy {
 				real: delegator.clone().into(),
-				force_proxy_type: None,
+				force_proxy_type,
 				call: Box::new(call),
 			}
 			.into();
@@ -289,7 +393,31 @@ impl ProxyBasicWorks {
 	/// Check that the `delegatee` can do staking on behalf of the `delegator`.
 	///
 	/// Uses the `bond` call
-	fn can_stake(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
+	fn can_stake(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		permissions: &Vec<Permission>,
+		hint: bool,
+	) -> bool {
+		let mut force_types = permissions
+			.iter()
+			.map(|p| Permission::try_convert(p.clone()).ok())
+			.collect::<Vec<_>>();
+		// Also always check without a force type
+		force_types.push(None);
+
+		force_types
+			.into_iter()
+			.map(|p| Self::can_stake_impl(delegatee, delegator, p, hint))
+			.any(|r| r)
+	}
+
+	fn can_stake_impl(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		force_proxy_type: Option<asset_hub_polkadot_runtime::ProxyType>,
+		hint: bool,
+	) -> bool {
 		frame_support::hypothetically!({
 			// Migration should have finished
 			assert!(
@@ -299,29 +427,26 @@ impl ProxyBasicWorks {
 			);
 			Self::fund_accounts(delegatee, delegator);
 
+			let hint = if hint { " (it should)" } else { " (it should not)" };
+			log::debug!(
+				"Checking whether {:?} can stake on behalf of {:?}{}",
+				delegatee.to_polkadot_ss58(),
+				delegator.to_polkadot_ss58(),
+				hint
+			);
+
 			let call: asset_hub_polkadot_runtime::RuntimeCall =
 				pallet_staking_async::Call::set_payee { payee: RewardDestination::Staked }.into();
 
-			// The proxy pallet is stupid and does not work when there are multiple delegations for
-			// the same account. So we need to force and try which it is...
-			frame_system::Pallet::<AssetHubRuntime>::reset_events();
-			for force_proxy_type in [
-				None,
-				Some(asset_hub_polkadot_runtime::ProxyType::Staking),
-				Some(asset_hub_polkadot_runtime::ProxyType::Any),
-				Some(asset_hub_polkadot_runtime::ProxyType::NonTransfer),
-			] {
-				let proxy_call: asset_hub_polkadot_runtime::RuntimeCall =
-					pallet_proxy::Call::proxy {
-						real: delegator.clone().into(),
-						force_proxy_type,
-						call: Box::new(call.clone()),
-					}
-					.into();
-
-				let _ = proxy_call
-					.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
+			let proxy_call: asset_hub_polkadot_runtime::RuntimeCall = pallet_proxy::Call::proxy {
+				real: delegator.clone().into(),
+				force_proxy_type,
+				call: Box::new(call.clone()),
 			}
+			.into();
+
+			let _ = proxy_call
+				.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
 
 			Self::find_proxy_executed_event()
 		})
