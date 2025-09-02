@@ -1072,7 +1072,7 @@ mod inflation_tests {
 		);
 	}
 
-	const TWO_YEAR_STEP_RATE: f64 = 0.2614;
+	const TWO_YEAR_STEP_RATE: f64 = 0.2628;
 	// const TARGET_TI = 21_000_000_000_000_000_000u64;
 	// const MARCH_TI = 16_765_627_370_000_000_000u64;
 	const TARGET_TI: u128 = 2_100_000_000;
@@ -1111,20 +1111,20 @@ mod inflation_tests {
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
 				(assumed_payout * UNITS) as f64,
-				max_relative = 0.001
+				max_relative = 0.00001
 			);
 		});
 	}
 
-	// The amount paid over the stepped period is correct.
+	// The emission values for the two year periods are as expected.
 	#[test]
-	fn stepped_inflation_era_paid_correct() {
+	fn stepped_inflation_two_year_values_correct() {
 
 	}
 
-	// The emission values for era are as expected.
+	// The emission is eventually zero.
 	#[test]
-	fn stepped_inflation_two_year_values_correct() {
+	fn emission_eventually_zero() {
 
 	}
 
