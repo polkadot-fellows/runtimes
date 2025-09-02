@@ -242,6 +242,7 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 	}
 }
 
+#[cfg(feature = "polkadot-ahm")] // TODO @ggwpez
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();

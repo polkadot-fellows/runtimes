@@ -145,17 +145,6 @@ impl AhMigrationCheck for ProxyBasicWorks {
 		}
 
 		for ((delegatee, delegator), permissions) in pre_and_post.iter() {
-			println!(
-				"Pre and post: {:?} -> {:?} ({:?})",
-				delegatee.to_polkadot_ss58(),
-				delegator.to_polkadot_ss58(),
-				permissions
-			);
-			// 19rH7Zv1zQFFkxyxUhce27yrxMxHWF89MoqCoSJKnPKRFZG
-			// 121Rs6fKm8nguHnvPfG1Cq3ctFuNAVZGRmghwkJwHpKxKjbx
-		}
-
-		for ((delegatee, delegator), permissions) in pre_and_post.iter() {
 			// Assert storage "Proxy::Proxies::ah_post::correct"
 			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(delegator);
 			if entry.is_empty() {
