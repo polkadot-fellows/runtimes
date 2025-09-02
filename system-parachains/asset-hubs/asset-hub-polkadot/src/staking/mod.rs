@@ -421,6 +421,8 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
 		} else {
 			// Extrapolated total issuance at time of first stepping. Based on a per era emission of ~328_774.593.
+			// Note: This deviates a bit from [Ref 1710's](https://polkadot.subsquare.io/referenda/1710) initial
+			// extrapolation of 1_676_733_867.
 			let march_14_2026_ti = 1_676_562_737u128 * UNITS;
 			let target_ti = 2_100_000_000u128 * UNITS;
 			let two_year_rate = Perbill::from_float(0.2628);
