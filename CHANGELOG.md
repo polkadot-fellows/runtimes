@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Adjust OpenGov parameters based on WFC 1701 ([polkadot-fellows/runtimes/pull/873](https://github.com/polkadot-fellows/runtimes/pull/873))
+
 ## [1.7.1] 28.08.2025
 
 ### Fixed
