@@ -38,7 +38,7 @@ impl ToPolkadotSs58 for AccountId32 {
 }
 
 pub trait TranslateAccounts {
-	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self;
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self;
 }
 
 /// Convert a type into its portable format.
@@ -161,6 +161,9 @@ pub enum AhMigratorCall<T: Config> {
 	#[cfg(feature = "kusama")]
 	#[codec(index = 26)]
 	ReceiveRecoveryMessages { messages: Vec<recovery::PortableRecoveryMessage> },
+	#[cfg(feature = "kusama")]
+	#[codec(index = 27)]
+	ReceiveSocietyMessages { messages: Vec<society::PortableSocietyMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]

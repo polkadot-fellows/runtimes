@@ -43,6 +43,7 @@ pallet-recovery = { workspace = true, optional = true }
 pallet-nis = { workspace = true, optional = true }
 pallet-staking-async-ah-client = { workspace = true }
 pallet-session = { workspace = true }
+pallet-society = { workspace = true, optional = true }
 pallet-nomination-pools = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-xcm = { workspace = true }
@@ -59,7 +60,7 @@ frame-election-provider-support = { workspace = true }
 [features]
 default = ["std"]
 
-kusama = ["pallet-nis", "pallet-recovery"]
+kusama = ["pallet-nis", "pallet-recovery", "pallet-society"]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
@@ -86,6 +87,7 @@ std = [
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
+	"pallet-society?/std",
 	"pallet-staking-async-ah-client/std",
 	"pallet-staking-async/std",
 	"pallet-staking/std",
@@ -132,6 +134,7 @@ runtime-benchmarks = [
 	"pallet-recovery?/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-society?/runtime-benchmarks",
 	"pallet-staking-async-ah-client/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
@@ -171,6 +174,7 @@ try-runtime = [
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
+	"pallet-society?/try-runtime",
 	"pallet-staking-async-ah-client/try-runtime",
 	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",

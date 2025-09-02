@@ -54,6 +54,8 @@ pub mod conviction_voting;
 #[cfg(feature = "kusama")]
 pub mod recovery;
 pub mod scheduler;
+#[cfg(feature = "kusama")]
+pub mod society;
 pub mod treasury;
 pub mod xcm_config;
 
@@ -355,6 +357,15 @@ pub enum MigrationStage<
 	#[cfg(feature = "kusama")]
 	RecoveryMigrationDone,
 
+	#[cfg(feature = "kusama")]
+	SocietyMigrationInit,
+	#[cfg(feature = "kusama")]
+	SocietyMigrationOngoing {
+		last_key: Option<society::SocietyStage>,
+	},
+	#[cfg(feature = "kusama")]
+	SocietyMigrationDone,
+
 	StakingMigrationInit,
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
@@ -494,7 +505,15 @@ pub mod pallet {
 				Currency = pallet_balances::Pallet<Self>,
 				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
 				MaxFriends = ConstU32<{ recovery::MAX_FRIENDS }>,
-			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+			> + frame_system::Config<
+				AccountData = AccountData<u128>,
+				AccountId = AccountId32,
+				Hash = sp_core::H256,
+			> + pallet_society::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxPayouts = ConstU32<{ society::MAX_PAYOUTS }>,
+			>;
 
 		/// Block number provider of the recovery pallet.
 		#[cfg(feature = "kusama")]
@@ -1969,6 +1988,41 @@ pub mod pallet {
 				},
 				#[cfg(feature = "kusama")]
 				MigrationStage::RecoveryMigrationDone => {
+					Self::transition(MigrationStage::SocietyMigrationInit);
+				},
+				#[cfg(feature = "kusama")]
+				MigrationStage::SocietyMigrationInit => {
+					Self::transition(MigrationStage::SocietyMigrationOngoing { last_key: None });
+				},
+				#[cfg(feature = "kusama")]
+				MigrationStage::SocietyMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match society::SocietyMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SocietyMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SocietyMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating society: {:?}", err);
+						},
+					}
+				},
+				#[cfg(feature = "kusama")]
+				MigrationStage::SocietyMigrationDone => {
 					Self::transition(MigrationStage::StakingMigrationInit);
 				},
 				MigrationStage::StakingMigrationInit => {

@@ -50,6 +50,8 @@ pub mod proxy;
 pub mod recovery;
 pub mod referenda;
 pub mod scheduler;
+#[cfg(feature = "kusama")]
+pub mod society;
 pub mod sovereign_account_translation;
 pub mod staking;
 pub mod treasury;
@@ -85,9 +87,14 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 #[cfg(feature = "kusama")]
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
 use pallet_rc_migrator::{
-	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
-	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
-	treasury::PortableTreasuryMessage, types::MigrationStatus,
+	bounties::RcBountiesMessageOf,
+	child_bounties::PortableChildBountiesMessage,
+	claims::RcClaimsMessageOf,
+	crowdloan::RcCrowdloanMessageOf,
+	society::{PortableSocietyMessage, MAX_PAYOUTS},
+	staking::PortableStakingMessage,
+	treasury::PortableTreasuryMessage,
+	types::MigrationStatus,
 };
 use parachains_common::pay::VersionedLocatableAccount;
 
@@ -170,6 +177,7 @@ pub enum PalletEventName {
 	Staking,
 	Treasury,
 	Vesting,
+	Society,
 }
 
 /// The migration stage on the Asset Hub.
@@ -309,7 +317,15 @@ pub mod pallet {
 				Currency = pallet_balances::Pallet<Self>,
 				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
 				MaxFriends = ConstU32<{ MAX_FRIENDS }>,
-			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+			> + frame_system::Config<
+				AccountData = AccountData<u128>,
+				AccountId = AccountId32,
+				Hash = sp_core::H256,
+			> + pallet_society::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxPayouts = ConstU32<{ MAX_PAYOUTS }>,
+			>;
 
 		#[cfg(feature = "kusama")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
@@ -969,6 +985,18 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_recovery_messages(messages).map_err(Into::into)
+		}
+
+		#[cfg(feature = "kusama")]
+		#[pallet::call_index(27)]
+		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @muharem weight
+		pub fn receive_society_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableSocietyMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_society_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.
