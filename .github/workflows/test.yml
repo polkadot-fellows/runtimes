@@ -185,9 +185,25 @@ jobs:
           shared-key: "fellowship-cache-integration-tests-ahm"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Download Polkadot snaps
+      - name: Download Kusama snaps
         run: |
           python3 -m pip install gdown
+          gdown 12ndV-id_Z6ZTYx46ULI79XjGVDLiT1pH # 2025-09-02
+          gdown 1ZUMCnf1crYxjLT6WiWAKRas-hQWtLVNE # 2025-09-02
+
+          lz4 -d kusama.snap.lz4 kusama.snap
+          lz4 -d ah-kusama.snap.lz4 ah-kusama.snap
+
+      - name: Test Asset Hub Migration (Kusama)
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features kusama-ahm --features try-runtime -- --nocapture --test-threads 1
+        env:
+          RUST_BACKTRACE: 1
+          SNAP_RC: "../../kusama.snap"
+          SNAP_AH: "../../ah-kusama.snap"
+          RUST_LOG: "warn"
+
+      - name: Download Polkadot snaps
+        run: |
           gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR # 2025-07-28
           gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z # 2025-07-28
 
