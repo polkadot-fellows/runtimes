@@ -1973,8 +1973,25 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 pub mod migrations {
 	use super::*;
 
+	/// Update `hrmp_channel_max_capacity` for the active `HostConfiguration`.
+	///
+	/// This value is used by default when opening a new HRMP channel.
+	/// The channels that are already opened won't be affected.
+	pub struct UpdateDefaultHrmpChannelMaxCapacity;
+	impl frame_support::traits::OnRuntimeUpgrade for UpdateDefaultHrmpChannelMaxCapacity {
+		fn on_runtime_upgrade() -> Weight {
+			use runtime_parachains::configuration::WeightInfo;
+
+			let _ = Configuration::set_hrmp_channel_max_capacity(
+				RawOrigin::Root.into(),
+				25,
+			);
+			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_config_with_u32()
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = UpdateDefaultHrmpChannelMaxCapacity;
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
