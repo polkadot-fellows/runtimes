@@ -31,6 +31,8 @@ pub mod multisig_still_work;
 pub mod multisig_test;
 pub mod proxy;
 pub mod queues_priority;
+#[cfg(feature = "kusama-ahm")]
+pub mod recovery_test;
 pub mod tests;
 pub mod xcm_route;
 

@@ -11013,6 +11013,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-recovery",
  "pallet-referenda",
  "pallet-staking-async",
  "pallet-timestamp",
