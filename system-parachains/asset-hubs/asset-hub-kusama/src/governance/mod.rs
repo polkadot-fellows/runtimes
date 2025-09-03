@@ -17,6 +17,7 @@
 //! Governance configurations for the Asset Hub runtime.
 
 use super::*;
+use crate::xcm_config::FellowshipLocation;
 use frame_support::{
 	parameter_types,
 	traits::{EitherOf, EitherOfDiverse},

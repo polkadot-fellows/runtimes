@@ -92,7 +92,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		Verify,
+		IdentityLookup, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
