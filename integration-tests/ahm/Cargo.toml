@@ -72,6 +72,8 @@ polkadot-ahm = [
 	"polkadot-runtime",
 	"polkadot-runtime-constants",
 	"polkadot-runtime?/polkadot-ahm",
+	"pallet-ah-migrator/polkadot-ahm",
+	"pallet-rc-migrator/polkadot-ahm"
 ]
 kusama-ahm = [
 	"asset-hub-kusama-runtime/kusama-ahm",

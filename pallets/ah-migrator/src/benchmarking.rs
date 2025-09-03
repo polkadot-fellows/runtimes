@@ -935,49 +935,39 @@ pub mod benchmarks {
 		);
 	}
 
-	#[benchmark]
+	/*#[benchmark]
 	fn receive_recovery_messages(n: Linear<1, 255>) {
-		#[cfg(feature = "kusama-ahm")]
-		{
-			use pallet_rc_migrator::types::{PortableActiveRecovery, PortableRecoveryMessage};
+		use pallet_rc_migrator::recovery::{
+			PortableActiveRecovery, PortableRecoveryFriends, PortableRecoveryMessage, MAX_FRIENDS,
+		};
 
-			let create_recovery = |n: u32| -> PortableRecoveryMessage {
-				let friends = vec![
-					[n as u8; 32].into();
-					pallet_rc_migrator::recovery::MAX_FRIENDS::get() as usize
-				];
-				let cfg = PortableActiveRecovery {
-					created: n,
-					deposit: n,
-					friends: friends.try_into().unwrap(),
-				};
-				PortableRecoveryMessage::ActiveRecoveries((
-					[n as u8; 32].into(),
-					[n as u8; 32].into(),
-					cfg,
-				));
+		let create_recovery = |n: u32| -> PortableRecoveryMessage {
+			let friends: Vec<AccountId32> = vec![[n as u8; 32].into(); MAX_FRIENDS as usize];
+			let cfg = PortableActiveRecovery {
+				created: n,
+				deposit: n as u128,
+				friends: PortableRecoveryFriends { friends: friends.try_into().unwrap() },
 			};
-			let messages = (0..n).map(create_recovery).collect::<Vec<_>>();
+			PortableRecoveryMessage::ActiveRecoveries((
+				[n as u8; 32].into(),
+				[n as u8; 32].into(),
+				cfg,
+			))
+		};
+		let messages = (0..n).map(create_recovery).collect::<Vec<_>>();
 
-			#[extrinsic_call]
-			_(RawOrigin::Root, messages);
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
 
-			assert_last_event::<T>(
-				Event::BatchProcessed {
-					pallet: PalletEventName::Recovery,
-					count_good: n,
-					count_bad: 0,
-				}
-				.into(),
-			);
-		}
-
-		#[cfg(not(feature = "kusama-ahm"))]
-		{
-			#[block]
-			{}
-		}
-	}
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Recovery,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}*/
 
 	#[benchmark]
 	fn force_set_stage() {
@@ -1273,6 +1263,15 @@ pub mod benchmarks {
 	{
 		_receive_delegated_staking_messages::<T>(n, true)
 	}
+
+	/*#[cfg(all(feature = "std", feature = "kusama-ahm"))]
+	pub fn test_receive_recovery_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_recovery_messages::<T>(n, true)
+	}*/
 
 	#[cfg(feature = "std")]
 	pub fn test_force_set_stage<T>()

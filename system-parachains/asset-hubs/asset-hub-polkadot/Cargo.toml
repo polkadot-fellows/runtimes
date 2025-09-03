@@ -142,7 +142,10 @@ substrate-wasm-builder = { optional = true, workspace = true }
 [features]
 default = ["std"]
 
-polkadot-ahm = []
+polkadot-ahm = [
+	"pallet-ah-migrator/polkadot-ahm",
+	"pallet-rc-migrator/polkadot-ahm"
+]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",

@@ -70,6 +70,9 @@ kusama-ahm = [
 	"pallet-rc-migrator/kusama-ahm",
 	"pallet-recovery",
 ]
+polkadot-ahm = [
+	"pallet-rc-migrator/polkadot-ahm"
+]
 
 std = [
 	"assets-common/std",
