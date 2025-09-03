@@ -1348,11 +1348,19 @@ impl pallet_society::Config for Runtime {
 	>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = ConstU32<{ 5 * RC_DAYS }>; // TODO @muharem
+	type VotingPeriod = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		ConstU32<{ u32::MAX - 2 * RC_DAYS }>, // disable rotation `on_initialize` during migration
+		ConstU32<{ 5 * RC_DAYS }>,
+	>;
 	type ClaimPeriod = ConstU32<{ 2 * RC_DAYS }>;
 	type MaxLockDuration = ConstU32<{ 36 * 30 * RC_DAYS }>;
 	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = ConstU32<{ 7 * RC_DAYS }>; // TODO @muharem
+	type ChallengePeriod = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		ConstU32<{ u32::MAX }>, // disable challenge rotation `on_initialize` during migration
+		ConstU32<{ 7 * RC_DAYS }>,
+	>;
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;
