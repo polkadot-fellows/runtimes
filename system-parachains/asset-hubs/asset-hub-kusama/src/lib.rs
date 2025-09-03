@@ -1342,7 +1342,10 @@ impl Randomness<Hash, BlockNumber> for MockRandomness {
 impl pallet_society::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type Randomness = MockRandomness;
+	type Randomness = system_parachains_common::randomness::RelayChainOneEpochAgoWithoutBlockNumber<
+		Runtime,
+		cumulus_primitives_core::relay_chain::BlockNumber,
+	>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
 	type VotingPeriod = ConstU32<{ 5 * RC_DAYS }>; // TODO @muharem

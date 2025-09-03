@@ -973,6 +973,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -16267,6 +16268,27 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-support",
+ "log",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "scale-info",
+ "sp-api",
+ "sp-core 38.0.0",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-std",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
