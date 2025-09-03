@@ -1364,7 +1364,7 @@ impl pallet_society::Config for Runtime {
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;
-	type WeightInfo = (); // TODO weights
+	type WeightInfo = weights::pallet_society::WeightInfo<Runtime>;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
@@ -1643,6 +1643,7 @@ mod benches {
 		[pallet_recovery, Recovery]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
+		[pallet_society, Society]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		// Bridges
