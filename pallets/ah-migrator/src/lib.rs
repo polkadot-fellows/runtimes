@@ -963,7 +963,7 @@ pub mod pallet {
 
 		#[cfg(feature = "kusama-ahm")]
 		#[pallet::call_index(26)]
-		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @ggwpez weight
+		#[pallet::weight(T::AhWeightInfo::receive_recovery_messages(messages.len() as u32))]
 		pub fn receive_recovery_messages(
 			origin: OriginFor<T>,
 			messages: Vec<PortableRecoveryMessage>,
