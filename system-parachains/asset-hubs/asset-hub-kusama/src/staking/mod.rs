@@ -242,16 +242,21 @@ parameter_types! {
 /// ## Example
 /// ```
 /// fn main() {
-/// 	// Base deposit
 /// 	use asset_hub_kusama_runtime::staking::GeometricDeposit;
+/// 	use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
+/// 	use kusama_runtime_constants::currency::UNITS;
+///
+/// 	// Base deposit
 /// 	assert_eq!(GeometricDeposit::calculate_base_deposit(0), UNITS / 10); // 0.1 KSM
 /// 	assert_eq!(GeometricDeposit::calculate_base_deposit(1), 4 * UNITS / 10); // 0.4 KSM
 /// 	assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS / 10); // 1.6 KSM
 /// 	// and so on
 ///
-/// 	// Full 16 page deposit
-/// 	let deposit = asset_hub_kusama_runtime::staking::DepositPerPage::get() * 16;
-/// 	assert_eq!(deposit, 0);
+/// 	// Full 16 page deposit, to be paid on top of the above base
+/// 	sp_io::TestExternalities::default().execute_with(|| {
+/// 		let deposit = asset_hub_kusama_runtime::staking::DepositPerPage::get() * 16;
+/// 		assert_eq!(deposit, 515_519_591_040); // 0.5 KSM
+/// 	})
 /// }
 /// ```
 pub struct GeometricDeposit;
@@ -586,9 +591,11 @@ mod tests {
 
 	mod message_queues {
 		use super::*;
+		// TODO: @kianenigma
 	}
 
 	mod weights {
 		use super::*;
+		// TODO: @kianenigma
 	}
 }
