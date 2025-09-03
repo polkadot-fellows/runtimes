@@ -65,7 +65,11 @@ on-chain-release-build = [
 ]
 
 polkadot = ["polkadot-runtime"]
-kusama = ["kusama-runtime"]
+kusama = [
+	"asset-hub-kusama-runtime",
+	"kusama-runtime",
+	"kusama-runtime",
+]
 asset-hub-polkadot = ["asset-hub-polkadot-runtime"]
 asset-hub-kusama = ["asset-hub-kusama-runtime"]
 collectives-polkadot = ["collectives-polkadot-runtime"]

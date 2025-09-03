@@ -16,6 +16,8 @@
 
 //! Asset Hub Migration tests.
 
+use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{BuildStorage, Runtime as T, RuntimeCall, RuntimeOrigin};
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};

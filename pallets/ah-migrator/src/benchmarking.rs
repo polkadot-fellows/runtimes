@@ -935,6 +935,41 @@ pub mod benchmarks {
 		);
 	}
 
+		#[benchmark]
+	fn receive_recovery_messages(n: Linear<1, 255>) {
+		#[cfg(feature = "kusama-ahm")]
+		{
+		use pallet_rc_migrator::types::{PortableRecoveryMessage, PortableActiveRecovery};
+
+		let create_recovery = |n: u32| -> PortableRecoveryMessage {
+			let friends = vec![[n as u8; 32].into(); pallet_rc_migrator::recovery::MAX_FRIENDS::get() as usize];
+			let cfg = PortableActiveRecovery {
+				created: n,
+				deposit: n,
+				friends: friends.try_into().unwrap(),
+			};
+			PortableRecoveryMessage::ActiveRecoveries(([n as u8; 32].into(), [n as u8; 32].into(), cfg));
+		};
+		let messages = (0..n).map(create_recovery).collect::<Vec<_>>();
+
+			#[extrinsic_call]
+			_(RawOrigin::Root, messages);
+
+			assert_last_event::<T>(
+				Event::BatchProcessed { pallet: PalletEventName::Recovery, count_good: n, count_bad: 0 }
+					.into(),
+			);
+		}
+
+		#[cfg(not(feature = "kusama-ahm"))]
+		{
+			#[block]
+			{
+
+			}
+		}
+	}
+
 	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
@@ -949,6 +984,7 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn start_migration() {
+		T::SendXcm::ensure_successful_delivery(Some(xcm::latest::Location::parent()));
 		#[extrinsic_call]
 		_(RawOrigin::Root);
 

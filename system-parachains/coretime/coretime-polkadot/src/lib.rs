@@ -427,8 +427,6 @@ pub const SESSION_LENGTH: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
 impl pallet_session::Config for Runtime {
-	type Currency = Balances;
-	type KeyDeposit = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// We don't have stash and controller, thus we don't need the convert as well.
