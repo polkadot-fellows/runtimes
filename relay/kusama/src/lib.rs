@@ -520,7 +520,8 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 	type Currency = Balances;
-	type KeyDeposit = KeyDeposit;
+	// TODO: we will set this post-AHM
+	type KeyDeposit = ();
 }
 
 impl pallet_session::historical::Config for Runtime {
