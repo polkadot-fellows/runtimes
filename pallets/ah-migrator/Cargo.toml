@@ -66,8 +66,8 @@ pallet-ah-ops = { workspace = true }
 [features]
 default = ["std"]
 
-kusama = [
-	"pallet-rc-migrator/kusama",
+kusama-ahm = [
+	"pallet-rc-migrator/kusama-ahm",
 	"pallet-recovery",
 ]
 
@@ -191,6 +191,7 @@ try-runtime = [
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-recovery?/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-staking-async/try-runtime",

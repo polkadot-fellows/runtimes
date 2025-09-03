@@ -16,8 +16,6 @@
 
 //! Governance configurations for the Asset Hub runtime.
 
-// TODO review all module (prices etc)
-
 use super::*;
 use frame_support::{
 	parameter_types,

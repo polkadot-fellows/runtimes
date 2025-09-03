@@ -55,6 +55,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 
+#[cfg(feature = "kusama-ahm")]
+compile_error!("Polkadot AHM cannot run with `kusama` feature");
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -568,7 +571,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Session(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_)
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Staking(_) |
+					// TODO @ggwpez add more
+					RuntimeCall::Staking(_) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::ChildBounties(..)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,

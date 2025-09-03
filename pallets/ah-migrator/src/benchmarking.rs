@@ -949,6 +949,7 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn start_migration() {
+		T::SendXcm::ensure_successful_delivery(Some(xcm::latest::Location::parent()));
 		#[extrinsic_call]
 		_(RawOrigin::Root);
 

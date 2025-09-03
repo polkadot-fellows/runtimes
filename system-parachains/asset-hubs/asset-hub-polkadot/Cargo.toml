@@ -141,7 +141,8 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
-paseo = [] # For Paseo AHM
+
+polkadot-ahm = []
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",

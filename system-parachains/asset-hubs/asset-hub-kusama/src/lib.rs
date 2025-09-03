@@ -24,7 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-#[cfg(not(feature = "kusama"))]
+#[cfg(all(not(feature = "kusama-ahm"), feature = "on-chain-release-build"))]
 compile_error!("Asset Hub migration requires the `kusama` feature");
 
 extern crate alloc;
@@ -642,7 +642,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
 					RuntimeCall::Proxy(_) |
-					RuntimeCall::RemoteProxyRelayChain(_)
+					RuntimeCall::RemoteProxyRelayChain(_) |
+					// TODO @ggwpez add more
+					RuntimeCall::Staking(_) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::ChildBounties(..)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
@@ -1300,7 +1304,9 @@ impl pallet_ah_migrator::Config for Runtime {
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
 	type MessageQueue = MessageQueue;
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
+	#[cfg(feature = "kusama-ahm")]
 	type KusamaConfig = Runtime;
+	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 

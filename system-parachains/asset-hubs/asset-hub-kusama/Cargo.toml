@@ -142,6 +142,7 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
+kusama-ahm = ["pallet-ah-migrator/kusama-ahm", "pallet-rc-migrator/kusama-ahm"]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
@@ -171,6 +172,7 @@ runtime-benchmarks = [
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-block/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
@@ -208,6 +210,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -239,6 +242,7 @@ try-runtime = [
 	"pallet-child-bounties/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-block/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
@@ -315,6 +319,7 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-collator-selection/std",
 	"pallet-conviction-voting/std",
+	"pallet-delegated-staking/std",
 	"pallet-election-provider-multi-block/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
@@ -390,5 +395,3 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
 on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
-
-kusama = ["pallet-ah-migrator/kusama", "pallet-rc-migrator/kusama"]

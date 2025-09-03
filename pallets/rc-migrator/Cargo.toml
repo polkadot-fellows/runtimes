@@ -59,7 +59,7 @@ frame-election-provider-support = { workspace = true }
 [features]
 default = ["std"]
 
-kusama = ["pallet-nis", "pallet-recovery"]
+kusama-ahm = ["pallet-nis", "pallet-recovery"]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",

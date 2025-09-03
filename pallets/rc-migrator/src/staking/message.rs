@@ -675,7 +675,10 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
-	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, //  Up to MaxValidatorSize
+	#[cfg(not(feature = "kusama-ahm"))]
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, // Up to MaxValidatorSize
+	#[cfg(feature = "kusama-ahm")]
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<12500>>,
 }
 
 // EraRewardPoints: RC -> Portable
@@ -683,10 +686,10 @@ impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
 	type Portable = PortableEraRewardPoints;
 
 	fn into_portable(self) -> Self::Portable {
-		let individual: BoundedVec<_, ConstU32<600>> =
-			self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into();
-
-		PortableEraRewardPoints { total: self.total, individual }
+		PortableEraRewardPoints {
+			total: self.total,
+			individual: self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into(),
+		}
 	}
 }
 
