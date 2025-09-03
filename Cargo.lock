@@ -9682,7 +9682,6 @@ dependencies = [
  "pallet-indices",
  "pallet-message-queue",
  "pallet-multisig",
- "pallet-nis",
  "pallet-nomination-pools",
  "pallet-preimage",
  "pallet-proxy",
