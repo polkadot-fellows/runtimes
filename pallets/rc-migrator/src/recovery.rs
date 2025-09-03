@@ -219,7 +219,7 @@ impl TranslateAccounts for PortableRecoveryFriends {
 	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
 		Self {
 			friends: self.friends.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into(),
-		} // TODO @ggwpez iter_mut?
+		}
 	}
 }
 
