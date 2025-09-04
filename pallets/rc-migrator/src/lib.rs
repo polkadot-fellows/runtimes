@@ -709,6 +709,7 @@ pub mod pallet {
 		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
 		/// The staking elections were paused.
 		StakingElectionsPaused,
+		PureAccountsIndexed { num_pure_accounts: u32 },
 	}
 
 	/// The Relay Chain migration state.
@@ -1245,7 +1246,7 @@ pub mod pallet {
 					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
-					let weight = AccountsMigrator::<T>::obtain_rc_accounts().saturating_add(AccountsMigrator::<T>::obtain_free_proxy_candidates());
+					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
 					weight_counter.consume(weight);
 					let total_issuance = <T as Config>::Currency::total_issuance();
 					RcMigratedBalance::<T>::mutate(|tracker| {
@@ -1357,6 +1358,12 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
+					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
+					
+					weight_counter.consume(weight);
+					if let Some(num_pure_accounts) = num_pure_accounts {
+						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });
+					}
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {

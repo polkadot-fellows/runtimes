@@ -320,13 +320,17 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 			}
 		}
 
-		for ((acc, nonce), proxie) in pre_accs.into_iter() {
+		for ((acc, nonce), proxies) in pre_accs.into_iter() {
+			if nonce != 0 {
+				continue;
+			}
+
 			// Amount of any proxies
 			let num_any = proxies
 				.iter()
 				.filter(|(proxy_type, _)| T::PureProxyFreeVariants::contains(proxy_type))
 				.count();
-			if num_any == 0 || nonce != 0 {
+			if num_any == 0 {
 				assert!(
 					!pallet_proxy::Proxies::<T>::contains_key(&acc),
 					"No empty vectors in storage"
