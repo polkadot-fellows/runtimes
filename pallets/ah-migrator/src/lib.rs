@@ -986,7 +986,10 @@ pub mod pallet {
 
 		#[cfg(feature = "kusama-ahm")]
 		#[pallet::call_index(27)]
-		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @muharem weight
+		#[pallet::weight({
+			Weight::from_parts(10_000_000, 1000)
+				.saturating_add(T::DbWeight::get().writes(1_u64).saturating_mul(messages.len() as u64))
+		})]
 		pub fn receive_society_messages(
 			origin: OriginFor<T>,
 			messages: Vec<PortableSocietyMessage>,

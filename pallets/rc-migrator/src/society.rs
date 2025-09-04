@@ -513,9 +513,8 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 				}
 			}
 
-			// TODO replace `receive_vesting_schedules` by actual ah weight func
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_vesting_schedules((messages.len() + 1) as u32))
+				.any_lt(Self::receive_society_messages_weight((messages.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
@@ -717,6 +716,13 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 	}
 }
 
+impl<T: Config> SocietyMigrator<T> {
+	fn receive_society_messages_weight(messages_len: u32) -> Weight {
+		Weight::from_parts(10_000_000, 1000)
+			.saturating_add(T::DbWeight::get().writes(1_u64).saturating_mul(messages_len.into()))
+	}
+}
+
 #[cfg(feature = "std")]
 pub mod tests {
 	use super::*;
@@ -742,6 +748,9 @@ pub mod tests {
 		)>,
 		pub member_by_index: Vec<(u32, AccountId32)>,
 		pub suspended_members: Vec<(AccountId32, pallet_society::MemberRecord)>,
+		pub candidates: Vec<(AccountId32, pallet_society::Candidacy<AccountId32, u128>)>,
+		pub votes: Vec<(AccountId32, AccountId32, pallet_society::Vote)>,
+		pub vote_clear_cursor: Vec<(AccountId32, Vec<u8>)>,
 		pub defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)>,
 	}
 
@@ -802,6 +811,9 @@ pub mod tests {
 				payouts,
 				member_by_index,
 				suspended_members,
+				candidates,
+				votes,
+				vote_clear_cursor,
 				defender_votes,
 			}
 		}

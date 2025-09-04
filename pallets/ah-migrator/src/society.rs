@@ -315,6 +315,25 @@ pub mod tests {
 			);
 
 			assert_eq!(
+				Candidates::<T::KusamaConfig>::iter().collect::<Vec<_>>(),
+				rc_payload.candidates,
+				"Candidates should match the pre migration RC value"
+			);
+
+			assert_eq!(
+				Votes::<T::KusamaConfig>::iter().collect::<Vec<_>>(),
+				rc_payload.votes,
+				"Votes should match the pre migration RC value"
+			);
+			assert_eq!(
+				VoteClearCursor::<T::KusamaConfig>::iter()
+					.map(|(key, value)| (key, value.into_inner()))
+					.collect::<Vec<_>>(),
+				rc_payload.vote_clear_cursor,
+				"VoteClearCursor should match the pre migration RC value"
+			);
+
+			assert_eq!(
 				DefenderVotes::<T::KusamaConfig>::iter().collect::<Vec<_>>(),
 				rc_payload.defender_votes,
 				"DefenderVotes should match the pre migration RC value"
