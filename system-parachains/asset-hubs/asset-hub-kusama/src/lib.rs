@@ -1331,14 +1331,6 @@ parameter_types! {
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
 
-// TODO @muharem
-pub struct MockRandomness;
-impl Randomness<Hash, BlockNumber> for MockRandomness {
-	fn random(_subject: &[u8]) -> (Hash, BlockNumber) {
-		(Hash::zero(), 0u32)
-	}
-}
-
 impl pallet_society::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
