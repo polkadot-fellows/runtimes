@@ -331,7 +331,8 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
 
-// AUDIT: This is the inflation formula of Kusama prior to
+// AUDIT: This is the inflation formula of Kusama prior to AHM. Source:
+// https://github.com/polkadot-fellows/runtimes/blob/18cbc8b3004f3cff44f6de053bb4220a9f85a7b1/relay/kusama/src/lib.rs#L793-L823
 pub struct EraPayout;
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
@@ -341,7 +342,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		// TOOD @kianenigma one sanity check test for this as we had in the RC
+		// TODO @kianenigma one sanity check test for this as we had in the RC
 		// TODO @kianenigma: use parameters pallet
 		let params = polkadot_runtime_common::impls::EraPayoutParams {
 			total_staked,
