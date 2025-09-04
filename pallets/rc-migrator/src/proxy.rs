@@ -97,7 +97,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 					// owner of the pure account a big headache with trying to control it through
 					// the remote proxy pallet (no UI for it) or similar.
 					if PureProxyCandidates::<T>::contains_key(&acc) {
-						PureProxyCandidates::<T>::remove(&acc);
+						// We dont remove it to keep it idempotent.
 
 						let mut free_proxies: BoundedVec<_, _> = proxies
 							.into_iter()
@@ -279,15 +279,17 @@ use std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	type RcPrePayload =
-		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+		BTreeMap<(AccountId32, u32), Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of (Delegator, None) -> (Kind, Delegatee)
 
 	fn pre_check() -> Self::RcPrePayload {
 		// Store the proxies per account before the migration
 		let mut proxies = BTreeMap::new();
 		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			let nonce = frame_system::Pallet::<T>::account_nonce(&delegator);
+
 			for delegation in delegations {
 				proxies
-					.entry(delegator.clone())
+					.entry((delegator.clone(), nonce))
 					.or_insert_with(Vec::new)
 					.push((delegation.proxy_type, delegation.delegate));
 			}
@@ -295,12 +297,10 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 		proxies
 	}
 
-	fn post_check(_: Self::RcPrePayload) {
+	fn post_check(pre_accs: Self::RcPrePayload) {
 		// sanity check
-		assert!(
-			pallet_proxy::Proxies::<T>::iter_keys().count() >= 10,
-			"Not enough remaining pure proxies"
-		);
+		let remaining = pallet_proxy::Proxies::<T>::iter_keys().count();
+		assert!(remaining >= 10, "Not enough remaining pure proxies, {}", remaining);
 
 		// All remaining ones are 'Any'
 		for (delegator, (proxies, deposit)) in pallet_proxy::Proxies::<T>::iter() {
@@ -318,6 +318,30 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 
 				assert!(is_any, "Pure proxy got wrong account for free");
 			}
+		}
+
+		for ((acc, nonce), proxie) in pre_accs.into_iter() {
+			// Amount of any proxies
+			let num_any = proxies
+				.iter()
+				.filter(|(proxy_type, _)| T::PureProxyFreeVariants::contains(proxy_type))
+				.count();
+			if num_any == 0 || nonce != 0 {
+				assert!(
+					!pallet_proxy::Proxies::<T>::contains_key(&acc),
+					"No empty vectors in storage"
+				);
+				continue;
+			}
+
+			log::error!(
+				"Checking Pure proxy {} has proxies afterwards: {:?} and before: {:?}",
+				acc.to_ss58check(),
+				pallet_proxy::Proxies::<T>::get(&acc),
+				proxies
+			);
+			assert_eq!(pallet_proxy::Proxies::<T>::get(&acc).1, Zero::zero());
+			assert_eq!(pallet_proxy::Proxies::<T>::get(&acc).0.len(), num_any);
 		}
 
 		let count = pallet_proxy::Announcements::<T>::iter_keys().count();
