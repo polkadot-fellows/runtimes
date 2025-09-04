@@ -88,12 +88,34 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 
 			match Self::migrate_single(
 				acc.clone(),
-				(proxies.into_inner(), deposit),
+				(proxies.clone().into_inner(), deposit),
 				weight_counter,
 				&mut batch,
 			) {
 				Ok(proxy) => {
-					pallet_proxy::Proxies::<T>::remove(&acc);
+					// We keep proxy relations of pure accounts alive for free, otherwise gives the
+					// owner of the pure account a big headache with trying to control it through
+					// the remote proxy pallet (no UI for it) or similar.
+					if PureProxyCandidates::<T>::contains_key(&acc) {
+						PureProxyCandidates::<T>::remove(&acc);
+						let mut proxies: BoundedVec<_, _> = proxies
+							.into_iter()
+							.filter(|p| T::PureProxyFreeVariants::contains(&p.proxy_type))
+							.collect::<Vec<_>>()
+							.defensive_truncate_into();
+						let deposit: BalanceOf<T> = Zero::zero();
+						log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?} with deposit {:?}", acc.to_ss58check(), proxies.len(), proxies, deposit);
+
+						if !proxies.is_empty() {
+							pallet_proxy::Proxies::<T>::insert(&acc, (proxies, deposit));
+						} else {
+							log::warn!(target: LOG_TARGET, "Pure proxy account will lose access on the Relay Chain: {:?}", acc.to_ss58check());
+							pallet_proxy::Proxies::<T>::remove(&acc);
+						}
+					} else {
+						pallet_proxy::Proxies::<T>::remove(&acc);
+					}
+
 					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
 				},
@@ -273,8 +295,24 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
-		assert_eq!(count, 0, "Assert storage 'Proxy::Proxies::rc_post::empty'");
+		// All remaining ones are 'Any'
+		for (delegator, (proxies, deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			assert_eq!(
+				deposit,
+				Zero::zero(),
+				"Pure account {} should have no deposit but has {:?}",
+				delegator.to_ss58check(),
+				deposit
+			);
+
+			for proxy in proxies {
+				let enc_type = proxy.proxy_type.encode();
+				let is_any = enc_type == vec![0];
+
+				assert!(is_any, "Pure proxy got wrong account for free");
+			}
+		}
+
 		let count = pallet_proxy::Announcements::<T>::iter_keys().count();
 		assert_eq!(count, 0, "Assert storage 'Proxy::Announcements::rc_post::empty'");
 	}

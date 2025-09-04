@@ -500,6 +500,9 @@ pub mod pallet {
 		#[cfg(feature = "kusama-ahm")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
+		/// The proxy types of pure accounts that are kept for free.
+		type PureProxyFreeVariants: Contains<<Self as pallet_proxy::Config>::ProxyType>;
+
 		/// Block number provider of the treasury pallet.
 		///
 		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
@@ -737,6 +740,11 @@ pub mod pallet {
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
 		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+
+	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
+	#[pallet::storage]
+	pub type PureProxyCandidates<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, (), OptionQuery>;
 
 	/// The pending XCM response queries and their XCM hash referencing the message in the
 	/// [`PendingXcmMessages`] storage.
@@ -1237,7 +1245,7 @@ pub mod pallet {
 					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
-					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
+					let weight = AccountsMigrator::<T>::obtain_rc_accounts().saturating_add(AccountsMigrator::<T>::obtain_free_proxy_candidates());
 					weight_counter.consume(weight);
 					let total_issuance = <T as Config>::Currency::total_issuance();
 					RcMigratedBalance::<T>::mutate(|tracker| {

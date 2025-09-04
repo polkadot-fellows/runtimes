@@ -713,12 +713,30 @@ impl<T: Config> AccountsMigrator<T> {
 		})
 	}
 
+	pub fn obtain_free_proxy_candidates() -> Weight {
+		if PureProxyCandidates::<T>::iter_keys().next().is_some() {
+			log::info!(target: LOG_TARGET, "Init pure proxy candidates already ran, skipping");
+			return T::DbWeight::get().reads(1);
+		}
+
+		let mut weight = Weight::zero();
+		for acc in pallet_proxy::Proxies::<T>::iter_keys() {
+			weight += T::DbWeight::get().reads(1);
+
+			if frame_system::Pallet::<T>::account_nonce(&acc).is_zero() {
+				PureProxyCandidates::<T>::insert(acc, ());
+			}
+		}
+
+		weight + T::DbWeight::get().reads(1) // +1 for checking whether the iterator is empty
+	}
+
 	/// Obtain all known accounts that must stay on RC and persist it to the [`RcAccounts`] storage
 	/// item.
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
-		if RcAccounts::<T>::count() > 0 {
+		if RcAccounts::<T>::iter_keys().next().is_some() {
 			log::info!(target: LOG_TARGET, "Init accounts migration already ran, skipping");
 			return T::DbWeight::get().reads(1);
 		}
