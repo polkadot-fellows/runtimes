@@ -1369,6 +1369,27 @@ impl pallet_parameters::Config for Runtime {
 pub mod dynamic_params {
 	use super::*;
 
+	/// Parameters used to calculate staking era payouts.
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod inflation {
+		/// Minimum inflation rate used to calculate era payouts.
+		#[codec(index = 0)]
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
+
+		/// Maximum inflation rate used to calculate era payouts.
+		#[codec(index = 1)]
+		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
+
+		/// Ideal stake ratio used to calculate era payouts.
+		#[codec(index = 2)]
+		pub static IdealStake: Perquintill = Perquintill::from_percent(75);
+
+		/// Falloff used to calculate era payouts.
+		#[codec(index = 3)]
+		pub static Falloff: Perquintill = Perquintill::from_percent(5);
+	}
+
 	/// Parameters used by `pallet-treasury` to handle the burn process.
 	#[dynamic_pallet_params]
 	#[codec(index = 1)]

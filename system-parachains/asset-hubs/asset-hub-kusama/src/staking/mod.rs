@@ -52,7 +52,7 @@ parameter_types! {
 
 	/// Allow up to 16 signed solutions to be submitted.
 	///
-	/// Safety note: Larger signed submission increases the weight of the `OnRoundRotation` data cleanup. Double check TODO @kianenigma.
+	/// Safety note: Larger signed submission increases the weight of the `OnRoundRotation` data cleanup.
 	pub storage MaxSignedSubmissions: u32 = 16;
 
 	/// Verify all of them.
@@ -341,16 +341,16 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
+		use crate::dynamic_params;
 
 		// TODO @kianenigma one sanity check test for this as we had in the RC
-		// TODO @kianenigma: use parameters pallet
 		let params = polkadot_runtime_common::impls::EraPayoutParams {
 			total_staked,
 			total_stakable: Balances::total_issuance(),
-			ideal_stake: Perquintill::from_percent(75),
-			max_annual_inflation: Perquintill::from_percent(10),
-			min_annual_inflation: Perquintill::from_rational(25u64, 1000),
-			falloff: Perquintill::from_percent(5),
+			ideal_stake: dynamic_params::inflation::IdealStake::get(),
+			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
+			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
+			falloff: dynamic_params::inflation::Falloff::get()
 			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
 			// Note: Kusama RC had the code for reserving a subset of its "ideal-staked-ratio" to be
 			// allocated to parachain auctions. Yet, this code was buggy in the RC, and was actually
@@ -364,9 +364,6 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
-// See: TODO @kianenigma
-// https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/src/lib.rs#L662
-// https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/constants/src/lib.rs#L49
 parameter_types! {
 	pub const SessionsPerEra: SessionIndex = 6;
 	/// Note: This is measured in RC block time. Our calculation of when to plan a new era might get
