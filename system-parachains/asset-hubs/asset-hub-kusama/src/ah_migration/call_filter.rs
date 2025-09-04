@@ -137,7 +137,7 @@ pub fn call_allowed_status(
 		Recovery(..) => OFF,
 		MultiBlockMigrations(..) => OFF, // has not calls
 		Revive(..) => OFF,               // TODO: OFF or ON?
-		Parameters(..) => OFF,           // TODO: OFF or ON?
+		Parameters(..) => ON,
 	};
 	// Exhaustive match. Compiler ensures that we did not miss any.
 
