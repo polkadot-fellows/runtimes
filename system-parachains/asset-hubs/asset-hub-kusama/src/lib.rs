@@ -71,7 +71,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use governance::{pallet_custom_origins, AuctionAdmin, GeneralAdmin, StakingAdmin, Treasurer};
+use governance::{pallet_custom_origins, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use pallet_assets::precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
@@ -951,7 +951,12 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+	EitherOfDiverse<
+		// Allow StakingAdmin from OpenGov on RC
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		// Allow StakingAdmin from OpenGov on AH (local)
+		StakingAdmin,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
