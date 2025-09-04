@@ -20,8 +20,12 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
+#[cfg(feature = "kusama-ahm")]
+compile_error!("Polkadot AHM cannot run with `kusama` feature");
+
 extern crate alloc;
 
+use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{BTreeMap, VecDeque},
 	vec,
@@ -45,7 +49,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
@@ -55,7 +59,6 @@ use frame_support::{
 	},
 	PalletId,
 };
-use ah_migration::phase1 as ahm_phase1;
 pub use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 pub use pallet_balances::Call as BalancesCall;
@@ -79,7 +82,6 @@ use polkadot_primitives::{
 	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
 	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
-use frame_support::traits::Equals;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
@@ -649,7 +651,7 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
 
-// TODO: remove feature gate and keep 10, when we want to activate it for Polkadot
+// TODO @kianenigma: remove feature gate and keep 10, when we want to activate it for Polkadot
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
 	pub const AutoRebagNumber: u32 = 10;
@@ -666,9 +668,9 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	#[cfg(any(feature = "paseo", feature = "runtime-benchmarks"))]
+	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
-	#[cfg(not(any(feature = "paseo", feature = "runtime-benchmarks")))]
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = AutoRebagNumber;
 }
 
@@ -1546,10 +1548,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	#[cfg(feature = "paseo")]
-	type MinimumValidatorSetSize = ConstU32<50>;
-	#[cfg(not(feature = "paseo"))]
-	type MinimumValidatorSetSize = ConstU32<400>;
+	type MinimumValidatorSetSize = ConstU32<400>; // TODO @kianenigma
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<50>;
@@ -1743,6 +1742,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
 	type TreasuryPaymaster = TreasuryPaymaster;
+	type SessionDuration = EpochDuration; // Session == Epoch
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;

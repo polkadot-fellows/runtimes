@@ -37,6 +37,10 @@ impl ToPolkadotSs58 for AccountId32 {
 	}
 }
 
+pub trait TranslateAccounts {
+	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self;
+}
+
 /// Convert a type into its portable format.
 ///
 /// The portable format is chain-agnostic. The flow the following: Convert RC object to portable
@@ -154,6 +158,9 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveChildBountiesMessages { messages: Vec<child_bounties::PortableChildBountiesMessage> },
 	#[codec(index = 25)]
 	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },
+	#[cfg(feature = "kusama-ahm")]
+	#[codec(index = 26)]
+	ReceiveRecoveryMessages { messages: Vec<recovery::PortableRecoveryMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]

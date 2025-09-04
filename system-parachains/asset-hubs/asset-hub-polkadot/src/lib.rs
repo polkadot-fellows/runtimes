@@ -55,6 +55,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 
+#[cfg(feature = "kusama-ahm")]
+compile_error!("Polkadot AHM cannot run with `kusama` feature");
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -135,7 +138,7 @@ use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	},
 	polkadot::{
 		consensus::{
@@ -568,7 +571,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Session(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_)
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Staking(_) |
+					// TODO @ggwpez add more
+					RuntimeCall::Staking(_) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::ChildBounties(..)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,

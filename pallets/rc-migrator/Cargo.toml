@@ -39,6 +39,8 @@ pallet-treasury = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-recovery = { workspace = true, optional = true }
+pallet-nis = { workspace = true, optional = true }
 pallet-staking-async-ah-client = { workspace = true }
 pallet-session = { workspace = true }
 pallet-nomination-pools = { workspace = true }
@@ -47,7 +49,6 @@ pallet-xcm = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
-polkadot-runtime-constants = { workspace = true }
 hex-literal = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
@@ -58,6 +59,7 @@ frame-election-provider-support = { workspace = true }
 [features]
 default = ["std"]
 
+kusama-ahm = ["pallet-nis", "pallet-recovery"]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
@@ -76,9 +78,11 @@ std = [
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-multisig/std",
+	"pallet-nis?/std",
 	"pallet-nomination-pools/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
+	"pallet-recovery?/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
@@ -91,8 +95,6 @@ std = [
 	"pallet-xcm/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
-	"polkadot-runtime-constants/std",
-	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
@@ -123,9 +125,11 @@ runtime-benchmarks = [
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
+	"pallet-nis?/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-recovery?/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking-async-ah-client/runtime-benchmarks",
@@ -137,7 +141,6 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -160,9 +163,11 @@ try-runtime = [
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
+	"pallet-nis?/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-recovery?/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
