@@ -98,16 +98,17 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 					// the remote proxy pallet (no UI for it) or similar.
 					if PureProxyCandidates::<T>::contains_key(&acc) {
 						PureProxyCandidates::<T>::remove(&acc);
-						let mut proxies: BoundedVec<_, _> = proxies
+
+						let mut free_proxies: BoundedVec<_, _> = proxies
 							.into_iter()
 							.filter(|p| T::PureProxyFreeVariants::contains(&p.proxy_type))
 							.collect::<Vec<_>>()
 							.defensive_truncate_into();
 						let deposit: BalanceOf<T> = Zero::zero();
-						log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?} with deposit {:?}", acc.to_ss58check(), proxies.len(), proxies, deposit);
+						log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?}", acc.to_ss58check(), free_proxies.len(), free_proxies);
 
-						if !proxies.is_empty() {
-							pallet_proxy::Proxies::<T>::insert(&acc, (proxies, deposit));
+						if !free_proxies.is_empty() {
+							pallet_proxy::Proxies::<T>::insert(&acc, (free_proxies, deposit));
 						} else {
 							log::warn!(target: LOG_TARGET, "Pure proxy account will lose access on the Relay Chain: {:?}", acc.to_ss58check());
 							pallet_proxy::Proxies::<T>::remove(&acc);
@@ -295,6 +296,12 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
+		// sanity check
+		assert!(
+			pallet_proxy::Proxies::<T>::iter_keys().count() >= 10,
+			"Not enough remaining pure proxies"
+		);
+
 		// All remaining ones are 'Any'
 		for (delegator, (proxies, deposit)) in pallet_proxy::Proxies::<T>::iter() {
 			assert_eq!(
