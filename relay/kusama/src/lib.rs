@@ -1721,7 +1721,7 @@ impl pallet_nomination_pools::Config for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
-	// Kusama has 1000 validators, we reject any that is less than a third. Set as storage for easier configurability.
+	// Kusama always wants 1000 validators, we reject anything smaller than that.
 	pub storage MinimumValidatorSetSize: u32 = 1000;
 }
 
@@ -1746,7 +1746,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type MinimumValidatorSetSize = MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
-	// TODO
+	// TODO @kianenigma
 	type MaxOffenceBatchSize = ConstU32<50>;
 	type Fallback = Staking;
 	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;

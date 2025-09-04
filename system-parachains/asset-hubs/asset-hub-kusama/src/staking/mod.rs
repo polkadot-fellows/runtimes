@@ -28,10 +28,7 @@ use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracy
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use scale_info::TypeInfo;
-use sp_arithmetic::FixedU128;
-use sp_runtime::{
-	transaction_validity::TransactionPriority, FixedPointNumber, Perquintill, SaturatedConversion,
-};
+use sp_runtime::{transaction_validity::TransactionPriority, Perquintill};
 use sp_staking::SessionIndex;
 use system_parachains_constants::async_backing::MINUTES;
 use xcm::v5::prelude::*;
@@ -105,15 +102,15 @@ parameter_types! {
 	pub const MaxExposurePageSize: u32 = 512;
 }
 
-/// Solution type.
-///
-/// * Voter index: u32 will scale to a near-infinite number of validators/nominators as npos-voters.
-/// While u16 is also enough, it might very well lead to issues if we wish to increase
-/// `MaxElectingVoters`. Numbers show that the byte-size of the solution is far from being a
-/// bottleneck, ergo using u32.
-/// * Target index: 65k is well enough for a network with 1000 validators
-/// max.
-/// * 24: Note that kusama allows for 24 nominations per nominator.
+// Solution type.
+//
+// * Voter index: u32 will scale to a near-infinite number of validators/nominators as npos-voters.
+// While u16 is also enough, it might very well lead to issues if we wish to increase
+// `MaxElectingVoters`. Numbers show that the byte-size of the solution is far from being a
+// bottleneck, ergo using u32.
+// * Target index: 65k is well enough for a network with 1000 validators
+// max.
+// * 24: Note that kusama allows for 24 nominations per nominator.
 frame_election_provider_support::generate_solution_type!(
 	#[compact]
 	pub struct NposCompactSolution24::<
@@ -219,8 +216,7 @@ impl multi_block::Config for Runtime {
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	// Clean all data on round rotation. Later on, we can move to lazy deletion.
 	type OnRoundRotation = multi_block::CleanRound<Self>;
-	// TODO @kianenigma
-	type WeightInfo = multi_block::weights::kusama::MultiBlockWeightInfo<Self>;
+	type WeightInfo = weights::pallet_election_provider_multi_block::WeightInfo<Self>;
 }
 
 impl multi_block::verifier::Config for Runtime {
@@ -230,8 +226,7 @@ impl multi_block::verifier::Config for Runtime {
 	type SolutionDataProvider = MultiBlockElectionSigned;
 	// Deliberate choice: we want any solution, even an epsilon better, to be considered superior.
 	type SolutionImprovementThreshold = ();
-	// TODO @kianenigma
-	type WeightInfo = multi_block::weights::polkadot::MultiBlockVerifierWeightInfo<Self>;
+	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Self>;
 }
 
 parameter_types! {
@@ -268,7 +263,7 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	}
 }
 
-/// Parameters only regarding signed submission deposits/rewards.
+// Parameters only regarding signed submission deposits/rewards.
 parameter_types! {
 	pub DepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
 	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but get away with it last minute. We only return 25% of the deposit in case someone bails. In Polkadot, this value will be lower or simply zero.
@@ -291,8 +286,7 @@ impl multi_block::signed::Config for Runtime {
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
-	// TODO: @kianenigma
-	type WeightInfo = multi_block::weights::polkadot::MultiBlockSignedWeightInfo<Self>;
+	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Self>;
 }
 
 parameter_types! {
@@ -317,8 +311,7 @@ impl multi_block::unsigned::Config for Runtime {
 	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>, ()>;
 	type MinerTxPriority = MinerTxPriority;
 	type OffchainRepeat = OffchainRepeat;
-	// TODO: @kianenigma
-	type WeightInfo = multi_block::weights::polkadot::MultiBlockUnsignedWeightInfo<Self>;
+	type WeightInfo = weights::pallet_election_provider_multi_block_unsigned::WeightInfo<Self>;
 }
 
 impl multi_block::unsigned::miner::MinerConfig for Runtime {
@@ -498,7 +491,7 @@ impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send`
 		let message = ValidatorSetToXcm::convert(report);
 		let dest = RelayLocation::get();
-		crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
+		let _ = crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
 			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {:?}", err);
 		});
 	}
@@ -519,11 +512,6 @@ where
 	type Extension = TxExtension;
 
 	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
-		// TODO: double check. the only way I found to access the `new_transaction` method.
-		// `UncheckedExtrinsic` is not generic::UncheckedExtrinsic, its wrapped by pallet revive's
-		// type `UncheckedExtrinsic`.
-		// @kianenigma: the good way to test this would be in the staking-async/runtimes test
-		// runtimes in polkadot-sdk. But LGTM.
 		<UncheckedExtrinsic as TypeInfo>::Identity::new_transaction(call, extension).into()
 	}
 }
@@ -533,11 +521,6 @@ where
 	RuntimeCall: From<LocalCall>,
 {
 	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
-		// TODO: double check. the only way I found to access the `new_bare` method.
-		// `UncheckedExtrinsic` is not generic::UncheckedExtrinsic, its wrapped by pallet revive's
-		// type `UncheckedExtrinsic`.
-		// @kianenigma: the good way to test this would be in the staking-async/runtimes test
-		// runtimes in polkadot-sdk. But LGTM.
 		<UncheckedExtrinsic as TypeInfo>::Identity::new_bare(call).into()
 	}
 }
@@ -554,10 +537,9 @@ impl<const EXPECTED_SPEC: u32> frame_support::traits::OnRuntimeUpgrade
 			let acc = hex_literal::hex!(
 				"bea06e6ad606b2a80822a72aaae84a9a80bec27f1beef1880ad4970b72227601"
 			);
-			let invulnerables =
-				BoundedVec::<AccountId, _>::try_from(vec![acc.into()]).inspect(|b| {
-					multi_block::signed::Invulnerables::<Runtime>::put(b);
-				});
+			if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
+				multi_block::signed::Invulnerables::<Runtime>::put(bounded);
+			}
 
 			// set the minimum score for the election, as per the kusama RC state.
 			//
@@ -589,13 +571,156 @@ impl<const EXPECTED_SPEC: u32> frame_support::traits::OnRuntimeUpgrade
 mod tests {
 	use super::*;
 
-	mod message_queues {
+	// TODO: @kianenigma
+	mod message_sizes {
 		use super::*;
-		// TODO: @kianenigma
 	}
 
+	mod incoming_xcm_weights {
+		#[test]
+		fn offence_report() {
+			todo!("@kianenigma")
+		}
+
+		#[test]
+		fn session_report() {
+			todo!("@kianenigma")
+		}
+	}
+
+	/// The staking/election weights to check.
+	///
+	/// * Snapshot-MSP weight (when we take validator snapshot, function of
+	///   `TargetSnapshotPerBlock`)
+	/// * Snapshot-rest weight (when we take nominator snapshot, function of
+	///   `VoterSnapshotPerBlock`)
+	/// * Verification of the last page (the most expensive)
+	/// * The time it takes to mine a solution via OCW (function of `MinerPages`)
+	/// * The weight of the on-the-spot-verification of an OCW-mined solution (function of
+	///   `MinerPages`)
+	/// * Election export terminal (which is the most expensive, and has round cleanup in it)
 	mod weights {
 		use super::*;
-		// TODO: @kianenigma
+		use sp_runtime::Percent;
+		use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
+		fn analyze_weight(
+			op_name: &str,
+			op_weight: Weight,
+			limit_weight: Weight,
+			maybe_max_ratio: Option<Percent>,
+		) {
+			sp_tracing::try_init_simple();
+			let ref_time_ms = op_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
+			let ref_time_ratio =
+				Percent::from_rational(op_weight.ref_time(), limit_weight.ref_time());
+			let proof_size_kb = op_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
+			let proof_size_ratio =
+				Percent::from_rational(op_weight.proof_size(), limit_weight.proof_size());
+			let limit_ms = limit_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
+			let limit_kb = limit_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
+			log::info!(target: "runtime::asset-hub-kusama", "weight of {:?} is: ref-time: {}ms, {:?} of total, proof-size: {}KiB, {:?} of total (total: {}ms, {}KiB)",
+				op_name,
+				ref_time_ms,
+				ref_time_ratio,
+				proof_size_kb,
+				proof_size_ratio,
+				limit_ms,
+				limit_kb
+			);
+
+			if let Some(max_ratio) = maybe_max_ratio {
+				assert!(ref_time_ratio <= max_ratio && proof_size_ratio <= max_ratio,)
+			}
+		}
+
+		#[test]
+		fn snapshot_msp_weight() {
+			use multi_block::WeightInfo;
+			analyze_weight(
+				"snapshot_msp",
+				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_msp(),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+		}
+
+		#[test]
+		fn snapshot_rest_weight() {
+			use multi_block::WeightInfo;
+			analyze_weight(
+				"snapshot_rest",
+				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_rest(),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+		}
+
+		#[test]
+		fn verifier_weight() {
+			use multi_block::verifier::WeightInfo;
+			analyze_weight(
+				"verifier valid terminal",
+				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_valid_terminal(),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+
+			analyze_weight(
+				"verifier invalid terminal",
+				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_invalid_terminal(),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+		}
+
+		#[test]
+		fn round_cleanup() {
+			use multi_block::signed::WeightInfo;
+			analyze_weight(
+				"single solution cleanup",
+				<Runtime as multi_block::signed::Config>::WeightInfo::clear_old_round_data(
+					Pages::get(),
+				),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+			analyze_weight(
+				"full solution cleanup",
+				<Runtime as multi_block::signed::Config>::WeightInfo::clear_old_round_data(
+					Pages::get(),
+				)
+				.mul(16 as u64),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+		}
+
+		#[test]
+		fn export_weight() {
+			// TODO @kianenigma this fails now, but should be fine after we re-benchmark the pallet.
+			use multi_block::WeightInfo;
+			analyze_weight(
+				"export terminal",
+				<Runtime as multi_block::Config>::WeightInfo::export_terminal(),
+				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
+				Some(Percent::from_percent(70)),
+			);
+		}
+
+		#[test]
+		fn verify_unsigned_solution() {
+			use multi_block::unsigned::WeightInfo;
+			analyze_weight(
+				"unsigned solution verify",
+				<Runtime as multi_block::unsigned::Config>::WeightInfo::submit_unsigned(),
+				<Runtime as frame_system::Config>::BlockWeights::get()
+					.per_class
+					.get(DispatchClass::Operational)
+					.max_extrinsic
+					.unwrap(),
+				Some(Percent::from_percent(50)),
+			);
+		}
 	}
 }
