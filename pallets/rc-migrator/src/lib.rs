@@ -193,6 +193,8 @@ pub enum MigrationStage<
 	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
+	/// The migration was paused.
+	MigrationPaused,
 	/// The migration has been scheduled to start at the given block number.
 	Scheduled {
 		/// The block number at which the migration will start.
@@ -627,6 +629,8 @@ pub mod pallet {
 		BadXcmVersion,
 		/// The origin is invalid.
 		InvalidOrigin,
+		/// The stage transition is invalid.
+		InvalidStageTransition,
 	}
 
 	#[pallet::event]
@@ -706,6 +710,25 @@ pub mod pallet {
 		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
 		/// The staking elections were paused.
 		StakingElectionsPaused,
+		/// The accounts to be preserved on Relay Chain were set.
+		AccountsPreserved {
+			/// The accounts that will be preserved.
+			accounts: Vec<T::AccountId>,
+		},
+		/// The guardian account id was set.
+		GuardianSet {
+			/// The old guardian account id.
+			old: Option<T::AccountId>,
+			/// The new guardian account id.
+			new: Option<T::AccountId>,
+		},
+		/// The migration was paused.
+		MigrationPaused {
+			/// The stage at which the migration was paused.
+			pause_stage: MigrationStageOf<T>,
+		},
+		/// The migration was cancelled.
+		MigrationCancelled,
 	}
 
 	/// The Relay Chain migration state.
@@ -769,6 +792,12 @@ pub mod pallet {
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// An optional account id of a guardian.
+	///
+	/// This account id can only stop scheduled migration.
+	#[pallet::storage]
+	pub type Guardian<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// The block number at which the migration began and the pallet's extrinsics were locked.
 	///
@@ -1140,6 +1169,90 @@ pub mod pallet {
 			});
 			Ok(())
 		}
+
+		/// Set the accounts to be preserved on Relay Chain during the migration.
+		///
+		/// The accounts must have no consumers references.
+		#[pallet::call_index(9)]
+		#[pallet::weight({
+			Weight::from_parts(10_000_000, 0)
+				.saturating_add(T::DbWeight::get().writes(accounts.len() as u64))
+		})]
+		pub fn preserve_accounts(
+			origin: OriginFor<T>,
+			accounts: Vec<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			Self::ensure_admin_or_manager(origin.clone())?;
+			for account in &accounts {
+				ensure!(
+					frame_system::Pallet::<T>::consumers(account) == 0,
+					Error::<T>::AccountReferenced
+				);
+				RcAccounts::<T>::insert(account, accounts::AccountState::Preserve);
+			}
+			Self::deposit_event(Event::AccountsPreserved { accounts });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Set the guardian account id.
+		///
+		/// The guardian can only stop scheduled migration.
+		#[pallet::call_index(10)]
+		#[pallet::weight(T::RcWeightInfo::set_manager())] // same as `set_manager`
+		pub fn set_guardian(
+			origin: OriginFor<T>,
+			new: Option<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			Self::ensure_admin_or_manager(origin.clone())?;
+			if let Some(ref who) = new {
+				ensure!(
+					frame_system::Pallet::<T>::consumers(who) == 0,
+					Error::<T>::AccountReferenced
+				);
+				RcAccounts::<T>::insert(who, accounts::AccountState::Preserve);
+			}
+			let old = Guardian::<T>::get();
+			Guardian::<T>::set(new.clone());
+			Self::deposit_event(Event::GuardianSet { old, new });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Pause the migration.
+		#[pallet::call_index(11)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::ensure_admin_or_manager(origin.clone())?;
+
+			let pause_stage = RcMigrationStage::<T>::get();
+			Self::transition(MigrationStage::MigrationPaused);
+
+			Self::deposit_event(Event::MigrationPaused { pause_stage });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Cancel the migration.
+		///
+		/// Migration can only be cancelled if it is in the [`MigrationStage::Scheduled`] state.
+		#[pallet::call_index(12)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::ensure_privileged_origin(origin)?;
+
+			let current_stage = RcMigrationStage::<T>::get();
+			ensure!(
+				matches!(current_stage, MigrationStage::Scheduled { .. }),
+				Error::<T>::InvalidStageTransition
+			);
+
+			Self::transition(MigrationStage::Pending);
+
+			Self::deposit_event(Event::MigrationCancelled);
+
+			Ok(Pays::No.into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -1182,7 +1295,7 @@ pub mod pallet {
 			}
 
 			match stage {
-				MigrationStage::Pending => {
+				MigrationStage::Pending | MigrationStage::MigrationPaused { .. } => {
 					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { start } => {
@@ -2064,6 +2177,21 @@ pub mod pallet {
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
+		/// Ensure that the origin is [`Config::AdminOrigin`], signed by [`Manager`] account id or
+		/// [`Guardian`] account id.
+		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+				if Guardian::<T>::get().map_or(false, |guardian_id| guardian_id == account_id) {
 					return Ok(());
 				}
 			}
