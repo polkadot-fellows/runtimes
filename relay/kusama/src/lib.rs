@@ -773,7 +773,6 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		match key {
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
 			Treasury(_) =>
-			// TODO: review - GeneralAdmin propagation from AssetHub?
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
