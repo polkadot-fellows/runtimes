@@ -70,11 +70,11 @@ default = ["std"]
 polkadot-ahm = [
 	"asset-hub-polkadot-runtime",
 	"asset-hub-polkadot-runtime?/polkadot-ahm",
+	"pallet-ah-migrator/polkadot-ahm",
+	"pallet-rc-migrator/polkadot-ahm",
 	"polkadot-runtime",
 	"polkadot-runtime-constants",
 	"polkadot-runtime?/polkadot-ahm",
-	"pallet-ah-migrator/polkadot-ahm",
-	"pallet-rc-migrator/polkadot-ahm"
 ]
 kusama-ahm = [
 	"asset-hub-kusama-runtime/kusama-ahm",
@@ -109,6 +109,7 @@ try-runtime = [
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-recovery/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-staking-async/try-runtime",
 	"pallet-timestamp/try-runtime",
@@ -119,7 +120,6 @@ try-runtime = [
 	"polkadot-runtime?/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-recovery/try-runtime"
 ]
 runtime-benchmarks = [
 	"asset-hub-kusama-runtime?/runtime-benchmarks",
@@ -141,6 +141,7 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-recovery/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
@@ -156,5 +157,4 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-recovery/runtime-benchmarks"
 ]

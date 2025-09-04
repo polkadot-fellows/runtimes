@@ -144,7 +144,7 @@ default = ["std"]
 
 polkadot-ahm = [
 	"pallet-ah-migrator/polkadot-ahm",
-	"pallet-rc-migrator/polkadot-ahm"
+	"pallet-rc-migrator/polkadot-ahm",
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",

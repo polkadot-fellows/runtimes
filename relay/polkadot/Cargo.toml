@@ -134,7 +134,7 @@ default = ["std"]
 no_std = []
 
 polkadot-ahm = [
-	"pallet-rc-migrator/polkadot-ahm"
+	"pallet-rc-migrator/polkadot-ahm",
 ]
 std = [
 	"pallet-rc-migrator/std",
