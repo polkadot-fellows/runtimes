@@ -1241,7 +1241,7 @@ impl pallet_scheduler::Config for Runtime {
 	type MaximumWeight =
 		pallet_ah_migrator::LeftOrRight<AhMigrator, ZeroWeight, MaximumSchedulerWeight>;
 	// Also allow Treasurer to schedule recurring payments.
-	type ScheduleOrigin = EitherOf<EitherOf<EnsureRoot<AccountId>, AuctionAdmin>, Treasurer>;
+	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
