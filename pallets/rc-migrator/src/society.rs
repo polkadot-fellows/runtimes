@@ -716,3 +716,198 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 		}
 	}
 }
+
+#[cfg(feature = "std")]
+pub mod tests {
+	use super::*;
+
+	#[derive(Decode, Encode, Debug, Clone)]
+	pub struct RcPrePayload {
+		pub parameters: Option<pallet_society::GroupParams<u128>>,
+		pub pot: u128,
+		pub founder: Option<AccountId32>,
+		pub head: Option<AccountId32>,
+		pub rules: Option<H256>,
+		pub member_count: u32,
+		pub round_count: u32,
+		pub bids: Vec<pallet_society::Bid<AccountId32, u128>>,
+		pub skeptic: Option<AccountId32>,
+		pub next_head: Option<pallet_society::IntakeRecord<AccountId32, u128>>,
+		pub challenge_round_count: u32,
+		pub defending: Option<(AccountId32, AccountId32, pallet_society::Tally)>,
+		pub members: Vec<(AccountId32, pallet_society::MemberRecord)>,
+		pub payouts: Vec<(
+			AccountId32,
+			pallet_society::PayoutRecord<u128, BoundedVec<(u32, u128), ConstU32<MAX_PAYOUTS>>>,
+		)>,
+		pub member_by_index: Vec<(u32, AccountId32)>,
+		pub suspended_members: Vec<(AccountId32, pallet_society::MemberRecord)>,
+		pub defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)>,
+	}
+
+	pub struct SocietyMigratorTest<T>(PhantomData<T>);
+	impl<T: Config> crate::types::RcMigrationCheck for SocietyMigratorTest<T> {
+		type RcPrePayload = RcPrePayload;
+
+		fn pre_check() -> Self::RcPrePayload {
+			use pallet_society::*;
+
+			let parameters = Parameters::<T::KusamaConfig>::get();
+			let pot = Pot::<T::KusamaConfig>::get();
+			let founder = Founder::<T::KusamaConfig>::get();
+			let head = Head::<T::KusamaConfig>::get();
+			let rules = Rules::<T::KusamaConfig>::get();
+			let member_count = MemberCount::<T::KusamaConfig>::get();
+			let round_count = RoundCount::<T::KusamaConfig>::get();
+			let bids = Bids::<T::KusamaConfig>::get().into_inner();
+			let skeptic = Skeptic::<T::KusamaConfig>::get();
+			let next_head = NextHead::<T::KusamaConfig>::get();
+			let challenge_round_count = ChallengeRoundCount::<T::KusamaConfig>::get();
+			let defending = Defending::<T::KusamaConfig>::get();
+			let members: Vec<(AccountId32, pallet_society::MemberRecord)> =
+				Members::<T::KusamaConfig>::iter().collect();
+			let payouts: Vec<(
+				AccountId32,
+				pallet_society::PayoutRecord<u128, BoundedVec<(u32, u128), ConstU32<MAX_PAYOUTS>>>,
+			)> = Payouts::<T::KusamaConfig>::iter().collect();
+			let member_by_index: Vec<(u32, AccountId32)> =
+				MemberByIndex::<T::KusamaConfig>::iter().collect();
+			let suspended_members: Vec<(AccountId32, pallet_society::MemberRecord)> =
+				SuspendedMembers::<T::KusamaConfig>::iter().collect();
+			let candidates: Vec<(AccountId32, pallet_society::Candidacy<AccountId32, u128>)> =
+				Candidates::<T::KusamaConfig>::iter().collect();
+			let votes: Vec<(AccountId32, AccountId32, pallet_society::Vote)> =
+				Votes::<T::KusamaConfig>::iter().collect();
+			let vote_clear_cursor: Vec<(AccountId32, Vec<u8>)> =
+				VoteClearCursor::<T::KusamaConfig>::iter()
+					.map(|(key, value)| (key, value.into_inner()))
+					.collect();
+			let defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)> =
+				DefenderVotes::<T::KusamaConfig>::iter().collect();
+
+			RcPrePayload {
+				parameters,
+				pot,
+				founder,
+				head,
+				rules,
+				member_count,
+				round_count,
+				bids,
+				skeptic,
+				next_head,
+				challenge_round_count,
+				defending,
+				members,
+				payouts,
+				member_by_index,
+				suspended_members,
+				defender_votes,
+			}
+		}
+
+		fn post_check(_: Self::RcPrePayload) {
+			use pallet_society::*;
+
+			assert!(
+				Parameters::<T::KusamaConfig>::get().is_none(),
+				"Parameters should be None on the relay chain after migration"
+			);
+
+			assert!(
+				!Pot::<T::KusamaConfig>::exists(),
+				"Pot should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				Founder::<T::KusamaConfig>::get().is_none(),
+				"Founder should be None on the relay chain after migration"
+			);
+
+			assert!(
+				Head::<T::KusamaConfig>::get().is_none(),
+				"Head should be None on the relay chain after migration"
+			);
+
+			assert!(
+				Rules::<T::KusamaConfig>::get().is_none(),
+				"Rules should be None on the relay chain after migration"
+			);
+
+			assert!(
+				!MemberCount::<T::KusamaConfig>::exists(),
+				"MemberCount should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				!RoundCount::<T::KusamaConfig>::exists(),
+				"RoundCount should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				!Bids::<T::KusamaConfig>::exists(),
+				"Bids should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				Skeptic::<T::KusamaConfig>::get().is_none(),
+				"Skeptic should be None on the relay chain after migration"
+			);
+
+			assert!(
+				NextHead::<T::KusamaConfig>::get().is_none(),
+				"NextHead should be None on the relay chain after migration"
+			);
+
+			assert!(
+				!ChallengeRoundCount::<T::KusamaConfig>::exists(),
+				"ChallengeRoundCount should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				Defending::<T::KusamaConfig>::get().is_none(),
+				"Defending should be None on the relay chain after migration"
+			);
+
+			assert!(
+				Members::<T::KusamaConfig>::iter().next().is_none(),
+				"Members map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				Payouts::<T::KusamaConfig>::iter().next().is_none(),
+				"Payouts map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				MemberByIndex::<T::KusamaConfig>::iter().next().is_none(),
+				"MemberByIndex map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				SuspendedMembers::<T::KusamaConfig>::iter().next().is_none(),
+				"SuspendedMembers map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				Candidates::<T::KusamaConfig>::iter().next().is_none(),
+				"Candidates map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				Votes::<T::KusamaConfig>::iter().next().is_none(),
+				"Votes map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				VoteClearCursor::<T::KusamaConfig>::iter().next().is_none(),
+				"VoteClearCursor map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				DefenderVotes::<T::KusamaConfig>::iter().next().is_none(),
+				"DefenderVotes map should be empty on the relay chain after migration"
+			);
+		}
+	}
+}
