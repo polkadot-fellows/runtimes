@@ -12,7 +12,7 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "26.0.0" }
+asset-test-utils = { version = "26.0.1" }
 assets-common = { version = "0.24.0", default-features = false }
 authority-discovery-primitives = { version = "38.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.44.0", default-features = false, package = "sp-consensus-babe" }
@@ -170,7 +170,7 @@ pallet-uniques = { version = "42.0.0", default-features = false }
 pallet-utility = { version = "42.0.0", default-features = false }
 pallet-vesting = { version = "42.0.0", default-features = false }
 pallet-whitelist = { version = "41.0.0", default-features = false }
-pallet-xcm = { version = "22.0.0", default-features = false }
+pallet-xcm = { version = "22.0.1", default-features = false }
 pallet-xcm-benchmarks = { version = "22.0.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.18.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.20.0", default-features = false }
