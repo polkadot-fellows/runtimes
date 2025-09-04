@@ -210,6 +210,6 @@ pub fn call_allowed_before_migration(
 		RemoteProxyRelayChain(..) |
 		NftFractionalization(..) |
 		Revive(..) |
-		Parameters(..) => ON, // TODO: Parameters OFF or ON?
+		Parameters(..) => ON,
 	}
 }
