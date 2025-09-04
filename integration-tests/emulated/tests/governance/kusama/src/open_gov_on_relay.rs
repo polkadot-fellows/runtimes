@@ -15,6 +15,11 @@
 
 use crate::imports::*;
 
+use kusama_system_emulated_network::{
+	BridgeHubKusamaPara as BridgeHubKusama, CoretimeKusamaPara as CoretimeKusama,
+	PeopleKusamaPara as PeopleKusama,
+};
+
 #[test]
 fn relaychain_can_authorize_upgrade_for_itself() {
 	let code_hash = [1u8; 32].into();

@@ -109,7 +109,7 @@ pub struct PortableRecoveryFriends {
 
 // Acc Translation
 impl TranslateAccounts for PortableRecoveryMessage {
-	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		match self {
 			PortableRecoveryMessage::Recoverable((who, config)) =>
 				PortableRecoveryMessage::Recoverable((f(who), config.translate_accounts(f))),
@@ -143,7 +143,7 @@ impl IntoPortable
 
 // Acc Translation
 impl TranslateAccounts for PortableRecoveryConfig {
-	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		Self { friends: self.friends.translate_accounts(f), ..self }
 	}
 }
@@ -168,7 +168,7 @@ impl
 
 // Acc Translation
 impl TranslateAccounts for PortableActiveRecovery {
-	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		Self { friends: self.friends.translate_accounts(f), ..self }
 	}
 }
@@ -216,7 +216,7 @@ impl IntoPortable for BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>> {
 
 // Acc Translation
 impl TranslateAccounts for PortableRecoveryFriends {
-	fn translate_accounts(self, f: impl Fn(AccountId32) -> AccountId32) -> Self {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		Self {
 			friends: self.friends.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into(),
 		} // TODO @ggwpez iter_mut?

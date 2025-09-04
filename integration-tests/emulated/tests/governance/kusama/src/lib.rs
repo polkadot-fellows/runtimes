@@ -16,9 +16,10 @@
 
 #[cfg(test)]
 mod imports {
+	pub(crate) use codec::Encode;
 	pub(crate) use emulated_integration_tests_common::{
 		assert_whitelisted,
-		impls::{Parachain, RelayChain, TestExt},
+		impls::{assert_expected_events, bx, Parachain, RelayChain, TestExt},
 		xcm_emulator::Chain,
 		xcm_helpers::{
 			build_xcm_send_authorize_upgrade_call, call_hash_of,
@@ -28,6 +29,7 @@ mod imports {
 	pub(crate) use frame_support::{assert_err, assert_ok};
 	pub(crate) use kusama_runtime::{governance::pallet_custom_origins::Origin, Dmp};
 	pub(crate) use sp_runtime::{traits::Dispatchable, DispatchError};
+	pub(crate) use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
 	pub(crate) use kusama_system_emulated_network::{
 		AssetHubKusamaPara as AssetHubKusama, BridgeHubKusamaPara as BridgeHubKusama,
@@ -35,6 +37,12 @@ mod imports {
 		PeopleKusamaPara as PeopleKusama,
 	};
 }
+
+#[cfg(test)]
+mod common;
+
+#[cfg(test)]
+mod open_gov_on_asset_hub;
 
 #[cfg(test)]
 mod open_gov_on_relay;
