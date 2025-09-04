@@ -1,9 +1,9 @@
-use asset_test_utils::GovernanceOrigin;
 use collectives_polkadot_runtime::{
 	xcm_config::{AssetHubLocation, RelayChainLocation},
 	Runtime, RuntimeOrigin,
 };
 use frame_support::{assert_err, assert_ok};
+use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_runtime::Either;
 use xcm::prelude::*;
 
