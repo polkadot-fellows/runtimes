@@ -4,7 +4,18 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.7.1] 28.08.2025
+
+### Fixed
+
+- [#9564](https://github.com/paritytech/polkadot-sdk/pull/9564) Correctly map group indices to vote indices when filtering backing statements.
+
+### Changed
+
+- [#861](https://github.com/polkadot-fellows/runtimes/pull/861) Removed the custom fungible adapter used by Kusama AssetHub
+- Support Snowbridge bridge reward payouts on AssetHub ([polkadot-fellows/runtimes/pull/865](https://github.com/polkadot-fellows/runtimes/pull/865))
+
+## [1.7.0] 22.08.2025
 
 ### Fixed
 
@@ -35,9 +46,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     Origin not being able to pay the existential deposit (ED) for a new account is now `StorageDepositNotEnoughFunds` and traps the caller rather then being a `TransferFailed` return code. Important since we are hiding the ED from contracts, so it should also not be an error code that must be handled.
   - [#8314](https://github.com/paritytech/polkadot-sdk/pull/8314): Add RPCs in the statement store to get the statements and not just the statement data.
     In statement-store, statements can contain a proof with the signature of the statement. This proof is useful to assert that the statement comes from the expected account. This proof also signs for all the statement's fields, which can also be useful information for the receiver.
+- Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
+  - [#8684](https://github.com/paritytech/polkadot-sdk/pull/8684) Add optional auto-rebag within on-idle to enable incremental correction of account positions within the bags-list during the idle phase of block execution
+  - [#8693](https://github.com/paritytech/polkadot-sdk/pull/8693) Add XCM Precompile to pallet-xcm
+- [Encointer] use XCM V5 to remotely spend funds from encointer treasury accounts on AHK [polkadot-fellows/runtimes/pull/679](https://github.com/polkadot-fellows/runtimes/pull/679)
 
 ### Changed
 
+- Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
+  - [#7953](https://github.com/paritytech/polkadot-sdk/pull/7953): Add deposit for setting session keys
+    * 🚨 Setting session keys now might charge a storage deposit. The amount can be inspected in the Session::KeyDeposit of the runtime metadata. This value is intended to be set post AHM. Validators should make sure they have some free balance to cover this deposit the next time they want to rotate their keys.
+    * Session keys previously could be set only by the associated controller account of a stash. Now, this filter no longer exists, and they can be set by anyone (ergo, the deposit). For validators, please make sure to submit your session keys (henceforth) **from the stash account**.
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
 - Configure block providers for pallets requiring block context ([polkadot-fellows/runtimes/pull/813](https://github.com/polkadot-fellows/runtimes/pull/813)):
   - vesting: keep using Relay Chain block provider
@@ -106,6 +125,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#8021](https://github.com/paritytech/polkadot-sdk/pull/8021): XCMP: use batching when enqueuing inbound messages
     This PR implements batching for the XCMP inbound enqueueing logic, which leads to an about ~75x performance improvement for that specific code.
   - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
+- Proxy type `NonTranfer`: Use a whitelist of calls and remove some not useful calls from the whitelist ([polkadot-fellows/runtimes/pull/646](https://github.com/polkadot-fellows/runtimes/pull/646))
+- Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
 - Moves single block migrations from frame_executive::Executive to frame_system::Config. [polkadot-fellows/runtimes/pull/844](https://github.com/polkadot-fellows/runtimes/pull/844)
 
 ## [1.6.1] 24.06.2025

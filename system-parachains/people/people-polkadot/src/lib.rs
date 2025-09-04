@@ -114,27 +114,29 @@ pub type TxExtension = (
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
 
-parameter_types! {
-	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = (
+		pallet_session::migrations::v1::MigrateV0ToV1<
+			Runtime,
+			pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
+		>,
+		cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	);
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// All migrations that will run on the next runtime upgrade.
+	pub type SingleBlockMigrations = (Unreleased, Permanent);
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations = ();
 }
-
-/// Migrations to apply on runtime upgrade.
-pub type SingleBlockMigrations = (
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
-
-/// MBM migrations to apply on runtime upgrade.
-pub type MbmMigrations = (
-	// Unreleased
-	pallet_identity::migration::v2::LazyMigrationV1ToV2<Runtime>,
-);
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -156,7 +158,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("people-polkadot"),
 	impl_name: Cow::Borrowed("people-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -212,7 +214,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = ConstU32<16>;
-	type SingleBlockMigrations = SingleBlockMigrations;
+	type SingleBlockMigrations = migrations::SingleBlockMigrations;
 	type MultiBlockMigrator = MultiBlockMigrations;
 }
 
@@ -373,8 +375,10 @@ impl pallet_session::Config for Runtime {
 	// Essentially just Aura, but let's be pedantic.
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
-	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = ();
+	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type Currency = Balances;
+	type KeyDeposit = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -471,15 +475,39 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(
+			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::Balances { .. } |
-				// `request_judgement` puts up a deposit to transfer to a registrar
-				RuntimeCall::Identity(pallet_identity::Call::request_judgement { .. }) |
-				// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
-				// account, should not be allowed.
-				RuntimeCall::Identity(pallet_identity::Call::add_sub { .. }) |
-				RuntimeCall::Identity(pallet_identity::Call::set_subs { .. })
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					// We don't allow:
+					// `request_judgement` puts up a deposit to transfer to a registrar,
+					// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
+					// account, should not be allowed.
+					RuntimeCall::Identity(pallet_identity::Call::add_registrar { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_identity { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::clear_identity { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::cancel_request { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::kill_identity { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::rename_sub { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::remove_sub { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::quit_sub { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::add_username_authority { .. }) |
+					RuntimeCall::Identity(
+						pallet_identity::Call::remove_username_authority { .. }
+					) | RuntimeCall::Identity(pallet_identity::Call::set_username_for { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::accept_username { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::remove_expired_approval { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_primary_username { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
@@ -565,7 +593,7 @@ parameter_types! {
 impl pallet_migrations::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Migrations = MbmMigrations;
+	type Migrations = migrations::MbmMigrations;
 	// Benchmarks need mocked migrations to guarantee that they succeed.
 	#[cfg(feature = "runtime-benchmarks")]
 	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
@@ -1050,6 +1078,12 @@ impl_runtime_apis! {
 	impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
 		fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
 			ParachainSystem::collect_collation_info(header)
+		}
+	}
+
+	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
+		fn parachain_id() -> ParaId {
+			ParachainInfo::parachain_id()
 		}
 	}
 

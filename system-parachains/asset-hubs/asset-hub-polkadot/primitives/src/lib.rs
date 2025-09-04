@@ -51,6 +51,8 @@ frame_support::parameter_types! {
 
 	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
 	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
+	/// The pallet index of the Ethereum system frontend pallet in the AssetHub Hub runtime.
+	pub const SystemFrontendPalletInstance: u8 = 36;
 }
 
 /// Builds an (un)congestion XCM program with the `report_bridge_status` call for
