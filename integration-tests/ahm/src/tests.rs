@@ -134,6 +134,7 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	pallet_rc_migrator::society::tests::SocietyMigratorTest<Polkadot>,
 );
 
 type AhChecks = (
@@ -188,6 +189,7 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	pallet_rc_migrator::society::tests::SocietyMigratorTest<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead

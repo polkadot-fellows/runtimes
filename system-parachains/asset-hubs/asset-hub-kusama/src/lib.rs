@@ -61,7 +61,7 @@ use frame_support::{
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
 		EitherOf, EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, PrivilegeCmp,
-		TheseExcept, TransformOrigin, WithdrawReasons,
+		Randomness, TheseExcept, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -1327,6 +1327,41 @@ impl pallet_recovery::Config for Runtime {
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
+parameter_types! {
+	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
+}
+
+impl pallet_society::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Randomness = system_parachains_common::randomness::RelayChainOneEpochAgoWithoutBlockNumber<
+		Runtime,
+		cumulus_primitives_core::relay_chain::BlockNumber,
+	>;
+	type GraceStrikes = ConstU32<10>;
+	type PeriodSpend = ConstU128<{ 500 * QUID }>;
+	type VotingPeriod = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		// disable rotation `on_initialize` during migration
+		// { - 10 * RC_DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
+		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
+		ConstU32<{ 5 * RC_DAYS }>,
+	>;
+	type ClaimPeriod = ConstU32<{ 2 * RC_DAYS }>;
+	type MaxLockDuration = ConstU32<{ 36 * 30 * RC_DAYS }>;
+	type FounderSetOrigin = EnsureRoot<AccountId>;
+	type ChallengePeriod = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		ConstU32<{ u32::MAX }>, // disable challenge rotation `on_initialize` during migration
+		ConstU32<{ 7 * RC_DAYS }>,
+	>;
+	type MaxPayouts = ConstU32<8>;
+	type MaxBids = ConstU32<512>;
+	type PalletId = SocietyPalletId;
+	type WeightInfo = weights::pallet_society::WeightInfo<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1380,6 +1415,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 55,
 		AssetConversion: pallet_asset_conversion = 56,
 		Recovery: pallet_recovery = 57,
+		Society: pallet_society = 58,
 
 		Revive: pallet_revive = 60,
 
@@ -1601,6 +1637,7 @@ mod benches {
 		[pallet_recovery, Recovery]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
+		[pallet_society, Society]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		// Bridges
