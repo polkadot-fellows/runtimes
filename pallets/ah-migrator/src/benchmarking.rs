@@ -935,40 +935,6 @@ pub mod benchmarks {
 		);
 	}
 
-	/*#[benchmark]
-	fn receive_recovery_messages(n: Linear<1, 255>) {
-		use pallet_rc_migrator::recovery::{
-			PortableActiveRecovery, PortableRecoveryFriends, PortableRecoveryMessage, MAX_FRIENDS,
-		};
-
-		let create_recovery = |n: u32| -> PortableRecoveryMessage {
-			let friends: Vec<AccountId32> = vec![[n as u8; 32].into(); MAX_FRIENDS as usize];
-			let cfg = PortableActiveRecovery {
-				created: n,
-				deposit: n as u128,
-				friends: PortableRecoveryFriends { friends: friends.try_into().unwrap() },
-			};
-			PortableRecoveryMessage::ActiveRecoveries((
-				[n as u8; 32].into(),
-				[n as u8; 32].into(),
-				cfg,
-			))
-		};
-		let messages = (0..n).map(create_recovery).collect::<Vec<_>>();
-
-		#[extrinsic_call]
-		_(RawOrigin::Root, messages);
-
-		assert_last_event::<T>(
-			Event::BatchProcessed {
-				pallet: PalletEventName::Recovery,
-				count_good: n,
-				count_bad: 0,
-			}
-			.into(),
-		);
-	}*/
-
 	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
