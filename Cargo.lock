@@ -16280,17 +16280,8 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "log",
- "pallet-treasury",
- "parity-scale-codec",
- "polkadot-runtime-common",
- "scale-info",
- "sp-api",
- "sp-core 38.0.0",
  "sp-runtime",
  "sp-state-machine",
- "sp-std",
- "staging-xcm",
- "staging-xcm-executor",
 ]
 
 [[package]]
