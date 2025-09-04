@@ -926,6 +926,7 @@ dependencies = [
  "pallet-revive",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-rc-client",
@@ -973,6 +974,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -8401,6 +8403,7 @@ dependencies = [
  "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-state-trie-migration",
@@ -9693,6 +9696,7 @@ dependencies = [
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-ah-client",
@@ -9926,9 +9930,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-society"
-version = "42.0.0"
+version = "42.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5a1b3a5568041246d69c80d5eec3395af446e7c46127db2999495c846f49815"
+checksum = "0699d070a1c85a00be5806241237001dfd9a1acfa3dd2fcd0eaafb34fc4eb348"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -16267,6 +16271,27 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-support",
+ "log",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "scale-info",
+ "sp-api",
+ "sp-core 38.0.0",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-std",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]

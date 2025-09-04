@@ -16,3 +16,5 @@
 
 //! Shared types between system-parachains runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
+
+pub mod randomness;
