@@ -18,7 +18,6 @@
 #![doc = include_str!("multisig.md")]
 
 use frame_support::traits::Currency;
-use sp_runtime::traits::Zero;
 
 extern crate alloc;
 use crate::{types::*, *};
@@ -184,13 +183,14 @@ impl<T: Config> RcMigrationCheck for MultisigMigrationChecker<T> {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let mut multisig_ids = Vec::new();
+		let ed = <<T as pallet_multisig::Config>::Currency as Currency<_>>::minimum_balance();
 		// Collect all multisig account ids with non-zero balance from storage
 		for (multisig_id, _, _) in aliases::Multisigs::<T>::iter() {
 			let multisig_balance =
 				<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
 					<T as frame_system::Config>::AccountId,
 				>>::total_balance(&multisig_id);
-			if !multisig_balance.is_zero() {
+			if multisig_balance >= ed {
 				multisig_ids.push(multisig_id);
 			}
 		}

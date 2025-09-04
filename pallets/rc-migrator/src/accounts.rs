@@ -264,13 +264,15 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		};
 
 		let mut maybe_last_key = last_key;
+		let mut total_items_iterated = 0;
 		loop {
 			// account the weight for migrating a single account on Relay Chain.
 			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
-				if batch.is_empty() {
+				if batch.is_empty() && total_items_iterated == 0 {
+					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
@@ -305,6 +307,8 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 				})
 				.expect("Always returning Ok; qed");
 
+			total_items_iterated += 1;
+
 			match withdraw_res {
 				// Account does not need to be migrated
 				Ok(None) => {
@@ -318,11 +322,11 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 					batch.push(ah_account)
 				},
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if !batch.is_empty() => {
+				Err(Error::OutOfWeight) if total_items_iterated > 1 => {
 					break;
 				},
 				// Not enough weight and was unable to make progress, bad.
-				Err(Error::OutOfWeight) if batch.is_empty() => {
+				Err(Error::OutOfWeight) if total_items_iterated <= 1 => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
@@ -956,9 +960,9 @@ pub mod tests {
 
 	pub struct AccountsMigrationChecker<T>(sp_std::marker::PhantomData<T>);
 
+	#[cfg(not(feature = "kusama-ahm"))]
 	impl<T> AccountsMigrationChecker<T> {
 		// Translate the RC freeze id encoding to the corresponding AH freeze id encoding.
-		// TODO: implement mapping for Kusama and Paseo
 		pub fn rc_freeze_id_encoding_to_ah(freeze_id: Vec<u8>) -> Vec<u8> {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Polkadot RC => AH
@@ -968,7 +972,6 @@ pub mod tests {
 		}
 
 		// Translate the RC hold id encoding to the corresponding AH hold id encoding.
-		// TODO: implement mapping for Kusama and Paseo
 		pub fn rc_hold_id_encoding_to_ah(hold_id: Vec<u8>) -> Vec<u8> {
 			match hold_id.as_slice() {
 				// Preimage pallet indexes on Polkadot RC => AH
@@ -987,6 +990,42 @@ pub mod tests {
 			match hold_id.as_slice() {
 				// Preimage deposits are divided by 100 when migrated to Asset Hub.
 				[10, 0] => hold_amount.saturating_div(100),
+				// TODO: change to correct amounts for Staking if we decide to adjust deposits
+				// during migration.
+				_ => hold_amount,
+			}
+		}
+	}
+
+	#[cfg(feature = "kusama-ahm")]
+	impl<T> AccountsMigrationChecker<T> {
+		// Translate the RC freeze id encoding to the corresponding AH freeze id encoding.
+		pub fn rc_freeze_id_encoding_to_ah(freeze_id: Vec<u8>) -> Vec<u8> {
+			match freeze_id.as_slice() {
+				// Nomination pools pallet indexes on Kusama RC => AH
+				[41, 0] => [80, 0].to_vec(),
+				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+			}
+		}
+		// Translate the RC hold id encoding to the corresponding AH hold id encoding.
+		pub fn rc_hold_id_encoding_to_ah(hold_id: Vec<u8>) -> Vec<u8> {
+			match hold_id.as_slice() {
+				// Preimage pallet indexes on Kusama RC => AH
+				[32, 0] => [6, 0].to_vec(),
+				// Pallet staking indexes on Kusama RC => AH
+				[6, 0] => [89, 0].to_vec(),
+				// Pallet delegated-staking indexes on Kusama RC => AH
+				[47, 0] => [83, 0].to_vec(),
+				_ => panic!("Unknown hold id: {:?}", hold_id),
+			}
+		}
+
+		// Get the AH expected hold amount for a RC migrated hold.
+		// This is used to check that the hold amount is correct after migration.
+		pub fn ah_hold_amount_from_rc(hold_id: Vec<u8>, hold_amount: u128) -> u128 {
+			match hold_id.as_slice() {
+				// Preimage deposits are divided by 100 when migrated to Asset Hub.
+				[32, 0] => hold_amount.saturating_div(100),
 				// TODO: change to correct amounts for Staking if we decide to adjust deposits
 				// during migration.
 				_ => hold_amount,

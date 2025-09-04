@@ -15,6 +15,7 @@
 
 pub mod snowbridge {
 	use hex_literal::hex;
+	use xcm::latest::prelude::*;
 	use xcm_emulator::parameter_types;
 
 	// Weth (Wrapped Ether) contract address on Ethereum mainnet.
@@ -24,8 +25,8 @@ pub mod snowbridge {
 	pub const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;
 
 	parameter_types! {
-		pub EthereumNetworkXcmV4: xcm::v4::NetworkId = xcm::v4::NetworkId::Ethereum { chain_id: 1 };
-		pub WethLocationXcmV4: xcm::v4::Location =  xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get()), xcm::v4::Junction::AccountKey20 { network: None, key: WETH }]);
-		pub EthLocationXcmV4: xcm::v4::Location =  xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get())]);
+		pub EthereumNetwork: NetworkId = Ethereum { chain_id: 1 };
+		pub WethLocation: Location =  Location::new(2, [GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }]);
+		pub EthLocation: Location =  Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
 	}
 }

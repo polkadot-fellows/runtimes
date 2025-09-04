@@ -28,11 +28,12 @@ jobs:
     steps:
       - name: Get Changed Files
         id: changed
-        uses: foodee/pr-includes-file-change@master
+        uses: tj-actions/changed-files@v44
         with:
-          paths: ^CHANGELOG.md
+          files: |
+            CHANGELOG.md
       - name: Set error
-        if: steps.changed.outputs.matched != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
+        if: steps.changed.outputs.any_changed != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
         run: echo "::error::CHANGELOG.md has not been modified. Either modify the file or check the checkbox in the body" && exit 1
 
   # Job required by "confirmChangelogChecksPassed"

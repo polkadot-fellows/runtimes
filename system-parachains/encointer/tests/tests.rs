@@ -1,6 +1,6 @@
-use asset_test_utils::GovernanceOrigin;
 use encointer_kusama_runtime::{xcm_config::GovernanceLocation, Runtime, RuntimeOrigin};
 use frame_support::{assert_err, assert_ok};
+use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_runtime::Either;
 use xcm::prelude::*;
 
@@ -14,7 +14,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 	// no - AssetHub
 	assert_err!(
@@ -22,7 +22,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 
 	// ok - relaychain

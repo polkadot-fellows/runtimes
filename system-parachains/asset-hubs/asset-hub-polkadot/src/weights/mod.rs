@@ -60,6 +60,8 @@ pub mod pallet_xcm_bridge_hub_router;
 pub mod paritydb_weights;
 pub mod polkadot_runtime_common_claims;
 pub mod rocksdb_weights;
+pub mod snowbridge_pallet_system_backend;
+pub mod snowbridge_pallet_system_frontend;
 pub mod xcm;
 
 pub use block_weights::constants::BlockExecutionWeight;

@@ -16,15 +16,15 @@
 
 use crate::{
 	xcm_config::{GovernanceLocation, LocationToAccountId},
-	Block, Runtime, RuntimeCall, RuntimeOrigin,
+	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
 };
 use polkadot_primitives::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
-use asset_test_utils::GovernanceOrigin;
 use frame_support::{assert_err, assert_ok};
+use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_runtime::Either;
 
 const ALICE: [u8; 32] = [1u8; 32];
@@ -136,6 +136,7 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
 }
 
@@ -149,7 +150,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 	// no - AssetHub
 	assert_err!(
@@ -157,7 +158,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 
 	// ok - relaychain

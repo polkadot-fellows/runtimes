@@ -51,6 +51,8 @@ pub mod benchmarking;
 pub mod bounties;
 pub mod child_bounties;
 pub mod conviction_voting;
+#[cfg(feature = "kusama-ahm")]
+pub mod recovery;
 pub mod scheduler;
 pub mod treasury;
 pub mod xcm_config;
@@ -344,11 +346,21 @@ pub enum MigrationStage<
 	},
 	TreasuryMigrationDone,
 
+	#[cfg(feature = "kusama-ahm")]
+	RecoveryMigrationInit,
+	#[cfg(feature = "kusama-ahm")]
+	RecoveryMigrationOngoing {
+		last_key: Option<recovery::RecoveryStage>,
+	},
+	#[cfg(feature = "kusama-ahm")]
+	RecoveryMigrationDone,
+
 	StakingMigrationInit,
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
 	},
 	StakingMigrationDone,
+
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
 		///
@@ -475,6 +487,18 @@ pub mod pallet {
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
+
+		/// Config for pallets that are only on Kusama.
+		#[cfg(feature = "kusama-ahm")]
+		type KusamaConfig: pallet_recovery::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxFriends = ConstU32<{ recovery::MAX_FRIENDS }>,
+			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+
+		/// Block number provider of the recovery pallet.
+		#[cfg(feature = "kusama-ahm")]
+		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// Block number provider of the treasury pallet.
 		///
@@ -849,8 +873,6 @@ pub mod pallet {
 			let start = start.evaluate(now);
 
 			ensure!(start > now, Error::<T>::PastBlockNumber);
-			ensure!(warm_up.evaluate(now) >= start, Error::<T>::PastBlockNumber);
-			ensure!(cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
 
 			if !unsafe_ignore_staking_lock_check {
 				let until_start = start.saturating_sub(now);
@@ -1931,6 +1953,22 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::TreasuryMigrationDone => {
+					#[cfg(feature = "kusama-ahm")]
+					Self::transition(MigrationStage::RecoveryMigrationInit);
+					#[cfg(not(feature = "kusama-ahm"))]
+					Self::transition(MigrationStage::StakingMigrationInit);
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::RecoveryMigrationInit => {
+					Self::transition(MigrationStage::RecoveryMigrationOngoing { last_key: None });
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::RecoveryMigrationOngoing { last_key } => {
+					// TODO
+					Self::transition(MigrationStage::RecoveryMigrationDone);
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::RecoveryMigrationDone => {
 					Self::transition(MigrationStage::StakingMigrationInit);
 				},
 				MigrationStage::StakingMigrationInit => {

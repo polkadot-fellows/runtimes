@@ -123,12 +123,14 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-common = { workspace = true }
 assets-common = { workspace = true }
 
 # Bridges
 pallet-xcm-bridge-hub-router = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
+snowbridge-pallet-system-frontend = { workspace = true }
+snowbridge-runtime-common = { workspace = true }
 
 [dev-dependencies]
 asset-test-utils = { workspace = true }
@@ -139,7 +141,8 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
-paseo = [] # For Paseo AHM
+
+polkadot-ahm = []
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
@@ -201,9 +204,10 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
+	"snowbridge-pallet-system-frontend/runtime-benchmarks",
+	"snowbridge-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
-	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -211,6 +215,7 @@ runtime-benchmarks = [
 	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
+	"assets-common/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
@@ -261,9 +266,11 @@ try-runtime = [
 	"pallet-xcm-bridge-hub-router/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
+	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"snowbridge-pallet-system-frontend/try-runtime",
+	"snowbridge-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
-	"system-parachains-common/try-runtime",
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -346,6 +353,9 @@ std = [
 	"scale-info/std",
 	"serde_json/std",
 	"snowbridge-inbound-queue-primitives/std",
+	"snowbridge-outbound-queue-primitives/std",
+	"snowbridge-pallet-system-frontend/std",
+	"snowbridge-runtime-common/std",
 	"sp-api/std",
 	"sp-arithmetic/std",
 	"sp-block-builder/std",
@@ -364,7 +374,6 @@ std = [
 	"sp-version/std",
 	"sp-weights/std",
 	"substrate-wasm-builder",
-	"system-parachains-common/std",
 	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",

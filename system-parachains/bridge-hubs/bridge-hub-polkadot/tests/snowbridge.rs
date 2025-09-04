@@ -16,27 +16,30 @@
 
 #![cfg(test)]
 
+use bp_bridge_hub_polkadot::{snowbridge::EthereumLocation, BRIDGE_HUB_POLKADOT_PARACHAIN_ID};
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
-	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	TxExtension, UncheckedExtrinsic,
+	xcm_config::{UniversalLocation, XcmConfig},
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, EthereumBeaconClient,
+	Executive, MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	SessionKeys, TxExtension, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::GovernanceOrigin;
 use codec::{Decode, Encode};
-use cumulus_primitives_core::XcmError::{FailedToTransactAsset, TooExpensive};
+use cumulus_primitives_core::{ParaId, XcmError::FailedToTransactAsset};
 use frame_support::{
 	assert_err, assert_ok, parameter_types,
 	traits::{fungible::Mutate, Contains},
 };
+use hex_literal::hex;
 use parachains_common::{AccountId, AuraId, Balance};
 pub use parachains_runtimes_test_utils::test_cases::change_storage_constant_by_governance_works;
 use parachains_runtimes_test_utils::{
 	AccountIdOf, BalanceOf, CollatorSessionKeys, ExtBuilder, ValidatorIdOf,
 };
+use snowbridge_core::{TokenId, TokenIdOf};
 use snowbridge_pallet_ethereum_client::WeightInfo;
 use snowbridge_pallet_ethereum_client_fixtures::*;
 use sp_core::{Get, H160};
@@ -46,8 +49,8 @@ use sp_runtime::{
 	AccountId32, SaturatedConversion,
 };
 use xcm::latest::prelude::*;
-use xcm_builder::HandleFee;
-use xcm_executor::traits::{FeeManager, FeeReason};
+use xcm_builder::{HandleFee, XcmFeeManagerFromComponents};
+use xcm_executor::traits::{ConvertLocation, FeeManager, FeeReason};
 
 parameter_types! {
 	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
@@ -83,32 +86,16 @@ pub fn transfer_token_to_ethereum_works() {
 		}),
 	)
 }
-// TODO: check why it fails
-// #[test]
-// pub fn unpaid_transfer_token_to_ethereum_fails_with_barrier() {
-// 	snowbridge_runtime_test_common::send_unpaid_transfer_token_message::<Runtime, XcmConfig>(
-// 		11155111,
-// 		collator_session_keys(),
-// 		1013,
-// 		1000,
-// 		H160::random(),
-// 		H160::random(),
-// 	)
-// }
 
 #[test]
-pub fn transfer_token_to_ethereum_fee_not_enough() {
-	snowbridge_runtime_test_common::send_transfer_token_message_failure::<Runtime, XcmConfig>(
+pub fn unpaid_transfer_token_to_ethereum_should_work() {
+	snowbridge_runtime_test_common::send_unpaid_transfer_token_message::<Runtime, XcmConfig>(
 		1,
 		collator_session_keys(),
 		1013,
 		1000,
-		DefaultBridgeHubEthereumBaseFee::get() + 1_000_000_000,
 		H160::random(),
 		H160::random(),
-		// fee not enough
-		1_000_000,
-		TooExpensive,
 	)
 }
 
@@ -195,7 +182,7 @@ impl HandleFee for MockFeeHandler {
 	}
 }
 
-type TestXcmFeeManager = XcmFeeManagerFromComponentsBridgeHub<MockWaivedLocations, MockFeeHandler>;
+type TestXcmFeeManager = XcmFeeManagerFromComponents<MockWaivedLocations, MockFeeHandler>;
 
 #[test]
 fn max_message_queue_service_weight_is_more_than_beacon_extrinsic_weights() {
@@ -297,8 +284,8 @@ pub fn ethereum_extrinsic<Runtime>(
 			let alice_account: <Runtime as frame_system::Config>::AccountId = alice_account.into();
 			let balance_before = <pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
-			assert_ok!(<snowbridge_pallet_ethereum_client::Pallet<Runtime>>::force_checkpoint(
-				RuntimeHelper::<Runtime>::root_origin(),
+			assert_ok!(EthereumBeaconClient::force_checkpoint(
+				RuntimeOrigin::root(),
 				initial_checkpoint.clone(),
 			));
 			let balance_after_checkpoint =
@@ -353,6 +340,8 @@ pub fn ethereum_extrinsic<Runtime>(
 			assert_ok!(sync_committee_outcome);
 			let balance_after_sync_com_update =
 				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
+
+			let _ = RuntimeHelper::<Runtime>::run_to_block(3, AccountId::from(alice).into());
 
 			// Invalid sync committee update
 			let invalid_sync_committee_outcome =
@@ -417,4 +406,112 @@ fn construct_and_apply_extrinsic(
 	let xt = construct_extrinsic(origin, call);
 	let r = Executive::apply_extrinsic(xt);
 	r.unwrap()
+}
+
+// Check compatibility for `token_id` stored on ethereum. If this test starts to fail, the [TokenIdOf](https://github.com/paritytech/polkadot-sdk/blob/20510c488198e8ee72b241fd2d0f6d1784982734/bridges/snowbridge/primitives/core/src/location.rs#L38-L43)
+// converter should be updated to ensure the generated token ID remains consistent and unchanged.
+#[test]
+fn check_compatibility_for_token_id_stored_on_ethereum() {
+	pub struct RegisterTokenTestCase {
+		/// Input: Location of Polkadot-native token relative to BH
+		pub native: Location,
+		/// Output: Reanchored, canonicalized location
+		pub reanchored: Location,
+		/// Output: Stable hash of reanchored location
+		pub foreign: TokenId,
+	}
+	let test_cases = vec![
+		// DOT
+		RegisterTokenTestCase {
+			native: Location::parent(),
+			reanchored: Location::new(1, GlobalConsensus(Polkadot)),
+			foreign: hex!("4e241583d94b5d48a27a22064cd49b2ed6f5231d2d950e432f9b7c2e0ade52b2")
+				.into(),
+		},
+		// KSM
+		RegisterTokenTestCase {
+			native: Location::new(2, [GlobalConsensus(Kusama)]),
+			reanchored: Location::new(1, [GlobalConsensus(Kusama)]),
+			foreign: hex!("03b6054d0c576dd8391e34e1609cf398f68050c23009d19ce93c000922bcd852")
+				.into(),
+		},
+		// PINK
+		RegisterTokenTestCase {
+			native: Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(23)]),
+			reanchored: Location::new(
+				1,
+				[GlobalConsensus(Polkadot), Parachain(1000), PalletInstance(50), GeneralIndex(23)],
+			),
+			foreign: hex!("bc8785969587ef3d22739d3385cb519a9e0133dd5da8d320c376772468c19be6")
+				.into(),
+		},
+		// TEER
+		RegisterTokenTestCase {
+			native: Location::new(1, [Parachain(2039)]),
+			reanchored: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
+			foreign: hex!("3b7f577715347bdcde4739a1bf1a7f1dec71e8ff4dbe23a6a49348ebf920c658")
+				.into(),
+		},
+		// Hydration
+		RegisterTokenTestCase {
+			native: Location::new(1, [Parachain(2034), GeneralIndex(0)]),
+			reanchored: Location::new(
+				1,
+				[GlobalConsensus(Polkadot), Parachain(2034), GeneralIndex(0)],
+			),
+			foreign: hex!("d5678e3bb6486c4fef73dc109cf23d5648654edd4b41fb32e1ce9f9a984a3d59")
+				.into(),
+		},
+		// Voucher DOT
+		RegisterTokenTestCase {
+			native: Location::new(
+				1,
+				[
+					Parachain(2030),
+					GeneralKey {
+						length: 2,
+						data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+					},
+				],
+			),
+			reanchored: Location::new(
+				1,
+				[
+					GlobalConsensus(Polkadot),
+					Parachain(2030),
+					GeneralKey {
+						length: 2,
+						data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+					},
+				],
+			),
+			foreign: hex!("2a8080362874bbfeb585d676eba3f06e3b878d7c5d5f98d2a092ebb375bd484c")
+				.into(),
+		},
+	];
+	for tc in test_cases.iter() {
+		ExtBuilder::<Runtime>::default()
+			.with_collators(collator_session_keys().collators())
+			.with_session_keys(collator_session_keys().session_keys())
+			.with_para_id(ParaId::from(BRIDGE_HUB_POLKADOT_PARACHAIN_ID))
+			.with_tracing()
+			.build()
+			.execute_with(|| {
+				let ethereum_location = EthereumLocation::get();
+				// reanchor to Ethereum context
+				let location = tc
+					.native
+					.clone()
+					.reanchored(&ethereum_location, &UniversalLocation::get())
+					.unwrap();
+				assert_eq!(location, tc.reanchored);
+
+				let token_id = TokenIdOf::convert_location(&location).unwrap();
+				assert_eq!(token_id, tc.foreign);
+			})
+	}
 }

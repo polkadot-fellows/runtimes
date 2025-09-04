@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent};
 use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
-use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
+use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize, QueueFootprintQuery};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{
 	MigrationStage as RcMigrationStage, MigrationStageOf as RcMigrationStageOf,

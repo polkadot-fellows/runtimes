@@ -19,7 +19,6 @@ use crate::{
 	xcm_config::LocationToAccountId,
 	*,
 };
-use asset_test_utils::GovernanceOrigin;
 use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
@@ -31,7 +30,7 @@ use frame_support::{
 	},
 };
 use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
-use parachains_runtimes_test_utils::ExtBuilder;
+use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::AccountIdConversion, Either};
@@ -244,6 +243,7 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
 }
 
@@ -257,7 +257,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 
 	// no - Collectives
@@ -266,7 +266,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 	// no - Collectives Voice of Fellows plurality
 	assert_err!(
@@ -277,7 +277,7 @@ fn governance_authorize_upgrade_works() {
 			Location::new(1, Parachain(COLLECTIVES_ID)),
 			Plurality { id: BodyId::Technical, part: BodyPart::Voice }.into()
 		)),
-		Either::Right(XcmError::BadOrigin)
+		Either::Right(InstructionError { index: 2, error: XcmError::BadOrigin })
 	);
 
 	// ok - relaychain
