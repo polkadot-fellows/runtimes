@@ -1350,7 +1350,9 @@ impl pallet_society::Config for Runtime {
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
 	type VotingPeriod = pallet_ah_migrator::LeftOrRight<
 		AhMigrator,
-		ConstU32<{ u32::MAX - 2 * RC_DAYS }>, // disable rotation `on_initialize` during migration
+		// disable rotation `on_initialize` during migration
+		// { - 10 * RC_DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
+		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
 		ConstU32<{ 5 * RC_DAYS }>,
 	>;
 	type ClaimPeriod = ConstU32<{ 2 * RC_DAYS }>;
