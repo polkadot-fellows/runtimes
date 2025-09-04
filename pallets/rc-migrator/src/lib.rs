@@ -997,7 +997,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::RcWeightInfo::resend_xcm())]
 		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			let message_hash =
 				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
