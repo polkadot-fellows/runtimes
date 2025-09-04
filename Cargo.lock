@@ -916,6 +916,7 @@ dependencies = [
  "pallet-nfts-runtime-api",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
+ "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
@@ -5462,10 +5463,12 @@ dependencies = [
  "kusama-system-emulated-network",
  "pallet-utility",
  "pallet-whitelist",
+ "pallet-xcm",
  "parity-scale-codec",
  "people-kusama-runtime",
  "sp-runtime",
  "staging-kusama-runtime",
+ "staging-xcm",
 ]
 
 [[package]]
