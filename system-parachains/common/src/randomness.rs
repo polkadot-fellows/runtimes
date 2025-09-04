@@ -25,6 +25,7 @@ pub const LOG_TARGET: &str = "runtime::randomness";
 /// VRF output length for per-slot randomness.
 pub const VRF_RANDOMNESS_LENGTH: usize = 32;
 
+// The initial version of the `Randomness` implementation proposed by @gui1117
 /// Provides randomness from the Relay Chain VRF from one epoch ago, but does not include the block
 /// number indicating when this randomness was generated or became observable to chain observers.
 ///
