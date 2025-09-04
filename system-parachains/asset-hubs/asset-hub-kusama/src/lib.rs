@@ -1341,7 +1341,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 
 		match key {
 			Treasury(_) =>
-				EitherOf::<EnsureRoot<polkadot_core_primitives::AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 			.map_err(|_| origin)
 	}
