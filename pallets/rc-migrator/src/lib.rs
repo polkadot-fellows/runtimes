@@ -435,6 +435,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
 			"scheduler" => MigrationStage::SchedulerMigrationInit,
+			#[cfg(feature = "kusama-ahm")]
 			"society" => MigrationStage::SocietyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
