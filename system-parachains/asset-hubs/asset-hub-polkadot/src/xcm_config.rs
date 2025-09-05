@@ -358,6 +358,13 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+pub struct LocalPlurality;
+impl Contains<Location> for LocalPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Plurality { .. }]))
+	}
+}
+
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -404,6 +411,7 @@ pub type WaivedLocations = (
 	FellowshipEntities,
 	AmbassadorEntities,
 	SecretaryEntities,
+	LocalPlurality,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
