@@ -39,7 +39,7 @@ use xcm_builder::{
 	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
 	ChildParachainAsNative, ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsChildSystemParachain,
-	IsConcrete, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
+	IsConcrete, LocationAsSuperuser, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
@@ -104,6 +104,8 @@ type LocalOriginConverter = (
 	SignedAccountId32AsNative<ThisNetwork, RuntimeOrigin>,
 	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
 	XcmPassthrough<RuntimeOrigin>,
+	// AssetHub can execute as root (based on: https://github.com/polkadot-fellows/runtimes/issues/651).
+	LocationAsSuperuser<Equals<AssetHubLocation>, RuntimeOrigin>,
 );
 
 parameter_types! {
@@ -175,6 +177,13 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
+pub struct AssetHubPlurality;
+impl Contains<Location> for AssetHubPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Parachain(ASSET_HUB_ID), Plurality { .. }]))
+	}
+}
+
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = TrailingSetTopicAsId<(
 	// Weight that is paid for may be consumed.
@@ -186,7 +195,7 @@ pub type Barrier = TrailingSetTopicAsId<(
 			// If the message is one that immediately attempts to pay for execution, then allow it.
 			AllowTopLevelPaidExecutionFrom<Everything>,
 			// Messages coming from system parachains need not pay for execution.
-			AllowExplicitUnpaidExecutionFrom<IsChildSystemParachain<ParaId>>,
+			AllowExplicitUnpaidExecutionFrom<(IsChildSystemParachain<ParaId>, AssetHubPlurality)>,
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<OnlyParachains>,
 		),

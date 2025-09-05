@@ -44,7 +44,10 @@ parameter_types! {
 
 pub type IdentityAdminOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, GeneralAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, GeneralAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
+	>,
 >;
 
 impl pallet_identity::Config for Runtime {

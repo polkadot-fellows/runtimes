@@ -20,9 +20,6 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
-#[cfg(feature = "kusama-ahm")]
-compile_error!("Polkadot AHM cannot run with `kusama` feature");
-
 extern crate alloc;
 
 use ah_migration::phase1 as ahm_phase1;
@@ -129,7 +126,9 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
-use xcm_config::{AssetHubLocation, CollectivesLocation, FellowsBodyId};
+use xcm_config::{
+	AssetHubLocation, CollectivesLocation, FellowsBodyId, GeneralAdminBodyId, StakingAdminBodyId,
+};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -642,7 +641,10 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		(),
 	>;
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
-	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type ForceOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
 	type ElectionBounds = ElectionBounds;
 }
@@ -741,7 +743,10 @@ impl pallet_staking::Config for Runtime {
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
 	type SlashDeferDuration = SlashDeferDuration;
-	type AdminOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type AdminOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
 	type MaxExposurePageSize = MaxExposurePageSize;
@@ -1313,7 +1318,10 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
+	type ChannelManager = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
+	>;
 	type Currency = Balances;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active
 	// `HostConfiguration` configuration for `hrmp_channel_max_message_size` and
@@ -1725,6 +1733,13 @@ parameter_types! {
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
+pub struct ProxyTypeAny;
+impl frame_support::traits::Contains<TransparentProxyType<ProxyType>> for ProxyTypeAny {
+	fn contains(proxy_type: &TransparentProxyType<ProxyType>) -> bool {
+		proxy_type.0 == polkadot_runtime_constants::proxy::ProxyType::Any
+	}
+}
+
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
@@ -1742,6 +1757,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
 	type TreasuryPaymaster = TreasuryPaymaster;
+	type PureProxyFreeVariants = ProxyTypeAny;
 	type SessionDuration = EpochDuration; // Session == Epoch
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;

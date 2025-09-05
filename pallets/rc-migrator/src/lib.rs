@@ -54,6 +54,8 @@ pub mod conviction_voting;
 #[cfg(feature = "kusama-ahm")]
 pub mod recovery;
 pub mod scheduler;
+#[cfg(feature = "kusama-ahm")]
+pub mod society;
 pub mod treasury;
 pub mod xcm_config;
 
@@ -357,6 +359,15 @@ pub enum MigrationStage<
 	#[cfg(feature = "kusama-ahm")]
 	RecoveryMigrationDone,
 
+	#[cfg(feature = "kusama-ahm")]
+	SocietyMigrationInit,
+	#[cfg(feature = "kusama-ahm")]
+	SocietyMigrationOngoing {
+		last_key: Option<society::SocietyStage>,
+	},
+	#[cfg(feature = "kusama-ahm")]
+	SocietyMigrationDone,
+
 	StakingMigrationInit,
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
@@ -426,6 +437,8 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
 			"scheduler" => MigrationStage::SchedulerMigrationInit,
+			#[cfg(feature = "kusama-ahm")]
+			"society" => MigrationStage::SocietyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -445,7 +458,7 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Nonce = u32>
 		+ pallet_balances::Config<
 			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
 			FreezeIdentifier = <Self as Config>::RuntimeFreezeReason,
@@ -496,11 +509,22 @@ pub mod pallet {
 				Currency = pallet_balances::Pallet<Self>,
 				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
 				MaxFriends = ConstU32<{ recovery::MAX_FRIENDS }>,
-			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+			> + frame_system::Config<
+				AccountData = AccountData<u128>,
+				AccountId = AccountId32,
+				Hash = sp_core::H256,
+			> + pallet_society::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxPayouts = ConstU32<{ society::MAX_PAYOUTS }>,
+			>;
 
 		/// Block number provider of the recovery pallet.
 		#[cfg(feature = "kusama-ahm")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+
+		/// The proxy types of pure accounts that are kept for free.
+		type PureProxyFreeVariants: Contains<<Self as pallet_proxy::Config>::ProxyType>;
 
 		/// Block number provider of the treasury pallet.
 		///
@@ -523,6 +547,7 @@ pub mod pallet {
 			+ IntoPortable<Portable = types::PortableFreezeReason>;
 
 		/// The overarching event type.
+		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		///
@@ -696,9 +721,15 @@ pub mod pallet {
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		},
 		/// The total issuance was recorded.
-		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
+		MigratedBalanceRecordSet {
+			kept: T::Balance,
+			migrated: T::Balance,
+		},
 		/// The RC kept balance was consumed.
-		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
+		MigratedBalanceConsumed {
+			kept: T::Balance,
+			migrated: T::Balance,
+		},
 		/// The manager account id was set.
 		ManagerSet {
 			/// The old manager account id.
@@ -707,7 +738,12 @@ pub mod pallet {
 			new: Option<T::AccountId>,
 		},
 		/// An XCM message was sent.
-		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
+		XcmSent {
+			origin: Location,
+			destination: Location,
+			message: Xcm<()>,
+			message_id: XcmHash,
+		},
 		/// The staking elections were paused.
 		StakingElectionsPaused,
 		/// The accounts to be preserved on Relay Chain were set.
@@ -729,6 +765,11 @@ pub mod pallet {
 		},
 		/// The migration was cancelled.
 		MigrationCancelled,
+		/// Some pure accounts were indexed for possibly receiving free `Any` proxies.
+		PureAccountsIndexed {
+			/// The number of indexed pure accounts.
+			num_pure_accounts: u32,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -760,6 +801,13 @@ pub mod pallet {
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
 		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+
+	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
+	///
+	/// Boolean value is whether they have been migrated to the Asset Hub. Needed for idempotency.
+	#[pallet::storage]
+	pub type PureProxyCandidatesMigrated<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, bool, OptionQuery>;
 
 	/// The pending XCM response queries and their XCM hash referencing the message in the
 	/// [`PendingXcmMessages`] storage.
@@ -1462,6 +1510,12 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
+					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
+
+					weight_counter.consume(weight);
+					if let Some(num_pure_accounts) = num_pure_accounts {
+						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });
+					}
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {
@@ -2082,6 +2136,41 @@ pub mod pallet {
 				},
 				#[cfg(feature = "kusama-ahm")]
 				MigrationStage::RecoveryMigrationDone => {
+					Self::transition(MigrationStage::SocietyMigrationInit);
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::SocietyMigrationInit => {
+					Self::transition(MigrationStage::SocietyMigrationOngoing { last_key: None });
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::SocietyMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match society::SocietyMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SocietyMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SocietyMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating society: {:?}", err);
+						},
+					}
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::SocietyMigrationDone => {
 					Self::transition(MigrationStage::StakingMigrationInit);
 				},
 				MigrationStage::StakingMigrationInit => {

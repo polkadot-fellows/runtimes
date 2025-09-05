@@ -916,6 +916,7 @@ dependencies = [
  "pallet-nfts-runtime-api",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
+ "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
@@ -925,6 +926,7 @@ dependencies = [
  "pallet-revive",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-rc-client",
@@ -972,6 +974,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -5460,10 +5463,12 @@ dependencies = [
  "kusama-system-emulated-network",
  "pallet-utility",
  "pallet-whitelist",
+ "pallet-xcm",
  "parity-scale-codec",
  "people-kusama-runtime",
  "sp-runtime",
  "staging-kusama-runtime",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -6344,7 +6349,6 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "hex-literal",
@@ -6902,6 +6906,7 @@ dependencies = [
  "sp-runtime",
  "sp-trie",
  "sp-weights",
+ "staging-xcm",
  "staging-xcm-builder",
 ]
 
@@ -8398,6 +8403,7 @@ dependencies = [
  "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-state-trie-migration",
@@ -9690,6 +9696,7 @@ dependencies = [
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-ah-client",
@@ -9923,9 +9930,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-society"
-version = "42.0.0"
+version = "42.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5a1b3a5568041246d69c80d5eec3395af446e7c46127db2999495c846f49815"
+checksum = "0699d070a1c85a00be5806241237001dfd9a1acfa3dd2fcd0eaafb34fc4eb348"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -10627,6 +10634,7 @@ dependencies = [
 name = "people-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -10737,6 +10745,7 @@ dependencies = [
 name = "people-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -16264,6 +16273,18 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-support",
+ "log",
+ "sp-runtime",
+ "sp-state-machine",
 ]
 
 [[package]]
