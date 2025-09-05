@@ -60,7 +60,7 @@ frame-election-provider-support = { workspace = true }
 default = ["std"]
 
 polkadot-ahm = []
-kusama-ahm = ["pallet-nis", "pallet-recovery", "pallet-society"]
+kusama-ahm = []
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",

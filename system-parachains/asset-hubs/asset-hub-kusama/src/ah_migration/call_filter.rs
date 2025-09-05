@@ -138,7 +138,7 @@ pub fn call_allowed_status(
 		MultiBlockMigrations(..) => OFF, // has not calls
 		Revive(..) => OFF,               // TODO: OFF or ON?
 		Parameters(..) => ON,
-		Society(..) => OFF,              // migrating pallet
+		Society(..) => OFF, // migrating pallet
 	};
 	// Exhaustive match. Compiler ensures that we did not miss any.
 

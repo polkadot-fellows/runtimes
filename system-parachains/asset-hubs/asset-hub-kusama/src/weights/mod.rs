@@ -27,7 +27,6 @@ pub mod pallet_assets_foreign;
 pub mod pallet_assets_local;
 pub mod pallet_assets_pool;
 pub mod pallet_balances;
-pub mod pallet_recovery;
 pub mod pallet_bounties;
 pub mod pallet_child_bounties;
 pub mod pallet_collator_selection;
@@ -40,6 +39,7 @@ pub mod pallet_nfts;
 pub mod pallet_parameters;
 pub mod pallet_preimage;
 pub mod pallet_proxy;
+pub mod pallet_recovery;
 pub mod pallet_remote_proxy;
 pub mod pallet_society;
 // TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime

@@ -1345,9 +1345,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
-			Treasury(_) => {
-				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone())
-			},
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1684,7 +1683,7 @@ mod benches {
 		[pallet_remote_proxy, RemoteProxyRelayChain]
 		[pallet_scheduler, Scheduler]
 		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
-		// [pallet_revive, Revive]		
+		// [pallet_revive, Revive]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
