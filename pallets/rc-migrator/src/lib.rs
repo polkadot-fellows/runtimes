@@ -716,7 +716,7 @@ pub mod pallet {
 			accounts: Vec<T::AccountId>,
 		},
 		/// The canceller account id was set.
-		GuardianSet {
+		CancellerSet {
 			/// The old canceller account id.
 			old: Option<T::AccountId>,
 			/// The new canceller account id.
