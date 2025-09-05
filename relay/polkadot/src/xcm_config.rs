@@ -195,6 +195,13 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
+pub struct AssetHubPlurality;
+impl Contains<Location> for AssetHubPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Parachain(ASSET_HUB_ID), Plurality { .. }]))
+	}
+}
+
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = TrailingSetTopicAsId<(
 	// Weight that is paid for may be consumed.
@@ -208,7 +215,11 @@ pub type Barrier = TrailingSetTopicAsId<(
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<OnlyParachains>,
 			// Messages from system parachains or the Fellows plurality need not pay for execution.
-			AllowExplicitUnpaidExecutionFrom<(IsChildSystemParachain<ParaId>, Fellows)>,
+			AllowExplicitUnpaidExecutionFrom<(
+				IsChildSystemParachain<ParaId>,
+				Fellows,
+				AssetHubPlurality,
+			)>,
 		),
 		UniversalLocation,
 		ConstU32<8>,
