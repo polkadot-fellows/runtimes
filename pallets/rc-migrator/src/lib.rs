@@ -715,11 +715,11 @@ pub mod pallet {
 			/// The accounts that will be preserved.
 			accounts: Vec<T::AccountId>,
 		},
-		/// The guardian account id was set.
+		/// The canceller account id was set.
 		GuardianSet {
-			/// The old guardian account id.
+			/// The old canceller account id.
 			old: Option<T::AccountId>,
-			/// The new guardian account id.
+			/// The new canceller account id.
 			new: Option<T::AccountId>,
 		},
 		/// The migration was paused.
@@ -793,11 +793,11 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
-	/// An optional account id of a guardian.
+	/// An optional account id of a canceller.
 	///
 	/// This account id can only stop scheduled migration.
 	#[pallet::storage]
-	pub type Guardian<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+	pub type Canceller<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// The block number at which the migration began and the pallet's extrinsics were locked.
 	///
@@ -1195,12 +1195,12 @@ pub mod pallet {
 			Ok(Pays::No.into())
 		}
 
-		/// Set the guardian account id.
+		/// Set the canceller account id.
 		///
-		/// The guardian can only stop scheduled migration.
+		/// The canceller can only stop scheduled migration.
 		#[pallet::call_index(10)]
 		#[pallet::weight(T::RcWeightInfo::set_manager())] // same as `set_manager`
-		pub fn set_guardian(
+		pub fn set_canceller(
 			origin: OriginFor<T>,
 			new: Option<T::AccountId>,
 		) -> DispatchResultWithPostInfo {
@@ -1212,9 +1212,9 @@ pub mod pallet {
 				);
 				RcAccounts::<T>::insert(who, accounts::AccountState::Preserve);
 			}
-			let old = Guardian::<T>::get();
-			Guardian::<T>::set(new.clone());
-			Self::deposit_event(Event::GuardianSet { old, new });
+			let old = Canceller::<T>::get();
+			Canceller::<T>::set(new.clone());
+			Self::deposit_event(Event::CancellerSet { old, new });
 
 			Ok(Pays::No.into())
 		}
@@ -2185,13 +2185,13 @@ pub mod pallet {
 		}
 
 		/// Ensure that the origin is [`Config::AdminOrigin`], signed by [`Manager`] account id or
-		/// [`Guardian`] account id.
+		/// [`Canceller`] account id.
 		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
 					return Ok(());
 				}
-				if Guardian::<T>::get().map_or(false, |guardian_id| guardian_id == account_id) {
+				if Canceller::<T>::get().map_or(false, |canceller_id| canceller_id == account_id) {
 					return Ok(());
 				}
 			}
