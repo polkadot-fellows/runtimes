@@ -11,12 +11,20 @@ use xcm::prelude::*;
 fn governance_authorize_upgrade_works() {
 	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;
 
-	// no - random para
+	// no - random non-system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+	// no - random system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
 		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 
