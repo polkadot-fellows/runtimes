@@ -14,9 +14,10 @@
 // limitations under the License.
 
 use crate::*;
+use asset_hub_kusama_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOriginFromAssetHub;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::sp_runtime::traits::Dispatchable;
-use kusama_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
+use kusama_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOriginFromRelay;
 use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 use pallet_identity::Data;
 use people_kusama_runtime::people::IdentityInfo;
@@ -24,7 +25,7 @@ use people_kusama_runtime::people::IdentityInfo;
 #[test]
 fn relay_commands_add_registrar() {
 	let origins = vec![
-		(OriginKind::Xcm, GeneralAdminOrigin.into()),
+		(OriginKind::Xcm, GeneralAdminOriginFromRelay.into()),
 		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root()),
 	];
 	for (origin_kind, origin) in origins {
@@ -60,6 +61,62 @@ fn relay_commands_add_registrar() {
 				Kusama,
 				vec![
 					RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		PeopleKusama::execute_with(|| {
+			type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeopleKusama,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::RegistrarAdded { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+	}
+}
+
+#[test]
+fn asset_hub_commands_add_registrar() {
+	let origins = vec![
+		(OriginKind::Xcm, GeneralAdminOriginFromAssetHub.into()),
+		(OriginKind::Superuser, <AssetHubKusama as Chain>::RuntimeOrigin::root()),
+	];
+	for (origin_kind, origin) in origins {
+		let registrar: AccountId = [1; 32].into();
+		AssetHubKusama::execute_with(|| {
+			type Runtime = <AssetHubKusama as Chain>::Runtime;
+			type RuntimeCall = <AssetHubKusama as Chain>::RuntimeCall;
+			type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
+
+			let add_registrar_call =
+				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
+					account: registrar.into(),
+				});
+
+			let xcm_message = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+				dest: bx!(VersionedLocation::from(Location::new(1, [Parachain(1004)]))),
+				message: bx!(VersionedXcm::from(Xcm(vec![
+					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+					Transact {
+						origin_kind,
+						fallback_max_weight: None,
+						call: add_registrar_call.encode().into(),
+					}
+				]))),
+			});
+
+			assert_ok!(xcm_message.dispatch(origin));
+
+			assert_expected_events!(
+				AssetHubKusama,
+				vec![
+					RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
 				]
 			);
 		});
@@ -280,7 +337,7 @@ fn relay_commands_add_remove_username_authority() {
 	let people_kusama_bob = PeopleKusama::account_id_of(BOB);
 
 	let origins = vec![
-		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin.suffix1"),
+		(OriginKind::Xcm, GeneralAdminOriginFromRelay.into(), "generaladmin.suffix1"),
 		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root(), "rootusername.suffix1"),
 	];
 	for (origin_kind, origin, usr) in origins {
