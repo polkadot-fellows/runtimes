@@ -295,7 +295,7 @@ parameter_types! {
 	pub MinerTxPriority: TransactionPriority = TransactionPriority::max_value() / 2;
 
 	/// Offchain miner transaction can fill up to 75% of the block size.
-	pub MinerMaxLength: u32 = Perbill::from_rational(75u32, 100) *
+	pub MinerMaxLength: u32 = Perbill::from_percent(75) *
 		*RuntimeBlockLength::get()
 		.max
 		.get(DispatchClass::Normal);
