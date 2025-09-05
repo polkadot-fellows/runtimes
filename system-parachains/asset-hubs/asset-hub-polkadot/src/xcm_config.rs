@@ -48,7 +48,6 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{
 	system_parachain,
-	// TODO: check this?
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;

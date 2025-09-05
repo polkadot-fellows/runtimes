@@ -398,10 +398,7 @@ fn relay_commands_add_remove_username_authority() {
 						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 						Transact {
 							origin_kind,
-							// TODO:
-							// this and all other references to `require_weight_at_most` can be
-							// removed once XCMv5 is in use.
-							fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+							fallback_max_weight: None,
 							call: remove_username_authority.encode().into(),
 						}
 					]))),
