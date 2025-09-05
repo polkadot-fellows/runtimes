@@ -204,8 +204,8 @@ jobs:
 
       - name: Download Polkadot snaps
         run: |
-          gdown 1USQPAxqhflyiw1aeJIILTqrNJr9ZjvzR # 2025-07-28
-          gdown 1Z21yzXbQrD5rGFTZnSjrTHi9CGhGPi4z # 2025-07-28
+          gdown 13GUP1O2kuq0RpMhl2qIdRpNuSfakDUy4 # 2025-07-28
+          gdown 1lSgxZXH4d2C-wn3E0k0QWtXqpZhh8Q5w # 2025-07-28
 
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
