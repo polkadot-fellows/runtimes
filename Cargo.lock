@@ -9930,9 +9930,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-society"
-version = "42.1.0"
+version = "42.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0699d070a1c85a00be5806241237001dfd9a1acfa3dd2fcd0eaafb34fc4eb348"
+checksum = "2b4e6fff38693c66edec548c0fc9f6784c837795b204ed5bfd1a2c660fb61432"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -10634,6 +10634,7 @@ dependencies = [
 name = "people-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -10744,6 +10745,7 @@ dependencies = [
 name = "people-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",

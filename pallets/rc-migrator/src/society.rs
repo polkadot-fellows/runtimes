@@ -94,6 +94,8 @@ pub struct SocietyValues {
 	pub next_head: Option<PortableIntakeRecord>,
 	pub challenge_round_count: Option<u32>,
 	pub defending: Option<(AccountId32, AccountId32, PortableTally)>,
+	pub next_intake_at: Option<u32>,
+	pub next_challenge_at: Option<u32>,
 }
 
 impl TranslateAccounts for SocietyValues {
@@ -115,6 +117,8 @@ impl TranslateAccounts for SocietyValues {
 			defending: self
 				.defending
 				.map(|defending| (f(defending.0), f(defending.1), defending.2)),
+			next_intake_at: self.next_intake_at,
+			next_challenge_at: self.next_challenge_at,
 		}
 	}
 }
@@ -124,6 +128,7 @@ impl SocietyValues {
 	where
 		T: pallet_society::Config,
 		<T as pallet_society::Config>::Currency: Currency<T::AccountId, Balance = u128>,
+		<T as pallet_society::Config>::BlockNumberProvider: BlockNumberProvider<BlockNumber = u32>,
 		T: frame_system::Config<AccountId = AccountId32, Hash = sp_core::H256>,
 	{
 		use pallet_society::*;
@@ -145,6 +150,8 @@ impl SocietyValues {
 				.then(ChallengeRoundCount::<T>::take),
 			defending: Defending::<T>::take()
 				.map(|(a, b, portable_tally)| (a, b, portable_tally.into_portable())),
+			next_intake_at: NextIntakeAt::<T>::take(),
+			next_challenge_at: NextChallengeAt::<T>::take(),
 		}
 	}
 
@@ -152,6 +159,7 @@ impl SocietyValues {
 	where
 		T: pallet_society::Config,
 		<T as pallet_society::Config>::Currency: Currency<T::AccountId, Balance = u128>,
+		<T as pallet_society::Config>::BlockNumberProvider: BlockNumberProvider<BlockNumber = u32>,
 		T: frame_system::Config<AccountId = AccountId32, Hash = sp_core::H256>,
 	{
 		use pallet_society::*;
@@ -182,6 +190,8 @@ impl SocietyValues {
 				portable_tally.into(),
 			))
 		});
+		values.next_intake_at.map(NextIntakeAt::<T>::put);
+		values.next_challenge_at.map(NextChallengeAt::<T>::put);
 	}
 }
 
@@ -752,6 +762,8 @@ pub mod tests {
 		pub votes: Vec<(AccountId32, AccountId32, pallet_society::Vote)>,
 		pub vote_clear_cursor: Vec<(AccountId32, Vec<u8>)>,
 		pub defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)>,
+		pub next_intake_at: Option<u32>,
+		pub next_challenge_at: Option<u32>,
 	}
 
 	pub struct SocietyMigratorTest<T>(PhantomData<T>);
@@ -793,6 +805,8 @@ pub mod tests {
 					.collect();
 			let defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)> =
 				DefenderVotes::<T::KusamaConfig>::iter().collect();
+			let next_intake_at = NextIntakeAt::<T::KusamaConfig>::get();
+			let next_challenge_at = NextChallengeAt::<T::KusamaConfig>::get();
 
 			RcPrePayload {
 				parameters,
@@ -815,6 +829,8 @@ pub mod tests {
 				votes,
 				vote_clear_cursor,
 				defender_votes,
+				next_intake_at,
+				next_challenge_at,
 			}
 		}
 
@@ -919,6 +935,16 @@ pub mod tests {
 			assert!(
 				DefenderVotes::<T::KusamaConfig>::iter().next().is_none(),
 				"DefenderVotes map should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				!NextIntakeAt::<T::KusamaConfig>::exists(),
+				"NextIntakeAt should be None on the relay chain after migration"
+			);
+
+			assert!(
+				!NextChallengeAt::<T::KusamaConfig>::exists(),
+				"NextChallengeAt should be None on the relay chain after migration"
 			);
 		}
 	}
