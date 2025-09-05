@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
   After the migration, another patch will remove this error case and use the correct reserve.
   🚨 For DOT|KSM cross-chain transfers please use `transfer_assets_using_type_and_then` or `execute`.
-  Follow to the [Polkadot forum post](https://forum.polkadot.network/t/mandatory-action-guide-for-ahm-broken-native-crosschain-transfers/) for more details regarding this topic
+  Please see this [Polkadot forum post](https://forum.polkadot.network/t/mandatory-action-guide-for-ahm-broken-native-crosschain-transfers/) for more details.
 
 ## [1.7.1] 28.08.2025
 
