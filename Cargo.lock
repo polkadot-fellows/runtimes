@@ -966,6 +966,7 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-storage",
+ "sp-tracing 18.0.0",
  "sp-transaction-pool",
  "sp-version",
  "sp-weights",
