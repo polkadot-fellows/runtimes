@@ -188,8 +188,8 @@ jobs:
       - name: Download Kusama snaps
         run: |
           python3 -m pip install gdown
-          gdown 12ndV-id_Z6ZTYx46ULI79XjGVDLiT1pH # 2025-09-02
-          gdown 1ZUMCnf1crYxjLT6WiWAKRas-hQWtLVNE # 2025-09-02
+          gdown 1NVUWhnQFfXOsXGoLkS4J_NJBZWb2LVtV # 2025-09-02 AH
+          gdown 1L2o3zQLHIdUGYzSBpzN3MFJ3heJ9ZqWe # 2025-09-02 RC
 
           lz4 -d kusama.snap.lz4 kusama.snap
           lz4 -d ah-kusama.snap.lz4 ah-kusama.snap
@@ -204,8 +204,8 @@ jobs:
 
       - name: Download Polkadot snaps
         run: |
-          gdown 13GUP1O2kuq0RpMhl2qIdRpNuSfakDUy4 # 2025-07-28
-          gdown 1lSgxZXH4d2C-wn3E0k0QWtXqpZhh8Q5w # 2025-07-28
+          gdown 1Z01NFTNUlRo93yeI4M3XYj6338tgfuu9 # 2025-09-05 RC
+          gdown 1r5z9MqtHubCVlkCcutNbuwWd2F9l0iNy # 2025-09-05 AH
 
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap

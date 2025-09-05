@@ -778,9 +778,11 @@ pub mod pallet {
 		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
 
 	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
+	///
+	/// Boolean value is whether they have been migrated to the Asset Hub. Needed for idempotency.
 	#[pallet::storage]
-	pub type PureProxyCandidates<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, (), OptionQuery>;
+	pub type PureProxyCandidatesMigrated<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, bool, OptionQuery>;
 
 	/// The pending XCM response queries and their XCM hash referencing the message in the
 	/// [`PendingXcmMessages`] storage.

@@ -713,9 +713,10 @@ impl<T: Config> AccountsMigrator<T> {
 		})
 	}
 
-	/// Populate the `PureProxyCandidates` storage item. Return the number of accounts and weight.
+	/// Populate the `PureProxyCandidatesMigrated` storage item. Return the number of accounts and
+	/// weight.
 	pub fn obtain_free_proxy_candidates() -> (Option<u32>, Weight) {
-		if PureProxyCandidates::<T>::iter_keys().next().is_some() {
+		if PureProxyCandidatesMigrated::<T>::iter_keys().next().is_some() {
 			log::info!(target: LOG_TARGET, "Init pure proxy candidates already ran, skipping");
 			return (None, T::DbWeight::get().reads(1));
 		}
@@ -727,7 +728,7 @@ impl<T: Config> AccountsMigrator<T> {
 			weight += T::DbWeight::get().reads(1);
 
 			if frame_system::Pallet::<T>::account_nonce(&acc).is_zero() {
-				PureProxyCandidates::<T>::insert(acc, ());
+				PureProxyCandidatesMigrated::<T>::insert(acc, false);
 				num_accounts += 1;
 			}
 		}

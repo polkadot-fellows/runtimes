@@ -10634,6 +10634,7 @@ dependencies = [
 name = "people-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -10744,6 +10745,7 @@ dependencies = [
 name = "people-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",

@@ -96,28 +96,36 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 					// We keep proxy relations of pure accounts alive for free, otherwise gives the
 					// owner of the pure account a big headache with trying to control it through
 					// the remote proxy pallet (no UI for it) or similar.
-					if PureProxyCandidates::<T>::contains_key(&acc) {
-						// We dont remove it to keep it idempotent.
-
-						let mut free_proxies: BoundedVec<_, _> = proxies
-							.into_iter()
-							.filter(|p| T::PureProxyFreeVariants::contains(&p.proxy_type))
-							.collect::<Vec<_>>()
-							.defensive_truncate_into();
-						let deposit: BalanceOf<T> = Zero::zero();
-						log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?}", acc.to_ss58check(), free_proxies.len(), free_proxies);
-
-						if !free_proxies.is_empty() {
-							pallet_proxy::Proxies::<T>::insert(&acc, (free_proxies, deposit));
-						} else {
-							log::warn!(target: LOG_TARGET, "Pure proxy account will lose access on the Relay Chain: {:?}", acc.to_ss58check());
+					match PureProxyCandidatesMigrated::<T>::get(&acc) {
+						None => {
 							pallet_proxy::Proxies::<T>::remove(&acc);
-						}
-					} else {
-						pallet_proxy::Proxies::<T>::remove(&acc);
+							batch.push(proxy); // Send over to AH
+						},
+						Some(false) => {
+							PureProxyCandidatesMigrated::<T>::insert(&acc, true);
+
+							let free_proxies: BoundedVec<_, _> = proxies
+								.into_iter()
+								.filter(|p| T::PureProxyFreeVariants::contains(&p.proxy_type))
+								.collect::<Vec<_>>()
+								.defensive_truncate_into();
+							let deposit: BalanceOf<T> = Zero::zero();
+							log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?}", acc.to_ss58check(), free_proxies.len(), free_proxies);
+
+							if !free_proxies.is_empty() {
+								pallet_proxy::Proxies::<T>::insert(&acc, (free_proxies, deposit));
+							} else {
+								log::warn!(target: LOG_TARGET, "Pure proxy account will lose access on the Relay Chain: {:?}", acc.to_ss58check());
+								pallet_proxy::Proxies::<T>::remove(&acc);
+							}
+
+							batch.push(proxy); // Send over to AH
+						},
+						Some(true) => {
+							// Already migrated
+						},
 					}
 
-					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
 				},
 				Err(OutOfWeightError) if !batch.is_empty() => {
@@ -338,7 +346,7 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 				continue;
 			}
 
-			log::error!(
+			log::debug!(
 				"Checking Pure proxy {} has proxies afterwards: {:?} and before: {:?}",
 				acc.to_ss58check(),
 				pallet_proxy::Proxies::<T>::get(&acc),
