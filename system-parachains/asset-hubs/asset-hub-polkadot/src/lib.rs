@@ -876,7 +876,12 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+	EitherOfDiverse<
+		// Allow StakingAdmin from OpenGov on RC
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		// Allow StakingAdmin from OpenGov on AH (local)
+		StakingAdmin,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
