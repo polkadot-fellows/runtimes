@@ -20,9 +20,6 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
-#[cfg(feature = "kusama-ahm")]
-compile_error!("Polkadot AHM cannot run with `kusama` feature");
-
 extern crate alloc;
 
 use ah_migration::phase1 as ahm_phase1;
@@ -1736,6 +1733,13 @@ parameter_types! {
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
+pub struct ProxyTypeAny;
+impl frame_support::traits::Contains<TransparentProxyType<ProxyType>> for ProxyTypeAny {
+	fn contains(proxy_type: &TransparentProxyType<ProxyType>) -> bool {
+		proxy_type.0 == polkadot_runtime_constants::proxy::ProxyType::Any
+	}
+}
+
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
@@ -1753,6 +1757,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
 	type TreasuryPaymaster = TreasuryPaymaster;
+	type PureProxyFreeVariants = ProxyTypeAny;
 	type SessionDuration = EpochDuration; // Session == Epoch
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;

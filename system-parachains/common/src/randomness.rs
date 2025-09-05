@@ -15,6 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use core::marker::PhantomData;
+use cumulus_pallet_parachain_system::{RelaychainDataProvider, RelaychainStateProvider};
 use cumulus_primitives_core::relay_chain;
 use frame_support::traits::Randomness;
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -43,7 +44,13 @@ where
 		// Defensive fallback used if the `well_known_keys::ONE_EPOCH_AGO_RANDOMNESS` key
 		// is missing or absent from the validation data. This situation is unexpected,
 		// as the key should always be present.
-		let defensive_fallback = || (T::Hashing::hash(subject), 0.into());
+		let defensive_fallback = || {
+			let rc_state = RelaychainDataProvider::<T>::current_relay_chain_state();
+			let mut subject = subject.to_vec();
+			subject.extend_from_slice(&rc_state.state_root.0);
+
+			(T::Hashing::hash(&subject[..]), 0.into())
+		};
 
 		let Some(relay_state_proof) = cumulus_pallet_parachain_system::RelayStateProof::<T>::get()
 		else {
