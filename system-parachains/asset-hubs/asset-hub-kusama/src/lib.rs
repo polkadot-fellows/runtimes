@@ -92,10 +92,10 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		Verify,
+		Get, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
+	ApplyExtrinsicResult, Perbill, Permill, Perquintill, RuntimeDebug,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -1343,6 +1343,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
+			// TODO: @kianenigma/!bkontur - do we want to allow StakingAdmin here?
+			Inflation(_) => frame_system::ensure_root(origin.clone()),
 			Treasury(_) => {
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone())
 			},
@@ -1405,9 +1407,10 @@ pub mod dynamic_params {
 #[cfg(feature = "runtime-benchmarks")]
 impl Default for RuntimeParameters {
 	fn default() -> Self {
-		RuntimeParameters::Treasury(dynamic_params::treasury::Parameters::BurnPortion(
-			dynamic_params::treasury::BurnPortion,
-			Some(Permill::from_percent(0)),
+		// TODO: @kianenigma/!bkontur - is this ok?
+		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
+			dynamic_params::inflation::MinInflation,
+			Some(Perquintill::from_rational(25u64, 1000u64)),
 		))
 	}
 }
@@ -1592,7 +1595,7 @@ pub type Migrations = (
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
 	// TODO: maybe rewrite this to execute if the storage items are not set, relying on the spec
 	// version might be flaky.
-	staking::InitiateStakingAsync<1_008_000 >,
+	staking::InitiateStakingAsync<1_008_000>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );

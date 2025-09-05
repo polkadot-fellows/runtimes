@@ -350,7 +350,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
 			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
 			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
-			falloff: dynamic_params::inflation::Falloff::get()
+			falloff: dynamic_params::inflation::Falloff::get(),
 			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
 			// Note: Kusama RC had the code for reserving a subset of its "ideal-staked-ratio" to be
 			// allocated to parachain auctions. Yet, this code was buggy in the RC, and was actually
