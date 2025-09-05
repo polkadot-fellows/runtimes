@@ -125,7 +125,14 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		let destination = asset_hub_kusama_location();
 		let assets: Assets = (dot_at_asset_hub_polkadot_latest, amount).into();
 		let fee_idx = 0;
-		assert_ok!(send_assets_from_asset_hub_polkadot(destination, assets, fee_idx));
+		let transfer_type = TransferType::LocalReserve;
+
+		assert_ok!(send_assets_from_asset_hub_polkadot(
+			destination,
+			assets,
+			fee_idx,
+			transfer_type
+		));
 	});
 
 	// verify expected events on final destination
@@ -286,7 +293,14 @@ fn send_back_ksm_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		let assets: Assets =
 			(bridged_ksm_at_asset_hub_polkadot_latest.clone(), amount_to_send).into();
 		let fee_idx = 0;
-		assert_ok!(send_assets_from_asset_hub_polkadot(destination, assets, fee_idx));
+		let transfer_type = TransferType::DestinationReserve;
+
+		assert_ok!(send_assets_from_asset_hub_polkadot(
+			destination,
+			assets,
+			fee_idx,
+			transfer_type
+		));
 	});
 
 	AssetHubKusama::execute_with(|| {
