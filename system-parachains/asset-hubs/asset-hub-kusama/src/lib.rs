@@ -53,6 +53,7 @@ use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
@@ -60,8 +61,8 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
-		EitherOf, EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, PrivilegeCmp,
-		TheseExcept, TransformOrigin, WithdrawReasons,
+		EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, InstanceFilter,
+		LinearStoragePrice, PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -70,7 +71,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
+use governance::{pallet_custom_origins, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use pallet_assets::precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
@@ -91,7 +92,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		IdentityLookup, Verify,
+		Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
@@ -119,8 +120,8 @@ use xcm::{
 	VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
-	FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation, KsmLocation,
-	LocationToAccountId, PoolAssetsConvertedConcreteId, StakingPot,
+	FellowshipLocation, ForeignAssetsConvertedConcreteId, KsmLocation, LocationToAccountId,
+	PoolAssetsConvertedConcreteId, RelayChainLocation, StakingPot,
 	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
 };
 use xcm_runtime_apis::{
@@ -950,7 +951,12 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOfDiverse<
+		// Allow StakingAdmin from OpenGov on RC
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		// Allow StakingAdmin from OpenGov on AH (local)
+		StakingAdmin,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
@@ -1327,6 +1333,101 @@ impl pallet_recovery::Config for Runtime {
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
+/// Defines what origin can modify which dynamic parameters.
+pub struct DynamicParameterOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			Treasury(_) => {
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone())
+			},
+		}
+		.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used by `pallet-treasury` to handle the burn process.
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod treasury {
+		#[codec(index = 0)]
+		pub static BurnPortion: Permill = Permill::from_percent(0);
+
+		#[codec(index = 1)]
+		pub static BurnDestination: crate::treasury::BurnDestinationAccount = Default::default();
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::Treasury(dynamic_params::treasury::Parameters::BurnPortion(
+			dynamic_params::treasury::BurnPortion,
+			Some(Permill::from_percent(0)),
+		))
+	}
+}
+
+parameter_types! {
+	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
+}
+
+impl pallet_society::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Randomness = system_parachains_common::randomness::RelayChainOneEpochAgoWithoutBlockNumber<
+		Runtime,
+		cumulus_primitives_core::relay_chain::BlockNumber,
+	>;
+	type GraceStrikes = ConstU32<10>;
+	type PeriodSpend = ConstU128<{ 500 * QUID }>;
+	type VotingPeriod = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		// disable rotation `on_initialize` during migration
+		// { - 10 * RC_DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
+		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
+		ConstU32<{ 5 * RC_DAYS }>,
+	>;
+	type ClaimPeriod = ConstU32<{ 2 * RC_DAYS }>;
+	type MaxLockDuration = ConstU32<{ 36 * 30 * RC_DAYS }>;
+	type FounderSetOrigin = EnsureRoot<AccountId>;
+	type ChallengePeriod = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		ConstU32<{ u32::MAX }>, // disable challenge rotation `on_initialize` during migration
+		ConstU32<{ 7 * RC_DAYS }>,
+	>;
+	type MaxPayouts = ConstU32<8>;
+	type MaxBids = ConstU32<512>;
+	type PalletId = SocietyPalletId;
+	type WeightInfo = weights::pallet_society::WeightInfo<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1340,6 +1441,7 @@ construct_runtime!(
 		MultiBlockMigrations: pallet_migrations = 5,
 		Preimage: pallet_preimage = 6,
 		Scheduler: pallet_scheduler = 7,
+		Parameters: pallet_parameters = 8,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1380,6 +1482,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 55,
 		AssetConversion: pallet_asset_conversion = 56,
 		Recovery: pallet_recovery = 57,
+		Society: pallet_society = 58,
 
 		Revive: pallet_revive = 60,
 
@@ -1574,6 +1677,7 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_nft_fractionalization, NftFractionalization]
 		[pallet_nfts, Nfts]
+		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_recovery, Revive]
@@ -1602,6 +1706,7 @@ mod benches {
 		[pallet_recovery, Recovery]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
+		[pallet_society, Society]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		// Bridges

@@ -63,10 +63,11 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
 use pallet_rc_migrator::{
-	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
-	types::RcMigrationCheck, MigrationEndBlock as RcMigrationEndBlock,
-	MigrationStage as RcMigrationStage, MigrationStartBlock as RcMigrationStartBlock,
-	RcMigrationStage as RcMigrationStageStorage,
+	child_bounties::ChildBountiesMigratedCorrectly,
+	staking::StakingMigratedCorrectly,
+	types::{RcMigrationCheck, ToPolkadotSs58},
+	MigrationEndBlock as RcMigrationEndBlock, MigrationStage as RcMigrationStage,
+	MigrationStartBlock as RcMigrationStartBlock, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
@@ -135,6 +136,7 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	super::recovery_test::RecoveryDataMigrated,
+	pallet_rc_migrator::society::tests::SocietyMigratorTest<Polkadot>,
 );
 
 type AhChecks = (
@@ -190,6 +192,7 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	super::recovery_test::RecoveryDataMigrated,
+	pallet_rc_migrator::society::tests::SocietyMigratorTest<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
@@ -340,7 +343,7 @@ async fn find_translatable_accounts() {
 	// Para ID -> (RC sovereign, AH sovereign)
 	let mut sov_translations = BTreeMap::<u32, (AccountId32, AccountId32)>::new();
 	// Para ID -> (RC derived, index, AH derived)
-	let mut derived_translations = BTreeMap::<u32, (AccountId32, u16, AccountId32)>::new();
+	let mut derived_translations = Vec::<(ParaId, AccountId32, u16, AccountId32)>::new();
 
 	// Try to find Para sovereign and derived accounts.
 	for para_id in 0..(u16::MAX as u32) {
@@ -391,8 +394,12 @@ async fn find_translatable_accounts() {
 					"Found RC derived   for para {}: {} -> {} (index {})",
 					&para_id, &rc_para_derived, &ah_para_derived, &derivation_index
 				);
-				derived_translations
-					.insert(para_id, (rc_para_derived, derivation_index, ah_para_derived));
+				derived_translations.push((
+					para_id.into(),
+					rc_para_derived,
+					derivation_index,
+					ah_para_derived,
+				));
 			}
 		}
 	}
@@ -429,10 +436,9 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'stat
 pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId32, &'static str))] = &[\n",
 	);
 
-	let mut derived_translations = derived_translations.into_iter().collect::<Vec<_>>();
-	derived_translations.sort_by(|(_, (rc_acc, _, _)), (_, (rc_acc2, _, _))| rc_acc.cmp(rc_acc2));
+	derived_translations.sort_by(|(_, rc_acc, _, _), (_, rc_acc2, _, _)| rc_acc.cmp(rc_acc2));
 
-	for (para_id, (rc_acc, derivation_index, ah_acc)) in derived_translations.iter() {
+	for (para_id, rc_acc, derivation_index, ah_acc) in derived_translations.iter() {
 		rust.push_str(&format!("\t// para {} (derivation index {})\n", para_id, derivation_index));
 		rust.push_str(&format!(
 			"\t(({}, \"{}\"), {}, ({}, \"{}\")),\n",

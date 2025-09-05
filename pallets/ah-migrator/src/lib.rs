@@ -50,6 +50,8 @@ pub mod proxy;
 pub mod recovery;
 pub mod referenda;
 pub mod scheduler;
+#[cfg(feature = "kusama-ahm")]
+pub mod society;
 pub mod sovereign_account_translation;
 pub mod staking;
 pub mod treasury;
@@ -86,6 +88,8 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
 #[cfg(not(feature = "kusama-ahm"))]
 type PortableRecoveryMessage = (); // somehow needed for FRAME
+#[cfg(feature = "kusama-ahm")]
+use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
@@ -172,6 +176,7 @@ pub enum PalletEventName {
 	Staking,
 	Treasury,
 	Vesting,
+	Society,
 }
 
 /// The migration stage on the Asset Hub.
@@ -291,6 +296,7 @@ pub mod pallet {
 		type PortableHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
 		type PortableFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
 		/// The overarching event type.
+		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		///
@@ -311,7 +317,15 @@ pub mod pallet {
 				Currency = pallet_balances::Pallet<Self>,
 				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
 				MaxFriends = ConstU32<{ MAX_FRIENDS }>,
-			> + frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>;
+			> + frame_system::Config<
+				AccountData = AccountData<u128>,
+				AccountId = AccountId32,
+				Hash = sp_core::H256,
+			> + pallet_society::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxPayouts = ConstU32<{ MAX_PAYOUTS }>,
+			>;
 
 		#[cfg(feature = "kusama-ahm")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
@@ -971,6 +985,21 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_recovery_messages(messages).map_err(Into::into)
+		}
+
+		#[cfg(feature = "kusama-ahm")]
+		#[pallet::call_index(27)]
+		#[pallet::weight({
+			Weight::from_parts(10_000_000, 1000)
+				.saturating_add(T::DbWeight::get().writes(1_u64).saturating_mul(messages.len() as u64))
+		})]
+		pub fn receive_society_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableSocietyMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_society_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.
