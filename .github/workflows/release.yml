@@ -216,7 +216,7 @@ jobs:
           asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm
 
-  package-compact-wasms:
+  package-try-runtime-and-logging-enabled-wasms:
     needs: [ build-runtimes, publish-release ]
     runs-on: ubuntu-latest
     steps:
