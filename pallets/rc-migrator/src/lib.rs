@@ -456,7 +456,7 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Nonce = u32>
 		+ pallet_balances::Config<
 			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
 			FreezeIdentifier = <Self as Config>::RuntimeFreezeReason,
@@ -520,6 +520,9 @@ pub mod pallet {
 		/// Block number provider of the recovery pallet.
 		#[cfg(feature = "kusama-ahm")]
 		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+
+		/// The proxy types of pure accounts that are kept for free.
+		type PureProxyFreeVariants: Contains<<Self as pallet_proxy::Config>::ProxyType>;
 
 		/// Block number provider of the treasury pallet.
 		///
@@ -714,9 +717,15 @@ pub mod pallet {
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		},
 		/// The total issuance was recorded.
-		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
+		MigratedBalanceRecordSet {
+			kept: T::Balance,
+			migrated: T::Balance,
+		},
 		/// The RC kept balance was consumed.
-		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
+		MigratedBalanceConsumed {
+			kept: T::Balance,
+			migrated: T::Balance,
+		},
 		/// The manager account id was set.
 		ManagerSet {
 			/// The old manager account id.
@@ -725,9 +734,17 @@ pub mod pallet {
 			new: Option<T::AccountId>,
 		},
 		/// An XCM message was sent.
-		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
+		XcmSent {
+			origin: Location,
+			destination: Location,
+			message: Xcm<()>,
+			message_id: XcmHash,
+		},
 		/// The staking elections were paused.
 		StakingElectionsPaused,
+		PureAccountsIndexed {
+			num_pure_accounts: u32,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -759,6 +776,13 @@ pub mod pallet {
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
 		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+
+	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
+	///
+	/// Boolean value is whether they have been migrated to the Asset Hub. Needed for idempotency.
+	#[pallet::storage]
+	pub type PureProxyCandidatesMigrated<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, bool, OptionQuery>;
 
 	/// The pending XCM response queries and their XCM hash referencing the message in the
 	/// [`PendingXcmMessages`] storage.
@@ -1371,6 +1395,12 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
+					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
+
+					weight_counter.consume(weight);
+					if let Some(num_pure_accounts) = num_pure_accounts {
+						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });
+					}
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {

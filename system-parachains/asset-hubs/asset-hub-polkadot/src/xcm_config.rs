@@ -46,10 +46,7 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{
-	system_parachain,
-	xcm::body::FELLOWSHIP_ADMIN_INDEX,
-};
+use polkadot_runtime_constants::{system_parachain, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;
 use xcm::latest::prelude::*;
