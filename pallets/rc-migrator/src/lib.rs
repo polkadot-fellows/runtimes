@@ -695,9 +695,15 @@ pub mod pallet {
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		},
 		/// The total issuance was recorded.
-		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
+		MigratedBalanceRecordSet {
+			kept: T::Balance,
+			migrated: T::Balance,
+		},
 		/// The RC kept balance was consumed.
-		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
+		MigratedBalanceConsumed {
+			kept: T::Balance,
+			migrated: T::Balance,
+		},
 		/// The manager account id was set.
 		ManagerSet {
 			/// The old manager account id.
@@ -706,10 +712,17 @@ pub mod pallet {
 			new: Option<T::AccountId>,
 		},
 		/// An XCM message was sent.
-		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
+		XcmSent {
+			origin: Location,
+			destination: Location,
+			message: Xcm<()>,
+			message_id: XcmHash,
+		},
 		/// The staking elections were paused.
 		StakingElectionsPaused,
-		PureAccountsIndexed { num_pure_accounts: u32 },
+		PureAccountsIndexed {
+			num_pure_accounts: u32,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -1359,7 +1372,7 @@ pub mod pallet {
 				},
 				MigrationStage::ProxyMigrationInit => {
 					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
-					
+
 					weight_counter.consume(weight);
 					if let Some(num_pure_accounts) = num_pure_accounts {
 						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });

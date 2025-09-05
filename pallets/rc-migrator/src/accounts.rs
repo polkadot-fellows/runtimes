@@ -712,7 +712,7 @@ impl<T: Config> AccountsMigrator<T> {
 			Ok::<_, Error<T>>(())
 		})
 	}
-	
+
 	/// Populate the `PureProxyCandidates` storage item. Return the number of accounts and weight.
 	pub fn obtain_free_proxy_candidates() -> (Option<u32>, Weight) {
 		if PureProxyCandidates::<T>::iter_keys().next().is_some() {
