@@ -213,6 +213,16 @@ pub mod tests {
 				DefenderVotes::<T::KusamaConfig>::iter().next().is_none(),
 				"DefenderVotes map should be empty on the relay chain after migration"
 			);
+
+			assert!(
+				!NextIntakeAt::<T::KusamaConfig>::exists(),
+				"NextIntakeAt should be empty on the relay chain after migration"
+			);
+
+			assert!(
+				!NextChallengeAt::<T::KusamaConfig>::exists(),
+				"NextChallengeAt should be empty on the relay chain after migration"
+			);
 		}
 
 		fn post_check(rc_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
@@ -288,6 +298,18 @@ pub mod tests {
 				Defending::<T::KusamaConfig>::get(),
 				rc_payload.defending,
 				"Defending should match the pre migration RC value"
+			);
+
+			assert_eq!(
+				NextIntakeAt::<T::KusamaConfig>::get(),
+				rc_payload.next_intake_at,
+				"NextIntakeAt should match the pre migration RC value"
+			);
+
+			assert_eq!(
+				NextChallengeAt::<T::KusamaConfig>::get(),
+				rc_payload.next_challenge_at,
+				"NextChallengeAt should match the pre migration RC value"
 			);
 
 			assert_eq!(
