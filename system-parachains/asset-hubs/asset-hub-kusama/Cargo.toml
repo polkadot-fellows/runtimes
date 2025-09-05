@@ -26,7 +26,6 @@ bp-bridge-hub-kusama = { workspace = true }
 bp-bridge-hub-polkadot = { workspace = true }
 kusama-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
-system-parachains-common = { workspace = true }
 pallet-remote-proxy = { workspace = true }
 
 # Substrate
@@ -214,7 +213,6 @@ runtime-benchmarks = [
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
-	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -283,7 +281,6 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
-	"system-parachains-common/try-runtime",
 ]
 std = [
 	"assets-common/std",
@@ -388,7 +385,6 @@ std = [
 	"sp-version/std",
 	"sp-weights/std",
 	"substrate-wasm-builder",
-	"system-parachains-common/std",
 	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
