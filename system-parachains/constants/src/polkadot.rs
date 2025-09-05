@@ -165,7 +165,7 @@ pub mod fee {
 }
 
 pub mod locations {
-	use frame_support::parameter_types;
+	use frame_support::{parameter_types, traits::Contains};
 	use xcm::latest::prelude::{Junction::*, Location, NetworkId};
 
 	parameter_types! {
@@ -178,5 +178,22 @@ pub mod locations {
 		pub GovernanceLocation: Location = Location::parent();
 
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+	}
+
+	/// `Contains` implementation for the asset hub location pluralities.
+	pub struct AssetHubPlurality;
+	impl Contains<Location> for AssetHubPlurality {
+		fn contains(loc: &Location) -> bool {
+			matches!(
+				loc.unpack(),
+				(
+					1,
+					[
+						Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
+						Plurality { .. }
+					]
+				)
+			)
+		}
 	}
 }

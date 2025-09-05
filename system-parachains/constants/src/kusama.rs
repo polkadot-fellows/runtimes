@@ -145,7 +145,7 @@ pub mod fee {
 }
 
 pub mod locations {
-	use frame_support::parameter_types;
+	use frame_support::{parameter_types, traits::Contains};
 	pub use kusama_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
 	use xcm::latest::prelude::{Junction::*, Location};
 
@@ -155,5 +155,22 @@ pub mod locations {
 			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID));
 		pub PeopleLocation: Location =
 			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::PEOPLE_ID));
+	}
+
+	/// `Contains` implementation for the asset hub location pluralities.
+	pub struct AssetHubPlurality;
+	impl Contains<Location> for AssetHubPlurality {
+		fn contains(loc: &Location) -> bool {
+			matches!(
+				loc.unpack(),
+				(
+					1,
+					[
+						Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID),
+						Plurality { .. }
+					]
+				)
+			)
+		}
 	}
 }
