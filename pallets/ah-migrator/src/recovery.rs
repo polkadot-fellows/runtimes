@@ -41,7 +41,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_recovery_message(message: PortableRecoveryMessage) {
-		let message = message.translate_accounts(Self::translate_account_rc_to_ah);
+		let message = message.translate_accounts(&Self::translate_account_rc_to_ah);
 
 		match message {
 			PortableRecoveryMessage::Recoverable((who, config)) => {

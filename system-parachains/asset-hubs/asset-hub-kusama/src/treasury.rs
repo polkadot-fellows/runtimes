@@ -1,24 +1,31 @@
-// Copyright (C) Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: Apache-2.0
+// Copyright (C) Polkadot Fellows.
+// This file is part of Polkadot.
 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Polkadot is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
-// TODO review all module
+// Polkadot is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 
-use crate::*;
-use frame_support::traits::{tokens::UnityOrOuterConversion, FromContains};
+// You should have received a copy of the GNU General Public License
+// along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
+
+//! This file contains relevant configuration of treasury (migrated from the RC with AHM).
+
+use super::*;
+
+use crate::governance::{Treasurer, TreasurySpender};
+use frame_support::traits::{
+	tokens::UnityOrOuterConversion, Currency, FromContains, Get, OnUnbalanced,
+};
 use parachains_common::pay::VersionedLocatableAccount;
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
+use scale_info::TypeInfo;
+use sp_runtime::traits::IdentityLookup;
 
 parameter_types! {
 	pub const SpendPeriod: BlockNumber = 6 * RC_DAYS;
@@ -37,14 +44,64 @@ pub type TreasuryPaymaster = parachains_common::pay::LocalPay<
 	xcm_config::LocationToAccountId,
 >;
 
+#[derive(
+	Default,
+	MaxEncodedLen,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	TypeInfo,
+	Clone,
+	Eq,
+	PartialEq,
+	Debug,
+)]
+pub struct BurnDestinationAccount(pub Option<polkadot_core_primitives::AccountId>);
+
+impl BurnDestinationAccount {
+	pub fn is_set(&self) -> bool {
+		self.0.is_some()
+	}
+}
+
+pub type BalancesNegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+pub struct TreasuryBurnHandler;
+
+impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
+	fn on_nonzero_unbalanced(amount: BalancesNegativeImbalance) {
+		let destination = dynamic_params::treasury::BurnDestination::get();
+
+		if let BurnDestinationAccount(Some(account)) = destination {
+			// Must resolve into existing but better to be safe.
+			Balances::resolve_creating(&account, amount);
+		} else {
+			// If no account to destinate the funds to, just drop the
+			// imbalance.
+			<() as OnUnbalanced<_>>::on_nonzero_unbalanced(amount)
+		}
+	}
+}
+
+impl Get<Permill> for TreasuryBurnHandler {
+	fn get() -> Permill {
+		let destination = dynamic_params::treasury::BurnDestination::get();
+
+		if destination.is_set() {
+			dynamic_params::treasury::BurnPortion::get()
+		} else {
+			Permill::zero()
+		}
+	}
+}
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = pallet_ah_migrator::LeftOrRight<AhMigrator, DisableSpends, SpendPeriod>;
-	type Burn = Burn;
-	type BurnDestination = ();
+	type Burn = TreasuryBurnHandler;
+	type BurnDestination = TreasuryBurnHandler;
 	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
