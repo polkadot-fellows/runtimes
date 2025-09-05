@@ -1343,11 +1343,10 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
-			// TODO: @kianenigma/!bkontur - do we want to allow StakingAdmin here?
-			Inflation(_) => frame_system::ensure_root(origin.clone()),
-			Treasury(_) => {
-				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone())
-			},
+			Inflation(_) =>
+				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1593,8 +1592,7 @@ pub type Migrations = (
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// TODO: maybe rewrite this to execute if the storage items are not set, relying on the spec
-	// version might be flaky.
+	// TODO: TRIPLE CHECK the spec version prior to final merge, and remove the TODO.
 	staking::InitiateStakingAsync<1_008_000>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,

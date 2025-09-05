@@ -78,7 +78,7 @@ parameter_types! {
 	/// At the time of writing, Kusama has 1000 active validators, and ~2k validator candidates.
 	///
 	/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight. Double check TODO @kianenigma.
-	pub storage TargetSnapshotPerBlock: u32 = 3000;
+	pub storage TargetSnapshotPerBlock: u32 = 2500;
 
 	/// Kusama will at most have 1000 validators.
 	pub const MaxValidatorSet: u32 = 1000;
@@ -215,6 +215,7 @@ impl multi_block::Config for Runtime {
 	// Revert back to signed phase if nothing is submitted and queued, so we prolong the election.
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	// Clean all data on round rotation. Later on, we can move to lazy deletion.
+	// TODO @kianenigma lazy deletion already?
 	type OnRoundRotation = multi_block::CleanRound<Self>;
 	type WeightInfo = weights::pallet_election_provider_multi_block::WeightInfo<Self>;
 }
@@ -558,7 +559,22 @@ impl<const EXPECTED_SPEC: u32> frame_support::traits::OnRuntimeUpgrade
 			};
 			<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 
-			<Runtime as frame_system::Config>::DbWeight::get().writes(2)
+			// The maximum number of validators should be equal to `TargetSnapshotPerBlock`, 2500.
+			//
+			// Note that previously this value was 4000, allowing for possibly more validator
+			// candidates to exists. In a parachain, we cannot afford this high limit anymore, as
+			// it would increase the chances of the chain stalling due to over-weight
+			// on-initialize code.
+			//
+			// Future iterations of staking-async will either:
+			//
+			// * Remove this bottleneck
+			// * Move to using `on_poll`
+			//
+			// After which this limit can be increased again.
+			pallet_staking_async::ValidatorCount::<Runtime>::put(2500);
+
+			<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 		} else {
 			Default::default()
 		}
@@ -569,20 +585,111 @@ impl<const EXPECTED_SPEC: u32> frame_support::traits::OnRuntimeUpgrade
 mod tests {
 	use super::*;
 
-	// TODO: @kianenigma
-	mod message_sizes {
-		use super::*;
+	use sp_runtime::Percent;
+	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
+	fn analyze_weight(
+		op_name: &str,
+		op_weight: Weight,
+		limit_weight: Weight,
+		maybe_max_ratio: Option<Percent>,
+	) {
+		sp_tracing::try_init_simple();
+		let ref_time_ms = op_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
+		let ref_time_ratio = Percent::from_rational(op_weight.ref_time(), limit_weight.ref_time());
+		let proof_size_kb = op_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
+		let proof_size_ratio =
+			Percent::from_rational(op_weight.proof_size(), limit_weight.proof_size());
+		let limit_ms = limit_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
+		let limit_kb = limit_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
+		log::info!(target: "runtime::asset-hub-kusama", "weight of {:?} is: ref-time: {}ms, {:?} of total, proof-size: {}KiB, {:?} of total (total: {}ms, {}KiB)",
+			op_name,
+			ref_time_ms,
+			ref_time_ratio,
+			proof_size_kb,
+			proof_size_ratio,
+			limit_ms,
+			limit_kb
+		);
+
+		if let Some(max_ratio) = maybe_max_ratio {
+			assert!(ref_time_ratio <= max_ratio && proof_size_ratio <= max_ratio,)
+		}
 	}
 
 	mod incoming_xcm_weights {
+		use sp_runtime::{Perbill, Percent};
+
+		use crate::staking::tests::analyze_weight;
+
 		#[test]
 		fn offence_report() {
-			todo!("@kianenigma")
+			use crate::{AccountId, Runtime};
+			use frame_support::dispatch::GetDispatchInfo;
+			use pallet_staking_async_rc_client as rc_client;
+
+			// up to a 1/3 of the validators are reported in a single batch of offences
+			let hefty_offences = (0..333)
+				.map(|i| {
+					rc_client::Offence {
+						offender: <AccountId>::from([i as u8; 32]), /* overflows, but whatever,
+						                                             * don't matter */
+						reporters: vec![<AccountId>::from([1u8; 32])],
+						slash_fraction: Perbill::from_percent(10),
+					}
+				})
+				.collect();
+			let di = rc_client::Call::<Runtime>::relay_new_offence {
+				slash_session: 42,
+				offences: hefty_offences,
+			}
+			.get_dispatch_info();
+
+			let offence_report = di.call_weight + di.extension_weight;
+			let mq_service_weight = crate::MessageQueueServiceWeight::get();
+
+			analyze_weight(
+				"offence_report",
+				offence_report,
+				mq_service_weight,
+				Some(Percent::from_percent(95)),
+			);
 		}
 
 		#[test]
 		fn session_report() {
-			todo!("@kianenigma")
+			use crate::{AccountId, Runtime};
+			use frame_support::dispatch::GetDispatchInfo;
+			use pallet_staking_async_rc_client as rc_client;
+
+			sp_io::TestExternalities::new_empty().execute_with(|| {
+				// this benchmark is a function of current active validator count
+				pallet_staking_async::ValidatorCount::<Runtime>::put(1000);
+				let hefty_report = rc_client::SessionReport {
+					activation_timestamp: Some((42, 42)),
+					end_index: 42,
+					leftover: false,
+					validator_points: (0..1000u32)
+						.map(|i| {
+							let unique = i.to_le_bytes();
+							let mut acc = [0u8; 32];
+							// first 4 bytes should be `unique`, rest 0
+							acc[..4].copy_from_slice(&unique);
+							(AccountId::from(acc), i)
+						})
+						.collect(),
+				};
+				let di = rc_client::Call::<Runtime>::relay_session_report { report: hefty_report }
+					.get_dispatch_info();
+				let session_report_weight = di.call_weight + di.extension_weight;
+				let mq_service_weight = crate::MessageQueueServiceWeight::get();
+				analyze_weight(
+					"session_report",
+					session_report_weight,
+					mq_service_weight,
+					Some(Percent::from_percent(95)),
+				);
+			})
 		}
 	}
 
@@ -599,39 +706,6 @@ mod tests {
 	/// * Election export terminal (which is the most expensive, and has round cleanup in it)
 	mod weights {
 		use super::*;
-		use sp_runtime::Percent;
-		use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
-
-		fn analyze_weight(
-			op_name: &str,
-			op_weight: Weight,
-			limit_weight: Weight,
-			maybe_max_ratio: Option<Percent>,
-		) {
-			sp_tracing::try_init_simple();
-			let ref_time_ms = op_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
-			let ref_time_ratio =
-				Percent::from_rational(op_weight.ref_time(), limit_weight.ref_time());
-			let proof_size_kb = op_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
-			let proof_size_ratio =
-				Percent::from_rational(op_weight.proof_size(), limit_weight.proof_size());
-			let limit_ms = limit_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
-			let limit_kb = limit_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
-			log::info!(target: "runtime::asset-hub-kusama", "weight of {:?} is: ref-time: {}ms, {:?} of total, proof-size: {}KiB, {:?} of total (total: {}ms, {}KiB)",
-				op_name,
-				ref_time_ms,
-				ref_time_ratio,
-				proof_size_kb,
-				proof_size_ratio,
-				limit_ms,
-				limit_kb
-			);
-
-			if let Some(max_ratio) = maybe_max_ratio {
-				assert!(ref_time_ratio <= max_ratio && proof_size_ratio <= max_ratio,)
-			}
-		}
-
 		#[test]
 		fn snapshot_msp_weight() {
 			use multi_block::WeightInfo;
@@ -639,7 +713,7 @@ mod tests {
 				"snapshot_msp",
 				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_msp(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 		}
 
@@ -650,7 +724,7 @@ mod tests {
 				"snapshot_rest",
 				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_rest(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 		}
 
@@ -661,14 +735,14 @@ mod tests {
 				"verifier valid terminal",
 				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_valid_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 
 			analyze_weight(
 				"verifier invalid terminal",
 				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_invalid_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 		}
 
@@ -681,7 +755,7 @@ mod tests {
 					Pages::get(),
 				),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 			analyze_weight(
 				"full solution cleanup",
@@ -690,19 +764,18 @@ mod tests {
 				)
 				.mul(16 as u64),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 		}
 
 		#[test]
 		fn export_weight() {
-			// TODO @kianenigma this fails now, but should be fine after we re-benchmark the pallet.
 			use multi_block::WeightInfo;
 			analyze_weight(
 				"export terminal",
 				<Runtime as multi_block::Config>::WeightInfo::export_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(70)),
+				Some(Percent::from_percent(75)),
 			);
 		}
 

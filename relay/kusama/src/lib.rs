@@ -1746,8 +1746,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type MinimumValidatorSetSize = MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
-	// TODO @kianenigma
-	type MaxOffenceBatchSize = ConstU32<50>;
+	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
 	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
 }
