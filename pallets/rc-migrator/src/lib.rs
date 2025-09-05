@@ -721,15 +721,9 @@ pub mod pallet {
 			new: AhUmpQueuePriority<BlockNumberFor<T>>,
 		},
 		/// The total issuance was recorded.
-		MigratedBalanceRecordSet {
-			kept: T::Balance,
-			migrated: T::Balance,
-		},
+		MigratedBalanceRecordSet { kept: T::Balance, migrated: T::Balance },
 		/// The RC kept balance was consumed.
-		MigratedBalanceConsumed {
-			kept: T::Balance,
-			migrated: T::Balance,
-		},
+		MigratedBalanceConsumed { kept: T::Balance, migrated: T::Balance },
 		/// The manager account id was set.
 		ManagerSet {
 			/// The old manager account id.
@@ -738,12 +732,7 @@ pub mod pallet {
 			new: Option<T::AccountId>,
 		},
 		/// An XCM message was sent.
-		XcmSent {
-			origin: Location,
-			destination: Location,
-			message: Xcm<()>,
-			message_id: XcmHash,
-		},
+		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
 		/// The staking elections were paused.
 		StakingElectionsPaused,
 		/// The accounts to be preserved on Relay Chain were set.
