@@ -71,7 +71,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use governance::{pallet_custom_origins, GeneralAdmin, StakingAdmin, Treasurer};
+use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use pallet_assets::precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
@@ -1345,9 +1345,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
-			Treasury(_) => {
-				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone())
-			},
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}

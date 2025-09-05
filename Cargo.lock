@@ -6349,7 +6349,6 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "hex-literal",
@@ -6907,6 +6906,7 @@ dependencies = [
  "sp-runtime",
  "sp-trie",
  "sp-weights",
+ "staging-xcm",
  "staging-xcm-builder",
 ]
 
@@ -16281,17 +16281,8 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "log",
- "pallet-treasury",
- "parity-scale-codec",
- "polkadot-runtime-common",
- "scale-info",
- "sp-api",
- "sp-core 38.0.0",
  "sp-runtime",
  "sp-state-machine",
- "sp-std",
- "staging-xcm",
- "staging-xcm-executor",
 ]
 
 [[package]]

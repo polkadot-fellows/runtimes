@@ -18,9 +18,9 @@ pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
 	AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances, CollatorSelection,
-	GeneralAdmin, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	StakingAdmin, ToPolkadotXcmRouter, WeightToFee, XcmpQueue,
+	FellowshipAdmin, GeneralAdmin, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm,
+	PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
+	RuntimeOrigin, StakingAdmin, ToPolkadotXcmRouter, WeightToFee, XcmpQueue,
 };
 use crate::ForeignAssets;
 use alloc::{vec, vec::Vec};
@@ -277,6 +277,13 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+pub struct LocalPlurality;
+impl Contains<Location> for LocalPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Plurality { .. }]))
+	}
+}
+
 /// Location type to determine the Technical Fellowship related
 /// pallets for use in XCM.
 pub struct FellowshipEntities;
@@ -327,6 +334,7 @@ pub type WaivedLocations = (
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,
+	LocalPlurality,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
@@ -445,6 +453,8 @@ parameter_types! {
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	// `GeneralAdmin` pluralistic body.
 	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
+	// `FellowshipAdmin` pluralistic body.
+	pub const FellowshipAdminBodyId: BodyId = kusama_runtime_constants::xcm::body::KUSAMA_FELLOWSHIP_ADMIN_BODY_ID;
 }
 
 /// Type to convert the `StakingAdmin` origin to a Plurality `Location` value.
@@ -454,6 +464,9 @@ pub type StakingAdminToPlurality =
 /// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
 pub type GeneralAdminToPlurality =
 	OriginToPluralityVoice<RuntimeOrigin, GeneralAdmin, GeneralAdminBodyId>;
+/// Type to convert the `FellowshipAdmin` origin to a Plurality `Location` value.
+pub type FellowshipAdminToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, FellowshipAdmin, FellowshipAdminBodyId>;
 
 /// Converts a local signed origin into an XCM `Location`.
 /// Forms the basis for local origins sending/executing XCMs.
@@ -466,6 +479,8 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	GeneralAdminToPlurality,
 	// StakingAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
 	StakingAdminToPlurality,
+	// FellowshipAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
+	FellowshipAdminToPlurality,
 	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
 );
