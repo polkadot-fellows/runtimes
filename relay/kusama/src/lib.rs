@@ -73,7 +73,7 @@ use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
-use pallet_xcm::EnsureXcm;
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
@@ -134,7 +134,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
-use xcm_config::AssetHubLocation;
+use xcm_config::{AssetHubLocation, GeneralAdminBodyId, StakingAdminBodyId};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -656,7 +656,10 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		(),
 	>;
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
-	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type ForceOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
 	type MaxWinners = MaxWinnersPerPage;
 	type ElectionBounds = ElectionBounds;
@@ -869,7 +872,10 @@ impl pallet_staking::Config for Runtime {
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
 	type SlashDeferDuration = SlashDeferDuration;
-	type AdminOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type AdminOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
 	type NextNewSession = Session;
@@ -1510,8 +1516,10 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	// TODO: review - GeneralAdmin propagation from AssetHub?
-	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
+	type ChannelManager = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
+	>;
 	type Currency = Balances;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active
 	// `HostConfiguration` configuration for `hrmp_channel_max_message_size` and
