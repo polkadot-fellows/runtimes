@@ -62,7 +62,8 @@ use frame_support::{
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
 		EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, InstanceFilter,
-		LinearStoragePrice, PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
+		LinearStoragePrice, PrivilegeCmp, Randomness, TheseExcept, TransformOrigin,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -1345,9 +1346,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
-			Treasury(_) => {
-				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone())
-			},
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1397,13 +1397,31 @@ parameter_types! {
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
 
+/// Randomness from the relay state root.
+///
+/// This is meant to be used by the society pallet and not a general purpose randomness source.
+pub struct RelayStateRootRandomness<T>(core::marker::PhantomData<T>);
+impl<T: cumulus_pallet_parachain_system::Config>
+	Randomness<T::Hash, cumulus_primitives_core::relay_chain::BlockNumber>
+	for RelayStateRootRandomness<T>
+{
+	fn random(subject: &[u8]) -> (T::Hash, cumulus_primitives_core::relay_chain::BlockNumber) {
+		use cumulus_pallet_parachain_system::RelaychainStateProvider;
+		use sp_runtime::traits::Hash;
+
+		let rc_state = RelaychainDataProvider::<T>::current_relay_chain_state();
+
+		let mut subject = subject.to_vec();
+		subject.extend_from_slice(&rc_state.state_root.0);
+
+		(T::Hashing::hash(&subject[..]), rc_state.number)
+	}
+}
+
 impl pallet_society::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type Randomness = system_parachains_common::randomness::RelayChainOneEpochAgoWithoutBlockNumber<
-		Runtime,
-		cumulus_primitives_core::relay_chain::BlockNumber,
-	>;
+	type Randomness = RelayStateRootRandomness<Runtime>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
 	type VotingPeriod = pallet_ah_migrator::LeftOrRight<
