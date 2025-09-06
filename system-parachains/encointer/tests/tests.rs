@@ -17,13 +17,12 @@ fn governance_authorize_upgrade_works() {
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
 		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
-
 	// no - random system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
-		>(GovernanceOrigin::Location(Location::new(1, Parachain(1002)))),
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
 		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 

@@ -73,7 +73,7 @@ use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
-use pallet_xcm::EnsureXcm;
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
@@ -121,8 +121,8 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Get,
-		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Saturating, Verify,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
+		Get, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Saturating, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
@@ -134,7 +134,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
-use xcm_config::AssetHubLocation;
+use xcm_config::{AssetHubLocation, GeneralAdminBodyId, StakingAdminBodyId};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -485,6 +485,7 @@ impl pallet_timestamp::Config for Runtime {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
+	// Era points are now reported to ah-client, to be sent to AH on next session.
 	type EventHandler = StakingAhClient;
 }
 
@@ -510,6 +511,8 @@ impl pallet_session::Config for Runtime {
 	type ValidatorIdOf = ConvertInto;
 	type ShouldEndSession = Babe;
 	type NextSessionRotation = Babe;
+	// Sessions are now managed by the staking-ah client, giving us validator sets, and sending
+	// session report.
 	type SessionManager = session_historical::NoteHistoricalRoot<Self, StakingAhClient>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
@@ -522,6 +525,10 @@ impl pallet_session::Config for Runtime {
 
 impl pallet_session::historical::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	// Note: while the identification of each validators for historical reasons is still an
+	// exposure, we actually don't need this data, and `DefaultExposureOf` always uses
+	// `Default::default`. Retaining this type + keeping a default value is only for historical
+	// reasons and backwards compatibility.
 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
 	type FullIdentificationOf = pallet_staking::DefaultExposureOf<Runtime>;
 }
@@ -656,7 +663,10 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		(),
 	>;
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
-	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type ForceOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
 	type MaxWinners = MaxWinnersPerPage;
 	type ElectionBounds = ElectionBounds;
@@ -803,7 +813,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 
 		let params = relay_common::EraPayoutParams {
 			total_staked,
-			total_stakable: 0, // TODO: double check
+			total_stakable: Balances::total_issuance(),
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
 			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
 			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
@@ -869,7 +879,10 @@ impl pallet_staking::Config for Runtime {
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
 	type SlashDeferDuration = SlashDeferDuration;
-	type AdminOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type AdminOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
 	type NextNewSession = Session;
@@ -1030,6 +1043,8 @@ impl pallet_child_bounties::Config for Runtime {
 impl pallet_offences::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
+	// Offences are now reported to ah-client, to be forwarded to AH, after potentially disabling
+	// validators.
 	type OnOffenceHandler = StakingAhClient;
 }
 
@@ -1426,6 +1441,7 @@ impl parachains_session_info::Config for Runtime {
 impl parachains_inclusion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type DisputesHandler = ParasDisputes;
+	// parachain consensus points are now reported to ah-client, to be sent to AH on next session.
 	type RewardValidators =
 		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
 	type MessageQueue = MessageQueue;
@@ -1510,7 +1526,10 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
+	type ChannelManager = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
+	>;
 	type Currency = Balances;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active
 	// `HostConfiguration` configuration for `hrmp_channel_max_message_size` and
@@ -1712,6 +1731,8 @@ impl pallet_nomination_pools::Config for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+	// Kusama always wants 1000 validators, we reject anything smaller than that.
+	pub storage MinimumValidatorSetSize: u32 = 1000;
 }
 
 impl pallet_delegated_staking::Config for Runtime {
@@ -1732,10 +1753,10 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = ConstU32<400>;
+	type MinimumValidatorSetSize = MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
-	type MaxOffenceBatchSize = ConstU32<50>;
+	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
 	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
 }
@@ -1762,6 +1783,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
 
 #[derive(Encode, Decode)]
 enum AssetHubRuntimePallets<AccountId> {
+	// index of the rc-client pallet in ksm-ah.
 	#[codec(index = 84)]
 	RcClient(RcClientCalls<AccountId>),
 }
@@ -1802,12 +1824,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	fn relay_session_report(
 		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
 	) {
-		pallet_staking_async_rc_client::XCMSender::<
-			xcm_config::XcmRouter,
-			AssetHubLocation,
-			pallet_staking_async_rc_client::SessionReport<AccountId>,
-			SessionReportToXcm,
-		>::split_then_send(session_report, Some(8));
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let message = SessionReportToXcm::convert(session_report);
+		let dest = AssetHubLocation::get();
+		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
+			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {:?}", err);
+		});
 	}
 
 	fn relay_new_offence(
@@ -1830,9 +1852,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 				.into(),
 			},
 		]);
-		if let Err(err) = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
-		}
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
+			|err| {
+				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+			},
+		);
 	}
 }
 
@@ -1880,6 +1905,13 @@ parameter_types! {
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
+pub struct ProxyTypeAny;
+impl frame_support::traits::Contains<TransparentProxyType> for ProxyTypeAny {
+	fn contains(proxy_type: &TransparentProxyType) -> bool {
+		proxy_type.0 == kusama_runtime_constants::proxy::ProxyType::Any
+	}
+}
+
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
@@ -1894,6 +1926,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
 	type TreasuryPaymaster = TreasuryPaymaster;
+	type PureProxyFreeVariants = ProxyTypeAny;
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
@@ -2005,6 +2038,7 @@ construct_runtime! {
 		// Staking extension for delegation
 		DelegatedStaking: pallet_delegated_staking = 47,
 
+		// staking client to communicate with AH.
 		StakingAhClient: pallet_staking_async_ah_client = 48,
 
 		// Parachains pallets. Start indices at 50 to leave room.

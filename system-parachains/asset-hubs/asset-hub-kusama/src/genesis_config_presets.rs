@@ -69,7 +69,7 @@ fn asset_hub_kusama_genesis(
 		},
 		"staking": {
 			"validatorCount": 1000,
-			"devStakers": Some((2_000, 25_000)),
+			"devStakers": Some((4_000, 15_000)),
 		},
 		"foreignAssets": ForeignAssetsConfig {
 			assets: foreign_assets

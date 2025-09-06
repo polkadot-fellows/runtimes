@@ -19,13 +19,14 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging, CheckingAccount, DotLocation, GovernanceLocation, LocationToAccountId,
+		bridging, CheckingAccount, DotLocation, LocationToAccountId, RelayChainLocation,
 		StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
-	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
+	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
+	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, SessionKeys, ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
+	SLOT_DURATION,
 };
 use asset_test_utils::{
 	include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works,
@@ -59,6 +60,11 @@ use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
+
+frame_support::parameter_types! {
+	// Local OpenGov
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Origin(RuntimeOrigin::root());
+}
 
 type AssetIdForTrustBackedAssetsConvertLatest =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
@@ -551,7 +557,7 @@ fn change_xcm_bridge_hub_router_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| {
 			log::error!(
 				target: "bridges::estimate",
@@ -583,7 +589,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| {
 			(
 				bridging::XcmBridgeHubRouterByteFee::key().to_vec(),
@@ -609,7 +615,7 @@ fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| {
 			(
 				bridging::to_ethereum::BridgeHubEthereumBaseFee::key().to_vec(),
@@ -898,13 +904,21 @@ fn authorized_aliases_work() {
 fn governance_authorize_upgrade_works() {
 	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
 
-	// no - random para
+	// no - random non-system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
 		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+	// no - random system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 	// no - AssetHub
 	assert_err!(
@@ -938,9 +952,5 @@ fn governance_authorize_upgrade_works() {
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(Location::parent())));
-	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
-		Runtime,
-		RuntimeOrigin,
-	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
 }

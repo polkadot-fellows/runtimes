@@ -36,7 +36,9 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::traits::AccountIdConversion;
-pub use system_parachains_constants::kusama::locations::{AssetHubLocation, RelayChainLocation};
+pub use system_parachains_constants::kusama::locations::{
+	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
+};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -151,6 +153,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						Equals<RelayTreasuryLocation>,
 						Equals<AssetHubLocation>,
+						AssetHubPlurality,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,

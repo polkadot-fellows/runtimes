@@ -48,7 +48,9 @@ use xcm_builder::{
 };
 use xcm_executor::XcmExecutor;
 
-pub use system_parachains_constants::kusama::locations::{AssetHubLocation, RelayChainLocation};
+pub use system_parachains_constants::kusama::locations::{
+	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
+};
 
 parameter_types! {
 	pub const KsmLocation: Location = Location::parent();
@@ -148,6 +150,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						// For OpenGov on AH
 						Equals<AssetHubLocation>,
+						AssetHubPlurality,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
