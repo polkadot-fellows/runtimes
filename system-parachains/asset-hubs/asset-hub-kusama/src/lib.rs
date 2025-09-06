@@ -92,10 +92,10 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		Verify,
+		Get, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
+	ApplyExtrinsicResult, Perbill, Permill, Perquintill, RuntimeDebug,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -1345,6 +1345,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
+			Inflation(_) =>
+				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
@@ -1370,6 +1372,27 @@ impl pallet_parameters::Config for Runtime {
 pub mod dynamic_params {
 	use super::*;
 
+	/// Parameters used to calculate staking era payouts.
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod inflation {
+		/// Minimum inflation rate used to calculate era payouts.
+		#[codec(index = 0)]
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
+
+		/// Maximum inflation rate used to calculate era payouts.
+		#[codec(index = 1)]
+		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
+
+		/// Ideal stake ratio used to calculate era payouts.
+		#[codec(index = 2)]
+		pub static IdealStake: Perquintill = Perquintill::from_percent(75);
+
+		/// Falloff used to calculate era payouts.
+		#[codec(index = 3)]
+		pub static Falloff: Perquintill = Perquintill::from_percent(5);
+	}
+
 	/// Parameters used by `pallet-treasury` to handle the burn process.
 	#[dynamic_pallet_params]
 	#[codec(index = 1)]
@@ -1385,9 +1408,10 @@ pub mod dynamic_params {
 #[cfg(feature = "runtime-benchmarks")]
 impl Default for RuntimeParameters {
 	fn default() -> Self {
-		RuntimeParameters::Treasury(dynamic_params::treasury::Parameters::BurnPortion(
-			dynamic_params::treasury::BurnPortion,
-			Some(Permill::from_percent(0)),
+		// TODO: @kianenigma/!bkontur - is this ok?
+		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
+			dynamic_params::inflation::MinInflation,
+			Some(Perquintill::from_rational(25u64, 1000u64)),
 		))
 	}
 }
@@ -1570,6 +1594,8 @@ pub type Migrations = (
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	// TODO: TRIPLE CHECK the spec version prior to final merge, and remove the TODO.
+	staking::InitiateStakingAsync<1_008_000>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
