@@ -63,6 +63,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::WeightInfo f
 	/// Storage: UNKNOWN KEY `0x5fa6b11cf49311969aa152d95989a962` (r:1 w:0)
 	/// Proof: UNKNOWN KEY `0x5fa6b11cf49311969aa152d95989a962` (r:1 w:0)
 	fn on_initialize_nothing() -> Weight {
+		// TODO: fresh
 		// Proof Size summary in bytes:
 		//  Measured:  `400`
 		//  Estimated: `3865`
