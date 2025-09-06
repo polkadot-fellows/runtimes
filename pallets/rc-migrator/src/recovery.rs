@@ -219,7 +219,7 @@ impl TranslateAccounts for PortableRecoveryFriends {
 	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		Self {
 			friends: self.friends.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into(),
-		} // TODO @ggwpez iter_mut?
+		}
 	}
 }
 
@@ -257,9 +257,8 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 				}
 			}
 
-			// TODO @ggwpez weight
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_vesting_schedules((messages.len() + 1) as u32))
+				.any_lt(ah_receive_recovery_msg_weight((messages.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
@@ -353,4 +352,12 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 			Ok(Some(last_key))
 		}
 	}
+}
+
+pub fn ah_receive_recovery_msg_weight(n: u32) -> Weight {
+	Weight::from_parts(10_000_000, 1_000).saturating_add(
+		(Weight::from_parts(1_000_000, 1_000)
+			.saturating_add(frame_support::weights::constants::RocksDbWeight::get().writes(1)))
+		.saturating_mul(n as u64),
+	)
 }

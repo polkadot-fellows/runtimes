@@ -133,7 +133,9 @@ substrate-wasm-builder = { workspace = true, optional = true }
 default = ["std"]
 no_std = []
 
-polkadot-ahm = []
+polkadot-ahm = [
+	"pallet-rc-migrator/polkadot-ahm",
+]
 std = [
 	"pallet-rc-migrator/std",
 

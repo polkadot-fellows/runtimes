@@ -86,6 +86,8 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 #[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
+#[cfg(not(feature = "kusama-ahm"))]
+type PortableRecoveryMessage = (); // somehow needed for FRAME
 #[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{
@@ -975,7 +977,7 @@ pub mod pallet {
 
 		#[cfg(feature = "kusama-ahm")]
 		#[pallet::call_index(26)]
-		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))] // TODO @ggwpez weight
+		#[pallet::weight(pallet_rc_migrator::recovery::ah_receive_recovery_msg_weight(messages.len() as u32))]
 		pub fn receive_recovery_messages(
 			origin: OriginFor<T>,
 			messages: Vec<PortableRecoveryMessage>,

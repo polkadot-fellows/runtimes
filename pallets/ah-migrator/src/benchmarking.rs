@@ -1230,6 +1230,15 @@ pub mod benchmarks {
 		_receive_delegated_staking_messages::<T>(n, true)
 	}
 
+	/*#[cfg(all(feature = "std", feature = "kusama-ahm"))]
+	pub fn test_receive_recovery_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
+		_receive_recovery_messages::<T>(n, true)
+	}*/
+
 	#[cfg(feature = "std")]
 	pub fn test_force_set_stage<T>()
 	where

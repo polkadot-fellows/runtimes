@@ -1323,7 +1323,7 @@ parameter_types! {
 
 impl pallet_recovery::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO
+	type WeightInfo = weights::pallet_recovery::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
 	type ConfigDepositBase = ConfigDepositBase;
@@ -1705,6 +1705,7 @@ mod benches {
 		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
+		[pallet_recovery, Revive]
 		[pallet_remote_proxy, RemoteProxyRelayChain]
 		[pallet_scheduler, Scheduler]
 		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime

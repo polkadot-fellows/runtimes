@@ -37,6 +37,7 @@ pub mod pallet_preimage;
 pub mod pallet_proxy;
 pub mod pallet_ranked_collective;
 pub mod pallet_rc_migrator;
+pub mod pallet_recovery;
 pub mod pallet_referenda_fellowship_referenda;
 pub mod pallet_referenda_referenda;
 pub mod pallet_scheduler;

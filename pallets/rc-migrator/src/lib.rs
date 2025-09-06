@@ -2120,8 +2120,30 @@ pub mod pallet {
 				},
 				#[cfg(feature = "kusama-ahm")]
 				MigrationStage::RecoveryMigrationOngoing { last_key } => {
-					// TODO
-					Self::transition(MigrationStage::RecoveryMigrationDone);
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match recovery::RecoveryMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::RecoveryMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::RecoveryMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating recovery: {:?}", e);
+						},
+					}
 				},
 				#[cfg(feature = "kusama-ahm")]
 				MigrationStage::RecoveryMigrationDone => {
