@@ -2557,6 +2557,7 @@ dependencies = [
  "collectives-polkadot-runtime",
  "coretime-kusama-runtime",
  "coretime-polkadot-runtime",
+ "encointer-kusama-runtime",
  "glutton-kusama-runtime",
  "people-kusama-runtime",
  "people-polkadot-runtime",
