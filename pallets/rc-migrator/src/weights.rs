@@ -57,7 +57,6 @@ pub trait WeightInfo {
 	fn schedule_migration() -> Weight;
 	fn start_data_migration() -> Weight;
 	fn send_chunked_xcm_and_track() -> Weight;
-	fn update_ah_msg_processed_count() -> Weight;
 	fn receive_query_response() -> Weight;
 	fn resend_xcm() -> Weight;
 	fn set_unprocessed_msg_buffer() -> Weight;
@@ -141,17 +140,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(258_000_000, 3583)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
-	}
-	/// Storage: `RcMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `RcMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	fn update_ah_msg_processed_count() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `4`
-		//  Estimated: `1493`
-		// Minimum execution time: 7_000_000 picoseconds.
-		Weight::from_parts(9_000_000, 1493)
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	fn receive_query_response() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
@@ -247,17 +235,6 @@ impl WeightInfo for () {
 		Weight::from_parts(258_000_000, 3583)
 			.saturating_add(RocksDbWeight::get().reads(5_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
-	}
-	/// Storage: `RcMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `RcMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	fn update_ah_msg_processed_count() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `4`
-		//  Estimated: `1493`
-		// Minimum execution time: 6_000_000 picoseconds.
-		Weight::from_parts(9_000_000, 1493)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 
 	fn receive_query_response() -> Weight {
