@@ -661,7 +661,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						RuntimeCall::Utility { .. } |
 						RuntimeCall::Multisig { .. } |
 						RuntimeCall::NftFractionalization { .. } |
-						RuntimeCall::Nfts { .. } | RuntimeCall::Uniques { .. }
+						RuntimeCall::Nfts { .. } |
+						RuntimeCall::Uniques { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -749,7 +750,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::NominationPools(..) |
 						RuntimeCall::VoterList(..)
 				)
@@ -832,6 +834,11 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 
 impl parachain_info::Config for Runtime {}
 
+parameter_types! {
+	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
+}
+
 impl pallet_message_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
@@ -850,8 +857,8 @@ impl pallet_message_queue::Config for Runtime {
 	type QueuePausedQuery = NarrowOriginToSibling<XcmpQueue>;
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
-	type ServiceWeight = dynamic_params::message_queue::MaxOnInitWeight;
-	type IdleMaxServiceWeight = dynamic_params::message_queue::MaxOnIdleWeight;
+	type ServiceWeight = MessageQueueServiceWeight;
+	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -1206,6 +1213,8 @@ impl pallet_preimage::Config for Runtime {
 }
 
 parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+		RuntimeBlockWeights::get().max_block;
 	pub ZeroWeight: Weight = Weight::zero();
 	pub const MaxScheduledPerBlock: u32 = 50;
 	pub const NoPreimagePostponement: Option<u32> = Some(10);
@@ -1234,14 +1243,11 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight = pallet_ah_migrator::LeftOrRight<
-		AhMigrator,
-		ZeroWeight,
-		dynamic_params::scheduler::MaximumWeight,
-	>;
+	type MaximumWeight =
+		pallet_ah_migrator::LeftOrRight<AhMigrator, ZeroWeight, MaximumSchedulerWeight>;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
-	type MaxScheduledPerBlock = dynamic_params::scheduler::MaxScheduledPerBlock;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
@@ -1339,19 +1345,10 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
+			Inflation(_) =>
+				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
-			StakingElection(_) =>
-				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
-			Issuance(_) => <EnsureRoot<AccountId> as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-				origin.clone(),
-			),
-			// technical params, can be controlled by the fellowship voice.
-			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
-				EnsureRoot<AccountId>,
-				EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-			>::ensure_origin(origin.clone())
-			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1378,12 +1375,12 @@ pub mod dynamic_params {
 	/// Parameters used to calculate staking era payouts.
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
-	pub mod issuance {
-		/// Minimum issuance rate used to calculate era payouts.
+	pub mod inflation {
+		/// Minimum inflation rate used to calculate era payouts.
 		#[codec(index = 0)]
 		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
 
-		/// Maximum issuance rate used to calculate era payouts.
+		/// Maximum inflation rate used to calculate era payouts.
 		#[codec(index = 1)]
 		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
 
@@ -1405,68 +1402,6 @@ pub mod dynamic_params {
 
 		#[codec(index = 1)]
 		pub static BurnDestination: crate::treasury::BurnDestinationAccount = Default::default();
-	}
-
-	/// Parameters used to `election-provider-multi-block` and friends.
-	#[dynamic_pallet_params]
-	#[codec(index = 2)]
-	pub mod staking_election {
-		/// 20 mins worth of local 6s blocks for signed phase.
-		#[codec(index = 0)]
-		pub static SignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
-
-		/// Allow up to 16 signed solutions to be submitted.
-		#[codec(index = 1)]
-		pub static MaxSignedSubmissions: u32 = 16;
-
-		/// 10m for unsigned phase...
-		#[codec(index = 2)]
-		pub static UnsignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
-
-		/// .. in which we try and mine a 4-page solution.
-		#[codec(index = 3)]
-		pub static MinerPages: u32 = 4;
-
-		/// Kusama allows up to 12_500 active nominators (aka. electing voters).
-		#[codec(index = 4)]
-		pub static MaxElectingVoters: u32 = 12_500;
-
-		/// An upper bound on the number of anticipated kusama "validator candidates".
-		///
-		/// At the time of writing, Kusama has 1000 active validators, and ~2k validator candidates.
-		///
-		/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight.
-		#[codec(index = 5)]
-		pub static TargetSnapshotPerBlock: u32 = 2_500;
-	}
-
-	/// Parameters about the scheduler pallet.
-	#[dynamic_pallet_params]
-	#[codec(index = 3)]
-	pub mod scheduler {
-		/// Maximum items scheduled per block.
-		#[codec(index = 0)]
-		pub static MaxScheduledPerBlock: u32 = 50;
-
-		/// Maximum amount of weight given to execution of scheduled tasks on-init in scheduler
-		#[codec(index = 1)]
-		pub static MaximumWeight: Weight =
-			Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
-	}
-
-	/// Parameters about the MQ pallet.
-	#[dynamic_pallet_params]
-	#[codec(index = 4)]
-	pub mod message_queue {
-		/// Max weight used on-init.
-		#[codec(index = 0)]
-		pub static MaxOnInitWeight: Option<Weight> =
-			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
-
-		/// Max weight used on-idle.
-		#[codec(index = 1)]
-		pub static MaxOnIdleWeight: Option<Weight> =
-			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
 	}
 }
 
