@@ -136,6 +136,9 @@ pub const MAX_XCM_SIZE: u32 = 50_000;
 /// and Asset Hub.
 pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
 
+/// The maximum number of XCM messages that can be sent in a single block.
+pub const MAX_XCM_MSG_PER_BLOCK: u32 = 20;
+
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
 
@@ -437,6 +440,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
 			"scheduler" => MigrationStage::SchedulerMigrationInit,
+			"staking" => MigrationStage::StakingMigrationInit,
 			#[cfg(feature = "kusama-ahm")]
 			"society" => MigrationStage::SocietyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
@@ -2433,6 +2437,15 @@ pub mod pallet {
 					PendingXcmQueries::<T>::insert(query_id, message_hash);
 					batch_count += 1;
 				}
+			}
+
+			if batch_count > MAX_XCM_MSG_PER_BLOCK {
+				log::warn!(
+					target: LOG_TARGET,
+					"Maximum number of XCM messages ({}) to migrate per block exceeded, current msg count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch_count
+				);
 			}
 
 			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);
