@@ -40,7 +40,7 @@ jobs:
       - name: Clippy
         run: |
           cargo clippy --version
-          cargo clippy --all-targets --locked --workspace --quiet
+          cargo clippy --all-targets --locked --workspace --quiet 
           cargo clippy --all-targets  --locked --workspace --features try-runtime,runtime-benchmarks,std --quiet
           cargo clippy --all-targets --locked --quiet --features try-runtime,runtime-benchmarks,std,kusama-ahm -p staging-kusama-runtime -p asset-hub-kusama-runtime
           cargo clippy --all-targets --locked --quiet --features try-runtime,runtime-benchmarks,std,polkadot-ahm -p polkadot-runtime -p asset-hub-polkadot-runtime
