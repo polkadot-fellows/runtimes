@@ -345,7 +345,7 @@ parameter_types! {
 	/// confused in case AH block times change. Ideally, this value should be updated alongside AH's
 	/// block time. If AH blocks progress faster, our eras will become shorter, which is not a
 	/// critical issue.
-	pub const RelaySessionDuration: BlockNumber = 1 * HOURS;
+	pub const RelaySessionDuration: BlockNumber = 1 * RC_HOURS;
 	pub const BondingDuration: sp_staking::EraIndex = 28;
 	pub const SlashDeferDuration: sp_staking::EraIndex = 27;
 	/// Note: smaller value than in RC as parachain PVF is more sensitive to over-weight execution.
