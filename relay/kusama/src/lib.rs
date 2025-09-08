@@ -1790,6 +1790,8 @@ enum AssetHubRuntimePallets<AccountId> {
 
 #[derive(Encode, Decode)]
 enum RcClientCalls<AccountId> {
+	// TODO: double check the call indices after https://github.com/paritytech/polkadot-sdk/pull/9619/files.
+	// RelayNewOffence is removed, RelayNewOffencePaged is new, and is still in index 1
 	#[codec(index = 0)]
 	RelaySessionReport(pallet_staking_async_rc_client::SessionReport<AccountId>),
 	#[codec(index = 1)]
