@@ -3554,9 +3554,9 @@ dependencies = [
 
 [[package]]
 name = "cumulus-pallet-xcmp-queue"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bafc353058c542104a26b68fbba1a732df3c2ba1e32fcd7e9f37a8d805d84788"
+checksum = "9a69478745ec6eaf5107b47106af60635b7c87f04cb23a37b54d774abf80b848"
 dependencies = [
  "approx",
  "bounded-collections 0.3.2",
@@ -4915,9 +4915,9 @@ dependencies = [
 
 [[package]]
 name = "frame-executive"
-version = "42.0.0"
+version = "42.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a756ed87dedc253be2f96e202053dac2162e44e3c49c4398e4719d98af1d6f9"
+checksum = "3b549213d0074ac66f32a3c566329dd299ef96386f12c8247ca60a8ef0485e3c"
 dependencies = [
  "aquamarine",
  "frame-support",
@@ -8912,9 +8912,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-core-fellowship"
-version = "26.0.0"
+version = "26.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a66ba7744f90483b463d697a3f2bc13411918e81b9d24c2aa21d0a4ec2363bcb"
+checksum = "0b427dcb2c0fe433e5c0c100a883f9579ada224f561a4cb09ce56a6c71c36c37"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
