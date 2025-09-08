@@ -136,7 +136,7 @@ pub fn call_allowed_status(
 		NftFractionalization(..) => OFF,
 		Recovery(..) => OFF,
 		MultiBlockMigrations(..) => OFF, // has not calls
-		Revive(..) => OFF,               // TODO: OFF or ON?
+		Revive(..) => ON,
 		Parameters(..) => ON,
 		Society(..) => OFF, // migrating pallet
 	};
