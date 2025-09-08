@@ -1659,8 +1659,7 @@ pub type Migrations = (
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// TODO: TRIPLE CHECK the spec version prior to final merge, and remove the TODO.
-	staking::InitiateStakingAsync<1_008_000>,
+	staking::InitiateStakingAsync,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );

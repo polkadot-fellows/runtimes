@@ -498,12 +498,19 @@ where
 	}
 }
 
-pub struct InitiateStakingAsync<const EXPECTED_SPEC: u32>;
-impl<const EXPECTED_SPEC: u32> frame_support::traits::OnRuntimeUpgrade
-	for InitiateStakingAsync<EXPECTED_SPEC>
-{
+pub struct InitiateStakingAsync;
+
+impl InitiateStakingAsync {
+	fn needs_init() -> bool {
+		// A good proxy whether this pallet is initialized or not is that no invulnerable is set in
+		// `epmb::signed`. The rest are more fuzzy or are inaccessble.
+		multi_block::signed::Invulnerables::<Runtime>::get().is_empty()
+	}
+}
+
+impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	fn on_runtime_upgrade() -> Weight {
-		if crate::VERSION.spec_version == EXPECTED_SPEC {
+		if Self::needs_init() {
 			use pallet_election_provider_multi_block::verifier::Verifier;
 			// set parity staking miner as the invulnerable submitter in `multi-block`.
 			// https://kusama.subscan.io/account/GtGGqmjQeRt7Q5ggrjmSHsEEfeXUMvPuF8mLun2ApaiotVr
