@@ -137,7 +137,7 @@ pub const MAX_XCM_SIZE: u32 = 50_000;
 pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
 
 /// The maximum number of XCM messages that can be sent in a single block.
-pub const MAX_XCM_MSG_PER_BLOCK: u32 = 20;
+pub const MAX_XCM_MSG_PER_BLOCK: u32 = 10;
 
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
