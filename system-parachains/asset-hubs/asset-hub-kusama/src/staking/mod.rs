@@ -592,9 +592,8 @@ mod tests {
 	}
 
 	mod incoming_xcm_weights {
-		use sp_runtime::{Perbill, Percent};
-
 		use crate::staking::tests::analyze_weight;
+		use sp_runtime::{traits::Get, Perbill, Percent};
 
 		#[test]
 		fn offence_report() {
@@ -602,38 +601,48 @@ mod tests {
 			use frame_support::dispatch::GetDispatchInfo;
 			use pallet_staking_async_rc_client as rc_client;
 
-			// up to a 1/3 of the validators are reported in a single batch of offences
-			let hefty_offences = (0..333)
-				.map(|i| {
-					rc_client::Offence {
-						offender: <AccountId>::from([i as u8; 32]), /* overflows, but whatever,
-						                                             * don't matter */
-						reporters: vec![<AccountId>::from([1u8; 32])],
-						slash_fraction: Perbill::from_percent(10),
-					}
-				})
-				.collect();
-			let di = rc_client::Call::<Runtime>::relay_new_offence {
-				slash_session: 42,
-				offences: hefty_offences,
-			}
-			.get_dispatch_info();
+			sp_io::TestExternalities::new_empty().execute_with(|| {
+				// up to a 1/3 of the validators are reported in a single batch of offences
+				let hefty_offences = (0..333)
+					.map(|i| {
+						rc_client::Offence {
+							offender: <AccountId>::from([i as u8; 32]), /* overflows, but
+							                                             * whatever,
+							                                             * don't matter */
+							reporters: vec![<AccountId>::from([1u8; 32])],
+							slash_fraction: Perbill::from_percent(10),
+						}
+					})
+					.collect();
+				let di = rc_client::Call::<Runtime>::relay_new_offence {
+					slash_session: 42,
+					offences: hefty_offences,
+				}
+				.get_dispatch_info();
 
-			let offence_report = di.call_weight + di.extension_weight;
-			let mq_service_weight = crate::MessageQueueServiceWeight::get();
+				let offence_report = di.call_weight + di.extension_weight;
+				let mq_service_weight =
+					<Runtime as pallet_message_queue::Config>::ServiceWeight::get()
+						.unwrap_or_default();
 
-			analyze_weight(
-				"offence_report",
-				offence_report,
-				mq_service_weight,
-				Some(Percent::from_percent(95)),
-			);
+				analyze_weight(
+					"offence_report",
+					offence_report,
+					mq_service_weight,
+					Some(Percent::from_percent(95)),
+				);
+			});
 		}
 
 		#[test]
 		fn session_report() {
+			// TODO: this weight analysis currently fails because we have:
+			// 1. lowered the MQ service weight to 25%
+			// 2. https://github.com/paritytech/polkadot-sdk/pull/9632 is not backported yet.
+			//
+			// Once the latter is backported and available here, this test should no longer fail.
 			use crate::{AccountId, Runtime};
-			use frame_support::dispatch::GetDispatchInfo;
+			use frame_support::{dispatch::GetDispatchInfo, traits::Get};
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
@@ -656,12 +665,14 @@ mod tests {
 				let di = rc_client::Call::<Runtime>::relay_session_report { report: hefty_report }
 					.get_dispatch_info();
 				let session_report_weight = di.call_weight + di.extension_weight;
-				let mq_service_weight = crate::MessageQueueServiceWeight::get();
+				let mq_service_weight =
+					<Runtime as pallet_message_queue::Config>::ServiceWeight::get()
+						.unwrap_or_default();
 				analyze_weight(
 					"session_report",
 					session_report_weight,
 					mq_service_weight,
-					Some(Percent::from_percent(95)),
+					Some(Percent::from_percent(50)),
 				);
 			})
 		}
