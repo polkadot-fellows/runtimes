@@ -126,18 +126,6 @@ impl<T: frame_system::Config> pallet_rc_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	/// Storage: `RcMigrator::DmpDataMessageCounts` (r:1 w:1)
-	/// Proof: `RcMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	fn update_ah_msg_processed_count() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `4`
-		//  Estimated: `1493`
-		// Minimum execution time: 10_980_000 picoseconds.
-		Weight::from_parts(11_590_000, 0)
-			.saturating_add(Weight::from_parts(0, 1493))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
 	fn receive_query_response() -> Weight {
 		Weight::from_parts(10_000_000, 1000)
 	}
