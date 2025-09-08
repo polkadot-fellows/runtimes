@@ -394,6 +394,7 @@ parameter_types! {
 		// the expected era duration in milliseconds.
 		RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64
 	);
+	pub MaxPruningItems: u32 = 100;
 }
 
 impl pallet_staking_async::Config for Runtime {
@@ -434,6 +435,7 @@ impl pallet_staking_async::Config for Runtime {
 	type RcClientInterface = StakingRcClient;
 	type MaxEraDuration = MaxEraDuration;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
+	type MaxPruningItems = MaxPruningItems;
 }
 
 impl pallet_staking_async_rc_client::Config for Runtime {
