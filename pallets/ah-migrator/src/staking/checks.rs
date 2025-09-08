@@ -186,18 +186,17 @@ fn check_unapplied_slashes<T: crate::Config>(
 	rc: Vec<(u32, Vec<PortableUnappliedSlash>)>,
 	t: &impl Fn(AccountId32) -> AccountId32,
 ) {
-	let mut expected_slashes =
-		Vec::<(u32, (AccountId32, Perbill, u32), PortableUnappliedSlash)>::new();
+	let mut expected_slashes = Vec::new();
 
 	for (era, slashes) in rc {
 		for slash in slashes {
 			// We insert all slashes with this special key
-			let key = (slash.validator.clone(), Perbill::from_percent(99), 9999);
-			expected_slashes.push((era, key, slash.translate_accounts(t)));
+			let key = (t(slash.clone().validator), Perbill::from_percent(99), 9999);
+			expected_slashes.push((era, key, slash.translate_accounts(t).into()));
 		}
 	}
 
-	// TODO @ggwpez assert
+	assert_equal_items(expected_slashes, pallet_staking_async::UnappliedSlashes::<T>::iter());
 }
 
 /// Assert that two iterators have the same elements, regardless of their order.
