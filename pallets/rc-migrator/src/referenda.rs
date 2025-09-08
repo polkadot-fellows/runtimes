@@ -125,7 +125,11 @@ impl<T: Config> ReferendaMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);
@@ -137,7 +141,11 @@ impl<T: Config> ReferendaMigrator<T> {
 			if T::MaxAhWeight::get()
 				.any_lt(T::AhWeightInfo::receive_referenda_metadata((batch.len() + 1) as u32))
 			{
-				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"AH weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);
@@ -148,6 +156,7 @@ impl<T: Config> ReferendaMigrator<T> {
 
 			if batch.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()
@@ -215,7 +224,11 @@ impl<T: Config> ReferendaMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);
@@ -226,6 +239,7 @@ impl<T: Config> ReferendaMigrator<T> {
 
 			if batch.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()
@@ -270,7 +284,11 @@ impl<T: Config> ReferendaMigrator<T> {
 				.try_consume(Self::weight_ah_referendum_info(batch.len() as u32, &info))
 				.is_err()
 			{
-				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"AH weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);

@@ -270,7 +270,11 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() && total_items_iterated == 0 {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
@@ -281,6 +285,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 
 			if batch.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()

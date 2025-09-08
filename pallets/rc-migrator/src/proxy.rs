@@ -174,17 +174,26 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 			weight_counter.try_consume(batch.consume_weight()).is_err()
 		{
-			log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+			log::info!(
+				target: LOG_TARGET,
+				"RC weight limit reached at batch length {}, stopping",
+				batch.len()
+			);
 			return Err(OutOfWeightError);
 		}
 
 		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch.len() + 1)) {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+			log::info!(
+				target: LOG_TARGET,
+				"AH weight limit reached at batch length {}, stopping",
+				batch.len()
+			);
 			return Err(OutOfWeightError);
 		}
 
 		if batch.len() > MAX_ITEMS_PER_BLOCK {
 			log::info!(
+				target: LOG_TARGET,
 				"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 				MAX_ITEMS_PER_BLOCK,
 				batch.len()
@@ -242,7 +251,11 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -253,7 +266,11 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			if T::MaxAhWeight::get()
 				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
 			{
-				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"AH weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -263,6 +280,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 			if batch.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()
