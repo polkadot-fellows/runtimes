@@ -44,6 +44,7 @@
 
 use frame_support::{traits::Get, weights::Weight};
 use core::marker::PhantomData;
+use pallet_election_provider_multi_block::weights::traits::pallet_election_provider_multi_block_verifier;
 
 /// Weight functions for `pallet_election_provider_multi_block_verifier`.
 pub struct WeightInfo<T>(PhantomData<T>);
