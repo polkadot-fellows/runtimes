@@ -394,7 +394,6 @@ parameter_types! {
 		// the expected era duration in milliseconds.
 		RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64
 	);
-	// TODO: @sigurpol
 	pub MaxPruningItems: u32 = 100;
 }
 
