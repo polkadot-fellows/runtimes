@@ -661,8 +661,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						RuntimeCall::Utility { .. } |
 						RuntimeCall::Multisig { .. } |
 						RuntimeCall::NftFractionalization { .. } |
-						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
+						RuntimeCall::Nfts { .. } | RuntimeCall::Uniques { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -750,8 +749,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::NominationPools(..) |
 						RuntimeCall::VoterList(..)
 				)
@@ -1345,10 +1343,13 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
-			Inflation(_) =>
-				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+			StakingElection(_) =>
+				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
+			Issuance(_) => <EnsureRoot<AccountId> as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			),
 		}
 		.map_err(|_| origin)
 	}
@@ -1375,12 +1376,12 @@ pub mod dynamic_params {
 	/// Parameters used to calculate staking era payouts.
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
-	pub mod inflation {
-		/// Minimum inflation rate used to calculate era payouts.
+	pub mod issuance {
+		/// Minimum issuance rate used to calculate era payouts.
 		#[codec(index = 0)]
 		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
 
-		/// Maximum inflation rate used to calculate era payouts.
+		/// Maximum issuance rate used to calculate era payouts.
 		#[codec(index = 1)]
 		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
 
@@ -1402,6 +1403,39 @@ pub mod dynamic_params {
 
 		#[codec(index = 1)]
 		pub static BurnDestination: crate::treasury::BurnDestinationAccount = Default::default();
+	}
+
+	/// Parameters used to `election-provider-multi-block` and friends.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod staking_election {
+		/// 20 mins worth of local 6s blocks for signed phase.
+		#[codec(index = 0)]
+		pub static SignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
+
+		/// Allow up to 16 signed solutions to be submitted.
+		#[codec(index = 1)]
+		pub static MaxSignedSubmissions: u32 = 16;
+
+		/// 10m for unsigned phase...
+		#[codec(index = 2)]
+		pub static UnsignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
+
+		/// .. in which we try and mine a 4-page solution.
+		#[codec(index = 3)]
+		pub static MinerPages: u32 = 4;
+
+		/// Kusama allows up to 12_500 active nominators (aka. electing voters).
+		#[codec(index = 4)]
+		pub static MaxElectingVoters: u32 = 12_500;
+
+		/// An upper bound on the number of anticipated kusama "validator candidates".
+		///
+		/// At the time of writing, Kusama has 1000 active validators, and ~2k validator candidates.
+		///
+		/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight.
+		#[codec(index = 5)]
+		pub static TargetSnapshotPerBlock: u32 = 2_500;
 	}
 }
 
