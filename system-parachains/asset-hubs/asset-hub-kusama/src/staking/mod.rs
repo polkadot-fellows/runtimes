@@ -21,7 +21,7 @@
 pub mod bags_thresholds;
 pub mod nom_pools;
 
-use crate::{governance::StakingAdmin, *};
+use crate::{dynamic_params::staking_election as params, governance::StakingAdmin, *};
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::traits::tokens::imbalance::ResolveTo;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
@@ -30,13 +30,10 @@ use pallet_staking_async_rc_client as rc_client;
 use scale_info::TypeInfo;
 use sp_runtime::{transaction_validity::TransactionPriority, Perquintill};
 use sp_staking::SessionIndex;
-use system_parachains_constants::async_backing::MINUTES;
 use xcm::v5::prelude::*;
 
 // NOTES:
-// * a lot of the parameters are defined as `storage` such that they can be upgraded with a smaller
-//   overhead by the root origin, as opposed to a code upgrade. We expect to remove them. If all
-//   goes well in Kusama AHM, we can stop using `storage` in Polkadot.
+// * Some of the parameters are defined in `dynamic_params` block, prefixed by `params`
 // * The EPMB pallets only use local block times. They can one day be moved to use the relay-chain
 //   block, based on how the core-count and fast-blocks evolve, they might benefit from moving to
 //   relay-chain blocks. As of now, the duration of all phases are more about "POV" than "time", so
@@ -47,38 +44,14 @@ parameter_types! {
 	/// Kusama election pages, 1.6m snapshot.
 	pub Pages: u32 = 16;
 
-	/// 20 mins worth of local 6s blocks for signed phase.
-	pub storage SignedPhase: u32 = 20 * MINUTES;
-
-	/// Allow up to 16 signed solutions to be submitted.
-	///
-	/// Safety note: Larger signed submission increases the weight of the `OnRoundRotation` data cleanup.
-	pub storage MaxSignedSubmissions: u32 = 16;
-
-	/// Verify all of them.
-	pub storage SignedValidationPhase: u32 = Pages::get() * MaxSignedSubmissions::get();
-
-	/// 30m for unsigned phase.
-	pub storage UnsignedPhase: u32 = 30 * MINUTES;
-
-	/// In which we try and mine a 4-page solution.
-	pub storage MinerPages: u32 = 4;
+	/// Verify all signed submissions.
+	pub SignedValidationPhase: u32 = Pages::get() * params::MaxSignedSubmissions::get();
 
 	/// Allow OCW miner to at most run 4 times in the entirety of the 10m Unsigned Phase.
-	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
+	pub OffchainRepeat: u32 = params::UnsignedPhase::get() / 4;
 
-	/// Kusama allows up to 12_500 active nominators (aka. electing voters).
-	pub storage MaxElectingVoters: u32 = 12_500;
-
-	/// Which leads to ~782 nominators in each snapshot page (and consequently solution page, at most).
-	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
-
-	/// An upper bound on the number of anticipated kusama "validator candidates".
-	///
-	/// At the time of writing, Kusama has 1000 active validators, and ~2k validator candidates.
-	///
-	/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight. Double check TODO @kianenigma.
-	pub storage TargetSnapshotPerBlock: u32 = 2500;
+	/// 782 nominators in each snapshot page (and consequently solution page, at most).
+	pub VoterSnapshotPerBlock: u32 = params::MaxElectingVoters::get().div_ceil(Pages::get());
 
 	/// Kusama will at most have 1000 validators.
 	pub const MaxValidatorSet: u32 = 1000;
@@ -94,7 +67,7 @@ parameter_types! {
 	/// Total number of backers per winner across all pages.
 	///
 	/// Translates to "no limit" as of now.
-	pub MaxBackersPerWinnerFinal: u32 = MaxElectingVoters::get();
+	pub MaxBackersPerWinnerFinal: u32 = params::MaxElectingVoters::get();
 
 	/// Size of the exposures. This should be small enough to make the reward payouts feasible.
 	///
@@ -198,11 +171,11 @@ impl frame_election_provider_support::onchain::Config for OnChainConfig {
 
 impl multi_block::Config for Runtime {
 	type Pages = Pages;
-	type UnsignedPhase = UnsignedPhase;
-	type SignedPhase = SignedPhase;
+	type UnsignedPhase = params::UnsignedPhase;
+	type SignedPhase = params::SignedPhase;
 	type SignedValidationPhase = SignedValidationPhase;
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
-	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
+	type TargetSnapshotPerBlock = params::TargetSnapshotPerBlock;
 	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
@@ -215,7 +188,6 @@ impl multi_block::Config for Runtime {
 	// Revert back to signed phase if nothing is submitted and queued, so we prolong the election.
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	// Clean all data on round rotation. Later on, we can move to lazy deletion.
-	// TODO @kianenigma lazy deletion already?
 	type OnRoundRotation = multi_block::CleanRound<Self>;
 	type WeightInfo = weights::pallet_election_provider_multi_block::WeightInfo<Self>;
 }
@@ -267,7 +239,9 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 // Parameters only regarding signed submission deposits/rewards.
 parameter_types! {
 	pub DepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
-	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but get away with it last minute. We only return 25% of the deposit in case someone bails. In Polkadot, this value will be lower or simply zero.
+	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but
+	/// get away with it last minute. We only return 25% of the deposit in case someone bails. In
+	/// Polkadot, this value will be lower or simply zero.
 	pub BailoutGraceRatio: Perbill = Perbill::from_percent(25);
 	/// Invulnerable miners will pay this deposit only.
 	pub InvulnerableFixedDeposit: Balance = UNITS;
@@ -285,7 +259,7 @@ impl multi_block::signed::Config for Runtime {
 	type DepositPerPage = DepositPerPage;
 	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
-	type MaxSubmissions = MaxSignedSubmissions;
+	type MaxSubmissions = params::MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
 	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Self>;
 }
@@ -305,7 +279,7 @@ parameter_types! {
 }
 
 impl multi_block::unsigned::Config for Runtime {
-	type MinerPages = MinerPages;
+	type MinerPages = params::MinerPages;
 	type OffchainStorage = OffchainStorage;
 	// Note: we don't want the offchain miner to run balancing, as it might be too expensive to run
 	// in WASM, ergo the last `()`.
@@ -348,10 +322,10 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 		let params = polkadot_runtime_common::impls::EraPayoutParams {
 			total_staked,
 			total_stakable: Balances::total_issuance(),
-			ideal_stake: dynamic_params::inflation::IdealStake::get(),
-			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
-			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
-			falloff: dynamic_params::inflation::Falloff::get(),
+			ideal_stake: dynamic_params::issuance::IdealStake::get(),
+			max_annual_inflation: dynamic_params::issuance::MaxInflation::get(),
+			min_annual_inflation: dynamic_params::issuance::MinInflation::get(),
+			falloff: dynamic_params::issuance::Falloff::get(),
 			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
 			// Note: Kusama RC had the code for reserving a subset of its "ideal-staked-ratio" to be
 			// allocated to parachain auctions. Yet, this code was buggy in the RC, and was actually
