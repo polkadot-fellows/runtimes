@@ -22,6 +22,7 @@
 
 extern crate alloc;
 
+use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{BTreeMap, VecDeque},
 	vec,
@@ -45,8 +46,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, Everything, FromContains,
+		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
@@ -55,7 +56,6 @@ use frame_support::{
 	},
 	PalletId,
 };
-use ah_migration::phase1 as ahm_phase1;
 pub use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 pub use pallet_balances::Call as BalancesCall;
@@ -79,7 +79,6 @@ use polkadot_primitives::{
 	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
 	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
-use frame_support::traits::Equals;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
@@ -127,7 +126,9 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
-use xcm_config::{AssetHubLocation, CollectivesLocation, FellowsBodyId};
+use xcm_config::{
+	AssetHubLocation, CollectivesLocation, FellowsBodyId, GeneralAdminBodyId, StakingAdminBodyId,
+};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -640,7 +641,10 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		(),
 	>;
 	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
-	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type ForceOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
 	type ElectionBounds = ElectionBounds;
 }
@@ -649,7 +653,7 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
 
-// TODO: remove feature gate and keep 10, when we want to activate it for Polkadot
+// TODO @kianenigma: remove feature gate and keep 10, when we want to activate it for Polkadot
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
 	pub const AutoRebagNumber: u32 = 10;
@@ -666,9 +670,9 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	#[cfg(any(feature = "paseo", feature = "runtime-benchmarks"))]
+	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
-	#[cfg(not(any(feature = "paseo", feature = "runtime-benchmarks")))]
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = AutoRebagNumber;
 }
 
@@ -739,7 +743,10 @@ impl pallet_staking::Config for Runtime {
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
 	type SlashDeferDuration = SlashDeferDuration;
-	type AdminOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
+	type AdminOrigin = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>;
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
 	type MaxExposurePageSize = MaxExposurePageSize;
@@ -1311,7 +1318,10 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
+	type ChannelManager = EitherOfDiverse<
+		EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
+	>;
 	type Currency = Balances;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active
 	// `HostConfiguration` configuration for `hrmp_channel_max_message_size` and
@@ -1546,10 +1556,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	#[cfg(feature = "paseo")]
-	type MinimumValidatorSetSize = ConstU32<50>;
-	#[cfg(not(feature = "paseo"))]
-	type MinimumValidatorSetSize = ConstU32<400>;
+	type MinimumValidatorSetSize = ConstU32<400>; // TODO @kianenigma
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<50>;
@@ -1726,6 +1733,13 @@ parameter_types! {
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 }
 
+pub struct ProxyTypeAny;
+impl frame_support::traits::Contains<TransparentProxyType<ProxyType>> for ProxyTypeAny {
+	fn contains(proxy_type: &TransparentProxyType<ProxyType>) -> bool {
+		proxy_type.0 == polkadot_runtime_constants::proxy::ProxyType::Any
+	}
+}
+
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
@@ -1743,6 +1757,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type CheckingAccount = xcm_config::CheckAccount;
 	type TreasuryBlockNumberProvider = System;
 	type TreasuryPaymaster = TreasuryPaymaster;
+	type PureProxyFreeVariants = ProxyTypeAny;
+	type SessionDuration = EpochDuration; // Session == Epoch
 	type SendXcm = xcm_config::XcmRouterWithoutException;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;

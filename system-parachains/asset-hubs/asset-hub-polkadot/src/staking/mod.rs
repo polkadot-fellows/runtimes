@@ -102,11 +102,6 @@ frame_election_provider_support::generate_solution_type!(
 	>(16)
 );
 
-#[cfg(feature = "paseo")]
-ord_parameter_types! {
-	pub const StakingMiner: AccountId = AccountId::from(hex_literal::hex!("b65991822483a6c3bd24b1dcf6afd3e270525da1f9c8c22a4373d1e1079e236a"));
-}
-
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bags_thresholds::THRESHOLDS;
 }
@@ -119,9 +114,9 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 	// We have to enable it for benchmarks since the benchmark otherwise panics.
-	#[cfg(any(feature = "paseo", feature = "runtime-benchmarks"))]
+	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
-	#[cfg(not(any(feature = "paseo", feature = "runtime-benchmarks")))]
+	#[cfg(not(feature = "runtime-benchmarks"))] // TODO @kianenigma
 	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
@@ -172,10 +167,6 @@ impl multi_block::Config for Runtime {
 	type SignedValidationPhase = SignedValidationPhase;
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
-	#[cfg(feature = "paseo")]
-	type AdminOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<StakingMiner, AccountId>>;
-	#[cfg(not(feature = "paseo"))]
 	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
@@ -453,7 +444,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
-// See:
+// See: TODO @kianenigma
 // https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/src/lib.rs#L662
 // https://github.com/paseo-network/runtimes/blob/7904882933075551e23d32d86dbb97b971e84bca/relay/paseo/constants/src/lib.rs#L49
 parameter_types! {
@@ -465,6 +456,7 @@ parameter_types! {
 	// alias for 16, which is the max nominations per nominator in the runtime.
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
 	pub const MaxEraDuration: u64 = RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64;
+	pub MaxPruningItems: u32 = 100;
 }
 
 impl pallet_staking_async::Config for Runtime {
@@ -498,6 +490,7 @@ impl pallet_staking_async::Config for Runtime {
 		pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;
 	type RcClientInterface = StakingRcClient;
 	type MaxEraDuration = MaxEraDuration;
+	type MaxPruningItems = MaxPruningItems;
 }
 
 impl pallet_staking_async_rc_client::Config for Runtime {

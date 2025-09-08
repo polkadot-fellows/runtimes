@@ -880,6 +880,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
+ "frame-election-provider-support",
  "frame-executive",
  "frame-metadata-hash-extension",
  "frame-support",
@@ -890,30 +891,54 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-ah-migrator",
+ "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
+ "pallet-asset-rate",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
+ "pallet-bags-list",
  "pallet-balances",
+ "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
+ "pallet-conviction-voting",
+ "pallet-delegated-staking",
+ "pallet-election-provider-multi-block",
+ "pallet-indices",
  "pallet-message-queue",
  "pallet-migrations",
  "pallet-multisig",
  "pallet-nft-fractionalization",
  "pallet-nfts",
  "pallet-nfts-runtime-api",
+ "pallet-nomination-pools",
+ "pallet-nomination-pools-benchmarking",
+ "pallet-parameters",
+ "pallet-preimage",
  "pallet-proxy",
+ "pallet-rc-migrator",
+ "pallet-recovery",
+ "pallet-referenda",
  "pallet-remote-proxy",
  "pallet-revive",
+ "pallet-scheduler",
  "pallet-session",
+ "pallet-society",
+ "pallet-staking",
+ "pallet-staking-async",
+ "pallet-staking-async-rc-client",
  "pallet-state-trie-migration",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
+ "pallet-whitelist",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
@@ -928,16 +953,20 @@ dependencies = [
  "serde_json",
  "snowbridge-inbound-queue-primitives",
  "sp-api",
+ "sp-arithmetic",
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core 38.0.0",
  "sp-genesis-builder",
  "sp-inherents",
  "sp-io",
+ "sp-npos-elections",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
+ "sp-staking",
  "sp-storage",
+ "sp-tracing 18.0.0",
  "sp-transaction-pool",
  "sp-version",
  "sp-weights",
@@ -946,6 +975,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -2528,6 +2558,7 @@ dependencies = [
  "collectives-polkadot-runtime",
  "coretime-kusama-runtime",
  "coretime-polkadot-runtime",
+ "encointer-kusama-runtime",
  "glutton-kusama-runtime",
  "people-kusama-runtime",
  "people-polkadot-runtime",
@@ -3524,9 +3555,9 @@ dependencies = [
 
 [[package]]
 name = "cumulus-pallet-xcmp-queue"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bafc353058c542104a26b68fbba1a732df3c2ba1e32fcd7e9f37a8d805d84788"
+checksum = "9a69478745ec6eaf5107b47106af60635b7c87f04cb23a37b54d774abf80b848"
 dependencies = [
  "approx",
  "bounded-collections 0.3.2",
@@ -4885,9 +4916,9 @@ dependencies = [
 
 [[package]]
 name = "frame-executive"
-version = "42.0.0"
+version = "42.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a756ed87dedc253be2f96e202053dac2162e44e3c49c4398e4719d98af1d6f9"
+checksum = "3b549213d0074ac66f32a3c566329dd299ef96386f12c8247ca60a8ef0485e3c"
 dependencies = [
  "aquamarine",
  "frame-support",
@@ -5435,10 +5466,12 @@ dependencies = [
  "kusama-system-emulated-network",
  "pallet-utility",
  "pallet-whitelist",
+ "pallet-xcm",
  "parity-scale-codec",
  "people-kusama-runtime",
  "sp-runtime",
  "staging-kusama-runtime",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -6319,7 +6352,6 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "hex-literal",
@@ -6877,6 +6909,7 @@ dependencies = [
  "sp-runtime",
  "sp-trie",
  "sp-weights",
+ "staging-xcm",
  "staging-xcm-builder",
 ]
 
@@ -8346,7 +8379,6 @@ name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
  "assets-common",
- "collectives-polkadot-runtime-constants",
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -8371,8 +8403,10 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-state-trie-migration",
@@ -8384,7 +8418,6 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
@@ -8880,9 +8913,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-core-fellowship"
-version = "26.0.0"
+version = "26.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a66ba7744f90483b463d697a3f2bc13411918e81b9d24c2aa21d0a4ec2363bcb"
+checksum = "0b427dcb2c0fe433e5c0c100a883f9579ada224f561a4cb09ce56a6c71c36c37"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9661,9 +9694,11 @@ dependencies = [
  "pallet-nomination-pools",
  "pallet-preimage",
  "pallet-proxy",
+ "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-society",
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-ah-client",
@@ -9674,7 +9709,6 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
@@ -9898,9 +9932,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-society"
-version = "42.0.0"
+version = "42.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5a1b3a5568041246d69c80d5eec3395af446e7c46127db2999495c846f49815"
+checksum = "2b4e6fff38693c66edec548c0fc9f6784c837795b204ed5bfd1a2c660fb61432"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9939,9 +9973,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a55e97b588433d3ab2a716d2c4d1a7ed8d65ae856ff745ec53d6ed9c263c791"
+checksum = "793c01c58d02da9e0a45085e16c4073cdaee5db5d0eb99f8604ca1bec06942dd"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10602,6 +10636,7 @@ dependencies = [
 name = "people-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -10712,6 +10747,7 @@ dependencies = [
 name = "people-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -10966,6 +11002,7 @@ dependencies = [
 name = "polkadot-integration-tests-ahm"
 version = "0.1.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-hub-polkadot-runtime",
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -10976,6 +11013,7 @@ dependencies = [
  "frame-system",
  "hex",
  "hex-literal",
+ "kusama-runtime-constants",
  "log",
  "pallet-ah-migrator",
  "pallet-ah-ops",
@@ -10987,6 +11025,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-recovery",
  "pallet-referenda",
  "pallet-staking-async",
  "pallet-timestamp",
@@ -11012,6 +11051,7 @@ dependencies = [
  "sp-runtime",
  "sp-storage",
  "sp-tracing 18.0.0",
+ "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-builder",
  "tokio",
@@ -11258,9 +11298,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-parachains"
-version = "21.0.0"
+version = "21.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddf1628cbc5228d07fa7f1b50c3492d3fa29047d5ee95e48101e3a8b4de17a02"
+checksum = "9d8bbe69378962effffbd00375055ab8d722613e494765f0e205053bbf8e3d9e"
 dependencies = [
  "bitflags 1.3.2",
  "bitvec",
@@ -15551,6 +15591,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-ranked-collective",
+ "pallet-rc-migrator",
  "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
@@ -15558,6 +15599,8 @@ dependencies = [
  "pallet-session-benchmarking",
  "pallet-society",
  "pallet-staking",
+ "pallet-staking-async-ah-client",
+ "pallet-staking-async-rc-client",
  "pallet-staking-runtime-api",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -16233,6 +16276,18 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-support",
+ "log",
+ "sp-runtime",
+ "sp-state-machine",
 ]
 
 [[package]]

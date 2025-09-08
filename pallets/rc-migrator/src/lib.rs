@@ -51,7 +51,11 @@ pub mod benchmarking;
 pub mod bounties;
 pub mod child_bounties;
 pub mod conviction_voting;
+#[cfg(feature = "kusama-ahm")]
+pub mod recovery;
 pub mod scheduler;
+#[cfg(feature = "kusama-ahm")]
+pub mod society;
 pub mod treasury;
 pub mod xcm_config;
 
@@ -100,7 +104,7 @@ use runtime_parachains::{
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
 	traits::{BadOrigin, BlockNumberProvider, Hash, One, Zero},
-	AccountId32,
+	AccountId32, Saturating,
 };
 use sp_std::prelude::*;
 use staking::{
@@ -131,6 +135,9 @@ pub const MAX_XCM_SIZE: u32 = 50_000;
 /// This serves as an additional safety limit beyond the weight accounting of both the Relay Chain
 /// and Asset Hub.
 pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
+
+/// The maximum number of XCM messages that can be sent in a single block.
+pub const MAX_XCM_MSG_PER_BLOCK: u32 = 10;
 
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
@@ -191,6 +198,8 @@ pub enum MigrationStage<
 	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
+	/// The migration was paused.
+	MigrationPaused,
 	/// The migration has been scheduled to start at the given block number.
 	Scheduled {
 		/// The block number at which the migration will start.
@@ -344,11 +353,30 @@ pub enum MigrationStage<
 	},
 	TreasuryMigrationDone,
 
+	#[cfg(feature = "kusama-ahm")]
+	RecoveryMigrationInit,
+	#[cfg(feature = "kusama-ahm")]
+	RecoveryMigrationOngoing {
+		last_key: Option<recovery::RecoveryStage>,
+	},
+	#[cfg(feature = "kusama-ahm")]
+	RecoveryMigrationDone,
+
+	#[cfg(feature = "kusama-ahm")]
+	SocietyMigrationInit,
+	#[cfg(feature = "kusama-ahm")]
+	SocietyMigrationOngoing {
+		last_key: Option<society::SocietyStage>,
+	},
+	#[cfg(feature = "kusama-ahm")]
+	SocietyMigrationDone,
+
 	StakingMigrationInit,
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
 	},
 	StakingMigrationDone,
+
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
 		///
@@ -412,6 +440,9 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
 			"scheduler" => MigrationStage::SchedulerMigrationInit,
+			"staking" => MigrationStage::StakingMigrationInit,
+			#[cfg(feature = "kusama-ahm")]
+			"society" => MigrationStage::SocietyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -431,7 +462,7 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Nonce = u32>
 		+ pallet_balances::Config<
 			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
 			FreezeIdentifier = <Self as Config>::RuntimeFreezeReason,
@@ -476,6 +507,29 @@ pub mod pallet {
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
 
+		/// Config for pallets that are only on Kusama.
+		#[cfg(feature = "kusama-ahm")]
+		type KusamaConfig: pallet_recovery::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxFriends = ConstU32<{ recovery::MAX_FRIENDS }>,
+			> + frame_system::Config<
+				AccountData = AccountData<u128>,
+				AccountId = AccountId32,
+				Hash = sp_core::H256,
+			> + pallet_society::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxPayouts = ConstU32<{ society::MAX_PAYOUTS }>,
+			>;
+
+		/// Block number provider of the recovery pallet.
+		#[cfg(feature = "kusama-ahm")]
+		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+
+		/// The proxy types of pure accounts that are kept for free.
+		type PureProxyFreeVariants: Contains<<Self as pallet_proxy::Config>::ProxyType>;
+
 		/// Block number provider of the treasury pallet.
 		///
 		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
@@ -489,12 +543,15 @@ pub mod pallet {
 			AssetKind = VersionedLocatableAsset,
 		>;
 
+		type SessionDuration: Get<u64>;
+
 		/// The runtime freeze reasons.
 		type RuntimeFreezeReason: Parameter
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableFreezeReason>;
 
 		/// The overarching event type.
+		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		///
@@ -575,6 +632,10 @@ pub mod pallet {
 		FailedToWithdrawAccount,
 		/// Indicates that the specified block number is in the past.
 		PastBlockNumber,
+		/// Indicates that there is not enough time for staking to lock.
+		///
+		/// Schedule the migration at least two sessions before the current era ends.
+		EraEndsTooSoon,
 		/// Balance accounting overflow.
 		BalanceOverflow,
 		/// Balance accounting underflow.
@@ -597,6 +658,8 @@ pub mod pallet {
 		BadXcmVersion,
 		/// The origin is invalid.
 		InvalidOrigin,
+		/// The stage transition is invalid.
+		InvalidStageTransition,
 	}
 
 	#[pallet::event]
@@ -674,6 +737,32 @@ pub mod pallet {
 		},
 		/// An XCM message was sent.
 		XcmSent { origin: Location, destination: Location, message: Xcm<()>, message_id: XcmHash },
+		/// The staking elections were paused.
+		StakingElectionsPaused,
+		/// The accounts to be preserved on Relay Chain were set.
+		AccountsPreserved {
+			/// The accounts that will be preserved.
+			accounts: Vec<T::AccountId>,
+		},
+		/// The canceller account id was set.
+		CancellerSet {
+			/// The old canceller account id.
+			old: Option<T::AccountId>,
+			/// The new canceller account id.
+			new: Option<T::AccountId>,
+		},
+		/// The migration was paused.
+		MigrationPaused {
+			/// The stage at which the migration was paused.
+			pause_stage: MigrationStageOf<T>,
+		},
+		/// The migration was cancelled.
+		MigrationCancelled,
+		/// Some pure accounts were indexed for possibly receiving free `Any` proxies.
+		PureAccountsIndexed {
+			/// The number of indexed pure accounts.
+			num_pure_accounts: u32,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -706,6 +795,13 @@ pub mod pallet {
 	pub type PendingXcmMessages<T: Config> =
 		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
 
+	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
+	///
+	/// Boolean value is whether they have been migrated to the Asset Hub. Needed for idempotency.
+	#[pallet::storage]
+	pub type PureProxyCandidatesMigrated<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, bool, OptionQuery>;
+
 	/// The pending XCM response queries and their XCM hash referencing the message in the
 	/// [`PendingXcmMessages`] storage.
 	///
@@ -737,6 +833,12 @@ pub mod pallet {
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// An optional account id of a canceller.
+	///
+	/// This account id can only stop scheduled migration.
+	#[pallet::storage]
+	pub type Canceller<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// The block number at which the migration began and the pallet's extrinsics were locked.
 	///
@@ -808,13 +910,22 @@ pub mod pallet {
 		/// Schedule the migration to start at a given moment.
 		///
 		/// ### Parameters:
-		/// - `start`: The block number at which the migration will start. Must be a point within
-		/// the current era before the validator election process has started. Typically, this
-		/// corresponds to the final session of the era, just prior to the election kickoff.
-		/// - `warm_up`: The block number at which the pre migration warm-up period will end. The
-		///   `DispatchTime` calculated at the moment of the transition to the warm-up stage.
+		/// - `start`: The block number at which the migration will start. `DispatchTime` calculated
+		///   at the moment of the extrinsic execution.
+		/// - `warm_up`: Duration or timepoint that will be used to prepare for the migration. Calls
+		///   are filtered during this period. It is intended to give enough time for UMP and DMP
+		///   queues to empty. `DispatchTime` calculated at the moment of the transition to the
+		///   warm-up stage.
 		/// - `cool_off`: The block number at which the post migration cool-off period will end. The
 		///   `DispatchTime` calculated at the moment of the transition to the cool-off stage.
+		/// - `unsafe_ignore_staking_lock_check`: ONLY FOR TESTING. Ignore the check whether the
+		///   scheduled time point is far enough in the future.
+		///
+		/// Note: If the staking election for next era is already complete, and the next
+		/// validator set is queued in `pallet-session`, we want to avoid starting the data
+		/// migration at this point as it can lead to some missed validator rewards. To address
+		/// this, we stop staking election at the start of migration and must wait atleast 1
+		/// session (set via warm_up) before starting the data migration.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(1)]
@@ -824,16 +935,29 @@ pub mod pallet {
 			start: DispatchTime<BlockNumberFor<T>>,
 			warm_up: DispatchTime<BlockNumberFor<T>>,
 			cool_off: DispatchTime<BlockNumberFor<T>>,
+			unsafe_ignore_staking_lock_check: bool,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
 			let start = start.evaluate(now);
+
 			ensure!(start > now, Error::<T>::PastBlockNumber);
-			ensure!(warm_up.evaluate(now) >= start, Error::<T>::PastBlockNumber);
-			ensure!(cool_off.evaluate(now) >= start, Error::<T>::PastBlockNumber);
+
+			if !unsafe_ignore_staking_lock_check {
+				let until_start = start.saturating_sub(now);
+				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
+					.saturating_mul(2)
+					.try_into()
+					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
+
+				// We check > and not >= here since the on_initialize for this block already ran.
+				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+			}
+
 			WarmUpPeriod::<T>::put(warm_up);
 			CoolOffPeriod::<T>::put(cool_off);
+
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
 		}
@@ -1086,6 +1210,90 @@ pub mod pallet {
 			});
 			Ok(())
 		}
+
+		/// Set the accounts to be preserved on Relay Chain during the migration.
+		///
+		/// The accounts must have no consumers references.
+		#[pallet::call_index(9)]
+		#[pallet::weight({
+			Weight::from_parts(10_000_000, 0)
+				.saturating_add(T::DbWeight::get().writes(accounts.len() as u64))
+		})]
+		pub fn preserve_accounts(
+			origin: OriginFor<T>,
+			accounts: Vec<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			Self::ensure_admin_or_manager(origin.clone())?;
+			for account in &accounts {
+				ensure!(
+					frame_system::Pallet::<T>::consumers(account) == 0,
+					Error::<T>::AccountReferenced
+				);
+				RcAccounts::<T>::insert(account, accounts::AccountState::Preserve);
+			}
+			Self::deposit_event(Event::AccountsPreserved { accounts });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Set the canceller account id.
+		///
+		/// The canceller can only stop scheduled migration.
+		#[pallet::call_index(10)]
+		#[pallet::weight(T::RcWeightInfo::set_manager())] // same as `set_manager`
+		pub fn set_canceller(
+			origin: OriginFor<T>,
+			new: Option<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			Self::ensure_admin_or_manager(origin.clone())?;
+			if let Some(ref who) = new {
+				ensure!(
+					frame_system::Pallet::<T>::consumers(who) == 0,
+					Error::<T>::AccountReferenced
+				);
+				RcAccounts::<T>::insert(who, accounts::AccountState::Preserve);
+			}
+			let old = Canceller::<T>::get();
+			Canceller::<T>::set(new.clone());
+			Self::deposit_event(Event::CancellerSet { old, new });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Pause the migration.
+		#[pallet::call_index(11)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::ensure_admin_or_manager(origin.clone())?;
+
+			let pause_stage = RcMigrationStage::<T>::get();
+			Self::transition(MigrationStage::MigrationPaused);
+
+			Self::deposit_event(Event::MigrationPaused { pause_stage });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Cancel the migration.
+		///
+		/// Migration can only be cancelled if it is in the [`MigrationStage::Scheduled`] state.
+		#[pallet::call_index(12)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::ensure_privileged_origin(origin)?;
+
+			let current_stage = RcMigrationStage::<T>::get();
+			ensure!(
+				matches!(current_stage, MigrationStage::Scheduled { .. }),
+				Error::<T>::InvalidStageTransition
+			);
+
+			Self::transition(MigrationStage::Pending);
+
+			Self::deposit_event(Event::MigrationCancelled);
+
+			Ok(Pays::No.into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -1128,24 +1336,21 @@ pub mod pallet {
 			}
 
 			match stage {
-				MigrationStage::Pending => {
+				MigrationStage::Pending | MigrationStage::MigrationPaused { .. } => {
 					return weight_counter.consumed();
 				},
-				MigrationStage::Scheduled { start } =>
+				MigrationStage::Scheduled { start } => {
+					// Two sessions before the migration starts we pause staking election
+					let staking_pause_time = start.saturating_sub((T::SessionDuration::get().saturating_mul(2) as u32).into());
+
+					if now == staking_pause_time {
+						// stop any further staking elections
+						pallet_staking::ForceEra::<T>::put(pallet_staking::Forcing::ForceNone);
+						Self::deposit_event(Event::StakingElectionsPaused);
+					}
+
 					if now >= start {
 						weight_counter.consume(T::DbWeight::get().reads(2));
-
-						#[cfg(not(feature = "std"))] // Skip in tests since snapshot can be off
-						{
-							let current_era = pallet_staking::CurrentEra::<T>::get().defensive_unwrap_or(0);
-							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
-							// ensure new era is not planned when starting migration.
-							if current_era > active_era {
-								defensive!("Migration must start before the election starts on the chain.");
-								Self::transition(MigrationStage::Pending);
-								return weight_counter.consumed();
-							}
-						}
 
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
 							Ok(_) => {
@@ -1158,7 +1363,8 @@ pub mod pallet {
 								);
 							},
 						}
-					},
+					}
+				},
 				MigrationStage::WaitingForAh => {
 					// waiting AH to send a message and to start sending the data.
 					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
@@ -1297,6 +1503,12 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
+					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
+
+					weight_counter.consume(weight);
+					if let Some(num_pure_accounts) = num_pure_accounts {
+						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });
+					}
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {
@@ -1901,6 +2113,79 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::TreasuryMigrationDone => {
+					#[cfg(feature = "kusama-ahm")]
+					Self::transition(MigrationStage::RecoveryMigrationInit);
+					#[cfg(not(feature = "kusama-ahm"))]
+					Self::transition(MigrationStage::StakingMigrationInit);
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::RecoveryMigrationInit => {
+					Self::transition(MigrationStage::RecoveryMigrationOngoing { last_key: None });
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::RecoveryMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match recovery::RecoveryMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::RecoveryMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::RecoveryMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating recovery: {:?}", e);
+						},
+					}
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::RecoveryMigrationDone => {
+					Self::transition(MigrationStage::SocietyMigrationInit);
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::SocietyMigrationInit => {
+					Self::transition(MigrationStage::SocietyMigrationOngoing { last_key: None });
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::SocietyMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match society::SocietyMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SocietyMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SocietyMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating society: {:?}", err);
+						},
+					}
+				},
+				#[cfg(feature = "kusama-ahm")]
+				MigrationStage::SocietyMigrationDone => {
 					Self::transition(MigrationStage::StakingMigrationInit);
 				},
 				MigrationStage::StakingMigrationInit => {
@@ -1996,6 +2281,21 @@ pub mod pallet {
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
+		/// Ensure that the origin is [`Config::AdminOrigin`], signed by [`Manager`] account id or
+		/// [`Canceller`] account id.
+		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+				if Canceller::<T>::get().map_or(false, |canceller_id| canceller_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -2137,6 +2437,15 @@ pub mod pallet {
 					PendingXcmQueries::<T>::insert(query_id, message_hash);
 					batch_count += 1;
 				}
+			}
+
+			if batch_count > MAX_XCM_MSG_PER_BLOCK {
+				log::warn!(
+					target: LOG_TARGET,
+					"Maximum number of XCM messages ({}) to migrate per block exceeded, current msg count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch_count
+				);
 			}
 
 			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);

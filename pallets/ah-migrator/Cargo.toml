@@ -37,14 +37,14 @@ pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-staking-async = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
+pallet-society = { workspace = true, optional = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-xcm = { workspace = true }
+pallet-recovery = { workspace = true, optional = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
-polkadot-runtime-constants = { workspace = true }
-collectives-polkadot-runtime-constants = { workspace = true }
 runtime-parachains = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 serde = { features = ["derive"], optional = true, workspace = true }
@@ -66,6 +66,16 @@ pallet-ah-ops = { workspace = true }
 
 [features]
 default = ["std"]
+
+kusama-ahm = [
+	"pallet-rc-migrator/kusama-ahm",
+	"pallet-recovery",
+	"pallet-society",
+]
+polkadot-ahm = [
+	"pallet-rc-migrator/polkadot-ahm",
+]
+
 std = [
 	"assets-common/std",
 	"assets-common/std",
@@ -92,8 +102,10 @@ std = [
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
+	"pallet-recovery?/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
+	"pallet-society?/std",
 	"pallet-staking-async/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
@@ -105,8 +117,6 @@ std = [
 	"parachains-common/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
-	"polkadot-runtime-constants/std",
-	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
@@ -145,8 +155,10 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-recovery?/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-society?/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
@@ -158,7 +170,6 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -187,8 +198,10 @@ try-runtime = [
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-recovery?/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
+	"pallet-society?/try-runtime",
 	"pallet-staking-async/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",

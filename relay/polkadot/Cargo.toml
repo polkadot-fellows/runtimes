@@ -132,7 +132,10 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [features]
 default = ["std"]
 no_std = []
-paseo = [] # For Paseo AHM
+
+polkadot-ahm = [
+	"pallet-rc-migrator/polkadot-ahm",
+]
 std = [
 	"pallet-rc-migrator/std",
 

@@ -77,6 +77,7 @@ pub mod pallet {
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 	{
 		/// The overarching event type.
+		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Native asset type.

@@ -182,7 +182,7 @@ where
 	T: Config,
 	RcProxyType: Into<T::RcProxyType> + Clone + core::fmt::Debug + Encode,
 {
-	type RcPrePayload = BTreeMap<AccountId32, Vec<(RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+	type RcPrePayload = BTreeMap<(AccountId32, u32), Vec<(RcProxyType, AccountId32)>>; // Map of (Delegator, None) -> (Kind, Delegatee)
 	type AhPrePayload =
 		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
@@ -201,6 +201,10 @@ where
 	}
 
 	fn post_check(rc_pre: Self::RcPrePayload, ah_pre: Self::AhPrePayload) {
+		let rc_pre = rc_pre
+			.into_iter()
+			.map(|(delegator, proxies)| (delegator.0, proxies))
+			.collect::<BTreeMap<_, _>>();
 		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
 		// excluding the ones that are un-translateable.
 
