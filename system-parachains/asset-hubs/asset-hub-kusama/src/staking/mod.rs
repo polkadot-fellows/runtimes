@@ -312,16 +312,15 @@ pub struct EraPayout;
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
 		total_staked: Balance,
-		_total_issuance: Balance,
+		total_issuance: Balance,
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 		use crate::dynamic_params;
 
-		// TODO @kianenigma one sanity check test for this as we had in the RC
 		let params = polkadot_runtime_common::impls::EraPayoutParams {
 			total_staked,
-			total_stakable: Balances::total_issuance(),
+			total_stakable: total_issuance,
 			ideal_stake: dynamic_params::issuance::IdealStake::get(),
 			max_annual_inflation: dynamic_params::issuance::MaxInflation::get(),
 			min_annual_inflation: dynamic_params::issuance::MinInflation::get(),
@@ -565,9 +564,30 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 #[cfg(test)]
 mod tests {
 	use super::*;
-
+	use pallet_staking_async::EraPayout;
 	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
+	#[test]
+	fn inflation_sanity_check() {
+		// values taken from a recent Kusama snapshot:
+		// active era: 8546
+		// total_staked: 8085567183241128549
+		// TI: 17016510054564053390
+		// Ext needed because of parameters, which are not set in kusama, so the defaults are gud.
+		// recent era paid: https://kusama.subscan.io/event/30011049-0
+		// 835 KSM / 291 KSM
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let average_era_duration_millis = 6 * 60 * 60 * 1000; // 6h
+			let (staking, treasury) = super::EraPayout::era_payout(
+				8085567183241128549,
+				17016510054564053390,
+				average_era_duration_millis,
+			);
+			assert_eq!(staking, 844_606070970705);
+			assert_eq!(treasury, 320_110565207524);
+		});
+	}
 
 	fn analyze_weight(
 		op_name: &str,
