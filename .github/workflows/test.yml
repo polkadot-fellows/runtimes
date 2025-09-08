@@ -78,8 +78,7 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-runtime-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: "fellowship-cache-runtime-tests-dummy"
 
       - name: Download frame-omni-bencher
         run: |
@@ -159,8 +158,7 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-integration-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: "fellowship-cache-integration-tests-dummy"
 
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
@@ -201,8 +199,7 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-chain-spec-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: "fellowship-cache-chain-spec-tests-dummy"
 
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
@@ -244,8 +241,7 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: "fellowship-cache-zombienet-tests-dummy"
 
       - name: Build
         run: |
@@ -293,8 +289,7 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-build-runtimes-test"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: "fellowship-cache-build-runtimes-test-dummy"
 
       - name: Build runtime ${{ matrix.runtime.name }}
         run: |
