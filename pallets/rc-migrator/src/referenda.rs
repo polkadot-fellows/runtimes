@@ -155,6 +155,16 @@ impl<T: Config> ReferendaMigrator<T> {
 				break last_key;
 			}
 
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
+				);
+				break last_key;
+			}
+
 			let next_key = match last_key {
 				Some(last_key) => {
 					let Some(next_key) = MetadataOf::<T, ()>::iter_keys_from_key(last_key).next()
@@ -219,6 +229,16 @@ impl<T: Config> ReferendaMigrator<T> {
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()
+				);
+				break last_key;
+			}
+
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
 				);
 				break last_key;
 			}

@@ -186,6 +186,16 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 				break;
 			}
 
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
+				break;
+			}
+
 			inner_key = match inner_key {
 				BagsListStage::ListNodes(next) => {
 					let mut iter = match next {

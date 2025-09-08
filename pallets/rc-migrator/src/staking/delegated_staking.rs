@@ -99,6 +99,16 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 				break;
 			}
 
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
+				break;
+			}
+
 			last_key = match last_key {
 				DelegatedStakingStage::Delegators(last_key) => {
 					let mut delegators_iter = if let Some(last_key) = last_key.clone() {

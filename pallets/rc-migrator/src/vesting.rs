@@ -91,6 +91,16 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 				break;
 			}
 
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
+				break;
+			}
+
 			let mut iter = match inner_key {
 				Some(who) => pallet_vesting::Vesting::<T>::iter_from_key(who),
 				None => pallet_vesting::Vesting::<T>::iter(),

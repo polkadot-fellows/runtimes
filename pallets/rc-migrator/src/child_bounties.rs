@@ -140,6 +140,16 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 				break;
 			}
 
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
+				break;
+			}
+
 			last_key = match last_key {
 				ChildBountiesStage::ChildBountyCount => {
 					// Check if exists to make it idempotent.

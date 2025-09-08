@@ -65,6 +65,16 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 				break;
 			}
 
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
+				break;
+			}
+
 			let mut iter = if let Some(last_key) = last_key {
 				ConversionRateToNative::<T>::iter_from_key(last_key)
 			} else {

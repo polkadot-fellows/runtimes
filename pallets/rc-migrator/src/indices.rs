@@ -90,6 +90,16 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 				break;
 			}
 
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
+				break;
+			}
+
 			match pallet_indices::Accounts::<T>::iter().next() {
 				Some((index, (who, deposit, frozen))) => {
 					pallet_indices::Accounts::<T>::remove(&index);

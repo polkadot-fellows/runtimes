@@ -143,6 +143,16 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				break;
 			}
 
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
+				);
+				break;
+			}
+
 			let kv = iter.next();
 
 			let Some((k1, k2, multisig)) = kv else {

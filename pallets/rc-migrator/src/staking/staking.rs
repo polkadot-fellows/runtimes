@@ -125,7 +125,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
-					"Maximum number of batches ({:?}) to send per block reached, current batch count: {}",
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
 					MAX_XCM_MSG_PER_BLOCK,
 					messages.batch_count()
 				);

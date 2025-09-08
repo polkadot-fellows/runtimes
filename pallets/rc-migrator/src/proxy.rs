@@ -192,6 +192,16 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			return Err(OutOfWeightError);
 		}
 
+		if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+			log::info!(
+				target: LOG_TARGET,
+				"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+				MAX_XCM_MSG_PER_BLOCK,
+				batch.batch_count()
+			);
+			return Err(OutOfWeightError);
+		}
+
 		let translated_proxies = proxies
 			.into_iter()
 			.map(|proxy| pallet_proxy::ProxyDefinition {
@@ -256,6 +266,16 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()
+				);
+				break;
+			}
+
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
 				);
 				break;
 			}

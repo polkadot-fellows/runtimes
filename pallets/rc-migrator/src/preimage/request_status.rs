@@ -163,6 +163,16 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				break next_key;
 			}
 
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
+				);
+				break next_key;
+			}
+
 			let next_key_inner = match next_key {
 				Some(key) => key,
 				None => {

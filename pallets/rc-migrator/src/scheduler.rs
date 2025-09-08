@@ -87,8 +87,24 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
+				break;
+			}
+
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
 				break;
 			}
 
@@ -180,6 +196,16 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					messages.len()
+				);
+				break last_key;
+			}
+
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
 				);
 				break last_key;
 			}
