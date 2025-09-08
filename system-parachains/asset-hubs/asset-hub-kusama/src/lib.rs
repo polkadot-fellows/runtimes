@@ -759,7 +759,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
-			ProxyType::Society => false, // TODO: matches!(c, RuntimeCall::Society(..)),
+			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
 			ProxyType::Spokesperson => matches!(
 				c,
 				RuntimeCall::System(frame_system::Call::remark { .. }) |
