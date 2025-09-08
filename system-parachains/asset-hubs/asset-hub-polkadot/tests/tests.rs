@@ -1082,7 +1082,7 @@ mod inflation_tests {
 
 	const TWO_YEAR_STEP_RATE: f64 = 0.2628;
 	const TARGET_TI: u128 = 2_100_000_000;
-	// The extrapolated TI on March 14th, 2026. Number deviates slightly from Jay's initial extrapolation of
+	// The extrapolated TI on March 14th, 2026. Number deviates slightly from the community's initial extrapolation of
 	// 1_676_733_867 used in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 	const MARCH_TI: u128 = 1_676_562_737;
 	const MARCH_14_2026: RC_BlockNumber = 30_367_108;
