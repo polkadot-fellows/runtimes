@@ -43,7 +43,6 @@ use super::{
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
-use asset_hub_kusama_runtime::Runtime as KAH;
 use asset_hub_polkadot_runtime::{Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{
@@ -329,6 +328,7 @@ fn sovereign_account_translation() {
 /// limit is 2^16, but that would make the test ~655 times slower.
 #[ignore]
 #[tokio::test]
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 async fn find_translatable_accounts() {
 	let mut dot_rc = load_externalities_uncached("POLKADOT_RC_SNAP").await.unwrap();
 	let mut kusama_rc = load_externalities_uncached("KUSAMA_RC_SNAP").await.unwrap();
@@ -1438,6 +1438,9 @@ fn schedule_migration_staking_pause_works() {
 
 #[test]
 fn bifrost_addresses_are_in_translation_map() {
+	#[cfg(feature = "kusama-ahm")]
+	use asset_hub_kusama_runtime::Runtime as KAH;
+
 	TestExternalities::default().execute_with(|| {
 		let sov_cases = [
 			(
@@ -1467,14 +1470,17 @@ fn bifrost_addresses_are_in_translation_map() {
 			assert_eq!(pallet_ah_migrator::Pallet::<PAH>::maybe_derived_translate(&from), None);
 
 			// Translations work regardless of the runtime:
+			#[cfg(feature = "kusama-ahm")]
 			assert_eq!(
 				pallet_ah_migrator::Pallet::<KAH>::translate_account_rc_to_ah(from.clone()),
 				to
 			);
+			#[cfg(feature = "kusama-ahm")]
 			assert_eq!(
 				pallet_ah_migrator::Pallet::<KAH>::maybe_sovereign_translate(&from),
 				Some(to)
 			);
+			#[cfg(feature = "kusama-ahm")]
 			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_derived_translate(&from), None);
 		}
 
@@ -1536,11 +1542,14 @@ fn bifrost_addresses_are_in_translation_map() {
 			);
 
 			// Translations work regardless of the runtime:
+			#[cfg(feature = "kusama-ahm")]
 			assert_eq!(
 				pallet_ah_migrator::Pallet::<KAH>::translate_account_rc_to_ah(from.clone()),
 				to
 			);
+			#[cfg(feature = "kusama-ahm")]
 			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_sovereign_translate(&from), None);
+			#[cfg(feature = "kusama-ahm")]
 			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_derived_translate(&from), Some(to));
 		}
 	});
