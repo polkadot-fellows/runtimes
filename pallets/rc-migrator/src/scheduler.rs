@@ -70,7 +70,11 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					messages.len()
+				);
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -80,15 +84,35 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 			if T::MaxAhWeight::get()
 				.any_lt(T::AhWeightInfo::receive_scheduler_lookup((messages.len() + 1) as u32))
 			{
-				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				log::info!(
+					target: LOG_TARGET,
+					"AH weight limit reached at batch length {}, stopping",
+					messages.len()
+				);
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+
+			if messages.len() > MAX_ITEMS_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
+					MAX_ITEMS_PER_BLOCK,
+					messages.len()
+				);
+				break;
+			}
+
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
+				);
 				break;
 			}
 
@@ -177,9 +201,20 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 
 			if messages.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					messages.len()
+				);
+				break last_key;
+			}
+
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
 				);
 				break last_key;
 			}
@@ -209,6 +244,7 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 					.is_err()
 				{
 					log::info!(
+						target: LOG_TARGET,
 						"AH weight limit reached at batch length {}, stopping",
 						messages.len()
 					);

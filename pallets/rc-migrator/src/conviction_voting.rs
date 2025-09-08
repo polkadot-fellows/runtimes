@@ -79,7 +79,11 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					messages.len()
+				);
 				if !made_progress {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -89,7 +93,11 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_conviction_voting_messages(
 				(messages.len() + 1) as u32,
 			)) {
-				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				log::info!(
+					target: LOG_TARGET,
+					"AH weight limit reached at batch length {}, stopping",
+					messages.len()
+				);
 				if !made_progress {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -99,9 +107,20 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 
 			if messages.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					messages.len()
+				);
+				break;
+			}
+
+			if messages.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					messages.batch_count()
 				);
 				break;
 			}
