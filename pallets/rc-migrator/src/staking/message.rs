@@ -140,11 +140,8 @@ impl TranslateAccounts for PortableStakingMessage {
 				page,
 				exposure: exposure.translate_accounts(f),
 			},
-			ClaimedRewards { era, validator, rewards } => ClaimedRewards {
-				era,
-				validator: f(validator),
-				rewards,
-			},
+			ClaimedRewards { era, validator, rewards } =>
+				ClaimedRewards { era, validator: f(validator), rewards },
 			ErasValidatorPrefs { era, validator, prefs } => ErasValidatorPrefs {
 				era,
 				validator: f(validator),
@@ -347,7 +344,12 @@ impl TranslateAccounts for PortableStakingLedger {
 			stash: f(self.stash),
 			total: self.total,
 			active: self.active,
-			unlocking: self.unlocking.into_iter().map(|c| c.translate_accounts(f)).collect::<Vec<_>>().defensive_truncate_into(),
+			unlocking: self
+				.unlocking
+				.into_iter()
+				.map(|c| c.translate_accounts(f))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
 		}
 	}
 }
@@ -718,7 +720,12 @@ impl TranslateAccounts for PortableExposurePage {
 	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		PortableExposurePage {
 			page_total: self.page_total,
-			others: self.others.into_iter().map(|c| c.translate_accounts(f)).collect::<Vec<_>>().defensive_truncate_into(),
+			others: self
+				.others
+				.into_iter()
+				.map(|c| c.translate_accounts(f))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
 		}
 	}
 }
@@ -814,11 +821,8 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
-	#[cfg(feature = "polkadot-ahm")]
-	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, /* TODO @ggwpez Up to
-	                                                                * MaxValidatorSize */
-	#[cfg(feature = "kusama-ahm")]
-	pub individual: BoundedVec<(AccountId32, u32), ConstU32<12500>>,
+	// 1000 on Polkadot and 2000 on Kusama, so we just take the max.
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<2000>>,
 }
 
 impl TranslateAccounts for PortableEraRewardPoints {

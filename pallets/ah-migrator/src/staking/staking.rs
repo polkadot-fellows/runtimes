@@ -17,8 +17,10 @@
 //! Pallet staking migration.
 
 use crate::*;
-use pallet_rc_migrator::types::TranslateAccounts;
-use pallet_rc_migrator::{staking::{PortableStakingMessage}, types::DefensiveTruncateInto};
+use pallet_rc_migrator::{
+	staking::PortableStakingMessage,
+	types::{DefensiveTruncateInto, TranslateAccounts},
+};
 use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
@@ -50,7 +52,7 @@ impl<T: Config> Pallet<T> {
 
 	fn do_receive_staking_message(message: PortableStakingMessage) -> Result<(), Error<T>> {
 		use PortableStakingMessage::*;
-		
+
 		let message = message.translate_accounts(&Self::translate_account_rc_to_ah);
 
 		match message {

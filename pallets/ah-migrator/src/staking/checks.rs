@@ -16,13 +16,15 @@
 
 //! Checks that the staking migration succeeded.
 
-use pallet_rc_migrator::staking::{
-	message::{PortableNominations, PortableUnappliedSlash},
-	RcData,
+use codec::Encode;
+use pallet_rc_migrator::{
+	staking::{
+		message::{PortableNominations, PortableUnappliedSlash},
+		RcData,
+	},
+	types::SortByEncoded,
 };
 use sp_runtime::{AccountId32, Perbill};
-use codec::Encode;
-use pallet_rc_migrator::types::SortByEncoded;
 
 impl<T: crate::Config> crate::types::AhMigrationCheck
 	for pallet_rc_migrator::staking::StakingMigratedCorrectly<T>
@@ -62,78 +64,55 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 		assert_equal_items(rc.bonded, pallet_staking_async::Bonded::<T>::iter());
 		assert_equal_items(
 			rc.ledger.into_iter().map(|(k, v)| (k, v.into())),
-			pallet_staking_async::Ledger::<T>::iter()
+			pallet_staking_async::Ledger::<T>::iter(),
 		);
 		assert_equal_items(
-			rc.payee
-				.into_iter()
-				.map(|(k, v)| (k, translate_reward_destination(v))),
-			pallet_staking_async::Payee::<T>::iter()
+			rc.payee.into_iter().map(|(k, v)| (k, translate_reward_destination(v))),
+			pallet_staking_async::Payee::<T>::iter(),
 		);
 		assert_equal_items(
-			rc.validators
-				.into_iter()
-				.map(|(k, v)| (k, translate_validator_prefs(v))),
-			pallet_staking_async::Validators::<T>::iter()
+			rc.validators.into_iter().map(|(k, v)| (k, translate_validator_prefs(v))),
+			pallet_staking_async::Validators::<T>::iter(),
 		);
 		assert_equal_items(
-			rc.nominators
-				.into_iter()
-				.map(|(k, v)| (k, translate_nominations(v)))
-				,
-			pallet_staking_async::Nominators::<T>::iter()
+			rc.nominators.into_iter().map(|(k, v)| (k, translate_nominations(v))),
+			pallet_staking_async::Nominators::<T>::iter(),
 		);
 		assert_equal_items(
 			rc.virtual_stakers,
-			pallet_staking_async::VirtualStakers::<T>::iter_keys()
+			pallet_staking_async::VirtualStakers::<T>::iter_keys(),
 		);
 		assert_equal_items(
-			rc.eras_stakers_overview
-				.into_iter()
-				.map(|(k1, k2, v)| (k1, k2, v.into()))
-				,
-			pallet_staking_async::ErasStakersOverview::<T>::iter()
+			rc.eras_stakers_overview.into_iter().map(|(k1, k2, v)| (k1, k2, v.into())),
+			pallet_staking_async::ErasStakersOverview::<T>::iter(),
 		);
 		assert_equal_items(
-			rc.eras_stakers_paged
-				.into_iter()
-				.map(|(k, v)| (k, v.into()))
-				,
-			pallet_staking_async::ErasStakersPaged::<T>::iter()
+			rc.eras_stakers_paged.into_iter().map(|(k, v)| (k, v.into())),
+			pallet_staking_async::ErasStakersPaged::<T>::iter(),
 		);
 		assert_equal_items(
 			rc.claimed_rewards,
 			pallet_staking_async::ClaimedRewards::<T>::iter()
-				.map(|(k1, k2, v)| (k1, k2, v.into_inner()))
-				,
+				.map(|(k1, k2, v)| (k1, k2, v.into_inner())),
 		);
 		assert_equal_items(
-			rc.eras_validator_prefs
-				.into_iter()
-				.map(|(k1, k2, v)| (k1, k2, v.into()))
-				,
-			pallet_staking_async::ErasValidatorPrefs::<T>::iter()
+			rc.eras_validator_prefs.into_iter().map(|(k1, k2, v)| (k1, k2, v.into())),
+			pallet_staking_async::ErasValidatorPrefs::<T>::iter(),
 		);
 		assert_equal_items(
 			rc.eras_validator_reward,
-			pallet_staking_async::ErasValidatorReward::<T>::iter()
+			pallet_staking_async::ErasValidatorReward::<T>::iter(),
 		);
 		assert_equal_items(
-			rc.eras_reward_points
-				.into_iter()
-				.map(|(k, v)| (k, v.into()))
-				,
-			pallet_staking_async::ErasRewardPoints::<T>::iter()
+			rc.eras_reward_points.into_iter().map(|(k, v)| (k, v.into())),
+			pallet_staking_async::ErasRewardPoints::<T>::iter(),
 		);
-		assert_equal_items(
-			rc.eras_total_stake,
-			pallet_staking_async::ErasTotalStake::<T>::iter()
-		);
+		assert_equal_items(rc.eras_total_stake, pallet_staking_async::ErasTotalStake::<T>::iter());
 		check_unapplied_slashes::<T>(rc.unapplied_slashes);
 		assert_equal_items(rc.bonded_eras, pallet_staking_async::BondedEras::<T>::get());
 		assert_equal_items(
 			rc.validator_slash_in_era,
-			pallet_staking_async::ValidatorSlashInEra::<T>::iter()
+			pallet_staking_async::ValidatorSlashInEra::<T>::iter(),
 		);
 	}
 }
@@ -199,7 +178,10 @@ fn check_unapplied_slashes<T: crate::Config>(rc: Vec<(u32, Vec<PortableUnapplied
 }
 
 /// Assert that two iterators have the same elements, regardless of their order.
-fn assert_equal_items<V: Encode, I: IntoIterator<Item = V>, J: IntoIterator<Item = V>>(rc: I, ah: J) {
+fn assert_equal_items<V: Encode, I: IntoIterator<Item = V>, J: IntoIterator<Item = V>>(
+	rc: I,
+	ah: J,
+) {
 	let rc = rc.into_iter().collect::<Vec<_>>().sort_by_encoded();
 	let ah = ah.into_iter().collect::<Vec<_>>().sort_by_encoded();
 	assert_eq!(rc, ah);
