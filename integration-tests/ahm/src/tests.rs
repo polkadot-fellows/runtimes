@@ -43,7 +43,8 @@ use super::{
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
-use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use asset_hub_kusama_runtime::Runtime as KAH;
+use asset_hub_polkadot_runtime::{Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{
 	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
@@ -1434,5 +1435,115 @@ fn schedule_migration_staking_pause_works() {
 				assert_eq!(frame_system::Pallet::<RcRuntime>::events(), Vec::new());
 			}
 		});
+	});
+}
+
+#[test]
+fn bifrost_addresses_are_in_translation_map() {
+	TestExternalities::default().execute_with(|| {
+		let sov_cases = [
+			(
+				// 2030 Polkadot
+				"13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm",
+				"13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A",
+			),
+			(
+				// 2001 Kusama
+				"5Ec4AhPV91i9yNuiWuNunPf6AQCYDhFTTA4G5QCbtqYApH9E",
+				"5Eg2fntJDju46yds4uKzu2zuQssqw7JZWohhLMj6mZZjg2pK",
+			),
+		];
+
+		for (from, to) in sov_cases {
+			let from = AccountId32::from_str(from).unwrap();
+			let to = AccountId32::from_str(to).unwrap();
+
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::maybe_sovereign_translate(&from),
+				Some(to.clone())
+			);
+			assert_eq!(pallet_ah_migrator::Pallet::<PAH>::maybe_derived_translate(&from), None);
+
+			// Translations work regardless of the runtime:
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<KAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<KAH>::maybe_sovereign_translate(&from),
+				Some(to)
+			);
+			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_derived_translate(&from), None);
+		}
+
+		let derived_cases = [
+			(
+				// 2030 / 0 Polkadot
+				"14vtfeKAVKh1Jzb3s7e43SqZ3zB5MLsdCxZPoKDxeoCFKLu5",
+				"5ETehspFKFNpBbe5DsfuziN6BWq5Qwp1J8qcTQQoAxwa7BsS",
+			),
+			(
+				// 2030 / 1 Polkadot
+				"14QkQ7wVVDRrhbC1UqHsFwKFUns1SRud94CXMWGHWB8Jhtro",
+				"5DNWZkkAxLhqF8tevcbRGyARAVM7abukftmqvoDFUN5dDDDz",
+			),
+			(
+				// 2030 / 2 Polkadot
+				"13hLwqcVHqjiJMbZhR9LtfdhoxmTdssi7Kp8EJaW2yfk3knK",
+				"5EmiwjDYiackJma1GW3aBbQ74rLfWh756UKDb7Cm83XDkUUZ",
+			),
+			(
+				// 2001 / 0 Kusama
+				"5E78xTBiaN3nAGYtcNnqTJQJqYAkSDGggKqaDfpNsKyPpbcb",
+				"5CzXNqgBZT5yMpMETdfH55saYNKQoJBXsSfnu4d2s1ejYFir",
+			),
+			(
+				// 2001 / 1 Kusama
+				"5HXi9pzWnTQzk7VKzY6VQn92KfWCcA5NbSm53uKHrYU1VsjP",
+				"5GcexD4YNqcKTbW1YWDRczQzpxic61byeNeLaHgqQHk8pxQJ",
+			),
+			(
+				// 2001 / 2 Kusama
+				"5CkKS3YMx64TguUYrMERc5Bn6Mn2aKMUkcozUFREQDgHS3Tv",
+				"5FoYMVucmT552GDMWfYNxcF2XnuuvLbJHt7mU6DfDCpUAS2Y",
+			),
+			(
+				// 2001 / 3 Kusama
+				"5Crxhmiw5CQq3Mnfcu3dR3yJ3YpjbxjqaeDFtNNtqgmcnN4S",
+				"5FP39fgPYhJw3vcLwSMqMnwBuEVGexUMG6JQLPR9yPVhq6Wy",
+			),
+			(
+				// 2001 / 4 Kusama
+				"5DAZP4gZKZafGv42uoWNTMau4tYuDd2XteJLGL4upermhQpn",
+				"5ExtLdYnjHLJbngU1QpumjPieCGaCXwwkH1JrFBQ9GATuNGv",
+			),
+		];
+
+		for (from, to) in derived_cases {
+			let from = AccountId32::from_str(from).unwrap();
+			let to = AccountId32::from_str(to).unwrap();
+
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			assert_eq!(pallet_ah_migrator::Pallet::<PAH>::maybe_sovereign_translate(&from), None);
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::maybe_derived_translate(&from),
+				Some(to.clone())
+			);
+
+			// Translations work regardless of the runtime:
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<KAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_sovereign_translate(&from), None);
+			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_derived_translate(&from), Some(to));
+		}
 	});
 }
