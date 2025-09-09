@@ -842,3 +842,146 @@ where
 
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
+
+/// Builds a `pallet_xcm::send` call to create asset rate,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_asset_rate_create<SourceChain, DestChain>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_asset_rate::Config>::AssetKind,
+	rate: sp_runtime::FixedU128,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_asset_rate::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_asset_rate::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_asset_rate::Call::<DestChain::Runtime>::create { asset_kind: bx!(asset_kind), rate }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to update asset rate,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_asset_rate_update<SourceChain, DestChain>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_asset_rate::Config>::AssetKind,
+	rate: sp_runtime::FixedU128,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_asset_rate::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_asset_rate::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_asset_rate::Call::<DestChain::Runtime>::update { asset_kind: bx!(asset_kind), rate }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remote asset rate,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_asset_rate_remove<SourceChain, DestChain>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_asset_rate::Config>::AssetKind,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_asset_rate::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_asset_rate::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_asset_rate::Call::<DestChain::Runtime>::remove { asset_kind: bx!(asset_kind) }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to create treasury spend,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_treasury_spend<SourceChain, DestChain, Instance, Beneficiary>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_treasury::Config<Instance>>::AssetKind,
+	amount: pallet_treasury::AssetBalanceOf<DestChain::Runtime, Instance>,
+	beneficiary: Beneficiary,
+	valid_from: Option<pallet_treasury::BlockNumberFor<DestChain::Runtime, Instance>>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_treasury::Config<Instance>,
+	DestChain::RuntimeCall: Encode + From<pallet_treasury::Call<DestChain::Runtime, Instance>>,
+
+	Instance: 'static,
+
+	Beneficiary: Into<<DestChain::Runtime as pallet_treasury::Config<Instance>>::Beneficiary>,
+{
+	// Convert AccountId -> Lookup::Source expected by treasury::spend
+	type BenLookupSrcOf<R, I> =
+		<<R as pallet_treasury::Config<I>>::BeneficiaryLookup as StaticLookup>::Source;
+
+	let ben_lookup: BenLookupSrcOf<DestChain::Runtime, Instance> =
+        <<DestChain::Runtime as pallet_treasury::Config<Instance>>::BeneficiaryLookup as StaticLookup>
+            ::unlookup(beneficiary.into());
+
+	let dest_call: DestChain::RuntimeCall =
+		pallet_treasury::Call::<DestChain::Runtime, Instance>::spend {
+			asset_kind: bx!(asset_kind),
+			amount,
+			beneficiary: bx!(ben_lookup),
+			valid_from,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(
+		dest,
+		fallback_max_weight,
+		dest_call,
+		OriginKind::Xcm,
+	)
+}
+
+/// Builds a `pallet_xcm::send` call to void existing treasury spend,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_treasury_void_spend<SourceChain, DestChain, Instance>(
+	dest: Location,
+	index: pallet_treasury::SpendIndex,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_treasury::Config<Instance>,
+	DestChain::RuntimeCall: Encode + From<pallet_treasury::Call<DestChain::Runtime, Instance>>,
+
+	Instance: 'static,
+{
+	let dest_call: DestChain::RuntimeCall =
+		pallet_treasury::Call::<DestChain::Runtime, Instance>::void_spend { index }.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(
+		dest,
+		fallback_max_weight,
+		dest_call,
+		OriginKind::Xcm,
+	)
+}

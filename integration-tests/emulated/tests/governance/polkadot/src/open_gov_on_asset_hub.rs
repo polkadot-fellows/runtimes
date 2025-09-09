@@ -496,6 +496,201 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_collectives() {
 }
 
 #[test]
+fn assethub_fellowship_admin_can_manage_ambassadors_on_collectives() {
+	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+	type CollectivesRuntime = <CollectivesPolkadot as Chain>::Runtime;
+	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
+
+	let account: <CollectivesRuntime as frame_system::Config>::AccountId =
+		Charlie.to_account_id().into();
+	let ok_origin: AssetHubOrigin = Origin::FellowshipAdmin.into();
+	let bad_origin: AssetHubOrigin = Origin::StakingAdmin.into();
+
+	let set_params_xcm = build_xcm_send_fellowship_core_set_rank1_min_promotion_period::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_core_fellowship::Instance2,
+	>(
+		AssetHubPolkadot::sibling_location_of(<CollectivesPolkadot as Parachain>::para_id()),
+		1,
+		None,
+	);
+	let induct_member_xcm = build_xcm_send_induct_member::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_core_fellowship::Instance2,
+	>(
+		AssetHubPolkadot::sibling_location_of(<CollectivesPolkadot as Parachain>::para_id()),
+		account.clone(),
+		None,
+	);
+	let promote_member_xcm = build_xcm_send_fellowship_core_promote_member::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_core_fellowship::Instance2,
+	>(
+		AssetHubPolkadot::sibling_location_of(<CollectivesPolkadot as Parachain>::para_id()),
+		account.clone(),
+		collectives_polkadot_runtime::fellowship::ranks::DAN_1,
+		None,
+	);
+	let demote_member_xcm = build_xcm_send_fellowship_demote_member::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_ranked_collective::Instance2,
+	>(
+		AssetHubPolkadot::sibling_location_of(<CollectivesPolkadot as Parachain>::para_id()),
+		account.clone(),
+		None,
+	);
+	let remove_member_xcm = build_xcm_send_fellowship_remove_member::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_ranked_collective::Instance2,
+	>(
+		AssetHubPolkadot::sibling_location_of(<CollectivesPolkadot as Parachain>::para_id()),
+		account.clone(),
+		0,
+		None,
+	);
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(set_params_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(set_params_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::AmbassadorCore(pallet_core_fellowship::Event::ParamsChanged { .. }) => {},
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(induct_member_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(induct_member_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::AmbassadorCollective(pallet_ranked_collective::Event::MemberAdded { who }) => {
+					who: *who == account,
+				},
+				CollectivesRuntimeEvent::AmbassadorCore(pallet_core_fellowship::Event::Inducted { who }) => {
+					who: *who == account,
+				},
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(promote_member_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(promote_member_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::AmbassadorCollective(pallet_ranked_collective::Event::RankChanged { who, rank: 1 }) => {
+					who: *who == account,
+				},
+				CollectivesRuntimeEvent::AmbassadorCore(pallet_core_fellowship::Event::Promoted { who, to_rank: 1 }) => {
+					who: *who == account,
+				},
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(demote_member_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(demote_member_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::AmbassadorCollective(pallet_ranked_collective::Event::RankChanged { who, rank: 0 }) => {
+					who: *who == account,
+				},
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(remove_member_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(remove_member_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::AmbassadorCollective(pallet_ranked_collective::Event::MemberRemoved { who, rank }) => {
+					who: *who == account,
+					rank: *rank == 0,
+				},
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
 fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 	type CoretimeRuntimeEvent = <CoretimePolkadot as Chain>::RuntimeEvent;
@@ -753,6 +948,331 @@ fn assethub_staking_admin_can_manage_elections_on_relay() {
 			Polkadot,
 			vec![
 				PolkadotRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
+fn assethub_treasurer_can_manage_asset_rate_on_collectives() {
+	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
+
+	let ok_origin: AssetHubOrigin = Origin::Treasurer.into();
+	let bad_origin: AssetHubOrigin = Origin::GeneralAdmin.into();
+
+	let test_asset_kind = polkadot_runtime_common::impls::VersionedLocatableAsset::V5 {
+		location: Location::new(0, [Parachain(1004)]),
+		asset_id: Location::parent().into(),
+	};
+	let test_rate = 100.into();
+	let updated_test_rate = test_rate * 2.into();
+
+	let asset_rate_create_xcm =
+		build_xcm_send_asset_rate_create::<AssetHubPolkadot, CollectivesPolkadot>(
+			AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+			test_asset_kind.clone(),
+			test_rate,
+			None,
+		);
+
+	let asset_rate_update_xcm =
+		build_xcm_send_asset_rate_update::<AssetHubPolkadot, CollectivesPolkadot>(
+			AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+			test_asset_kind.clone(),
+			updated_test_rate,
+			None,
+		);
+
+	let asset_rate_remove_xcm =
+		build_xcm_send_asset_rate_remove::<AssetHubPolkadot, CollectivesPolkadot>(
+			AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+			test_asset_kind.clone(),
+			None,
+		);
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(asset_rate_create_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(asset_rate_create_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::AssetRate(pallet_asset_rate::Event::AssetRateCreated { asset_kind, rate }) => {
+					asset_kind: *asset_kind == test_asset_kind,
+					rate: *rate == test_rate,
+				},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(asset_rate_update_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(asset_rate_update_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::AssetRate(pallet_asset_rate::Event::AssetRateUpdated { asset_kind, old, new }) => {
+					asset_kind: *asset_kind == test_asset_kind,
+					old: *old == test_rate,
+					new: *new == updated_test_rate,
+				},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(asset_rate_remove_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(asset_rate_remove_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::AssetRate(pallet_asset_rate::Event::AssetRateRemoved { asset_kind }) => {
+					asset_kind: *asset_kind == test_asset_kind,
+				},
+			]
+		);
+	});
+}
+
+#[test]
+fn assethub_treasurer_can_manage_spend_from_fellowship_treasury_on_collectives() {
+	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
+
+	let ok_origin: AssetHubOrigin = Origin::Treasurer.into();
+	let bad_origin: AssetHubOrigin = Origin::GeneralAdmin.into();
+
+	let test_asset_kind = polkadot_runtime_common::impls::VersionedLocatableAsset::V5 {
+		location: Location::new(1, [Parachain(1004)]),
+		asset_id: Location::parent().into(),
+	};
+	let test_amount = 1_000u128.into();
+	let test_beneficiary: VersionedLocation = VersionedLocation::V5(Location::new(
+		0,
+		[AccountId32 { network: None::<NetworkId>, id: Charlie.into() }],
+	));
+	let test_valid_from = Some(0u32);
+	let expected_index = 0u32;
+
+	let treasury_spend_xcm: asset_hub_polkadot_runtime::RuntimeCall = build_xcm_send_treasury_spend::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_treasury::Instance1,
+		_,
+	>(
+		AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+		test_asset_kind.clone(),
+		test_amount,
+		test_beneficiary.clone(),
+		test_valid_from,
+		None,
+	);
+
+	let treasury_void_spend_xcm: asset_hub_polkadot_runtime::RuntimeCall =
+		build_xcm_send_treasury_void_spend::<
+			AssetHubPolkadot,
+			CollectivesPolkadot,
+			pallet_treasury::Instance1,
+		>(
+			AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+			expected_index,
+			None,
+		);
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_spend_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_spend_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::FellowshipTreasury(pallet_treasury::Event::AssetSpendApproved { index, asset_kind, amount, beneficiary, valid_from, .. }) => {
+					index: *index == expected_index,
+					asset_kind: *asset_kind == test_asset_kind,
+					amount: *amount == test_amount,
+					beneficiary: *beneficiary == test_beneficiary,
+					valid_from: *valid_from == test_valid_from.unwrap(),
+				},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_void_spend_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_void_spend_xcm.dispatch(ok_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::FellowshipTreasury(pallet_treasury::Event::AssetSpendVoided { index }) => {
+					index: *index == expected_index,
+				},
+			]
+		);
+	});
+}
+
+#[test]
+fn assethub_treasurer_can_manage_spend_from_ambassador_treasury_on_collectives() {
+	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
+
+	let ok_origin_spend: AssetHubOrigin = Origin::Treasurer.into();
+	let ok_origin_void_spend: AssetHubOrigin = Origin::FellowshipAdmin.into();
+	let bad_origin: AssetHubOrigin = Origin::GeneralAdmin.into();
+
+	let test_asset_kind = polkadot_runtime_common::impls::VersionedLocatableAsset::V5 {
+		location: Location::new(1, [Parachain(1004)]),
+		asset_id: Location::parent().into(),
+	};
+	let test_amount = 1_000u128.into();
+	let test_beneficiary: VersionedLocation = VersionedLocation::V5(Location::new(
+		0,
+		[AccountId32 { network: None::<NetworkId>, id: Charlie.into() }],
+	));
+	let test_valid_from = Some(0u32);
+	let expected_index = 0u32;
+
+	let treasury_spend_xcm: asset_hub_polkadot_runtime::RuntimeCall = build_xcm_send_treasury_spend::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_treasury::Instance2,
+		_,
+	>(
+		AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+		test_asset_kind.clone(),
+		test_amount,
+		test_beneficiary.clone(),
+		test_valid_from,
+		None,
+	);
+
+	let treasury_void_spend_xcm: asset_hub_polkadot_runtime::RuntimeCall =
+		build_xcm_send_treasury_void_spend::<
+			AssetHubPolkadot,
+			CollectivesPolkadot,
+			pallet_treasury::Instance2,
+		>(
+			AssetHubPolkadot::sibling_location_of(CollectivesPolkadot::para_id()),
+			expected_index,
+			None,
+		);
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_spend_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_spend_xcm.dispatch(ok_origin_spend.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::AmbassadorTreasury(pallet_treasury::Event::AssetSpendApproved { index, asset_kind, amount, beneficiary, valid_from, .. }) => {
+					index: *index == expected_index,
+					asset_kind: *asset_kind == test_asset_kind,
+					amount: *amount == test_amount,
+					beneficiary: *beneficiary == test_beneficiary,
+					valid_from: *valid_from == test_valid_from.unwrap(),
+				},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_void_spend_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
+			]
+		);
+	});
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(treasury_void_spend_xcm.dispatch(ok_origin_void_spend.clone().into()));
+	});
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				CollectivesRuntimeEvent::AmbassadorTreasury(pallet_treasury::Event::AssetSpendVoided { index }) => {
+					index: *index == expected_index,
+				},
 			]
 		);
 	});

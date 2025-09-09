@@ -25,6 +25,8 @@ runtime-parachains = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 pallet-election-provider-multi-phase = { workspace = true, default-features = true }
 sp-npos-elections = { workspace = true, default-features = true }
+pallet-asset-rate = { workspace = true, default-features = true }
+pallet-treasury = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
