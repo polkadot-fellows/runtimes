@@ -286,8 +286,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 	type KusamaRuntime = <Kusama as Chain>::Runtime;
 	type KusamaRuntimeEvent = <Kusama as Chain>::RuntimeEvent;
 
-	let account: <KusamaRuntime as frame_system::Config>::AccountId =
-		Charlie.to_account_id().into();
+	let account: <KusamaRuntime as frame_system::Config>::AccountId = Charlie.to_account_id();
 	let ok_origin: AssetHubOrigin = Origin::FellowshipAdmin.into();
 	let bad_origin: AssetHubOrigin = Origin::StakingAdmin.into();
 
@@ -313,7 +312,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 	>(AssetHubKusama::parent_location(), account.clone(), 0, None);
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(add_member_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(add_member_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -324,7 +323,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(add_member_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(add_member_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -339,7 +338,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 	});
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(promote_member_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(promote_member_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -350,7 +349,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(promote_member_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(promote_member_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -365,7 +364,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 	});
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(demote_member_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(demote_member_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -376,7 +375,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(demote_member_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(demote_member_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -391,7 +390,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 	});
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(remove_member_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(remove_member_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -402,7 +401,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(remove_member_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(remove_member_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -450,7 +449,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 		);
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_candidates_xcm_coretime.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(set_candidates_xcm_coretime.clone().dispatch(bad_origin.clone()));
 	});
 	CoretimeKusama::execute_with(|| {
 		assert_expected_events!(
@@ -461,7 +460,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_candidates_xcm_coretime.dispatch(ok_origin.clone().into()));
+		assert_ok!(set_candidates_xcm_coretime.dispatch(ok_origin.clone()));
 	});
 	CoretimeKusama::execute_with(|| {
 		assert_expected_events!(
@@ -476,7 +475,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 	});
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_candidates_xcm_bridge_hub.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(set_candidates_xcm_bridge_hub.clone().dispatch(bad_origin.clone()));
 	});
 	BridgeHubKusama::execute_with(|| {
 		assert_expected_events!(
@@ -487,7 +486,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_candidates_xcm_bridge_hub.dispatch(ok_origin.clone().into()));
+		assert_ok!(set_candidates_xcm_bridge_hub.dispatch(ok_origin.clone()));
 	});
 	BridgeHubKusama::execute_with(|| {
 		assert_expected_events!(
@@ -502,7 +501,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 	});
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_candidates_xcm_people.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(set_candidates_xcm_people.clone().dispatch(bad_origin.clone()));
 	});
 	PeopleKusama::execute_with(|| {
 		assert_expected_events!(
@@ -513,7 +512,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_candidates_xcm_people.dispatch(ok_origin.clone().into()));
+		assert_ok!(set_candidates_xcm_people.dispatch(ok_origin.clone()));
 	});
 	PeopleKusama::execute_with(|| {
 		assert_expected_events!(
@@ -545,7 +544,7 @@ fn assethub_general_admin_can_manage_hrmp_on_relay() {
 	);
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(force_clean_hrmp_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(force_clean_hrmp_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -556,7 +555,7 @@ fn assethub_general_admin_can_manage_hrmp_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(force_clean_hrmp_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(force_clean_hrmp_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -583,7 +582,7 @@ fn assethub_staking_admin_can_manage_staking_on_relay() {
 	);
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_min_commisions_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(set_min_commisions_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -594,7 +593,7 @@ fn assethub_staking_admin_can_manage_staking_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_min_commisions_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(set_min_commisions_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -625,7 +624,7 @@ fn assethub_staking_admin_can_manage_elections_on_relay() {
 		);
 
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_minimum_untrusted_score_xcm.clone().dispatch(bad_origin.clone().into()));
+		assert_ok!(set_minimum_untrusted_score_xcm.clone().dispatch(bad_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
@@ -636,7 +635,7 @@ fn assethub_staking_admin_can_manage_elections_on_relay() {
 		);
 	});
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(set_minimum_untrusted_score_xcm.dispatch(ok_origin.clone().into()));
+		assert_ok!(set_minimum_untrusted_score_xcm.dispatch(ok_origin.clone()));
 	});
 	Kusama::execute_with(|| {
 		assert_expected_events!(
