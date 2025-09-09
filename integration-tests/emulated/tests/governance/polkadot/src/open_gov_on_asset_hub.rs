@@ -302,12 +302,8 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 
 #[test]
 fn assethub_fellowsip_admin_can_induct_on_collectives() {
-	type AssetHubRuntime = <AssetHubPolkadot as Chain>::Runtime;
-	type AssetHubCall = <AssetHubPolkadot as Chain>::RuntimeCall;
 	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-
 	type CollectivesRuntime = <CollectivesPolkadot as Chain>::Runtime;
-	type CollectivesRuntimeCall = <CollectivesPolkadot as Chain>::RuntimeCall;
 	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
 
 	use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin::FellowshipAdmin;

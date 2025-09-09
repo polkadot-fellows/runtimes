@@ -232,12 +232,9 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 
 #[test]
 fn relaychain_fellowsip_admin_can_induct_on_collectives() {
-	type PolkadotRuntime = <Polkadot as Chain>::Runtime;
-	type PolkadotCall = <Polkadot as Chain>::RuntimeCall;
 	type PolkadotOrigin = <Polkadot as Chain>::RuntimeOrigin;
 
 	type CollectivesRuntime = <CollectivesPolkadot as Chain>::Runtime;
-	type CollectivesRuntimeCall = <CollectivesPolkadot as Chain>::RuntimeCall;
 	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
 
 	use polkadot_runtime::governance::pallet_custom_origins::Origin::FellowshipAdmin;

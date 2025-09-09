@@ -16,40 +16,6 @@
 
 use crate::imports::*;
 
-/// Builds a `pallet_xcm::send` call to induct Fellowship member,
-/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
-pub fn build_xcm_send_induct_member<SourceChain, DestChain, Instance>(
-	dest: Location,
-	who: <DestChain::Runtime as frame_system::Config>::AccountId,
-	fallback_max_weight: Option<Weight>,
-) -> SourceChain::RuntimeCall
-where
-	SourceChain: Chain,
-	SourceChain::Runtime: pallet_xcm::Config,
-	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
-	DestChain: Chain,
-	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
-	DestChain::RuntimeCall:
-		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
-	Instance: 'static,
-{
-	let induct_call: DestChain::RuntimeCall =
-		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::induct { who }.into();
-
-	pallet_xcm::Call::<SourceChain::Runtime>::send {
-		dest: Box::new(VersionedLocation::from(dest)),
-		message: Box::new(VersionedXcm::from(Xcm(vec![
-			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-			Transact {
-				origin_kind: OriginKind::Xcm,
-				fallback_max_weight,
-				call: induct_call.encode().into(),
-			},
-		]))),
-	}
-	.into()
-}
-
 /// CollectivesPolkadot dispatches `pallet_xcm::send` with `OriginKind:Xcm` to the dest with encoded
 /// whitelist call.
 pub fn collectives_send_whitelist(

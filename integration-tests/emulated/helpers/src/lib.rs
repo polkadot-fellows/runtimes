@@ -21,14 +21,16 @@ pub use pallet_message_queue;
 
 // Polkadot
 pub use pallet_xcm;
-pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
+pub use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
 // Cumulus
 pub use cumulus_pallet_xcmp_queue;
-pub use emulated_integration_tests_common::{macros::Dmp, test_chain_can_claim_assets};
+pub use emulated_integration_tests_common::{macros::Dmp, test_chain_can_claim_assets, };
 pub use xcm_emulator::Chain;
 
 pub mod common;
+use codec::Encode;
+use emulated_integration_tests_common::impls::bx;
 
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
@@ -449,4 +451,56 @@ macro_rules! test_parachain_is_trusted_teleporter {
 			)+
 		}
 	};
+}
+
+/// Builds a `pallet_xcm::send` call wrapped in an unpaid XCM `Transact`
+pub fn build_xcm_send_call<T, D>(
+	location: Location,
+	fallback_max_weight: Option<Weight>,
+	transact_call: D::RuntimeCall,
+	origin_kind: OriginKind,
+) -> T::RuntimeCall
+where
+	T: Chain,
+	T::Runtime: pallet_xcm::Config,
+	T::RuntimeCall: Encode + From<pallet_xcm::Call<T::Runtime>>,
+	D: Chain,
+	D::RuntimeCall: Encode,
+{
+	let call: T::RuntimeCall = pallet_xcm::Call::send {
+		dest: bx!(VersionedLocation::from(location)),
+		message: bx!(VersionedXcm::from(Xcm(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			Transact {
+				origin_kind,
+				fallback_max_weight,
+				call: transact_call.encode().into(),
+			}
+		]))),
+	}
+	.into();
+	call
+}
+
+/// Builds a `pallet_xcm::send` call to induct Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_induct_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	let induct_call: DestChain::RuntimeCall =
+		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::induct { who }.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, induct_call, OriginKind::Xcm)
 }

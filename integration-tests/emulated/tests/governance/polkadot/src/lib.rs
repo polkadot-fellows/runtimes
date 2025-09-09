@@ -36,6 +36,8 @@ mod imports {
 		CollectivesPolkadotPara as CollectivesPolkadot, CoretimePolkadotPara as CoretimePolkadot,
 		PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
 	};
+
+	pub(crate) use integration_tests_helpers::build_xcm_send_induct_member;
 }
 
 #[cfg(test)]
