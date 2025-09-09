@@ -26,6 +26,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   🚨 For DOT|KSM cross-chain transfers please use `transfer_assets_using_type_and_then` or `execute`.
   Please see this [Polkadot forum post](https://forum.polkadot.network/t/mandatory-action-guide-for-ahm-broken-native-crosschain-transfers/) for more details.
 
+### Added
+
+- Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality
+
 ## [1.7.1] 28.08.2025
 
 ### Fixed
