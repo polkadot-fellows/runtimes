@@ -594,3 +594,162 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		);
 	});
 }
+
+#[test]
+fn asset_hub_commands_add_remove_username_authority() {
+	let people_kusama_alice = PeopleKusama::account_id_of(ALICE);
+	let people_kusama_bob = PeopleKusama::account_id_of(BOB);
+
+	let origins = vec![
+		(OriginKind::Xcm, GeneralAdminOriginFromAssetHub.into(), "generaladmin.suffix1"),
+		(
+			OriginKind::Superuser,
+			<AssetHubKusama as Chain>::RuntimeOrigin::root(),
+			"rootusername.suffix1",
+		),
+	];
+	for (origin_kind, origin, usr) in origins {
+		// First, add a username authority.
+		AssetHubKusama::execute_with(|| {
+			type Runtime = <AssetHubKusama as Chain>::Runtime;
+			type RuntimeCall = <AssetHubKusama as Chain>::RuntimeCall;
+			type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
+
+			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::add_username_authority {
+				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
+				suffix: b"suffix1".into(),
+				allocation: 10,
+			});
+
+			let add_authority_xcm_msg =
+				RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+					dest: bx!(VersionedLocation::from(Location::new(1, [Parachain(1004)]))),
+					message: bx!(VersionedXcm::from(Xcm(vec![
+						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+						Transact {
+							origin_kind,
+							fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+							call: add_username_authority.encode().into(),
+						}
+					]))),
+				});
+
+			assert_ok!(add_authority_xcm_msg.dispatch(origin.clone()));
+
+			assert_expected_events!(
+				AssetHubKusama,
+				vec![
+					RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		// Check events system-parachain-side
+		PeopleKusama::execute_with(|| {
+			type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeopleKusama,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::AuthorityAdded { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+
+		// Now, use the previously added username authority to concede a username to an account.
+		PeopleKusama::execute_with(|| {
+			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+
+			println!("setting username {usr}");
+
+			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
+				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
+				people_kusama_runtime::MultiAddress::Id(people_kusama_bob.clone()),
+				usr.to_owned().into_bytes(),
+				None,
+				false,
+			));
+
+			assert_expected_events!(
+				PeopleKusama,
+				vec![
+					PeopleRuntimeEvent::Identity(pallet_identity::Event::UsernameQueued { .. }) => {},
+				]
+			);
+		});
+
+		// Accept the given username
+		PeopleKusama::execute_with(|| {
+			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+			let full_username = usr.to_owned().into_bytes();
+
+			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::accept_username(
+				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_bob.clone()),
+				full_username.try_into().unwrap(),
+			));
+
+			assert_expected_events!(
+				PeopleKusama,
+				vec![
+					PeopleRuntimeEvent::Identity(pallet_identity::Event::UsernameSet { .. }) => {},
+				]
+			);
+		});
+
+		// Now, remove the username authority with another privileged XCM call.
+		AssetHubKusama::execute_with(|| {
+			type Runtime = <AssetHubKusama as Chain>::Runtime;
+			type RuntimeCall = <AssetHubKusama as Chain>::RuntimeCall;
+			type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
+
+			let remove_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::remove_username_authority {
+				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
+				suffix: b"suffix1".to_vec(),
+			});
+
+			let remove_authority_xcm_msg =
+				RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+					dest: bx!(VersionedLocation::from(Location::new(1, [Parachain(1004)]))),
+					message: bx!(VersionedXcm::from(Xcm(vec![
+						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+						Transact {
+							origin_kind,
+							fallback_max_weight: None,
+							call: remove_username_authority.encode().into(),
+						}
+					]))),
+				});
+
+			assert_ok!(remove_authority_xcm_msg.dispatch(origin));
+
+			assert_expected_events!(
+				AssetHubKusama,
+				vec![
+					RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		// Final event check.
+		PeopleKusama::execute_with(|| {
+			type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeopleKusama,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::AuthorityRemoved { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+	}
+}
