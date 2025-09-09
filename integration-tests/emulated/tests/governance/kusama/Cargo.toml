@@ -12,10 +12,13 @@ codec = { workspace = true, default-features = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
+sp-keyring = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 pallet-whitelist = { workspace = true, default-features = true }
 pallet-utility = { workspace = true, default-features = true }
+pallet-core-fellowship = { workspace = true, default-features = true }
+pallet-ranked-collective = { workspace = true, default-features = true }
 
 # Cumulus
 emulated-integration-tests-common = { workspace = true }

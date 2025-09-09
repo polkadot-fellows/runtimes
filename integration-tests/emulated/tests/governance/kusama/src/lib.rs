@@ -36,6 +36,8 @@ mod imports {
 		CoretimeKusamaPara as CoretimeKusama, KusamaRelay as Kusama,
 		PeopleKusamaPara as PeopleKusama,
 	};
+
+	pub(crate) use integration_tests_helpers::*;
 }
 
 #[cfg(test)]

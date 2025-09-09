@@ -37,7 +37,7 @@ mod imports {
 		PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
 	};
 
-	pub(crate) use integration_tests_helpers::build_xcm_send_induct_member;
+	pub(crate) use integration_tests_helpers::*;
 }
 
 #[cfg(test)]

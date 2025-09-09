@@ -25,12 +25,13 @@ pub use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
 // Cumulus
 pub use cumulus_pallet_xcmp_queue;
-pub use emulated_integration_tests_common::{macros::Dmp, test_chain_can_claim_assets, };
+pub use emulated_integration_tests_common::{macros::Dmp, test_chain_can_claim_assets};
 pub use xcm_emulator::Chain;
 
 pub mod common;
 use codec::Encode;
 use emulated_integration_tests_common::impls::bx;
+use sp_runtime::traits::StaticLookup;
 
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
@@ -471,11 +472,8 @@ where
 		dest: bx!(VersionedLocation::from(location)),
 		message: bx!(VersionedXcm::from(Xcm(vec![
 			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-			Transact {
-				origin_kind,
-				fallback_max_weight,
-				call: transact_call.encode().into(),
-			}
+			Transact { origin_kind, fallback_max_weight, call: transact_call.encode().into() },
+			ExpectTransactStatus(MaybeErrorCode::Success)
 		]))),
 	}
 	.into();
@@ -499,8 +497,175 @@ where
 		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
 	Instance: 'static,
 {
-	let induct_call: DestChain::RuntimeCall =
+	let call: DestChain::RuntimeCall =
 		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::induct { who }.into();
 
-	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, induct_call, OriginKind::Xcm)
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to add Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_add_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::add_member {
+			who: who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_remove_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	min_rank: u16,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::remove_member {
+			who: who_lookup,
+			min_rank,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_promote_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::promote_member {
+			who: who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_demote_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::demote_member {
+			who: who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_exchange_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	new_who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let new_who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(new_who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::exchange_member {
+			who: who_lookup,
+			new_who: new_who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
