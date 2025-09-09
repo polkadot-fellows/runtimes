@@ -1475,8 +1475,8 @@ pub mod dynamic_params {
 impl Default for RuntimeParameters {
 	fn default() -> Self {
 		// TODO: @kianenigma/!bkontur - is this ok?
-		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
-			dynamic_params::inflation::MinInflation,
+		RuntimeParameters::Issuance(dynamic_params::issuance::Parameters::MinInflation(
+			dynamic_params::issuance::MinInflation,
 			Some(Perquintill::from_rational(25u64, 1000u64)),
 		))
 	}
