@@ -333,6 +333,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::MemberAdded { who }) => {
 					who: *who == account,
 				},
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
@@ -358,6 +359,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::RankChanged { who, rank: 1 }) => {
 					who: *who == account,
 				},
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
@@ -383,6 +385,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::RankChanged { who, rank: 0 }) => {
 					who: *who == account,
 				},
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
@@ -409,6 +412,7 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 					who: *who == account,
 					rank: *rank == 0,
 				},
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
@@ -466,6 +470,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 				CoretimeRuntimeEvent::CollatorSelection(pallet_collator_selection::Event::NewDesiredCandidates { desired_candidates }) => {
 					desired_candidates: *desired_candidates == new_desired_candidates,
 				},
+				CoretimeRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
@@ -491,6 +496,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 				BridgeHubRuntimeEvent::CollatorSelection(pallet_collator_selection::Event::NewDesiredCandidates { desired_candidates }) => {
 					desired_candidates: *desired_candidates == new_desired_candidates,
 				},
+				BridgeHubRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
@@ -516,6 +522,7 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 				PeopleRuntimeEvent::CollatorSelection(pallet_collator_selection::Event::NewDesiredCandidates { desired_candidates }) => {
 					desired_candidates: *desired_candidates == new_desired_candidates,
 				},
+				PeopleRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
 			]
 		);
 	});
