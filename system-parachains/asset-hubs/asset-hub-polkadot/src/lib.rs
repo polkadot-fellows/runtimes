@@ -555,33 +555,80 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::Auction | ProxyType::ParaRegistration => false, // Only for remote proxy
+			ProxyType::Auction => false, // Only for remote proxy
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					// We allow calling `vest` and merging vesting schedules, but obviously not
-					// vested transfers.
-					RuntimeCall::Vesting(pallet_vesting::Call::vest { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::vest_other { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::merge_schedules { .. }) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
-					// TODO @ggwpez add more
-					RuntimeCall::Staking(_) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::ChildBounties(..)
+				RuntimeCall::System(..) |
+				RuntimeCall::Scheduler(..) |
+				RuntimeCall::Babe(..) |
+				RuntimeCall::Timestamp(..) |
+				RuntimeCall::Indices(pallet_indices::Call::claim{..}) |
+				RuntimeCall::Indices(pallet_indices::Call::free{..}) |
+				RuntimeCall::Indices(pallet_indices::Call::freeze{..}) |
+				// Specifically omitting Indices `transfer`, `force_transfer`
+				// Specifically omitting the entire Balances pallet
+				RuntimeCall::Staking(..) |
+				RuntimeCall::Session(..) |
+				RuntimeCall::Grandpa(..) |
+				RuntimeCall::Treasury(..) |
+				RuntimeCall::Bounties(..) |
+				RuntimeCall::ChildBounties(..) |
+				RuntimeCall::ConvictionVoting(..) |
+				RuntimeCall::Referenda(..) |
+				RuntimeCall::Whitelist(..) |
+				RuntimeCall::Claims(..) |
+				RuntimeCall::Vesting(pallet_vesting::Call::vest{..}) |
+				RuntimeCall::Vesting(pallet_vesting::Call::vest_other{..}) |
+				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
+				RuntimeCall::Utility(..) |
+				RuntimeCall::Proxy(..) |
+				RuntimeCall::Multisig(..) |
+				RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
+				RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
+				// Specifically omitting Registrar `swap`
+				RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
+				RuntimeCall::Crowdloan(..) |
+				RuntimeCall::Slots(..) |
+				RuntimeCall::Auctions(..) | // Specifically omitting the entire XCM Pallet
+				RuntimeCall::VoterList(..) |
+				RuntimeCall::NominationPools(..) |
+				RuntimeCall::FastUnstake(..)
 			),
-			ProxyType::CancelProxy => matches!(
+			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::ChildBounties(..) |
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
+			ProxyType::Staking => {
+				matches!(
+					c,
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						RuntimeCall::FastUnstake(..) |
+						RuntimeCall::VoterList(..) |
+						RuntimeCall::NominationPools(..)
+				)
+			},
+			ProxyType::NominationPools => {
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
+			},
+			ProxyType::CancelProxy => {
+				matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+						RuntimeCall::Utility { .. } |
+						RuntimeCall::Multisig { .. }
+				)
+			},
+			ProxyType::Auction => false,          // Only for remote proxy
+			ProxyType::ParaRegistration => false, // Only for remote proxy
+			// AH specific proxy types that are not on the Relay:
 			ProxyType::Assets => {
 				matches!(
 					c,
@@ -662,30 +709,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			ProxyType::Governance => matches!(
-				c,
-				RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
-					RuntimeCall::Whitelist(..)
-			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) |
-						RuntimeCall::VoterList(..)
-				)
-			},
-			ProxyType::NominationPools => {
-				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
-			},
 		}
 	}
 
@@ -696,13 +719,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(_, ProxyType::Any) => false,
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
-			(
-				ProxyType::NonTransfer,
-				ProxyType::Collator |
-				ProxyType::Governance |
-				ProxyType::Staking |
-				ProxyType::NominationPools,
-			) => true,
+			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
 	}
