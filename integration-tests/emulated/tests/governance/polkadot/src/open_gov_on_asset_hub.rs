@@ -299,3 +299,63 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 		)
 	});
 }
+
+#[test]
+fn assethub_fellowsip_admin_can_induct_on_collectives() {
+	type AssetHubRuntime = <AssetHubPolkadot as Chain>::Runtime;
+	type AssetHubCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+	type AssetHubOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+	type CollectivesRuntime = <CollectivesPolkadot as Chain>::Runtime;
+	type CollectivesRuntimeCall = <CollectivesPolkadot as Chain>::RuntimeCall;
+	type CollectivesRuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
+
+	use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin::FellowshipAdmin;
+	use sp_keyring::Sr25519Keyring::Charlie;
+
+	let account_to_induct: <CollectivesRuntime as frame_system::Config>::AccountId =
+		Charlie.to_account_id().into();
+
+	let send_induct_over_xcm = build_xcm_send_induct_member::<
+		AssetHubPolkadot,
+		CollectivesPolkadot,
+		pallet_core_fellowship::Instance1,
+	>(
+		AssetHubPolkadot::sibling_location_of(<CollectivesPolkadot as Parachain>::para_id()),
+		account_to_induct.clone(),
+		None,
+	);
+
+	let fellows_origin: AssetHubOrigin = FellowshipAdmin.into();
+
+	CollectivesPolkadot::execute_with(|| {
+		assert!(!pallet_core_fellowship::Member::<
+			CollectivesRuntime,
+			pallet_core_fellowship::Instance1,
+		>::contains_key(&account_to_induct));
+		assert_eq!(pallet_core_fellowship::Member::<CollectivesRuntime, pallet_core_fellowship::Instance1>::get(&account_to_induct), None);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(send_induct_over_xcm.dispatch(fellows_origin.into()));
+	});
+
+	CollectivesPolkadot::execute_with(|| {
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				CollectivesRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::MemberAdded { who }) => {
+					who: *who == account_to_induct,
+				},
+				CollectivesRuntimeEvent::FellowshipCore(pallet_core_fellowship::Event::Inducted { who }) => {
+					who: *who == account_to_induct,
+				},
+			]
+		);
+		assert!(pallet_core_fellowship::Member::<
+			CollectivesRuntime,
+			pallet_core_fellowship::Instance1,
+		>::get(&account_to_induct)
+		.is_some());
+	});
+}
