@@ -794,3 +794,51 @@ where
 
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
+
+/// Builds a `pallet_xcm::send` call to set min commisions,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_set_min_commissions<SourceChain, DestChain>(
+	dest: Location,
+	new_commissions: sp_runtime::Perbill,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_staking::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_staking::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_staking::Call::<DestChain::Runtime>::set_min_commission { new: new_commissions }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to set min untrusted score,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_set_minimum_untrusted_score<SourceChain, DestChain>(
+	dest: Location,
+	maybe_next_score: Option<sp_npos_elections::ElectionScore>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_election_provider_multi_phase::Config,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_election_provider_multi_phase::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall = pallet_election_provider_multi_phase::Call::<
+		DestChain::Runtime,
+	>::set_minimum_untrusted_score {
+		maybe_next_score,
+	}
+	.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}

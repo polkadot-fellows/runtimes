@@ -567,3 +567,83 @@ fn assethub_general_admin_can_manage_hrmp_on_relay() {
 		);
 	});
 }
+
+#[test]
+fn assethub_staking_admin_can_manage_staking_on_relay() {
+	type AssetHubOrigin = <AssetHubKusama as Chain>::RuntimeOrigin;
+	type KusamaRuntimeEvent = <Kusama as Chain>::RuntimeEvent;
+
+	let ok_origin: AssetHubOrigin = Origin::StakingAdmin.into();
+	let bad_origin: AssetHubOrigin = Origin::GeneralAdmin.into();
+
+	let set_min_commisions_xcm = build_xcm_send_set_min_commissions::<AssetHubKusama, Kusama>(
+		AssetHubKusama::parent_location(),
+		sp_runtime::Perbill::from_percent(80),
+		None,
+	);
+
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_min_commisions_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	Kusama::execute_with(|| {
+		assert_expected_events!(
+			Kusama,
+			vec![
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_min_commisions_xcm.dispatch(ok_origin.clone().into()));
+	});
+	Kusama::execute_with(|| {
+		assert_expected_events!(
+			Kusama,
+			vec![
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
+fn assethub_staking_admin_can_manage_elections_on_relay() {
+	type AssetHubOrigin = <AssetHubKusama as Chain>::RuntimeOrigin;
+	type KusamaRuntimeEvent = <Kusama as Chain>::RuntimeEvent;
+
+	let ok_origin: AssetHubOrigin = Origin::StakingAdmin.into();
+	let bad_origin: AssetHubOrigin = Origin::GeneralAdmin.into();
+
+	let new_score =
+		sp_npos_elections::ElectionScore { minimal_stake: 0, sum_stake: 0, sum_stake_squared: 0 };
+
+	let set_minimum_untrusted_score_xcm =
+		build_xcm_send_set_minimum_untrusted_score::<AssetHubKusama, Kusama>(
+			AssetHubKusama::parent_location(),
+			Some(new_score),
+			None,
+		);
+
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_minimum_untrusted_score_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	Kusama::execute_with(|| {
+		assert_expected_events!(
+			Kusama,
+			vec![
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_minimum_untrusted_score_xcm.dispatch(ok_origin.clone().into()));
+	});
+	Kusama::execute_with(|| {
+		assert_expected_events!(
+			Kusama,
+			vec![
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+}

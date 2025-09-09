@@ -20,6 +20,7 @@ pallet-utility = { workspace = true, default-features = true }
 pallet-core-fellowship = { workspace = true, default-features = true }
 pallet-ranked-collective = { workspace = true, default-features = true }
 pallet-collator-selection = { workspace = true, default-features = true }
+sp-npos-elections = { workspace = true, default-features = true }
 
 # Cumulus
 emulated-integration-tests-common = { workspace = true }

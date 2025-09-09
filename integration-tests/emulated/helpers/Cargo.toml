@@ -19,9 +19,12 @@ pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-core-fellowship = { workspace = true, default-features = true }
 pallet-ranked-collective = { workspace = true, default-features = true }
+pallet-staking = { workspace = true, default-features = true }
 pallet-collator-selection = { workspace = true, default-features = true }
 runtime-parachains = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
+pallet-election-provider-multi-phase = { workspace = true, default-features = true }
+sp-npos-elections = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
