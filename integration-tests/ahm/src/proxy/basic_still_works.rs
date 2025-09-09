@@ -220,7 +220,8 @@ impl ProxyBasicWorks {
 				"`Any`, `NonTransfer`, or `Governance` can do governance"
 			);
 		} else {
-			assert!(				!Self::can_governance(delegatee, delegator, permissions, false),
+			assert!(
+				!Self::can_governance(delegatee, delegator, permissions, false),
 				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {permissions:?}"
 			);
 		}
