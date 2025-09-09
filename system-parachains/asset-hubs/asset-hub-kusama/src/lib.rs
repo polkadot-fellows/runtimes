@@ -1209,7 +1209,6 @@ impl pallet_preimage::Config for Runtime {
 
 parameter_types! {
 	pub ZeroWeight: Weight = Weight::zero();
-	pub const MaxScheduledPerBlock: u32 = 50;
 	pub const NoPreimagePostponement: Option<u32> = Some(10);
 }
 
@@ -1413,7 +1412,7 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 2)]
 	pub mod staking_election {
-		/// 20 mins worth of local 6s blocks for signed phase.
+		/// 10m worth of local 6s blocks for signed phase.
 		#[codec(index = 0)]
 		pub static SignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
 
