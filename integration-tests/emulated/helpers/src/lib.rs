@@ -766,3 +766,31 @@ where
 
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
+
+/// Builds a `pallet_xcm::send` call to force hrmp clean,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_force_clean_hrmp<SourceChain, DestChain>(
+	dest: Location,
+	para: polkadot_parachain_primitives::primitives::Id,
+	num_inbound: u32,
+	num_outbound: u32,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + runtime_parachains::hrmp::Config,
+	DestChain::RuntimeCall: Encode + From<runtime_parachains::hrmp::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		runtime_parachains::hrmp::Call::<DestChain::Runtime>::force_clean_hrmp {
+			para,
+			num_inbound,
+			num_outbound,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}

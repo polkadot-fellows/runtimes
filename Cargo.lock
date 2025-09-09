@@ -6371,6 +6371,8 @@ dependencies = [
  "pallet-xcm",
  "parity-scale-codec",
  "paste",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-parachains",
  "sp-runtime",
  "staging-xcm",
  "xcm-emulator",

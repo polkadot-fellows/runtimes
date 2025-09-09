@@ -527,3 +527,43 @@ fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
 		);
 	});
 }
+
+#[test]
+fn assethub_general_admin_can_manage_hrmp_on_relay() {
+	type AssetHubOrigin = <AssetHubKusama as Chain>::RuntimeOrigin;
+	type KusamaRuntimeEvent = <Kusama as Chain>::RuntimeEvent;
+
+	let ok_origin: AssetHubOrigin = Origin::GeneralAdmin.into();
+	let bad_origin: AssetHubOrigin = Origin::StakingAdmin.into();
+
+	let force_clean_hrmp_xcm = build_xcm_send_force_clean_hrmp::<AssetHubKusama, Kusama>(
+		AssetHubKusama::parent_location(),
+		PeopleKusama::para_id(),
+		0,
+		0,
+		None,
+	);
+
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(force_clean_hrmp_xcm.clone().dispatch(bad_origin.clone().into()));
+	});
+	Kusama::execute_with(|| {
+		assert_expected_events!(
+			Kusama,
+			vec![
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(force_clean_hrmp_xcm.dispatch(ok_origin.clone().into()));
+	});
+	Kusama::execute_with(|| {
+		assert_expected_events!(
+			Kusama,
+			vec![
+				KusamaRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+			]
+		);
+	});
+}
