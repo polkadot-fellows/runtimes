@@ -212,7 +212,7 @@ impl ProxyBasicWorks {
 		}
 
 		let allowed_governance = permissions.contains(&Permission::Any) ||
-			// NonTransfer is not allowed to do governance
+			permissions.contains(&Permission::NonTransfer) ||
 			permissions.contains(&Permission::Governance);
 		if allowed_governance {
 			assert!(
@@ -220,8 +220,7 @@ impl ProxyBasicWorks {
 				"`Any`, `NonTransfer`, or `Governance` can do governance"
 			);
 		} else {
-			assert!(
-				!Self::can_governance(delegatee, delegator, permissions, false),
+			assert!(				!Self::can_governance(delegatee, delegator, permissions, false),
 				"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {permissions:?}"
 			);
 		}

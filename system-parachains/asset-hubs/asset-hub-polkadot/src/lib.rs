@@ -560,7 +560,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::System(..) |
 				RuntimeCall::Scheduler(..) |
-				RuntimeCall::Babe(..) |
+				// Not on AH RuntimeCall::Babe(..) |
 				RuntimeCall::Timestamp(..) |
 				RuntimeCall::Indices(pallet_indices::Call::claim{..}) |
 				RuntimeCall::Indices(pallet_indices::Call::free{..}) |
@@ -569,7 +569,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				// Specifically omitting the entire Balances pallet
 				RuntimeCall::Staking(..) |
 				RuntimeCall::Session(..) |
-				RuntimeCall::Grandpa(..) |
+				// Not on AH RuntimeCall::Grandpa(..) |
 				RuntimeCall::Treasury(..) |
 				RuntimeCall::Bounties(..) |
 				RuntimeCall::ChildBounties(..) |
@@ -583,16 +583,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Utility(..) |
 				RuntimeCall::Proxy(..) |
 				RuntimeCall::Multisig(..) |
-				RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
-				RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
-				// Specifically omitting Registrar `swap`
-				RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
-				RuntimeCall::Crowdloan(..) |
-				RuntimeCall::Slots(..) |
-				RuntimeCall::Auctions(..) | // Specifically omitting the entire XCM Pallet
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
+				// Not on AH RuntimeCall::Crowdloan(..) |
+				// Not on AH RuntimeCall::Slots(..) |
+				// Not on AH RuntimeCall::Auctions(..) |
 				RuntimeCall::VoterList(..) |
-				RuntimeCall::NominationPools(..) |
-				RuntimeCall::FastUnstake(..)
+				RuntimeCall::NominationPools(..) // Not on AH RuntimeCall::FastUnstake(..)
 			),
 			ProxyType::Governance => matches!(
 				c,
@@ -610,7 +608,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Staking(..) |
 						RuntimeCall::Session(..) |
 						RuntimeCall::Utility(..) |
-						RuntimeCall::FastUnstake(..) |
+						// Not on AH RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
 				)
