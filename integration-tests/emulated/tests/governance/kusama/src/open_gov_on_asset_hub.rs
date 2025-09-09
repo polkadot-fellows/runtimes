@@ -15,7 +15,6 @@
 
 use crate::{common::collectives_send_whitelist, imports::*};
 use asset_hub_kusama_runtime::governance::pallet_custom_origins::Origin;
-use sp_keyring::Sr25519Keyring::Charlie;
 
 #[test]
 fn assethub_can_authorize_upgrade_for_itself() {
@@ -356,9 +355,8 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		assert_expected_events!(
 			Kusama,
 			vec![
-				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::RankChanged { who, rank }) => {
+				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::RankChanged { who, rank: 1 }) => {
 					who: *who == account,
-					rank: *rank == 1,
 				},
 			]
 		);
@@ -382,9 +380,8 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		assert_expected_events!(
 			Kusama,
 			vec![
-				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::RankChanged { who, rank }) => {
+				KusamaRuntimeEvent::FellowshipCollective(pallet_ranked_collective::Event::RankChanged { who, rank: 0 }) => {
 					who: *who == account,
-					rank: *rank == 0,
 				},
 			]
 		);

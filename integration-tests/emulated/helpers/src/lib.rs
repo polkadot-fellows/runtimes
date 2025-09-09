@@ -520,7 +520,7 @@ where
 		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
 	Instance: 'static,
 {
-	// Convert AccountId -> Lookup::Source expected by add_member
+	// Convert AccountId -> Lookup::Source expected by call
 	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
 
 	let who_lookup: LookupSrcOf<DestChain::Runtime> =
@@ -553,7 +553,7 @@ where
 		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
 	Instance: 'static,
 {
-	// Convert AccountId -> Lookup::Source expected by add_member
+	// Convert AccountId -> Lookup::Source expected by call
 	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
 
 	let who_lookup: LookupSrcOf<DestChain::Runtime> =
@@ -569,7 +569,7 @@ where
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
 
-/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// Builds a `pallet_xcm::send` call to promote Fellowship member,
 /// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
 pub fn build_xcm_send_fellowship_promote_member<SourceChain, DestChain, Instance>(
 	dest: Location,
@@ -586,7 +586,7 @@ where
 		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
 	Instance: 'static,
 {
-	// Convert AccountId -> Lookup::Source expected by add_member
+	// Convert AccountId -> Lookup::Source expected by call
 	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
 
 	let who_lookup: LookupSrcOf<DestChain::Runtime> =
@@ -601,7 +601,32 @@ where
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
 
-/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// Builds a `pallet_xcm::send` call to promote Fellowship Core member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_core_promote_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	to_rank: pallet_core_fellowship::pallet::RankOf<DestChain::Runtime, Instance>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::promote { who, to_rank }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to demote Fellowship member,
 /// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
 pub fn build_xcm_send_fellowship_demote_member<SourceChain, DestChain, Instance>(
 	dest: Location,
@@ -633,7 +658,7 @@ where
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
 }
 
-/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// Builds a `pallet_xcm::send` call to exchange Fellowship member,
 /// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
 pub fn build_xcm_send_fellowship_exchange_member<SourceChain, DestChain, Instance>(
 	dest: Location,
@@ -668,4 +693,54 @@ where
 		.into();
 
 	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to set min_promotion_period param for Fellowship Core,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`
+///
+/// Note: This call assumes other params are not important and will get overriden by empty/zero
+/// values
+pub fn build_xcm_send_fellowship_core_set_rank1_min_promotion_period<
+	SourceChain,
+	DestChain,
+	Instance,
+>(
+	dest: Location,
+	min_promotion_period: frame_system::pallet_prelude::BlockNumberFor<DestChain::Runtime>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	use pallet_core_fellowship::pallet::ParamsOf;
+	use sp_runtime::{bounded_vec, traits::Zero};
+
+	let params = ParamsOf::<DestChain::Runtime, Instance> {
+		active_salary: bounded_vec![],
+		passive_salary: bounded_vec![],
+		demotion_period: bounded_vec![],
+		min_promotion_period: bounded_vec![min_promotion_period],
+		offboard_timeout: frame_system::pallet_prelude::BlockNumberFor::<DestChain::Runtime>::zero(
+		),
+	};
+
+	let dest_call: DestChain::RuntimeCall =
+		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::set_params {
+			params: Box::new(params),
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(
+		dest,
+		fallback_max_weight,
+		dest_call,
+		OriginKind::Xcm,
+	)
 }

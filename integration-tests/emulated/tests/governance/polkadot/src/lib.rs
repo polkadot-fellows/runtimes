@@ -38,6 +38,7 @@ mod imports {
 	};
 
 	pub(crate) use integration_tests_helpers::*;
+	pub(crate) use sp_keyring::Sr25519Keyring::Charlie;
 }
 
 #[cfg(test)]
