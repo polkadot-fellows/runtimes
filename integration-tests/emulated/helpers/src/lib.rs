@@ -744,3 +744,25 @@ where
 		OriginKind::Xcm,
 	)
 }
+
+/// Builds a `pallet_xcm::send` call set desired Collator candidates,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_set_desired_candidates<SourceChain, DestChain>(
+	dest: Location,
+	max: u32,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_collator_selection::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_collator_selection::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_collator_selection::Call::<DestChain::Runtime>::set_desired_candidates { max }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}

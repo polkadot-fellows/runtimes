@@ -413,3 +413,110 @@ fn assethub_fellowship_admin_can_manage_fellowship_on_relay() {
 		);
 	});
 }
+
+#[test]
+fn assethub_staking_admin_can_manage_collator_config_on_other_chains() {
+	type AssetHubOrigin = <AssetHubKusama as Chain>::RuntimeOrigin;
+	type CoretimeRuntimeEvent = <CoretimeKusama as Chain>::RuntimeEvent;
+	type BridgeHubRuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+
+	let ok_origin: AssetHubOrigin = Origin::StakingAdmin.into();
+	let bad_origin: AssetHubOrigin = Origin::FellowshipAdmin.into();
+
+	let new_desired_candidates = 23; // random number
+
+	let set_candidates_xcm_coretime =
+		build_xcm_send_set_desired_candidates::<AssetHubKusama, CoretimeKusama>(
+			AssetHubKusama::sibling_location_of(CoretimeKusama::para_id()),
+			new_desired_candidates,
+			None,
+		);
+	let set_candidates_xcm_bridge_hub =
+		build_xcm_send_set_desired_candidates::<AssetHubKusama, BridgeHubKusama>(
+			AssetHubKusama::sibling_location_of(BridgeHubKusama::para_id()),
+			new_desired_candidates,
+			None,
+		);
+	let set_candidates_xcm_people =
+		build_xcm_send_set_desired_candidates::<AssetHubKusama, PeopleKusama>(
+			AssetHubKusama::sibling_location_of(PeopleKusama::para_id()),
+			new_desired_candidates,
+			None,
+		);
+
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_candidates_xcm_coretime.clone().dispatch(bad_origin.clone().into()));
+	});
+	CoretimeKusama::execute_with(|| {
+		assert_expected_events!(
+			CoretimeKusama,
+			vec![
+				CoretimeRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_candidates_xcm_coretime.dispatch(ok_origin.clone().into()));
+	});
+	CoretimeKusama::execute_with(|| {
+		assert_expected_events!(
+			CoretimeKusama,
+			vec![
+				CoretimeRuntimeEvent::CollatorSelection(pallet_collator_selection::Event::NewDesiredCandidates { desired_candidates }) => {
+					desired_candidates: *desired_candidates == new_desired_candidates,
+				},
+			]
+		);
+	});
+
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_candidates_xcm_bridge_hub.clone().dispatch(bad_origin.clone().into()));
+	});
+	BridgeHubKusama::execute_with(|| {
+		assert_expected_events!(
+			BridgeHubKusama,
+			vec![
+				BridgeHubRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_candidates_xcm_bridge_hub.dispatch(ok_origin.clone().into()));
+	});
+	BridgeHubKusama::execute_with(|| {
+		assert_expected_events!(
+			BridgeHubKusama,
+			vec![
+				BridgeHubRuntimeEvent::CollatorSelection(pallet_collator_selection::Event::NewDesiredCandidates { desired_candidates }) => {
+					desired_candidates: *desired_candidates == new_desired_candidates,
+				},
+			]
+		);
+	});
+
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_candidates_xcm_people.clone().dispatch(bad_origin.clone().into()));
+	});
+	PeopleKusama::execute_with(|| {
+		assert_expected_events!(
+			PeopleKusama,
+			vec![
+				PeopleRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false,.. }) => {},
+			]
+		);
+	});
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(set_candidates_xcm_people.dispatch(ok_origin.clone().into()));
+	});
+	PeopleKusama::execute_with(|| {
+		assert_expected_events!(
+			PeopleKusama,
+			vec![
+				PeopleRuntimeEvent::CollatorSelection(pallet_collator_selection::Event::NewDesiredCandidates { desired_candidates }) => {
+					desired_candidates: *desired_candidates == new_desired_candidates,
+				},
+			]
+		);
+	});
+}

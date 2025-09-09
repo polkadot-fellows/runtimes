@@ -19,6 +19,7 @@ pallet-whitelist = { workspace = true, default-features = true }
 pallet-utility = { workspace = true, default-features = true }
 pallet-core-fellowship = { workspace = true, default-features = true }
 pallet-ranked-collective = { workspace = true, default-features = true }
+pallet-collator-selection = { workspace = true, default-features = true }
 
 # Polkadot
 pallet-xcm = { workspace = true, default-features = true }
