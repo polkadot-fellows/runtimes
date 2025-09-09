@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+-  Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
+  🚨 Pallet XCM's `limited_reserve_transfer_assets` and `reserve_transfer_assets` extrinsics now returns an error when it determines that a reserve transfer of DOT|KSM has to be done.
+  This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
+  After the migration, another patch will remove this error case and use the correct reserve.
+  🚨 For DOT|KSM cross-chain transfers please use `transfer_assets_using_type_and_then` or `execute`.
+  Please see this [Polkadot forum post](https://forum.polkadot.network/t/mandatory-action-guide-for-ahm-broken-native-crosschain-transfers/) for more details.
+
+## [1.7.1] 28.08.2025
+
+### Fixed
+
+- [#9564](https://github.com/paritytech/polkadot-sdk/pull/9564) Correctly map group indices to vote indices when filtering backing statements.
+
+### Changed
+
+- [#861](https://github.com/polkadot-fellows/runtimes/pull/861) Removed the custom fungible adapter used by Kusama AssetHub
+- Support Snowbridge bridge reward payouts on AssetHub ([polkadot-fellows/runtimes/pull/865](https://github.com/polkadot-fellows/runtimes/pull/865))
+
+## [1.7.0] 22.08.2025
+
 ### Fixed
 
 - Use `pallet-assets` instead of `pallet-balances` for XCM benchmarks on asset hubs ([polkadot-fellows/runtimes/pull/758](https://github.com/polkadot-fellows/runtimes/pull/758))
@@ -38,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
   - [#8684](https://github.com/paritytech/polkadot-sdk/pull/8684) Add optional auto-rebag within on-idle to enable incremental correction of account positions within the bags-list during the idle phase of block execution
   - [#8693](https://github.com/paritytech/polkadot-sdk/pull/8693) Add XCM Precompile to pallet-xcm
+- [Encointer] use XCM V5 to remotely spend funds from encointer treasury accounts on AHK [polkadot-fellows/runtimes/pull/679](https://github.com/polkadot-fellows/runtimes/pull/679)
 
 ### Changed
 

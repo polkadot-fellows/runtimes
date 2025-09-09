@@ -28,7 +28,6 @@ extern crate alloc;
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
-mod impls;
 mod weights;
 pub mod xcm_config;
 
@@ -48,9 +47,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
-		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
-		ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, Equals, EverythingBut,
-		InstanceFilter, TransformOrigin, WithdrawReasons,
+		fungible, fungibles,
+		tokens::imbalance::{ResolveAssetTo, ResolveTo},
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
+		EitherOfDiverse, Equals, EverythingBut, InstanceFilter, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -129,7 +129,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -215,7 +215,7 @@ parameter_types! {
 impl pallet_migrations::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Migrations = pallet_revive::migrations::v1::Migration<Runtime>;
+	type Migrations = migrations::MbmMigrations;
 	// Benchmarks need mocked migrations to guarantee that they succeed.
 	#[cfg(feature = "runtime-benchmarks")]
 	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
@@ -292,11 +292,8 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
-		NativeAndAssets,
-		KsmLocation,
-		ResolveAssetTo<StakingPot, NativeAndAssets>,
-	>;
+	type OnChargeTransaction =
+		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -1192,16 +1189,26 @@ impl EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-/// Migrations to apply on runtime upgrade.
-pub type Migrations = (
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
+/// All migrations that will run on the next runtime upgrade.
+///
+/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
+/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
+
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
+
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = ();
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations = pallet_revive::migrations::v1::Migration<Runtime>;
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1389,9 +1396,28 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// AH can reserve transfer native token to some random parachain.
+			// We get an account to create USDT and give it enough WND to exist.
+			let account = frame_benchmarking::whitelisted_caller();
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get() + (1_000 * UNITS)
+			));
+
+			// We then create USDT.
+			let usdt_id = 1984u32;
+			let usdt_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(usdt_id.into())]);
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				usdt_id.into(),
+				account.clone().into(),
+				true,
+				1
+			));
+
+			// And return USDT as the reserve transferable asset.
 			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(usdt_location) },
 				ParentThen(Parachain(RandomParaId::get().into()).into()).into(),
 			))
 		}
@@ -2021,6 +2047,12 @@ pallet_revive::impl_runtime_apis_plus_revive!(
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
 			genesis_config_presets::preset_names()
+		}
+	}
+
+	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
+		fn parachain_id() -> ParaId {
+			ParachainInfo::parachain_id()
 		}
 	}
 

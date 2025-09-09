@@ -28,6 +28,7 @@ mod snowbridge_v2_inbound_to_kusama;
 mod snowbridge_v2_outbound;
 mod snowbridge_v2_outbound_edge_case;
 mod snowbridge_v2_outbound_from_kusama;
+mod snowbridge_v2_rewards;
 mod teleport;
 
 pub(crate) fn asset_hub_kusama_location() -> Location {
@@ -110,19 +111,36 @@ pub(crate) fn send_assets_from_asset_hub_polkadot(
 	destination: Location,
 	assets: Assets,
 	fee_idx: u32,
+	// For knowing what reserve to pick.
+	// We only allow using the same transfer type for assets and fees right now.
+	// And only `LocalReserve` or `DestinationReserve`.
+	transfer_type: TransferType,
 ) -> DispatchResult {
 	let signed_origin =
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get());
 	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubKusamaReceiver::get().into() }.into();
 
+	type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+	let remote_fee_id: AssetId = assets
+		.clone()
+		.into_inner()
+		.get(fee_idx as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+
 	AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 			signed_origin,
 			bx!(destination.into()),
-			bx!(beneficiary.into()),
 			bx!(assets.into()),
-			fee_idx,
+			bx!(transfer_type.clone()),
+			bx!(remote_fee_id.into()),
+			bx!(transfer_type),
+			bx!(VersionedXcm::from(
+				Xcm::<()>::builder_unsafe().deposit_asset(AllCounted(1), beneficiary).build()
+			)),
 			WeightLimit::Unlimited,
 		)
 	})
