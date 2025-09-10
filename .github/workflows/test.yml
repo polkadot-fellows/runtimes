@@ -440,7 +440,7 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      # FAIL-CI - zombienet-smoke
+      - zombienet-smoke
       - ahm-test-polkadot
       - ecosystem-tests
     steps:

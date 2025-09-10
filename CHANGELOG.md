@@ -1,4 +1,4 @@
-t# Changelog
+# Changelog
 
 Changelog for the runtimes governed by the Polkadot Fellowship.
 
@@ -297,7 +297,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fix `experimental_inflation_info` in Polkadot and remove unused code (<https://github.com/polkadot-fellows/runtimes/pull/497>)
+- Fix `experimental_inflation_info` in Polkadot and remove unused code (https://github.com/polkadot-fellows/runtimes/pull/497)
 
 ## [1.3.3] 01.10.2024
 
