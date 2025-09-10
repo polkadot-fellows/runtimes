@@ -25,7 +25,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 #[cfg(all(not(feature = "kusama-ahm"), feature = "on-chain-release-build"))]
-compile_error!("Asset Hub migration requires the `kusama` feature");
+compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 
 extern crate alloc;
 
