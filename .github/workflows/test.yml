@@ -83,7 +83,12 @@ jobs:
         shell: bash
 
       - name: Test ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+        run: |
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features ${{ matrix.runtime.build_extra_features }}
+          else
+            cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+          fi
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
@@ -102,7 +107,11 @@ jobs:
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks,${{ matrix.runtime.build_extra_features }} -q --locked
+          else
+            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          fi
           # run benchmarking
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""
@@ -349,9 +358,23 @@ jobs:
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
+          FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
-            FEATURES="--features=metadata-hash"
+            FEATURES="metadata-hash"
+          fi
+
+          # Add extra features
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            if [ -z "$FEATURES" ]; then
+              FEATURES="${{ matrix.runtime.build_extra_features }}"
+            else
+              FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+            fi
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            FEATURES="--features=$FEATURES"
           fi
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
