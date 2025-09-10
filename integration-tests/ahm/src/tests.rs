@@ -1378,7 +1378,6 @@ async fn post_migration_checks_only() {
 	std::mem::drop(rc_pre_ext);
 	std::mem::drop(ah_pre_ext);
 
-
 	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
 	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
 }

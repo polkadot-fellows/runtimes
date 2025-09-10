@@ -34,7 +34,8 @@ impl RcMigrationCheck for SanityChecks {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let stage = pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get();
-		// rust tests trigger pre-checks when pending(0), while the ZB snapshots are from when the migration is still pending. Both okay.
+		// rust tests trigger pre-checks when pending(0), while the ZB snapshots are from when the
+		// migration is still pending. Both okay.
 		assert!(
 			stage == pallet_rc_migrator::MigrationStage::Pending ||
 				stage == pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 },
