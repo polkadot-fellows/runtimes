@@ -91,12 +91,9 @@ if args.command == 'bench':
     for runtime in runtimesMatrix.values():
         print(f'-- compiling the runtime {runtime["name"]}')
         features = "runtime-benchmarks"
-        # TODO: temporary hack for AHM - start...
-        if runtime["name"] in ["kusama", "asset-hub-kusama"]:
-            features += ",kusama-ahm"
-        if runtime["name"] in ["polkadot", "asset-hub-polkadot"]:
-            features += ",polkadot-ahm"
-        # ...end
+        features_extra = runtime.get("build_extra_features")
+        if features_extra:
+            features += "," + features_extra
         print(f'-- with features {features}')
         os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
