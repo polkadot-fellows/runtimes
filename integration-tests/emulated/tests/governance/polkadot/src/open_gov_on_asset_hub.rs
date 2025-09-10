@@ -24,11 +24,7 @@ fn assethub_can_authorize_upgrade_for_itself() {
 	type AssetHubRuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
 	let authorize_upgrade =
-		AssetHubRuntimeCall::Utility(pallet_utility::Call::<AssetHubRuntime>::force_batch {
-			calls: vec![AssetHubRuntimeCall::System(frame_system::Call::authorize_upgrade {
-				code_hash,
-			})],
-		});
+		AssetHubRuntimeCall::System(frame_system::Call::authorize_upgrade { code_hash });
 
 	// bad origin
 	let invalid_origin: AssetHubRuntimeOrigin = Origin::StakingAdmin.into();
@@ -101,14 +97,11 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 
 	let code_hash = [1u8; 32].into();
 
-	let authorize_upgrade =
-		AssetHubRuntimeCall::Utility(pallet_utility::Call::<AssetHubRuntime>::force_batch {
-			calls: vec![build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, Polkadot>(
-				AssetHubPolkadot::parent_location(),
-				&code_hash,
-				None,
-			)],
-		});
+	let authorize_upgrade = build_xcm_send_authorize_upgrade_call::<AssetHubPolkadot, Polkadot>(
+		AssetHubPolkadot::parent_location(),
+		&code_hash,
+		None,
+	);
 
 	// bad origin
 	let invalid_origin: AssetHubRuntimeOrigin = Origin::StakingAdmin.into();

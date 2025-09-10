@@ -21,13 +21,9 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	type PolkadotRuntimeCall = <Polkadot as Chain>::RuntimeCall;
 	type PolkadotRuntimeOrigin = <Polkadot as Chain>::RuntimeOrigin;
 
+	// upgrade the relaychain
 	let authorize_upgrade =
-		PolkadotRuntimeCall::Utility(pallet_utility::Call::<PolkadotRuntime>::force_batch {
-			calls: vec![
-				// upgrade the relaychain
-				PolkadotRuntimeCall::System(frame_system::Call::authorize_upgrade { code_hash }),
-			],
-		});
+		PolkadotRuntimeCall::System(frame_system::Call::authorize_upgrade { code_hash });
 
 	// bad origin
 	let invalid_origin: PolkadotRuntimeOrigin = Origin::StakingAdmin.into();
