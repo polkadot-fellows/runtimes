@@ -90,15 +90,7 @@ if args.command == 'bench':
     # loop over remaining runtimes to collect available pallets
     for runtime in runtimesMatrix.values():
         print(f'-- compiling the runtime {runtime["name"]}')
-        features = "runtime-benchmarks"
-        # TODO: temporary hack for AHM - start...
-        if runtime["name"] in ["kusama", "asset-hub-kusama"]:
-            features += ",kusama-ahm"
-        if runtime["name"] in ["polkadot", "asset-hub-polkadot"]:
-            features += ",polkadot-ahm"
-        # ...end
-        print(f'-- with features {features}')
-        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
+        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features runtime-benchmarks")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
         output = os.popen(
