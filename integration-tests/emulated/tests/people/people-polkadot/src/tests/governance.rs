@@ -100,7 +100,9 @@ fn asset_hub_commands_add_registrar() {
 				});
 
 			let xcm_message = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(PeoplePolkadot::para_id()))),
+				dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(
+					PeoplePolkadot::para_id()
+				))),
 				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
