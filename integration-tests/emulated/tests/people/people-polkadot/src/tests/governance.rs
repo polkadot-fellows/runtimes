@@ -44,7 +44,9 @@ fn relay_commands_add_registrar() {
 				});
 
 			let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+				dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+					PeoplePolkadot::para_id()
+				))),
 				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
@@ -100,7 +102,9 @@ fn asset_hub_commands_add_registrar() {
 				});
 
 			let xcm_message = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(PeoplePolkadot::para_id()))),
+				dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(
+					PeoplePolkadot::para_id()
+				))),
 				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
@@ -159,7 +163,9 @@ fn relay_commands_add_registrar_wrong_origin() {
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
@@ -240,7 +246,9 @@ fn relay_commands_kill_identity() {
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
@@ -299,7 +307,9 @@ fn relay_commands_kill_identity_wrong_origin() {
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
@@ -360,7 +370,9 @@ fn relay_commands_add_remove_username_authority() {
 			});
 
 			let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+				dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+					PeoplePolkadot::para_id()
+				))),
 				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
@@ -449,7 +461,9 @@ fn relay_commands_add_remove_username_authority() {
 
 			let remove_authority_xcm_msg =
 				RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-					dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+					dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+						PeoplePolkadot::para_id()
+					))),
 					message: bx!(VersionedXcm::from(Xcm(vec![
 						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 						Transact {
@@ -510,7 +524,9 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 			});
 
 		let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
@@ -560,7 +576,9 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		});
 
 		let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(PeoplePolkadot::para_id()))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
