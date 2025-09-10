@@ -16,6 +16,7 @@
 
 //! Account translation maps for sovereign accounts and their derived accounts.
 
+#[cfg(feature = "polkadot-ahm")]
 use hex_literal::hex;
 use sp_runtime::AccountId32;
 

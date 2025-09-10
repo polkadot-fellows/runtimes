@@ -164,6 +164,9 @@ impl_runtime_weights!(polkadot_runtime_constants);
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(all(not(feature = "polkadot-ahm"), feature = "on-chain-release-build"))]
+compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
+
 // Polkadot version identifier;
 /// Runtime version (Polkadot).
 #[sp_version::runtime_version]
