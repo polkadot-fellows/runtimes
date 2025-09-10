@@ -17,6 +17,7 @@
 //! First phase of the Asset Hub Migration.
 
 use crate::*;
+use frame_support::traits::Contains;
 use pallet_rc_migrator::types::PortableFreezeReason;
 
 /// Contains all calls that are enabled during the migration.

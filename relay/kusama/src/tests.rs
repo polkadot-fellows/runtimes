@@ -27,11 +27,6 @@ use sp_keyring::Sr25519Keyring::Charlie;
 use std::collections::HashSet;
 
 #[test]
-fn nis_hold_reason_encoding_is_correct() {
-	assert_eq!(RuntimeHoldReason::Nis(pallet_nis::HoldReason::NftReceipt).encode(), [38, 0]);
-}
-
-#[test]
 fn remove_keys_weight_is_sensible() {
 	use polkadot_runtime_common::crowdloan::WeightInfo;
 	let max_weight = <Runtime as crowdloan::Config>::WeightInfo::refund(RemoveKeysLimit::get());

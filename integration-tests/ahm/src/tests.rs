@@ -50,8 +50,6 @@
 
 use crate::porting_prelude::*;
 
-#[cfg(not(feature = "paseo"))]
-use super::proxy::ProxyWhaleWatching;
 use super::{
 	accounts_translation_works::AccountTranslationWorks,
 	balances_test::BalancesCrossChecker,
@@ -59,11 +57,13 @@ use super::{
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::ProxyBasicWorks,
+	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, ParaId};
+use cumulus_primitives_core::{
+	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
+};
 use frame_support::{
 	hypothetically, hypothetically_ok,
 	traits::{
@@ -79,17 +79,18 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
 use pallet_rc_migrator::{
-	child_bounties::ChildBountiesMigratedCorrectly, staking::StakingMigratedCorrectly,
-	types::RcMigrationCheck, MigrationEndBlock as RcMigrationEndBlock,
-	MigrationStage as RcMigrationStage, MigrationStartBlock as RcMigrationStartBlock,
-	RcMigrationStage as RcMigrationStageStorage,
+	child_bounties::ChildBountiesMigratedCorrectly,
+	staking::StakingMigratedCorrectly,
+	types::{RcMigrationCheck, ToPolkadotSs58},
+	MigrationEndBlock as RcMigrationEndBlock, MigrationStage as RcMigrationStage,
+	MigrationStartBlock as RcMigrationStartBlock, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::slots as pallet_slots;
 use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
-use sp_core::{crypto::Ss58Codec, ByteArray};
+use sp_core::{crypto::Ss58Codec, ByteArray, Get};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
 use std::{
@@ -125,8 +126,8 @@ type RcChecks = (
 	EntireStateDecodes,
 );
 
-// Checks that are specific to Polkadot, and not available on other chains (like Paseo)
-#[cfg(not(feature = "paseo"))]
+// Checks that are specific to Polkadot, and not available on other chains
+#[cfg(feature = "polkadot-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -139,8 +140,8 @@ pub type RcRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
-// Checks that are specific to Paseo.
-#[cfg(feature = "paseo")]
+// Checks that are specific to Kusama.
+#[cfg(feature = "kusama-ahm")]
 pub type RcRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
@@ -149,6 +150,8 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	StakingMigratedCorrectly<Polkadot>,
+	super::recovery_test::RecoveryDataMigrated,
+	pallet_rc_migrator::society::tests::SocietyMigratorTest<Polkadot>,
 );
 
 type AhChecks = (
@@ -180,7 +183,7 @@ type AhChecks = (
 	EntireStateDecodes,
 );
 
-#[cfg(not(feature = "paseo"))]
+#[cfg(feature = "polkadot-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -193,7 +196,7 @@ pub type AhRuntimeSpecificChecks = (
 	ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
-#[cfg(feature = "paseo")]
+#[cfg(feature = "kusama-ahm")]
 pub type AhRuntimeSpecificChecks = (
 	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
@@ -202,6 +205,8 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	StakingMigratedCorrectly<AssetHub>,
+	super::recovery_test::RecoveryDataMigrated,
+	pallet_rc_migrator::society::tests::SocietyMigratorTest<AssetHub>,
 );
 
 #[ignore] // we use the equivalent [migration_works_time] test instead
@@ -256,6 +261,7 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 	}
 }
 
+#[cfg(feature = "polkadot-ahm")] // TODO @ggwpez
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
@@ -351,7 +357,7 @@ async fn find_translatable_accounts() {
 	// Para ID -> (RC sovereign, AH sovereign)
 	let mut sov_translations = BTreeMap::<u32, (AccountId32, AccountId32)>::new();
 	// Para ID -> (RC derived, index, AH derived)
-	let mut derived_translations = BTreeMap::<u32, (AccountId32, u16, AccountId32)>::new();
+	let mut derived_translations = Vec::<(ParaId, AccountId32, u16, AccountId32)>::new();
 
 	// Try to find Para sovereign and derived accounts.
 	for para_id in 0..(u16::MAX as u32) {
@@ -402,8 +408,12 @@ async fn find_translatable_accounts() {
 					"Found RC derived   for para {}: {} -> {} (index {})",
 					&para_id, &rc_para_derived, &ah_para_derived, &derivation_index
 				);
-				derived_translations
-					.insert(para_id, (rc_para_derived, derivation_index, ah_para_derived));
+				derived_translations.push((
+					para_id.into(),
+					rc_para_derived,
+					derivation_index,
+					ah_para_derived,
+				));
 			}
 		}
 	}
@@ -440,10 +450,9 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'stat
 pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId32, &'static str))] = &[\n",
 	);
 
-	let mut derived_translations = derived_translations.into_iter().collect::<Vec<_>>();
-	derived_translations.sort_by(|(_, (rc_acc, _, _)), (_, (rc_acc2, _, _))| rc_acc.cmp(rc_acc2));
+	derived_translations.sort_by(|(_, rc_acc, _, _), (_, rc_acc2, _, _)| rc_acc.cmp(rc_acc2));
 
-	for (para_id, (rc_acc, derivation_index, ah_acc)) in derived_translations.iter() {
+	for (para_id, rc_acc, derivation_index, ah_acc) in derived_translations.iter() {
 		rust.push_str(&format!("\t// para {} (derivation index {})\n", para_id, derivation_index));
 		rust.push_str(&format!(
 			"\t(({}, \"{}\"), {}, ({}, \"{}\")),\n",
@@ -765,6 +774,7 @@ async fn scheduled_migration_works() {
 		warm_up_end = start + 3;
 
 		// Fellowship Origin
+		#[cfg(not(feature = "kusama-ahm"))]
 		let origin = pallet_xcm::Origin::Xcm(Location::new(
 			0,
 			[
@@ -772,6 +782,9 @@ async fn scheduled_migration_works() {
 				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 			],
 		));
+		#[cfg(feature = "kusama-ahm")]
+		let origin = polkadot_runtime::governance::Origin::Fellows;
+
 		assert_ok!(RcMigrator::schedule_migration(
 			origin.into(),
 			DispatchTime::At(start),
@@ -1106,6 +1119,9 @@ fn test_control_flow() {
 				maybe_xcm_version: Some(xcm::prelude::XCM_VERSION),
 			})
 			.dispatch(AhRuntimeOrigin::root());
+
+		asset_hub_polkadot_runtime::ParachainSystem::ensure_successful_delivery();
+
 		assert!(result.is_ok(), "fails with error: {:?}", result.err());
 	});
 

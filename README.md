@@ -81,7 +81,6 @@ To submit a fix to release `x.y.z` and make a point release:
 - Check for other planned releases which originally targeted the same semver version and post on the issue letting them know that they should bump
 - Once the release is out, amend the GitHub release and delete all unchanged runtime blobs. Highlight if this release only affects some runtimes (contact a maintainer)
 - Backport your changes to the `CHANGELOG.md` to the main branch
-
 ## Release guidelines
 
 Here is an overview of the recommended steps.
@@ -92,13 +91,14 @@ Here is an overview of the recommended steps.
 |1 |Update **[polkadot-sdk](https://github.com/paritytech/polkadot-sdk?tab=readme-ov-file#-releases)**, if applicable. |
 |2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). |
 |3 |Identify and include **PRs** with required tests, highlighting the integration tests that have changed. |
-|4 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @SBalaguer and @anaelleltd** in your commentary. |
+|4 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @anaelleltd** in your commentary. Make sure to **review the tooling used in the Fellows CI pipeline** (e.g. [get-fellows-action](https://github.com/paritytech/get-fellows-action) or [review-bot](https://github.com/paritytech/review-bot)). |
 |5 |Run **[benchmarking](https://github.com/polkadot-fellows/runtimes/blob/main/docs/weight-generation.md)** for changed pallets. |
 |6 |Trigger the release for **final reviews**, making sure to highlight information about all breaking changes or disruptions in the **CHANGELOG entry**. |
 |7 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.|
 |8 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. |
 |9 |Close the issue for the release once the referendum is **approved and executed**. |
 |10 |Open an issue for **the next release** in the runtimes repo, if applicable.|
+
 
 ## Communication channels
 

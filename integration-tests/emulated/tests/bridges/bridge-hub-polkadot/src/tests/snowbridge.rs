@@ -16,7 +16,7 @@ use crate::{
 	tests::{
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
 		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
-		dot_at_ah_polkadot,
+		dot_at_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };
@@ -28,9 +28,8 @@ use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::EthereumGatewayAddress, xcm_config::RelayTreasuryPalletAccount,
 	EthereumBeaconClient, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
-use codec::{Decode, DecodeWithMemTracking, Encode};
+use codec::Encode;
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
-use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{
@@ -46,7 +45,6 @@ use snowbridge_inbound_queue_primitives::{
 	v1::{Command, Destination, MessageV1, VersionedMessage},
 	EthereumLocationsConverterFor, EventFixture, EventProof, Log, Proof,
 };
-use snowbridge_outbound_queue_primitives::OperatingMode;
 use snowbridge_pallet_system::PricingParametersOf;
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
@@ -62,21 +60,6 @@ const XCM_FEE: u128 = 4_000_000_000;
 const TOKEN_AMOUNT: u128 = 20_000_000_000_000;
 const AH_BASE_FEE: u128 = 2_750_872_500_000u128;
 const ETHER_TOKEN_ADDRESS: [u8; 20] = [0; 20];
-
-#[derive(Encode, Decode, DecodeWithMemTracking, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub enum ControlCall {
-	#[codec(index = 3)]
-	CreateAgent,
-	#[codec(index = 4)]
-	CreateChannel { mode: OperatingMode },
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Encode, Decode, DecodeWithMemTracking, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub enum SnowbridgeControl {
-	#[codec(index = 83)]
-	Control(ControlCall),
-}
 
 pub fn send_inbound_message(fixture: EventFixture) -> DispatchResult {
 	EthereumBeaconClient::store_finalized_header(
@@ -147,29 +130,14 @@ fn send_token_from_ethereum_to_penpal() {
 	));
 
 	// The Weth asset location, identified by the contract address on Ethereum
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_asset_location: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Parent,
-		v4_ethereum_network,
-		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
-	)
-		.into();
-	let weth_asset_location_latest: Location = weth_asset_location.clone().try_into().unwrap();
+	let weth_asset_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Converts the Weth asset location into an asset ID
 
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
-	PenpalB::execute_with(|| {
-		assert_ok!(<PenpalB as Chain>::System::set_storage(
-			<PenpalB as Chain>::RuntimeOrigin::root(),
-			vec![(
-				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
-				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
-			)],
-		));
-	});
+	set_trust_reserve_on_penpal();
 
 	// Create asset on the Penpal parachain.
 	PenpalB::execute_with(|| {
@@ -184,15 +152,13 @@ fn send_token_from_ethereum_to_penpal() {
 
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
 			<PenpalB as Chain>::RuntimeOrigin::root(),
-			weth_asset_location_latest.clone(),
+			weth_asset_location.clone(),
 			asset_hub_sovereign.clone().into(),
 			true,
 			1000
 		));
 
-		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(
-			weth_asset_location_latest
-		));
+		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_location));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -335,9 +301,8 @@ fn send_weth_from_ethereum_to_asset_hub() {
 fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	token_address: H160,
 	amount: u128,
-	asset_location: xcm::v4::Location,
+	asset_location: Location,
 ) {
-	let asset_location_latest: Location = asset_location.clone().try_into().unwrap();
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
 		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
 	);
@@ -427,18 +392,10 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 		);
 	});
 
-	send_token_back_to_ethereum(asset_location_latest, amount);
+	send_token_back_to_ethereum(asset_location, amount);
 }
 
 fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
-	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
-		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
-	);
-
-	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
-		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
-	});
-
 	// Send Token from Asset Hub back to Ethereum.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -462,15 +419,15 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 			);
 		// Send the Token back to Ethereum
 		assert_ok!(
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
-				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
-				Box::new(destination),
-				Box::new(beneficiary),
-				Box::new(versioned_assets),
-				0,
-				Unlimited,
-			)
-		);
+ 			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+ 				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
+ 				Box::new(destination),
+ 				Box::new(beneficiary),
+ 				Box::new(versioned_assets),
+ 				0,
+ 				Unlimited,
+ 			)
+ 		);
 
 		let free_balance_after =
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
@@ -488,32 +445,8 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
-				RuntimeEvent::EthereumOutboundQueue(snowbridge_pallet_outbound_queue::Event::MessageQueued {..}) => {},
-			]
-		);
-
-		// check treasury account balance on BH after (should receive some fees)
-		let treasury_account_after = <<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get());
-		let local_fee = treasury_account_after - treasury_account_before;
-
-		let events = BridgeHubPolkadot::events();
-		// Check that the local fee was credited to the Snowbridge sovereign account
-		assert!(
-			events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount: fee_minted })
-					if *who == RelayTreasuryPalletAccount::get() && *fee_minted == local_fee
-			)),
-			"Snowbridge sovereign takes local fee."
-		);
-		// Check that the remote delivery fee was credited to the AssetHub sovereign account
-		assert!(
-			events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. })
-					if *who == assethub_sovereign,
-			)),
-			"AssetHub sovereign takes remote fee."
+ 				RuntimeEvent::EthereumOutboundQueue(snowbridge_pallet_outbound_queue::Event::MessageQueued
+ {..}) => {}, 			]
 		);
 	});
 }
@@ -521,9 +454,7 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let ether_location: xcm::v4::Location =
-		(xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network).into();
+	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Perform a roundtrip transfer of Ether
 	send_token_from_ethereum_to_asset_hub_and_back_works(
@@ -539,14 +470,8 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_location: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Parent,
-		v4_ethereum_network,
-		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
-	)
-		.into();
+	let weth_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Perform a roundtrip transfer of WETH
 	send_token_from_ethereum_to_asset_hub_and_back_works(WETH.into(), TOKEN_AMOUNT, weth_location);
 }
@@ -622,7 +547,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 			<AssetHubPolkadot as Chain>::Runtime,
 			pallet_assets::Instance2,
 		>::create {
-			id: xcm::v4::Location::default(),
+			id: Location::default(),
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
@@ -1206,7 +1131,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
 
 		// Native KSM asset (Parent)
-		let native_asset: xcm::v4::Location = xcm::v4::Parent.into();
+		let native_asset: Location = Parent.into();
 
 		// Mint foreign asset
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
@@ -1322,18 +1247,9 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_location_v4: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Parent,
-		v4_ethereum_network,
-		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
-	)
-		.into();
 
 	let fee = dot_at_ah_polkadot();
-	let fee_latest: Location = fee.clone().try_into().unwrap();
-	let fees_asset: AssetId = fee_latest.clone().into();
+	let fees_asset: AssetId = fee.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
@@ -1343,20 +1259,20 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE * 3).into()]
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee.clone(), XCM_FEE * 3).into()]
 			.into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
-			bx!(asset_hub_kusama_location().into()),
-			bx!(assets.into()),
-			bx!(TransferType::LocalReserve),
-			bx!(fees_asset.into()),
-			bx!(TransferType::LocalReserve),
-			bx!(VersionedXcm::from(custom_xcm_on_dest)),
-			WeightLimit::Unlimited,
-		)
+ 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
+ 			bx!(asset_hub_kusama_location().into()),
+ 			bx!(assets.into()),
+ 			bx!(TransferType::LocalReserve),
+ 			bx!(fees_asset.into()),
+ 			bx!(TransferType::LocalReserve),
+ 			bx!(VersionedXcm::from(custom_xcm_on_dest)),
+ 			WeightLimit::Unlimited,
+ 		)
 	}));
 
 	AssetHubPolkadot::execute_with(|| {
@@ -1386,7 +1302,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v4,
+					asset_id: *asset_id == weth_location,
 					owner: *owner == AssetHubKusamaReceiver::get(),
 				},
 			]
@@ -1408,13 +1324,12 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		[AccountId32 { network: None, id: AssetHubPolkadotReceiver::get().into() }],
 	);
 	let fee = bridged_dot_at_asset_hub_kusama_for_later.clone();
-	let fee_latest: Location = fee.clone().try_into().unwrap();
-	let fees_asset: AssetId = fee_latest.clone().into();
+	let fees_asset: AssetId = fee.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE).into()]
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee.clone(), XCM_FEE).into()]
 			.into();
 
 	// Transfer the token back to Polkadot.
@@ -1472,7 +1387,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v4,
+					asset_id: *asset_id == weth_location,
 					owner: *owner == AssetHubPolkadotReceiver::get(),
 				},
 			]
@@ -1490,4 +1405,69 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	});
 
 	send_token_back_to_ethereum(weth_location, MIN_ETHER_BALANCE);
+}
+
+#[test]
+fn export_from_non_system_parachain_will_fail() {
+	let penpal_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(PenpalB::para_id().into())],
+	));
+	BridgeHubPolkadot::fund_accounts(vec![(penpal_sovereign.clone(), INITIAL_FUND)]);
+
+	PenpalB::execute_with(|| {
+		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
+		type RuntimeOrigin = <PenpalB as Chain>::RuntimeOrigin;
+
+		let local_fee_asset =
+			Asset { id: AssetId(Location::here()), fun: Fungible(1_000_000_000_000) };
+
+		let weth_location_reanchored =
+			Location::new(0, [AccountKey20 { network: None, key: WETH }]);
+
+		let weth_asset =
+			Asset { id: AssetId(weth_location_reanchored.clone()), fun: Fungible(TOKEN_AMOUNT) };
+
+		assert_ok!(<PenpalB as PenpalBPallet>::PolkadotXcm::send(
+			RuntimeOrigin::root(),
+			bx!(VersionedLocation::from(Location::new(
+				1,
+				Parachain(BridgeHubPolkadot::para_id().into())
+			))),
+			bx!(VersionedXcm::from(Xcm(vec![
+				WithdrawAsset(local_fee_asset.clone().into()),
+				BuyExecution { fees: local_fee_asset.clone(), weight_limit: Unlimited },
+				ExportMessage {
+					network: Ethereum { chain_id: CHAIN_ID },
+					destination: Here,
+					xcm: Xcm(vec![
+						WithdrawAsset(weth_asset.clone().into()),
+						DepositAsset {
+							assets: Wild(All),
+							beneficiary: Location::new(
+								0,
+								[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }]
+							)
+						},
+						SetTopic([0; 32]),
+					]),
+				},
+			]))),
+		));
+
+		assert_expected_events!(
+			PenpalB,
+			vec![RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent{ .. }) => {},]
+		);
+	});
+
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed{ success:false, origin,
+.. }) => { 				origin: *origin ==
+bridge_hub_common::AggregateMessageOrigin::Sibling(PenpalB::para_id()), 			},]
+		);
+	});
 }

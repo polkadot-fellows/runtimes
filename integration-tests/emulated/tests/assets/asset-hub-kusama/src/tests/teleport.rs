@@ -164,23 +164,55 @@ fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResu
 }
 
 fn para_to_system_para_transfer_assets(t: ParaToSystemParaTest) -> DispatchResult {
-	<PenpalA as PenpalAPallet>::PolkadotXcm::transfer_assets(
+	type Runtime = <PenpalA as Chain>::Runtime;
+	let remote_fee_id: AssetId = t
+		.args
+		.assets
+		.clone()
+		.into_inner()
+		.get(t.args.fee_asset_item as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+	<PenpalA as PenpalAPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
 		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
+		bx!(TransferType::Teleport),
+		bx!(remote_fee_id.into()),
+		bx!(TransferType::DestinationReserve),
+		bx!(VersionedXcm::from(
+			Xcm::<()>::builder_unsafe()
+				.deposit_asset(AllCounted(2), t.args.beneficiary)
+				.build()
+		)),
 		t.args.weight_limit,
 	)
 }
 
 fn system_para_to_para_transfer_assets(t: SystemParaToParaTest) -> DispatchResult {
-	<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::transfer_assets(
+	type Runtime = <AssetHubKusama as Chain>::Runtime;
+	let remote_fee_id: AssetId = t
+		.args
+		.assets
+		.clone()
+		.into_inner()
+		.get(t.args.fee_asset_item as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+	<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
 		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
+		bx!(TransferType::Teleport),
+		bx!(remote_fee_id.into()),
+		bx!(TransferType::LocalReserve),
+		bx!(VersionedXcm::from(
+			Xcm::<()>::builder_unsafe()
+				.deposit_asset(AllCounted(2), t.args.beneficiary)
+				.build()
+		)),
 		t.args.weight_limit,
 	)
 }
@@ -327,12 +359,10 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		ASSET_HUB_KUSAMA_ED * 100_000_000_000,
 	)]);
 
-	let asset_location_on_penpal_v4: xcm::v4::Location =
-		asset_location_on_penpal.try_into().unwrap();
 	// Init values for System Parachain
 	let foreign_asset_at_asset_hub_kusama =
-		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
-			.appended_with(asset_location_on_penpal_v4)
+		Location::new(1, [Parachain(PenpalA::para_id().into())])
+			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubKusamaReceiver::get();
 
@@ -431,7 +461,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_to_penpal_beneficiary_id = PenpalAReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let foreign_asset_at_asset_hub_kusama_latest: Location =
-		foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap();
+		foreign_asset_at_asset_hub_kusama.clone();
 	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(foreign_asset_at_asset_hub_kusama_latest.clone(), asset_amount_to_send).into(),

@@ -22,10 +22,10 @@ use alloc::boxed::Box;
 use codec::DecodeAll;
 use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
 use pallet_ah_migrator::LOG_TARGET;
+use parachains_common::pay::VersionedLocatableAccount;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
 use sp_core::Get;
 use sp_runtime::traits::{Convert, TryConvert};
-use system_parachains_common::pay::VersionedLocatableAccount;
 
 impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
 	fn from(reason: pallet_rc_migrator::types::PortableHoldReason) -> Self {
@@ -62,42 +62,42 @@ impl From<pallet_rc_migrator::types::PortableFreezeReason> for RuntimeFreezeReas
 /// Treasury accounts migrating to the new treasury account address (same account address that was
 /// used on the Relay Chain).
 pub struct TreasuryAccounts;
-impl Get<(AccountId, Vec<xcm::v4::Location>)> for TreasuryAccounts {
-	fn get() -> (AccountId, Vec<xcm::v4::Location>) {
+impl Get<(AccountId, Vec<cumulus_primitives_core::Location>)> for TreasuryAccounts {
+	fn get() -> (AccountId, Vec<cumulus_primitives_core::Location>) {
 		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
 		(
 			xcm_config::PreMigrationRelayTreasuryPalletAccount::get(),
 			vec![
 				// USDT
-				xcm::v4::Location::new(
+				cumulus_primitives_core::Location::new(
 					0,
 					[
-						xcm::v4::Junction::PalletInstance(assets_id),
-						xcm::v4::Junction::GeneralIndex(1984),
+						cumulus_primitives_core::Junction::PalletInstance(assets_id),
+						cumulus_primitives_core::Junction::GeneralIndex(1984),
 					],
 				),
 				// USDC
-				xcm::v4::Location::new(
+				cumulus_primitives_core::Location::new(
 					0,
 					[
-						xcm::v4::Junction::PalletInstance(assets_id),
-						xcm::v4::Junction::GeneralIndex(1337),
+						cumulus_primitives_core::Junction::PalletInstance(assets_id),
+						cumulus_primitives_core::Junction::GeneralIndex(1337),
 					],
 				),
 				// DED
-				xcm::v4::Location::new(
+				cumulus_primitives_core::Location::new(
 					0,
 					[
-						xcm::v4::Junction::PalletInstance(assets_id),
-						xcm::v4::Junction::GeneralIndex(30),
+						cumulus_primitives_core::Junction::PalletInstance(assets_id),
+						cumulus_primitives_core::Junction::GeneralIndex(30),
 					],
 				),
 				// STINK
-				xcm::v4::Location::new(
+				cumulus_primitives_core::Location::new(
 					0,
 					[
-						xcm::v4::Junction::PalletInstance(assets_id),
-						xcm::v4::Junction::GeneralIndex(42069),
+						cumulus_primitives_core::Junction::PalletInstance(assets_id),
+						cumulus_primitives_core::Junction::GeneralIndex(42069),
 					],
 				),
 			],

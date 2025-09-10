@@ -20,7 +20,7 @@ extern crate alloc;
 
 use crate::{
 	staking::{BalanceOf, StakingMigrator},
-	types::DefensiveTruncateInto,
+	types::{DefensiveTruncateInto, TranslateAccounts},
 	*,
 };
 use alloc::collections::BTreeMap;
@@ -109,6 +109,55 @@ pub enum PortableStakingMessage {
 		validator: AccountId32,
 		slash: (Perbill, u128),
 	},
+}
+
+impl TranslateAccounts for PortableStakingMessage {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		use PortableStakingMessage::*;
+
+		match self {
+			Values(values) => Values(values),
+			Invulnerables(invulnerables) =>
+				Invulnerables(invulnerables.into_iter().map(f).collect::<Vec<_>>()),
+			Bonded { stash, controller } => Bonded { stash: f(stash), controller: f(controller) },
+			Ledger { controller, ledger } =>
+				Ledger { controller: f(controller), ledger: ledger.translate_accounts(f) },
+			Payee { stash, payment } =>
+				Payee { stash: f(stash), payment: payment.translate_accounts(f) },
+			Validators { stash, validators } =>
+				Validators { stash: f(stash), validators: validators.translate_accounts(f) },
+			Nominators { stash, nominations } =>
+				Nominators { stash: f(stash), nominations: nominations.translate_accounts(f) },
+			VirtualStakers(stash) => VirtualStakers(f(stash)),
+			ErasStakersOverview { era, validator, exposure } => ErasStakersOverview {
+				era,
+				validator: f(validator),
+				exposure: exposure.translate_accounts(f),
+			},
+			ErasStakersPaged { era, validator, page, exposure } => ErasStakersPaged {
+				era,
+				validator: f(validator),
+				page,
+				exposure: exposure.translate_accounts(f),
+			},
+			ClaimedRewards { era, validator, rewards } =>
+				ClaimedRewards { era, validator: f(validator), rewards },
+			ErasValidatorPrefs { era, validator, prefs } => ErasValidatorPrefs {
+				era,
+				validator: f(validator),
+				prefs: prefs.translate_accounts(f),
+			},
+			ErasValidatorReward { era, reward } => ErasValidatorReward { era, reward },
+			ErasRewardPoints { era, points } =>
+				ErasRewardPoints { era, points: points.translate_accounts(f) },
+			ErasTotalStake { era, total_stake } => ErasTotalStake { era, total_stake },
+			UnappliedSlashes { era, slash } =>
+				UnappliedSlashes { era, slash: slash.translate_accounts(f) },
+			BondedEras(eras) => BondedEras(eras),
+			ValidatorSlashInEra { era, validator, slash } =>
+				ValidatorSlashInEra { era, validator: f(validator), slash },
+		}
+	}
 }
 
 /// Generic staking storage values.
@@ -289,6 +338,22 @@ pub struct PortableStakingLedger {
 	pub unlocking: BoundedVec<PortableUnlockChunk, ConstU32<100>>,
 }
 
+impl TranslateAccounts for PortableStakingLedger {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		PortableStakingLedger {
+			stash: f(self.stash),
+			total: self.total,
+			active: self.active,
+			unlocking: self
+				.unlocking
+				.into_iter()
+				.map(|c| c.translate_accounts(f))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+		}
+	}
+}
+
 // StakingLedger: RC -> Portable
 impl<T: Config> IntoPortable for pallet_staking::StakingLedger<T> {
 	type Portable = PortableStakingLedger;
@@ -349,6 +414,13 @@ pub struct PortableUnlockChunk {
 	pub era: EraIndex,
 }
 
+impl TranslateAccounts for PortableUnlockChunk {
+	fn translate_accounts(self, _f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		// No-OP
+		self
+	}
+}
+
 // UnlockChunk: RC -> Portable
 impl IntoPortable for pallet_staking::UnlockChunk<u128> {
 	type Portable = PortableUnlockChunk;
@@ -382,6 +454,28 @@ pub struct PortableUnappliedSlash {
 	pub others: BoundedVec<(AccountId32, u128), ConstU32<600>>, // Range 0-512
 	pub reporters: BoundedVec<AccountId32, ConstU32<10>>,       // Range 0-1
 	pub payout: u128,
+}
+
+impl TranslateAccounts for PortableUnappliedSlash {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		PortableUnappliedSlash {
+			validator: f(self.validator),
+			own: self.own,
+			others: self
+				.others
+				.into_iter()
+				.map(|(who, value)| (f(who), value))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			reporters: self
+				.reporters
+				.into_iter()
+				.map(f)
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+			payout: self.payout,
+		}
+	}
 }
 
 // UnappliedSlash: RC -> Portable
@@ -442,6 +536,16 @@ pub enum PortableRewardDestination {
 	None,
 }
 
+impl TranslateAccounts for PortableRewardDestination {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		match self {
+			PortableRewardDestination::Account(account) =>
+				PortableRewardDestination::Account(f(account)),
+			_ => self,
+		}
+	}
+}
+
 // RewardDestination: RC -> Portable
 impl IntoPortable for pallet_staking::RewardDestination<AccountId32> {
 	type Portable = PortableRewardDestination;
@@ -490,6 +594,16 @@ pub struct PortableNominations {
 	pub targets: BoundedVec<AccountId32, ConstU32<32>>, // Range up to 16
 	pub submitted_in: EraIndex,
 	pub suppressed: bool,
+}
+
+impl TranslateAccounts for PortableNominations {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		PortableNominations {
+			targets: self.targets.into_iter().map(f).collect::<Vec<_>>().defensive_truncate_into(),
+			submitted_in: self.submitted_in,
+			suppressed: self.suppressed,
+		}
+	}
 }
 
 // Nominations: RC -> Portable
@@ -546,6 +660,18 @@ pub struct PortablePagedExposureMetadata {
 	pub page_count: Page,
 }
 
+impl TranslateAccounts for PortablePagedExposureMetadata {
+	fn translate_accounts(self, _f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		// No-OP
+		PortablePagedExposureMetadata {
+			total: self.total,
+			own: self.own,
+			nominator_count: self.nominator_count,
+			page_count: self.page_count,
+		}
+	}
+}
+
 // PagedExposureMetadata: RC -> Portable
 impl IntoPortable for sp_staking::PagedExposureMetadata<u128> {
 	type Portable = PortablePagedExposureMetadata;
@@ -588,6 +714,20 @@ impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMeta
 pub struct PortableExposurePage {
 	pub page_total: u128,
 	pub others: BoundedVec<PortableIndividualExposure, ConstU32<600>>, // Range 0-512
+}
+
+impl TranslateAccounts for PortableExposurePage {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		PortableExposurePage {
+			page_total: self.page_total,
+			others: self
+				.others
+				.into_iter()
+				.map(|c| c.translate_accounts(f))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+		}
+	}
 }
 
 // ExposurePage: RC -> Portable
@@ -646,6 +786,12 @@ pub struct PortableIndividualExposure {
 	pub value: u128,
 }
 
+impl TranslateAccounts for PortableIndividualExposure {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		PortableIndividualExposure { who: f(self.who), value: self.value }
+	}
+}
+
 // IndividualExposure: RC -> Portable
 impl IntoPortable for sp_staking::IndividualExposure<AccountId32, u128> {
 	type Portable = PortableIndividualExposure;
@@ -675,7 +821,22 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
-	pub individual: BoundedVec<(AccountId32, u32), ConstU32<600>>, //  Up to MaxValidatorSize
+	// 1000 on Polkadot and 2000 on Kusama, so we just take the max.
+	pub individual: BoundedVec<(AccountId32, u32), ConstU32<2000>>,
+}
+
+impl TranslateAccounts for PortableEraRewardPoints {
+	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		PortableEraRewardPoints {
+			total: self.total,
+			individual: self
+				.individual
+				.into_iter()
+				.map(|(who, points)| (f(who), points))
+				.collect::<Vec<_>>()
+				.defensive_truncate_into(),
+		}
+	}
 }
 
 // EraRewardPoints: RC -> Portable
@@ -683,10 +844,10 @@ impl IntoPortable for pallet_staking::EraRewardPoints<AccountId32> {
 	type Portable = PortableEraRewardPoints;
 
 	fn into_portable(self) -> Self::Portable {
-		let individual: BoundedVec<_, ConstU32<600>> =
-			self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into();
-
-		PortableEraRewardPoints { total: self.total, individual }
+		PortableEraRewardPoints {
+			total: self.total,
+			individual: self.individual.into_iter().collect::<Vec<_>>().defensive_truncate_into(),
+		}
 	}
 }
 
@@ -725,6 +886,13 @@ impl<
 pub struct PortableValidatorPrefs {
 	pub commission: Perbill,
 	pub blocked: bool,
+}
+
+impl TranslateAccounts for PortableValidatorPrefs {
+	fn translate_accounts(self, _f: &impl Fn(AccountId32) -> AccountId32) -> Self {
+		// No-OP
+		PortableValidatorPrefs { commission: self.commission, blocked: self.blocked }
+	}
 }
 
 // ValidatorPrefs: RC -> Portable

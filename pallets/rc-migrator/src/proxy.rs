@@ -88,13 +88,44 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 
 			match Self::migrate_single(
 				acc.clone(),
-				(proxies.into_inner(), deposit),
+				(proxies.clone().into_inner(), deposit),
 				weight_counter,
 				&mut batch,
 			) {
 				Ok(proxy) => {
-					pallet_proxy::Proxies::<T>::remove(&acc);
-					batch.push(proxy);
+					// We keep proxy relations of pure accounts alive for free, otherwise gives the
+					// owner of the pure account a big headache with trying to control it through
+					// the remote proxy pallet (no UI for it) or similar.
+					match PureProxyCandidatesMigrated::<T>::get(&acc) {
+						None => {
+							pallet_proxy::Proxies::<T>::remove(&acc);
+							batch.push(proxy); // Send over to AH
+						},
+						Some(false) => {
+							PureProxyCandidatesMigrated::<T>::insert(&acc, true);
+
+							let free_proxies: BoundedVec<_, _> = proxies
+								.into_iter()
+								.filter(|p| T::PureProxyFreeVariants::contains(&p.proxy_type))
+								.collect::<Vec<_>>()
+								.defensive_truncate_into();
+							let deposit: BalanceOf<T> = Zero::zero();
+							log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?}", acc.to_ss58check(), free_proxies.len(), free_proxies);
+
+							if !free_proxies.is_empty() {
+								pallet_proxy::Proxies::<T>::insert(&acc, (free_proxies, deposit));
+							} else {
+								log::warn!(target: LOG_TARGET, "Pure proxy account will lose access on the Relay Chain: {:?}", acc.to_ss58check());
+								pallet_proxy::Proxies::<T>::remove(&acc);
+							}
+
+							batch.push(proxy); // Send over to AH
+						},
+						Some(true) => {
+							// Already migrated
+						},
+					}
+
 					last_key = Some(acc); // Update last processed key
 				},
 				Err(OutOfWeightError) if !batch.is_empty() => {
@@ -143,20 +174,39 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 			weight_counter.try_consume(batch.consume_weight()).is_err()
 		{
-			log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+			log::info!(
+				target: LOG_TARGET,
+				"RC weight limit reached at batch length {}, stopping",
+				batch.len()
+			);
 			return Err(OutOfWeightError);
 		}
 
 		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch.len() + 1)) {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+			log::info!(
+				target: LOG_TARGET,
+				"AH weight limit reached at batch length {}, stopping",
+				batch.len()
+			);
 			return Err(OutOfWeightError);
 		}
 
 		if batch.len() > MAX_ITEMS_PER_BLOCK {
 			log::info!(
+				target: LOG_TARGET,
 				"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 				MAX_ITEMS_PER_BLOCK,
 				batch.len()
+			);
+			return Err(OutOfWeightError);
+		}
+
+		if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+			log::info!(
+				target: LOG_TARGET,
+				"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+				MAX_XCM_MSG_PER_BLOCK,
+				batch.batch_count()
 			);
 			return Err(OutOfWeightError);
 		}
@@ -201,7 +251,11 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -212,7 +266,11 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			if T::MaxAhWeight::get()
 				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
 			{
-				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"AH weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -222,9 +280,20 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 			if batch.len() > MAX_ITEMS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
 					MAX_ITEMS_PER_BLOCK,
 					batch.len()
+				);
+				break;
+			}
+
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
 				);
 				break;
 			}
@@ -256,15 +325,17 @@ use std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	type RcPrePayload =
-		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+		BTreeMap<(AccountId32, u32), Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of (Delegator, None) -> (Kind, Delegatee)
 
 	fn pre_check() -> Self::RcPrePayload {
 		// Store the proxies per account before the migration
 		let mut proxies = BTreeMap::new();
 		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			let nonce = frame_system::Pallet::<T>::account_nonce(&delegator);
+
 			for delegation in delegations {
 				proxies
-					.entry(delegator.clone())
+					.entry((delegator.clone(), nonce))
 					.or_insert_with(Vec::new)
 					.push((delegation.proxy_type, delegation.delegate));
 			}
@@ -272,9 +343,57 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 		proxies
 	}
 
-	fn post_check(_: Self::RcPrePayload) {
-		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
-		assert_eq!(count, 0, "Assert storage 'Proxy::Proxies::rc_post::empty'");
+	fn post_check(pre_accs: Self::RcPrePayload) {
+		// sanity check
+		let remaining = pallet_proxy::Proxies::<T>::iter_keys().count();
+		assert!(remaining >= 10, "Not enough remaining pure proxies, {}", remaining);
+
+		// All remaining ones are 'Any'
+		for (delegator, (proxies, deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			assert_eq!(
+				deposit,
+				Zero::zero(),
+				"Pure account {} should have no deposit but has {:?}",
+				delegator.to_ss58check(),
+				deposit
+			);
+
+			for proxy in proxies {
+				let enc_type = proxy.proxy_type.encode();
+				let is_any = enc_type == vec![0];
+
+				assert!(is_any, "Pure proxy got wrong account for free");
+			}
+		}
+
+		for ((acc, nonce), proxies) in pre_accs.into_iter() {
+			if nonce != 0 {
+				continue;
+			}
+
+			// Amount of any proxies
+			let num_any = proxies
+				.iter()
+				.filter(|(proxy_type, _)| T::PureProxyFreeVariants::contains(proxy_type))
+				.count();
+			if num_any == 0 {
+				assert!(
+					!pallet_proxy::Proxies::<T>::contains_key(&acc),
+					"No empty vectors in storage"
+				);
+				continue;
+			}
+
+			log::debug!(
+				"Checking Pure proxy {} has proxies afterwards: {:?} and before: {:?}",
+				acc.to_ss58check(),
+				pallet_proxy::Proxies::<T>::get(&acc),
+				proxies
+			);
+			assert_eq!(pallet_proxy::Proxies::<T>::get(&acc).1, Zero::zero());
+			assert_eq!(pallet_proxy::Proxies::<T>::get(&acc).0.len(), num_any);
+		}
+
 		let count = pallet_proxy::Announcements::<T>::iter_keys().count();
 		assert_eq!(count, 0, "Assert storage 'Proxy::Announcements::rc_post::empty'");
 	}

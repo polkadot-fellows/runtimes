@@ -66,7 +66,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err() ||
 				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
-				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				log::info!(
+					target: LOG_TARGET,
+					"RC weight limit reached at batch length {}, stopping",
+					batch.len()
+				);
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -171,9 +175,20 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			const MAX_CHUNKS_PER_BLOCK: u32 = 10;
 			if batch.len() >= MAX_CHUNKS_PER_BLOCK {
 				log::info!(
+					target: LOG_TARGET,
 					"Maximum number of items ({}) to migrate per block reached, current batch size: {}",
 					MAX_CHUNKS_PER_BLOCK,
 					batch.len()
+				);
+				break next_key;
+			}
+
+			if batch.batch_count() >= MAX_XCM_MSG_PER_BLOCK {
+				log::info!(
+					target: LOG_TARGET,
+					"Reached the maximum number of batches ({:?}) allowed per block; current batch count: {}",
+					MAX_XCM_MSG_PER_BLOCK,
+					batch.batch_count()
 				);
 				break next_key;
 			}
