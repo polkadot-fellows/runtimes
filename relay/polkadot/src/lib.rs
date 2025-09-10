@@ -46,8 +46,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains,
-		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
