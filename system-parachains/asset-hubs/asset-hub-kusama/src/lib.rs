@@ -807,6 +807,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(_, ProxyType::Any) => false,
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
+			(ProxyType::NonTransfer, ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -2640,5 +2641,25 @@ mod tests {
 		let acc =
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
 		assert_eq!(acc, MigController::sorted_members()[0]);
+	}
+
+	#[test]
+	fn proxy_type_is_superset_works() {
+		// Assets IS supertype of AssetOwner and AssetManager
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetOwner));
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is NOT supertype of Any, Assets, AssetOwner and AssetManager
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Any));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Assets));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetOwner));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is supertype of remaining stuff
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::CancelProxy));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::NominationPools));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Auction));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
 	}
 }
