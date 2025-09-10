@@ -43,7 +43,7 @@
 //! cargo test \
 //! 	-p polkadot-integration-tests-ahm \
 //! 	--features try-runtime \
-//! 	--features paseo \
+//! 	--features {{runtime}}-ahm \
 //! 	--release \
 //! 	-- post_migration_checks_only --nocapture
 //! ```
