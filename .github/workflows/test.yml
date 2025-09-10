@@ -358,17 +358,23 @@ jobs:
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
+          FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
-            FEATURES="--features=metadata-hash"
+            FEATURES="metadata-hash"
           fi
 
-          # Add extra build features if defined.
+          # Add extra features
           if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
             if [ -z "$FEATURES" ]; then
-              FEATURES="--features=${{ matrix.runtime.build_extra_features }}"
+              FEATURES="${{ matrix.runtime.build_extra_features }}"
             else
               FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+            fi
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            FEATURES="--features=$FEATURES"
           fi
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
