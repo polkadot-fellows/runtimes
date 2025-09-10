@@ -160,7 +160,7 @@
     "path": "system-parachains/encointer",
     "uri": "wss://kusama.api.encointer.org:443",
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
