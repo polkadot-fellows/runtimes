@@ -717,7 +717,10 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(_, ProxyType::Any) => false,
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
-			(ProxyType::NonTransfer, ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager) => false,
+			(
+				ProxyType::NonTransfer,
+				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
+			) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
