@@ -413,7 +413,7 @@ impl RcToAhCall {
 				// example:
 				// from Location: Location { parents: 0, interior: X1(Parachain(2034)) }
 				//   to Location: Location { parents: 1, interior: X1(Parachain(2034)) }
-				let mut dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
+				let dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
 						"Failed to convert versioned destination to the latest version: {:?}",
@@ -453,7 +453,7 @@ impl RcToAhCall {
 				// example:
 				// from Location: Location { parents: 0, interior: X1(Parachain(2034)) }
 				//   to Location: Location { parents: 1, interior: X1(Parachain(2034)) }
-				let mut dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
+				let dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
 						"Failed to convert versioned destination to the latest version: {:?}",
@@ -469,7 +469,7 @@ impl RcToAhCall {
 				})?;
 
 				// reanchore the assets
-				let mut assets: xcm::latest::Assets = (*assets).try_into().map_err(|err| {
+				let assets: xcm::latest::Assets = (*assets).try_into().map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
 						"Failed to convert versioned assets to the latest version: {:?}",
