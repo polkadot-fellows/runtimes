@@ -1359,18 +1359,6 @@ async fn post_migration_checks_only() {
 	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
 	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
 
-	rc_pre_ext.execute_with(|| {
-		log::info!(target: "ahm", "PRE: RC migration stage: {:?}", RcMigrationStageStorage::<Polkadot>::get());
-	});
-	ah_pre_ext.execute_with(|| {
-		log::info!(target: "ahm", "PRE: AH migration stage: {:?}", AhMigrationStageStorage::<AssetHub>::get());
-	});
-	rc_post_ext.execute_with(|| {
-		log::info!(target: "ahm", "POST: RC migration stage: {:?}", RcMigrationStageStorage::<Polkadot>::get());
-	});
-	ah_post_ext.execute_with(|| {
-		log::info!(target: "ahm", "POST: AH migration stage: {:?}", AhMigrationStageStorage::<AssetHub>::get());
-	});
 
 	let rc_pre_payload = rc_pre_ext.execute_with(RcChecks::pre_check);
 	let ah_pre_payload = ah_pre_ext.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
