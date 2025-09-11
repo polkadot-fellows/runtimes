@@ -58,7 +58,7 @@ impl<T: Config> Pallet<T> {
 		Ok(ah_bounded_call)
 	}
 
-	fn fetch_preimage(bounded_call: &BoundedCallOf<T>) -> Result<Vec<u8>, Error<T>> {
+	pub fn fetch_preimage(bounded_call: &BoundedCallOf<T>) -> Result<Vec<u8>, Error<T>> {
 		match bounded_call {
 			Bounded::Inline(encoded) => Ok(encoded.clone().into_inner()),
 			Bounded::Legacy { hash, .. } => {
