@@ -7,8 +7,7 @@ The following is a quick guide/process for removing applied migrations while mak
 ## Prerequisites
 
 For some chain runtime `spec_version: a_bcd_efg,` (e.g. `spec_version: 1_000_001`):
-
-- has been officially released on <https://github.com/polkadot-fellows/runtimes/releases/> as part of `Runtimes X.Y.Z` release/tag.
+- has been officially released on https://github.com/polkadot-fellows/runtimes/releases/ as part of `Runtimes X.Y.Z` release/tag.
 - the **on-chain** runtime version has been upgraded to spec version `a_bcd_efg` (using wasm blob released above).
 
 ## Steps

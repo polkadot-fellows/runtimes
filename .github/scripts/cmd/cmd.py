@@ -29,27 +29,27 @@ parser.add_argument('--help', action=_HelpAction, help='help for help if you nee
 subparsers = parser.add_subparsers(help='a command to run', dest='command')
 
 """
-BENCH
+BENCH 
 """
 
 bench_example = '''**Examples**:
 
  > runs all benchmarks
-
+ 
  %(prog)s
-
+ 
  > runs benchmarks for pallet_balances and pallet_multisig for all runtimes which have these pallets
  > --quiet makes it to output nothing to PR but reactions
-
+ 
  %(prog)s --pallet pallet_balances pallet_xcm_benchmarks::generic --quiet
-
+ 
  > runs bench for all pallets for polkadot runtime and continues even if some benchmarks fail
-
- %(prog)s --runtime polkadot --continue-on-fail
-
- > does not output anything and cleans up the previous bot's & author command triggering comments in PR
-
- %(prog)s --runtime polkadot kusama --pallet pallet_balances pallet_multisig --quiet --clean
+ 
+ %(prog)s --runtime polkadot --continue-on-fail 
+ 
+ > does not output anything and cleans up the previous bot's & author command triggering comments in PR 
+ 
+ %(prog)s --runtime polkadot kusama --pallet pallet_balances pallet_multisig --quiet --clean 
 
  '''
 
@@ -62,7 +62,7 @@ parser_bench.add_argument('--runtime', help='Runtime(s) space separated', choice
 parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*', default=[])
 
 """
-FMT
+FMT 
 """
 parser_fmt = subparsers.add_parser('fmt', help='Formats code')
 for arg, config in common_args.items():
@@ -91,12 +91,9 @@ if args.command == 'bench':
     for runtime in runtimesMatrix.values():
         print(f'-- compiling the runtime {runtime["name"]}')
         features = "runtime-benchmarks"
-        # TODO: temporary hack for AHM - start...
-        if runtime["name"] in ["kusama", "asset-hub-kusama"]:
-            features += ",kusama-ahm"
-        if runtime["name"] in ["polkadot", "asset-hub-polkadot"]:
-            features += ",polkadot-ahm"
-        # ...end
+        features_extra = runtime.get("build_extra_features")
+        if features_extra:
+            features += "," + features_extra
         print(f'-- with features {features}')
         os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
