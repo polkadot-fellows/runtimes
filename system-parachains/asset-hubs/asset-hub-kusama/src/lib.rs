@@ -1474,7 +1474,6 @@ pub mod dynamic_params {
 #[cfg(feature = "runtime-benchmarks")]
 impl Default for RuntimeParameters {
 	fn default() -> Self {
-		// TODO: @kianenigma/!bkontur - is this ok?
 		RuntimeParameters::Issuance(dynamic_params::issuance::Parameters::MinInflation(
 			dynamic_params::issuance::MinInflation,
 			Some(Perquintill::from_rational(25u64, 1000u64)),

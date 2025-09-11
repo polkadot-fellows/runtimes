@@ -653,16 +653,6 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
 
-// TODO @kianenigma: remove feature gate and keep 10, when we want to activate it for Polkadot
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-	pub const AutoRebagNumber: u32 = 10;
-}
-#[cfg(not(feature = "runtime-benchmarks"))]
-parameter_types! {
-	pub const AutoRebagNumber: u32 = 0;
-}
-
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -673,7 +663,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxAutoRebagPerBlock = AutoRebagNumber;
+	type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 /// Defines how much should the inflation be for an era given its duration.
