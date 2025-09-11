@@ -35,9 +35,15 @@ extern crate alloc;
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod treasuries_xcm_payout;
 mod weights;
 pub mod xcm_config;
 
+mod impls;
+#[cfg(test)]
+pub mod tests;
+
+use crate::treasuries_xcm_payout::ConstantKsmFee;
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -86,7 +92,10 @@ pub use parachains_common::{
 	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
 	Hash, Header, Nonce, Signature,
 };
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{
+	impls::{LocatableAssetConverter, VersionedLocatableAsset},
+	BlockHashCount, SlowAdjustingFeeUpdate,
+};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
@@ -104,10 +113,14 @@ use sp_version::RuntimeVersion;
 use system_parachains_constants::kusama::{consensus::*, currency::*, fee::WeightToFee};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId as XcmAssetId, BodyId},
+	latest::{
+		prelude::{AssetId as XcmAssetId, BodyId},
+		NetworkId,
+	},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
 	VersionedXcm,
 };
+use xcm_builder::AliasesIntoAccountId32;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -133,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -585,12 +598,38 @@ impl pallet_encointer_democracy::Config for Runtime {
 
 parameter_types! {
 	pub const TreasuriesPalletId: PalletId = PalletId(*b"trsrysId");
+
+	pub const AnyNetwork: Option<NetworkId> = None;
 }
+
+pub type TransferOverXcm = crate::treasuries_xcm_payout::TransferOverXcm<
+	crate::xcm_config::XcmRouter,
+	crate::PolkadotXcm,
+	ConstU32<{ 6 * HOURS }>,
+	AccountId,
+	VersionedLocatableAsset, // Use this as AssetKind in encointer_treasuries::Config too!
+	LocatableAssetConverter,
+	AliasesIntoAccountId32<AnyNetwork, AccountId>,
+	ConstantKsmFee,
+>;
+
 impl pallet_encointer_treasuries::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
+	type AssetKind = VersionedLocatableAsset;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Paymaster = TransferOverXcm;
+
+	#[cfg(feature = "runtime-benchmarks")]
+	type Paymaster = impls::benchmarks::TransferWithEnsure<
+		TransferOverXcm,
+		impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
+	>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper =
+		impls::benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -866,19 +905,24 @@ pub type TxExtension = (
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
-/// Extrinsic type that has already been checked.
-pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, TxExtension>;
 
-/// Migrations to apply on runtime upgrade.
-pub type Migrations = (
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
+/// All migrations that will run on the next runtime upgrade.
+///
+/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
+/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
+
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
+
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = ();
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1377,6 +1421,12 @@ impl_runtime_apis! {
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
 			genesis_config_presets::preset_names()
+		}
+	}
+
+	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
+		fn parachain_id() -> ParaId {
+			ParachainInfo::parachain_id()
 		}
 	}
 

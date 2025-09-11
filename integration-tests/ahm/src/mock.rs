@@ -36,6 +36,7 @@ use runtime_parachains::{
 	dmp::DownwardMessageQueues,
 	inclusion::{AggregateMessageOrigin as RcMessageOrigin, UmpQueueId},
 };
+use sp_core::H256;
 use sp_io::TestExternalities;
 use sp_runtime::{BoundedVec, BuildStorage, Perbill};
 use std::str::FromStr;
@@ -79,6 +80,8 @@ pub async fn load_externalities() -> Option<(TestExternalities, TestExternalitie
 	Some((rc?, ah?))
 }
 
+pub type RawSnapshot = (Vec<(Vec<u8>, (Vec<u8>, i32))>, H256);
+
 pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 	sp_tracing::try_init_simple();
 	log::info!("Checking {chain} snapshot cache");
@@ -90,34 +93,45 @@ pub async fn remote_ext_test_setup(chain: Chain) -> Option<TestExternalities> {
 
 	let snapshot = cache
 		.get_or_init(|| async {
-			log::info!("Loading {chain} snapshot");
-
-			// Load snapshot.
-			let snap = std::env::var(chain.to_string()).expect("Env var not set");
-			let abs = std::path::absolute(snap.clone());
-
-			let ext = Builder::<PolkadotBlock>::default()
-				.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
-				.build()
-				.await
-				.map_err(|e| {
-					eprintln!("Could not load from snapshot: {abs:?}: {e:?}");
-				})
-				.unwrap();
-
-			// `RemoteExternalities` and `TestExternalities` types cannot be cloned so we need to
-			// convert them to raw snapshot and store it in the cache.
-			ext.inner_ext.into_raw_snapshot()
+			let path = std::env::var(chain.to_string()).expect("Env var not set");
+			load_snapshot_uncached(&path).await
 		})
 		.await;
+	let ext = snapshot_to_externalities(snapshot);
 
-	let ext = TestExternalities::from_raw_snapshot(
+	Some(ext)
+}
+
+pub async fn load_snapshot_uncached(path: &str) -> RawSnapshot {
+	log::info!("Loading snapshot from {path}");
+	let abs = std::path::absolute(path).expect("Could not get absolute path");
+
+	let ext = Builder::<PolkadotBlock>::default()
+		.mode(Mode::Offline(OfflineConfig { state_snapshot: abs.display().to_string().into() }))
+		.build()
+		.await
+		.map_err(|e| {
+			eprintln!("Could not load from snapshot: {abs:?}: {e:?}");
+		})
+		.unwrap();
+
+	// `RemoteExternalities` and `TestExternalities` types cannot be cloned so we need to
+	// convert them to raw snapshot and store it in the cache.
+	ext.inner_ext.into_raw_snapshot()
+}
+
+pub fn snapshot_to_externalities(snapshot: &RawSnapshot) -> TestExternalities {
+	TestExternalities::from_raw_snapshot(
 		snapshot.0.clone(),
 		snapshot.1,
 		sp_storage::StateVersion::V1,
-	);
+	)
+}
 
-	Some(ext)
+pub async fn load_externalities_uncached(env_var: &str) -> Option<TestExternalities> {
+	let path = std::env::var(env_var).expect("Env var not set");
+	let snapshot = load_snapshot_uncached(&path).await;
+	Some(snapshot_to_externalities(&snapshot))
 }
 
 pub fn next_block_rc() {

@@ -25,7 +25,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 #[cfg(all(not(feature = "kusama-ahm"), feature = "on-chain-release-build"))]
-compile_error!("Asset Hub migration requires the `kusama` feature");
+compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 
 extern crate alloc;
 
@@ -33,7 +33,6 @@ pub mod ah_migration;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod governance;
-mod impls;
 pub mod staking;
 pub mod treasury;
 mod weights;
@@ -59,7 +58,7 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::imbalance::ResolveAssetTo,
+		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
 		EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, InstanceFilter,
 		LinearStoragePrice, PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
@@ -143,7 +142,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -229,7 +228,7 @@ parameter_types! {
 impl pallet_migrations::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Migrations = pallet_revive::migrations::v1::Migration<Runtime>;
+	type Migrations = migrations::MbmMigrations;
 	// Benchmarks need mocked migrations to guarantee that they succeed.
 	#[cfg(feature = "runtime-benchmarks")]
 	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
@@ -306,11 +305,8 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
-		NativeAndAssets,
-		KsmLocation,
-		ResolveAssetTo<StakingPot, NativeAndAssets>,
-	>;
+	type OnChargeTransaction =
+		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -626,34 +622,96 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::Auction | ProxyType::ParaRegistration => false, // Only for remote proxy
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					// We allow calling `vest` and merging vesting schedules, but obviously not
-					// vested transfers.
-					RuntimeCall::Vesting(pallet_vesting::Call::vest { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::vest_other { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::merge_schedules { .. }) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
-					RuntimeCall::RemoteProxyRelayChain(_) |
-					// TODO @ggwpez add more
-					RuntimeCall::Staking(_) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::ChildBounties(..)
+				RuntimeCall::System(..) |
+				// Not on AH RuntimeCall::Babe(..) |
+				RuntimeCall::Timestamp(..) |
+				RuntimeCall::Indices(pallet_indices::Call::claim {..}) |
+				RuntimeCall::Indices(pallet_indices::Call::free {..}) |
+				RuntimeCall::Indices(pallet_indices::Call::freeze {..}) |
+				// Specifically omitting Indices `transfer`, `force_transfer`
+				// Specifically omitting the entire Balances pallet
+				RuntimeCall::Staking(..) |
+				RuntimeCall::Session(..) |
+				// Not on AH RuntimeCall::Grandpa(..) |
+				RuntimeCall::Treasury(..) |
+				RuntimeCall::Bounties(..) |
+				RuntimeCall::ChildBounties(..) |
+				RuntimeCall::ConvictionVoting(..) |
+				RuntimeCall::Referenda(..) |
+				// Not on AH RuntimeCall::FellowshipCollective(..) |
+				// Not on AH RuntimeCall::FellowshipReferenda(..) |
+				RuntimeCall::Whitelist(..) |
+				RuntimeCall::Claims(..) |
+				RuntimeCall::Utility(..) |
+				RuntimeCall::Society(..) |
+				RuntimeCall::Recovery(pallet_recovery::Call::as_recovered {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::vouch_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::claim_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::close_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::remove_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::cancel_recovered {..}) |
+				// Specifically omitting Recovery `create_recovery`, `initiate_recovery`
+				RuntimeCall::Vesting(pallet_vesting::Call::vest {..}) |
+				RuntimeCall::Vesting(pallet_vesting::Call::vest_other {..}) |
+				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
+				RuntimeCall::Scheduler(..) |
+				RuntimeCall::Proxy(..) |
+				RuntimeCall::Multisig(..) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
+				// Not on AH RuntimeCall::Crowdloan(..) |
+				// Not on AH RuntimeCall::Slots(..) |
+				// Not on AH RuntimeCall::Auctions(..) |
+				RuntimeCall::VoterList(..) |
+				RuntimeCall::NominationPools(..) // Not on AH RuntimeCall::FastUnstake(..)
 			),
-			ProxyType::CancelProxy => matches!(
+			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::ChildBounties(..) |
+					// OpenGov calls
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					// Not on AH RuntimeCall::FellowshipCollective(..) |
+					// Not on AH RuntimeCall::FellowshipReferenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
+			ProxyType::Staking => {
+				matches!(
+					c,
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						// Not on AH RuntimeCall::FastUnstake(..) |
+						RuntimeCall::VoterList(..) |
+						RuntimeCall::NominationPools(..)
+				)
+			},
+			ProxyType::NominationPools => {
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
+			},
+			ProxyType::CancelProxy => {
+				matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+						RuntimeCall::Utility { .. } |
+						RuntimeCall::Multisig { .. }
+				)
+			},
+			ProxyType::Auction => false, // Only for remote proxy
+			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
+			ProxyType::Spokesperson => matches!(
+				c,
+				RuntimeCall::System(frame_system::Call::remark { .. }) |
+					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
+			),
+			ProxyType::ParaRegistration => false, // Only for remote proxy
+			// AH specific proxy types that are not on the Relay:
 			ProxyType::Assets => {
 				matches!(
 					c,
@@ -735,36 +793,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			ProxyType::Governance => matches!(
-				c,
-				RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
-					RuntimeCall::Whitelist(..)
-			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) |
-						RuntimeCall::VoterList(..)
-				)
-			},
-			ProxyType::NominationPools => {
-				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
-			},
-			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
-			ProxyType::Spokesperson => matches!(
-				c,
-				RuntimeCall::System(frame_system::Call::remark { .. }) |
-					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
-			),
 		}
 	}
 
@@ -777,11 +805,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(
 				ProxyType::NonTransfer,
-				ProxyType::Collator |
-				ProxyType::Governance |
-				ProxyType::Staking |
-				ProxyType::NominationPools,
-			) => true,
+				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
+			) => false,
+			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
 	}
@@ -834,11 +860,6 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 
 impl parachain_info::Config for Runtime {}
 
-parameter_types! {
-	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
-	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
-}
-
 impl pallet_message_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
@@ -857,8 +878,8 @@ impl pallet_message_queue::Config for Runtime {
 	type QueuePausedQuery = NarrowOriginToSibling<XcmpQueue>;
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
-	type ServiceWeight = MessageQueueServiceWeight;
-	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
+	type ServiceWeight = dynamic_params::message_queue::MaxOnInitWeight;
+	type IdleMaxServiceWeight = dynamic_params::message_queue::MaxOnIdleWeight;
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -1213,10 +1234,7 @@ impl pallet_preimage::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
-		RuntimeBlockWeights::get().max_block;
 	pub ZeroWeight: Weight = Weight::zero();
-	pub const MaxScheduledPerBlock: u32 = 50;
 	pub const NoPreimagePostponement: Option<u32> = Some(10);
 }
 
@@ -1243,11 +1261,14 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight =
-		pallet_ah_migrator::LeftOrRight<AhMigrator, ZeroWeight, MaximumSchedulerWeight>;
+	type MaximumWeight = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		ZeroWeight,
+		dynamic_params::scheduler::MaximumWeight,
+	>;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
-	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type MaxScheduledPerBlock = dynamic_params::scheduler::MaxScheduledPerBlock;
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
@@ -1348,10 +1369,19 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use crate::RuntimeParametersKey::*;
 
 		match key {
-			Inflation(_) =>
-				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+			StakingElection(_) =>
+				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
+			Issuance(_) => <EnsureRoot<AccountId> as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			),
+			// technical params, can be controlled by the fellowship voice.
+			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
+				EnsureRoot<AccountId>,
+				EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1378,12 +1408,12 @@ pub mod dynamic_params {
 	/// Parameters used to calculate staking era payouts.
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
-	pub mod inflation {
-		/// Minimum inflation rate used to calculate era payouts.
+	pub mod issuance {
+		/// Minimum issuance rate used to calculate era payouts.
 		#[codec(index = 0)]
 		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
 
-		/// Maximum inflation rate used to calculate era payouts.
+		/// Maximum issuance rate used to calculate era payouts.
 		#[codec(index = 1)]
 		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
 
@@ -1406,14 +1436,76 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static BurnDestination: crate::treasury::BurnDestinationAccount = Default::default();
 	}
+
+	/// Parameters used to `election-provider-multi-block` and friends.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod staking_election {
+		/// 10m worth of local 6s blocks for signed phase.
+		#[codec(index = 0)]
+		pub static SignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
+
+		/// Allow up to 16 signed solutions to be submitted.
+		#[codec(index = 1)]
+		pub static MaxSignedSubmissions: u32 = 16;
+
+		/// 10m for unsigned phase...
+		#[codec(index = 2)]
+		pub static UnsignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
+
+		/// .. in which we try and mine a 4-page solution.
+		#[codec(index = 3)]
+		pub static MinerPages: u32 = 4;
+
+		/// Kusama allows up to 12_500 active nominators (aka. electing voters).
+		#[codec(index = 4)]
+		pub static MaxElectingVoters: u32 = 12_500;
+
+		/// An upper bound on the number of anticipated kusama "validator candidates".
+		///
+		/// At the time of writing, Kusama has 1000 active validators, and ~2k validator candidates.
+		///
+		/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight.
+		#[codec(index = 5)]
+		pub static TargetSnapshotPerBlock: u32 = 2_500;
+	}
+
+	/// Parameters about the scheduler pallet.
+	#[dynamic_pallet_params]
+	#[codec(index = 3)]
+	pub mod scheduler {
+		/// Maximum items scheduled per block.
+		#[codec(index = 0)]
+		pub static MaxScheduledPerBlock: u32 = 50;
+
+		/// Maximum amount of weight given to execution of scheduled tasks on-init in scheduler
+		#[codec(index = 1)]
+		pub static MaximumWeight: Weight =
+			Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+	}
+
+	/// Parameters about the MQ pallet.
+	#[dynamic_pallet_params]
+	#[codec(index = 4)]
+	pub mod message_queue {
+		/// Max weight used on-init.
+		#[codec(index = 0)]
+		pub static MaxOnInitWeight: Option<Weight> =
+			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
+
+		/// Max weight used on-idle.
+		#[codec(index = 1)]
+		pub static MaxOnIdleWeight: Option<Weight> =
+			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
 impl Default for RuntimeParameters {
 	fn default() -> Self {
 		// TODO: @kianenigma/!bkontur - is this ok?
-		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
-			dynamic_params::inflation::MinInflation,
+		RuntimeParameters::Issuance(dynamic_params::issuance::Parameters::MinInflation(
+			dynamic_params::issuance::MinInflation,
 			Some(Perquintill::from_rational(25u64, 1000u64)),
 		))
 	}
@@ -1590,18 +1682,26 @@ impl EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-/// Migrations to apply on runtime upgrade.
-pub type Migrations = (
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	// TODO: TRIPLE CHECK the spec version prior to final merge, and remove the TODO.
-	staking::InitiateStakingAsync<1_008_000>,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
+/// All migrations that will run on the next runtime upgrade.
+///
+/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
+/// upgrades in case the government decides to do so. THE ORDER IS IMPORTANT.
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
+
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
+
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = (staking::InitiateStakingAsync,);
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations = pallet_revive::migrations::v1::Migration<Runtime>;
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1818,9 +1918,28 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// AH can reserve transfer native token to some random parachain.
+			// We get an account to create USDT and give it enough WND to exist.
+			let account = frame_benchmarking::whitelisted_caller();
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get() + (1_000 * UNITS)
+			));
+
+			// We then create USDT.
+			let usdt_id = 1984u32;
+			let usdt_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(usdt_id.into())]);
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				usdt_id.into(),
+				account.clone().into(),
+				true,
+				1
+			));
+
+			// And return USDT as the reserve transferable asset.
 			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(usdt_location) },
 				ParentThen(Parachain(RandomParaId::get().into()).into()).into(),
 			))
 		}
@@ -2453,6 +2572,12 @@ pallet_revive::impl_runtime_apis_plus_revive!(
 		}
 	}
 
+	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
+		fn parachain_id() -> ParaId {
+			ParachainInfo::parachain_id()
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
@@ -2617,5 +2742,25 @@ mod tests {
 		let acc =
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
 		assert_eq!(acc, MigController::sorted_members()[0]);
+	}
+
+	#[test]
+	fn proxy_type_is_superset_works() {
+		// Assets IS supertype of AssetOwner and AssetManager
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetOwner));
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is NOT supertype of Any, Assets, AssetOwner and AssetManager
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Any));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Assets));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetOwner));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is supertype of remaining stuff
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::CancelProxy));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::NominationPools));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Auction));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
 	}
 }

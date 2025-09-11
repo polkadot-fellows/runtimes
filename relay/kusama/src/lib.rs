@@ -21,7 +21,7 @@
 #![recursion_limit = "512"]
 
 #[cfg(all(not(feature = "kusama-ahm"), feature = "on-chain-release-build"))]
-compile_error!("Asset Hub migration requires the `kusama` feature");
+compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 
 extern crate alloc;
 
@@ -187,7 +187,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1790,6 +1790,8 @@ enum AssetHubRuntimePallets<AccountId> {
 
 #[derive(Encode, Decode)]
 enum RcClientCalls<AccountId> {
+	// TODO @kianenigma: double check the call indices after https://github.com/paritytech/polkadot-sdk/pull/9619/files.
+	// RelayNewOffence is removed, RelayNewOffencePaged is new, and is still in index 1
 	#[codec(index = 0)]
 	RelaySessionReport(pallet_staking_async_rc_client::SessionReport<AccountId>),
 	#[codec(index = 1)]
@@ -2130,24 +2132,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use pallet_balances::WeightInfo;
-
-	parameter_types! {
-		/// Weight for balance unreservations
-		pub BalanceTransferAllowDeath: Weight = weights::pallet_balances_native::WeightInfo::<Runtime>::transfer_allow_death();
-	}
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
-		pallet_session::migrations::v1::MigrateV0ToV1<
-			Runtime,
-			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
-		>,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2281,11 +2271,7 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay can reserve transfer native token to some random parachain.
-			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				Parachain(RandomParaId::get().into()).into(),
-			))
+			None
 		}
 
 		fn set_up_complex_asset_transfer(
