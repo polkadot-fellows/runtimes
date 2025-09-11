@@ -18,10 +18,7 @@ use crate as pallet_ah_ops;
 use crate::*;
 use frame_support::derive_impl;
 use sp_core::H256;
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup},
-	BuildStorage,
-};
+use sp_runtime::traits::{parameter_types, BlakeTwo256, IdentityLookup};
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
@@ -74,11 +71,20 @@ impl pallet_timestamp::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const MigrationCompletion: bool = true;
+	pub TreasuryPreMigrationAccount: AccountId32 = AccountId32::from([1; 32]);
+	pub TreasuryPostMigrationAccount: AccountId32 = AccountId32::from([2; 32]);
+}
+
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RcBlockNumberProvider = System; // Wrong but unused
 	type WeightInfo = ();
+	type MigrationCompletion = MigrationCompletion;
+	type TreasuryPreMigrationAccount = TreasuryPreMigrationAccount;
+	type TreasuryPostMigrationAccount = TreasuryPostMigrationAccount;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
