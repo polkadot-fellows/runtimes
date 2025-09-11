@@ -212,7 +212,7 @@ impl ProxyBasicWorks {
 		}
 
 		let allowed_governance = permissions.contains(&Permission::Any) ||
-			// NonTransfer is not allowed to do governance
+			permissions.contains(&Permission::NonTransfer) ||
 			permissions.contains(&Permission::Governance);
 		if allowed_governance {
 			assert!(

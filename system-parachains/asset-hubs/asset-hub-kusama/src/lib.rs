@@ -622,34 +622,96 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::Auction | ProxyType::ParaRegistration => false, // Only for remote proxy
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					// We allow calling `vest` and merging vesting schedules, but obviously not
-					// vested transfers.
-					RuntimeCall::Vesting(pallet_vesting::Call::vest { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::vest_other { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::merge_schedules { .. }) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
-					RuntimeCall::RemoteProxyRelayChain(_) |
-					// TODO @ggwpez add more
-					RuntimeCall::Staking(_) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::ChildBounties(..)
+				RuntimeCall::System(..) |
+				// Not on AH RuntimeCall::Babe(..) |
+				RuntimeCall::Timestamp(..) |
+				RuntimeCall::Indices(pallet_indices::Call::claim {..}) |
+				RuntimeCall::Indices(pallet_indices::Call::free {..}) |
+				RuntimeCall::Indices(pallet_indices::Call::freeze {..}) |
+				// Specifically omitting Indices `transfer`, `force_transfer`
+				// Specifically omitting the entire Balances pallet
+				RuntimeCall::Staking(..) |
+				RuntimeCall::Session(..) |
+				// Not on AH RuntimeCall::Grandpa(..) |
+				RuntimeCall::Treasury(..) |
+				RuntimeCall::Bounties(..) |
+				RuntimeCall::ChildBounties(..) |
+				RuntimeCall::ConvictionVoting(..) |
+				RuntimeCall::Referenda(..) |
+				// Not on AH RuntimeCall::FellowshipCollective(..) |
+				// Not on AH RuntimeCall::FellowshipReferenda(..) |
+				RuntimeCall::Whitelist(..) |
+				RuntimeCall::Claims(..) |
+				RuntimeCall::Utility(..) |
+				RuntimeCall::Society(..) |
+				RuntimeCall::Recovery(pallet_recovery::Call::as_recovered {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::vouch_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::claim_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::close_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::remove_recovery {..}) |
+				RuntimeCall::Recovery(pallet_recovery::Call::cancel_recovered {..}) |
+				// Specifically omitting Recovery `create_recovery`, `initiate_recovery`
+				RuntimeCall::Vesting(pallet_vesting::Call::vest {..}) |
+				RuntimeCall::Vesting(pallet_vesting::Call::vest_other {..}) |
+				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
+				RuntimeCall::Scheduler(..) |
+				RuntimeCall::Proxy(..) |
+				RuntimeCall::Multisig(..) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
+				// Not on AH RuntimeCall::Crowdloan(..) |
+				// Not on AH RuntimeCall::Slots(..) |
+				// Not on AH RuntimeCall::Auctions(..) |
+				RuntimeCall::VoterList(..) |
+				RuntimeCall::NominationPools(..) // Not on AH RuntimeCall::FastUnstake(..)
 			),
-			ProxyType::CancelProxy => matches!(
+			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::ChildBounties(..) |
+					// OpenGov calls
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					// Not on AH RuntimeCall::FellowshipCollective(..) |
+					// Not on AH RuntimeCall::FellowshipReferenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
+			ProxyType::Staking => {
+				matches!(
+					c,
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						// Not on AH RuntimeCall::FastUnstake(..) |
+						RuntimeCall::VoterList(..) |
+						RuntimeCall::NominationPools(..)
+				)
+			},
+			ProxyType::NominationPools => {
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
+			},
+			ProxyType::CancelProxy => {
+				matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+						RuntimeCall::Utility { .. } |
+						RuntimeCall::Multisig { .. }
+				)
+			},
+			ProxyType::Auction => false, // Only for remote proxy
+			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
+			ProxyType::Spokesperson => matches!(
+				c,
+				RuntimeCall::System(frame_system::Call::remark { .. }) |
+					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
+			),
+			ProxyType::ParaRegistration => false, // Only for remote proxy
+			// AH specific proxy types that are not on the Relay:
 			ProxyType::Assets => {
 				matches!(
 					c,
@@ -731,36 +793,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			ProxyType::Governance => matches!(
-				c,
-				RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
-					RuntimeCall::Whitelist(..)
-			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) |
-						RuntimeCall::VoterList(..)
-				)
-			},
-			ProxyType::NominationPools => {
-				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
-			},
-			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
-			ProxyType::Spokesperson => matches!(
-				c,
-				RuntimeCall::System(frame_system::Call::remark { .. }) |
-					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
-			),
 		}
 	}
 
@@ -773,11 +805,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(
 				ProxyType::NonTransfer,
-				ProxyType::Collator |
-				ProxyType::Governance |
-				ProxyType::Staking |
-				ProxyType::NominationPools,
-			) => true,
+				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
+			) => false,
+			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
 	}
@@ -2709,5 +2739,25 @@ mod tests {
 		let acc =
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
 		assert_eq!(acc, MigController::sorted_members()[0]);
+	}
+
+	#[test]
+	fn proxy_type_is_superset_works() {
+		// Assets IS supertype of AssetOwner and AssetManager
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetOwner));
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is NOT supertype of Any, Assets, AssetOwner and AssetManager
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Any));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Assets));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetOwner));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is supertype of remaining stuff
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::CancelProxy));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::NominationPools));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Auction));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
 	}
 }
