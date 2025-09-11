@@ -1359,7 +1359,6 @@ async fn post_migration_checks_only() {
 	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
 	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
 
-
 	let rc_pre_payload = rc_pre_ext.execute_with(RcChecks::pre_check);
 	let ah_pre_payload = ah_pre_ext.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
 
