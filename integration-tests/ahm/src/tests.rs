@@ -45,7 +45,8 @@
 //! 	--features try-runtime \
 //! 	--features {{runtime}}-ahm \
 //! 	--release \
-//! 	-- post_migration_checks_only --nocapture
+//! 	post_migration_checks_only \
+//! 	-- --nocapture --ignored
 //! ```
 
 use crate::porting_prelude::*;
