@@ -1550,7 +1550,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type MinimumValidatorSetSize = ConstU32<500>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
-	type MaxOffenceBatchSize = ConstU32<50>;
+	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
 	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
 }
@@ -1618,12 +1618,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	fn relay_session_report(
 		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
 	) {
-		pallet_staking_async_rc_client::XCMSender::<
-			xcm_config::XcmRouter,
-			AssetHubLocation,
-			pallet_staking_async_rc_client::SessionReport<AccountId>,
-			SessionReportToXcm,
-		>::split_then_send(session_report, Some(8));
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let message = SessionReportToXcm::convert(session_report);
+		let dest = AssetHubLocation::get();
+		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
+			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {:?}", err);
+		});
 	}
 
 	fn relay_new_offence(
@@ -1646,9 +1646,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 				.into(),
 			},
 		]);
-		if let Err(err) = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
-		}
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
+			|err| {
+				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+			},
+		);
 	}
 }
 
