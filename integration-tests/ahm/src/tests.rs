@@ -1326,6 +1326,7 @@ fn test_control_flow() {
 	});
 }
 
+#[ignore] // Ignored since CI will not have the pre and post snapshots.
 #[tokio::test]
 async fn post_migration_checks_only() {
 	//! Migration invariant checks across distinct pre/post snapshots.
