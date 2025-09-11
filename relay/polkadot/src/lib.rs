@@ -1546,7 +1546,8 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = ConstU32<400>; // TODO @kianenigma
+	// Polkadot RC currently has 600 validators. 500 minimum for now.
+	type MinimumValidatorSetSize = ConstU32<500>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<50>;
