@@ -62,8 +62,8 @@ parameter_types! {
 	/// Compatible with Polkadot, we allow up to 22_500 nominators to be considered for election
 	pub storage MaxElectingVoters: u32 = 22_500;
 
-	/// Always equal to `staking.maxValidatorCount`.
-	pub storage TargetSnapshotPerBlock: u32 = 2000;
+	/// Always equal to or more than `staking.maxValidatorCount`.
+	pub storage TargetSnapshotPerBlock: u32 = 1500;
 
 	/// Number of nominators per page of the snapshot, and consequently number of backers in the solution.
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
@@ -104,6 +104,26 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bags_thresholds::THRESHOLDS;
 }
 
+/// We don't want to do any auto-rebags in pallet-bags while the migration is not started or
+/// ongoing.
+pub struct RebagIffMigrationDone;
+impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
+	fn get() -> u32 {
+		if cfg!(feature = "runtime-benchmarks") {
+			5
+		} else {
+			if matches!(
+				pallet_ah_migrator::AhMigrationStage::<Runtime>::get(),
+				pallet_ah_migrator::MigrationStage::MigrationDone
+			) {
+				5
+			} else {
+				0
+			}
+		}
+	}
+}
+
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -111,11 +131,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	// We have to enable it for benchmarks since the benchmark otherwise panics.
-	#[cfg(feature = "runtime-benchmarks")]
-	type MaxAutoRebagPerBlock = ConstU32<5>;
-	#[cfg(not(feature = "runtime-benchmarks"))] // TODO @kianenigma
-	type MaxAutoRebagPerBlock = ConstU32<0>;
+	type MaxAutoRebagPerBlock = RebagIffMigrationDone;
 }
 
 parameter_types! {
