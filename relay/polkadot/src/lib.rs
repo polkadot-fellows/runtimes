@@ -89,6 +89,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
+use sp_runtime::traits::Convert;
 
 use relay_common::apis::InflationInfo;
 use runtime_parachains::{
