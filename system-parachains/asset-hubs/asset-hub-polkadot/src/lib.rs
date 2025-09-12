@@ -1206,7 +1206,7 @@ pub mod dynamic_params {
 		pub static SignedPhase: BlockNumber = 30 * MINUTES;
 		/// Maximum signed submissions allowed for election-provider-multi-block.
 		#[codec(index = 1)]
-		pub static MaxSignedSubmissions: u32 = 8;
+		pub static MaxSignedSubmissions: u32 = 16;
 		/// Unsigned phase duration for election-provider-multi-block.
 		#[codec(index = 2)]
 		pub static UnsignedPhase: BlockNumber = 30 * MINUTES;
@@ -1421,6 +1421,7 @@ pub type Migrations = (
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	staking::InitiateStakingAsync,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );

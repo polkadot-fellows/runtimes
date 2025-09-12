@@ -246,7 +246,7 @@ parameter_types! {
 	/// Invulnerable miners will pay this deposit only.
 	pub InvulnerableFixedDeposit: Balance = UNITS;
 	/// Being ejected is already paid for by the new submitter replacing you; no need to charge deposit.
-	pub EjectGraceRatio: Perbill = Perbill::from_percent(0);
+	pub EjectGraceRatio: Perbill = Perbill::from_percent(100);
 	/// .2 KSM as the reward for the best signed submission.
 	pub RewardBase: Balance = UNITS / 5;
 }
@@ -359,14 +359,10 @@ parameter_types! {
 	/// This is the upper bound on how much we are willing to inflate per era. We also emit a
 	/// warning event in case an era is longer than this amount.
 	///
-	/// Under normal conditions, this upper bound is never needed. Yet, since this is the first
-	/// deployment of pallet-staking-async, eras might become longer due to misconfiguration, and we
-	/// don't want to reduce the validator payouts by too much because of this. Therefore, we allow
-	/// each era to be at most 2x the expected value
-	pub const MaxEraDuration: u64 = 2 * (
-		// the expected era duration in milliseconds.
-		RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64
-	);
+	/// Under normal conditions, this upper bound is never needed, and eras would be 6h each exactly. Yet, since this is the first deployment of pallet-staking-async, there might be misconfiguration, so we allow up to 3h more in each era.
+	pub const MaxEraDuration: u64 = 9 * (1000 * 60 * 60);
+
+	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;
 }
 
@@ -514,9 +510,9 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 		if Self::needs_init() {
 			use pallet_election_provider_multi_block::verifier::Verifier;
 			// set parity staking miner as the invulnerable submitter in `multi-block`.
-			// https://kusama.subscan.io/account/GtGGqmjQeRt7Q5ggrjmSHsEEfeXUMvPuF8mLun2ApaiotVr
+			// https://kusama.subscan.io/account/FyrGiYDGVxg5UUpN3qR5nxKGMxCe5Ddfkb3BXjxybG6j8gX
 			let acc = hex_literal::hex!(
-				"bea06e6ad606b2a80822a72aaae84a9a80bec27f1beef1880ad4970b72227601"
+				"96a6df31a112d610277c818fd9a8443d265fb5ab83cba47c5e89cff16cf9e011"
 			);
 			if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
 				multi_block::signed::Invulnerables::<Runtime>::put(bounded);
@@ -554,7 +550,7 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 			// * Move to using `on_poll`
 			//
 			// After which this limit can be increased again.
-			pallet_staking_async::ValidatorCount::<Runtime>::put(2500);
+			pallet_staking_async::MaxValidatorsCount::<Runtime>::put(2500);
 
 			<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 		} else {
@@ -665,11 +661,6 @@ mod tests {
 
 		#[test]
 		fn session_report() {
-			// TODO: this weight analysis currently fails because we have:
-			// 1. lowered the MQ service weight to 25%
-			// 2. https://github.com/paritytech/polkadot-sdk/pull/9632 is not backported yet.
-			//
-			// Once the latter is backported and available here, this test should no longer fail.
 			use crate::{AccountId, Runtime};
 			use frame_support::{dispatch::GetDispatchInfo, traits::Get};
 			use pallet_staking_async_rc_client as rc_client;
