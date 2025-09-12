@@ -21,7 +21,7 @@
 pub mod bags_thresholds;
 pub mod nom_pools;
 
-use crate::{dynamic_params::staking_election as params, governance::StakingAdmin, *};
+use crate::{governance::StakingAdmin, *};
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::traits::tokens::imbalance::ResolveTo;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
@@ -33,7 +33,6 @@ use sp_staking::SessionIndex;
 use xcm::v5::prelude::*;
 
 // NOTES:
-// * Some of the parameters are defined in `dynamic_params` block, prefixed by `params`
 // * The EPMB pallets only use local block times. They can one day be moved to use the relay-chain
 //   block, based on how the core-count and fast-blocks evolve, they might benefit from moving to
 //   relay-chain blocks. As of now, the duration of all phases are more about "POV" than "time", so
@@ -41,17 +40,25 @@ use xcm::v5::prelude::*;
 //   and unsigned phase are more about "time", yet the values used here are generous and should
 //   leave plenty of time for solution mining and submission.
 parameter_types! {
+	// alias for the ones backed by parameters-pallet.
+	pub MaxSignedSubmissions: u32 = dynamic_params::staking_election::MaxSignedSubmissions::get();
+	pub UnsignedPhase: u32 = dynamic_params::staking_election::UnsignedPhase::get();
+	pub SignedPhase: u32 = dynamic_params::staking_election::SignedPhase::get();
+	pub TargetSnapshotPerBlock: u32 = dynamic_params::staking_election::TargetSnapshotPerBlock::get();
+	pub MinerPages: u32 = dynamic_params::staking_election::MinerPages::get();
+	pub MaxElectingVoters: u32 = dynamic_params::staking_election::MaxElectingVoters::get();
+
 	/// Kusama election pages, 1.6m snapshot.
 	pub Pages: u32 = 16;
 
 	/// Verify all signed submissions.
-	pub SignedValidationPhase: u32 = Pages::get() * params::MaxSignedSubmissions::get();
+	pub SignedValidationPhase: u32 = Pages::get() * MaxSignedSubmissions::get();
 
 	/// Allow OCW miner to at most run 4 times in the entirety of the 10m Unsigned Phase.
-	pub OffchainRepeat: u32 = params::UnsignedPhase::get() / 4;
+	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
 
 	/// 782 nominators in each snapshot page (and consequently solution page, at most).
-	pub VoterSnapshotPerBlock: u32 = params::MaxElectingVoters::get().div_ceil(Pages::get());
+	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
 
 	/// Kusama will at most have 1000 validators.
 	pub const MaxValidatorSet: u32 = 1000;
@@ -67,7 +74,7 @@ parameter_types! {
 	/// Total number of backers per winner across all pages.
 	///
 	/// Translates to "no limit" as of now.
-	pub MaxBackersPerWinnerFinal: u32 = params::MaxElectingVoters::get();
+	pub MaxBackersPerWinnerFinal: u32 = MaxElectingVoters::get();
 
 	/// Size of the exposures. This should be small enough to make the reward payouts feasible.
 	///
@@ -171,11 +178,11 @@ impl frame_election_provider_support::onchain::Config for OnChainConfig {
 
 impl multi_block::Config for Runtime {
 	type Pages = Pages;
-	type UnsignedPhase = params::UnsignedPhase;
-	type SignedPhase = params::SignedPhase;
+	type UnsignedPhase = UnsignedPhase;
+	type SignedPhase = SignedPhase;
 	type SignedValidationPhase = SignedValidationPhase;
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
-	type TargetSnapshotPerBlock = params::TargetSnapshotPerBlock;
+	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
 	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
@@ -254,7 +261,7 @@ impl multi_block::signed::Config for Runtime {
 	type DepositPerPage = SignedDepositPerPage;
 	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
-	type MaxSubmissions = params::MaxSignedSubmissions;
+	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
 	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Self>;
 }
@@ -274,7 +281,7 @@ parameter_types! {
 }
 
 impl multi_block::unsigned::Config for Runtime {
-	type MinerPages = params::MinerPages;
+	type MinerPages = MinerPages;
 	type OffchainStorage = OffchainStorage;
 	// Note: we don't want the offchain miner to run balancing, as it might be too expensive to run
 	// in WASM, ergo the last `()`.
