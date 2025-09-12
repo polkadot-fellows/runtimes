@@ -667,7 +667,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxAutoRebagPerBlock = ConstU32<0>;
+	type MaxAutoRebagPerBlock = ();
 }
 
 /// Defines how much should the inflation be for an era given its duration.
