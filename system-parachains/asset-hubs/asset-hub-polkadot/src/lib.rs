@@ -1275,6 +1275,16 @@ pub mod dynamic_params {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::StakingElection(dynamic_params::staking_election::Parameters::SignedPhase(
+			dynamic_params::staking_election::SignedPhase,
+			Some(30 * MINUTES),
+		))
+	}
+}
+
 parameter_types! {
 	pub PalletClaimsPrefix: &'static [u8] = b"Pay DOTs to the Polkadot account:";
 }
