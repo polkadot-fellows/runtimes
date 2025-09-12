@@ -165,6 +165,9 @@ impl_runtime_weights!(polkadot_runtime_constants);
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(all(not(feature = "polkadot-ahm"), feature = "on-chain-release-build"))]
+compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
+
 // Polkadot version identifier;
 /// Runtime version (Polkadot).
 #[sp_version::runtime_version]
@@ -172,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1926,27 +1929,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use pallet_balances::WeightInfo;
-
-	parameter_types! {
-		/// Weight for balance unreservations
-		pub BalanceTransferAllowDeath: Weight = weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
-	}
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_shared::migration::MigrateToV1<Runtime>,
-		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
-		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
-		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
-		pallet_session::migrations::v1::MigrateV0ToV1<
-			Runtime,
-			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
-		>,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2091,11 +2079,7 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay can reserve transfer native token to some random parachain.
-			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				Parachain(RandomParaId::get().into()).into(),
-			))
+			None
 		}
 
 		fn set_up_complex_asset_transfer(

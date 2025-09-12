@@ -31,6 +31,23 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
 //! add `--features try-runtime` if you want to run the `try-runtime` tests for all pallets too.
 //! ```
+//!
+//! To run the pre+post migration checks against a set of snapshots from pre/post migration (created
+//! in `ahm-drynrun's CI`):
+//!
+//! ```
+//! SNAP_RC_PRE="rc-pre.snap" \
+//! SNAP_AH_PRE="ah-pre.snap" \
+//! SNAP_RC_POST="rc-post.snap" \
+//! SNAP_AH_POST="ah-post.snap" \
+//! cargo test \
+//! 	-p polkadot-integration-tests-ahm \
+//! 	--features try-runtime \
+//! 	--features {{runtime}}-ahm \
+//! 	--release \
+//! 	post_migration_checks_only \
+//! 	-- --nocapture --ignored
+//! ```
 
 use crate::porting_prelude::*;
 
@@ -43,7 +60,7 @@ use super::{
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
-use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use asset_hub_polkadot_runtime::{Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{
 	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
@@ -133,6 +150,7 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	StakingMigratedCorrectly<Polkadot>,
 	super::recovery_test::RecoveryDataMigrated,
 	pallet_rc_migrator::society::tests::SocietyMigratorTest<Polkadot>,
 );
@@ -187,6 +205,7 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	StakingMigratedCorrectly<AssetHub>,
 	super::recovery_test::RecoveryDataMigrated,
 	pallet_rc_migrator::society::tests::SocietyMigratorTest<AssetHub>,
 );
@@ -328,12 +347,26 @@ fn sovereign_account_translation() {
 /// limit is 2^16, but that would make the test ~655 times slower.
 #[ignore]
 #[tokio::test]
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 async fn find_translatable_accounts() {
-	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
+	let mut dot_rc = load_externalities_uncached("POLKADOT_RC_SNAP").await.unwrap();
+	let mut kusama_rc = load_externalities_uncached("KUSAMA_RC_SNAP").await.unwrap();
 
 	// Extract all accounts from the RC
-	let rc_accounts =
-		rc.execute_with(|| frame_system::Account::<Polkadot>::iter_keys().collect::<BTreeSet<_>>());
+	let rc_accounts = dot_rc
+		.execute_with(|| frame_system::Account::<Polkadot>::iter_keys().collect::<BTreeSet<_>>());
+	let kusama_rc_accounts = kusama_rc.execute_with(|| {
+		frame_system::Account::<kusama_runtime::Runtime>::iter_keys().collect::<BTreeSet<_>>()
+	});
+	let all_accounts = rc_accounts.union(&kusama_rc_accounts).collect::<BTreeSet<_>>();
+
+	let (sov_translations, derived_translations) = account_translation_map(&all_accounts);
+	write_account_translation_map(&sov_translations, &derived_translations);
+}
+
+fn account_translation_map(
+	rc_accounts: &BTreeSet<&AccountId32>,
+) -> (Vec<(u32, (AccountId32, AccountId32))>, Vec<(ParaId, AccountId32, u16, AccountId32)>) {
 	println!("Found {} RC accounts", rc_accounts.len());
 
 	// Para ID -> (RC sovereign, AH sovereign)
@@ -399,20 +432,27 @@ async fn find_translatable_accounts() {
 			}
 		}
 	}
+	derived_translations.sort_by(|(_, rc_acc, _, _), (_, rc_acc2, _, _)| rc_acc.cmp(rc_acc2));
 
 	println!("Found {} RC sovereign account translations", sov_translations.len());
 	println!("Found {} RC derived   account translations", derived_translations.len());
 
-	// Rust code with the translation maps
-	let mut rust: String = format!("// RC snap path: {}\n", std::env::var("SNAP_RC").unwrap());
+	let mut sov_translations = sov_translations.into_iter().collect::<Vec<_>>();
+	sov_translations.sort_by(|(_, (rc_acc, _)), (_, (rc_acc2, _))| rc_acc.cmp(rc_acc2));
+
+	(sov_translations, derived_translations)
+}
+
+fn write_account_translation_map(
+	sov_translations: &Vec<(u32, (AccountId32, AccountId32))>,
+	derived_translations: &Vec<(ParaId, AccountId32, u16, AccountId32)>,
+) {
+	let mut rust = String::new();
 
 	rust.push_str(
 		"/// List of RC para to AH sibl sovereign account translation sorted by RC account.
 pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'static str))] = &[\n",
 	);
-
-	let mut sov_translations = sov_translations.into_iter().collect::<Vec<_>>();
-	sov_translations.sort_by(|(_, (rc_acc, _)), (_, (rc_acc2, _))| rc_acc.cmp(rc_acc2));
 
 	for (para_id, (rc_acc, ah_acc)) in sov_translations.iter() {
 		rust.push_str(&format!("\t// para {}\n", para_id));
@@ -432,8 +472,6 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'stat
 pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId32, &'static str))] = &[\n",
 	);
 
-	derived_translations.sort_by(|(_, rc_acc, _, _), (_, rc_acc2, _, _)| rc_acc.cmp(rc_acc2));
-
 	for (para_id, rc_acc, derivation_index, ah_acc) in derived_translations.iter() {
 		rust.push_str(&format!("\t// para {} (derivation index {})\n", para_id, derivation_index));
 		rust.push_str(&format!(
@@ -448,9 +486,9 @@ pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId3
 
 	rust.push_str("];");
 
-	// Replace everything after the "AUTOGENERATED BELOW" comment with our Rust string
 	let path =
 		std::path::Path::new("../../pallets/ah-migrator/src/sovereign_account_translation.rs");
+	println!("Writing to {}", std::fs::canonicalize(path).unwrap().display());
 	let mut file = std::fs::File::open(path).unwrap();
 	let mut contents = String::new();
 	std::io::Read::read_to_string(&mut file, &mut contents).unwrap();
@@ -462,8 +500,6 @@ pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId3
 
 	// Write the result back to the file
 	std::fs::write(path, contents).unwrap();
-
-	println!("Wrote to {}", std::fs::canonicalize(path).unwrap().display());
 }
 
 /// Check the SS58 IDs in `pallets/ah-migrator/src/sovereign_account_translation.rs` are correct.
@@ -1308,6 +1344,50 @@ fn test_control_flow() {
 	});
 }
 
+#[ignore] // Ignored since CI will not have the pre and post snapshots.
+#[tokio::test]
+async fn post_migration_checks_only() {
+	//! Migration invariant checks across distinct pre/post snapshots.
+	//! Env vars (must all be set):
+	//!   SNAP_RC_PRE  - Relay Chain (pre-migration) snapshot
+	//!   SNAP_AH_PRE  - Asset Hub  (pre-migration) snapshot
+	//!   SNAP_RC_POST - Relay Chain (post-migration) snapshot
+	//!   SNAP_AH_POST - Asset Hub  (post-migration) snapshot
+
+	use polkadot_runtime::Block as PolkadotBlock;
+	use remote_externalities::{Builder, Mode, OfflineConfig};
+
+	sp_tracing::try_init_simple();
+
+	// Helper to load a snapshot from env var name (panic if missing / fails).
+	async fn load_ext(var: &str) -> TestExternalities {
+		let snap = std::env::var(var).unwrap_or_else(|_| panic!("Missing env var {var}"));
+		let abs = std::path::absolute(&snap).expect("abs path");
+		let remote = Builder::<PolkadotBlock>::default()
+			.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
+			.build()
+			.await
+			.unwrap_or_else(|e| panic!("Failed to load snapshot {abs:?}: {e:?}"));
+		let (kv, root) = remote.inner_ext.into_raw_snapshot();
+		TestExternalities::from_raw_snapshot(kv, root, sp_storage::StateVersion::V1)
+	}
+
+	let mut rc_pre_ext = load_ext("SNAP_RC_PRE").await;
+	let mut ah_pre_ext = load_ext("SNAP_AH_PRE").await;
+
+	let mut rc_post_ext = load_ext("SNAP_RC_POST").await;
+	let mut ah_post_ext = load_ext("SNAP_AH_POST").await;
+
+	let rc_pre_payload = rc_pre_ext.execute_with(RcChecks::pre_check);
+	let ah_pre_payload = ah_pre_ext.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
+
+	std::mem::drop(rc_pre_ext);
+	std::mem::drop(ah_pre_ext);
+
+	rc_post_ext.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
+	ah_post_ext.execute_with(|| AhChecks::post_check(rc_pre_payload, ah_pre_payload));
+}
+
 #[test]
 fn schedule_migration() {
 	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
@@ -1416,5 +1496,124 @@ fn schedule_migration_staking_pause_works() {
 				assert_eq!(frame_system::Pallet::<RcRuntime>::events(), Vec::new());
 			}
 		});
+	});
+}
+
+#[test]
+fn bifrost_addresses_are_in_translation_map() {
+	#[cfg(feature = "kusama-ahm")]
+	use asset_hub_kusama_runtime::Runtime as KAH;
+
+	TestExternalities::default().execute_with(|| {
+		let sov_cases = [
+			(
+				// 2030 Polkadot
+				"13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm",
+				"13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A",
+			),
+			(
+				// 2001 Kusama
+				"5Ec4AhPV91i9yNuiWuNunPf6AQCYDhFTTA4G5QCbtqYApH9E",
+				"5Eg2fntJDju46yds4uKzu2zuQssqw7JZWohhLMj6mZZjg2pK",
+			),
+		];
+
+		for (from, to) in sov_cases {
+			let from = AccountId32::from_str(from).unwrap();
+			let to = AccountId32::from_str(to).unwrap();
+
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::maybe_sovereign_translate(&from),
+				Some(to.clone())
+			);
+			assert_eq!(pallet_ah_migrator::Pallet::<PAH>::maybe_derived_translate(&from), None);
+
+			// Translations work regardless of the runtime:
+			#[cfg(feature = "kusama-ahm")]
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<KAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			#[cfg(feature = "kusama-ahm")]
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<KAH>::maybe_sovereign_translate(&from),
+				Some(to)
+			);
+			#[cfg(feature = "kusama-ahm")]
+			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_derived_translate(&from), None);
+		}
+
+		let derived_cases = [
+			(
+				// 2030 / 0 Polkadot
+				"14vtfeKAVKh1Jzb3s7e43SqZ3zB5MLsdCxZPoKDxeoCFKLu5",
+				"5ETehspFKFNpBbe5DsfuziN6BWq5Qwp1J8qcTQQoAxwa7BsS",
+			),
+			(
+				// 2030 / 1 Polkadot
+				"14QkQ7wVVDRrhbC1UqHsFwKFUns1SRud94CXMWGHWB8Jhtro",
+				"5DNWZkkAxLhqF8tevcbRGyARAVM7abukftmqvoDFUN5dDDDz",
+			),
+			(
+				// 2030 / 2 Polkadot
+				"13hLwqcVHqjiJMbZhR9LtfdhoxmTdssi7Kp8EJaW2yfk3knK",
+				"5EmiwjDYiackJma1GW3aBbQ74rLfWh756UKDb7Cm83XDkUUZ",
+			),
+			(
+				// 2001 / 0 Kusama
+				"5E78xTBiaN3nAGYtcNnqTJQJqYAkSDGggKqaDfpNsKyPpbcb",
+				"5CzXNqgBZT5yMpMETdfH55saYNKQoJBXsSfnu4d2s1ejYFir",
+			),
+			(
+				// 2001 / 1 Kusama
+				"5HXi9pzWnTQzk7VKzY6VQn92KfWCcA5NbSm53uKHrYU1VsjP",
+				"5GcexD4YNqcKTbW1YWDRczQzpxic61byeNeLaHgqQHk8pxQJ",
+			),
+			(
+				// 2001 / 2 Kusama
+				"5CkKS3YMx64TguUYrMERc5Bn6Mn2aKMUkcozUFREQDgHS3Tv",
+				"5FoYMVucmT552GDMWfYNxcF2XnuuvLbJHt7mU6DfDCpUAS2Y",
+			),
+			(
+				// 2001 / 3 Kusama
+				"5Crxhmiw5CQq3Mnfcu3dR3yJ3YpjbxjqaeDFtNNtqgmcnN4S",
+				"5FP39fgPYhJw3vcLwSMqMnwBuEVGexUMG6JQLPR9yPVhq6Wy",
+			),
+			(
+				// 2001 / 4 Kusama
+				"5DAZP4gZKZafGv42uoWNTMau4tYuDd2XteJLGL4upermhQpn",
+				"5ExtLdYnjHLJbngU1QpumjPieCGaCXwwkH1JrFBQ9GATuNGv",
+			),
+		];
+
+		for (from, to) in derived_cases {
+			let from = AccountId32::from_str(from).unwrap();
+			let to = AccountId32::from_str(to).unwrap();
+
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			assert_eq!(pallet_ah_migrator::Pallet::<PAH>::maybe_sovereign_translate(&from), None);
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<PAH>::maybe_derived_translate(&from),
+				Some(to.clone())
+			);
+
+			// Translations work regardless of the runtime:
+			#[cfg(feature = "kusama-ahm")]
+			assert_eq!(
+				pallet_ah_migrator::Pallet::<KAH>::translate_account_rc_to_ah(from.clone()),
+				to
+			);
+			#[cfg(feature = "kusama-ahm")]
+			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_sovereign_translate(&from), None);
+			#[cfg(feature = "kusama-ahm")]
+			assert_eq!(pallet_ah_migrator::Pallet::<KAH>::maybe_derived_translate(&from), Some(to));
+		}
 	});
 }

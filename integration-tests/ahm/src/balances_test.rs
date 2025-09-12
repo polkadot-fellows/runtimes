@@ -32,17 +32,17 @@ use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use std::sync::Mutex;
 
-// Total balances and checking balances are migrated correctly.
+/// Total balances and checking balances are migrated correctly.
 pub struct BalancesCrossChecker;
 
-// Used to store the balance kept on the relay chain after migration.
+/// Used to store the balance kept on the relay chain after migration.
 static RC_KEPT_AFTER: Mutex<Option<u128>> = Mutex::new(None);
 
-// Min tolerance for some balance checks in the tests, currently 0.1 DOT.
+/// Min tolerance for some balance checks in the tests, currently 0.1 DOT.
 const MIN_DOT_ERROR: u128 = 1000000000;
 
 impl RcMigrationCheck for BalancesCrossChecker {
-	// (rc_total_issuance_before, rc_checking_balance_before)
+	/// (rc_total_issuance_before, rc_checking_balance_before)
 	type RcPrePayload = (u128, u128);
 
 	fn pre_check() -> Self::RcPrePayload {

@@ -59,6 +59,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(all(not(feature = "polkadot-ahm"), feature = "on-chain-release-build"))]
+compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
+
 extern crate alloc;
 
 // Genesis preset configurations.
@@ -187,7 +190,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -557,33 +560,78 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::Auction | ProxyType::ParaRegistration => false, // Only for remote proxy
+			ProxyType::Auction => false, // Only for remote proxy
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					// We allow calling `vest` and merging vesting schedules, but obviously not
-					// vested transfers.
-					RuntimeCall::Vesting(pallet_vesting::Call::vest { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::vest_other { .. }) |
-					RuntimeCall::Vesting(pallet_vesting::Call::merge_schedules { .. }) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
-					// TODO @ggwpez add more
-					RuntimeCall::Staking(_) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::ChildBounties(..)
+				RuntimeCall::System(..) |
+				RuntimeCall::Scheduler(..) |
+				// Not on AH RuntimeCall::Babe(..) |
+				RuntimeCall::Timestamp(..) |
+				RuntimeCall::Indices(pallet_indices::Call::claim{..}) |
+				RuntimeCall::Indices(pallet_indices::Call::free{..}) |
+				RuntimeCall::Indices(pallet_indices::Call::freeze{..}) |
+				// Specifically omitting Indices `transfer`, `force_transfer`
+				// Specifically omitting the entire Balances pallet
+				RuntimeCall::Staking(..) |
+				RuntimeCall::Session(..) |
+				// Not on AH RuntimeCall::Grandpa(..) |
+				RuntimeCall::Treasury(..) |
+				RuntimeCall::Bounties(..) |
+				RuntimeCall::ChildBounties(..) |
+				RuntimeCall::ConvictionVoting(..) |
+				RuntimeCall::Referenda(..) |
+				RuntimeCall::Whitelist(..) |
+				RuntimeCall::Claims(..) |
+				RuntimeCall::Vesting(pallet_vesting::Call::vest{..}) |
+				RuntimeCall::Vesting(pallet_vesting::Call::vest_other{..}) |
+				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
+				RuntimeCall::Utility(..) |
+				RuntimeCall::Proxy(..) |
+				RuntimeCall::Multisig(..) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
+				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
+				// Not on AH RuntimeCall::Crowdloan(..) |
+				// Not on AH RuntimeCall::Slots(..) |
+				// Not on AH RuntimeCall::Auctions(..) |
+				RuntimeCall::VoterList(..) |
+				RuntimeCall::NominationPools(..) // Not on AH RuntimeCall::FastUnstake(..)
 			),
-			ProxyType::CancelProxy => matches!(
+			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::ChildBounties(..) |
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
+			ProxyType::Staking => {
+				matches!(
+					c,
+					RuntimeCall::Staking(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						// Not on AH RuntimeCall::FastUnstake(..) |
+						RuntimeCall::VoterList(..) |
+						RuntimeCall::NominationPools(..)
+				)
+			},
+			ProxyType::NominationPools => {
+				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
+			},
+			ProxyType::CancelProxy => {
+				matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+						RuntimeCall::Utility { .. } |
+						RuntimeCall::Multisig { .. }
+				)
+			},
+			ProxyType::Auction => false,          // Only for remote proxy
+			ProxyType::ParaRegistration => false, // Only for remote proxy
+			// AH specific proxy types that are not on the Relay:
 			ProxyType::Assets => {
 				matches!(
 					c,
@@ -664,30 +712,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-			// New variants introduced by the Asset Hub Migration from the Relay Chain.
-			ProxyType::Governance => matches!(
-				c,
-				RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
-					RuntimeCall::Whitelist(..)
-			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) |
-						RuntimeCall::VoterList(..)
-				)
-			},
-			ProxyType::NominationPools => {
-				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
-			},
 		}
 	}
 
@@ -700,11 +724,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(
 				ProxyType::NonTransfer,
-				ProxyType::Collator |
-				ProxyType::Governance |
-				ProxyType::Staking |
-				ProxyType::NominationPools,
-			) => true,
+				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
+			) => false,
+			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
 	}
@@ -1414,17 +1436,33 @@ pub type TxExtension = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
-/// Migrations to apply on runtime upgrade.
-pub type Migrations = (
-	pallet_session::migrations::v1::MigrateV0ToV1<
-		Runtime,
-		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-	>,
-	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-	staking::InitiateStakingAsync,
-	// permanent
-	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-);
+/// All migrations that will run on the next runtime upgrade.
+///
+/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
+/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
+
+/// The runtime migrations per release.
+#[allow(deprecated, missing_docs)]
+pub mod migrations {
+	use super::*;
+
+	/// Unreleased migrations. Add new ones here:
+	pub type Unreleased = (
+		pallet_session::migrations::v1::MigrateV0ToV1<
+			Runtime,
+			pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
+		>,
+		cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+		staking::InitiateStakingAsync,
+	);
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations = ();
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1635,9 +1673,28 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// AH can reserve transfer native token to some random parachain.
+			// We get an account to create USDT and give it enough WND to exist.
+			let account = frame_benchmarking::whitelisted_caller();
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get() + (1_000 * UNITS)
+			));
+
+			// We then create USDT.
+			let usdt_id = 1984u32;
+			let usdt_location =
+				Location::new(0, [PalletInstance(50), GeneralIndex(usdt_id.into())]);
+			assert_ok!(Assets::force_create(
+				RuntimeOrigin::root(),
+				usdt_id.into(),
+				account.clone().into(),
+				true,
+				1
+			));
+
+			// And return USDT as the reserve transferable asset.
 			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(usdt_location) },
 				ParentThen(Parachain(RandomParaId::get().into()).into()).into(),
 			))
 		}
@@ -2288,6 +2345,12 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
+		fn parachain_id() -> ParaId {
+			ParachainInfo::parachain_id()
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
@@ -2452,5 +2515,25 @@ mod tests {
 		let acc =
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
 		assert_eq!(acc, MigController::sorted_members()[0]);
+	}
+
+	#[test]
+	fn proxy_type_is_superset_works() {
+		// Assets IS supertype of AssetOwner and AssetManager
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetOwner));
+		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is NOT supertype of Any, Assets, AssetOwner and AssetManager
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Any));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Assets));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetOwner));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetManager));
+		// NonTransfer is supertype of remaining stuff
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::CancelProxy));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::NominationPools));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Auction));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
 	}
 }
