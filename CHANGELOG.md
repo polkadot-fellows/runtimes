@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Adjust OpenGov parameters based on WFC 1701 ([polkadot-fellows/runtimes/pull/873](https://github.com/polkadot-fellows/runtimes/pull/873))
 -  Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
   🚨 Pallet XCM's `limited_reserve_transfer_assets` and `reserve_transfer_assets` extrinsics now returns an error when it determines that a reserve transfer of DOT|KSM has to be done.
   This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
