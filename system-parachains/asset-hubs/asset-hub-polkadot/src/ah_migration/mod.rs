@@ -488,6 +488,7 @@ impl RcToAhCall {
 				Ok(RuntimeCall::PolkadotXcm(
 					pallet_xcm::Call::<Runtime>::limited_reserve_transfer_assets {
 						dest: Box::new(dest.into()),
+						// the `beneficiary` is relative to the `dest`, no needs to reanchor it.
 						beneficiary,
 						assets: Box::new(assets.into()),
 						fee_asset_item,

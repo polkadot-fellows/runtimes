@@ -627,7 +627,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						RuntimeCall::Multisig { .. }
 				)
 			},
-			ProxyType::Auction => false,          // Only for remote proxy
 			ProxyType::ParaRegistration => false, // Only for remote proxy
 			// AH specific proxy types that are not on the Relay:
 			ProxyType::Assets => {
@@ -1195,6 +1194,7 @@ impl pallet_claims::Config for Runtime {
 impl pallet_ah_ops::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type Fungibles = NativeAndAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;

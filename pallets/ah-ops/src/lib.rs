@@ -45,7 +45,8 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::Preservation,
 		Defensive, LockableCurrency, ReservableCurrency,
 	},
@@ -88,6 +89,10 @@ pub mod pallet {
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
+
+		/// Fungibles registry type.
+		type Fungibles: FungiblesInspect<Self::AccountId, Balance = u128>
+			+ FungiblesMutate<Self::AccountId, Balance = u128>;
 
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
@@ -316,6 +321,7 @@ pub mod pallet {
 		})]
 		pub fn transfer_to_post_migration_treasury(
 			origin: OriginFor<T>,
+			asset_id: Box<<T::Fungibles as FungiblesInspect<T::AccountId>>::AssetId>,
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -324,10 +330,12 @@ pub mod pallet {
 			let pre_migration_account = T::TreasuryPreMigrationAccount::get();
 			let post_migration_account = T::TreasuryPostMigrationAccount::get();
 
-			let balance = <T as Config>::Currency::balance(&pre_migration_account);
+			let balance =
+				<T as Config>::Fungibles::balance(*asset_id.clone(), &pre_migration_account);
 			ensure!(balance > 0, Error::<T>::ZeroBalance);
 
-			<T as Config>::Currency::transfer(
+			<T as Config>::Fungibles::transfer(
+				*asset_id,
 				&pre_migration_account,
 				&post_migration_account,
 				balance,

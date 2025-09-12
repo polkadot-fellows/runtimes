@@ -17,6 +17,7 @@
 use crate as pallet_ah_ops;
 use crate::*;
 use frame_support::derive_impl;
+use frame_system::EnsureSigned;
 use sp_core::H256;
 use sp_runtime::traits::{parameter_types, BlakeTwo256, IdentityLookup};
 
@@ -26,6 +27,7 @@ type Block = frame_system::mocking::MockBlock<Runtime>;
 frame_support::construct_runtime!(
 	pub enum Runtime {
 		System: frame_system,
+		Assets: pallet_assets,
 		Balances: pallet_balances,
 		AhOps: pallet_ah_ops,
 		Timestamp: pallet_timestamp,
@@ -64,6 +66,16 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 }
 
+#[derive_impl(pallet_assets::config_preludes::TestDefaultConfig)]
+impl pallet_assets::Config for Runtime {
+	type Balance = u128;
+	type Currency = Balances;
+	type CreateOrigin = EnsureSigned<Self::AccountId>;
+	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Holder = ();
+	type Freezer = ();
+}
+
 impl pallet_timestamp::Config for Runtime {
 	type Moment = u64;
 	type OnTimestampSet = ();
@@ -80,6 +92,7 @@ parameter_types! {
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type Fungibles = Assets;
 	type RcBlockNumberProvider = System; // Wrong but unused
 	type WeightInfo = ();
 	type MigrationCompletion = MigrationCompletion;
