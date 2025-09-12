@@ -35,21 +35,20 @@ use sp_runtime::{
 use sp_staking::SessionIndex;
 use xcm::v5::prelude::*;
 
+// stuff aliased to `parameters` pallet.
+use dynamic_params::staking_election::{
+	MaxElectingVoters, MaxSignedSubmissions, MinerPages, SignedPhase, TargetSnapshotPerBlock,
+	UnsignedPhase,
+};
+
 parameter_types! {
-	// stuff aliased to `parameters` pallet.
+	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots
+	pub Pages: u32 = 32;
+
 	pub SignedValidationPhase: u32 = prod_or_fast!(
 		Pages::get() * crate::dynamic_params::staking_election::MaxSignedSubmissions::get(),
 		Pages::get()
 	);
-	pub SignedPhase: u32 = crate::dynamic_params::staking_election::SignedPhase::get();
-	pub MaxSignedSubmissions: u32 = crate::dynamic_params::staking_election::MaxSignedSubmissions::get();
-	pub MinerPages: u32 = crate::dynamic_params::staking_election::MinerPages::get();
-	pub UnsignedPhase: u32 = crate::dynamic_params::staking_election::UnsignedPhase::get();
-	pub MaxElectingVoters: u32 = crate::dynamic_params::staking_election::MaxElectingVoters::get();
-	pub TargetSnapshotPerBlock: u32 = crate::dynamic_params::staking_election::TargetSnapshotPerBlock::get();
-
-	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots
-	pub Pages: u32 = 32;
 
 	/// Allow OCW miner to at most run 4 times in the entirety of the Unsigned Phase.
 	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
@@ -469,40 +468,38 @@ impl InitiateStakingAsync {
 
 impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	fn on_runtime_upgrade() -> Weight {
-		if Self::needs_init() {
-			use pallet_election_provider_multi_block::verifier::Verifier;
-			// set parity staking miner as the invulnerable submitter in `multi-block`.
-			// https://polkadot.subscan.io/account/16ciP5rjt4Yqivi1SWCGh7XsA8BDguV4tnTuyr937u2NME6h
-			let acc = hex_literal::hex!(
-				"f86a0e73c498fa0c135fae2e66da58346e777a6687cc7f7d234b0cb09c021232"
-			);
-			if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
-				multi_block::signed::Invulnerables::<Runtime>::put(bounded);
-			}
-
-			// set the minimum score for the election, as per the kusama RC state.
-			//
-			// This value is set from block 27,730,872 of Polkadot RC.
-			// Recent election scores in Polkadot can be found on:
-			// https://polkadot.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
-			//
-			// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0) being:
-			//
-			// * minimal_stake: 10907549130714057 (1.28x the minimum)
-			// * sum_stake: 8028519336725652293 (2.44x the minimum)
-			// * sum_stake_squared: 108358993218278434700023844467997545 (0.4 the minimum, the lower
-			//   the better)
-			let minimum_score = sp_npos_elections::ElectionScore {
-				minimal_stake: 8474057820699941,
-				sum_stake: 3276970719352749444,
-				sum_stake_squared: 244059208045236715654727835467163294,
-			};
-			<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
-
-			<Runtime as frame_system::Config>::DbWeight::get().writes(3)
-		} else {
-			Default::default()
+		if !Self::needs_init() {
+			return <Runtime as frame_system::Config>::DbWeight::get().writes(1)
 		}
+		use pallet_election_provider_multi_block::verifier::Verifier;
+		// set parity staking miner as the invulnerable submitter in `multi-block`.
+		// https://polkadot.subscan.io/account/16ciP5rjt4Yqivi1SWCGh7XsA8BDguV4tnTuyr937u2NME6h
+		let acc =
+			hex_literal::hex!("f86a0e73c498fa0c135fae2e66da58346e777a6687cc7f7d234b0cb09c021232");
+		if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
+			multi_block::signed::Invulnerables::<Runtime>::put(bounded);
+		}
+
+		// Set the minimum score for the election, as per the Polkadot RC state.
+		//
+		// This value is set from block 27,730,872 of Polkadot RC.
+		// Recent election scores in Polkadot can be found on:
+		// https://polkadot.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
+		//
+		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0) being:
+		//
+		// * minimal_stake: 10907549130714057 (1.28x the minimum)
+		// * sum_stake: 8028519336725652293 (2.44x the minimum)
+		// * sum_stake_squared: 108358993218278434700023844467997545 (0.4 the minimum, the lower the
+		//   better)
+		let minimum_score = sp_npos_elections::ElectionScore {
+			minimal_stake: 8474057820699941,
+			sum_stake: 3276970719352749444,
+			sum_stake_squared: 244059208045236715654727835467163294,
+		};
+		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
+
+		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 	}
 }
 

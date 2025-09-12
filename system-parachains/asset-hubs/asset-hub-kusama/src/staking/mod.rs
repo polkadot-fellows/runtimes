@@ -32,6 +32,12 @@ use sp_runtime::{transaction_validity::TransactionPriority, Perquintill};
 use sp_staking::SessionIndex;
 use xcm::v5::prelude::*;
 
+// alias for the ones backed by parameters-pallet.
+use dynamic_params::staking_election::{
+	MaxElectingVoters, MaxSignedSubmissions, MinerPages, SignedPhase, TargetSnapshotPerBlock,
+	UnsignedPhase,
+};
+
 // NOTES:
 // * The EPMB pallets only use local block times. They can one day be moved to use the relay-chain
 //   block, based on how the core-count and fast-blocks evolve, they might benefit from moving to
@@ -40,14 +46,6 @@ use xcm::v5::prelude::*;
 //   and unsigned phase are more about "time", yet the values used here are generous and should
 //   leave plenty of time for solution mining and submission.
 parameter_types! {
-	// alias for the ones backed by parameters-pallet.
-	pub MaxSignedSubmissions: u32 = dynamic_params::staking_election::MaxSignedSubmissions::get();
-	pub UnsignedPhase: u32 = dynamic_params::staking_election::UnsignedPhase::get();
-	pub SignedPhase: u32 = dynamic_params::staking_election::SignedPhase::get();
-	pub TargetSnapshotPerBlock: u32 = dynamic_params::staking_election::TargetSnapshotPerBlock::get();
-	pub MinerPages: u32 = dynamic_params::staking_election::MinerPages::get();
-	pub MaxElectingVoters: u32 = dynamic_params::staking_election::MaxElectingVoters::get();
-
 	/// Kusama election pages, 1.6m snapshot.
 	pub Pages: u32 = 16;
 
@@ -509,55 +507,53 @@ impl InitiateStakingAsync {
 
 impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	fn on_runtime_upgrade() -> Weight {
-		if Self::needs_init() {
-			use pallet_election_provider_multi_block::verifier::Verifier;
-			// set parity staking miner as the invulnerable submitter in `multi-block`.
-			// https://kusama.subscan.io/account/FyrGiYDGVxg5UUpN3qR5nxKGMxCe5Ddfkb3BXjxybG6j8gX
-			let acc = hex_literal::hex!(
-				"96a6df31a112d610277c818fd9a8443d265fb5ab83cba47c5e89cff16cf9e011"
-			);
-			if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
-				multi_block::signed::Invulnerables::<Runtime>::put(bounded);
-			}
-
-			// set the minimum score for the election, as per the kusama RC state.
-			//
-			// This value is set from block [29,940,247](https://dev.papi.how/explorer/0xf8e2599cd04321369810cd6b4c520f4bc3a8f08f76089d0e467d4a0967179a94#networkId=kusama&endpoint=wss%3A%2F%2Frpc.ibp.network%2Fkusama) of Kusama RC.
-			// Recent election scores in Kusama can be found on:
-			// https://kusama.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
-			//
-			// The last example, at block [29939392](https://kusama.subscan.io/event/29939392-0) being:
-			//
-			// * minimal_stake: 6543_701_618_936_726 (2.12x the minimum -- 6.5k KSM)
-			// * sum_stake: 8_062_560_594_210_938_663 (2.3x the minimum -- 8M KSM)
-			// * sum_stake_squared: 67_504_538_161_651_736_253_970_267_717_229_279 (0.8 the minimum,
-			//   the lower the better)
-			let minimum_score = sp_npos_elections::ElectionScore {
-				minimal_stake: 2957640724907066,
-				sum_stake: 3471819933857856584,
-				sum_stake_squared: 78133097080615021100202963085417458,
-			};
-			<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
-
-			// The maximum number of validators should be equal to `TargetSnapshotPerBlock`, 2500.
-			//
-			// Note that previously this value was 4000, allowing for possibly more validator
-			// candidates to exists. In a parachain, we cannot afford this high limit anymore, as
-			// it would increase the chances of the chain stalling due to over-weight
-			// on-initialize code.
-			//
-			// Future iterations of staking-async will either:
-			//
-			// * Remove this bottleneck
-			// * Move to using `on_poll`
-			//
-			// After which this limit can be increased again.
-			pallet_staking_async::MaxValidatorsCount::<Runtime>::put(2500);
-
-			<Runtime as frame_system::Config>::DbWeight::get().writes(3)
-		} else {
-			Default::default()
+		if !Self::needs_init() {
+			return <Runtime as frame_system::Config>::DbWeight::get().writes(1);
 		}
+		use pallet_election_provider_multi_block::verifier::Verifier;
+		// set parity staking miner as the invulnerable submitter in `multi-block`.
+		// https://kusama.subscan.io/account/FyrGiYDGVxg5UUpN3qR5nxKGMxCe5Ddfkb3BXjxybG6j8gX
+		let acc =
+			hex_literal::hex!("96a6df31a112d610277c818fd9a8443d265fb5ab83cba47c5e89cff16cf9e011");
+		if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
+			multi_block::signed::Invulnerables::<Runtime>::put(bounded);
+		}
+
+		// set the minimum score for the election, as per the kusama RC state.
+		//
+		// This value is set from block [29,940,247](https://dev.papi.how/explorer/0xf8e2599cd04321369810cd6b4c520f4bc3a8f08f76089d0e467d4a0967179a94#networkId=kusama&endpoint=wss%3A%2F%2Frpc.ibp.network%2Fkusama) of Kusama RC.
+		// Recent election scores in Kusama can be found on:
+		// https://kusama.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
+		//
+		// The last example, at block [29939392](https://kusama.subscan.io/event/29939392-0) being:
+		//
+		// * minimal_stake: 6543_701_618_936_726 (2.12x the minimum -- 6.5k KSM)
+		// * sum_stake: 8_062_560_594_210_938_663 (2.3x the minimum -- 8M KSM)
+		// * sum_stake_squared: 67_504_538_161_651_736_253_970_267_717_229_279 (0.8 the minimum, the
+		//   lower the better)
+		let minimum_score = sp_npos_elections::ElectionScore {
+			minimal_stake: 2957640724907066,
+			sum_stake: 3471819933857856584,
+			sum_stake_squared: 78133097080615021100202963085417458,
+		};
+		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
+
+		// The maximum number of validators should be equal to `TargetSnapshotPerBlock`, 2500.
+		//
+		// Note that previously this value was 4000, allowing for possibly more validator
+		// candidates to exists. In a parachain, we cannot afford this high limit anymore, as
+		// it would increase the chances of the chain stalling due to over-weight
+		// on-initialize code.
+		//
+		// Future iterations of staking-async will either:
+		//
+		// * Remove this bottleneck
+		// * Move to using `on_poll`
+		//
+		// After which this limit can be increased again.
+		pallet_staking_async::MaxValidatorsCount::<Runtime>::put(2500);
+
+		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 	}
 }
 
