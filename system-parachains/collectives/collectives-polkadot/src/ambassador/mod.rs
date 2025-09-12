@@ -59,6 +59,7 @@ pub mod ranks {
 
 	#[allow(dead_code)]
 	pub const ADVOCATE: Rank = 0; // aka Candidate.
+
 	pub const ASSOCIATE: Rank = 1;
 	pub const LEAD: Rank = 2;
 	pub const SENIOR: Rank = 3;
@@ -223,7 +224,6 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type InductOrigin = OpenGovOrGlobalHead;
 	type FastPromoteOrigin = EnsureCanFastPromoteTo;
 	type EvidenceSize = ConstU32<65536>;
-	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
 	type MaxRank = ConstU16<6>;
 }
 

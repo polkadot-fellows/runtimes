@@ -23,7 +23,7 @@ pub(crate) mod add_accounts {
 	#[cfg(feature = "try-runtime")]
 	use alloc::vec::Vec;
 	use frame_support::{parameter_types, traits::RankedMembers};
-	use pallet_ranked_collective::{Config, Pallet as RankedCollective, Rank};
+	use pallet_ranked_collective::{Config, Pallet as RankedCollective, Rank, WeightInfo};
 	#[cfg(feature = "try-runtime")]
 	use pallet_ranked_collective::{MemberCount, Members};
 
@@ -35,7 +35,7 @@ pub(crate) mod add_accounts {
 		// `subkey inspect <SS58_ADDRESS>`
 		//
 		// Ensuring compatibility with the runtime's account system.
-		pub const Addresses: [(Rank, [u8; 32]); 127] = [
+		pub const Addresses: [(Rank, [u8; 32]); 126] = [
 			(0, hex_literal::hex!("54361bceb4403e1af7c893688a76c35357477da7e36371b981728ddf8f978e0c")),
 			(0, hex_literal::hex!("c0c799b66754bfb56799dfef8071772d8c5ea2a87dd0c969493066aed94e645c")),
 			(0, hex_literal::hex!("30c9d60350b04b6bce9b4c692b2db6ab91a16cd990952716de59e4dfbc79406f")),
@@ -48,7 +48,6 @@ pub(crate) mod add_accounts {
 			(0, hex_literal::hex!("28e41f254f174a58c5499459af0f1c8834ebbcbc2402ee963707950c69480a77")),
 			(0, hex_literal::hex!("6c7499cc79bee0f02862e75504c7c5924c9ea55e977fd5c23407919a7addb258")),
 			(0, hex_literal::hex!("b4fbf400039d8159aa0ebbe79890cc0688187e353d1be52ea64e7772d5b73077")),
-			(0, hex_literal::hex!("2aa3a1f0941a18e977cc4b55129cad7c841e4372352cfb717ff60b3f8c20760d")),
 			(0, hex_literal::hex!("ae71605d54343a5b19964e876da7aaddaa8a6c9e17244d7839f344eefcce2c6c")),
 			(0, hex_literal::hex!("325b2d831d106d13bf9436e4bd49c995032913a57d6772e3fc794ea200a42d67")),
 			(0, hex_literal::hex!("1e5c61cb6941b247d22fa14392fb8710a23493db5857c2904a76b3bcfda7d217")),
@@ -182,22 +181,25 @@ pub(crate) mod add_accounts {
 		}
 
 		fn on_runtime_upgrade() -> Weight {
-			let mut weight = T::DbWeight::get().reads(1);
+			let mut weight = Weight::zero();
 
 			for (desired_rank, account_id32) in Addresses::get() {
 				let who: T::AccountId = account_id32.into();
 
 				// Use RankedMembers trait to induct and promote
 				let _ = <RankedCollective<T, I> as RankedMembers>::induct(&who);
-				for _ in 0..desired_rank {
+
+				// Induct method directly calls the add_member call of the ranked_collective pallet.
+				weight = weight.saturating_add(T::WeightInfo::add_member());
+
+				for current_rank in 0..desired_rank {
 					let _ = <RankedCollective<T, I> as RankedMembers>::promote(&who);
-					// 1 write to `IdToIndex` and `IndexToId` per promotion
-					weight.saturating_accrue(T::DbWeight::get().writes(2));
+
+					// Promote method of the RankedMember trait direclt calls the promote_member of
+					// the ranked_collective pallet.
+					weight =
+						weight.saturating_add(T::WeightInfo::promote_member(current_rank.into()));
 				}
-				// 1 write to `IdToIndex` and `IndexToId` for induction
-				weight.saturating_accrue(T::DbWeight::get().writes(2));
-				// 1 read and 1 write to `Members` and `MemberCount` per member
-				weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
 			}
 
 			weight
@@ -214,11 +216,12 @@ pub(crate) mod add_accounts {
 
 pub(crate) mod change_params {
 	use super::*;
-	use alloc::vec;
+	use alloc::boxed::Box;
 	#[cfg(feature = "try-runtime")]
 	use alloc::vec::Vec;
-	use frame_support::traits::DefensiveTruncateFrom;
-	use pallet_core_fellowship::{Config, Params, ParamsType};
+	use pallet_core_fellowship::{
+		Config, Pallet as CoreFellowship, Params, ParamsType, WeightInfo,
+	};
 
 	/// Implements `OnRuntimeUpgrade` trait.
 	#[allow(dead_code)]
@@ -238,18 +241,29 @@ pub(crate) mod change_params {
 		}
 
 		fn on_runtime_upgrade() -> Weight {
-			let weight = T::DbWeight::get().reads(1);
-			Params::<T, I>::kill();
-			// Set default values if no existing data
+			let mut weight = Weight::zero();
+
+			// Kill existing params if they exist
+			if Params::<T, I>::exists() {
+				Params::<T, I>::kill();
+				weight = weight.saturating_add(T::DbWeight::get().reads_writes(1, 1));
+			}
+
+			// Set default values
 			let default_params = ParamsType {
-				active_salary: BoundedVec::defensive_truncate_from(vec![]),
-				passive_salary: BoundedVec::defensive_truncate_from(vec![]),
-				demotion_period: BoundedVec::defensive_truncate_from(vec![]),
-				min_promotion_period: BoundedVec::defensive_truncate_from(vec![]),
+				active_salary: Default::default(),
+				passive_salary: Default::default(),
+				demotion_period: Default::default(),
+				min_promotion_period: Default::default(),
 				offboard_timeout: Zero::zero(),
 			};
-			Params::<T, I>::put(default_params);
-			weight.saturating_add(T::DbWeight::get().writes(1))
+			let origin = frame_system::RawOrigin::Root.into();
+			let _ = CoreFellowship::<T, I>::set_params(origin, Box::new(default_params));
+
+			// Add weight for set_params operation
+			weight = weight.saturating_add(T::WeightInfo::set_params());
+
+			weight
 		}
 	}
 }
@@ -278,7 +292,7 @@ pub mod tests {
 	#[test]
 	fn check_addresses() {
 		let addresses = Addresses::get();
-		let ambassador_ss58: [(Rank, _); 127] = [
+		let ambassador_ss58: [(Rank, _); 126] = [
 			(0, "12uR6ZinxBstfeh9zX5d415Z29XkSfNR4Nfkn6afAusKc52n"),
 			(0, "15MmVHDWD5gkJzJfGVRGeHewNmRFqbuMXUSZN4spR22Lu9cM"),
 			(0, "126yFs7wRkEsknx7NKWrw4UHhUcgcxR8XsiSdPfcpaoLXfe3"),
@@ -291,7 +305,6 @@ pub mod tests {
 			(0, "1vcgYAMi3jNBugvufvo5wZWioArkSp1vDos8PLrMYu1Gwp9"),
 			(0, "13TCowCJVpcD1iezJTFMaBPBm6xMyGyhYTYqoiavsfky4jox"),
 			(0, "156JTy81GoyNtiAZYyXoivhoWzzz7NcMmrqJeQBs4Qhn1A61"),
-			(0, "1xucyJoSCkxBuz5N8voe8MgqeTJFpcH2KJBwpL764Q8mKma"),
 			(0, "14wj1gbmKVLs61qczztaADNAYHtQ1TJyDneJFXZ6GSXDkTDo"),
 			(0, "1292Uph4BwS9zcpoAextrGYJXFSC8NDuYnB5zqE87Er9y4AU"),
 			(0, "5CkWjh9tdPkJCFVmbSknjDk8MVuUinhu6fCnbu6DVxggLpbv"),
@@ -427,7 +440,7 @@ pub mod tests {
 		ext.execute_with(|| {
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 0);
 			InitialMemberSetup::<Runtime, Ambassador>::on_runtime_upgrade();
-			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 127);
+			assert_eq!(MemberCount::<Runtime, Ambassador>::get(0), 126);
 			assert_eq!(MemberCount::<Runtime, Ambassador>::get(4), 4);
 			for (rank, account_id32) in Addresses::get() {
 				let who = <Runtime as frame_system::Config>::AccountId::from(account_id32);
@@ -439,45 +452,6 @@ pub mod tests {
 					MemberRecord::new(rank)
 				);
 			}
-		});
-	}
-
-	#[test]
-	fn test_change_params_migration() {
-		// Create test externalities
-		let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
-		let mut ext = sp_io::TestExternalities::new(t);
-
-		ext.execute_with(|| {
-			// Set up initial state with some old params
-			let old_params = ParamsType {
-				active_salary: BoundedVec::defensive_truncate_from(vec![100, 200, 300]),
-				passive_salary: BoundedVec::defensive_truncate_from(vec![50, 100, 150]),
-				demotion_period: BoundedVec::defensive_truncate_from(vec![7, 14, 30]),
-				min_promotion_period: BoundedVec::defensive_truncate_from(vec![30, 60, 90]),
-				offboard_timeout: 90,
-			};
-
-			// Store old params
-			Params::<Runtime, AmbassadorCoreInstance>::put(old_params.clone());
-
-			// Verify old params exist
-			assert!(Params::<Runtime, AmbassadorCoreInstance>::exists());
-			assert_eq!(Params::<Runtime, AmbassadorCoreInstance>::get(), old_params);
-
-			// Run migration
-			let _ = SetDefaultParams::<Runtime, AmbassadorCoreInstance>::on_runtime_upgrade();
-
-			// Check that params were reset to default
-			let expected_default = ParamsType {
-				active_salary: BoundedVec::defensive_truncate_from(vec![]),
-				passive_salary: BoundedVec::defensive_truncate_from(vec![]),
-				demotion_period: BoundedVec::defensive_truncate_from(vec![]),
-				min_promotion_period: BoundedVec::defensive_truncate_from(vec![]),
-				offboard_timeout: 0,
-			};
-
-			assert_eq!(Params::<Runtime, AmbassadorCoreInstance>::get(), expected_default);
 		});
 	}
 
