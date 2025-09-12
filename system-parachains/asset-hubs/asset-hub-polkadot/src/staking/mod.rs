@@ -21,7 +21,7 @@
 pub mod bags_thresholds;
 pub mod nom_pools;
 
-use crate::{governance::StakingAdmin, *};
+use crate::{dynamic_params::staking_election as params, governance::StakingAdmin, *};
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::traits::tokens::imbalance::ResolveTo;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
@@ -35,35 +35,19 @@ use sp_staking::SessionIndex;
 use xcm::v5::prelude::*;
 
 parameter_types! {
+	// stuff aliased to `parameters` pallet.
+	pub SignedValidationPhase: u32 = prod_or_fast!(Pages::get() * params::MaxSignedSubmissions::get(), Pages::get());
+	pub SignedPhase: u32 = params::SignedPhase::get();
+	pub MinerPages: u32 = params::MinerPages::get();
+	pub UnsignedPhase: u32 = params::UnsignedPhase::get();
+	pub MaxElectingVoters: u32 = params::MaxElectingVoters::get();
+	pub TargetSnapshotPerBlock: u32 = params::TargetSnapshotPerBlock::get();
+
 	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots
 	pub Pages: u32 = 32;
 
-	/// Verify 8 solutions at most.
-	pub storage SignedValidationPhase: u32 = prod_or_fast!(Pages::get() * 8, Pages::get());
-
-	/// 20 mins for signed phase.
-	pub storage SignedPhase: u32 = prod_or_fast!(
-		20 * MINUTES,
-		4 * MINUTES
-	);
-
-	/// Offchain miner shall mine at most 4 pages.
-	pub storage MinerPages: u32 = 4;
-
-	/// 30m for unsigned phase.
-	pub storage UnsignedPhase: u32 = prod_or_fast!(
-		30 * MINUTES,
-		(1 * MINUTES)
-	);
-
-	/// Allow OCW miner to at most run 4 times in the entirety of the 10m Unsigned Phase.
+	/// Allow OCW miner to at most run 4 times in the entirety of the Unsigned Phase.
 	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
-
-	/// Compatible with Polkadot, we allow up to 22_500 nominators to be considered for election
-	pub storage MaxElectingVoters: u32 = 22_500;
-
-	/// Always equal to or more than `staking.maxValidatorCount`.
-	pub storage TargetSnapshotPerBlock: u32 = 1500;
 
 	/// Number of nominators per page of the snapshot, and consequently number of backers in the solution.
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
@@ -208,7 +192,7 @@ impl multi_block::verifier::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaxSubmissions: u32 = 8;
+	pub MaxSubmissions: u32 = params::MaxSignedSubmissions::get();
 	pub DepositBase: Balance = 5 * UNITS;
 	pub DepositPerPage: Balance = 1 * UNITS;
 	pub BailoutGraceRatio: Perbill = Perbill::from_percent(50);

@@ -82,13 +82,14 @@ use assets_common::{
 use core::cmp::Ordering;
 use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use frame_support::traits::EnsureOrigin;
 use governance::{
 	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer, TreasurySpender,
 };
 use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU128, Get, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
@@ -110,6 +111,7 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
@@ -755,11 +757,6 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 
 impl parachain_info::Config for Runtime {}
 
-parameter_types! {
-	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
-	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
-}
-
 impl pallet_message_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
@@ -779,8 +776,8 @@ impl pallet_message_queue::Config for Runtime {
 	type QueuePausedQuery = NarrowOriginToSibling<XcmpQueue>;
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
-	type ServiceWeight = MessageQueueServiceWeight;
-	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
+	type ServiceWeight = dynamic_params::message_queue::MaxOnInitWeight;
+	type IdleMaxServiceWeight = dynamic_params::message_queue::MaxOnIdleWeight;
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -1116,10 +1113,7 @@ impl pallet_preimage::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
-		RuntimeBlockWeights::get().max_block;
 	pub ZeroWeight: Weight = Weight::zero();
-	pub const MaxScheduledPerBlock: u32 = 50;
 	pub const NoPreimagePostponement: Option<u32> = Some(10);
 }
 
@@ -1146,15 +1140,117 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight =
-		pallet_ah_migrator::LeftOrRight<AhMigrator, ZeroWeight, MaximumSchedulerWeight>;
+	type MaximumWeight = pallet_ah_migrator::LeftOrRight<
+		AhMigrator,
+		ZeroWeight,
+		dynamic_params::scheduler::MaximumWeight,
+	>;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
-	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type MaxScheduledPerBlock = dynamic_params::scheduler::MaxScheduledPerBlock;
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
+}
+
+pub struct DynamicParameterOrigin;
+impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey>
+	for DynamicParameterOrigin
+{
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			StakingElection(_) =>
+				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
+			// technical params, can be controlled by the fellowship voice.
+			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
+				EnsureRoot<AccountId>,
+				EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
+		}
+		.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+	/// Parameters used to `election-provider-multi-block` and friends.
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod staking_election {
+		/// Signed phase duration for election-provider-multi-block.
+		#[codec(index = 0)]
+		pub static SignedPhase: BlockNumber = 30 * MINUTES;
+		/// Maximum signed submissions allowed for election-provider-multi-block.
+		#[codec(index = 1)]
+		pub static MaxSignedSubmissions: u32 = 8;
+		/// Unsigned phase duration for election-provider-multi-block.
+		#[codec(index = 2)]
+		pub static UnsignedPhase: BlockNumber = 30 * MINUTES;
+		/// Miner pages for unsigned phase.
+		#[codec(index = 3)]
+		pub static MinerPages: u32 = 4;
+		/// Maximum electing voters.
+		#[codec(index = 4)]
+		pub static MaxElectingVoters: u32 = 22_500;
+		/// Target snapshot per block for validators.
+		///
+		/// Should always be equal to `staking.maxValidatorsCount`.
+		#[codec(index = 5)]
+		pub static TargetSnapshotPerBlock: u32 = 2000;
+	}
+
+	/// Parameters about the scheduler pallet.
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod scheduler {
+		/// Maximum items scheduled per block.
+		#[codec(index = 0)]
+		pub static MaxScheduledPerBlock: u32 = 50;
+
+		/// Maximum amount of weight given to execution of scheduled tasks on-init in scheduler
+		#[codec(index = 1)]
+		pub static MaximumWeight: Weight =
+			Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+	}
+
+	/// Parameters about the MQ pallet.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod message_queue {
+		/// Max weight used on-init.
+		#[codec(index = 0)]
+		pub static MaxOnInitWeight: Option<Weight> =
+			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
+
+		/// Max weight used on-idle.
+		#[codec(index = 1)]
+		pub static MaxOnIdleWeight: Option<Weight> =
+			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
+	}
 }
 
 parameter_types! {
@@ -1226,6 +1322,7 @@ construct_runtime!(
 		ParachainInfo: parachain_info = 4,
 		Preimage: pallet_preimage = 5,
 		Scheduler: pallet_scheduler = 6,
+		Parameters: pallet_parameters = 7,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1430,6 +1527,7 @@ mod benches {
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_scheduler, Scheduler]
+		[pallet_parameters, Parameters]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
