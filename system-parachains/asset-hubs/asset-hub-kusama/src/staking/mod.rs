@@ -202,11 +202,6 @@ impl multi_block::verifier::Config for Runtime {
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Self>;
 }
 
-parameter_types! {
-	pub const GeometricDepositStart: Balance = UNITS / 10;
-	pub const GeometricDepositCommon: Balance = 4;
-}
-
 /// ## Example
 /// ```
 /// fn main() {
@@ -222,7 +217,7 @@ parameter_types! {
 ///
 /// 	// Full 16 page deposit, to be paid on top of the above base
 /// 	sp_io::TestExternalities::default().execute_with(|| {
-/// 		let deposit = asset_hub_kusama_runtime::staking::DepositPerPage::get() * 16;
+/// 		let deposit = asset_hub_kusama_runtime::staking::SignedDepositPerPage::get() * 16;
 /// 		assert_eq!(deposit, 515_519_591_040); // 0.5 KSM
 /// 	})
 /// }
@@ -238,7 +233,7 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 
 // Parameters only regarding signed submission deposits/rewards.
 parameter_types! {
-	pub DepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
+	pub SignedDepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
 	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but
 	/// get away with it last minute. We only return 25% of the deposit in case someone bails. In
 	/// Polkadot, this value will be lower or simply zero.
@@ -255,8 +250,8 @@ impl multi_block::signed::Config for Runtime {
 	type Currency = Balances;
 	type BailoutGraceRatio = BailoutGraceRatio;
 	type EjectGraceRatio = EjectGraceRatio;
-	type DepositBase = DepositBase;
-	type DepositPerPage = DepositPerPage;
+	type DepositBase = GeometricDeposit;
+	type DepositPerPage = SignedDepositPerPage;
 	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
 	type MaxSubmissions = params::MaxSignedSubmissions;

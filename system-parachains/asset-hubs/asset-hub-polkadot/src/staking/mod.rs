@@ -194,11 +194,6 @@ impl multi_block::verifier::Config for Runtime {
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-	pub const GeometricDepositStart: Balance = UNITS * 4;
-	pub const GeometricDepositCommon: Balance = 2;
-}
-
 /// ## Example
 /// ```
 /// fn main() {
@@ -214,23 +209,23 @@ parameter_types! {
 ///
 /// 	// Full 16 page deposit, to be paid on top of the above base
 /// 	sp_io::TestExternalities::default().execute_with(|| {
-/// 		let deposit = asset_hub_polkadot_runtime::staking::DepositPerPage::get() * 16;
-/// 		assert_eq!(deposit, 515_519_591_040);
+/// 		let deposit = asset_hub_polkadot_runtime::staking::SignedDepositPerPage::get() * 16;
+/// 		assert_eq!(deposit, 10_6_368_000_000); // around 10.6 DOTs
 /// 	})
 /// }
 /// ```
 pub struct GeometricDeposit;
 impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	fn calculate_base_deposit(existing_submitters: usize) -> Balance {
-		let start: Balance = UNITS / 10;
-		let common: Balance = 4;
+		let start: Balance = UNITS * 4;
+		let common: Balance = 2;
 		start.saturating_mul(common.saturating_pow(existing_submitters as u32))
 	}
 }
 
 // Parameters only regarding signed submission deposits/rewards.
 parameter_types! {
-	pub DepositPerPage: Balance = system_para_deposit(1, NposCompactSolution16::max_encoded_len() as u32);
+	pub SignedDepositPerPage: Balance = system_para_deposit(1, NposCompactSolution16::max_encoded_len() as u32);
 	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but
 	/// get away with it last minute. We don't refund any deposit.
 	pub BailoutGraceRatio: Perbill = Perbill::from_percent(0);
@@ -246,8 +241,8 @@ impl multi_block::signed::Config for Runtime {
 	type Currency = Balances;
 	type BailoutGraceRatio = BailoutGraceRatio;
 	type EjectGraceRatio = EjectGraceRatio;
-	type DepositBase = DepositBase;
-	type DepositPerPage = DepositPerPage;
+	type DepositBase = GeometricDeposit;
+	type DepositPerPage = SignedDepositPerPage;
 	type InvulnerableDeposit = ();
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;

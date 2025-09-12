@@ -440,9 +440,9 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = system_para_deposit(1, 88);
+	pub const MultisigDepositBase: Balance = system_para_deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = system_para_deposit(0, 32);
+	pub const MultisigDepositFactor: Balance = system_para_deposit(0, 32);
 	pub const MaxSignatories: u32 = 100;
 }
 
@@ -450,8 +450,8 @@ impl pallet_multisig::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
-	type DepositBase = DepositBase;
-	type DepositFactor = DepositFactor;
+	type DepositBase = MultisigDepositBase;
+	type DepositFactor = MultisigDepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 	type BlockNumberProvider = System;
