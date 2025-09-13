@@ -53,6 +53,7 @@ pub mod time {
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
 	pub const WEEKS: BlockNumber = DAYS * 7;
+	pub const YEARS: BlockNumber = (DAYS * 36525) / 100;
 
 	// 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 	// The choice of is done in accordance to the slot duration and expected target
