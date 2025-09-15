@@ -272,6 +272,14 @@ pub trait MigrationStatus {
 	fn is_ongoing() -> bool;
 }
 
+/// Adapter type for the migration completion status.
+pub struct MigrationCompletion<Status>(PhantomData<Status>);
+impl<Status: MigrationStatus> Get<bool> for MigrationCompletion<Status> {
+	fn get() -> bool {
+		Status::is_finished()
+	}
+}
+
 /// A wrapper around `Inner` that routes messages through `Inner` unless `MigrationState` is ongoing
 /// and `Exception` returns true for the given destination and message.
 pub struct RouteInnerWithException<Inner, Exception, MigrationState>(

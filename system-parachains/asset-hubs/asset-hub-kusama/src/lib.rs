@@ -1291,8 +1291,12 @@ impl pallet_claims::Config for Runtime {
 impl pallet_ah_ops::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type Fungibles = NativeAndAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
+	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
+	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
+	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
 }
 
 parameter_types! {

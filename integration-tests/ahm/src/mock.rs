@@ -38,7 +38,7 @@ use runtime_parachains::{
 };
 use sp_core::H256;
 use sp_io::TestExternalities;
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::{BoundedVec, BuildStorage, Perbill};
 use std::str::FromStr;
 use tokio::sync::OnceCell;
 use xcm::prelude::*;
@@ -376,7 +376,7 @@ pub fn ah_migrate(asset_hub: &mut TestExternalities, dmp_messages: Vec<InboundDo
 }
 
 pub fn new_test_rc_ext() -> sp_io::TestExternalities {
-	use sp_runtime::BuildStorage;
+	sp_tracing::try_init_simple();
 
 	let mut t = frame_system::GenesisConfig::<Polkadot>::default().build_storage().unwrap();
 
@@ -389,5 +389,22 @@ pub fn new_test_rc_ext() -> sp_io::TestExternalities {
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| frame_system::Pallet::<Polkadot>::set_block_number(1));
+	ext
+}
+
+pub fn new_test_ah_ext() -> sp_io::TestExternalities {
+	sp_tracing::try_init_simple();
+
+	let mut t = frame_system::GenesisConfig::<AssetHub>::default().build_storage().unwrap();
+
+	pallet_xcm::GenesisConfig::<AssetHub> {
+		safe_xcm_version: Some(xcm::latest::VERSION),
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(|| frame_system::Pallet::<AssetHub>::set_block_number(1));
 	ext
 }
