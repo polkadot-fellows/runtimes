@@ -34,8 +34,8 @@ use xcm::v5::prelude::*;
 
 // alias for the ones backed by parameters-pallet.
 use dynamic_params::staking_election::{
-	MaxElectingVoters, MaxSignedSubmissions, MinerPages, SignedPhase, TargetSnapshotPerBlock,
-	UnsignedPhase,
+	MaxElectingVoters, MaxEraDuration, MaxSignedSubmissions, MinerPages, SignedPhase,
+	TargetSnapshotPerBlock, UnsignedPhase,
 };
 
 // NOTES:
@@ -356,12 +356,6 @@ parameter_types! {
 		frame_election_provider_support::NposSolution
 	>::LIMIT as u32;
 
-	/// This is the upper bound on how much we are willing to inflate per era. We also emit a
-	/// warning event in case an era is longer than this amount.
-	///
-	/// Under normal conditions, this upper bound is never needed, and eras would be 6h each exactly. Yet, since this is the first deployment of pallet-staking-async, there might be misconfiguration, so we allow up to 3h more in each era.
-	pub const MaxEraDuration: u64 = 9 * (1000 * 60 * 60);
-
 	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;
 }
@@ -560,6 +554,7 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use frame_election_provider_support::ElectionProvider;
 	use pallet_staking_async::EraPayout;
 	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
@@ -582,6 +577,19 @@ mod tests {
 			);
 			assert_eq!(staking, 844_606070970705);
 			assert_eq!(treasury, 320_110565207524);
+		});
+	}
+
+	#[test]
+	fn election_duration_less_than_session() {
+		// parameters of kusama are such that the election is intended to kick of at the start of
+		// session `n` and the results to be ready before the end of that session. Atm RC and KAH
+		// have the same block time, 6s.
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let duration = <<Runtime as pallet_staking_async::Config>::ElectionProvider as ElectionProvider>::duration();
+			let session = RelaySessionDuration::get();
+			log::info!(target: "runtime::asset-hub-kusama", "election duration is {:?}, relay session {:?}", duration, session);
+			assert!(duration < session);
 		});
 	}
 

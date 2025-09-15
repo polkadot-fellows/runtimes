@@ -37,14 +37,15 @@ use xcm::v5::prelude::*;
 
 // stuff aliased to `parameters` pallet.
 use dynamic_params::staking_election::{
-	MaxElectingVoters, MaxSignedSubmissions, MinerPages, SignedPhase, TargetSnapshotPerBlock,
-	UnsignedPhase,
+	MaxElectingVoters, MaxEraDuration, MaxSignedSubmissions, MinerPages, SignedPhase,
+	TargetSnapshotPerBlock, UnsignedPhase,
 };
 
 parameter_types! {
 	/// Number of election pages that we operate upon. 32 * 6s block = 192s = 3.2min snapshots
 	pub Pages: u32 = 32;
 
+	/// Verify all pages.
 	pub SignedValidationPhase: u32 = prod_or_fast!(
 		Pages::get() * crate::dynamic_params::staking_election::MaxSignedSubmissions::get(),
 		Pages::get()
@@ -324,11 +325,6 @@ parameter_types! {
 	pub const MaxControllersInDeprecationBatch: u32 = 512;
 	// alias for 16, which is the max nominations per nominator in the runtime.
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
-	/// This is the upper bound on how much we are willing to inflate per era. We also emit a
-	/// warning event in case an era is longer than this amount.
-	///
-	/// Under normal conditions, this upper bound is never needed, and eras would be 24h each exactly. Yet, since this is the first deployment of pallet-staking-async, there might be misconfiguration, so we allow up to 12h more in each era.
-	pub const MaxEraDuration: u64 = 36 * (1000 * 60 * 60);
 
 	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;

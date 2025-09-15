@@ -75,6 +75,7 @@ pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
+use crate::governance::WhitelistedCaller;
 use alloc::{borrow::Cow, vec, vec::Vec};
 use assets_common::{
 	foreign_creators::ForeignCreators,
@@ -1193,7 +1194,7 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
-				EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+				WhitelistedCaller,
 			>::ensure_origin(origin.clone())
 			.map(|_success| ()),
 		}
@@ -1239,9 +1240,20 @@ pub mod dynamic_params {
 		pub static MaxElectingVoters: u32 = 22_500;
 		/// Target snapshot per block for validators.
 		///
+		/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight.
+		///
 		/// Should always be equal to `staking.maxValidatorsCount`.
 		#[codec(index = 5)]
 		pub static TargetSnapshotPerBlock: u32 = 2000;
+
+		/// This is the upper bound on how much we are willing to inflate per era. We also emit a
+		/// warning event in case an era is longer than this amount.
+		///
+		/// Under normal conditions, this upper bound is never needed, and eras would be 24h each
+		/// exactly. Yet, since this is the first deployment of pallet-staking-async, there might be
+		/// misconfiguration, so we allow up to 12h more in each era.
+		#[codec(index = 6)]
+		pub static MaxEraDuration: u64 = 36 * (1000 * 60 * 60);
 	}
 
 	/// Parameters about the scheduler pallet.
