@@ -1278,10 +1278,12 @@ pub mod dynamic_params {
 #[cfg(feature = "runtime-benchmarks")]
 impl Default for RuntimeParameters {
 	fn default() -> Self {
-		RuntimeParameters::StakingElection(dynamic_params::staking_election::Parameters::SignedPhase(
-			dynamic_params::staking_election::SignedPhase,
-			Some(30 * MINUTES),
-		))
+		RuntimeParameters::StakingElection(
+			dynamic_params::staking_election::Parameters::SignedPhase(
+				dynamic_params::staking_election::SignedPhase,
+				Some(30 * MINUTES),
+			),
+		)
 	}
 }
 
