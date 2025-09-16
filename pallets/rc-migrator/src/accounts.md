@@ -9,8 +9,10 @@ Users need to be aware that all of their funds will be moved from the Relay chai
 The Account ID will stay the same. This ensures that normal user accounts will be to control their
 funds on Asset Hub.
 
-- 🚨 All funds will be **moved** from the Relay Chain to the Asset Hub.
-- 🚨 Account IDs of parachain sovereign accounts will be translated from their Relay child to their sibling parachain account.
+> [!CAUTION]
+> All funds will be **moved** from the Relay Chain to the Asset Hub.
+> [!CAUTION]
+> Account IDs of parachain sovereign accounts will be translated from their Relay child to their sibling parachain account.
 - The Account ID of normal accounts will stay the same.
 
 ## Sovereign Account Translation
@@ -44,12 +46,12 @@ Relay Chain and events emitted for the balance being deposited into Asset Hub.
 Regular XCM teleport operation, when the Relay Chain acts as the mint authority, follows this
 sequence:
 
-(1) Relay Chain: burn_from(source, amount) // emits Balances::Burned event
-(2) Relay Chain: mint_into(checking_account, amount) // emits Balances::Minted event
-(3) Relay Chain: total issuance remains unchanged
-(4) Relay Chain: sends XCM teleport message
-(5) Asset Hub: mint_into(dest, amount) // emits Balances::Minted event
-(6) Asset Hub: total issuance increases by `amount`
+0. Relay Chain: burn_from(source, amount) // emits Balances::Burned event
+0. Relay Chain: mint_into(checking_account, amount) // emits Balances::Minted event  
+0. Relay Chain: total issuance remains unchanged
+0. Relay Chain: sends XCM teleport message
+0. Asset Hub: mint_into(dest, amount) // emits Balances::Minted event
+0. Asset Hub: total issuance increases by `amount`
 
 During account migration, the process will emit `Balances::Burned` events on the Relay Chain and
 `Balances::Minted` events on the Asset Hub. However, unlike regular teleports, it will not mint into

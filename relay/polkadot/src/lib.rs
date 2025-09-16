@@ -46,8 +46,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains,
-		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
@@ -89,6 +89,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
+use sp_runtime::traits::Convert;
 
 use relay_common::apis::InflationInfo;
 use runtime_parachains::{
@@ -656,16 +657,6 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
 
-// TODO @kianenigma: remove feature gate and keep 10, when we want to activate it for Polkadot
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-	pub const AutoRebagNumber: u32 = 10;
-}
-#[cfg(not(feature = "runtime-benchmarks"))]
-parameter_types! {
-	pub const AutoRebagNumber: u32 = 0;
-}
-
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -676,7 +667,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxAutoRebagPerBlock = AutoRebagNumber;
+	type MaxAutoRebagPerBlock = ();
 }
 
 /// Defines how much should the inflation be for an era given its duration.
@@ -1559,10 +1550,11 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = ConstU32<400>; // TODO @kianenigma
+	// Polkadot RC currently has 600 validators. 500 minimum for now.
+	type MinimumValidatorSetSize = ConstU32<500>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
-	type MaxOffenceBatchSize = ConstU32<50>;
+	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
 	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
 }
@@ -1630,12 +1622,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	fn relay_session_report(
 		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
 	) {
-		pallet_staking_async_rc_client::XCMSender::<
-			xcm_config::XcmRouter,
-			AssetHubLocation,
-			pallet_staking_async_rc_client::SessionReport<AccountId>,
-			SessionReportToXcm,
-		>::split_then_send(session_report, Some(8));
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let message = SessionReportToXcm::convert(session_report);
+		let dest = AssetHubLocation::get();
+		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
+			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {:?}", err);
+		});
 	}
 
 	fn relay_new_offence(
@@ -1658,9 +1650,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 				.into(),
 			},
 		]);
-		if let Err(err) = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
-		}
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
+			|err| {
+				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+			},
+		);
 	}
 }
 
