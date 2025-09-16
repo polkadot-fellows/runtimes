@@ -532,21 +532,6 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 		};
 		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 
-		// The maximum number of validators should be equal to `TargetSnapshotPerBlock`, 2500.
-		//
-		// Note that previously this value was 4000, allowing for possibly more validator
-		// candidates to exists. In a parachain, we cannot afford this high limit anymore, as
-		// it would increase the chances of the chain stalling due to over-weight
-		// on-initialize code.
-		//
-		// Future iterations of staking-async will either:
-		//
-		// * Remove this bottleneck
-		// * Move to using `on_poll`
-		//
-		// After which this limit can be increased again.
-		pallet_staking_async::MaxValidatorsCount::<Runtime>::put(2500);
-
 		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 	}
 }
