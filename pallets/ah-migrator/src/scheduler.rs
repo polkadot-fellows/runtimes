@@ -161,8 +161,8 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Assert storage 'Scheduler::IncompleteSince::ah_pre::empty'
 
-		// since scheduler pallet gonna run on AH before migration, its will setup its
-		// `IncompleteSince` storage value `on_initialize`.
+		// since the scheduler pallet will run on Asset Hub before migration, it will set up its
+		// `IncompleteSince` storage value with `on_initialize` hook.
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
 
 		// Assert storage 'Scheduler::Agenda::ah_pre::empty'
