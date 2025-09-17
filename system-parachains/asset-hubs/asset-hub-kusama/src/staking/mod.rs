@@ -238,6 +238,7 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub struct ConstantDeposit;
+#[cfg(feature = "runtime-benchmarks")]
 impl multi_block::signed::CalculateBaseDeposit<Balance> for ConstantDeposit {
 	fn calculate_base_deposit(_: usize) -> Balance {
 		UNITS
