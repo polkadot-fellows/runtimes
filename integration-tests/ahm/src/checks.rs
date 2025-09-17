@@ -33,16 +33,19 @@ impl RcMigrationCheck for SanityChecks {
 	type RcPrePayload = ();
 
 	fn pre_check() -> Self::RcPrePayload {
+		let stage = pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get();
+		// rust tests trigger pre-checks when pending(0), while the ZB snapshots are from when the
+		// migration is still pending. Both okay.
 		assert!(
-			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
-				pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 }
+			stage == pallet_rc_migrator::MigrationStage::Pending ||
+				stage == pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 },
 		);
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		assert!(
-			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
-				pallet_rc_migrator::MigrationStage::MigrationDone
+		assert_eq!(
+			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get(),
+			pallet_rc_migrator::MigrationStage::MigrationDone
 		);
 	}
 }
@@ -52,16 +55,16 @@ impl AhMigrationCheck for SanityChecks {
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		assert!(
-			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get() ==
-				pallet_ah_migrator::MigrationStage::Pending
+		assert_eq!(
+			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get(),
+			pallet_ah_migrator::MigrationStage::Pending
 		);
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		assert!(
-			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get() ==
-				pallet_ah_migrator::MigrationStage::MigrationDone
+		assert_eq!(
+			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get(),
+			pallet_ah_migrator::MigrationStage::MigrationDone
 		);
 	}
 }

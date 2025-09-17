@@ -1085,6 +1085,7 @@ dependencies = [
  "pallet-nfts-runtime-api",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
+ "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
@@ -1134,6 +1135,7 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-storage",
+ "sp-tracing 18.0.0",
  "sp-transaction-pool",
  "sp-version",
  "sp-weights",
@@ -8492,6 +8494,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-assets",
  "pallet-balances",
  "pallet-timestamp",
  "parity-scale-codec",
@@ -10024,9 +10027,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.4.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793c01c58d02da9e0a45085e16c4073cdaee5db5d0eb99f8604ca1bec06942dd"
+checksum = "f08e204511964e2fdf7224a3bab431ec071b3ee402b315fd5ca85011e0181a52"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",

@@ -133,6 +133,7 @@ pub fn call_allowed_status(
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
 		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
+		Parameters(..) => ON, // allow governance to still update any params if needed
 	};
 	// Exhaustive match. Compiler ensures that we did not miss any.
 
@@ -200,6 +201,6 @@ pub fn call_allowed_before_migration(
 		Uniques(..) |
 		Utility(..) |
 		Whitelist(..) |
-		XcmpQueue(..) => ON,
+		XcmpQueue(..) | Parameters(..) => ON,
 	}
 }

@@ -13,6 +13,7 @@ cumulus-primitives-core = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true, features = ["experimental"] }
 log = { workspace = true }
+pallet-assets = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-timestamp = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
@@ -32,6 +33,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-assets/std",
 	"pallet-balances/std",
 	"pallet-timestamp/std",
 	"scale-info/std",
@@ -46,6 +48,7 @@ runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
@@ -53,6 +56,7 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-assets/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"sp-runtime/try-runtime",

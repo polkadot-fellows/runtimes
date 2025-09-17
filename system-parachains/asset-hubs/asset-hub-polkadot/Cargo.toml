@@ -56,6 +56,7 @@ pallet-message-queue = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
+pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
@@ -135,6 +136,7 @@ snowbridge-runtime-common = { workspace = true }
 [dev-dependencies]
 asset-test-utils = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
+sp-tracing = { workspace = true, default-features = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
@@ -183,6 +185,7 @@ runtime-benchmarks = [
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
@@ -249,6 +252,7 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-nomination-pools/try-runtime",
+	"pallet-parameters/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
@@ -325,6 +329,7 @@ std = [
 	"pallet-nfts/std",
 	"pallet-nomination-pools-benchmarking?/std",
 	"pallet-nomination-pools/std",
+	"pallet-parameters/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
