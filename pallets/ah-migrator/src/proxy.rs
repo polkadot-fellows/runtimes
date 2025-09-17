@@ -237,18 +237,8 @@ where
 				// All RC delegations that could be translated are still here
 				for rc_pre_d in &rc_pre.get(original_rc_delegator).cloned().unwrap_or_default() {
 					let translated: T::RcProxyType = rc_pre_d.0.clone().into();
-					let Ok(translated_kind) = T::RcToProxyType::try_convert(translated.clone())
-					else {
-						// Best effort sanity checking that only Auction and ParaRegistration dont
-						// work
-						let k = translated.encode().get(0).cloned();
-						assert!(
-							k == Some(7) || k == Some(9), /* FAIL-CI @ggwpez make all work and
-							                               * add legacy variants */
-							"Must translate all proxy Kinds except Auction and ParaRegistration"
-						);
-						continue;
-					};
+					let translated_kind = T::RcToProxyType::try_convert(translated.clone())
+						.expect("Translation must work for all proxy kinds");
 					// Translate the delegate account for comparison
 					let translated_delegate =
 						Pallet::<T>::translate_account_rc_to_ah(rc_pre_d.1.clone());

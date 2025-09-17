@@ -119,7 +119,10 @@ pub fn call_allowed_status(
 		Referenda(..) => OFF,
 		Scheduler(..) => ON, // only permissioned service calls
 		Session(..) => OFF,
-		SnowbridgeSystemFrontend(..) => ON, // FAIL-CI @ggwpez TODO
+		SnowbridgeSystemFrontend(snowbridge_pallet_system_frontend::Call::set_operating_mode {
+			..
+		}) => ON, // Only root
+		SnowbridgeSystemFrontend(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
@@ -192,7 +195,7 @@ pub fn call_allowed_before_migration(
 		Proxy(..) |
 		Scheduler(..) |
 		Session(..) |
-		SnowbridgeSystemFrontend(..) | // TODO: @ggwpez
+		SnowbridgeSystemFrontend(..) |
 		StakingRcClient(..) |
 		StateTrieMigration(..) |
 		System(..) |
@@ -201,6 +204,7 @@ pub fn call_allowed_before_migration(
 		Uniques(..) |
 		Utility(..) |
 		Whitelist(..) |
-		XcmpQueue(..) | Parameters(..) => ON,
+		XcmpQueue(..) |
+		Parameters(..) => ON,
 	}
 }

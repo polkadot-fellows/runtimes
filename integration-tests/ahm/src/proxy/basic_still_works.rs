@@ -65,7 +65,6 @@ pub struct Proxy {
 	pub permissions: Vec<Permission>,
 	/// Can control `who`.
 	pub delegatee: AccountId32,
-	// TODO: @ggwpez also check the delay
 }
 
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
