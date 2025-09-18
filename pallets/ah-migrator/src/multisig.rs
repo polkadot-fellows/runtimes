@@ -64,21 +64,6 @@ impl<T: Config> Pallet<T> {
 		// Translate the creator account from RC to AH format
 		let translated_creator = Self::translate_account_rc_to_ah(multisig.creator.clone());
 
-		// Translate the details account (derived multisig account) if present.
-		// NOTE: There are instances where we expect the translation to be a no-op. It's acceptable
-		// to retain it for now and remove it later if we determine it is consistently a no-op.
-		let translated_details = multisig
-			.details
-			.as_ref()
-			.map(|details_account| Self::translate_account_rc_to_ah(details_account.clone()));
-
-		log::trace!(target: LOG_TARGET, "Integrating multisig {}, deposit: {:?}, details: {:?} -> {:?}",
-			translated_creator.to_ss58check(),
-			multisig.deposit,
-			multisig.details.as_ref().map(|d| d.to_ss58check()),
-			translated_details.as_ref().map(|d| d.to_ss58check())
-		);
-
 		let missing = <T as pallet_multisig::Config>::Currency::unreserve(
 			&translated_creator,
 			multisig.deposit,
@@ -96,11 +81,9 @@ impl<T: Config> Pallet<T> {
 			} else {
 				log::error!(
 					target: LOG_TARGET,
-					"Failed to unreserve deposit for multisig {}, missing: {:?}, details: {:?} -> {:?}",
+					"Failed to unreserve deposit for multisig {}, missing: {:?}",
 					translated_creator.to_ss58check(),
 					missing,
-					multisig.details.as_ref().map(|d| d.to_ss58check()),
-					translated_details.as_ref().map(|d| d.to_ss58check())
 				);
 			}
 
