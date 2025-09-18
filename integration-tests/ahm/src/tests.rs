@@ -60,13 +60,13 @@ use super::{
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
-use asset_hub_polkadot_runtime::{Runtime as AssetHub, Runtime as PAH};
+use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{
 	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
 };
 use frame_support::{
-	hypothetically, hypothetically_ok,
+	assert_noop, hypothetically, hypothetically_ok,
 	traits::{
 		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, OnFinalize,
 		OnInitialize, ReservableCurrency,
@@ -986,7 +986,6 @@ async fn some_account_migration_works() {
 		log::info!("Withdrawn account: {withdrawn_account:?}");
 
 		ah.execute_with(|| {
-			use asset_hub_polkadot_runtime::AhMigrator;
 			use codec::{Decode, Encode};
 
 			let encoded_account = withdrawn_account.encode();
@@ -1660,5 +1659,198 @@ fn map_known_governance_calls() {
 			log::debug!("encoded call: 0x{}", hex::encode(ah_call_encoded.as_slice()));
 			log::debug!("decoded call: {:?}", ah_call_decoded);
 		}
+	});
+}
+
+#[test]
+fn rc_calls_and_origins_work() {
+	use frame_support::traits::schedule::DispatchTime;
+	type PalletBalances = pallet_balances::Pallet<Polkadot>;
+
+	let mut ext = new_test_rc_ext();
+
+	let manager: AccountId32 = [1; 32].into();
+	let canceller: AccountId32 = [2; 32].into();
+	let user: AccountId32 = [3; 32].into();
+	let manager_wo_balance: AccountId32 = [4; 32].into();
+	let fellows = Location::new(
+		0,
+		[
+			Junction::Parachain(1001),
+			Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+		],
+	);
+	let admin_origin = pallet_xcm::Origin::Xcm(fellows);
+
+	ext.execute_with(|| {
+		let ed = polkadot_runtime::ExistentialDeposit::get();
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), manager.clone().into(), ed + ed)
+			.expect("failed to set balance");
+		PalletBalances::force_set_balance(
+			RcRuntimeOrigin::root(),
+			canceller.clone().into(),
+			ed + ed,
+		)
+		.expect("failed to set balance");
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user.clone().into(), ed + ed)
+			.expect("failed to set balance");
+		PalletBalances::reserve(&user, ed).expect("failed to reserve");
+	});
+
+	ext.execute_with(|| {
+		RcMigrator::preserve_accounts(
+			RcRuntimeOrigin::root(),
+			vec![manager.clone(), canceller.clone()],
+		)
+		.expect("failed to preserve accounts");
+		RcMigrator::set_manager(admin_origin.clone().into(), Some(manager_wo_balance))
+			.expect("failed to set manager");
+		RcMigrator::set_manager(RcRuntimeOrigin::root(), Some(manager.clone()))
+			.expect("failed to set manager");
+		RcMigrator::set_manager(admin_origin.clone().into(), Some(manager.clone()))
+			.expect("failed to set manager");
+
+		RcMigrator::set_canceller(RcRuntimeOrigin::root(), Some(canceller.clone()))
+			.expect("failed to set canceller");
+		RcMigrator::set_canceller(admin_origin.clone().into(), Some(canceller.clone()))
+			.expect("failed to set canceller");
+
+		assert_noop!(
+			RcMigrator::preserve_accounts(RcRuntimeOrigin::root(), vec![user.clone()],),
+			pallet_rc_migrator::Error::<Polkadot>::AccountReferenced
+		);
+		assert_noop!(
+			RcMigrator::set_canceller(RcRuntimeOrigin::root(), Some(user.clone())),
+			pallet_rc_migrator::Error::<Polkadot>::AccountReferenced
+		);
+	});
+
+	ext.execute_with(|| {
+		RcMigrator::force_set_stage(
+			admin_origin.clone().into(),
+			Box::new(RcMigrationStage::MigrationPaused),
+		)
+		.expect("failed to force set stage");
+
+		RcMigrator::force_set_stage(
+			RcRuntimeOrigin::signed(manager.clone()),
+			Box::new(RcMigrationStage::Pending),
+		)
+		.expect("failed to force set stage");
+
+		let now = frame_system::Pallet::<Polkadot>::block_number();
+
+		assert_noop!(
+			RcMigrator::schedule_migration(
+				RcRuntimeOrigin::signed(manager.clone()),
+				DispatchTime::At(now + 1),
+				DispatchTime::At(now + 2),
+				DispatchTime::At(now + 3),
+				false,
+			),
+			pallet_rc_migrator::Error::<Polkadot>::EraEndsTooSoon
+		);
+
+		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
+		let start = now + session_duration * 2 + 1;
+
+		RcMigrator::schedule_migration(
+			RcRuntimeOrigin::signed(manager.clone()),
+			DispatchTime::At(start),
+			DispatchTime::At(start + 1),
+			DispatchTime::At(start + 2),
+			false,
+		)
+		.expect("failed to schedule migration");
+
+		RcMigrator::pause_migration(RcRuntimeOrigin::signed(manager.clone()))
+			.expect("failed to pause migration");
+
+		let current_stage = RcMigrationStageStorage::<Polkadot>::get();
+		assert_eq!(current_stage, RcMigrationStage::MigrationPaused);
+
+		RcMigrator::schedule_migration(
+			RcRuntimeOrigin::signed(manager.clone()),
+			DispatchTime::At(start),
+			DispatchTime::At(start + 1),
+			DispatchTime::At(start + 2),
+			false,
+		)
+		.expect("failed to schedule migration");
+
+		RcMigrator::cancel_migration(RcRuntimeOrigin::signed(canceller.clone()))
+			.expect("failed to cancel migration");
+
+		let current_stage = RcMigrationStageStorage::<Polkadot>::get();
+		assert_eq!(current_stage, RcMigrationStage::Pending);
+
+		RcMigrator::schedule_migration(
+			RcRuntimeOrigin::signed(manager.clone()),
+			DispatchTime::At(start),
+			DispatchTime::At(start + 1),
+			DispatchTime::At(start + 2),
+			false,
+		)
+		.expect("failed to schedule migration");
+
+		RcMigrator::force_set_stage(
+			RcRuntimeOrigin::signed(manager.clone()),
+			Box::new(RcMigrationStage::WaitingForAh),
+		)
+		.expect("failed to force set stage");
+
+		RcMigrator::start_data_migration(RcRuntimeOrigin::signed(manager.clone()))
+			.expect("failed to schedule migration");
+
+		let current_stage = RcMigrationStageStorage::<Polkadot>::get();
+		assert_eq!(current_stage, RcMigrationStage::WarmUp { end_at: start + 1 });
+	});
+}
+
+#[test]
+fn ah_calls_and_origins_work() {
+	let mut ext = new_test_ah_ext();
+
+	let manager: AccountId32 = [1; 32].into();
+	let fellows = Location::new(
+		1,
+		[
+			Junction::Parachain(1001),
+			Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+		],
+	);
+	let admin_origin = pallet_xcm::Origin::Xcm(fellows);
+
+	ext.execute_with(|| {
+		AhMigrator::set_manager(AhRuntimeOrigin::root(), Some(manager.clone()))
+			.expect("failed to set manager");
+		AhMigrator::set_manager(admin_origin.clone().into(), Some(manager.clone()))
+			.expect("failed to set manager");
+	});
+
+	ext.execute_with(|| {
+		AhMigrator::force_set_stage(
+			admin_origin.clone().into(),
+			AhMigrationStage::DataMigrationOngoing,
+		)
+		.expect("failed to force set stage");
+
+		let current_stage = AhMigrationStageStorage::<AssetHub>::get();
+		assert_eq!(current_stage, AhMigrationStage::DataMigrationOngoing);
+
+		AhMigrator::force_set_stage(AhRuntimeOrigin::root(), AhMigrationStage::Pending)
+			.expect("failed to force set stage");
+
+		let current_stage = AhMigrationStageStorage::<AssetHub>::get();
+		assert_eq!(current_stage, AhMigrationStage::Pending);
+
+		AhMigrator::force_set_stage(
+			AhRuntimeOrigin::signed(manager.clone()),
+			AhMigrationStage::DataMigrationOngoing,
+		)
+		.expect("failed to force set stage");
+
+		let current_stage = AhMigrationStageStorage::<AssetHub>::get();
+		assert_eq!(current_stage, AhMigrationStage::DataMigrationOngoing);
 	});
 }
