@@ -40,7 +40,10 @@ use sp_runtime::{
 	DispatchError::Module,
 	ModuleError,
 };
-use std::{collections::BTreeMap, str::FromStr, collections::BTreeSet};
+use std::{
+	collections::{BTreeMap, BTreeSet},
+	str::FromStr,
+};
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -81,7 +84,8 @@ impl RcMigrationCheck for ProxyBasicWorks {
 			for proxy in proxies.into_iter() {
 				let inner = proxy.proxy_type.0;
 
-				let permission = Permission::try_convert(inner).expect("Must translate proxy kind to permission");
+				let permission = Permission::try_convert(inner)
+					.expect("Must translate proxy kind to permission");
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))
 					.or_insert_with(Vec::new)
@@ -107,13 +111,18 @@ impl RcMigrationCheck for ProxyBasicWorks {
 			assert!(b, "All items in PureProxyCandidatesMigrated are true");
 		}
 
-		log::error!("There are {} zero nonce accounts and {} proxies", zero_nonce_accounts.len(), pallet_proxy::Proxies::<RelayRuntime>::iter().count());
+		log::error!(
+			"There are {} zero nonce accounts and {} proxies",
+			zero_nonce_accounts.len(),
+			pallet_proxy::Proxies::<RelayRuntime>::iter().count()
+		);
 		// All Remaining ones are 'Any' proxies
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
 				let inner = proxy.proxy_type.0;
 
-				let permission = Permission::try_convert(inner).expect("Must translate proxy kind to permission");
+				let permission = Permission::try_convert(inner)
+					.expect("Must translate proxy kind to permission");
 				assert_eq!(permission, Permission::Any, "All remaining proxies are 'Any'");
 				let nonce = frame_system::Pallet::<RelayRuntime>::account_nonce(&delegator);
 				assert!(zero_nonce_accounts.contains(&delegator), "All remaining proxies are from zero nonce accounts but account {:?} is not, current nonce: {}", delegator.to_polkadot_ss58(), nonce);
@@ -156,7 +165,10 @@ impl AhMigrationCheck for ProxyBasicWorks {
 		pre_payload
 	}
 
-	fn post_check((rc_pre_payload, _rc_zero_nonce_accounts): Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+	fn post_check(
+		(rc_pre_payload, _rc_zero_nonce_accounts): Self::RcPrePayload,
+		ah_pre_payload: Self::AhPrePayload,
+	) {
 		let mut pre_and_post = rc_pre_payload;
 		for ((delegatee, delegator), permissions) in ah_pre_payload.iter() {
 			pre_and_post
