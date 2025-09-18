@@ -2456,8 +2456,6 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - call - the call to send
 		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
-			log::info!(target: LOG_TARGET, "Sending XCM message");
-
 			let call = types::AssetHubPalletConfig::<T>::AhmController(call);
 
 			let message = Xcm(vec![

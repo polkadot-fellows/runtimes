@@ -1261,8 +1261,6 @@ pub mod pallet {
 
 		/// Send a single XCM message.
 		pub fn send_xcm(call: types::RcMigratorCall) -> Result<(), Error<T>> {
-			log::debug!(target: LOG_TARGET, "Sending XCM message");
-
 			let call = types::RcPalletConfig::RcmController(call);
 
 			let message = Xcm(vec![
