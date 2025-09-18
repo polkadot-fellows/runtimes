@@ -216,7 +216,7 @@ jobs:
           asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm
 
-  package-compact-wasms:
+  package-try-runtime-and-logging-enabled-wasms:
     needs: [ build-runtimes, publish-release ]
     runs-on: ubuntu-latest
     steps:
@@ -225,9 +225,9 @@ jobs:
         with:
           pattern: '*-compact'
 
-      - name: Create compact-wasms.zip
+      - name: Create try-runtime and logging enabled runtimes
         run: |
-          zip -j compact-wasms.zip */*.compact.compressed.wasm
+          zip -j runtimes-with-try-runtime-and-logging.zip */*.compact.compressed.wasm
 
       - name: Upload archive to GitHub Release
         uses: actions/upload-release-asset@v1
@@ -235,6 +235,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
-          asset_path: compact-wasms.zip
-          asset_name: compact-wasms.zip
+          asset_path: runtimes-with-try-runtime-and-logging.zip
+          asset_name: runtimes-with-try-runtime-and-logging.zip
           asset_content_type: application/zip
