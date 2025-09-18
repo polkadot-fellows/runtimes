@@ -1626,10 +1626,8 @@ mod benches {
 
 		// Staking
 		[pallet_staking_async, Staking]
-		// TODO @ggwpez [pallet_nomination_pools, NominationPools] Does not work since it depends on pallet-staking being deployed, but we only have pallet-staking-async :(
 		[pallet_bags_list, VoterList]
 		// DelegatedStaking has no calls
-		// TODO @ggwpez [pallet_staking_async_rc_client, StakingRcClient]
 		[pallet_election_provider_multi_block, MultiBlockElection]
 		[pallet_election_provider_multi_block_verifier, MultiBlockElectionVerifier]
 		[pallet_election_provider_multi_block_unsigned, MultiBlockElectionUnsigned]
