@@ -236,15 +236,6 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	}
 }
 
-#[cfg(feature = "runtime-benchmarks")]
-pub struct ConstantDeposit;
-#[cfg(feature = "runtime-benchmarks")]
-impl multi_block::signed::CalculateBaseDeposit<Balance> for ConstantDeposit {
-	fn calculate_base_deposit(_: usize) -> Balance {
-		UNITS
-	}
-}
-
 // Parameters only regarding signed submission deposits/rewards.
 parameter_types! {
 	pub SignedDepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
@@ -264,10 +255,7 @@ impl multi_block::signed::Config for Runtime {
 	type Currency = Balances;
 	type BailoutGraceRatio = BailoutGraceRatio;
 	type EjectGraceRatio = EjectGraceRatio;
-	#[cfg(not(feature = "runtime-benchmarks"))]
 	type DepositBase = GeometricDeposit;
-	#[cfg(feature = "runtime-benchmarks")]
-	type DepositBase = ConstantDeposit;
 	type DepositPerPage = SignedDepositPerPage;
 	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
