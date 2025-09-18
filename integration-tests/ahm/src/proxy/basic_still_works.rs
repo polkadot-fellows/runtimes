@@ -40,7 +40,7 @@ use sp_runtime::{
 	DispatchError::Module,
 	ModuleError,
 };
-use std::{collections::BTreeMap, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr, collections::BTreeSet};
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -69,9 +69,10 @@ pub struct Proxy {
 
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
 type PureProxies = BTreeMap<(AccountId32, AccountId32), Vec<Permission>>;
+type ZeroNonceAccounts = BTreeSet<AccountId32>;
 
 impl RcMigrationCheck for ProxyBasicWorks {
-	type RcPrePayload = PureProxies;
+	type RcPrePayload = (PureProxies, ZeroNonceAccounts);
 
 	fn pre_check() -> Self::RcPrePayload {
 		let mut pre_payload = BTreeMap::new();
@@ -80,13 +81,7 @@ impl RcMigrationCheck for ProxyBasicWorks {
 			for proxy in proxies.into_iter() {
 				let inner = proxy.proxy_type.0;
 
-				let permission = match Permission::try_convert(inner) {
-					Ok(permission) => permission,
-					Err(e) => {
-						defensive!("Proxy could not be converted: {:?}", e);
-						continue;
-					},
-				};
+				let permission = Permission::try_convert(inner).expect("Must translate proxy kind to permission");
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))
 					.or_insert_with(Vec::new)
@@ -94,14 +89,41 @@ impl RcMigrationCheck for ProxyBasicWorks {
 			}
 		}
 
-		pre_payload
+		let mut zero_nonce_accounts = BTreeSet::new();
+		for delegator in pallet_proxy::Proxies::<RelayRuntime>::iter_keys() {
+			let nonce = frame_system::Pallet::<RelayRuntime>::account_nonce(&delegator);
+			if nonce == 0 {
+				zero_nonce_accounts.insert(delegator);
+			}
+		}
+
+		(pre_payload, zero_nonce_accounts)
 	}
 
-	fn post_check(_: Self::RcPrePayload) {}
+	fn post_check((_, zero_nonce_accounts): Self::RcPrePayload) {
+		use pallet_rc_migrator::PureProxyCandidatesMigrated;
+		// All items in PureProxyCandidatesMigrated are true
+		for (delegator, b) in PureProxyCandidatesMigrated::<RelayRuntime>::iter() {
+			assert!(b, "All items in PureProxyCandidatesMigrated are true");
+		}
+
+		log::error!("There are {} zero nonce accounts and {} proxies", zero_nonce_accounts.len(), pallet_proxy::Proxies::<RelayRuntime>::iter().count());
+		// All Remaining ones are 'Any' proxies
+		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
+			for proxy in proxies.into_iter() {
+				let inner = proxy.proxy_type.0;
+
+				let permission = Permission::try_convert(inner).expect("Must translate proxy kind to permission");
+				assert_eq!(permission, Permission::Any, "All remaining proxies are 'Any'");
+				let nonce = frame_system::Pallet::<RelayRuntime>::account_nonce(&delegator);
+				assert!(zero_nonce_accounts.contains(&delegator), "All remaining proxies are from zero nonce accounts but account {:?} is not, current nonce: {}", delegator.to_polkadot_ss58(), nonce);
+			}
+		}
+	}
 }
 
 impl AhMigrationCheck for ProxyBasicWorks {
-	type RcPrePayload = PureProxies;
+	type RcPrePayload = (PureProxies, ZeroNonceAccounts);
 	type AhPrePayload = PureProxies;
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -134,7 +156,7 @@ impl AhMigrationCheck for ProxyBasicWorks {
 		pre_payload
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+	fn post_check((rc_pre_payload, _rc_zero_nonce_accounts): Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		let mut pre_and_post = rc_pre_payload;
 		for ((delegatee, delegator), permissions) in ah_pre_payload.iter() {
 			pre_and_post
