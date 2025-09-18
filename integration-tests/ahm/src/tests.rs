@@ -890,7 +890,7 @@ async fn scheduled_migration_works() {
 		// accounts migration init
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::AccountsMigrationInit
+			RcMigrationStage::PureProxyCandidatesMigrationInit
 		);
 	});
 	rc.commit_all().unwrap();
