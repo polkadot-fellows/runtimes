@@ -79,8 +79,6 @@ pub struct RcMultisig<AccountId, Balance> {
 	pub creator: AccountId,
 	/// Amount of the deposit.
 	pub deposit: Balance,
-	/// Optional details field to debug. Can be `None` in prod. Contains the derived account.
-	pub details: Option<AccountId>,
 }
 
 pub type RcMultisigOf<T> = RcMultisig<AccountIdOf<T>, BalanceOf<T>>;
@@ -172,11 +170,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {k1:?}");
 
-			batch.push(RcMultisig {
-				creator: multisig.depositor,
-				deposit: multisig.deposit,
-				details: Some(k1.clone()),
-			});
+			batch.push(RcMultisig { creator: multisig.depositor, deposit: multisig.deposit });
 
 			aliases::Multisigs::<T>::remove(&k1, &k2);
 			last_key = Some((k1, k2));

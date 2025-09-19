@@ -35,8 +35,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Equals, Everything, FromContains, LinearStoragePrice,
-		PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Defensive, Equals, Everything, FromContains,
+		LinearStoragePrice, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -90,7 +90,7 @@ parameter_types! {
 	// Account address: `5Gzx76VEMzLpMp9HBarpkJ62WMSNeRfdD1jLjpvpZtY37Wum`
 	pub PreMigrationRelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(crate::treasury::TreasuryAccount::get());
+			.defensive_unwrap_or(crate::treasury::TreasuryAccount::get());
 	pub PostMigrationTreasuryAccount: AccountId = crate::treasury::TreasuryAccount::get();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
@@ -330,7 +330,6 @@ pub type Barrier = TrailingSetTopicAsId<
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
 	Equals<RootLocation>,
-	Equals<ParentLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,

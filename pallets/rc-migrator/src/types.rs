@@ -448,7 +448,7 @@ impl<T: Encode> XcmBatch<T> {
 	pub fn push(&mut self, message: T) {
 		let message_size = message.encoded_size() as u32;
 		if message_size > MAX_XCM_SIZE {
-			defensive_assert!(true, "Message is too large to be added to the batch");
+			defensive_assert!(false, "Message is too large to be added to the batch");
 		}
 
 		match self.sized_batches.back_mut() {
