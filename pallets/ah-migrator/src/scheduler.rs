@@ -156,14 +156,14 @@ pub struct RcPrePayload<T: Config> {
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 	type RcPrePayload = Vec<u8>;
-	type AhPrePayload = ();
+	type AhPrePayload = Option<BlockNumberFor<T>>;
 
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Assert storage 'Scheduler::IncompleteSince::ah_pre::empty'
-		assert!(
-			pallet_scheduler::IncompleteSince::<T>::get().is_none(),
-			"IncompleteSince should be empty on asset hub before migration"
-		);
+
+		// since the scheduler pallet will run on Asset Hub before migration, it will set up its
+		// `IncompleteSince` storage value with `on_initialize` hook.
+		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
 
 		// Assert storage 'Scheduler::Agenda::ah_pre::empty'
 		assert!(
@@ -182,18 +182,28 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			pallet_scheduler::Retries::<T>::iter().next().is_none(),
 			"Retries map should be empty on asset hub before migration"
 		);
+
+		incomplete_since
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_incomplete_since: Self::AhPrePayload) {
 		let rc_payload = RcPrePayload::<T>::decode(&mut &rc_pre_payload[..])
 			.expect("Failed to decode RcPrePayload bytes");
 
 		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
-		assert_eq!(
-			pallet_scheduler::IncompleteSince::<T>::get(),
-			rc_payload.incomplete_since,
-			"IncompleteSince on Asset Hub should match the RC value"
-		);
+		if rc_payload.incomplete_since.is_some() {
+			assert_eq!(
+				pallet_scheduler::IncompleteSince::<T>::get(),
+				rc_payload.incomplete_since,
+				"IncompleteSince on Asset Hub should match the RC value"
+			);
+		} else {
+			assert_eq!(
+				pallet_scheduler::IncompleteSince::<T>::get(),
+				ah_incomplete_since,
+				"IncompleteSince on Asset Hub should match the AH value when None from RC"
+			);
+		}
 
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct
 		// expected Agendas. Critically, use the passed agenda call encodings to remove reliance

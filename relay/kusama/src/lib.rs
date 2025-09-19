@@ -1212,11 +1212,23 @@ impl pallet_society::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = ConstU32<{ 5 * DAYS }>;
+	type VotingPeriod = pallet_rc_migrator::types::LeftIfPending<
+		RcMigrator,
+		ConstU32<{ 5 * DAYS }>,
+		// disable rotation `on_initialize` during and after migration
+		// { - 10 * DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
+		ConstU32<{ u32::MAX - 10 * DAYS }>,
+	>;
 	type ClaimPeriod = ConstU32<{ 2 * DAYS }>;
 	type MaxLockDuration = ConstU32<{ 36 * 30 * DAYS }>;
 	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = ConstU32<{ 7 * DAYS }>;
+	type ChallengePeriod = pallet_rc_migrator::types::LeftIfPending<
+		RcMigrator,
+		ConstU32<{ 7 * DAYS }>,
+		// disable challenge rotation `on_initialize` during and after migration
+		// { - 10 * DAYS } to make sure we don't overflow
+		ConstU32<{ u32::MAX - 10 * DAYS }>,
+	>;
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;

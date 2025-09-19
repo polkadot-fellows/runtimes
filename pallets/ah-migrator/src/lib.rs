@@ -63,8 +63,8 @@ pub mod xcm_translation;
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{
-		BenchmarkingDefault, ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner,
-		QueuePriority as DmpQueuePriority, RouteInnerWithException,
+		BenchmarkingDefault, ExceptResponseFor, LeftIfFinished, LeftIfPending, LeftOrRight,
+		MaxOnIdleOrInner, QueuePriority as DmpQueuePriority, RouteInnerWithException,
 	},
 	weights_ah,
 };

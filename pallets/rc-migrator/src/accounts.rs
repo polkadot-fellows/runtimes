@@ -1279,8 +1279,7 @@ pub mod tests {
 			}
 
 			let total_issuance = <T as Config>::Currency::total_issuance();
-			let tracker = RcMigratedBalance::<T>::get();
-			// verify total issuance hasn't changed for any other reason than the migrated funds
+			let tracker = RcMigratedBalanceArchive::<T>::get();
 			assert_eq!(
 				total_issuance,
 				rc_total_issuance_before.saturating_sub(tracker.migrated),

@@ -1536,20 +1536,22 @@ impl pallet_society::Config for Runtime {
 	>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = pallet_ah_migrator::LeftOrRight<
+	type VotingPeriod = pallet_ah_migrator::LeftIfFinished<
 		AhMigrator,
-		// disable rotation `on_initialize` during migration
+		ConstU32<{ 5 * RC_DAYS }>,
+		// disable rotation `on_initialize` before and during migration
 		// { - 10 * RC_DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
 		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
-		ConstU32<{ 5 * RC_DAYS }>,
 	>;
 	type ClaimPeriod = ConstU32<{ 2 * RC_DAYS }>;
 	type MaxLockDuration = ConstU32<{ 36 * 30 * RC_DAYS }>;
 	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = pallet_ah_migrator::LeftOrRight<
+	type ChallengePeriod = pallet_ah_migrator::LeftIfFinished<
 		AhMigrator,
-		ConstU32<{ u32::MAX }>, // disable challenge rotation `on_initialize` during migration
 		ConstU32<{ 7 * RC_DAYS }>,
+		// disable challenge rotation `on_initialize` before and during migration
+		// { - 10 * RC_DAYS } to make sure we don't overflow
+		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
 	>;
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
