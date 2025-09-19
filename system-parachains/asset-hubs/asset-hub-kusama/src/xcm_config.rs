@@ -330,7 +330,6 @@ pub type Barrier = TrailingSetTopicAsId<
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
 	Equals<RootLocation>,
-	Equals<ParentLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,

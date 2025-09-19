@@ -170,10 +170,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {k1:?}");
 
-			batch.push(RcMultisig {
-				creator: multisig.depositor,
-				deposit: multisig.deposit,
-			});
+			batch.push(RcMultisig { creator: multisig.depositor, deposit: multisig.deposit });
 
 			aliases::Multisigs::<T>::remove(&k1, &k2);
 			last_key = Some((k1, k2));

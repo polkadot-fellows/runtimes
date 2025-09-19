@@ -1084,7 +1084,7 @@ pub mod pallet {
 		}
 
 		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
-		/// [Config::SendXcm] router which will be able to send messages to the Asset Hub during
+		/// [Config::SendXcm] router which will be able to send messages to the Relay Chain during
 		/// the migration.
 		#[pallet::call_index(111)]
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]

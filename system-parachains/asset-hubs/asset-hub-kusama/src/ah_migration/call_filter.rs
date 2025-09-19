@@ -77,7 +77,8 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 ///       Start        End
 /// ```
 ///
-/// This call returns a 3-tuple to indicate whether a call is enabled during these periods.
+/// This call returns a 3-tuple to indicate whether a call is enabled during these periods. The
+/// Start period contains our Warmup period and the End period contains our Cool-off period.
 pub fn call_allowed_status(
 	call: &<Runtime as frame_system::Config>::RuntimeCall,
 ) -> (bool, bool, bool) {

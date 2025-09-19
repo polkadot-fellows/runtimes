@@ -812,7 +812,7 @@ pub mod pallet {
 	pub type PendingXcmQueries<T: Config> =
 		StorageMap<_, Twox64Concat, QueryId, T::Hash, OptionQuery>;
 
-	/// The DMP queue priority.
+	/// Manual override for `type UnprocessedMsgBuffer: Get<u32>`. Look there for docs.
 	#[pallet::storage]
 	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
 
@@ -2439,6 +2439,7 @@ pub mod pallet {
 			}
 
 			if batch_count > MAX_XCM_MSG_PER_BLOCK {
+				debug_assert!(false, "Unreachable: we always remaining len before pushing");
 				log::warn!(
 					target: LOG_TARGET,
 					"Maximum number of XCM messages ({}) to migrate per block exceeded, current msg count: {}",
