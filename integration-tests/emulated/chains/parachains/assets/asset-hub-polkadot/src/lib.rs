@@ -49,6 +49,7 @@ decl_test_parachains! {
 			PoolAssets: asset_hub_polkadot_runtime::PoolAssets,
 			AssetConversion: asset_hub_polkadot_runtime::AssetConversion,
 			SnowbridgeSystemFrontend: asset_hub_polkadot_runtime::SnowbridgeSystemFrontend,
+			Preimage: asset_hub_polkadot_runtime::Preimage,
 		}
 	},
 }

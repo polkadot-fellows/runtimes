@@ -140,7 +140,7 @@ jobs:
           srtool build
                  --root --profile production
                  --package CRATE_NAME --runtime-dir PATH_TO_CRATE
-                 --build-opts="--features=on-chain-release-build"
+                 --build-opts="$PROD_FEATURES"
           \`\`\`
           EOF
 

@@ -90,7 +90,12 @@ if args.command == 'bench':
     # loop over remaining runtimes to collect available pallets
     for runtime in runtimesMatrix.values():
         print(f'-- compiling the runtime {runtime["name"]}')
-        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features runtime-benchmarks")
+        features = "runtime-benchmarks"
+        features_extra = runtime.get("build_extra_features")
+        if features_extra:
+            features += "," + features_extra
+        print(f'-- with features {features}')
+        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
         output = os.popen(

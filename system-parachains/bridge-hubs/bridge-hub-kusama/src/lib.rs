@@ -57,8 +57,8 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
-		Everything, TransformOrigin,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf,
+		EitherOfDiverse, Everything, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -71,7 +71,8 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
-	FellowshipLocation, GovernanceLocation, StakingPot, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, FellowshipLocation, RelayChainLocation, StakingPot,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -397,7 +398,7 @@ parameter_types! {
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = AssetId(xcm_config::KsmRelayLocation::get());
+	pub FeeAssetId: AssetId = AssetId(RelayChainLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -482,7 +483,10 @@ parameter_types! {
 /// We allow Root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
@@ -622,11 +626,9 @@ mod benches {
 
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
-	use xcm_config::KsmRelayLocation;
-
 	parameter_types! {
 		pub ExistentialDepositAsset: Option<Asset> = Some((
-			KsmRelayLocation::get(),
+			RelayChainLocation::get(),
 			ExistentialDeposit::get()
 		).into());
 	}
@@ -688,7 +690,7 @@ mod benches {
 		fn worst_case_holding(_depositable_count: u32) -> Assets {
 			// just concrete assets according to relay chain.
 			let assets: Vec<Asset> = vec![Asset {
-				id: AssetId(KsmRelayLocation::get()),
+				id: AssetId(RelayChainLocation::get()),
 				fun: Fungible(1_000_000 * UNITS),
 			}];
 			assets.into()
@@ -698,7 +700,7 @@ mod benches {
 	parameter_types! {
 		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
 			AssetHubLocation::get(),
-			Asset { fun: Fungible(UNITS), id: AssetId(KsmRelayLocation::get()) },
+			Asset { fun: Fungible(UNITS), id: AssetId(RelayChainLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
@@ -712,7 +714,7 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(UNITS) }
+			Asset { id: AssetId(RelayChainLocation::get()), fun: Fungible(UNITS) }
 		}
 	}
 
@@ -745,14 +747,14 @@ mod benches {
 
 		fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 			let origin = AssetHubLocation::get();
-			let assets: Assets = (AssetId(KsmRelayLocation::get()), 1_000 * UNITS).into();
+			let assets: Assets = (AssetId(RelayChainLocation::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
 		}
 
 		fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
 			Ok((
-				Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) },
+				Asset { id: AssetId(RelayChainLocation::get()), fun: Fungible(1_000_000 * UNITS) },
 				Limited(Weight::from_parts(5000, 5000)),
 			))
 		}
@@ -1156,7 +1158,7 @@ impl_runtime_apis! {
 
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let acceptable_assets = vec![AssetId(xcm_config::KsmRelayLocation::get())];
+			let acceptable_assets = vec![AssetId(RelayChainLocation::get())];
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 

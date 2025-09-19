@@ -33,6 +33,7 @@ parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
 	pub const SubmissionDeposit: Balance = 0;
 	pub const UndecidingTimeout: BlockNumber = 7 * DAYS;
+	pub const FellowshipAdminBodyId: BodyId = kusama_runtime_constants::xcm::body::KUSAMA_FELLOWSHIP_ADMIN_BODY_ID;
 }
 
 const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 10] = [
@@ -340,7 +341,15 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	type PromoteOrigin = EitherOf<
 		frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
 		EitherOf<
-			MapSuccess<FellowshipAdmin, Replace<ConstU16<9>>>,
+			EitherOf<
+				// Allow FellowshipAdmin from OpenGov on RC
+				MapSuccess<FellowshipAdmin, Replace<ConstU16<9>>>,
+				// Allow FellowshipAdmin from OpenGov on AH
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+					Replace<ConstU16<9>>,
+				>,
+			>,
 			TryMapSuccess<origins::EnsureFellowship, CheckedReduceBy<ConstU16<1>>>,
 		>,
 	>;
@@ -351,7 +360,15 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	type DemoteOrigin = EitherOf<
 		frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
 		EitherOf<
-			MapSuccess<FellowshipAdmin, Replace<ConstU16<9>>>,
+			EitherOf<
+				// Allow FellowshipAdmin from OpenGov on RC
+				MapSuccess<FellowshipAdmin, Replace<ConstU16<9>>>,
+				// Allow FellowshipAdmin from OpenGov on AH
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+					Replace<ConstU16<9>>,
+				>,
+			>,
 			TryMapSuccess<origins::EnsureFellowship, CheckedReduceBy<ConstU16<2>>>,
 		>,
 	>;

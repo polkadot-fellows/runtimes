@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -35,20 +35,19 @@ use polkadot_runtime_constants::{
 	currency::CENTS, system_parachain::*, xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use sp_core::ConstU32;
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, BodyId};
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
-	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, Case,
 	ChildParachainAsNative, ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsChildSystemParachain,
-	IsConcrete, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
+	IsConcrete, LocationAsSuperuser, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 
 parameter_types! {
-	pub const RootLocation: Location = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
@@ -60,9 +59,11 @@ parameter_types! {
 	/// The Checking Account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
-	pub LocalCheckAccount: (AccountId, MintLocation) = (CheckAccount::get(), MintLocation::Local);
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	// Fellows pluralistic body.
+	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -80,6 +81,8 @@ pub type SovereignAccountOf = (
 /// of view of XCM-only concepts like `Location` and `Asset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
+///
+/// Teleports tracking is managed by `RcMigrator`
 pub type LocalAssetTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
@@ -89,8 +92,8 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// We track our teleports in/out to keep total issuance correct.
-	LocalCheckAccount,
+	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
+	TeleportTracking,
 >;
 
 /// The means that we convert an XCM origin `Location` into the runtime's `Origin` type for
@@ -108,6 +111,8 @@ type LocalOriginConverter = (
 	SignedAccountId32AsNative<ThisNetwork, RuntimeOrigin>,
 	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
 	XcmPassthrough<RuntimeOrigin>,
+	// AssetHub can execute as root
+	LocationAsSuperuser<Equals<AssetHubLocation>, RuntimeOrigin>,
 );
 
 parameter_types! {
@@ -120,20 +125,31 @@ parameter_types! {
 	pub FeeAssetId: AssetId = AssetId(TokenLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
+	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
-/// individual routers.
-pub type XcmRouter = WithUniqueTopic<(
+/// The XCM router. Use [`XcmRouter`] instead.
+pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
 	// Only one router so far - use DMP to communicate with child parachains.
 	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
 )>;
 
+/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
+/// individual routers.
+///
+/// This router does not route to the Asset Hub if the migration is ongoing.
+pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
+	XcmRouterWithoutException,
+	FromContains<Equals<AssetHubLocation>, Everything>,
+	crate::RcMigrator,
+>;
+
 parameter_types! {
-	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
+	pub const RootLocation: Location = Here.into_location();
+	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(Here.into_location()) });
 	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
 	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
 	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
@@ -144,16 +160,15 @@ parameter_types! {
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub People: Location = Parachain(PEOPLE_ID).into_location();
 	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
-	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
 /// Polkadot Relay recognizes/respects System Parachains as teleporters.
 pub type TrustedTeleporters = (
-	xcm_builder::Case<DotForAssetHub>,
-	xcm_builder::Case<DotForCollectives>,
-	xcm_builder::Case<DotForBridgeHub>,
-	xcm_builder::Case<DotForCoretime>,
-	xcm_builder::Case<DotForPeople>,
+	Case<DotForAssetHub>,
+	Case<DotForCollectives>,
+	Case<DotForBridgeHub>,
+	Case<DotForCoretime>,
+	Case<DotForPeople>,
 );
 
 pub struct Fellows;
@@ -180,6 +195,13 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
+pub struct AssetHubPlurality;
+impl Contains<Location> for AssetHubPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Parachain(ASSET_HUB_ID), Plurality { .. }]))
+	}
+}
+
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = TrailingSetTopicAsId<(
 	// Weight that is paid for may be consumed.
@@ -193,7 +215,11 @@ pub type Barrier = TrailingSetTopicAsId<(
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<OnlyParachains>,
 			// Messages from system parachains or the Fellows plurality need not pay for execution.
-			AllowExplicitUnpaidExecutionFrom<(IsChildSystemParachain<ParaId>, Fellows)>,
+			AllowExplicitUnpaidExecutionFrom<(
+				IsChildSystemParachain<ParaId>,
+				Fellows,
+				AssetHubPlurality,
+			)>,
 		),
 		UniversalLocation,
 		ConstU32<8>,
@@ -213,7 +239,8 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter = TrustedTeleporters;
+	type IsTeleporter =
+		pallet_rc_migrator::xcm_config::FalseIfMigrating<crate::RcMigrator, TrustedTeleporters>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -234,6 +261,8 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
+		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
+		// of the new AH Treasury.
 		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
 	>;
 	// No bridges on the Relay Chain

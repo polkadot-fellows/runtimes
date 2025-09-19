@@ -31,6 +31,7 @@ asset-test-utils = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 
 # Local
+asset-hub-kusama-runtime = { workspace = true }
 kusama-runtime-constants = { workspace = true, default-features = true }
 kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
@@ -39,6 +40,7 @@ kusama-system-emulated-network = { workspace = true }
 
 [features]
 runtime-benchmarks = [
+	"asset-hub-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
