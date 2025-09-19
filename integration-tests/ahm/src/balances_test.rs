@@ -85,7 +85,7 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		#[cfg(feature = "polkadot-ahm")]
 		defensive_assert!(ah_checking_balance_before == <T as Config>::Currency::minimum_balance());
 		#[cfg(feature = "kusama-ahm")]
-		defensive_assert!(ah_checking_balance_before.is_zero());
+		defensive_assert!(ah_checking_balance_before == 0);
 
 		(ah_total_issuance_before, ah_checking_balance_before)
 	}

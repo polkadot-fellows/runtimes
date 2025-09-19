@@ -1279,18 +1279,16 @@ pub mod tests {
 			}
 
 			let total_issuance = <T as Config>::Currency::total_issuance();
-			let tracker = RcMigratedBalance::<T>::get();
-			// verify total issuance hasn't changed for any other reason than the migrated funds
-			// @kianenigma: also failing, not sure why.
-			// assert_eq!(
-			// 	total_issuance,
-			// 	rc_total_issuance_before.saturating_sub(tracker.migrated),
-			// 	"Change on total issuance on the relay chain after migration is not as expected"
-			// );
-			// assert_eq!(
-			// 	total_issuance, tracker.kept,
-			// 	"Kept balance on the relay chain after migration is not as expected"
-			// );
+			let tracker = RcMigratedBalanceArchive::<T>::get();
+			assert_eq!(
+				total_issuance,
+				rc_total_issuance_before.saturating_sub(tracker.migrated),
+				"Change on total issuance on the relay chain after migration is not as expected"
+			);
+			assert_eq!(
+				total_issuance, tracker.kept,
+				"Kept balance on the relay chain after migration is not as expected"
+			);
 		}
 	}
 }
