@@ -743,7 +743,7 @@ impl<T: Config> AccountsMigrator<T> {
 			weight += T::DbWeight::get().reads(1);
 
 			if frame_system::Pallet::<T>::account_nonce(&acc).is_zero() {
-				PureProxyCandidatesMigrated::<T>::insert(acc, false);
+				PureProxyCandidatesMigrated::<T>::insert(&acc, false);
 				num_accounts += 1;
 			}
 		}
