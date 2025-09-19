@@ -3301,28 +3301,29 @@ mod multiplier_tests {
 	}
 
 	#[test]
-	#[ignore]
 	fn multiplier_growth_simulator() {
-		// assume the multiplier is initially set to its minimum. We update it with values twice the
-		//target (target is 25%, thus 50%) and we see at which point it reaches 1.
-		let mut multiplier = MinimumMultiplier::get();
-		let block_weight = BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
-		let mut blocks = 0;
-		let mut fees_paid = 0;
-
-		frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
-		// TODO: @ggwpez Find out if this test is correct, since we're not yet considering
-		// `extension_weight`
-		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
-
 		let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()
 			.unwrap()
 			.into();
+
 		// set the minimum
-		t.execute_with(|| {
+		let (mut multiplier, block_weight) = t.execute_with(|| {
 			pallet_transaction_payment::NextFeeMultiplier::<Runtime>::set(MinimumMultiplier::get());
+
+			// assume the multiplier is initially set to its minimum. We update it with values twice
+			// the target (target is 25%, thus 50%) and we see at which point it reaches 1.
+			let multiplier = MinimumMultiplier::get();
+			let block_weight = BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
+
+			frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
+
+			(multiplier, block_weight)
 		});
+
+		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
+		let mut blocks = 0;
+		let mut fees_paid = 0;
 
 		while multiplier <= Multiplier::from_u32(1) {
 			t.execute_with(|| {

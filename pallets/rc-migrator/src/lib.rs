@@ -125,7 +125,7 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 
 /// Soft limit on the DMP message size.
 ///
-/// The hard limit should be about 64KiB (TODO: @ggwpez test) which means that we stay well below
+/// The hard limit should be about 64KiB which means that we stay well below
 /// that to avoid any trouble. We can raise this as final preparation for the migration once
 /// everything is confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
@@ -261,7 +261,6 @@ pub enum MigrationStage<
 
 	PreimageMigrationInit,
 	PreimageMigrationChunksOngoing {
-		// TODO: @ggwpez type
 		last_key: Option<((H256, u32), u32)>,
 	},
 	PreimageMigrationChunksDone,
