@@ -1113,7 +1113,7 @@ mod inflation_tests {
 				MILLISECONDS_PER_DAY,
 			);
 			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
-			let era_rate = two_year_rate * Perbill::from_float(0.5) * Perbill::from_float(1.0/365.25);
+			let era_rate = two_year_rate * Perbill::from_rational(1u32, 2u32) * Perbill::from_rational(100u32, 36525u32);
 			let assumed_payout = era_rate * (TARGET_TI - MARCH_TI);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
