@@ -125,7 +125,7 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 
 /// Soft limit on the DMP message size.
 ///
-/// The hard limit should be about 64KiB (TODO: @ggwpez test) which means that we stay well below
+/// The hard limit should be about 64KiB which means that we stay well below
 /// that to avoid any trouble. We can raise this as final preparation for the migration once
 /// everything is confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
@@ -225,6 +225,8 @@ pub enum MigrationStage<
 	},
 	/// The migration is starting and initialization hooks are being executed.
 	Starting,
+	/// Indexing pure proxy candidates.
+	PureProxyCandidatesMigrationInit,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
 	/// Migrating account balances.
@@ -261,7 +263,6 @@ pub enum MigrationStage<
 
 	PreimageMigrationInit,
 	PreimageMigrationChunksOngoing {
-		// TODO: @ggwpez type
 		last_key: Option<((H256, u32), u32)>,
 	},
 	PreimageMigrationChunksDone,
@@ -1388,6 +1389,17 @@ pub mod pallet {
 					log::info!(target: LOG_TARGET, "Starting the migration");
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_start();
 
+					Self::transition(MigrationStage::PureProxyCandidatesMigrationInit);
+				},
+				// Needs to happen *before* accounts migration.
+				MigrationStage::PureProxyCandidatesMigrationInit => {
+					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
+
+					weight_counter.consume(weight);
+					if let Some(num_pure_accounts) = num_pure_accounts {
+						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });
+					}
+
 					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
@@ -1503,12 +1515,6 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
-					let (num_pure_accounts, weight) = AccountsMigrator::<T>::obtain_free_proxy_candidates();
-
-					weight_counter.consume(weight);
-					if let Some(num_pure_accounts) = num_pure_accounts {
-						Self::deposit_event(Event::PureAccountsIndexed { num_pure_accounts });
-					}
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {

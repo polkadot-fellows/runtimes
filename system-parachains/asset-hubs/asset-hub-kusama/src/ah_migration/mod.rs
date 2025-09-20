@@ -123,9 +123,6 @@ impl TryConvert<RcPalletsOrigin, OriginCaller> for RcToAhPalletsOrigin {
 /// Relay Chain Runtime Call.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcRuntimeCall {
-	// TODO: @muharem variant set code for Relay Chain
-	// TODO: @muharem variant set code for Parachains
-	// TODO: @muharem whitelisted caller
 	#[codec(index = 0u8)]
 	System(frame_system::Call<Runtime>),
 	#[codec(index = 18u8)]

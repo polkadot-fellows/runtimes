@@ -30,13 +30,15 @@ use pallet_staking_async_rc_client as rc_client;
 use scale_info::TypeInfo;
 use sp_runtime::{transaction_validity::TransactionPriority, Perquintill};
 use sp_staking::SessionIndex;
-use system_parachains_constants::async_backing::MINUTES;
 use xcm::v5::prelude::*;
 
+// alias for the ones backed by parameters-pallet.
+use dynamic_params::staking_election::{
+	MaxElectingVoters, MaxEraDuration, MaxSignedSubmissions, MinerPages, SignedPhase,
+	TargetSnapshotPerBlock, UnsignedPhase,
+};
+
 // NOTES:
-// * a lot of the parameters are defined as `storage` such that they can be upgraded with a smaller
-//   overhead by the root origin, as opposed to a code upgrade. We expect to remove them. If all
-//   goes well in Kusama AHM, we can stop using `storage` in Polkadot.
 // * The EPMB pallets only use local block times. They can one day be moved to use the relay-chain
 //   block, based on how the core-count and fast-blocks evolve, they might benefit from moving to
 //   relay-chain blocks. As of now, the duration of all phases are more about "POV" than "time", so
@@ -47,38 +49,14 @@ parameter_types! {
 	/// Kusama election pages, 1.6m snapshot.
 	pub Pages: u32 = 16;
 
-	/// 20 mins worth of local 6s blocks for signed phase.
-	pub storage SignedPhase: u32 = 20 * MINUTES;
-
-	/// Allow up to 16 signed solutions to be submitted.
-	///
-	/// Safety note: Larger signed submission increases the weight of the `OnRoundRotation` data cleanup.
-	pub storage MaxSignedSubmissions: u32 = 16;
-
-	/// Verify all of them.
-	pub storage SignedValidationPhase: u32 = Pages::get() * MaxSignedSubmissions::get();
-
-	/// 30m for unsigned phase.
-	pub storage UnsignedPhase: u32 = 30 * MINUTES;
-
-	/// In which we try and mine a 4-page solution.
-	pub storage MinerPages: u32 = 4;
+	/// Verify all signed submissions.
+	pub SignedValidationPhase: u32 = Pages::get() * MaxSignedSubmissions::get();
 
 	/// Allow OCW miner to at most run 4 times in the entirety of the 10m Unsigned Phase.
 	pub OffchainRepeat: u32 = UnsignedPhase::get() / 4;
 
-	/// Kusama allows up to 12_500 active nominators (aka. electing voters).
-	pub storage MaxElectingVoters: u32 = 12_500;
-
-	/// Which leads to ~782 nominators in each snapshot page (and consequently solution page, at most).
+	/// 782 nominators in each snapshot page (and consequently solution page, at most).
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
-
-	/// An upper bound on the number of anticipated kusama "validator candidates".
-	///
-	/// At the time of writing, Kusama has 1000 active validators, and ~2k validator candidates.
-	///
-	/// Safety note: This increases the weight of `on_initialize_into_snapshot_msp` weight. Double check TODO @kianenigma.
-	pub storage TargetSnapshotPerBlock: u32 = 2500;
 
 	/// Kusama will at most have 1000 validators.
 	pub const MaxValidatorSet: u32 = 1000;
@@ -215,7 +193,6 @@ impl multi_block::Config for Runtime {
 	// Revert back to signed phase if nothing is submitted and queued, so we prolong the election.
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	// Clean all data on round rotation. Later on, we can move to lazy deletion.
-	// TODO @kianenigma lazy deletion already?
 	type OnRoundRotation = multi_block::CleanRound<Self>;
 	type WeightInfo = weights::pallet_election_provider_multi_block::WeightInfo<Self>;
 }
@@ -228,11 +205,6 @@ impl multi_block::verifier::Config for Runtime {
 	// Deliberate choice: we want any solution, even an epsilon better, to be considered superior.
 	type SolutionImprovementThreshold = ();
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Self>;
-}
-
-parameter_types! {
-	pub const GeometricDepositStart: Balance = UNITS / 10;
-	pub const GeometricDepositCommon: Balance = 4;
 }
 
 /// ## Example
@@ -250,7 +222,7 @@ parameter_types! {
 ///
 /// 	// Full 16 page deposit, to be paid on top of the above base
 /// 	sp_io::TestExternalities::default().execute_with(|| {
-/// 		let deposit = asset_hub_kusama_runtime::staking::DepositPerPage::get() * 16;
+/// 		let deposit = asset_hub_kusama_runtime::staking::SignedDepositPerPage::get() * 16;
 /// 		assert_eq!(deposit, 515_519_591_040); // 0.5 KSM
 /// 	})
 /// }
@@ -264,15 +236,26 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct ConstantDeposit;
+#[cfg(feature = "runtime-benchmarks")]
+impl multi_block::signed::CalculateBaseDeposit<Balance> for ConstantDeposit {
+	fn calculate_base_deposit(_: usize) -> Balance {
+		UNITS
+	}
+}
+
 // Parameters only regarding signed submission deposits/rewards.
 parameter_types! {
-	pub DepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
-	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but get away with it last minute. We only return 25% of the deposit in case someone bails. In Polkadot, this value will be lower or simply zero.
+	pub SignedDepositPerPage: Balance = system_para_deposit(1, NposCompactSolution24::max_encoded_len() as u32);
+	/// Bailing is rather disincentivized, as it can allow attackers to submit bad solutions, but
+	/// get away with it last minute. We only return 25% of the deposit in case someone bails. In
+	/// Polkadot, this value will be lower or simply zero.
 	pub BailoutGraceRatio: Perbill = Perbill::from_percent(25);
 	/// Invulnerable miners will pay this deposit only.
 	pub InvulnerableFixedDeposit: Balance = UNITS;
 	/// Being ejected is already paid for by the new submitter replacing you; no need to charge deposit.
-	pub EjectGraceRatio: Perbill = Perbill::from_percent(0);
+	pub EjectGraceRatio: Perbill = Perbill::from_percent(100);
 	/// .2 KSM as the reward for the best signed submission.
 	pub RewardBase: Balance = UNITS / 5;
 }
@@ -281,8 +264,11 @@ impl multi_block::signed::Config for Runtime {
 	type Currency = Balances;
 	type BailoutGraceRatio = BailoutGraceRatio;
 	type EjectGraceRatio = EjectGraceRatio;
-	type DepositBase = DepositBase;
-	type DepositPerPage = DepositPerPage;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type DepositBase = GeometricDeposit;
+	#[cfg(feature = "runtime-benchmarks")]
+	type DepositBase = ConstantDeposit;
+	type DepositPerPage = SignedDepositPerPage;
 	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
@@ -338,20 +324,19 @@ pub struct EraPayout;
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
 		total_staked: Balance,
-		_total_issuance: Balance,
+		total_issuance: Balance,
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 		use crate::dynamic_params;
 
-		// TODO @kianenigma one sanity check test for this as we had in the RC
 		let params = polkadot_runtime_common::impls::EraPayoutParams {
 			total_staked,
-			total_stakable: Balances::total_issuance(),
-			ideal_stake: dynamic_params::inflation::IdealStake::get(),
-			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
-			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
-			falloff: dynamic_params::inflation::Falloff::get(),
+			total_stakable: total_issuance,
+			ideal_stake: dynamic_params::issuance::IdealStake::get(),
+			max_annual_inflation: dynamic_params::issuance::MaxInflation::get(),
+			min_annual_inflation: dynamic_params::issuance::MinInflation::get(),
+			falloff: dynamic_params::issuance::Falloff::get(),
 			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
 			// Note: Kusama RC had the code for reserving a subset of its "ideal-staked-ratio" to be
 			// allocated to parachain auctions. Yet, this code was buggy in the RC, and was actually
@@ -371,7 +356,7 @@ parameter_types! {
 	/// confused in case AH block times change. Ideally, this value should be updated alongside AH's
 	/// block time. If AH blocks progress faster, our eras will become shorter, which is not a
 	/// critical issue.
-	pub const RelaySessionDuration: BlockNumber = 1 * HOURS;
+	pub const RelaySessionDuration: BlockNumber = 1 * RC_HOURS;
 	pub const BondingDuration: sp_staking::EraIndex = 28;
 	pub const SlashDeferDuration: sp_staking::EraIndex = 27;
 	/// Note: smaller value than in RC as parachain PVF is more sensitive to over-weight execution.
@@ -383,17 +368,7 @@ parameter_types! {
 		frame_election_provider_support::NposSolution
 	>::LIMIT as u32;
 
-	/// This is the upper bound on how much we are willing to inflate per era. We also emit a
-	/// warning event in case an era is longer than this amount.
-	///
-	/// Under normal conditions, this upper bound is never needed. Yet, since this is the first
-	/// deployment of pallet-staking-async, eras might become longer due to misconfiguration, and we
-	/// don't want to reduce the validator payouts by too much because of this. Therefore, we allow
-	/// each era to be at most 2x the expected value
-	pub const MaxEraDuration: u64 = 2 * (
-		// the expected era duration in milliseconds.
-		RelaySessionDuration::get() as u64 * RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 * SessionsPerEra::get() as u64
-	);
+	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;
 }
 
@@ -526,69 +501,94 @@ where
 	}
 }
 
-pub struct InitiateStakingAsync<const EXPECTED_SPEC: u32>;
-impl<const EXPECTED_SPEC: u32> frame_support::traits::OnRuntimeUpgrade
-	for InitiateStakingAsync<EXPECTED_SPEC>
-{
+pub struct InitiateStakingAsync;
+
+impl InitiateStakingAsync {
+	fn needs_init() -> bool {
+		// A good proxy whether this pallet is initialized or not is that no invulnerable is set in
+		// `epmb::signed`. The rest are more fuzzy or are inaccessble.
+		multi_block::signed::Invulnerables::<Runtime>::get().is_empty()
+	}
+}
+
+impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	fn on_runtime_upgrade() -> Weight {
-		if crate::VERSION.spec_version == EXPECTED_SPEC {
-			use pallet_election_provider_multi_block::verifier::Verifier;
-			// set parity staking miner as the invulnerable submitter in `multi-block`.
-			// https://kusama.subscan.io/account/GtGGqmjQeRt7Q5ggrjmSHsEEfeXUMvPuF8mLun2ApaiotVr
-			let acc = hex_literal::hex!(
-				"bea06e6ad606b2a80822a72aaae84a9a80bec27f1beef1880ad4970b72227601"
-			);
-			if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
-				multi_block::signed::Invulnerables::<Runtime>::put(bounded);
-			}
-
-			// set the minimum score for the election, as per the kusama RC state.
-			//
-			// This value is set from block [29,940,247](https://dev.papi.how/explorer/0xf8e2599cd04321369810cd6b4c520f4bc3a8f08f76089d0e467d4a0967179a94#networkId=kusama&endpoint=wss%3A%2F%2Frpc.ibp.network%2Fkusama) of Kusama RC.
-			// Recent election scores in Kusama can be found on:
-			// https://kusama.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
-			//
-			// The last example, at block [29939392](https://kusama.subscan.io/event/29939392-0) being:
-			//
-			// * minimal_stake: 6543_701_618_936_726 (2.12x the minimum -- 6.5k KSM)
-			// * sum_stake: 8_062_560_594_210_938_663 (2.3x the minimum -- 8M KSM)
-			// * sum_stake_squared: 67_504_538_161_651_736_253_970_267_717_229_279 (0.8 the minimum,
-			//   the lower the better)
-			let minimum_score = sp_npos_elections::ElectionScore {
-				minimal_stake: 2957640724907066,
-				sum_stake: 3471819933857856584,
-				sum_stake_squared: 78133097080615021100202963085417458,
-			};
-			<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
-
-			// The maximum number of validators should be equal to `TargetSnapshotPerBlock`, 2500.
-			//
-			// Note that previously this value was 4000, allowing for possibly more validator
-			// candidates to exists. In a parachain, we cannot afford this high limit anymore, as
-			// it would increase the chances of the chain stalling due to over-weight
-			// on-initialize code.
-			//
-			// Future iterations of staking-async will either:
-			//
-			// * Remove this bottleneck
-			// * Move to using `on_poll`
-			//
-			// After which this limit can be increased again.
-			pallet_staking_async::ValidatorCount::<Runtime>::put(2500);
-
-			<Runtime as frame_system::Config>::DbWeight::get().writes(3)
-		} else {
-			Default::default()
+		if !Self::needs_init() {
+			return <Runtime as frame_system::Config>::DbWeight::get().writes(1);
 		}
+		use pallet_election_provider_multi_block::verifier::Verifier;
+		// set parity staking miner as the invulnerable submitter in `multi-block`.
+		// https://kusama.subscan.io/account/FyrGiYDGVxg5UUpN3qR5nxKGMxCe5Ddfkb3BXjxybG6j8gX
+		let acc =
+			hex_literal::hex!("96a6df31a112d610277c818fd9a8443d265fb5ab83cba47c5e89cff16cf9e011");
+		if let Ok(bounded) = BoundedVec::<AccountId, _>::try_from(vec![acc.into()]) {
+			multi_block::signed::Invulnerables::<Runtime>::put(bounded);
+		}
+
+		// set the minimum score for the election, as per the kusama RC state.
+		//
+		// This value is set from block [29,940,247](https://dev.papi.how/explorer/0xf8e2599cd04321369810cd6b4c520f4bc3a8f08f76089d0e467d4a0967179a94#networkId=kusama&endpoint=wss%3A%2F%2Frpc.ibp.network%2Fkusama) of Kusama RC.
+		// Recent election scores in Kusama can be found on:
+		// https://kusama.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
+		//
+		// The last example, at block [29939392](https://kusama.subscan.io/event/29939392-0) being:
+		//
+		// * minimal_stake: 6543_701_618_936_726 (2.12x the minimum -- 6.5k KSM)
+		// * sum_stake: 8_062_560_594_210_938_663 (2.3x the minimum -- 8M KSM)
+		// * sum_stake_squared: 67_504_538_161_651_736_253_970_267_717_229_279 (0.8 the minimum, the
+		//   lower the better)
+		let minimum_score = sp_npos_elections::ElectionScore {
+			minimal_stake: 2957640724907066,
+			sum_stake: 3471819933857856584,
+			sum_stake_squared: 78133097080615021100202963085417458,
+		};
+		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
+
+		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-
+	use frame_election_provider_support::ElectionProvider;
+	use pallet_staking_async::EraPayout;
 	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
+	#[test]
+	fn inflation_sanity_check() {
+		// values taken from a recent Kusama snapshot:
+		// active era: 8546
+		// total_staked: 8085567183241128549
+		// TI: 17016510054564053390
+		// Ext needed because of parameters, which are not set in kusama, so the defaults are gud.
+		// recent era paid: https://kusama.subscan.io/event/30011049-0
+		// 835 KSM / 291 KSM
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let average_era_duration_millis = 6 * 60 * 60 * 1000; // 6h
+			let (staking, treasury) = super::EraPayout::era_payout(
+				8085567183241128549,
+				17016510054564053390,
+				average_era_duration_millis,
+			);
+			assert_eq!(staking, 844_606070970705);
+			assert_eq!(treasury, 320_110565207524);
+		});
+	}
+
+	#[test]
+	fn election_duration_less_than_session() {
+		// parameters of kusama are such that the election is intended to kick of at the start of
+		// session `n` and the results to be ready before the end of that session. Atm RC and KAH
+		// have the same block time, 6s.
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let duration = <<Runtime as pallet_staking_async::Config>::ElectionProvider as ElectionProvider>::duration();
+			let session = RelaySessionDuration::get();
+			log::info!(target: "runtime::asset-hub-kusama", "election duration is {:?}, relay session {:?}", duration, session);
+			assert!(duration < session);
+		});
+	}
 
 	fn analyze_weight(
 		op_name: &str,
@@ -620,9 +620,8 @@ mod tests {
 	}
 
 	mod incoming_xcm_weights {
-		use sp_runtime::{Perbill, Percent};
-
 		use crate::staking::tests::analyze_weight;
+		use sp_runtime::{traits::Get, Perbill, Percent};
 
 		#[test]
 		fn offence_report() {
@@ -630,38 +629,43 @@ mod tests {
 			use frame_support::dispatch::GetDispatchInfo;
 			use pallet_staking_async_rc_client as rc_client;
 
-			// up to a 1/3 of the validators are reported in a single batch of offences
-			let hefty_offences = (0..333)
-				.map(|i| {
-					rc_client::Offence {
-						offender: <AccountId>::from([i as u8; 32]), /* overflows, but whatever,
-						                                             * don't matter */
-						reporters: vec![<AccountId>::from([1u8; 32])],
-						slash_fraction: Perbill::from_percent(10),
-					}
-				})
-				.collect();
-			let di = rc_client::Call::<Runtime>::relay_new_offence {
-				slash_session: 42,
-				offences: hefty_offences,
-			}
-			.get_dispatch_info();
+			sp_io::TestExternalities::new_empty().execute_with(|| {
+				// up to a 1/3 of the validators are reported in a single batch of offences
+				let hefty_offences = (0..333)
+					.map(|i| {
+						rc_client::Offence {
+							offender: <AccountId>::from([i as u8; 32]), /* overflows, but
+							                                             * whatever,
+							                                             * don't matter */
+							reporters: vec![<AccountId>::from([1u8; 32])],
+							slash_fraction: Perbill::from_percent(10),
+						}
+					})
+					.collect();
+				let di = rc_client::Call::<Runtime>::relay_new_offence {
+					slash_session: 42,
+					offences: hefty_offences,
+				}
+				.get_dispatch_info();
 
-			let offence_report = di.call_weight + di.extension_weight;
-			let mq_service_weight = crate::MessageQueueServiceWeight::get();
+				let offence_report = di.call_weight + di.extension_weight;
+				let mq_service_weight =
+					<Runtime as pallet_message_queue::Config>::ServiceWeight::get()
+						.unwrap_or_default();
 
-			analyze_weight(
-				"offence_report",
-				offence_report,
-				mq_service_weight,
-				Some(Percent::from_percent(95)),
-			);
+				analyze_weight(
+					"offence_report",
+					offence_report,
+					mq_service_weight,
+					Some(Percent::from_percent(95)),
+				);
+			});
 		}
 
 		#[test]
 		fn session_report() {
 			use crate::{AccountId, Runtime};
-			use frame_support::dispatch::GetDispatchInfo;
+			use frame_support::{dispatch::GetDispatchInfo, traits::Get};
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
@@ -684,12 +688,14 @@ mod tests {
 				let di = rc_client::Call::<Runtime>::relay_session_report { report: hefty_report }
 					.get_dispatch_info();
 				let session_report_weight = di.call_weight + di.extension_weight;
-				let mq_service_weight = crate::MessageQueueServiceWeight::get();
+				let mq_service_weight =
+					<Runtime as pallet_message_queue::Config>::ServiceWeight::get()
+						.unwrap_or_default();
 				analyze_weight(
 					"session_report",
 					session_report_weight,
 					mq_service_weight,
-					Some(Percent::from_percent(95)),
+					Some(Percent::from_percent(50)),
 				);
 			})
 		}

@@ -496,20 +496,6 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 			.saturating_add(Weight::from_parts(6_227_744, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `Recovery::ActiveRecoveries` (r:0 w:255)
-	/// Proof: `Recovery::ActiveRecoveries` (`max_values`: None, `max_size`: Some(389), added: 2864, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_recovery_messages(n: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 6_000_000 picoseconds.
-		Weight::from_parts(7_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 3_916
-			.saturating_add(Weight::from_parts(1_712_344, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
-	}
 	/// Storage: `AhMigrator::AhMigrationStage` (r:1 w:1)
 	/// Proof: `AhMigrator::AhMigrationStage` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::MigrationStartBlock` (r:0 w:1)

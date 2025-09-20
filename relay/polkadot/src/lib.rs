@@ -46,8 +46,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, Everything, FromContains,
-		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
@@ -89,6 +89,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
+use sp_runtime::traits::Convert;
 
 use relay_common::apis::InflationInfo;
 use runtime_parachains::{
@@ -164,6 +165,9 @@ impl_runtime_weights!(polkadot_runtime_constants);
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(all(not(feature = "polkadot-ahm"), feature = "on-chain-release-build"))]
+compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
+
 // Polkadot version identifier;
 /// Runtime version (Polkadot).
 #[sp_version::runtime_version]
@@ -171,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -653,16 +657,6 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
 
-// TODO @kianenigma: remove feature gate and keep 10, when we want to activate it for Polkadot
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-	pub const AutoRebagNumber: u32 = 10;
-}
-#[cfg(not(feature = "runtime-benchmarks"))]
-parameter_types! {
-	pub const AutoRebagNumber: u32 = 0;
-}
-
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -673,7 +667,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxAutoRebagPerBlock = ConstU32<5>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxAutoRebagPerBlock = AutoRebagNumber;
+	type MaxAutoRebagPerBlock = ();
 }
 
 /// Defines how much should the inflation be for an era given its duration.
@@ -1556,10 +1550,11 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = ConstU32<400>; // TODO @kianenigma
+	// Polkadot RC currently has 600 validators. 500 minimum for now.
+	type MinimumValidatorSetSize = ConstU32<500>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
-	type MaxOffenceBatchSize = ConstU32<50>;
+	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
 	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
 }
@@ -1627,12 +1622,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	fn relay_session_report(
 		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
 	) {
-		pallet_staking_async_rc_client::XCMSender::<
-			xcm_config::XcmRouter,
-			AssetHubLocation,
-			pallet_staking_async_rc_client::SessionReport<AccountId>,
-			SessionReportToXcm,
-		>::split_then_send(session_report, Some(8));
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let message = SessionReportToXcm::convert(session_report);
+		let dest = AssetHubLocation::get();
+		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
+			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {:?}", err);
+		});
 	}
 
 	fn relay_new_offence(
@@ -1655,9 +1650,12 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 				.into(),
 			},
 		]);
-		if let Err(err) = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message) {
-			log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
-		}
+		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
+		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
+			|err| {
+				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+			},
+		);
 	}
 }
 
@@ -1931,27 +1929,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use pallet_balances::WeightInfo;
-
-	parameter_types! {
-		/// Weight for balance unreservations
-		pub BalanceTransferAllowDeath: Weight = weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
-	}
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_shared::migration::MigrateToV1<Runtime>,
-		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
-		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
-		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
-		pallet_session::migrations::v1::MigrateV0ToV1<
-			Runtime,
-			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
-		>,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2096,11 +2079,7 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay can reserve transfer native token to some random parachain.
-			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				Parachain(RandomParaId::get().into()).into(),
-			))
+			None
 		}
 
 		fn set_up_complex_asset_transfer(
@@ -3322,28 +3301,29 @@ mod multiplier_tests {
 	}
 
 	#[test]
-	#[ignore]
 	fn multiplier_growth_simulator() {
-		// assume the multiplier is initially set to its minimum. We update it with values twice the
-		//target (target is 25%, thus 50%) and we see at which point it reaches 1.
-		let mut multiplier = MinimumMultiplier::get();
-		let block_weight = BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
-		let mut blocks = 0;
-		let mut fees_paid = 0;
-
-		frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
-		// TODO: @ggwpez Find out if this test is correct, since we're not yet considering
-		// `extension_weight`
-		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
-
 		let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()
 			.unwrap()
 			.into();
+
 		// set the minimum
-		t.execute_with(|| {
+		let (mut multiplier, block_weight) = t.execute_with(|| {
 			pallet_transaction_payment::NextFeeMultiplier::<Runtime>::set(MinimumMultiplier::get());
+
+			// assume the multiplier is initially set to its minimum. We update it with values twice
+			// the target (target is 25%, thus 50%) and we see at which point it reaches 1.
+			let multiplier = MinimumMultiplier::get();
+			let block_weight = BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
+
+			frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
+
+			(multiplier, block_weight)
 		});
+
+		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
+		let mut blocks = 0;
+		let mut fees_paid = 0;
 
 		while multiplier <= Multiplier::from_u32(1) {
 			t.execute_with(|| {
