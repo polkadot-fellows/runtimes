@@ -268,7 +268,10 @@ pub mod temp_curve {
 		/// Move towards a desired value by a percentage of the remaining difference at each step.
 		///
 		/// Step size will be (target_total - current_value) * pct.
-		RemainingPct(V, Perbill),
+		RemainingPct {
+			target: V, 
+			pct: Perbill
+		},
 	}
 
 	/// A stepped curve.
@@ -279,8 +282,6 @@ pub mod temp_curve {
 	pub struct SteppedCurve<P, V> {
 		/// The starting point for the curve.
 		pub start: P,
-		/// An optional point at which the curve ends. If `None`, the curve continues indefinitely.
-		pub end: Option<P>,
 		/// The initial value of the curve at the `start` point.
 		pub initial_value: V,
 		/// The change to apply at the end of each `period`.
@@ -295,8 +296,8 @@ pub mod temp_curve {
 		V: AtLeast32BitUnsigned + Copy + From<P>,
 	{
 		/// Creates a new `SteppedCurve`.
-		pub fn new(start: P, end: Option<P>, initial_value: V, step: Step<V>, period: P) -> Self {
-			Self { start, end, initial_value, step, period }
+		pub fn new(start: P, initial_value: V, step: Step<V>, period: P) -> Self {
+			Self { start, initial_value, step, period }
 		}
 
 		/// Returns the magnitude of the step size occuring at the start of this point's period.
@@ -313,9 +314,6 @@ pub mod temp_curve {
 			if self.period.is_zero() {
 				return V::zero();
 			}
-
-			// Determine the effective point for calculation, capped by the end point if it exists.
-			let _effective_point = self.end.map_or(point, |e| point.min(e));
 
 			// Calculate how many full periods have passed.
 			let num_periods = (point - self.start) / self.period;
@@ -344,7 +342,7 @@ pub mod temp_curve {
 			let initial = self.initial_value;
 
 			// If the point is before the curve starts, return the initial value.
-			if point < self.start {
+			if point <= self.start {
 				return initial;
 			}
 
@@ -353,11 +351,8 @@ pub mod temp_curve {
 				return initial;
 			}
 
-			// Determine the effective point for calculation, capped by the end point if it exists.
-			let effective_point = self.end.map_or(point, |e| point.min(e));
-
 			// Calculate how many full periods have passed, capped by usize.
-			let num_periods = (effective_point - self.start) / self.period;
+			let num_periods = (point - self.start) / self.period;
 			let num_periods_usize = num_periods.saturated_into::<usize>();
 
 			if num_periods.is_zero() {
@@ -365,7 +360,7 @@ pub mod temp_curve {
 			}
 
 			match self.step {
-				Step::RemainingPct(asymptote, percent) => {
+				Step::RemainingPct{target: asymptote, pct: percent} => {
 					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
 					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
 					let scale = ratio.saturating_pow(num_periods_usize);
@@ -411,22 +406,18 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			let fixed_inflation_rate = FixedU128::from_rational(8, 100);
 			fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
 		} else {
-			// Extrapolated total issuance at time of first stepping. Based on a per era emission of ~328_774.593.
-			// Note: This deviates a bit from [Ref 1710's](https://polkadot.subsquare.io/referenda/1710) initial
-			// extrapolation of 1_676_733_867.
-			let march_14_2026_ti = 1_676_562_737u128 * UNITS;
+			// The calculated TI used in [Ref 1710's](https://polkadot.subsquare.io/referenda/1710).
+			let march_14_2026_ti = 1_676_733_867u128 * UNITS;
 			let target_ti = 2_100_000_000u128 * UNITS;
-			let two_year_rate = Perbill::from_float(0.2628);
+			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
 
 			let ti_curve = temp_curve::SteppedCurve::new(
 				// The start date of the curve. Set two years prior to the first step date.
 				march_14_2026 - (2 * RC_YEARS),
-				// No end to the stepping.
-				None,
 				// The initial value of the curve.
 				march_14_2026_ti,
 				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
-				temp_curve::Step::RemainingPct(target_ti, two_year_rate),
+				temp_curve::Step::RemainingPct{target: target_ti, pct: two_year_rate},
 				// Step every two years.
 				2 * RC_YEARS,
 			);

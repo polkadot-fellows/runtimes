@@ -970,7 +970,7 @@ mod inflation_tests {
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
 
 	#[test]
-	fn staking_inflation_correct_single_era() {
+	fn pre_march_2026_formula_staking_inflation_correct_single_era() {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
@@ -993,7 +993,7 @@ mod inflation_tests {
 	}
 
 	#[test]
-	fn staking_inflation_correct_longer_era() {
+	fn pre_march_2026_formula_staking_inflation_correct_longer_era() {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
@@ -1018,7 +1018,7 @@ mod inflation_tests {
 	}
 
 	#[test]
-	fn staking_inflation_correct_whole_year() {
+	fn pre_march_2026_formula_staking_inflation_correct_whole_year() {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
@@ -1047,7 +1047,7 @@ mod inflation_tests {
 
 	// 10 years into the future, our values do not overflow.
 	#[test]
-	fn staking_inflation_correct_not_overflow() {
+	fn pre_march_2026_formula_staking_inflation_correct_not_overflow() {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
@@ -1080,12 +1080,10 @@ mod inflation_tests {
 		);
 	}
 
-	const TWO_YEAR_STEP_RATE: f64 = 0.2628;
-	const TARGET_TI: u128 = 2_100_000_000;
-	// The extrapolated TI on March 14th, 2026. Number deviates slightly from the community's initial extrapolation of
-	// 1_676_733_867 used in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
-	const MARCH_TI: u128 = 1_676_562_737;
 	const MARCH_14_2026: RC_BlockNumber = 30_367_108;
+	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
+	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
+	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
 
 	// The transition from set emission to stepped emission works.
 	#[test]
@@ -1114,11 +1112,12 @@ mod inflation_tests {
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let era_rate = Perbill::from_float(TWO_YEAR_STEP_RATE) * Perbill::from_float(0.5) * Perbill::from_float(1.0/365.25);
+			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
+			let era_rate = two_year_rate * Perbill::from_float(0.5) * Perbill::from_float(1.0/365.25);
 			let assumed_payout = era_rate * (TARGET_TI - MARCH_TI);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
-				(assumed_payout * UNITS) as f64,
+				assumed_payout as f64,
 				max_relative = 0.00001
 			);
 		});
@@ -1139,12 +1138,23 @@ mod inflation_tests {
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let two_year_rate = Perbill::from_float(TWO_YEAR_STEP_RATE);
+			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
 			let first_period_emission = two_year_rate * (TARGET_TI - MARCH_TI);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
-				(first_period_emission * UNITS) as f64,
+				first_period_emission as f64,
 				max_relative = 0.00001
+			);
+			// Visual checks.
+			assert_relative_eq!(
+				to_stakers as f64 + to_treasury as f64,
+				(152_271 * UNITS) as f64,
+				max_relative = 0.00001,
+			);
+			assert_relative_eq!(
+				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
+				(55_617_170 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E2.
+				max_relative = 0.00001,
 			);
 
 			// Second period - March 14, 2028 -> March 14, 2030.
@@ -1159,8 +1169,19 @@ mod inflation_tests {
 			let second_period_emission = two_year_rate * (TARGET_TI - ti_at_2028);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
-				(second_period_emission * UNITS) as f64,
+				second_period_emission as f64,
 				max_relative = 0.00001
+			);
+			// Visual checks.
+			assert_relative_eq!(
+				to_stakers as f64 + to_treasury as f64,
+				(112_254 * UNITS) as f64,
+				max_relative = 0.00001,
+			);
+			assert_relative_eq!(
+				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
+				(41_000_978 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E3.
+				max_relative = 0.00001,
 			);
 
 			// Third period - March 14, 2030 -> March 14, 2032.
@@ -1175,8 +1196,19 @@ mod inflation_tests {
 			let third_period_emission = two_year_rate * (TARGET_TI - ti_at_2030);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
-				(third_period_emission * UNITS) as f64,
+				third_period_emission as f64,
 				max_relative = 0.00001
+			);
+			// Visual checks.
+			assert_relative_eq!(
+				to_stakers as f64 + to_treasury as f64,
+				(82_754 * UNITS) as f64,
+				max_relative = 0.00001,
+			);
+			assert_relative_eq!(
+				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
+				(30_225_921 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E4.
+				max_relative = 0.00001,
 			);
 		});
 	}
@@ -1238,6 +1270,34 @@ mod inflation_tests {
 
 			// TI has converged on asymptote. Payout is zero.
 			assert_eq!(to_stakers + to_treasury, 0);
+		});
+	}
+
+	// TI stays <= 2.1B.
+	#[test]
+	fn ti_is_asymptotic() {
+		ExtBuilder::<Runtime>::default()
+		.build()
+		.execute_with(|| {
+			let mut current_ti = MARCH_TI;
+			let mut current_bn = MARCH_14_2026;
+
+			// Run for 250 periods (500 years) and check TI and emissions.
+			// We know from `emission_eventually_zero` that at this point era emissions are 0.
+			set_relay_number(current_bn);
+			for _ in 0..250 {
+				let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+					123, // ignored
+					456, // ignored
+					(MILLISECONDS_PER_DAY * 36525 * 2) / 100, // two year era
+				);
+				current_ti += to_stakers + to_treasury;
+				current_bn += RC_YEARS * 2;
+				set_relay_number(current_bn);
+			}
+
+			// TI has hit asymptote.
+			assert!(current_ti <= TARGET_TI);
 		});
 	}
 
