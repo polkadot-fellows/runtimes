@@ -1275,7 +1275,7 @@ mod inflation_tests {
 
 	// TI stays <= 2.1B.
 	#[test]
-	fn ti_is_asymptotic() {
+	fn ti_is_asymptotic_to_desired_value() {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
@@ -1297,7 +1297,8 @@ mod inflation_tests {
 			}
 
 			// TI has hit asymptote.
-			assert!(current_ti <= TARGET_TI);
+			assert!(current_ti > TARGET_TI - 1 * UNITS);
+			assert!(current_ti < TARGET_TI);
 		});
 	}
 

@@ -29,7 +29,7 @@ use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
-	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber,
+	traits::{Convert, BlockNumberProvider}, transaction_validity::TransactionPriority, FixedPointNumber,
 	SaturatedConversion,
 };
 use sp_staking::SessionIndex;
