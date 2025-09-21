@@ -23,7 +23,7 @@ pub mod nom_pools;
 
 use crate::{governance::StakingAdmin, *};
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
-use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec};
+use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec, pallet_prelude::Zero};
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
@@ -294,7 +294,7 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 // To be replaced after that is merged and available.
 pub mod temp_curve {
 	use super::*;
-	use sp_runtime::traits::{AtLeast32BitUnsigned, One};
+	use sp_runtime::traits::One;
 	use scale_info::TypeInfo;
 	use sp_arithmetic::traits::Saturating;
 
@@ -326,13 +326,10 @@ pub mod temp_curve {
 		pub period: X,
 	}
 
-	impl<X, Y> SteppedCurve<X, Y>
-	where
-		X: AtLeast32BitUnsigned + Copy,
-		Y: AtLeast32BitUnsigned + Copy + From<X>,
+	impl SteppedCurve<FixedU128, FixedU128>
 	{
 		/// Creates a new `SteppedCurve`.
-		pub fn new(start: X, initial_value: Y, step: Step<Y>, period: X) -> Self {
+		pub fn new(start: FixedU128, initial_value: FixedU128, step: Step<FixedU128>, period: FixedU128) -> Self {
 			Self { start, initial_value, step, period }
 		}
 
@@ -340,26 +337,26 @@ pub mod temp_curve {
 		/// If no step has occured, will return 0.
 		///
 		/// Ex. In period 4, the last step taken was 10 -> 7, it would return 3.
-		pub fn last_step_size(&self, point: X) -> Y {
+		pub fn last_step_size(&self, point: FixedU128) -> FixedU128 {
 			// No step taken yet.
 			if point <= self.start {
-				return Y::zero();
+				return FixedU128::zero();
 			}
 
 			// If the period is zero, the value never changes.
 			if self.period.is_zero() {
-				return Y::zero();
+				return FixedU128::zero();
 			}
 
 			// Calculate how many full periods have passed.
 			let num_periods = (point - self.start) / self.period;
 
 			if num_periods.is_zero() {
-				return Y::zero();
+				return FixedU128::zero();
 			}
 
 			// Points for calculating step difference.
-			let prev_period_point = self.start + (num_periods - X::one()) * self.period;
+			let prev_period_point = self.start + (num_periods - FixedU128::one()) * self.period;
 			let curr_period_point = self.start + num_periods * self.period;
 
 			// Evaluate the curve at those two points.
@@ -374,7 +371,7 @@ pub mod temp_curve {
 		}
 
 		/// Evaluate the curve at a given point.
-		pub fn evaluate(&self, point: X) -> Y {
+		pub fn evaluate(&self, point: FixedU128) -> FixedU128 {
 			let initial = self.initial_value;
 
 			// If the point is before the curve starts, return the initial value.
@@ -389,7 +386,7 @@ pub mod temp_curve {
 
 			// Calculate how many full periods have passed, capped by usize.
 			let num_periods = (point - self.start) / self.period;
-			let num_periods_usize = num_periods.saturated_into::<usize>();
+			let num_periods_usize = (num_periods.into_inner() / FixedU128::DIV).saturated_into::<usize>();
 
 			if num_periods.is_zero() {
 				return initial;
@@ -401,18 +398,15 @@ pub mod temp_curve {
 					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
 					let scale = ratio.saturating_pow(num_periods_usize);
 
-					let initial_fp = FixedU128::saturating_from_integer(initial);
-					let asymptote_fp = FixedU128::saturating_from_integer(asymptote);
-
 					let res = if initial >= asymptote {
-						let diff = initial_fp.saturating_sub(asymptote_fp);
-						asymptote_fp.saturating_add(diff.saturating_mul(scale))
+						let diff = initial.saturating_sub(asymptote);
+						asymptote.saturating_add(diff.saturating_mul(scale))
 					} else {
-						let diff = asymptote_fp.saturating_sub(initial_fp);
-						asymptote_fp.saturating_sub(diff.saturating_mul(scale))
+						let diff = asymptote.saturating_sub(initial);
+						asymptote.saturating_sub(diff.saturating_mul(scale))
 					};
 
-					(res.into_inner() / FixedU128::DIV).saturated_into::<Y>()
+					res
 				},
 			}
 		}
@@ -443,24 +437,33 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			let fixed_inflation_rate = FixedU128::from_rational(8, 100);
 			fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
 		} else {
+			
 			// The calculated TI used in [Ref 1710's](https://polkadot.subsquare.io/referenda/1710).
-			let march_14_2026_ti = 1_676_733_867u128 * UNITS;
-			let target_ti = 2_100_000_000u128 * UNITS;
+			let march_14_2026_ti = FixedU128::saturating_from_integer(1_676_733_867u128 * UNITS);
+			let target_ti = FixedU128::saturating_from_integer(2_100_000_000u128 * UNITS);
+			
+			// Start date of the curve is set two years prior, thus ensuring first step in March, 2026.
+			let two_years_before_march = FixedU128::saturating_from_integer(march_14_2026 - (2 * RC_YEARS));
+			let relay_block_fp = FixedU128::saturating_from_integer(relay_block_num); 
+			let step_duration = FixedU128::saturating_from_integer(2 * RC_YEARS);
+			
+			// Pct change towards target TI at each step.
 			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
 
 			let ti_curve = temp_curve::SteppedCurve::new(
-				// The start date of the curve. Set two years prior to the first step date.
-				march_14_2026 - (2 * RC_YEARS),
+				// The start date of the curve.
+				two_years_before_march,
 				// The initial value of the curve.
 				march_14_2026_ti,
 				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
 				temp_curve::Step::RemainingPct{target: target_ti, pct: two_year_rate},
 				// Step every two years.
-				2 * RC_YEARS,
+				step_duration,
 			);
-			// The last step size tells us the expected TI increase over the current two year period. 
-			let two_year_emission = ti_curve.last_step_size(relay_block_num);
-			FixedU128::from_float(0.5).saturating_mul_int(two_year_emission)
+			// The last step size tells us the expected TI increase over the current two year period.
+			let two_year_emission_fp = ti_curve.last_step_size(relay_block_fp);
+			let two_year_emission: u128 = two_year_emission_fp.into_inner() / FixedU128::DIV;
+			FixedU128::from_rational(1, 2).saturating_mul_int(two_year_emission)
 		};
 
 		let era_emission = relative_era_len.saturating_mul_int(yearly_emission);
