@@ -23,11 +23,11 @@ pub mod nom_pools;
 
 use crate::{governance::StakingAdmin, *};
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
-use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec, pallet_prelude::Zero};
+use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec, pallet_prelude::{Zero, CheckedDiv}};
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
-use sp_arithmetic::FixedU128;
+use sp_arithmetic::{FixedU128, traits::Bounded};
 use sp_runtime::{
 	traits::{Convert, BlockNumberProvider}, transaction_validity::TransactionPriority, FixedPointNumber,
 	SaturatedConversion,
@@ -348,8 +348,8 @@ pub mod temp_curve {
 				return FixedU128::zero();
 			}
 
-			// Calculate how many full periods have passed.
-			let num_periods = (point - self.start) / self.period;
+			// Calculate how many full periods have passed, saturate.
+			let num_periods = (point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
 
 			// No periods have passed.
 			if num_periods < FixedU128::one() {
@@ -386,7 +386,7 @@ pub mod temp_curve {
 			}
 
 			// Calculate how many full periods have passed, downsampled to usize.
-			let num_periods = (point - self.start) / self.period;
+			let num_periods = (point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
 			let num_periods_usize = (num_periods.into_inner() / FixedU128::DIV).saturated_into::<usize>();
 
 			// No periods have passed.
