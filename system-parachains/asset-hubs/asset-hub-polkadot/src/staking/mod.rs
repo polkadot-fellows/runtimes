@@ -388,7 +388,7 @@ pub mod temp_curve {
 			let num_periods = (point - self.start) / self.period;
 			let num_periods_usize = (num_periods.into_inner() / FixedU128::DIV).saturated_into::<usize>();
 
-			if num_periods.is_zero() {
+			if num_periods_usize.is_zero() {
 				return initial;
 			}
 
