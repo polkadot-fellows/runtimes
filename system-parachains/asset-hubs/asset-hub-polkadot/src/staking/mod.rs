@@ -357,8 +357,8 @@ pub mod temp_curve {
 			}
 
 			// Points for calculating step difference.
-			let prev_period_point = self.start + (num_periods - FixedU128::one()) * self.period;
-			let curr_period_point = self.start + num_periods * self.period;
+			let prev_period_point = self.start.saturating_add( (num_periods - FixedU128::one()).saturating_mul(self.period) );
+			let curr_period_point = self.start.saturating_add( num_periods.saturating_mul(self.period) );
 
 			// Evaluate the curve at those two points.
 			let val_prev = self.evaluate(prev_period_point);
@@ -372,6 +372,8 @@ pub mod temp_curve {
 		}
 
 		/// Evaluate the curve at a given point.
+		///
+		/// Max number of steps is `usize::MAX`.
 		pub fn evaluate(&self, point: FixedU128) -> FixedU128 {
 			let initial = self.initial_value;
 
