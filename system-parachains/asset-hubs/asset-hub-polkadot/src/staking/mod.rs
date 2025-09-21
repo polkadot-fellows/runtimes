@@ -300,12 +300,12 @@ pub mod temp_curve {
 
 	/// The step type for the stepped curve.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub enum Step<V> {
+	pub enum Step<Y> {
 		/// Move towards a desired value by a percentage of the remaining difference at each step.
 		///
 		/// Step size will be (target_total - current_value) * pct.
 		RemainingPct {
-			target: V, 
+			target: Y, 
 			pct: Perbill
 		},
 	}
@@ -315,24 +315,24 @@ pub mod temp_curve {
 	/// Steps every `period` from the `initial_value` as defined by `step`.
 	/// First step from `initial_value` takes place at `start` + `period`.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub struct SteppedCurve<P, V> {
+	pub struct SteppedCurve<X, Y> {
 		/// The starting point for the curve.
-		pub start: P,
+		pub start: X,
 		/// The initial value of the curve at the `start` point.
-		pub initial_value: V,
+		pub initial_value: Y,
 		/// The change to apply at the end of each `period`.
-		pub step: Step<V>,
+		pub step: Step<Y>,
 		/// The duration of each step.
-		pub period: P,
+		pub period: X,
 	}
 
-	impl<P, V> SteppedCurve<P, V>
+	impl<X, Y> SteppedCurve<X, Y>
 	where
-		P: AtLeast32BitUnsigned + Copy,
-		V: AtLeast32BitUnsigned + Copy + From<P>,
+		X: AtLeast32BitUnsigned + Copy,
+		Y: AtLeast32BitUnsigned + Copy + From<X>,
 	{
 		/// Creates a new `SteppedCurve`.
-		pub fn new(start: P, initial_value: V, step: Step<V>, period: P) -> Self {
+		pub fn new(start: X, initial_value: Y, step: Step<Y>, period: X) -> Self {
 			Self { start, initial_value, step, period }
 		}
 
@@ -340,26 +340,26 @@ pub mod temp_curve {
 		/// If no step has occured, will return 0.
 		///
 		/// Ex. In period 4, the last step taken was 10 -> 7, it would return 3.
-		pub fn last_step_size(&self, point: P) -> V {
+		pub fn last_step_size(&self, point: X) -> Y {
 			// No step taken yet.
-			if point < self.start {
-				return V::zero();
+			if point <= self.start {
+				return Y::zero();
 			}
 
 			// If the period is zero, the value never changes.
 			if self.period.is_zero() {
-				return V::zero();
+				return Y::zero();
 			}
 
 			// Calculate how many full periods have passed.
 			let num_periods = (point - self.start) / self.period;
 
 			if num_periods.is_zero() {
-				return V::zero();
+				return Y::zero();
 			}
 
 			// Points for calculating step difference.
-			let prev_period_point = self.start + (num_periods - P::one()) * self.period;
+			let prev_period_point = self.start + (num_periods - X::one()) * self.period;
 			let curr_period_point = self.start + num_periods * self.period;
 
 			// Evaluate the curve at those two points.
@@ -374,7 +374,7 @@ pub mod temp_curve {
 		}
 
 		/// Evaluate the curve at a given point.
-		pub fn evaluate(&self, point: P) -> V {
+		pub fn evaluate(&self, point: X) -> Y {
 			let initial = self.initial_value;
 
 			// If the point is before the curve starts, return the initial value.
@@ -412,7 +412,7 @@ pub mod temp_curve {
 						asymptote_fp.saturating_sub(diff.saturating_mul(scale))
 					};
 
-					(res.into_inner() / FixedU128::DIV).saturated_into::<V>()
+					(res.into_inner() / FixedU128::DIV).saturated_into::<Y>()
 				},
 			}
 		}
