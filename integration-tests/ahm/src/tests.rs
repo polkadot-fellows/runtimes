@@ -890,7 +890,7 @@ async fn scheduled_migration_works() {
 		// accounts migration init
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::AccountsMigrationInit
+			RcMigrationStage::PureProxyCandidatesMigrationInit
 		);
 	});
 	rc.commit_all().unwrap();
@@ -1673,14 +1673,16 @@ fn rc_calls_and_origins_work() {
 	let canceller: AccountId32 = [2; 32].into();
 	let user: AccountId32 = [3; 32].into();
 	let manager_wo_balance: AccountId32 = [4; 32].into();
-	let fellows = Location::new(
+	#[cfg(feature = "polkadot-ahm")]
+	let admin_origin = pallet_xcm::Origin::Xcm(Location::new(
 		0,
 		[
 			Junction::Parachain(1001),
 			Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 		],
-	);
-	let admin_origin = pallet_xcm::Origin::Xcm(fellows);
+	));
+	#[cfg(feature = "kusama-ahm")]
+	let admin_origin = polkadot_runtime::governance::Origin::Fellows;
 
 	ext.execute_with(|| {
 		let ed = polkadot_runtime::ExistentialDeposit::get();
@@ -1812,14 +1814,19 @@ fn ah_calls_and_origins_work() {
 	let mut ext = new_test_ah_ext();
 
 	let manager: AccountId32 = [1; 32].into();
-	let fellows = Location::new(
+	#[cfg(feature = "polkadot-ahm")]
+	let admin_origin = pallet_xcm::Origin::Xcm(Location::new(
 		1,
 		[
 			Junction::Parachain(1001),
 			Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 		],
-	);
-	let admin_origin = pallet_xcm::Origin::Xcm(fellows);
+	));
+	#[cfg(feature = "kusama-ahm")]
+	let admin_origin = pallet_xcm::Origin::Xcm(Location::new(
+		1,
+		[Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice }],
+	));
 
 	ext.execute_with(|| {
 		AhMigrator::set_manager(AhRuntimeOrigin::root(), Some(manager.clone()))
