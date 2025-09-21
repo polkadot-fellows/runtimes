@@ -351,7 +351,8 @@ pub mod temp_curve {
 			// Calculate how many full periods have passed.
 			let num_periods = (point - self.start) / self.period;
 
-			if num_periods.is_zero() {
+			// No periods have passed.
+			if num_periods < FixedU128::one() {
 				return FixedU128::zero();
 			}
 
@@ -384,10 +385,11 @@ pub mod temp_curve {
 				return initial;
 			}
 
-			// Calculate how many full periods have passed, capped by usize.
+			// Calculate how many full periods have passed, downsampled to usize.
 			let num_periods = (point - self.start) / self.period;
 			let num_periods_usize = (num_periods.into_inner() / FixedU128::DIV).saturated_into::<usize>();
 
+			// No periods have passed.
 			if num_periods_usize.is_zero() {
 				return initial;
 			}
