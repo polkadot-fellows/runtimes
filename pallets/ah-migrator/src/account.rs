@@ -281,6 +281,7 @@ pub mod tests {
 			);
 
 			let check_account = T::CheckingAccount::get();
+			#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 			let checking_balance = <T as Config>::Currency::total_balance(&check_account);
 			// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
 			// added DOT ED to all existing AH accounts.
