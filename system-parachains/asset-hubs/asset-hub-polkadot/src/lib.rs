@@ -105,7 +105,7 @@ use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
-}; // Change for Async Backing https://github.com/polkadot-fellows/runtimes/pull/763
+};
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;

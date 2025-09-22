@@ -1084,7 +1084,7 @@ pub mod pallet {
 		}
 
 		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
-		/// [Config::SendXcm] router which will be able to send messages to the Asset Hub during
+		/// [Config::SendXcm] router which will be able to send messages to the Relay Chain during
 		/// the migration.
 		#[pallet::call_index(111)]
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
@@ -1261,8 +1261,6 @@ pub mod pallet {
 
 		/// Send a single XCM message.
 		pub fn send_xcm(call: types::RcMigratorCall) -> Result<(), Error<T>> {
-			log::debug!(target: LOG_TARGET, "Sending XCM message");
-
 			let call = types::RcPalletConfig::RcmController(call);
 
 			let message = Xcm(vec![
