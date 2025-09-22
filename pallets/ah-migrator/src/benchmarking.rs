@@ -82,7 +82,7 @@ pub mod benchmarks {
 			);
 			let _ = <<T as pallet_multisig::Config>::Currency>::reserve(&creator, deposit).unwrap();
 
-			RcMultisig { creator, deposit, details: Some([2u8; 32].into()) }
+			RcMultisig { creator, deposit }
 		};
 
 		let messages = (0..n).map(|i| create_multisig(i.try_into().unwrap())).collect::<Vec<_>>();

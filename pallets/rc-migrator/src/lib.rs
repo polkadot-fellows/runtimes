@@ -786,6 +786,16 @@ pub mod pallet {
 	pub type RcMigratedBalance<T: Config> =
 		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
+	/// Helper storage item to store the total balance that should be kept on Relay Chain after
+	/// it is consumed from the `RcMigratedBalance` storage item and sent to the Asset Hub.
+	///
+	/// This let us to take the value from the `RcMigratedBalance` storage item and keep the
+	/// `SignalMigrationFinish` stage to be idempotent while preserving these values for tests and
+	/// later discoveries.
+	#[pallet::storage]
+	pub type RcMigratedBalanceArchive<T: Config> =
+		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
+
 	/// The pending XCM messages.
 	///
 	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
@@ -2237,7 +2247,7 @@ pub mod pallet {
 						// 1 read and 1 write for `staking::on_migration_end`;
 						// 1 read and 1 write for `RcMigratedBalance` storage item;
 						// plus one xcm send;
-						T::DbWeight::get().reads_writes(1, 1)
+						T::DbWeight::get().reads_writes(1, 2)
 							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
 					);
 
@@ -2245,12 +2255,8 @@ pub mod pallet {
 
 					// Send finish message to AH.
 					let data = if RcMigratedBalance::<T>::exists() {
-						let tracker = if cfg!(feature = "std") {
-							// we should keep this value for the tests.
-							RcMigratedBalance::<T>::get()
-						} else {
-							RcMigratedBalance::<T>::take()
-						};
+						let tracker = RcMigratedBalance::<T>::take();
+						RcMigratedBalanceArchive::<T>::put(&tracker);
 						Self::deposit_event(Event::MigratedBalanceConsumed {
 							kept: tracker.kept,
 							migrated: tracker.migrated,

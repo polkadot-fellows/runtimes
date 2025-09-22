@@ -386,6 +386,28 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	}
 }
 
+/// A value that is `Left::get()` if the migration is finished, otherwise it is `Right::get()`.
+pub struct LeftIfFinished<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftIfFinished<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+	}
+}
+
+/// A value that is `Left::get()` if the migration is finished, otherwise it is `Right::get()`.
+pub struct LeftIfPending<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
+impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
+	for LeftIfPending<Status, Left, Right>
+{
+	fn get() -> Left::Type {
+		(!Status::is_ongoing() && !Status::is_finished())
+			.then(|| Left::get())
+			.unwrap_or_else(|| Right::get())
+	}
+}
+
 /// A weight that is `Weight::MAX` if the migration is ongoing, otherwise it is the [`Inner`]
 /// weight of the [`pallet_fast_unstake::weights::WeightInfo`] trait.
 pub struct MaxOnIdleOrInner<Status, Inner>(PhantomData<(Status, Inner)>);

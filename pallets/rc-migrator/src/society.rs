@@ -133,6 +133,31 @@ impl SocietyValues {
 	{
 		use pallet_society::*;
 
+		let next_intake_at = if let Some(next_intake_at) = NextIntakeAt::<T>::take() {
+			let rotation_period = T::VotingPeriod::get().saturating_add(T::ClaimPeriod::get());
+			if next_intake_at != rotation_period {
+				Some(next_intake_at)
+			} else {
+				// current `next_intake_at` is the result of the `on_initialize` execution with
+				// disabled rotation. this may happen if this part of migration is executed twice.
+				None
+			}
+		} else {
+			None
+		};
+		let next_challenge_at = if let Some(next_challenge_at) = NextChallengeAt::<T>::take() {
+			let challenge_period = T::ChallengePeriod::get();
+			if next_challenge_at != challenge_period {
+				Some(next_challenge_at)
+			} else {
+				// current `next_challenge_at` is the result of the `on_initialize` execution with
+				// disabled rotation. this may happen if this part of migration is executed twice.
+				None
+			}
+		} else {
+			None
+		};
+
 		SocietyValues {
 			parameters: Parameters::<T>::take().map(|p| p.into_portable()),
 			pot: Pot::<T>::exists().then(Pot::<T>::take),
@@ -150,8 +175,8 @@ impl SocietyValues {
 				.then(ChallengeRoundCount::<T>::take),
 			defending: Defending::<T>::take()
 				.map(|(a, b, portable_tally)| (a, b, portable_tally.into_portable())),
-			next_intake_at: NextIntakeAt::<T>::take(),
-			next_challenge_at: NextChallengeAt::<T>::take(),
+			next_intake_at,
+			next_challenge_at,
 		}
 	}
 
@@ -824,8 +849,34 @@ pub mod tests {
 					.collect();
 			let defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)> =
 				DefenderVotes::<T::KusamaConfig>::iter().collect();
-			let next_intake_at = NextIntakeAt::<T::KusamaConfig>::get();
-			let next_challenge_at = NextChallengeAt::<T::KusamaConfig>::get();
+
+			let next_intake_at =
+				if let Some(next_intake_at) = NextIntakeAt::<T::KusamaConfig>::get() {
+					let rotation_period =
+						<T::KusamaConfig as pallet_society::Config>::VotingPeriod::get()
+							.saturating_add(
+								<T::KusamaConfig as pallet_society::Config>::ClaimPeriod::get(),
+							);
+					if next_intake_at != rotation_period {
+						Some(next_intake_at)
+					} else {
+						None
+					}
+				} else {
+					None
+				};
+			let next_challenge_at =
+				if let Some(next_challenge_at) = NextChallengeAt::<T::KusamaConfig>::get() {
+					let challenge_period =
+						<T::KusamaConfig as pallet_society::Config>::ChallengePeriod::get();
+					if next_challenge_at != challenge_period {
+						Some(next_challenge_at)
+					} else {
+						None
+					}
+				} else {
+					None
+				};
 
 			RcPrePayload {
 				parameters,
@@ -956,15 +1007,26 @@ pub mod tests {
 				"DefenderVotes map should be empty on the relay chain after migration"
 			);
 
-			assert!(
-				!NextIntakeAt::<T::KusamaConfig>::exists(),
-				"NextIntakeAt should be None on the relay chain after migration"
-			);
+			if let Some(next_challenge_at) = NextChallengeAt::<T::KusamaConfig>::get() {
+				let challenge_period =
+					<T::KusamaConfig as pallet_society::Config>::ChallengePeriod::get();
+				assert_eq!(
+					next_challenge_at, challenge_period,
+					"`next_challenge_at` must be equal to the `ChallengePeriod` if not `None`",
+				);
+			};
 
-			assert!(
-				!NextChallengeAt::<T::KusamaConfig>::exists(),
-				"NextChallengeAt should be None on the relay chain after migration"
-			);
+			if let Some(next_intake_at) = NextIntakeAt::<T::KusamaConfig>::get() {
+				let rotation_period =
+					<T::KusamaConfig as pallet_society::Config>::VotingPeriod::get()
+						.saturating_add(
+							<T::KusamaConfig as pallet_society::Config>::ClaimPeriod::get(),
+						);
+				assert_eq!(
+					next_intake_at, rotation_period,
+					"`next_intake_at` must be equal to the rotation period if not `None`",
+				);
+			};
 		}
 	}
 }
