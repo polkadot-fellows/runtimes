@@ -139,7 +139,7 @@ impl<T: Config> ReferendaMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_referenda_metadata((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_referenda_metadata(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -281,7 +281,7 @@ impl<T: Config> ReferendaMigrator<T> {
 			};
 
 			if ah_weight_counter
-				.try_consume(Self::weight_ah_referendum_info(batch.len() as u32, &info))
+				.try_consume(Self::weight_ah_referendum_info(batch.len(), &info))
 				.is_err()
 			{
 				log::info!(

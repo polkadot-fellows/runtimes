@@ -98,7 +98,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_staking_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_staking_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -276,7 +276,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, validator, exposure)) => {
-							pallet_staking::ErasStakersOverview::<T>::remove(&era, &validator);
+							pallet_staking::ErasStakersOverview::<T>::remove(era, &validator);
 							messages.push(PortableStakingMessage::ErasStakersOverview {
 								era,
 								validator: validator.clone(),
@@ -378,7 +378,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, points)) => {
-							pallet_staking::ErasRewardPoints::<T>::remove(&era);
+							pallet_staking::ErasRewardPoints::<T>::remove(era);
 							messages.push(PortableStakingMessage::ErasRewardPoints {
 								era,
 								points: points.into_portable(),

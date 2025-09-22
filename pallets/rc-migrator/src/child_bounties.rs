@@ -126,7 +126,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_child_bounties_messages(
-				(messages.len() + 1) as u32,
+				messages.len() + 1,
 			)) {
 				log::info!(
 					target: LOG_TARGET,

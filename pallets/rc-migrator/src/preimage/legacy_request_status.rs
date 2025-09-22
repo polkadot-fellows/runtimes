@@ -76,7 +76,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_preimage_legacy_status((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_preimage_legacy_status(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,

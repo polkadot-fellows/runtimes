@@ -148,7 +148,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_preimage_request_status((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_preimage_request_status(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -249,10 +249,7 @@ impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
 			.map(|(hash, request_status)| {
 				(
 					hash,
-					match request_status {
-						pallet_preimage::RequestStatus::Requested { .. } => true,
-						_ => false,
-					},
+					matches!(request_status, pallet_preimage::RequestStatus::Requested { .. })
 				)
 			})
 			.collect()

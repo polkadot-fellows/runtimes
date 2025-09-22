@@ -84,7 +84,7 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_delegated_staking_messages(
-				(messages.len() + 1) as u32,
+				messages.len() + 1,
 			)) {
 				log::info!(
 					target: LOG_TARGET,
@@ -169,7 +169,7 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 			};
 		}
 
-		if messages.len() > 0 {
+		if !messages.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
 				types::AhMigratorCall::<T>::ReceiveDelegatedStakingMessages { messages }
 			})?;

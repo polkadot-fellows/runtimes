@@ -159,7 +159,7 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_nom_pools_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_nom_pools_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -386,6 +386,7 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 	/// Put all `StorageValues` into storage.
 	///
 	/// Called by Asset Hub after receiving the values.
+	#[allow(clippy::option_map_unit_fn)] // Using .map here return ()
 	pub fn put_values(values: NomPoolsStorageValuesOf<T>) {
 		use pallet_nomination_pools::*;
 

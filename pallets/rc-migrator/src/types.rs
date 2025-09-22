@@ -238,26 +238,30 @@ pub trait RcMigrationCheck {
 	fn post_check(rc_pre_payload: Self::RcPrePayload);
 }
 
+#[cfg(feature = "std")]
+#[allow(clippy::unnecessary_operation)] // Testing only
+#[allow(clippy::no_effect)] // Testing only
 #[impl_trait_for_tuples::impl_for_tuples(24)]
 impl RcMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }
 
 	fn pre_check() -> Self::RcPrePayload {
 		(for_tuples! { #(
-			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
-			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
-				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::pre_check()))
-			}).expect("Always returning Ok")
+			hypothetical_fn(&Tuple::pre_check)
 		),* })
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		(for_tuples! { #(
-			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
-			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
-				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::post_check(rc_pre_payload.Tuple)))
-			}).expect("Always returning Ok")
+			hypothetical_fn(|| Tuple::post_check(rc_pre_payload.Tuple))
 		),* });
+	}
+}
+
+/// Wrapper for the `frame_support::hypothetically` macro since we want to use it in a macro again.
+fn hypothetical_fn<R>(f: impl FnOnce() -> R) -> R {
+	frame_support::hypothetically!{
+		f()
 	}
 }
 
@@ -509,9 +513,9 @@ impl<T: Encode> XcmBatch<T> {
 	}
 }
 
-impl<T: Encode> Into<XcmBatch<T>> for XcmBatchAndMeter<T> {
-	fn into(self) -> XcmBatch<T> {
-		self.batch
+impl<T: Encode> From<XcmBatchAndMeter<T>> for XcmBatch<T> {
+	fn from(value: XcmBatchAndMeter<T>) -> Self {
+		value.batch
 	}
 }
 

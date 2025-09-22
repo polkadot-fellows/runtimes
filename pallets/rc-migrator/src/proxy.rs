@@ -264,7 +264,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_proxy_announcements(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,

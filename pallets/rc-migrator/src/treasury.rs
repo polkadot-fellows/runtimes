@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::from_over_into)] // We just want Into<s>, no From<s> coercion needed.
+
 use crate::*;
 use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;

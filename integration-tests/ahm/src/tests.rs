@@ -89,7 +89,7 @@ use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
-use sp_core::{crypto::Ss58Codec, ByteArray, Get};
+use sp_core::{crypto::Ss58Codec, ByteArray};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
 use std::{

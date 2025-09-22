@@ -218,7 +218,7 @@ impl<T: Config> PreimageChunkMigrator<T> {
 			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
 			// loop, but it cannot be exploited since the pallet does not allow to add more items to
 			// the `StatusFor` map anymore.
-			.skip_while(|(hash, len)| {
+			.find(|(hash, len)| {
 				if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
 					log::info!(
 						"Ignoring old preimage that is not in the request status map: {:?}",
@@ -233,8 +233,7 @@ impl<T: Config> PreimageChunkMigrator<T> {
 				} else {
 					false
 				}
-			})
-			.next();
+			});
 		(next_key_maybe, skipped)
 	}
 }
