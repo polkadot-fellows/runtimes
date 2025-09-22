@@ -732,7 +732,8 @@ impl<T: Config> AccountsMigrator<T> {
 	/// weight.
 	pub fn obtain_free_proxy_candidates() -> (Option<u32>, Weight) {
 		if PureProxyCandidatesMigrated::<T>::iter_keys().next().is_some() {
-			defensive!("Init pure proxy candidates already ran, skipping");
+			// Not using defensive here since that would fail on idempotency check.
+			log::info!(target: LOG_TARGET, "Init pure proxy candidates already ran, skipping");
 			return (None, T::DbWeight::get().reads(1));
 		}
 
