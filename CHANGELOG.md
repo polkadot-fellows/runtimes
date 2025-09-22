@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   After the migration, another patch will remove this error case and use the correct reserve.
   🚨 For DOT|KSM cross-chain transfers please use `transfer_assets_using_type_and_then` or `execute`.
   Please see this [Polkadot forum post](https://forum.polkadot.network/t/mandatory-action-guide-for-ahm-broken-native-crosschain-transfers/) for more details.
+- asset-hub-kusama: use inmemorydb weights [#918](https://github.com/polkadot-fellows/runtimes/pull/918)
 
 ## [1.7.1] 28.08.2025
 
