@@ -78,7 +78,7 @@ impl<T: Config> Pallet<T> {
 					valid_from,
 					expire_at,
 					status,
-				} = spend.into();
+				} = (*spend).into();
 
 				// Apply account translation to beneficiary before type conversion
 				let translated_beneficiary = Self::translate_beneficiary_location(beneficiary)

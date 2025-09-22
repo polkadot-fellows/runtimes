@@ -54,7 +54,7 @@ pub enum PortableTreasuryMessage {
 	Proposals((ProposalIndex, Proposal<AccountId32, u128>)),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
-	Spends { id: SpendIndex, status: PortableSpendStatus },
+	Spends { id: SpendIndex, status: Box<PortableSpendStatus> },
 	LastSpendPeriod(Option<u32>),
 	Funds,
 }
@@ -172,7 +172,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 							pallet_treasury::Spends::<T>::remove(key);
 							messages.push(PortableTreasuryMessage::Spends {
 								id: key,
-								status: value.into_portable(),
+								status: Box::new(value.into_portable()),
 							});
 							TreasuryStage::Spends(Some(key))
 						},

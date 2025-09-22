@@ -436,6 +436,7 @@ impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
 /// This struct manages collections of XCM messages, automatically creating
 /// new batches when size limits would be exceeded, ensuring that all batches
 /// remain within the maximum allowed XCM size.
+#[derive(frame_support::DefaultNoBound)]
 pub struct XcmBatch<T: Encode> {
 	/// Collection of batches with their sizes and messages
 	sized_batches: VecDeque<(u32, Vec<T>)>,
@@ -447,7 +448,7 @@ impl<T: Encode> XcmBatch<T> {
 	/// # Returns
 	/// A new XcmBatch instance with no messages.
 	pub fn new() -> Self {
-		Self { sized_batches: VecDeque::new() }
+		Self::default()
 	}
 
 	/// Pushes a message to the batch.

@@ -327,6 +327,11 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 	}
 }
 
+/// The conversion of a lease to its ending block failed.
+// To make Clippy happy instead of using `()` as error type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeaseToEndingBlockError;
+
 /// Calculate the lease ending block from the number of remaining leases (including the current).
 ///
 /// # Example
@@ -335,7 +340,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 /// |-0-|-1-|-2-|-3-|-4-|-5-|
 ///               ^-----^
 /// Then this function returns the end block number of period 4 (start block of period 5).
-pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNumberFor<T>, ()> {
+pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNumberFor<T>, LeaseToEndingBlockError> {
 	let now = frame_system::Pallet::<T>::block_number();
 	let num_leases: BlockNumberFor<T> = num_leases.into();
 	let offset = <T as pallet_slots::Config>::LeaseOffset::get();
@@ -343,17 +348,17 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 
 	// Sanity check:
 	if now < offset {
-		return Err(());
+		return Err(LeaseToEndingBlockError);
 	}
 
 	// The current period: (now - offset) / period
-	let current_period = now.checked_sub(&offset).and_then(|x| x.checked_div(&period)).ok_or(())?;
+	let current_period = now.checked_sub(&offset).and_then(|x| x.checked_div(&period)).ok_or(LeaseToEndingBlockError)?;
 	// (current_period + num_leases) * period + offset
 	let last_period_end_block = current_period
 		.checked_add(&num_leases)
 		.and_then(|x| x.checked_mul(&period))
 		.and_then(|x| x.checked_add(&offset))
-		.ok_or(())?;
+		.ok_or(LeaseToEndingBlockError)?;
 	Ok(last_period_end_block)
 }
 
