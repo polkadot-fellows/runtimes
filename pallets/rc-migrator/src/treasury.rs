@@ -88,7 +88,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_treasury_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_treasury_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -138,7 +138,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_treasury::Proposals::<T>::remove(&key);
+							pallet_treasury::Proposals::<T>::remove(key);
 							messages.push(PortableTreasuryMessage::Proposals((key, value)));
 							TreasuryStage::Proposals(Some(key))
 						},

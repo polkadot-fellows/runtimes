@@ -70,7 +70,7 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	///
 	/// Expected lock ids:
 	/// - "staking " : pallet-staking locks have been transformed to holds with https://github.com/paritytech/polkadot-sdk/pull/5501
-	/// but the conversion was lazy, so there may be some staking locks left
+	///   but the conversion was lazy, so there may be some staking locks left
 	/// - "vesting " : pallet-vesting
 	/// - "pyconvot" : pallet-conviction-voting
 	pub locks: BoundedVec<BalanceLock<Balance>, ConstU32<5>>,
@@ -314,7 +314,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 						who.clone(),
 						account_info.clone(),
 						&mut ah_weight,
-						batch.len() as u32,
+						batch.len(),
 					) {
 						Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
 						Err(e) => TransactionOutcome::Rollback(Err(e)),
@@ -469,7 +469,7 @@ impl<T: Config> AccountsMigrator<T> {
 				amount
 			};
 
-			if let Err(_) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
+			if <T as Config>::Currency::release(&id, &who, amount, Precision::Exact).is_err() {
 				defensive!(
 					"There is not enough reserved balance to release the hold for (account, hold id, amount) {:?}",
 					(who.to_ss58check(), id.clone(), amount)
@@ -1221,7 +1221,7 @@ pub mod tests {
 							let manager = Manager::<T>::get();
 							let on_demand_pallet_account: T::AccountId =
 								T::OnDemandPalletId::get().into_account_truncating();
-							let is_manager = manager.as_ref().map_or(false, |m| *m == who);
+							let is_manager = manager.as_ref().is_some_and(|m| *m == who);
 							let is_on_demand = who == on_demand_pallet_account;
 							assert!(
 								is_manager || is_on_demand,

@@ -126,7 +126,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_multisigs((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_multisigs((batch.len() + 1)))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -172,7 +172,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 			batch.push(RcMultisig { creator: multisig.depositor, deposit: multisig.deposit });
 
-			aliases::Multisigs::<T>::remove(&k1, &k2);
+			aliases::Multisigs::<T>::remove(&k1, k2);
 			last_key = Some((k1, k2));
 		}
 

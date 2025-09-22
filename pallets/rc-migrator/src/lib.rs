@@ -1129,7 +1129,7 @@ pub mod pallet {
 				return Err(Error::<T>::AhUmpQueuePriorityAlreadySet.into());
 			}
 			ensure!(
-				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				new.get_priority_blocks().is_none_or(|blocks| !blocks.is_zero()),
 				Error::<T>::InvalidParameter
 			);
 			AhUmpQueuePriorityConfig::<T>::put(new.clone());
@@ -1337,7 +1337,7 @@ pub mod pallet {
 			}
 
 			match stage {
-				MigrationStage::Pending | MigrationStage::MigrationPaused { .. } => {
+				MigrationStage::Pending | MigrationStage::MigrationPaused { } => {
 					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { start } => {
@@ -2389,7 +2389,7 @@ pub mod pallet {
 		) -> Result<u32, Error<T>> {
 			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
-			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
+			defensive_assert!(!items.is_empty(), "Sending XCM with empty items");
 			let mut batch_count = 0;
 
 			while let Some(batch) = items.pop_front() {

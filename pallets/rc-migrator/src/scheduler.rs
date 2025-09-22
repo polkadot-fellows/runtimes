@@ -82,7 +82,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_scheduler_lookup((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_scheduler_lookup(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,

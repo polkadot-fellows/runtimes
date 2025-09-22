@@ -141,7 +141,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					break;
 				}
 			}
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1))) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -194,7 +194,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key
 				},
 				CrowdloanStage::LeaseReserve { last_key } => {
-					let mut iter = match last_key.clone() {
+					let mut iter = match last_key {
 						Some(last_key) => pallet_slots::Leases::<T>::iter_from_key(last_key),
 						None => pallet_slots::Leases::<T>::iter(),
 					};
@@ -240,7 +240,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					}
 				},
 				CrowdloanStage::CrowdloanContribution { last_key } => {
-					let mut funds_iter = match last_key.clone() {
+					let mut funds_iter = match last_key {
 						Some(last_key) => pallet_crowdloan::Funds::<T>::iter_from_key(last_key),
 						None => pallet_crowdloan::Funds::<T>::iter(),
 					};
@@ -255,13 +255,13 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
-					while let Some((contributor, (amount, memo))) = contributions_iter.next() {
+					for (contributor, (amount, memo)) in contributions_iter {
 						if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
 							// we break in outer loop for simplicity, but still consume the weight.
 							log::info!("RC weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
 						}
 
-						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1))) {
 							// we break in outer loop for simplicity.
 							log::info!("AH weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
 						}
@@ -529,7 +529,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 			let contributions: Vec<_> = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
 				.map(|(contributor, (amount, _memo))| {
 					// We don't need to decode block numbers here since we just want to verify everything is empty
-					(BlockNumberFor::<T>::default(), contributor, amount.try_into().unwrap_or_default())
+					(BlockNumberFor::<T>::default(), contributor, amount.into())
 				})
 				.collect();
 
