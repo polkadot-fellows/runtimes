@@ -14,14 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{porting_prelude::*, *};
+use crate::porting_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::{
 	recovery::{PortableActiveRecovery, PortableRecoveryConfig},
 	types::{IntoPortable, RcMigrationCheck},
 };
 use sp_core::crypto::AccountId32;
-use std::collections::BTreeMap;
 
 pub struct RecoveryDataMigrated;
 

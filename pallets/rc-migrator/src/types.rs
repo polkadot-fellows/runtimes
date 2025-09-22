@@ -387,7 +387,11 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	for LeftOrRight<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+		if Status::is_ongoing() {
+			Left::get()
+		} else {
+			Right::get()
+		}
 	}
 }
 
@@ -398,14 +402,18 @@ impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
 	pallet_fast_unstake::weights::WeightInfo for MaxOnIdleOrInner<Status, Inner>
 {
 	fn on_idle_unstake(b: u32) -> Weight {
-		Status::is_ongoing()
-			.then(|| Weight::MAX)
-			.unwrap_or_else(|| Inner::on_idle_unstake(b))
+		if Status::is_ongoing() {
+			Weight::MAX
+		} else {
+			Inner::on_idle_unstake(b)
+		}
 	}
 	fn on_idle_check(v: u32, b: u32) -> Weight {
-		Status::is_ongoing()
-			.then(|| Weight::MAX)
-			.unwrap_or_else(|| Inner::on_idle_check(v, b))
+		if Status::is_ongoing() {
+			Weight::MAX
+		} else {
+			Inner::on_idle_check(v, b)
+		}
 	}
 	fn register_fast_unstake() -> Weight {
 		Inner::register_fast_unstake()

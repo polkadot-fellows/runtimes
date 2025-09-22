@@ -91,7 +91,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_conviction_voting_messages(
-				(messages.len() + 1) as u32,
+				messages.len() + 1,
 			)) {
 				log::info!(
 					target: LOG_TARGET,

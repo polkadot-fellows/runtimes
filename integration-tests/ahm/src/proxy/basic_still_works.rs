@@ -107,7 +107,7 @@ impl RcMigrationCheck for ProxyBasicWorks {
 	fn post_check((_, zero_nonce_accounts): Self::RcPrePayload) {
 		use pallet_rc_migrator::PureProxyCandidatesMigrated;
 		// All items in PureProxyCandidatesMigrated are true
-		for (delegator, b) in PureProxyCandidatesMigrated::<RelayRuntime>::iter() {
+		for (_, b) in PureProxyCandidatesMigrated::<RelayRuntime>::iter() {
 			assert!(b, "All items in PureProxyCandidatesMigrated are true");
 		}
 

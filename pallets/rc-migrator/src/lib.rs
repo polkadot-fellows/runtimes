@@ -1337,7 +1337,7 @@ pub mod pallet {
 			}
 
 			match stage {
-				MigrationStage::Pending | MigrationStage::MigrationPaused { } => {
+				MigrationStage::Pending | MigrationStage::MigrationPaused => {
 					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { start } => {
@@ -1776,7 +1776,7 @@ pub mod pallet {
 				},
 				MigrationStage::IndicesMigrationInit => {
 					Self::transition(MigrationStage::IndicesMigrationOngoing {
-						next_key: Some(Default::default()),
+						next_key: Some(()),
 					});
 				},
 				MigrationStage::IndicesMigrationOngoing { next_key } => {
@@ -2286,7 +2286,7 @@ pub mod pallet {
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -2298,10 +2298,10 @@ pub mod pallet {
 		/// [`Canceller`] account id.
 		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
-				if Canceller::<T>::get().map_or(false, |canceller_id| canceller_id == account_id) {
+				if Canceller::<T>::get().is_some_and(|canceller_id| canceller_id == account_id) {
 					return Ok(());
 				}
 			}

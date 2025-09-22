@@ -325,7 +325,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, validator, rewards)) => {
-							pallet_staking::ClaimedRewards::<T>::remove(&era, &validator);
+							pallet_staking::ClaimedRewards::<T>::remove(era, &validator);
 							messages.push(PortableStakingMessage::ClaimedRewards {
 								era,
 								validator: validator.clone(),
@@ -349,7 +349,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, validator, prefs)) => {
-							pallet_staking::ErasValidatorPrefs::<T>::remove(&era, &validator);
+							pallet_staking::ErasValidatorPrefs::<T>::remove(era, &validator);
 							messages.push(PortableStakingMessage::ErasValidatorPrefs {
 								era,
 								validator: validator.clone(),
@@ -365,7 +365,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, reward)) => {
-							pallet_staking::ErasValidatorReward::<T>::remove(&era);
+							pallet_staking::ErasValidatorReward::<T>::remove(era);
 							messages
 								.push(PortableStakingMessage::ErasValidatorReward { era, reward });
 							StakingStage::ErasValidatorReward(Some(era))
@@ -393,7 +393,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, total_stake)) => {
-							pallet_staking::ErasTotalStake::<T>::remove(&era);
+							pallet_staking::ErasTotalStake::<T>::remove(era);
 							messages
 								.push(PortableStakingMessage::ErasTotalStake { era, total_stake });
 							StakingStage::ErasTotalStake(Some(era))
@@ -406,7 +406,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, slashes)) => {
-							pallet_staking::UnappliedSlashes::<T>::remove(&era);
+							pallet_staking::UnappliedSlashes::<T>::remove(era);
 
 							if slashes.len() > 1000 {
 								defensive!("Lots of unapplied slashes for era, this is odd");
@@ -443,7 +443,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, validator, slash)) => {
-							pallet_staking::ValidatorSlashInEra::<T>::remove(&era, &validator);
+							pallet_staking::ValidatorSlashInEra::<T>::remove(era, &validator);
 							messages.push(PortableStakingMessage::ValidatorSlashInEra {
 								era,
 								validator: validator.clone(),
@@ -467,7 +467,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 
 					match iter.next() {
 						Some((era, validator, _slash)) => {
-							pallet_staking::NominatorSlashInEra::<T>::remove(&era, &validator);
+							pallet_staking::NominatorSlashInEra::<T>::remove(era, &validator);
 							// Not migrated.
 							StakingStage::NominatorSlashInEra(Some((era, validator)))
 						},

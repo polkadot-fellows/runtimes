@@ -86,8 +86,6 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 #[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
-#[cfg(not(feature = "kusama-ahm"))]
-type PortableRecoveryMessage = (); // somehow needed for FRAME
 #[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{

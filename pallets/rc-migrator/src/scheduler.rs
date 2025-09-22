@@ -131,7 +131,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_scheduler::Retries::<T>::remove(&key);
+							pallet_scheduler::Retries::<T>::remove(key);
 							messages.push(RcSchedulerMessage::Retries((key, value)));
 							SchedulerStage::Retries(Some(key))
 						},
@@ -146,7 +146,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							alias::Lookup::<T>::remove(&key);
+							alias::Lookup::<T>::remove(key);
 							messages.push(RcSchedulerMessage::Lookup((key, value)));
 							SchedulerStage::Lookup(Some(key))
 						},
@@ -257,9 +257,9 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 			}
 
 			last_key = Some(block);
-			alias::Agenda::<T>::remove(&block);
+			alias::Agenda::<T>::remove(block);
 
-			if agenda.len() == 0 {
+			if agenda.is_empty() {
 				// there are many agendas with no tasks, so we skip them
 				continue;
 			}

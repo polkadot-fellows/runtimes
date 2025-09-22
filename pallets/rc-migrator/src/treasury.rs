@@ -167,7 +167,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_treasury::Spends::<T>::remove(&key);
+							pallet_treasury::Spends::<T>::remove(key);
 							messages.push(PortableTreasuryMessage::Spends {
 								id: key,
 								status: value.into_portable(),
@@ -194,7 +194,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 			};
 		}
 
-		if messages.len() > 0 {
+		if !messages.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
 				types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages }
 			})?;

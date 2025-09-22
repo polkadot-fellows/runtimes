@@ -58,7 +58,7 @@ use super::{
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+	proxy::ProxyBasicWorks,
 };
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -80,15 +80,13 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
 use pallet_rc_migrator::{
-	child_bounties::ChildBountiesMigratedCorrectly,
 	staking::StakingMigratedCorrectly,
-	types::{RcMigrationCheck, ToPolkadotSs58},
+	types::RcMigrationCheck,
 	MigrationEndBlock as RcMigrationEndBlock, MigrationStage as RcMigrationStage,
 	MigrationStartBlock as RcMigrationStartBlock, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
-use polkadot_runtime_common::slots as pallet_slots;
 use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::{crypto::Ss58Codec, ByteArray, Get};
@@ -136,9 +134,9 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
-	ProxyWhaleWatching,
+	crate::proxy::ProxyWhaleWatching,
 	StakingMigratedCorrectly<Polkadot>,
-	ChildBountiesMigratedCorrectly<Polkadot>,
+	pallet_rc_migrator::child_bounties::ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
 // Checks that are specific to Kusama.
@@ -192,9 +190,9 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
-	ProxyWhaleWatching,
+	crate::proxy::ProxyWhaleWatching,
 	StakingMigratedCorrectly<AssetHub>,
-	ChildBountiesMigratedCorrectly<AssetHub>,
+	pallet_rc_migrator::child_bounties::ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
 #[cfg(feature = "kusama-ahm")]
@@ -265,6 +263,8 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 #[cfg(feature = "polkadot-ahm")]
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
+	use polkadot_runtime_common::slots as pallet_slots;
+
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 	let f = |now: BlockNumberFor<Polkadot>, num_leases: u32| {
 		frame_system::Pallet::<Polkadot>::set_block_number(now);
@@ -1389,12 +1389,11 @@ async fn post_migration_checks_only() {
 
 #[test]
 fn schedule_migration() {
-	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
 	new_test_rc_ext().execute_with(|| {
 		let now = u16::MAX as u32 * 2;
 		frame_system::Pallet::<RcRuntime>::set_block_number(now);
 		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
-		let rng = rand::thread_rng().gen_range(1..=u16::MAX) as u32;
+		let rng = rand::rng().random_range(1..=u16::MAX) as u32;
 
 		// Scheduling two sessions into the future works
 		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
@@ -1447,12 +1446,11 @@ fn schedule_migration() {
 
 #[test]
 fn schedule_migration_staking_pause_works() {
-	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
 	new_test_rc_ext().execute_with(|| {
 		let now = u16::MAX as u32 * 2;
 		frame_system::Pallet::<RcRuntime>::set_block_number(now);
 		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
-		let rng = rand::thread_rng().gen_range(1..=10) as u32;
+		let rng = rand::rng().random_range(1..=10) as u32;
 
 		// Scheduling two sessions into the future works
 		hypothetically!({
@@ -1620,7 +1618,7 @@ fn bifrost_addresses_are_in_translation_map() {
 #[cfg(feature = "polkadot-ahm")]
 #[test]
 fn map_known_governance_calls() {
-	use codec::{Decode, Encode};
+	use codec::Decode;
 	use frame_support::traits::{Bounded, BoundedInline, StorePreimage};
 	use hex_literal::hex;
 

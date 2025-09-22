@@ -141,7 +141,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					break;
 				}
 			}
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1))) {
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages(messages.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -253,7 +253,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 						},
 					};
 
-					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
+					let contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
 					for (contributor, (amount, memo)) in contributions_iter {
 						if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
@@ -261,7 +261,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							log::info!("RC weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
 						}
 
-						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1))) {
+						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages(messages.len() + 1)) {
 							// we break in outer loop for simplicity.
 							log::info!("AH weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
 						}
