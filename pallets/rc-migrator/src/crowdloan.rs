@@ -81,7 +81,7 @@ pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 		para_id: ParaId,
 		/// Amount that was reserved to create the crowdloan.
 		///
-		/// Normally this is 500 DOT. TODO: @ggwpez Should sanity check.
+		/// Normally this is 500 DOT.
 		amount: Balance,
 	},
 }
