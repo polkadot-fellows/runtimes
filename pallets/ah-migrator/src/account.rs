@@ -356,7 +356,7 @@ pub mod tests {
 					ah_locks.push((lock.id, lock.amount, lock.reasons as u8));
 					frozen += lock.amount;
 				}
-				ah_locks.sort_by_key(|(id, _, _)| id.clone());
+				ah_locks.sort_by_key(|(id, _, _)| *id);
 
 				let rc_migrated_balance =
 					summary.migrated_free.saturating_add(summary.migrated_reserved);

@@ -187,9 +187,9 @@ where
 		let anchor_block: u64 =
 			<T as crate::Config>::RcBlockNumberProvider::current_block_number().into();
 		// We are using the time from AH here, not relay. But the snapshots are taken together.
-		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get().into();
+		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get();
 
-		let block_diff: u64 = (block.into() - anchor_block).into();
+		let block_diff: u64 = block.into() - anchor_block;
 		let add_time_ms: u64 = block_diff * 6_000;
 
 		// Convert anchor_timestamp to SystemTime
@@ -243,7 +243,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 				Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
 			> = BTreeMap::new();
 			for ((block_number, para_id, account), amount) in storage_iter {
-				reserves_post.entry(para_id).or_insert_with(Vec::new).push((
+				reserves_post.entry(para_id).or_default().push((
 					block_number,
 					account,
 					amount,
@@ -303,7 +303,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					// Translate depositor account from RC to AH
 					let translated_depositor = Pallet::<T>::translate_account_rc_to_ah(depositor);
 
-					rc_crowdloan_reserves.entry(para_id).or_insert_with(Vec::new).push((
+					rc_crowdloan_reserves.entry(para_id).or_default().push((
 						unreserve_block,
 						translated_depositor,
 						amount,

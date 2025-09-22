@@ -451,7 +451,7 @@ fn write_account_translation_map(
 
 	rust.push_str(
 		"/// List of RC para to AH sibl sovereign account translation sorted by RC account.
-pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'static str))] = &[\n",
+pub const SOV_TRANSLATIONS: &[((AccountId32, &str), (AccountId32, &str))] = &[\n",
 	);
 
 	for (para_id, (rc_acc, ah_acc)) in sov_translations.iter() {
@@ -469,7 +469,7 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'stat
 
 	rust.push_str(
 		"\n\n/// List of RC para to AH sibl derived account translation sorted by RC account.
-pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId32, &'static str))] = &[\n",
+pub const DERIVED_TRANSLATIONS: &[((AccountId32, &str), u16, (AccountId32, &str))] = &[\n",
 	);
 
 	for (para_id, rc_acc, derivation_index, ah_acc) in derived_translations.iter() {

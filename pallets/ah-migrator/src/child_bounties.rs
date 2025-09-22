@@ -98,7 +98,7 @@ impl<T: Config> Pallet<T> {
 				);
 			},
 			ChildrenCuratorFees { child_id, amount } => {
-				let amount: pallet_treasury::BalanceOf<T> = amount.into();
+				let amount: pallet_treasury::BalanceOf<T> = amount;
 				pallet_child_bounties::ChildrenCuratorFees::<T>::insert(child_id, amount);
 			},
 		}

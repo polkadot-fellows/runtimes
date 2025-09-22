@@ -280,7 +280,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
 		for (key, preimage) in pallet_preimage::PreimageFor::<T>::iter() {
-			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
+			assert!(!preimage.is_empty(), "Preimage::PreimageFor is empty");
 			assert!(preimage.len() <= 4 * 1024 * 1024_usize, "Preimage::PreimageFor is too big");
 			assert!(
 				preimage.len() == key.1 as usize,

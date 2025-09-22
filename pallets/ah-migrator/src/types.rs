@@ -70,6 +70,8 @@ impl AhMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }
 	for_tuples! { type AhPrePayload = (#( Tuple::AhPrePayload ),* ); }
 
+	#[allow(clippy::unnecessary_operation)]
+	#[allow(clippy::no_effect)]
 	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		(for_tuples! { #(
 			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
@@ -79,6 +81,8 @@ impl AhMigrationCheck for Tuple {
 		),* })
 	}
 
+	#[allow(clippy::unnecessary_operation)]
+	#[allow(clippy::no_effect)]
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		(for_tuples! { #(
 			// Copy&paste `frame_support::hypothetically` since we cannot use macros here

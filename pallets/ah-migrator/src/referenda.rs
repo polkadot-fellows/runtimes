@@ -282,12 +282,12 @@ impl<T: Config> Pallet<T> {
 		if let Some(referendum_count) = referendum_count {
 			ReferendumCount::<T, ()>::put(referendum_count);
 		}
-		if deciding_count.len() > 0 {
+		if !deciding_count.is_empty() {
 			deciding_count.iter().for_each(|(track_id, count)| {
 				DecidingCount::<T, ()>::insert(track_id, count);
 			});
 		}
-		if track_queue.len() > 0 {
+		if !track_queue.is_empty() {
 			track_queue.into_iter().for_each(|(track_id, queue)| {
 				let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
 				TrackQueue::<T, ()>::insert(track_id, queue);
@@ -365,8 +365,6 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 			alias::ReferendumInfoFor::<T>::iter().next().is_none(),
 			"Referendum info for map should be empty on AH before the migration"
 		);
-
-		()
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {

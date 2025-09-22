@@ -55,21 +55,21 @@ impl<T: Config> Pallet<T> {
 				pallet_claims::Total::<T>::put(total);
 			},
 			RcClaimsMessage::Claims((who, amount)) => {
-				if pallet_claims::Claims::<T>::contains_key(&who) {
+				if pallet_claims::Claims::<T>::contains_key(who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: claims {:?}", who);
 				pallet_claims::Claims::<T>::insert(who, amount);
 			},
 			RcClaimsMessage::Vesting { who, schedule } => {
-				if pallet_claims::Vesting::<T>::contains_key(&who) {
+				if pallet_claims::Vesting::<T>::contains_key(who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: vesting {:?}", who);
 				pallet_claims::Vesting::<T>::insert(who, schedule);
 			},
 			RcClaimsMessage::Signing((who, statement_kind)) => {
-				if pallet_claims::Signing::<T>::contains_key(&who) {
+				if pallet_claims::Signing::<T>::contains_key(who) {
 					return Err(Error::<T>::InsertConflict);
 				}
 				log::debug!(target: LOG_TARGET, "Processing claims message: signing {:?}", who);

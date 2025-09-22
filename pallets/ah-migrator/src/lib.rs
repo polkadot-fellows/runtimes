@@ -234,7 +234,7 @@ impl MigrationStage {
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub struct BalancesBefore<Balance: Default> {
+pub struct BalancesBefore<Balance> {
 	pub checking_account: Balance,
 	pub total_issuance: Balance,
 }
@@ -909,7 +909,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_treasury_messages(messages).map_err(Into::into)
+			Self::do_receive_treasury_messages(messages)
 		}
 
 		#[pallet::call_index(22)]
@@ -948,7 +948,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
+			Self::do_receive_delegated_staking_messages(messages)
 		}
 
 		#[pallet::call_index(24)]
@@ -1041,7 +1041,7 @@ pub mod pallet {
 				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
 			}
 			ensure!(
-				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				new.get_priority_blocks().is_none_or(|blocks| !blocks.is_zero()),
 				Error::<T>::InvalidParameter
 			);
 			DmpQueuePriorityConfig::<T>::put(new.clone());
@@ -1164,7 +1164,7 @@ pub mod pallet {
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
 			}

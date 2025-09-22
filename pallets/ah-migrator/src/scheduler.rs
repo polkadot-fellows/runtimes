@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
 				ah_tasks.push(Some(task));
 			}
 
-			if ah_tasks.len() > 0 {
+			if !ah_tasks.is_empty() {
 				let ah_tasks =
 					BoundedVec::<_, T::MaxScheduledPerBlock>::defensive_truncate_from(ah_tasks);
 				pallet_rc_migrator::scheduler::alias::Agenda::<T>::insert(block_number, ah_tasks);

@@ -225,7 +225,7 @@ where
 
 			// All existing AH delegations are still here
 			for ah_pre_d in &ah_pre_delegations {
-				assert!(ah_post_delegations.contains(&ah_pre_d), "AH delegations are still available on AH for delegator: {:?}, Missing {:?} in {:?} vs {:?}", translated_delegator.to_polkadot_ss58(), ah_pre_d, ah_pre_delegations, ah_post_delegations);
+				assert!(ah_post_delegations.contains(ah_pre_d), "AH delegations are still available on AH for delegator: {:?}, Missing {:?} in {:?} vs {:?}", translated_delegator.to_polkadot_ss58(), ah_pre_d, ah_pre_delegations, ah_post_delegations);
 			}
 
 			// Find corresponding RC delegations for this translated delegator

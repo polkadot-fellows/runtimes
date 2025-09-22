@@ -90,7 +90,7 @@ impl<T: Config> Pallet<T> {
 							return Ok(location);
 						},
 					};
-					let translated_junction = junction.clone().with_account_id32(translated_id);
+					let translated_junction = (*junction).with_account_id32(translated_id);
 					let translated_location = Location::new(0, translated_junction);
 
 					// Convert back to original version
