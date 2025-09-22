@@ -62,9 +62,7 @@ use super::{
 };
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{
-	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
-};
+use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, UpwardMessageSender};
 use frame_support::{
 	assert_noop, hypothetically, hypothetically_ok,
 	traits::{
@@ -88,15 +86,19 @@ use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
 use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
-use sp_core::{crypto::Ss58Codec, ByteArray};
+use sp_core::crypto::Ss58Codec;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
-use std::{
-	collections::{BTreeMap, BTreeSet, VecDeque},
-	str::FromStr,
-};
+use std::{collections::VecDeque, str::FromStr};
 use xcm::latest::*;
-use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
+use xcm_emulator::{assert_ok, WeightMeter};
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
+use ::{
+	cumuluse_primitives_core::ParaId,
+	sp_core::ByteArray,
+	std::collections::{BTreeMap, BTreeSet},
+	xcm_emulator::ConvertLocation,
+};
 
 type RcChecks = (
 	SanityChecks,
@@ -363,6 +365,8 @@ async fn find_translatable_accounts() {
 	write_account_translation_map(&sov_translations, &derived_translations);
 }
 
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
+#[allow(clippy::type_complexity)]
 fn account_translation_map(
 	rc_accounts: &BTreeSet<&AccountId32>,
 ) -> (Vec<(u32, (AccountId32, AccountId32))>, Vec<(ParaId, AccountId32, u16, AccountId32)>) {
@@ -442,6 +446,7 @@ fn account_translation_map(
 	(sov_translations, derived_translations)
 }
 
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 fn write_account_translation_map(
 	sov_translations: &[(u32, (AccountId32, AccountId32))],
 	derived_translations: &[(ParaId, AccountId32, u16, AccountId32)],
@@ -515,6 +520,7 @@ fn translation_integrity_check() {
 	}
 }
 
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 fn format_account_id(acc: &AccountId32) -> String {
 	format!("AccountId32::new(hex!(\"{}\"))", hex::encode(acc.as_slice()))
 }

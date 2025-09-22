@@ -1044,7 +1044,7 @@ pub mod tests {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Kusama RC => AH
 				[41, 0] => [80, 0].to_vec(),
-				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+				_ => panic!("Unknown freeze id: {freeze_id:?}"),
 			}
 		}
 		// Translate the RC hold id encoding to the corresponding AH hold id encoding.
@@ -1056,7 +1056,7 @@ pub mod tests {
 				[6, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Kusama RC => AH
 				[47, 0] => [83, 0].to_vec(),
-				_ => panic!("Unknown hold id: {:?}", hold_id),
+				_ => panic!("Unknown hold id: {hold_id:?}"),
 			}
 		}
 

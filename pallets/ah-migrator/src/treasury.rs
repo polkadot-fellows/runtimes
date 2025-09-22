@@ -19,6 +19,8 @@ use pallet_rc_migrator::{
 	treasury::{PortableSpendStatus, PortableTreasuryMessage, TreasuryMigrator},
 	types::SortByEncoded,
 };
+
+#[cfg(feature = "std")]
 use pallet_treasury::{ProposalIndex, SpendIndex};
 
 impl<T: Config> Pallet<T> {
@@ -177,8 +179,7 @@ impl<T: Config> Pallet<T> {
 		if reducible.is_zero() {
 			log::info!(
 				target: LOG_TARGET,
-				"Treasury old native asset account is empty. old_account_id: {:?}",
-				old_account_id,
+				"Treasury old native asset account is empty. old_account_id: {old_account_id:?}",
 			);
 		} else {
 			match <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
@@ -280,6 +281,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 
 		// Assert storage 'Treasury::Proposals::ah_post::consistent'
 		// Assert storage 'Treasury::Proposals::ah_post::correct'
+		#[allow(clippy::type_complexity)]
 		let rc_proposals_translated: Vec<(
 			ProposalIndex,
 			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,
@@ -296,6 +298,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 			})
 			.collect();
 
+		#[allow(clippy::type_complexity)]
 		let ah_proposals: Vec<(
 			ProposalIndex,
 			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,

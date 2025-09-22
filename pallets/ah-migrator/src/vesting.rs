@@ -106,22 +106,25 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 			})
 			.collect();
 
-		let all_post: BTreeMap<Vec<u8>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>> =
-			pallet_vesting::Vesting::<T>::iter()
-				.map(|(who, schedules)| {
-					let mut vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
-						Vec::new();
+		#[allow(clippy::type_complexity)]
+		let all_post: BTreeMap<
+			Vec<u8>,
+			Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>,
+		> = pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| {
+				let mut vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					Vec::new();
 
-					for s in schedules.iter() {
-						vesting_info.push(GenericVestingInfo {
-							locked: s.locked(),
-							starting_block: s.starting_block(),
-							per_block: s.per_block(),
-						});
-					}
-					(who.encode(), vesting_info)
-				})
-				.collect();
+				for s in schedules.iter() {
+					vesting_info.push(GenericVestingInfo {
+						locked: s.locked(),
+						starting_block: s.starting_block(),
+						per_block: s.per_block(),
+					});
+				}
+				(who.encode(), vesting_info)
+			})
+			.collect();
 
 		// Assert storage "Vesting::Vesting::ah_post::correct"
 		// Assert storage "Vesting::Vesting::ah_post::consistent"

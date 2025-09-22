@@ -148,8 +148,10 @@ impl<T: Config> Pallet<T> {
 #[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	incomplete_since: Option<BlockNumberFor<T>>,
+	#[allow(clippy::type_complexity)]
 	agenda_and_call_encodings:
 		Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>, Vec<Option<Vec<u8>>>)>,
+	#[allow(clippy::type_complexity)]
 	retries: Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
 	lookup: Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
 }

@@ -216,6 +216,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							};
 
 							// Sanity check that all leases have the same account and amount:
+							let _ = lease_amount;  // clippy
 							#[cfg(feature = "std")]
 							for (acc, amount) in leases.iter().flatten() {
 								defensive_assert!(acc == lease_acc, "All leases should have the same account");

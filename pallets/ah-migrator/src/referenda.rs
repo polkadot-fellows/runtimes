@@ -268,6 +268,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	#[allow(clippy::type_complexity)]
 	pub fn do_receive_referenda_values(
 		referendum_count: Option<u32>,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
@@ -323,7 +324,9 @@ pub mod alias {
 #[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	pub referendum_count: ReferendumIndex,
+	#[allow(clippy::type_complexity)]
 	pub deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
+	#[allow(clippy::type_complexity)]
 	pub track_queue: Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)>)>,
 	pub metadata: Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
 	pub referenda: Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,

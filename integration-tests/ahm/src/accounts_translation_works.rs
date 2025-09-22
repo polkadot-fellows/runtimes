@@ -16,8 +16,6 @@
 
 //! Test that account translation works (Para sovereign and derived).
 
-use crate::porting_prelude::*;
-
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::{accounts::AccountState, types::RcMigrationCheck};
 use sp_application_crypto::Ss58Codec;

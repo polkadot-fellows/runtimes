@@ -263,7 +263,6 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-#[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 	type RcPrePayload = Vec<(H256, u32)>;
 	type AhPrePayload = ();
@@ -315,7 +314,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 			if !pallet_preimage::PreimageFor::<T>::contains_key((hash, len)) {
 				log::warn!(
-					"Relay chain Preimage::PreimageFor storage item with key {hash:?} {len:?} is not found on assethub"
+					"Relay chain Preimage::PreimageFor storage item with key {hash:?} {len:?} is not found on assethub",
 				);
 			}
 		}
@@ -375,7 +374,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 			// Assert storage "Preimage::RequestStatusFor::ah_post::correct"
 			if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
 				log::warn!(
-					"Relay chain Preimage::RequestStatusFor storage item with key {hash:?} is not found on assethub"
+					"Relay chain Preimage::RequestStatusFor storage item with key {hash:?} is not found on assethub",
 				);
 			} else {
 				match pallet_preimage::RequestStatusFor::<T>::get(hash).unwrap() {
@@ -404,7 +403,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 					pallet_preimage::RequestStatus::Requested { .. } => {
 						assert!(
 							requested,
-							"Unrequested preimage with hash {hash:?} in the relay chain has become requested on assetHub"
+							"Unrequested preimage with hash {hash:?} in the relay chain has become requested on assetHub",
 						);
 					},
 				}

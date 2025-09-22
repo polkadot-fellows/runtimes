@@ -19,11 +19,9 @@ use crate::*;
 use frame_support::{traits::ConstU32, BoundedVec};
 use pallet_nomination_pools::BondedPoolInner;
 #[cfg(feature = "std")]
-use pallet_rc_migrator::staking::nom_pools::tests;
-use pallet_rc_migrator::{
-	staking::nom_pools::{BalanceOf, NomPoolsMigrator, NomPoolsStorageValues},
-	types::ToPolkadotSs58,
-};
+use pallet_rc_migrator::staking::nom_pools::{tests, NomPoolsMigrator, NomPoolsStorageValues};
+
+use pallet_rc_migrator::{staking::nom_pools::BalanceOf, types::ToPolkadotSs58};
 
 /// Trait to provide account translation logic for bonded pool structures.
 ///

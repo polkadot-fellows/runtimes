@@ -20,6 +20,7 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
+	#[allow(clippy::type_complexity)]
 	pub fn do_receive_accounts(
 		accounts: Vec<
 			RcAccount<T::AccountId, T::Balance, T::PortableHoldReason, T::PortableFreezeReason>,
@@ -280,6 +281,7 @@ pub mod tests {
 				"No freezes should exist on Asset Hub before migration"
 			);
 
+			#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 			let check_account = T::CheckingAccount::get();
 			#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 			let checking_balance = <T as Config>::Currency::total_balance(&check_account);

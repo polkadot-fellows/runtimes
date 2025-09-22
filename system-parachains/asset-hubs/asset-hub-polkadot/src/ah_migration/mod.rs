@@ -316,24 +316,15 @@ impl RcToAhCall {
 			},
 			RcRuntimeCall::Utility(RcUtilityCall::batch { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Utility(RcUtilityCall::batch_all { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch_all {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Utility(RcUtilityCall::force_batch { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::force_batch {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Treasury(RcTreasuryCall::spend {
 				asset_kind,

@@ -226,6 +226,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		// - reserves_pre: Reference to pre-migration reserves map
 		// - storage_iter: Iterator over storage items
 		// - error_msg: Custom error message for assertion failure
+		#[allow(clippy::type_complexity)]
 		fn verify_reserves<T: Config, I>(
 			_reserves_pre: &BTreeMap<
 				ParaId,
@@ -236,6 +237,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		) where
 			I: Iterator<Item = ((BlockNumberFor<T>, ParaId, AccountIdOf<T>), BalanceOf<T>)>,
 		{
+			#[allow(clippy::type_complexity)]
 			let mut reserves_post: BTreeMap<
 				ParaId,
 				Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
@@ -251,10 +253,12 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 			(ParaId, BlockNumberFor<T>, AccountIdOf<T>),
 			BalanceOf<T>,
 		> = BTreeMap::new();
+		#[allow(clippy::type_complexity)]
 		let mut rc_lease_reserves: BTreeMap<
 			ParaId,
 			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
 		> = BTreeMap::new();
+		#[allow(clippy::type_complexity)]
 		let mut rc_crowdloan_reserves: BTreeMap<
 			ParaId,
 			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,

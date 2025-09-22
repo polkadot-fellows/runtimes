@@ -17,7 +17,7 @@
 //! Migrator for pallet-delegated-staking.
 
 use crate::*;
-use types::{AccountIdOf, RcMigrationCheck};
+use types::AccountIdOf;
 
 /// Stage of the delegated-staking pallet migration.
 #[derive(
@@ -206,7 +206,7 @@ pub mod test {
 }
 
 #[cfg(feature = "std")]
-impl<T: Config> RcMigrationCheck for DelegatedStakingMigrator<T> {
+impl<T: Config> types::RcMigrationCheck for DelegatedStakingMigrator<T> {
 	type RcPrePayload = (Vec<test::RcDelegation>, Vec<test::RcAgentLedger>);
 
 	fn pre_check() -> Self::RcPrePayload {
