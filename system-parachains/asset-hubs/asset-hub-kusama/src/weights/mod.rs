@@ -36,6 +36,7 @@ pub mod pallet_proxy;
 pub mod pallet_remote_proxy;
 // TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
 // pub mod pallet_revive;
+pub mod inmemorydb_weights;
 pub mod pallet_session;
 pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
@@ -50,4 +51,4 @@ pub mod xcm;
 
 pub use block_weights::constants::BlockExecutionWeight;
 pub use extrinsic_weights::constants::ExtrinsicBaseWeight;
-pub use rocksdb_weights::constants::RocksDbWeight;
+pub use inmemorydb_weights::constants::InMemoryDbWeight;
