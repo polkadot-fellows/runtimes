@@ -416,7 +416,7 @@ pub mod tests {
 				// There should be no locks on AH before the migration so we just need to check that
 				// the locks on AH after migration are the same as on RC before migration.
 				let mut rc_locks = summary.locks.clone();
-				rc_locks.sort_by_key(|(id, _, _)| id.clone());
+				rc_locks.sort_by_key(|(id, _, _)| *id);
 				assert_eq!(
 					rc_locks,
 					ah_locks,

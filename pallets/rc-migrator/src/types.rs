@@ -241,6 +241,7 @@ pub trait RcMigrationCheck {
 #[cfg(feature = "std")]
 #[allow(clippy::unnecessary_operation)] // Testing only
 #[allow(clippy::no_effect)] // Testing only
+#[allow(clippy::unused_unit)]
 #[impl_trait_for_tuples::impl_for_tuples(24)]
 impl RcMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }

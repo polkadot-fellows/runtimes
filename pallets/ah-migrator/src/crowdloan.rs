@@ -197,11 +197,9 @@ where
 			.checked_add(std::time::Duration::from_millis(anchor_timestamp))
 			.expect("Timestamp addition should not overflow");
 
-		let block_timestamp = anchor_time
+		anchor_time
 			.checked_add(std::time::Duration::from_millis(add_time_ms))
-			.expect("Block timestamp addition should not overflow");
-
-		block_timestamp
+			.expect("Block timestamp addition should not overflow")
 	}
 }
 
@@ -288,7 +286,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					// Translate account from RC to AH
 					let translated_account = Pallet::<T>::translate_account_rc_to_ah(account);
 
-					rc_lease_reserves.entry(para_id).or_insert_with(Vec::new).push((
+					rc_lease_reserves.entry(para_id).or_default().push((
 						unreserve_block,
 						translated_account,
 						amount,

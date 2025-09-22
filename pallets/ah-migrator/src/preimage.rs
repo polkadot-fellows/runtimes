@@ -82,7 +82,7 @@ impl<T: Config> Pallet<T> {
 				}
 
 				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
-				debug_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
+				defensive_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
 				let bounded_preimage: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
 					preimage.into_inner().try_into().expect("Asserted");
 				pallet_preimage::PreimageFor::<T>::insert(key, &bounded_preimage);

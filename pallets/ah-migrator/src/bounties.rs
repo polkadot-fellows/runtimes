@@ -27,6 +27,7 @@ impl<T: Config> Pallet<T> {
 	/// This function translates all account IDs in the bounty struct:
 	/// - `proposer` field
 	/// - Account IDs within the `status` field based on its variant
+	///
 	/// Returns the same RC bounty type but with translated accounts
 	fn translate_bounty(
 		bounty: RcBounty<T::AccountId, pallet_treasury::BalanceOf<T>, BlockNumberFor<T>>,
