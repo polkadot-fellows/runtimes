@@ -73,7 +73,8 @@ impl Get<RuntimeHoldReason> for StakingDelegationReason {
 ///       Start        End
 /// ```
 ///
-/// This call returns a 2-tuple to indicate whether a call is enabled during these periods.
+/// This call returns a 2-tuple to indicate whether a call is enabled during these periods. The
+/// Start period contains our Warmup period and the End period contains our Cool-off period.
 pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall) -> (bool, bool) {
 	use RuntimeCall::*;
 	const ON: bool = true;
@@ -106,11 +107,13 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		VoterList(..) => (OFF, OFF),
 		NominationPools(..) => (OFF, OFF),
 		FastUnstake(..) => (OFF, OFF),
-		Configuration(..) => (ON, ON), /* TODO allow this to be called by fellow origin during the migration https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928794490 */
+		Configuration(..) => (ON, ON),
 		ParasShared(parachains_shared::Call::__Ignore { .. }) => (ON, ON), // Has no calls
 		ParaInclusion(parachains_inclusion::Call::__Ignore { .. }) => (ON, ON), // Has no calls
-		ParaInherent(..) => (ON, ON),  // only inherents
-		Paras(..) => (ON, ON),         /* Only root and one security relevant call: */
+		ParaInherent(..) => (ON, ON),                                      // only inherents
+		Paras(..) => (ON, ON),                                             /* Only root and one
+		                                                                     * security relevant
+		                                                                     * call: */
 		// `include_pvf_check_statement`
 		Initializer(..) => (ON, ON), // Only root calls. Fine to keep.
 		Hrmp(..) => (ON, ON),        /* open close hrmp channels by parachains or root force. */

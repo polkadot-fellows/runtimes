@@ -786,6 +786,16 @@ pub mod pallet {
 	pub type RcMigratedBalance<T: Config> =
 		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
+	/// Helper storage item to store the total balance that should be kept on Relay Chain after
+	/// it is consumed from the `RcMigratedBalance` storage item and sent to the Asset Hub.
+	///
+	/// This let us to take the value from the `RcMigratedBalance` storage item and keep the
+	/// `SignalMigrationFinish` stage to be idempotent while preserving these values for tests and
+	/// later discoveries.
+	#[pallet::storage]
+	pub type RcMigratedBalanceArchive<T: Config> =
+		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
+
 	/// The pending XCM messages.
 	///
 	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
@@ -814,7 +824,7 @@ pub mod pallet {
 	pub type PendingXcmQueries<T: Config> =
 		StorageMap<_, Twox64Concat, QueryId, T::Hash, OptionQuery>;
 
-	/// The DMP queue priority.
+	/// Manual override for `type UnprocessedMsgBuffer: Get<u32>`. Look there for docs.
 	#[pallet::storage]
 	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
 
@@ -2243,7 +2253,7 @@ pub mod pallet {
 						// 1 read and 1 write for `staking::on_migration_end`;
 						// 1 read and 1 write for `RcMigratedBalance` storage item;
 						// plus one xcm send;
-						T::DbWeight::get().reads_writes(1, 1)
+						T::DbWeight::get().reads_writes(1, 2)
 							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
 					);
 
@@ -2251,12 +2261,8 @@ pub mod pallet {
 
 					// Send finish message to AH.
 					let data = if RcMigratedBalance::<T>::exists() {
-						let tracker = if cfg!(feature = "std") {
-							// we should keep this value for the tests.
-							RcMigratedBalance::<T>::get()
-						} else {
-							RcMigratedBalance::<T>::take()
-						};
+						let tracker = RcMigratedBalance::<T>::take();
+						RcMigratedBalanceArchive::<T>::put(&tracker);
 						Self::deposit_event(Event::MigratedBalanceConsumed {
 							kept: tracker.kept,
 							migrated: tracker.migrated,
@@ -2446,6 +2452,7 @@ pub mod pallet {
 			}
 
 			if batch_count > MAX_XCM_MSG_PER_BLOCK {
+				debug_assert!(false, "Unreachable: we always remaining len before pushing");
 				log::warn!(
 					target: LOG_TARGET,
 					"Maximum number of XCM messages ({}) to migrate per block exceeded, current msg count: {}",
@@ -2463,8 +2470,6 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - call - the call to send
 		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
-			log::info!(target: LOG_TARGET, "Sending XCM message");
-
 			let call = types::AssetHubPalletConfig::<T>::AhmController(call);
 
 			let message = Xcm(vec![

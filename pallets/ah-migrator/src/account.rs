@@ -285,7 +285,10 @@ pub mod tests {
 			// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
 			// added DOT ED to all existing AH accounts.
 			// This is fine, we can just ignore/accept this small amount.
+			#[cfg(feature = "polkadot-ahm")]
 			defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
+			#[cfg(feature = "kusama-ahm")]
+			defensive_assert!(checking_balance.is_zero());
 
 			let mut ah_pre_payload = BTreeMap::new();
 			for (account, _) in frame_system::Account::<T>::iter() {

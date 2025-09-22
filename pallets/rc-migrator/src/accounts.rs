@@ -732,7 +732,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// weight.
 	pub fn obtain_free_proxy_candidates() -> (Option<u32>, Weight) {
 		if PureProxyCandidatesMigrated::<T>::iter_keys().next().is_some() {
-			log::info!(target: LOG_TARGET, "Init pure proxy candidates already ran, skipping");
+			defensive!("Init pure proxy candidates already ran, skipping");
 			return (None, T::DbWeight::get().reads(1));
 		}
 
@@ -758,7 +758,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
 		if RcAccounts::<T>::iter_keys().next().is_some() {
-			log::info!(target: LOG_TARGET, "Init accounts migration already ran, skipping");
+			defensive!("Init accounts migration already ran, skipping");
 			return T::DbWeight::get().reads(1);
 		}
 
@@ -1279,8 +1279,7 @@ pub mod tests {
 			}
 
 			let total_issuance = <T as Config>::Currency::total_issuance();
-			let tracker = RcMigratedBalance::<T>::get();
-			// verify total issuance hasn't changed for any other reason than the migrated funds
+			let tracker = RcMigratedBalanceArchive::<T>::get();
 			assert_eq!(
 				total_issuance,
 				rc_total_issuance_before.saturating_sub(tracker.migrated),

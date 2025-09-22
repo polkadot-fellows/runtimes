@@ -40,7 +40,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Translate the account if its a parachain sovereign account.
-	#[cfg(any(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 	pub fn maybe_sovereign_translate(account: &T::AccountId) -> Option<T::AccountId> {
 		let Some(new) = crate::sovereign_account_translation::SOV_TRANSLATIONS
 			.binary_search_by_key(account, |((rc_acc, _), _)| rc_acc.clone())
@@ -65,13 +64,7 @@ impl<T: Config> Pallet<T> {
 		Some(new)
 	}
 
-	#[cfg(not(any(feature = "polkadot-ahm", feature = "kusama-ahm")))]
-	fn maybe_sovereign_translate(account: &T::AccountId) -> Option<T::AccountId> {
-		None
-	}
-
 	/// Translate the account if its derived from a parachain sovereign account.
-	#[cfg(any(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 	pub fn maybe_derived_translate(account: &T::AccountId) -> Option<T::AccountId> {
 		let Some((new, idx)) = crate::sovereign_account_translation::DERIVED_TRANSLATIONS
 			.binary_search_by_key(account, |((rc_acc, _), _, _)| rc_acc.clone())
@@ -94,10 +87,5 @@ impl<T: Config> Pallet<T> {
 		});
 
 		Some(new.clone())
-	}
-
-	#[cfg(not(any(feature = "polkadot-ahm", feature = "kusama-ahm")))]
-	fn maybe_derived_translate(account: &T::AccountId) -> Option<T::AccountId> {
-		None
 	}
 }
