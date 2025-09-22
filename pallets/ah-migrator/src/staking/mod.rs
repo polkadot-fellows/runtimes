@@ -22,4 +22,6 @@ pub mod bags_list;
 pub mod checks;
 pub mod delegated_staking;
 pub mod nom_pools;
-pub mod staking;
+pub mod staking_impl;
+
+pub use staking_impl as staking; // For Clippy
