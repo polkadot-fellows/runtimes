@@ -83,7 +83,9 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		// which added DOT ED to all existing AH accounts.
 		// This is fine, we can just ignore/accept this small amount.
 		#[cfg(feature = "polkadot-ahm")]
-		defensive_assert!(ah_checking_balance_before == <T as Config>::Currency::minimum_balance());
+		defensive_assert!(
+			ah_checking_balance_before == pallet_balances::Pallet::<AhRuntime>::minimum_balance()
+		);
 		#[cfg(feature = "kusama-ahm")]
 		defensive_assert!(ah_checking_balance_before == 0);
 
