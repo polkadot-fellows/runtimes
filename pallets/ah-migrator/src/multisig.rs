@@ -61,7 +61,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => count_good += 1,
 				Err(e) => {
 					count_bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating multisig: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating multisig: {e:?}");
 				},
 			}
 		}

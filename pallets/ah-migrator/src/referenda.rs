@@ -165,7 +165,7 @@ impl<T: Config> Pallet<T> {
 			count_good,
 			count_bad,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} referendums", count_good);
+		log::info!(target: LOG_TARGET, "Processed {count_good} referendums");
 
 		Ok(())
 	}
@@ -174,7 +174,7 @@ impl<T: Config> Pallet<T> {
 		id: u32,
 		referendum: RcReferendumInfoOf<T, ()>,
 	) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating referendum id: {}, info: {:?}", id, referendum);
+		log::debug!(target: LOG_TARGET, "Integrating referendum id: {id}, info: {referendum:?}");
 
 		let referendum: AhReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
@@ -189,7 +189,7 @@ impl<T: Config> Pallet<T> {
 						),
 					);
 					Self::deposit_event(Event::ReferendumCanceled { id });
-					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
+					log::error!(target: LOG_TARGET, "!!! Referendum {id} cancelled");
 				};
 
 				let origin = match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
@@ -207,7 +207,7 @@ impl<T: Config> Pallet<T> {
 				let proposal = if let Ok(proposal) = Self::map_rc_ah_call(&status.proposal) {
 					proposal
 				} else {
-					log::error!(target: LOG_TARGET, "Failed to convert RC call to AH call for referendum {}", id);
+					log::error!(target: LOG_TARGET, "Failed to convert RC call to AH call for referendum {id}");
 					cancel_referendum(id, status);
 					return Ok(());
 				};
@@ -237,7 +237,7 @@ impl<T: Config> Pallet<T> {
 
 		alias::ReferendumInfoFor::<T>::insert(id, referendum);
 
-		log::debug!(target: LOG_TARGET, "Referendum {} integrated", id);
+		log::debug!(target: LOG_TARGET, "Referendum {id} integrated");
 
 		Ok(())
 	}
@@ -253,9 +253,9 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for (id, hash) in metadata {
-			log::debug!(target: LOG_TARGET, "Integrating referendum {} metadata", id);
+			log::debug!(target: LOG_TARGET, "Integrating referendum {id} metadata");
 			MetadataOf::<T, ()>::insert(id, hash);
-			log::debug!(target: LOG_TARGET, "Referendum {} integrated", id);
+			log::debug!(target: LOG_TARGET, "Referendum {id} integrated");
 		}
 
 		Self::deposit_event(Event::BatchProcessed {
@@ -263,7 +263,7 @@ impl<T: Config> Pallet<T> {
 			count_good: count,
 			count_bad: 0,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} metadata", count);
+		log::info!(target: LOG_TARGET, "Processed {count} metadata");
 
 		Ok(())
 	}

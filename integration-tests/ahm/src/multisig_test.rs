@@ -202,7 +202,7 @@ impl MultisigsAccountIdStaysTheSame {
 	fn fund_account(account: &AccountId32) {
 		// Amount does not mater, just deposit a lot
 		let _ = pallet_balances::Pallet::<AhRuntime>::deposit_creating(
-			&account,
+			account,
 			10_000_000_000_000_000_000,
 		);
 	}

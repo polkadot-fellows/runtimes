@@ -204,7 +204,7 @@ impl ProxyBasicWorks {
 	pub fn check_proxy(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
-		permissions: &Vec<Permission>,
+		permissions: &[Permission],
 		delay: BlockNumberFor<AssetHubRuntime>,
 	) {
 		if delay > 0 {
@@ -289,7 +289,7 @@ impl ProxyBasicWorks {
 	fn can_transfer(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
-		permissions: &Vec<Permission>,
+		permissions: &[Permission],
 		hint: bool,
 	) -> bool {
 		let mut force_types = permissions
@@ -301,8 +301,7 @@ impl ProxyBasicWorks {
 
 		force_types
 			.into_iter()
-			.map(|p| Self::can_transfer_impl(delegatee, delegator, p, hint))
-			.any(|r| r)
+			.any(|p| Self::can_transfer_impl(delegatee, delegator, p, hint))
 	}
 
 	fn can_transfer_impl(
@@ -350,7 +349,7 @@ impl ProxyBasicWorks {
 	fn can_governance(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
-		permissions: &Vec<Permission>,
+		permissions: &[Permission],
 		hint: bool,
 	) -> bool {
 		let mut force_types = permissions
@@ -362,8 +361,7 @@ impl ProxyBasicWorks {
 
 		force_types
 			.into_iter()
-			.map(|p| Self::can_governance_impl(delegatee, delegator, p, hint))
-			.any(|r| r)
+			.any(|p| Self::can_governance_impl(delegatee, delegator, p, hint))
 	}
 
 	fn can_governance_impl(
@@ -383,7 +381,7 @@ impl ProxyBasicWorks {
 					.unwrap();
 			let call: asset_hub_polkadot_runtime::RuntimeCall = pallet_referenda::Call::submit {
 				proposal_origin: Box::new(RawOrigin::Root.into()),
-				proposal: proposal.into(),
+				proposal,
 				enactment_moment: DispatchTime::At(0),
 			}
 			.into();
@@ -418,7 +416,7 @@ impl ProxyBasicWorks {
 	fn can_stake(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
-		permissions: &Vec<Permission>,
+		permissions: &[Permission],
 		hint: bool,
 	) -> bool {
 		let mut force_types = permissions
@@ -430,8 +428,7 @@ impl ProxyBasicWorks {
 
 		force_types
 			.into_iter()
-			.map(|p| Self::can_stake_impl(delegatee, delegator, p, hint))
-			.any(|r| r)
+			.any(|p| Self::can_stake_impl(delegatee, delegator, p, hint))
 	}
 
 	fn can_stake_impl(

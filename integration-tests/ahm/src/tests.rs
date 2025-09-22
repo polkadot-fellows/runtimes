@@ -41,12 +41,12 @@
 //! SNAP_RC_POST="rc-post.snap" \
 //! SNAP_AH_POST="ah-post.snap" \
 //! cargo test \
-//! 	-p polkadot-integration-tests-ahm \
-//! 	--features try-runtime \
-//! 	--features {{runtime}}-ahm \
-//! 	--release \
-//! 	post_migration_checks_only \
-//! 	-- --nocapture --ignored
+//!     -p polkadot-integration-tests-ahm \
+//!     --features try-runtime \
+//!     --features {{runtime}}-ahm \
+//!     --release \
+//!     post_migration_checks_only \
+//!     -- --nocapture --ignored
 //! ```
 
 use crate::porting_prelude::*;
@@ -378,7 +378,7 @@ fn account_translation_map(
 		// The Parachain sovereign account ID on the relay chain
 		let rc_para_sov =
 			xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
-				&Location::new(0, Junction::Parachain(para_id.into())),
+				&Location::new(0, Junction::Parachain(para_id)),
 			)
 			.unwrap();
 
@@ -443,8 +443,8 @@ fn account_translation_map(
 }
 
 fn write_account_translation_map(
-	sov_translations: &Vec<(u32, (AccountId32, AccountId32))>,
-	derived_translations: &Vec<(ParaId, AccountId32, u16, AccountId32)>,
+	sov_translations: &[(u32, (AccountId32, AccountId32))],
+	derived_translations: &[(ParaId, AccountId32, u16, AccountId32)],
 ) {
 	let mut rust = String::new();
 
@@ -454,7 +454,7 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &str), (AccountId32, &str))] = &[\n
 	);
 
 	for (para_id, (rc_acc, ah_acc)) in sov_translations.iter() {
-		rust.push_str(&format!("\t// para {}\n", para_id));
+		rust.push_str(&format!("\t// para {para_id}\n"));
 		rust.push_str(&format!(
 			"\t(({}, \"{}\"), ({}, \"{}\")),\n",
 			format_account_id(rc_acc),
@@ -472,7 +472,7 @@ pub const DERIVED_TRANSLATIONS: &[((AccountId32, &str), u16, (AccountId32, &str)
 	);
 
 	for (para_id, rc_acc, derivation_index, ah_acc) in derived_translations.iter() {
-		rust.push_str(&format!("\t// para {} (derivation index {})\n", para_id, derivation_index));
+		rust.push_str(&format!("\t// para {para_id} (derivation index {derivation_index})\n"));
 		rust.push_str(&format!(
 			"\t(({}, \"{}\"), {}, ({}, \"{}\")),\n",
 			format_account_id(rc_acc),
@@ -1479,12 +1479,10 @@ fn schedule_migration_staking_pause_works() {
 			}
 
 			assert!(frame_system::Pallet::<RcRuntime>::events().iter().any(|record| {
-				match &record.event {
-					RcRuntimeEvent::RcMigrator(
-						pallet_rc_migrator::Event::StakingElectionsPaused,
-					) => true,
-					_ => false,
-				}
+				matches!(
+					&record.event,
+					RcRuntimeEvent::RcMigrator(pallet_rc_migrator::Event::StakingElectionsPaused,)
+				)
 			}));
 		});
 
@@ -1641,7 +1639,7 @@ fn map_known_governance_calls() {
 
 	new_test_ah_ext().execute_with(|| {
 		for (referendum_id, rc_call) in calls {
-			log::info!("mapping referendum: {:?}", referendum_id);
+			log::info!("mapping referendum: {referendum_id:?}");
 
 			let rc_call = match BoundedInline::try_from(rc_call) {
 				Ok(bounded) => Bounded::Inline(bounded),
@@ -1664,9 +1662,9 @@ fn map_known_governance_calls() {
 			let ah_call_decoded = AhRuntimeCall::decode(&mut ah_call_encoded.as_slice())
 				.expect("failed to decode call");
 
-			log::info!("mapped call: {:?}", ah_call);
+			log::info!("mapped call: {ah_call:?}");
 			log::debug!("encoded call: 0x{}", hex::encode(ah_call_encoded.as_slice()));
-			log::debug!("decoded call: {:?}", ah_call_decoded);
+			log::debug!("decoded call: {ah_call_decoded:?}");
 		}
 	});
 }

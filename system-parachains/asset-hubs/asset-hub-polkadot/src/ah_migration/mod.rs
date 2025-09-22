@@ -271,7 +271,7 @@ impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
 		let rc_call = match RcRuntimeCall::decode_all(&mut a) {
 			Ok(rc_call) => rc_call,
 			Err(e) => {
-				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {:?}", e);
+				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {e:?}");
 				return Err(a)
 			},
 		};
@@ -286,8 +286,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Bounties call to AH System call: {:?}",
-							err
+							"Failed to decode RC Bounties call to AH System call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::System(call))
@@ -307,8 +306,7 @@ impl RcToAhCall {
 				let origin = RcToAhPalletsOrigin::try_convert(*as_origin).map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to decode RC dispatch_as origin: {:?}",
-						err
+						"Failed to decode RC dispatch_as origin: {err:?}"
 					);
 				})?;
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::dispatch_as {
@@ -357,8 +355,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode inner RC call into inner AH call: {:?}",
-							err
+							"Failed to decode inner RC call into inner AH call: {err:?}"
 						);
 					})?;
 				Ok(RuntimeCall::Treasury(call))
@@ -368,8 +365,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Referenda call to AH Referenda call: {:?}",
-							err
+							"Failed to decode RC Referenda call to AH Referenda call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Referenda(call))
@@ -379,8 +375,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Bounties call to AH Bounties call: {:?}",
-							err
+							"Failed to decode RC Bounties call to AH Bounties call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Bounties(call))
@@ -390,8 +385,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC ChildBounties call to AH ChildBounties call: {:?}",
-							err
+							"Failed to decode RC ChildBounties call to AH ChildBounties call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::ChildBounties(call))
@@ -413,15 +407,13 @@ impl RcToAhCall {
 				let dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to convert versioned destination to the latest version: {:?}",
-						err,
+						"Failed to convert versioned destination to the latest version: {err:?}",
 					);
 				})?;
 				let dest = dest.reanchored(&ah_location, &universal_location).map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to reanchor destination: {:?}",
-						err,
+						"Failed to reanchor destination: {err:?}",
 					);
 				})?;
 
@@ -453,15 +445,13 @@ impl RcToAhCall {
 				let dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to convert versioned destination to the latest version: {:?}",
-						err,
+						"Failed to convert versioned destination to the latest version: {err:?}",
 					);
 				})?;
 				let dest = dest.reanchored(&ah_location, &universal_location).map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to reanchor destination: {:?}",
-						err,
+						"Failed to reanchor destination: {err:?}",
 					);
 				})?;
 
@@ -469,16 +459,14 @@ impl RcToAhCall {
 				let assets: xcm::latest::Assets = (*assets).try_into().map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to convert versioned assets to the latest version: {:?}",
-						err,
+						"Failed to convert versioned assets to the latest version: {err:?}",
 					);
 				})?;
 				let assets =
 					assets.reanchored(&ah_location, &universal_location).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to reanchor assets: {:?}",
-							err,
+							"Failed to reanchor assets: {err:?}",
 						);
 					})?;
 

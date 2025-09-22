@@ -64,7 +64,7 @@ impl RcMigrationCheck for AccountTranslationWorks {
 
 			// If an account still exists, then it must be in the RcAccounts map
 			let Some(entry) = pallet_rc_migrator::RcAccounts::<RelayRuntime>::get(rc_acc) else {
-				panic!("RC acc did not properly migrate: {}", rc_acc);
+				panic!("RC acc did not properly migrate: {rc_acc}");
 			};
 
 			match entry {

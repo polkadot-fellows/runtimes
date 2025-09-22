@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_indices(indices: Vec<RcIndicesIndexOf<T>>) -> Result<(), Error<T>> {
 		let len = indices.len() as u32;
 		Self::deposit_event(Event::BatchReceived { pallet: PalletEventName::Indices, count: len });
-		log::info!(target: LOG_TARGET, "Integrating batch of {} indices", len);
+		log::info!(target: LOG_TARGET, "Integrating batch of {len} indices");
 
 		for index in indices {
 			Self::do_receive_index(index);

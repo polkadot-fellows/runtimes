@@ -57,13 +57,13 @@ impl<T: Config> Pallet<T> {
 			count_good,
 			count_bad,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} scheduler messages", count_good);
+		log::info!(target: LOG_TARGET, "Processed {count_good} scheduler messages");
 
 		Ok(())
 	}
 
 	fn do_process_scheduler_message(message: RcSchedulerMessageOf<T>) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing scheduler message: {:?}", message);
+		log::debug!(target: LOG_TARGET, "Processing scheduler message: {message:?}");
 
 		match message {
 			RcSchedulerMessage::IncompleteSince(block_number) => {
@@ -109,8 +109,7 @@ impl<T: Config> Pallet<T> {
 				let Ok(call) = Self::map_rc_ah_call(&task.call) else {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to convert RC call to AH call for task at block number {:?}",
-						block
+						"Failed to convert RC call to AH call for task at block number {block:?}",
 					);
 					count_bad += 1;
 					continue;
@@ -139,7 +138,7 @@ impl<T: Config> Pallet<T> {
 			count_good,
 			count_bad,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} scheduler agenda messages", count_good);
+		log::info!(target: LOG_TARGET, "Processed {count_good} scheduler agenda messages");
 
 		Ok(())
 	}
@@ -227,21 +226,21 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 					};
 					let Some(encoded_call) = encoded_call_opt else {
 						// Call for scheduled task didn't come through.
-						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {:?} didn't come through.", block_number);
+						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {block_number:?} didn't come through.");
 						continue;
 					};
 
 					// Attempt origin conversion.
 					let Ok(ah_origin) = T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) else {
 						// Origin conversion failed, skip task.
-						defensive!("Origin for task scheduled at block number {:?} couldn't be converted.", block_number);
+						defensive!("Origin for task scheduled at block number {block_number:?} couldn't be converted.");
 						continue;
 					};
 
 					// Attempt call conversion.
 					let Ok(ah_call) = Pallet::<T>::map_rc_ah_call_no_preimage(encoded_call) else {
 						// Call conversion failed, skip task.
-						log::error!(target: LOG_TARGET, "Call for task scheduled at block number {:?} couldn't be converted.", block_number);
+						log::error!(target: LOG_TARGET, "Call for task scheduled at block number {block_number:?} couldn't be converted.");
 						continue;
 					};
 
