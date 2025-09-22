@@ -70,6 +70,7 @@ pub use pallet_rc_migrator::{
 };
 pub use weights_ah::WeightInfo;
 
+use pallet_rc_migrator::referenda::ReferendaMessage;
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
@@ -753,20 +754,13 @@ pub mod pallet {
 			// `pallet_rc_migrator::Pallet::send_chunked_xcm_and_track` function and avoid
 			// introducing a send function for non-vector data or rewriting the referenda pallet
 			// migration.
-			mut values: Vec<(
-				// referendum_count
-				Option<u32>,
-				// deciding_count (track_id, count)
-				Vec<(TrackIdOf<T, ()>, u32)>,
-				// track_queue (referendum_id, votes)
-				Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
-			)>,
+			mut values: Vec<ReferendaMessage<TrackIdOf<T, ()>>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
 			ensure!(values.len() == 1, Error::<T>::InvalidParameter);
 
-			let (referendum_count, deciding_count, track_queue) =
+			let ReferendaMessage { referendum_count, deciding_count, track_queue } =
 				values.pop().ok_or(Error::<T>::InvalidParameter)?;
 
 			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)

@@ -17,6 +17,9 @@
 
 use super::*;
 
+#[cfg(feature = "std")]
+use pallet_rc_migrator::types::hypothetical_fn;
+
 /// Backward mapping from https://github.com/paritytech/polkadot-sdk/blob/74a5e1a242274ddaadac1feb3990fc95c8612079/substrate/frame/balances/src/types.rs#L38
 pub fn map_lock_reason(reasons: LockReasons) -> LockWithdrawReasons {
 	match reasons {
@@ -65,30 +68,24 @@ pub trait AhMigrationCheck {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload);
 }
 
+#[cfg(feature = "std")] // Only for testing
+#[allow(clippy::unnecessary_operation)]
+#[allow(clippy::no_effect)]
+#[allow(clippy::unused_unit)]
 #[impl_trait_for_tuples::impl_for_tuples(24)]
 impl AhMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }
 	for_tuples! { type AhPrePayload = (#( Tuple::AhPrePayload ),* ); }
 
-	#[allow(clippy::unnecessary_operation)]
-	#[allow(clippy::no_effect)]
 	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		(for_tuples! { #(
-			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
-			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
-				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::pre_check(rc_pre_payload.Tuple)))
-			}).expect("Always returning Ok")
+			hypothetical_fn(|| Tuple::pre_check(rc_pre_payload.Tuple))
 		),* })
 	}
 
-	#[allow(clippy::unnecessary_operation)]
-	#[allow(clippy::no_effect)]
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		(for_tuples! { #(
-			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
-			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
-				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::post_check(rc_pre_payload.Tuple, ah_pre_payload.Tuple)))
-			}).expect("Always returning Ok")
+			hypothetical_fn(|| Tuple::post_check(rc_pre_payload.Tuple, ah_pre_payload.Tuple))
 		),* });
 	}
 }

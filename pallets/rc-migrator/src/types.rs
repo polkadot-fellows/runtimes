@@ -250,7 +250,7 @@ impl RcMigrationCheck for Tuple {
 }
 
 /// Wrapper for the `frame_support::hypothetically` macro since we want to use it in a macro again.
-fn hypothetical_fn<R>(f: impl FnOnce() -> R) -> R {
+pub fn hypothetical_fn<R>(f: impl FnOnce() -> R) -> R {
 	frame_support::hypothetically!{
 		f()
 	}
