@@ -82,6 +82,7 @@ use frame_support::{
 	},
 	weights::WeightMeter,
 };
+use pallet_rc_migrator::scheduler::SchedulerAgendaMessage;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 #[cfg(feature = "kusama-ahm")]
@@ -915,7 +916,7 @@ pub mod pallet {
 		#[pallet::call_index(22)]
 		#[pallet::weight({
 			let mut total = Weight::zero();
-			for (_, agenda) in messages.iter() {
+			for SchedulerAgendaMessage { agenda, .. } in messages.iter() {
 				for maybe_task in agenda {
 					let Some(task) = maybe_task else {
 						continue;
@@ -933,7 +934,8 @@ pub mod pallet {
 		})]
 		pub fn receive_scheduler_agenda_messages(
 			origin: OriginFor<T>,
-			messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::RcScheduledOf<T>>>)>,
+			messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>,
+		scheduler::RcScheduledOf<T>>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

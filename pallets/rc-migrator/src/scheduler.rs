@@ -173,6 +173,17 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 	}
 }
 
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
+pub struct SchedulerAgendaMessage<B, S> {
+	pub block: B,
+	pub agenda: Vec<Option<S>>,
+}
+
+pub type SchedulerAgendaMessageOf<T> = SchedulerAgendaMessage<
+	SchedulerBlockNumberFor<T>,
+	alias::ScheduledOf<T>,
+>;
+
 pub struct SchedulerAgendaMigrator<T: Config> {
 	_phantom: PhantomData<T>,
 }
@@ -265,11 +276,11 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 			}
 
 			let agenda = agenda.into_inner();
-			messages.push((block, agenda));
+			messages.push(SchedulerAgendaMessage { block, agenda });
 		};
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
+			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages: Vec<SchedulerAgendaMessageOf<T>>| {
 				types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages }
 			})?;
 		}

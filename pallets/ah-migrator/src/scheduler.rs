@@ -16,7 +16,7 @@
 
 use crate::*;
 use frame_support::traits::{schedule::v3::TaskName, DefensiveTruncateFrom};
-use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerMigrator};
+use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerAgendaMessage, SchedulerMigrator};
 use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Messages sent from the RC Migrator concerning the Scheduler pallet.
@@ -79,7 +79,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_scheduler_agenda_messages(
-		messages: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
+		messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>,
+		RcScheduledOf<T>>>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Processing {} scheduler agenda messages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -88,7 +89,7 @@ impl<T: Config> Pallet<T> {
 		});
 		let (count_good, mut count_bad) = (messages.len() as u32, 0);
 
-		for (block_number, agenda) in messages {
+		for SchedulerAgendaMessage { block, agenda } in messages {
 			let mut ah_tasks = Vec::new();
 			for task in agenda {
 				let Some(task) = task else {
@@ -108,7 +109,7 @@ impl<T: Config> Pallet<T> {
 					log::error!(
 						target: LOG_TARGET,
 						"Failed to convert RC call to AH call for task at block number {:?}",
-						block_number
+						block
 					);
 					count_bad += 1;
 					continue;
@@ -128,7 +129,7 @@ impl<T: Config> Pallet<T> {
 			if !ah_tasks.is_empty() {
 				let ah_tasks =
 					BoundedVec::<_, T::MaxScheduledPerBlock>::defensive_truncate_from(ah_tasks);
-				pallet_rc_migrator::scheduler::alias::Agenda::<T>::insert(block_number, ah_tasks);
+				pallet_rc_migrator::scheduler::alias::Agenda::<T>::insert(block, ah_tasks);
 			}
 		}
 
