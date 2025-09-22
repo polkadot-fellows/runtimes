@@ -305,8 +305,10 @@ pub mod temp_curve {
 		///
 		/// Step size will be (target_total - current_value) * pct.
 		RemainingPct {
-			target: Y, 
-			pct: Perbill
+			/// The asymptote the curve will move towards.
+			target: Y,
+			/// The percentage closer to the `target` at each step.
+			pct: Perbill,
 		},
 	}
 
