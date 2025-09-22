@@ -208,11 +208,14 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 	}
 }
 
+/// Key into the `PreimageFor` map.
+type PreimageKey = (H256, u32);
+
 impl<T: Config> PreimageChunkMigrator<T> {
 	// Returns the next key to migrated and all the legacy preimages skipped before that, which will
 	// be deleted
 	#[allow(deprecated)] // StatusFor is deprecated
-	fn next_key() -> (Option<(H256, u32)>, Vec<(H256, u32)>) {
+	fn next_key() -> (Option<PreimageKey>, Vec<PreimageKey>) {
 		let mut skipped = Vec::new();
 		let next_key_maybe = pallet_preimage::PreimageFor::<T>::iter_keys()
 			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
@@ -239,7 +242,7 @@ impl<T: Config> PreimageChunkMigrator<T> {
 }
 
 impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
-	type RcPrePayload = Vec<(H256, u32)>;
+	type RcPrePayload = Vec<PreimageKey>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let all_keys = pallet_preimage::PreimageFor::<T>::iter_keys().count();

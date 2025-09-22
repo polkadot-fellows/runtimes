@@ -533,26 +533,19 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		}
 
 		// Process crowdloan funds and their contributions
-		let mut crowdloan_data: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> = BTreeMap::new();
-		for (para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+		for (_para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
 			// Collect all contributions for this fund
 			let contributions: Vec<_> = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
 				.map(|(contributor, (amount, _memo))| {
 					// We don't need to decode block numbers here since we just want to verify everything is empty
-					(BlockNumberFor::<T>::default(), contributor, amount.into())
+					(contributor, amount)
 				})
 				.collect();
 
 			if !contributions.is_empty() {
-				crowdloan_data.insert(para_id, contributions);
+				panic!("Crowdloan contributions should be empty after migration");
 			}
 		}
-
-		// Verify that all crowdloan data has been properly migrated
-		assert!(
-			crowdloan_data.is_empty(),
-			"Crowdloan contributions should be empty after migration"
-		);
 
 		// Assert storage "Crowdloan::Funds::rc_post::empty"
 		assert!(
