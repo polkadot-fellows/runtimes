@@ -1104,8 +1104,7 @@ pub mod pallet {
 					|error| {
 						log::error!(
 							target: LOG_TARGET,
-							"XCM validation failed with error: {:?}; destination: {:?}; message: {:?}",
-							error, dest, message
+							"XCM validation failed with error: {error:?}; destination: {dest:?}; message: {message:?}",
 						);
 						Error::<T>::XcmError
 					},
@@ -1114,8 +1113,7 @@ pub mod pallet {
 			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
 				log::error!(
 					target: LOG_TARGET,
-					"XCM send failed with error: {:?}; destination: {:?}; message: {:?}",
-					error, dest, message
+					"XCM send failed with error: {error:?}; destination: {dest:?}; message: {message:?}",
 				);
 				Error::<T>::XcmError
 			})?;
@@ -1268,7 +1266,7 @@ pub mod pallet {
 			]);
 
 			if let Err(err) = send_xcm::<T::SendXcm>(Location::parent(), message.clone()) {
-				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 				return Err(Error::XcmError);
 			};
 

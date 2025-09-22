@@ -36,7 +36,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => good += 1,
 				Err(e) => {
 					bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating crowdloan message: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating crowdloan message: {e:?}");
 				},
 			}
 		}

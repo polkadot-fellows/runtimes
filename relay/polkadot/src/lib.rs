@@ -1077,8 +1077,8 @@ parameter_types! {
 )]
 pub struct TransparentProxyType<T>(pub T);
 
-impl From<TransparentProxyType> for ProxyType {
-	fn from(transparent_proxy_type: TransparentProxyType) -> Self {
+impl From<TransparentProxyType<ProxyType>> for ProxyType {
+	fn from(transparent_proxy_type: TransparentProxyType<ProxyType>) -> Self {
 		transparent_proxy_type.0
 	}
 }

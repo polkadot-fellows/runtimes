@@ -102,8 +102,7 @@ impl<T: Config> Pallet<T> {
 						Err(_) => {
 							log::error!(
 								target: LOG_TARGET,
-								"Failed to convert back to original XCM version {}, returning original location",
-								original_version
+								"Failed to convert back to original XCM version {original_version}, returning original location",
 							);
 							Ok(location)
 						},

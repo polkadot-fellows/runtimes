@@ -43,8 +43,7 @@ impl<
 		};
 		log::trace!(
 			target: "xcm::IsTeleport::contains",
-			"asset: {:?} origin {:?} result {:?}",
-			asset, origin, result
+			"asset: {asset:?} origin {origin:?} result {result:?}",
 		);
 		result
 	}
@@ -66,7 +65,7 @@ where
 		} else {
 			PreMigrationAccount::get()
 		};
-		log::trace!(target: "xcm::TreasuryAccount::get", "{:?}", treasury_account);
+		log::trace!(target: "xcm::TreasuryAccount::get", "{treasury_account:?}");
 		treasury_account
 	}
 }
