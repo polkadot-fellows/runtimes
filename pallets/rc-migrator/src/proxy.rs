@@ -155,17 +155,19 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 	}
 }
 
+type ProxiesOf<T> = Vec<
+	pallet_proxy::ProxyDefinition<
+		<T as frame_system::Config>::AccountId,
+		<T as pallet_proxy::Config>::ProxyType,
+		pallet_proxy::BlockNumberFor<T>,
+	>,
+>;
+
 impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
 		(proxies, deposit): (
-			Vec<
-				pallet_proxy::ProxyDefinition<
-					T::AccountId,
-					T::ProxyType,
-					pallet_proxy::BlockNumberFor<T>,
-				>,
-			>,
+			ProxiesOf<T>,
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,

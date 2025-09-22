@@ -44,6 +44,15 @@ pub struct ReferendaMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
+pub struct ReferendaMessage<Track> {
+	pub referendum_count: Option<u32>,
+	/// (track_id, count)
+	pub deciding_count: Vec<(Track, u32)>,
+	/// (referendum_id, votes)
+	pub track_queue: Vec<(Track, Vec<(u32, u128)>)>,
+}
+
 impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 	type Key = ReferendaStage;
 	type Error = Error<T>;
@@ -103,7 +112,7 @@ impl<T: Config> ReferendaMigrator<T> {
 		}
 
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
-		batch.push((referendum_count, deciding_count, track_queue));
+		batch.push(ReferendaMessage { referendum_count, deciding_count, track_queue });
 		weight_counter.consume(batch.consume_weight());
 
 		Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {

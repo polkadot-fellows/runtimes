@@ -1155,9 +1155,9 @@ fn test_control_flow() {
 		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
 
 		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
-		batch.push((None, vec![], vec![]));
+		batch.push(pallet_rc_migrator::referenda::ReferendaMessage { referendum_count: None, deciding_count: vec![], track_queue: vec![] });
 		// adding a second item; this will cause the dispatchable on AH to fail.
-		batch.push((None, vec![], vec![]));
+		batch.push(pallet_rc_migrator::referenda::ReferendaMessage { referendum_count: None, deciding_count: vec![], track_queue: vec![] });
 
 		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(batch, |batch| {
 			pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
@@ -1235,7 +1235,7 @@ fn test_control_flow() {
 		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
 
 		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
-		batch.push((None, vec![], vec![]));
+		batch.push(pallet_rc_migrator::referenda::ReferendaMessage { referendum_count: None, deciding_count: vec![], track_queue: vec![] });
 
 		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(batch, |batch| {
 			pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {

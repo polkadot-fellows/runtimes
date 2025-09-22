@@ -110,14 +110,7 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
 	#[codec(index = 10)]
 	ReceiveReferendaValues {
-		values: Vec<(
-			// referendum_count
-			Option<u32>,
-			// deciding_count (track_id, count)
-			Vec<(TrackIdOf<T, ()>, u32)>,
-			// track_queue (referendum_id, votes)
-			Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
-		)>,
+		values: Vec<referenda::ReferendaMessage<TrackIdOf<T, ()>>,>,
 	},
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
