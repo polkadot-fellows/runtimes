@@ -392,7 +392,11 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	for LeftIfFinished<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+		if Status::is_ongoing() {
+			Left::get()
+		} else {
+			Right::get()
+		}
 	}
 }
 
@@ -402,9 +406,11 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	for LeftIfPending<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		(!Status::is_ongoing() && !Status::is_finished())
-			.then(|| Left::get())
-			.unwrap_or_else(|| Right::get())
+		if !Status::is_ongoing() && !Status::is_finished() {
+			Left::get()
+		} else {
+			Right::get()
+		}
 	}
 }
 
