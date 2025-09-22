@@ -966,6 +966,7 @@ mod inflation_tests {
 	use cumulus_primitives_core::{PersistedValidationData, relay_chain::BlockNumber as RC_BlockNumber};
 	use sp_runtime::Perbill;
 	use polkadot_runtime_constants::time::{YEARS as RC_YEARS};
+	use staking::March2026TI;
 
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
 
@@ -1085,6 +1086,29 @@ mod inflation_tests {
 	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
 	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
 
+	#[test]
+	fn storing_ti_works() {
+		ExtBuilder::<Runtime>::default()
+		.build()
+		.execute_with(|| {
+			// Pre-march.
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
+			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			assert!(March2026TI::get() == None);
+
+			// Post-march.
+			set_relay_number(MARCH_14_2026);
+			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			assert!(March2026TI::get() == Some(MARCH_TI));
+
+			// No change on subsequent call.
+			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
+			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			assert!(March2026TI::get() == Some(MARCH_TI));
+		});
+	}
+
 	// The transition from set emission to stepped emission works.
 	#[test]
 	fn set_to_stepped_inflation_transition_works() {
@@ -1104,6 +1128,8 @@ mod inflation_tests {
 				(328_797 * UNITS) as f64,
 				max_relative = 0.001
 			);
+
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
 			// Check after transition date.
 			set_relay_number(MARCH_14_2026);
@@ -1130,6 +1156,7 @@ mod inflation_tests {
 		.build()
 		.execute_with(|| {
 			let two_years: RC_BlockNumber = RC_YEARS * 2;
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
 			// First period - March 14, 2026 -> March 14, 2028.
 			set_relay_number(MARCH_14_2026);
@@ -1220,6 +1247,7 @@ mod inflation_tests {
 		.build()
 		.execute_with(|| {
 			let two_years: RC_BlockNumber = RC_YEARS * 2;
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
 			// Get payout at the beginning of the first stepped period.
 			set_relay_number(MARCH_14_2026);
@@ -1249,6 +1277,8 @@ mod inflation_tests {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
+
 			let forseeable_future: RC_BlockNumber = MARCH_14_2026 + (RC_YEARS * 80);
 			set_relay_number(forseeable_future);
 			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
@@ -1279,6 +1309,8 @@ mod inflation_tests {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
+			
 			let mut current_ti = MARCH_TI;
 			let mut current_bn = MARCH_14_2026;
 

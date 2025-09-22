@@ -23,7 +23,7 @@ pub mod nom_pools;
 
 use crate::{governance::StakingAdmin, *};
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
-use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec, pallet_prelude::{Zero, CheckedDiv}};
+use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec, pallet_prelude::{Zero, CheckedDiv, OptionQuery}, storage_alias};
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
@@ -419,6 +419,10 @@ pub mod temp_curve {
 	}
 }
 
+// Holds the TI from March 14, 2026
+#[storage_alias(verbatim)]
+pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
+
 // We cannot re-use the one from the relay since that is for pallet-staking and will be removed soon
 // anyway.
 pub struct EraPayout;
@@ -444,8 +448,16 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
 		} else {
 			
+			// Get TI from March 14, 2026.
+			let starting_ti = March2026TI::get().unwrap_or_else(|| {
+				// If first time, store it.
+				let current_ti = pallet_balances::Pallet::<Runtime>::total_issuance();
+				March2026TI::put(current_ti);
+				current_ti
+			});
+
 			// The calculated TI used in [Ref 1710's](https://polkadot.subsquare.io/referenda/1710).
-			let march_14_2026_ti = FixedU128::saturating_from_integer(1_676_733_867u128 * UNITS);
+			let march_14_2026_ti = FixedU128::saturating_from_integer(starting_ti);
 			let target_ti = FixedU128::saturating_from_integer(2_100_000_000u128 * UNITS);
 			
 			// Start date of the curve is set two years prior, thus ensuring first step in March, 2026.
