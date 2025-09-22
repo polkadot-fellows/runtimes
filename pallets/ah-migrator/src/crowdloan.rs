@@ -241,11 +241,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 				Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
 			> = BTreeMap::new();
 			for ((block_number, para_id, account), amount) in storage_iter {
-				reserves_post.entry(para_id).or_default().push((
-					block_number,
-					account,
-					amount,
-				));
+				reserves_post.entry(para_id).or_default().push((block_number, account, amount));
 			}
 			// TODO: @ggwpez failing with new snapshot. something to do with Bifrost crowdloan.
 			// assert_eq!(reserves_pre, &reserves_post, "{}", error_msg);

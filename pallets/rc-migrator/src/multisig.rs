@@ -125,9 +125,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				}
 			}
 
-			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_multisigs(batch.len() + 1))
-			{
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_multisigs(batch.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",

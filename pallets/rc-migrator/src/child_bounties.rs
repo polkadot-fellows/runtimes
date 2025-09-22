@@ -125,9 +125,9 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 				}
 			}
 
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_child_bounties_messages(
-				messages.len() + 1,
-			)) {
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_child_bounties_messages(messages.len() + 1))
+			{
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -221,9 +221,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 
 					match iter.next() {
 						Some((parent_id, child_id, child_bounty)) => {
-							pallet_child_bounties::ChildBounties::<T>::remove(
-								parent_id, child_id,
-							);
+							pallet_child_bounties::ChildBounties::<T>::remove(parent_id, child_id);
 							messages.push(PortableChildBountiesMessage::ChildBounty {
 								parent_id,
 								child_id,

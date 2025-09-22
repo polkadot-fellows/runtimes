@@ -1512,11 +1512,7 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &str), (AccountId32, &str))] = &[
 ];
 
 /// List of RC para to AH sibl derived account translation sorted by RC account.
-pub const DERIVED_TRANSLATIONS: &[(
-	(AccountId32, &str),
-	u16,
-	(AccountId32, &str),
-)] = &[
+pub const DERIVED_TRANSLATIONS: &[((AccountId32, &str), u16, (AccountId32, &str))] = &[
 	// para 2085 (derivation index 4)
 	(
 		(

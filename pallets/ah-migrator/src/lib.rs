@@ -70,7 +70,6 @@ pub use pallet_rc_migrator::{
 };
 pub use weights_ah::WeightInfo;
 
-use pallet_rc_migrator::referenda::ReferendaMessage;
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
@@ -83,7 +82,6 @@ use frame_support::{
 	},
 	weights::WeightMeter,
 };
-use pallet_rc_migrator::scheduler::SchedulerAgendaMessage;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 #[cfg(feature = "kusama-ahm")]
@@ -92,7 +90,8 @@ use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
 use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
-	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
+	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, referenda::ReferendaMessage,
+	scheduler::SchedulerAgendaMessage, staking::PortableStakingMessage,
 	treasury::PortableTreasuryMessage, types::MigrationStatus,
 };
 use parachains_common::pay::VersionedLocatableAccount;
@@ -928,8 +927,7 @@ pub mod pallet {
 		})]
 		pub fn receive_scheduler_agenda_messages(
 			origin: OriginFor<T>,
-			messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>,
-		scheduler::RcScheduledOf<T>>>,
+			messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>, scheduler::RcScheduledOf<T>>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

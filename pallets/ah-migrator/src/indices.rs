@@ -79,8 +79,7 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 			.map(|RcIndicesIndex { index, who, deposit, frozen }| (index, (who, deposit, frozen)))
 			.collect();
 
-		let all_pre: BTreeMap<_, _> =
-			translated_rc_pre.into_iter().chain(ah_pre).collect();
+		let all_pre: BTreeMap<_, _> = translated_rc_pre.into_iter().chain(ah_pre).collect();
 
 		let all_post: BTreeMap<_, _> = pallet_indices::Accounts::<T>::iter().collect();
 

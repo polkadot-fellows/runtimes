@@ -155,9 +155,7 @@ where
 			pallet_child_bounties::V0ToV1ChildBountyIds::<T>::iter().collect::<Vec<_>>()
 		);
 		assert_eq!(
-			rc.children_curator_fees
-				.into_iter()
-				.collect::<Vec<_>>(),
+			rc.children_curator_fees.into_iter().collect::<Vec<_>>(),
 			pallet_child_bounties::ChildrenCuratorFees::<T>::iter().collect::<Vec<_>>()
 		);
 	}

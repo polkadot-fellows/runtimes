@@ -49,7 +49,9 @@ impl<T: Config> TranslateBondedPoolAccounts<T::AccountId> for BondedPoolInner<T>
 		self.roles.bouncer = self.roles.bouncer.clone().map(&translate_fn);
 
 		// Translate commission accounts
-		if let Some(pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account)) = self.commission.claim_permission {
+		if let Some(pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account)) =
+			self.commission.claim_permission
+		{
 			*account = translate_fn(account.clone());
 		}
 		if let Some((rate, ref mut account)) = self.commission.current {
@@ -77,7 +79,9 @@ where
 		self.roles.bouncer = self.roles.bouncer.clone().map(&translate_fn);
 
 		// Translate commission accounts
-		if let Some(pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account)) = self.commission.claim_permission {
+		if let Some(pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account)) =
+			self.commission.claim_permission
+		{
 			*account = translate_fn(account.clone());
 		}
 		if let Some((rate, ref mut account)) = self.commission.current {

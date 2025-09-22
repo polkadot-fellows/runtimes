@@ -96,9 +96,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					break;
 				}
 			}
-			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_claims(messages.len() + 1))
-			{
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_claims(messages.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",

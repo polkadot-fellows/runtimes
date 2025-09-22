@@ -16,7 +16,9 @@
 
 use crate::*;
 use frame_support::traits::{schedule::v3::TaskName, DefensiveTruncateFrom};
-use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerAgendaMessage, SchedulerMigrator};
+use pallet_rc_migrator::scheduler::{
+	alias::Scheduled, RcSchedulerMessage, SchedulerAgendaMessage, SchedulerMigrator,
+};
 use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Messages sent from the RC Migrator concerning the Scheduler pallet.
@@ -79,8 +81,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_scheduler_agenda_messages(
-		messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>,
-		RcScheduledOf<T>>>,
+		messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>, RcScheduledOf<T>>>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Processing {} scheduler agenda messages", messages.len());
 		Self::deposit_event(Event::BatchReceived {

@@ -166,10 +166,7 @@ type ProxiesOf<T> = Vec<
 impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
-		(proxies, deposit): (
-			ProxiesOf<T>,
-			BalanceOf<T>,
-		),
+		(proxies, deposit): (ProxiesOf<T>, BalanceOf<T>),
 		weight_counter: &mut WeightMeter,
 		batch: &mut XcmBatchAndMeter<RcProxyLocalOf<T>>,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {

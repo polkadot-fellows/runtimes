@@ -247,10 +247,7 @@ impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
 					.any(|(key_hash, _)| key_hash == *hash)
 			})
 			.map(|(hash, request_status)| {
-				(
-					hash,
-					matches!(request_status, pallet_preimage::RequestStatus::Requested { .. })
-				)
+				(hash, matches!(request_status, pallet_preimage::RequestStatus::Requested { .. }))
 			})
 			.collect()
 	}

@@ -340,7 +340,9 @@ pub struct LeaseToEndingBlockError;
 /// |-0-|-1-|-2-|-3-|-4-|-5-|
 ///               ^-----^
 /// Then this function returns the end block number of period 4 (start block of period 5).
-pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNumberFor<T>, LeaseToEndingBlockError> {
+pub fn num_leases_to_ending_block<T: Config>(
+	num_leases: u32,
+) -> Result<BlockNumberFor<T>, LeaseToEndingBlockError> {
 	let now = frame_system::Pallet::<T>::block_number();
 	let num_leases: BlockNumberFor<T> = num_leases.into();
 	let offset = <T as pallet_slots::Config>::LeaseOffset::get();
@@ -352,7 +354,10 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 	}
 
 	// The current period: (now - offset) / period
-	let current_period = now.checked_sub(&offset).and_then(|x| x.checked_div(&period)).ok_or(LeaseToEndingBlockError)?;
+	let current_period = now
+		.checked_sub(&offset)
+		.and_then(|x| x.checked_div(&period))
+		.ok_or(LeaseToEndingBlockError)?;
 	// (current_period + num_leases) * period + offset
 	let last_period_end_block = current_period
 		.checked_add(&num_leases)

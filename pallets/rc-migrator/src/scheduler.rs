@@ -179,10 +179,8 @@ pub struct SchedulerAgendaMessage<B, S> {
 	pub agenda: Vec<Option<S>>,
 }
 
-pub type SchedulerAgendaMessageOf<T> = SchedulerAgendaMessage<
-	SchedulerBlockNumberFor<T>,
-	alias::ScheduledOf<T>,
->;
+pub type SchedulerAgendaMessageOf<T> =
+	SchedulerAgendaMessage<SchedulerBlockNumberFor<T>, alias::ScheduledOf<T>>;
 
 pub struct SchedulerAgendaMigrator<T: Config> {
 	_phantom: PhantomData<T>,
@@ -280,9 +278,12 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 		};
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages: Vec<SchedulerAgendaMessageOf<T>>| {
-				types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages: Vec<SchedulerAgendaMessageOf<T>>| {
+					types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages }
+				},
+			)?;
 		}
 
 		Ok(last_key)

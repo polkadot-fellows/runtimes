@@ -109,9 +109,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 8)]
 	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
 	#[codec(index = 10)]
-	ReceiveReferendaValues {
-		values: Vec<referenda::ReferendaMessage<TrackIdOf<T, ()>>,>,
-	},
+	ReceiveReferendaValues { values: Vec<referenda::ReferendaMessage<TrackIdOf<T, ()>>> },
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 	#[codec(index = 12)]
@@ -137,9 +135,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::PortableTreasuryMessage> },
 	#[codec(index = 22)]
-	ReceiveSchedulerAgendaMessages {
-			messages: Vec<scheduler::SchedulerAgendaMessageOf<T>>,
-	},
+	ReceiveSchedulerAgendaMessages { messages: Vec<scheduler::SchedulerAgendaMessageOf<T>> },
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
 		messages: Vec<staking::delegated_staking::PortableDelegatedStakingMessage>,
@@ -251,7 +247,7 @@ impl RcMigrationCheck for Tuple {
 
 /// Wrapper for the `frame_support::hypothetically` macro since we want to use it in a macro again.
 pub fn hypothetical_fn<R>(f: impl FnOnce() -> R) -> R {
-	frame_support::hypothetically!{
+	frame_support::hypothetically! {
 		f()
 	}
 }
