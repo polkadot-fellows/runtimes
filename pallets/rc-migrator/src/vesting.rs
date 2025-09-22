@@ -119,7 +119,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 				Some((who, schedules)) => {
 					pallet_vesting::Vesting::<T>::remove(&who);
 					messages.push(RcVestingSchedule { who: who.clone(), schedules });
-					log::debug!(target: LOG_TARGET, "Migrating vesting schedules for {:?}", who);
+					log::debug!(target: LOG_TARGET, "Migrating vesting schedules for {who:?}");
 					inner_key = Some(who);
 				},
 				None => {

@@ -142,7 +142,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				_ => {},
 			}
 
-			log::debug!(target: LOG_TARGET, "Exported legacy preimage status for: {:?}", next_key_inner);
+			log::debug!(target: LOG_TARGET, "Exported legacy preimage status for: {next_key_inner:?}");
 			next_key = Self::next_key(Some(next_key_inner));
 			// Remove the migrated key from the relay chain
 			pallet_preimage::StatusFor::<T>::remove(next_key_inner);

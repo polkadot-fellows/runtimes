@@ -600,7 +600,7 @@ impl<T: Config> AccountsMigrator<T> {
 		// account the weight for receiving a single account on Asset Hub.
 		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
+			log::info!("AH weight limit reached at batch length {batch_len}, stopping");
 			return Err(Error::OutOfWeight);
 		}
 
@@ -1007,7 +1007,7 @@ pub mod tests {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Polkadot RC => AH
 				[39, 0] => [80, 0].to_vec(),
-				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+				_ => panic!("Unknown freeze id: {freeze_id:?}"),
 			}
 		}
 
@@ -1020,7 +1020,7 @@ pub mod tests {
 				[7, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Polkadot RC => AH
 				[41, 0] => [83, 0].to_vec(),
-				_ => panic!("Unknown hold id: {:?}", hold_id),
+				_ => panic!("Unknown hold id: {hold_id:?}"),
 			}
 		}
 

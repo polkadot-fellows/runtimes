@@ -345,7 +345,7 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	fn post_check(pre_accs: Self::RcPrePayload) {
 		// sanity check
 		let remaining = pallet_proxy::Proxies::<T>::iter_keys().count();
-		assert!(remaining >= 10, "Not enough remaining pure proxies, {}", remaining);
+		assert!(remaining >= 10, "Not enough remaining pure proxies, {remaining}");
 
 		// All remaining ones are 'Any'
 		for (delegator, (proxies, deposit)) in pallet_proxy::Proxies::<T>::iter() {

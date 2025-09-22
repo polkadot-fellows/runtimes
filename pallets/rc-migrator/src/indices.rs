@@ -110,7 +110,7 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 			match pallet_indices::Accounts::<T>::iter().next() {
 				Some((index, (who, deposit, frozen))) => {
 					pallet_indices::Accounts::<T>::remove(index);
-					log::debug!(target: LOG_TARGET, "Migrating index: {:?}", index);
+					log::debug!(target: LOG_TARGET, "Migrating index: {index:?}");
 					messages.push(RcIndicesIndex { index, who, deposit, frozen });
 					inner_key = Some(());
 				},

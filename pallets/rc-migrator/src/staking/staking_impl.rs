@@ -132,7 +132,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				break;
 			}
 
-			log::debug!(target: LOG_TARGET, "Migrating staking stage: {:?}", inner_key);
+			log::debug!(target: LOG_TARGET, "Migrating staking stage: {inner_key:?}");
 
 			inner_key = match inner_key {
 				StakingStage::Values => {

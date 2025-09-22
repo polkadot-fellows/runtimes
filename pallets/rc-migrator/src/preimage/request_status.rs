@@ -203,7 +203,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				hash: next_key_inner,
 				request_status: request_status.into_portable(),
 			});
-			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {:?}", next_key_inner);
+			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {next_key_inner:?}");
 
 			next_key = Self::next_key(Some(next_key_inner));
 			// Remove the migrated key from the relay chain

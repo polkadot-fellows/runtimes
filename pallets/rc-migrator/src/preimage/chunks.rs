@@ -164,9 +164,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			last_offset += chunk_bytes.len() as u32;
 			log::debug!(
 				target: LOG_TARGET,
-				"Exported preimage chunk {:?} until offset {}",
-				next_key_inner,
-				last_offset
+				"Exported preimage chunk {next_key_inner:?} until offset {last_offset}"
 			);
 
 			// set the offset of the next_key
@@ -224,8 +222,7 @@ impl<T: Config> PreimageChunkMigrator<T> {
 			.find(|(hash, len)| {
 				if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
 					log::info!(
-						"Ignoring old preimage that is not in the request status map: {:?}",
-						hash
+						"Ignoring old preimage that is not in the request status map: {hash:?}"
 					);
 					skipped.push((*hash, *len));
 					debug_assert!(
@@ -249,7 +246,7 @@ impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 		let good_keys = pallet_preimage::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| pallet_preimage::RequestStatusFor::<T>::contains_key(hash))
 			.count();
-		log::info!("Migrating {} keys out of {}", good_keys, all_keys);
+		log::info!("Migrating {good_keys} keys out of {all_keys}");
 		pallet_preimage::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| pallet_preimage::RequestStatusFor::<T>::contains_key(hash))
 			.collect()

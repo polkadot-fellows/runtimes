@@ -205,7 +205,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							let Some(last_lease) = leases.last() else {
 								// This seems to be fine, but i don't know why it happens, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L108-L109
-								log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+								log::warn!(target: LOG_TARGET, "Empty leases for para_id: {para_id:?}");
 								continue;
 							};
 
@@ -433,7 +433,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 			};
 
 			let Some(last_lease) = leases.last() else {
-				log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+				log::warn!(target: LOG_TARGET, "Empty leases for para_id: {para_id:?}");
 				continue;
 			};
 			let Some((lease_acc, _)) = last_lease else {
