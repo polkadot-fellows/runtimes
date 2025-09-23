@@ -504,9 +504,16 @@ impl<T: Config> AccountsMigrator<T> {
 		// check accounts.md for more details.
 		SystemAccount::<T>::mutate(&who, |a| {
 			a.consumers = account_state.get_rc_consumers();
-			// the provider count is set to `1` to allow reaping accounts that provided the ED at
-			// the `burn_from` below.
-			a.providers = 1;
+			if a.data.free < rc_ed && a.data.free >= ah_ed {
+				// this account has a broken ED invariant. withdrawing the entire free balance will
+				// not decrease the provider count and remove the account from storage. by setting
+				// providers to `0`, we ensure the account is properly removed from storage.
+				a.providers = 0;
+			} else {
+				// the provider count is set to `1` to allow reaping accounts that provided the ED
+				// at the `burn_from` below.
+				a.providers = 1;
+			}
 		});
 
 		let total_balance = <T as Config>::Currency::total_balance(&who);
@@ -615,12 +622,26 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Check if the account can be withdrawn and migrated to AH.
 	pub fn can_migrate_account(who: &T::AccountId, account: &AccountInfoFor<T>) -> bool {
 		let ed = <T as Config>::Currency::minimum_balance();
+		let ah_ed = T::AhExistentialDeposit::get();
 		let total_balance = <T as Config>::Currency::total_balance(who);
 		if total_balance < ed {
-			if account.nonce.is_zero() {
+			if account.data.free >= ah_ed &&
+				account.data.reserved.is_zero() &&
+				account.data.frozen.is_zero()
+			{
 				log::info!(
 					target: LOG_TARGET,
-					"Possible system non-migratable account detected. \
+					"Account has no RC ED, but has enough free balance for AH RC. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+				return true;
+			}
+			if !total_balance.is_zero() {
+				log::warn!(
+					target: LOG_TARGET,
+					"Non-migratable account has non-zero balance. \
 					Account: '{}', info: {:?}",
 					who.to_ss58check(),
 					account
@@ -628,16 +649,7 @@ impl<T: Config> AccountsMigrator<T> {
 			} else {
 				log::info!(
 					target: LOG_TARGET,
-					"Non-migratable account detected. \
-					Account: '{}', info: {:?}",
-					who.to_ss58check(),
-					account
-				);
-			}
-			if !total_balance.is_zero() || !account.data.frozen.is_zero() {
-				log::warn!(
-					target: LOG_TARGET,
-					"Non-migratable account has non-zero balance. \
+					"Possible system non-migratable account detected. \
 					Account: '{}', info: {:?}",
 					who.to_ss58check(),
 					account
