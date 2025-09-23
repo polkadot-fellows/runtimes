@@ -9002,9 +9002,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-election-provider-multi-block"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e61d2f6ab8b107c1752fb13846814c4d4ca91c5b8c6529b4bb245b8d1671d801"
+checksum = "6f6b7e9ad0ef845f0f9ddeb7b51df2c9e1448dd23a32be1cb231062b76bdeec9"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
