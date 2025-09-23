@@ -18,6 +18,9 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+#[cfg(feature = "kusama-ahm")]
+use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{Runtime as AssetHub, System as AssetHubSystem};
 use pallet_ah_ops::benchmarking::*;
 use sp_runtime::BuildStorage;

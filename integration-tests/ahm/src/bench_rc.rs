@@ -18,6 +18,9 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+#[cfg(feature = "kusama-ahm")]
+use crate::porting_prelude::*;
+
 use pallet_rc_migrator::benchmarking::*;
 use polkadot_runtime::{Runtime as RelayChain, System as RcSystem};
 use sp_runtime::BuildStorage;
