@@ -2012,7 +2012,7 @@ mod benches {
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
 
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use sp_storage::TrackedStorageKey;
 	// Trying to add benchmarks directly to some pallets caused cyclic dependency issues.

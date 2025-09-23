@@ -38,7 +38,7 @@ pub mod benchmarks {
 		};
 
 		let n = 50;
-		(0..n).for_each(|i| create_liquid_account(i));
+		(0..n).for_each(create_liquid_account);
 		let last_key: AccountId32 = [n / 2; 32].into();
 
 		RcMigratedBalance::<T>::mutate(|tracker| {
