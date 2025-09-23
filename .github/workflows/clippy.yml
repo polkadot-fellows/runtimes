@@ -45,5 +45,5 @@ jobs:
           cargo clippy --all-targets --locked --quiet --features try-runtime,runtime-benchmarks,std,kusama-ahm -p staging-kusama-runtime -p asset-hub-kusama-runtime
           cargo clippy --all-targets --locked --quiet --features try-runtime,runtime-benchmarks,std,polkadot-ahm -p polkadot-runtime -p asset-hub-polkadot-runtime
         env:
-          #RUSTFLAGS: "-D warnings" FAIL-CI re-enable after AHM
+          RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1

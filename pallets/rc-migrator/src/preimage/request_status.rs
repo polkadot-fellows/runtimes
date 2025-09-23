@@ -148,7 +148,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_preimage_request_status((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_preimage_request_status(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -203,7 +203,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				hash: next_key_inner,
 				request_status: request_status.into_portable(),
 			});
-			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {:?}", next_key_inner);
+			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {next_key_inner:?}");
 
 			next_key = Self::next_key(Some(next_key_inner));
 			// Remove the migrated key from the relay chain
@@ -247,13 +247,7 @@ impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
 					.any(|(key_hash, _)| key_hash == *hash)
 			})
 			.map(|(hash, request_status)| {
-				(
-					hash,
-					match request_status {
-						pallet_preimage::RequestStatus::Requested { .. } => true,
-						_ => false,
-					},
-				)
+				(hash, matches!(request_status, pallet_preimage::RequestStatus::Requested { .. }))
 			})
 			.collect()
 	}

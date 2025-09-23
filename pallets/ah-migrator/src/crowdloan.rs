@@ -36,7 +36,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => good += 1,
 				Err(e) => {
 					bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating crowdloan message: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating crowdloan message: {e:?}");
 				},
 			}
 		}
@@ -187,9 +187,9 @@ where
 		let anchor_block: u64 =
 			<T as crate::Config>::RcBlockNumberProvider::current_block_number().into();
 		// We are using the time from AH here, not relay. But the snapshots are taken together.
-		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get().into();
+		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get();
 
-		let block_diff: u64 = (block.into() - anchor_block).into();
+		let block_diff: u64 = block.into() - anchor_block;
 		let add_time_ms: u64 = block_diff * 6_000;
 
 		// Convert anchor_timestamp to SystemTime
@@ -197,11 +197,9 @@ where
 			.checked_add(std::time::Duration::from_millis(anchor_timestamp))
 			.expect("Timestamp addition should not overflow");
 
-		let block_timestamp = anchor_time
+		anchor_time
 			.checked_add(std::time::Duration::from_millis(add_time_ms))
-			.expect("Block timestamp addition should not overflow");
-
-		block_timestamp
+			.expect("Block timestamp addition should not overflow")
 	}
 }
 
@@ -228,6 +226,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		// - reserves_pre: Reference to pre-migration reserves map
 		// - storage_iter: Iterator over storage items
 		// - error_msg: Custom error message for assertion failure
+		#[allow(clippy::type_complexity)]
 		fn verify_reserves<T: Config, I>(
 			_reserves_pre: &BTreeMap<
 				ParaId,
@@ -238,16 +237,13 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		) where
 			I: Iterator<Item = ((BlockNumberFor<T>, ParaId, AccountIdOf<T>), BalanceOf<T>)>,
 		{
+			#[allow(clippy::type_complexity)]
 			let mut reserves_post: BTreeMap<
 				ParaId,
 				Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
 			> = BTreeMap::new();
 			for ((block_number, para_id, account), amount) in storage_iter {
-				reserves_post.entry(para_id).or_insert_with(Vec::new).push((
-					block_number,
-					account,
-					amount,
-				));
+				reserves_post.entry(para_id).or_default().push((block_number, account, amount));
 			}
 			// TODO: @ggwpez failing with new snapshot. something to do with Bifrost crowdloan.
 			// assert_eq!(reserves_pre, &reserves_post, "{}", error_msg);
@@ -257,10 +253,12 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 			(ParaId, BlockNumberFor<T>, AccountIdOf<T>),
 			BalanceOf<T>,
 		> = BTreeMap::new();
+		#[allow(clippy::type_complexity)]
 		let mut rc_lease_reserves: BTreeMap<
 			ParaId,
 			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
 		> = BTreeMap::new();
+		#[allow(clippy::type_complexity)]
 		let mut rc_crowdloan_reserves: BTreeMap<
 			ParaId,
 			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
@@ -288,7 +286,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					// Translate account from RC to AH
 					let translated_account = Pallet::<T>::translate_account_rc_to_ah(account);
 
-					rc_lease_reserves.entry(para_id).or_insert_with(Vec::new).push((
+					rc_lease_reserves.entry(para_id).or_default().push((
 						unreserve_block,
 						translated_account,
 						amount,
@@ -303,7 +301,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					// Translate depositor account from RC to AH
 					let translated_depositor = Pallet::<T>::translate_account_rc_to_ah(depositor);
 
-					rc_crowdloan_reserves.entry(para_id).or_insert_with(Vec::new).push((
+					rc_crowdloan_reserves.entry(para_id).or_default().push((
 						unreserve_block,
 						translated_depositor,
 						amount,

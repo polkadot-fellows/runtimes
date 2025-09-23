@@ -37,7 +37,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => count_good += 1,
 				Err(e) => {
 					count_bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating preimage chunk: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating preimage chunk: {e:?}");
 				},
 			}
 		}
@@ -82,7 +82,7 @@ impl<T: Config> Pallet<T> {
 				}
 
 				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
-				debug_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
+				defensive_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
 				let bounded_preimage: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
 					preimage.into_inner().try_into().expect("Asserted");
 				pallet_preimage::PreimageFor::<T>::insert(key, &bounded_preimage);
@@ -112,7 +112,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => count_good += 1,
 				Err(e) => {
 					count_bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating preimage request status: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating preimage request status: {e:?}");
 				},
 			}
 		}
@@ -211,7 +211,7 @@ impl<T: Config> Pallet<T> {
 		};
 
 		pallet_preimage::RequestStatusFor::<T>::insert(request_status.hash, &new_request_status);
-		log::debug!(target: LOG_TARGET, "Integrating preimage request status: {:?}", new_request_status);
+		log::debug!(target: LOG_TARGET, "Integrating preimage request status: {new_request_status:?}");
 
 		Ok(())
 	}
@@ -263,7 +263,6 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-#[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 	type RcPrePayload = Vec<(H256, u32)>;
 	type AhPrePayload = ();
@@ -280,7 +279,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
 		for (key, preimage) in pallet_preimage::PreimageFor::<T>::iter() {
-			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
+			assert!(!preimage.is_empty(), "Preimage::PreimageFor is empty");
 			assert!(preimage.len() <= 4 * 1024 * 1024_usize, "Preimage::PreimageFor is too big");
 			assert!(
 				preimage.len() == key.1 as usize,
@@ -315,9 +314,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 			if !pallet_preimage::PreimageFor::<T>::contains_key((hash, len)) {
 				log::warn!(
-					"Relay chain Preimage::PreimageFor storage item with key {:?} {:?} is not found on assethub",
-					hash,
-					len,
+					"Relay chain Preimage::PreimageFor storage item with key {hash:?} {len:?} is not found on assethub",
 				);
 			}
 		}
@@ -328,7 +325,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			// Preimages for referendums that did not pass on the relay chain can be noted when
 			// migrating to Asset Hub.
 			if !rc_pre_payload.contains(&(hash, len)) {
-				log::warn!("Asset Hub migrated Preimage::PreimageFor storage item with key {:?} {:?} was not present on the relay chain", hash, len);
+				log::warn!("Asset Hub migrated Preimage::PreimageFor storage item with key {hash:?} {len:?} was not present on the relay chain");
 			}
 		}
 
@@ -377,8 +374,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 			// Assert storage "Preimage::RequestStatusFor::ah_post::correct"
 			if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
 				log::warn!(
-					"Relay chain Preimage::RequestStatusFor storage item with key {:?} is not found on assethub",
-					hash
+					"Relay chain Preimage::RequestStatusFor storage item with key {hash:?} is not found on assethub",
 				);
 			} else {
 				match pallet_preimage::RequestStatusFor::<T>::get(hash).unwrap() {
@@ -407,8 +403,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 					pallet_preimage::RequestStatus::Requested { .. } => {
 						assert!(
 							requested,
-							"Unrequested preimage with hash {:?} in the relay chain has become requested on assetHub",
-							hash
+							"Unrequested preimage with hash {hash:?} in the relay chain has become requested on assetHub",
 						);
 					},
 				}
@@ -419,7 +414,7 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 			// Preimages for referendums that did not pass on the relay chain can be noted when
 			// migrating to Asset Hub.
 			if !rc_pre_payload.contains(&(hash, true)) && !rc_pre_payload.contains(&(hash, false)) {
-				log::warn!("Asset Hub migrated Preimage::RequestStatusFor storage item with key {:?} was not present on the relay chain", hash);
+				log::warn!("Asset Hub migrated Preimage::RequestStatusFor storage item with key {hash:?} was not present on the relay chain");
 			}
 		}
 

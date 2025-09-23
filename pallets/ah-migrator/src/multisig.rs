@@ -16,6 +16,8 @@
 // limitations under the License.
 
 use crate::*;
+
+#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 use hex_literal::hex;
 
 #[cfg(feature = "std")]
@@ -41,6 +43,10 @@ const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
 	AccountId32::new(hex!("e64d5c0de81b9c960c1dd900ad2a5d9d91c8a683e60dd1308e6bc7f80ea3b25f")),
 ];
 
+// To make it compile without flags:
+#[cfg(all(not(feature = "kusama-ahm"), not(feature = "polkadot-ahm")))]
+const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[];
+
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_multisigs(multisigs: Vec<RcMultisigOf<T>>) -> Result<(), Error<T>> {
 		Self::deposit_event(Event::BatchReceived {
@@ -55,7 +61,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => count_good += 1,
 				Err(e) => {
 					count_bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating multisig: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating multisig: {e:?}");
 				},
 			}
 		}

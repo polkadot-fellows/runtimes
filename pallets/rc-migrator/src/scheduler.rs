@@ -82,7 +82,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_scheduler_lookup((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_scheduler_lookup(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -131,7 +131,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_scheduler::Retries::<T>::remove(&key);
+							pallet_scheduler::Retries::<T>::remove(key);
 							messages.push(RcSchedulerMessage::Retries((key, value)));
 							SchedulerStage::Retries(Some(key))
 						},
@@ -146,7 +146,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							alias::Lookup::<T>::remove(&key);
+							alias::Lookup::<T>::remove(key);
 							messages.push(RcSchedulerMessage::Lookup((key, value)));
 							SchedulerStage::Lookup(Some(key))
 						},
@@ -172,6 +172,15 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		}
 	}
 }
+
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
+pub struct SchedulerAgendaMessage<B, S> {
+	pub block: B,
+	pub agenda: Vec<Option<S>>,
+}
+
+pub type SchedulerAgendaMessageOf<T> =
+	SchedulerAgendaMessage<SchedulerBlockNumberFor<T>, alias::ScheduledOf<T>>;
 
 pub struct SchedulerAgendaMigrator<T: Config> {
 	_phantom: PhantomData<T>,
@@ -257,21 +266,24 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 			}
 
 			last_key = Some(block);
-			alias::Agenda::<T>::remove(&block);
+			alias::Agenda::<T>::remove(block);
 
-			if agenda.len() == 0 {
+			if agenda.is_empty() {
 				// there are many agendas with no tasks, so we skip them
 				continue;
 			}
 
 			let agenda = agenda.into_inner();
-			messages.push((block, agenda));
+			messages.push(SchedulerAgendaMessage { block, agenda });
 		};
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
-				types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages: Vec<SchedulerAgendaMessageOf<T>>| {
+					types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages }
+				},
+			)?;
 		}
 
 		Ok(last_key)

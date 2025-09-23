@@ -16,6 +16,7 @@
 
 //! Asset Hub Migration tests.
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
 use asset_hub_polkadot_runtime::{BuildStorage, Runtime as T, RuntimeCall, RuntimeOrigin};

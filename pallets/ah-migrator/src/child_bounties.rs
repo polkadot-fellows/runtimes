@@ -98,7 +98,7 @@ impl<T: Config> Pallet<T> {
 				);
 			},
 			ChildrenCuratorFees { child_id, amount } => {
-				let amount: pallet_treasury::BalanceOf<T> = amount.into();
+				let amount: pallet_treasury::BalanceOf<T> = amount;
 				pallet_child_bounties::ChildrenCuratorFees::<T>::insert(child_id, amount);
 			},
 		}
@@ -155,10 +155,7 @@ where
 			pallet_child_bounties::V0ToV1ChildBountyIds::<T>::iter().collect::<Vec<_>>()
 		);
 		assert_eq!(
-			rc.children_curator_fees
-				.into_iter()
-				.map(|(c, a)| (c, a.into()))
-				.collect::<Vec<_>>(),
+			rc.children_curator_fees.into_iter().collect::<Vec<_>>(),
 			pallet_child_bounties::ChildrenCuratorFees::<T>::iter().collect::<Vec<_>>()
 		);
 	}

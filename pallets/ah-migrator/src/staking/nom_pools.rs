@@ -19,11 +19,9 @@ use crate::*;
 use frame_support::{traits::ConstU32, BoundedVec};
 use pallet_nomination_pools::BondedPoolInner;
 #[cfg(feature = "std")]
-use pallet_rc_migrator::staking::nom_pools::tests;
-use pallet_rc_migrator::{
-	staking::nom_pools::{BalanceOf, NomPoolsMigrator, NomPoolsStorageValues},
-	types::ToPolkadotSs58,
-};
+use pallet_rc_migrator::staking::nom_pools::{tests, NomPoolsMigrator, NomPoolsStorageValues};
+
+use pallet_rc_migrator::{staking::nom_pools::BalanceOf, types::ToPolkadotSs58};
 
 /// Trait to provide account translation logic for bonded pool structures.
 ///
@@ -49,12 +47,10 @@ impl<T: Config> TranslateBondedPoolAccounts<T::AccountId> for BondedPoolInner<T>
 		self.roles.bouncer = self.roles.bouncer.clone().map(&translate_fn);
 
 		// Translate commission accounts
-		if let Some(ref mut claim_permission) = self.commission.claim_permission {
-			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
-				claim_permission
-			{
-				*account = translate_fn(account.clone());
-			}
+		if let Some(pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account)) =
+			self.commission.claim_permission
+		{
+			*account = translate_fn(account.clone());
 		}
 		if let Some((rate, ref mut account)) = self.commission.current {
 			self.commission.current = Some((rate, translate_fn(account.clone())));
@@ -81,12 +77,10 @@ where
 		self.roles.bouncer = self.roles.bouncer.clone().map(&translate_fn);
 
 		// Translate commission accounts
-		if let Some(ref mut claim_permission) = self.commission.claim_permission {
-			if let pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account) =
-				claim_permission
-			{
-				*account = translate_fn(account.clone());
-			}
+		if let Some(pallet_nomination_pools::CommissionClaimPermission::Account(ref mut account)) =
+			self.commission.claim_permission
+		{
+			*account = translate_fn(account.clone());
 		}
 		if let Some((rate, ref mut account)) = self.commission.current {
 			self.commission.current = Some((rate, translate_fn(account.clone())));

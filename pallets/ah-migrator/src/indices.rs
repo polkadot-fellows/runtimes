@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_indices(indices: Vec<RcIndicesIndexOf<T>>) -> Result<(), Error<T>> {
 		let len = indices.len() as u32;
 		Self::deposit_event(Event::BatchReceived { pallet: PalletEventName::Indices, count: len });
-		log::info!(target: LOG_TARGET, "Integrating batch of {} indices", len);
+		log::info!(target: LOG_TARGET, "Integrating batch of {len} indices");
 
 		for index in indices {
 			Self::do_receive_index(index);
@@ -38,11 +38,11 @@ impl<T: Config> Pallet<T> {
 
 	pub fn do_receive_index(index: RcIndicesIndexOf<T>) {
 		log::debug!(target: LOG_TARGET, "Integrating index {:?}", &index.index);
-		defensive_assert!(!pallet_indices::Accounts::<T>::contains_key(&index.index));
+		defensive_assert!(!pallet_indices::Accounts::<T>::contains_key(index.index));
 
 		let translated_who = Self::translate_account_rc_to_ah(index.who);
 		pallet_indices::Accounts::<T>::insert(
-			&index.index,
+			index.index,
 			(translated_who, index.deposit, index.frozen),
 		);
 	}
@@ -79,8 +79,7 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 			.map(|RcIndicesIndex { index, who, deposit, frozen }| (index, (who, deposit, frozen)))
 			.collect();
 
-		let all_pre: BTreeMap<_, _> =
-			translated_rc_pre.into_iter().chain(ah_pre.into_iter()).collect();
+		let all_pre: BTreeMap<_, _> = translated_rc_pre.into_iter().chain(ah_pre).collect();
 
 		let all_post: BTreeMap<_, _> = pallet_indices::Accounts::<T>::iter().collect();
 

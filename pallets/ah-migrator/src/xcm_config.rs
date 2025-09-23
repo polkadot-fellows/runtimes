@@ -34,7 +34,7 @@ impl<
 {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		let migration_ongoing = Stage::is_ongoing();
-		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {:?}", migration_ongoing);
+		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {migration_ongoing:?}");
 		let result = if migration_ongoing {
 			During::contains(asset, origin)
 		} else {
@@ -43,8 +43,7 @@ impl<
 		};
 		log::trace!(
 			target: "xcm::IsTeleport::contains",
-			"asset: {:?} origin {:?} result {:?}",
-			asset, origin, result
+			"asset: {asset:?} origin {origin:?} result {result:?}",
 		);
 		result
 	}
@@ -66,7 +65,7 @@ where
 		} else {
 			PreMigrationAccount::get()
 		};
-		log::trace!(target: "xcm::TreasuryAccount::get", "{:?}", treasury_account);
+		log::trace!(target: "xcm::TreasuryAccount::get", "{treasury_account:?}");
 		treasury_account
 	}
 }

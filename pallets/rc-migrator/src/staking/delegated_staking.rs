@@ -17,7 +17,7 @@
 //! Migrator for pallet-delegated-staking.
 
 use crate::*;
-use types::{AccountIdOf, RcMigrationCheck};
+use types::AccountIdOf;
 
 /// Stage of the delegated-staking pallet migration.
 #[derive(
@@ -83,9 +83,9 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 					break;
 				}
 			}
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_delegated_staking_messages(
-				(messages.len() + 1) as u32,
-			)) {
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() + 1))
+			{
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -169,7 +169,7 @@ impl<T: Config> PalletMigration for DelegatedStakingMigrator<T> {
 			};
 		}
 
-		if messages.len() > 0 {
+		if !messages.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
 				types::AhMigratorCall::<T>::ReceiveDelegatedStakingMessages { messages }
 			})?;
@@ -206,7 +206,7 @@ pub mod test {
 }
 
 #[cfg(feature = "std")]
-impl<T: Config> RcMigrationCheck for DelegatedStakingMigrator<T> {
+impl<T: Config> types::RcMigrationCheck for DelegatedStakingMigrator<T> {
 	type RcPrePayload = (Vec<test::RcDelegation>, Vec<test::RcAgentLedger>);
 
 	fn pre_check() -> Self::RcPrePayload {

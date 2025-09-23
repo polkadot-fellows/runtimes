@@ -19,6 +19,8 @@ use pallet_rc_migrator::{
 	treasury::{PortableSpendStatus, PortableTreasuryMessage, TreasuryMigrator},
 	types::SortByEncoded,
 };
+
+#[cfg(feature = "std")]
 use pallet_treasury::{ProposalIndex, SpendIndex};
 
 impl<T: Config> Pallet<T> {
@@ -42,13 +44,13 @@ impl<T: Config> Pallet<T> {
 			count_good,
 			count_bad,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} treasury messages", count_good);
+		log::info!(target: LOG_TARGET, "Processed {count_good} treasury messages");
 
 		Ok(())
 	}
 
 	fn do_process_treasury_message(message: PortableTreasuryMessage) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing treasury message: {:?}", message);
+		log::debug!(target: LOG_TARGET, "Processing treasury message: {message:?}");
 
 		match message {
 			PortableTreasuryMessage::ProposalCount(proposal_count) => {
@@ -78,14 +80,13 @@ impl<T: Config> Pallet<T> {
 					valid_from,
 					expire_at,
 					status,
-				} = spend.into();
+				} = (*spend).into();
 
 				// Apply account translation to beneficiary before type conversion
 				let translated_beneficiary = Self::translate_beneficiary_location(beneficiary)
 					.map_err(|_| {
 						defensive!(
-							"Failed to translate treasury spend beneficiary for spend: {:?}",
-							spend_index
+							"Failed to translate treasury spend beneficiary for spend: {spend_index:?}",
 						);
 						Error::FailedToConvertType
 					})?;
@@ -94,8 +95,7 @@ impl<T: Config> Pallet<T> {
 					T::RcToAhTreasurySpend::convert((asset_kind, translated_beneficiary)).map_err(
 						|_| {
 							defensive!(
-								"Failed to convert RC treasury spend to AH treasury spend: {:?}",
-								spend_index
+								"Failed to convert RC treasury spend to AH treasury spend: {spend_index:?}",
 							);
 							Error::FailedToConvertType
 						},
@@ -108,7 +108,7 @@ impl<T: Config> Pallet<T> {
 					expire_at,
 					status,
 				};
-				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {:?}", spend);
+				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {spend:?}");
 				pallet_treasury::Spends::<T>::insert(spend_index, spend);
 			},
 			PortableTreasuryMessage::LastSpendPeriod(last_spend_period) => {
@@ -143,9 +143,7 @@ impl<T: Config> Pallet<T> {
 			if reducible.is_zero() {
 				log::info!(
 					target: LOG_TARGET,
-					"Treasury old asset account is empty. asset: {:?}, old_account_id: {:?}",
-					asset,
-					old_account_id,
+					"Treasury old asset account is empty. asset: {asset:?}, old_account_id: {old_account_id:?}",
 				);
 				continue;
 			}
@@ -159,23 +157,14 @@ impl<T: Config> Pallet<T> {
 			) {
 				Ok(_) => log::info!(
 					target: LOG_TARGET,
-					"Transferred treasury funds from old account {:?} to new account {:?} \
-					for asset: {:?}, amount: {:?}",
-					old_account_id,
-					account_id,
-					asset,
-					reducible
+					"Transferred treasury funds from old account {old_account_id:?} to new account {account_id:?} \
+					for asset: {asset:?}, amount: {reducible:?}",
 				),
 				Err(e) => {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to transfer treasury funds from old account {:?} to new \
-						account {:?} for asset: {:?}, amount: {:?}, error: {:?}",
-						old_account_id,
-						account_id,
-						asset,
-						reducible,
-						e
+						"Failed to transfer treasury funds from old account {old_account_id:?} to new \
+						account {account_id:?} for asset: {asset:?}, amount: {reducible:?}, error: {e:?}",
 					);
 				},
 			}
@@ -190,8 +179,7 @@ impl<T: Config> Pallet<T> {
 		if reducible.is_zero() {
 			log::info!(
 				target: LOG_TARGET,
-				"Treasury old native asset account is empty. old_account_id: {:?}",
-				old_account_id,
+				"Treasury old native asset account is empty. old_account_id: {old_account_id:?}",
 			);
 		} else {
 			match <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
@@ -202,20 +190,13 @@ impl<T: Config> Pallet<T> {
 			) {
 				Ok(_) => log::info!(
 					target: LOG_TARGET,
-					"Transferred treasury native asset funds from old account {:?} \
-					to new account {:?} amount: {:?}",
-					old_account_id,
-					account_id,
-					reducible
+					"Transferred treasury native asset funds from old account {old_account_id:?} \
+					to new account {account_id:?} amount: {reducible:?}",
 				),
 				Err(e) => log::error!(
 					target: LOG_TARGET,
-					"Failed to transfer treasury funds from new account {:?} \
-					to old account {:?} amount: {:?}, error: {:?}",
-					account_id,
-					old_account_id,
-					reducible,
-					e
+					"Failed to transfer treasury funds from new account {account_id:?} \
+					to old account {old_account_id:?} amount: {reducible:?}, error: {e:?}",
 				),
 			};
 		}
@@ -300,6 +281,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 
 		// Assert storage 'Treasury::Proposals::ah_post::consistent'
 		// Assert storage 'Treasury::Proposals::ah_post::correct'
+		#[allow(clippy::type_complexity)]
 		let rc_proposals_translated: Vec<(
 			ProposalIndex,
 			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,
@@ -316,6 +298,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 			})
 			.collect();
 
+		#[allow(clippy::type_complexity)]
 		let ah_proposals: Vec<(
 			ProposalIndex,
 			pallet_treasury::Proposal<T::AccountId, pallet_treasury::BalanceOf<T>>,

@@ -444,7 +444,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"staking" => MigrationStage::StakingMigrationInit,
 			#[cfg(feature = "kusama-ahm")]
 			"society" => MigrationStage::SocietyMigrationInit,
-			other => return Err(format!("Unknown migration stage: {}", other)),
+			other => return Err(format!("Unknown migration stage: {other}")),
 		})
 	}
 }
@@ -1035,17 +1035,14 @@ pub mod pallet {
 			if matches!(response, MaybeErrorCode::Success) {
 				log::info!(
 					target: LOG_TARGET,
-					"Received success response for query id: {}",
-					query_id
+					"Received success response for query id: {query_id}"
 				);
 				PendingXcmMessages::<T>::remove(message_hash);
 				PendingXcmQueries::<T>::remove(query_id);
 			} else {
 				log::error!(
 					target: LOG_TARGET,
-					"Received error response for query id: {}; response: {:?}",
-					query_id,
-					response.clone(),
+					"Received error response for query id: {query_id}; response: {response:?}"
 				);
 			}
 
@@ -1089,7 +1086,7 @@ pub mod pallet {
 			};
 
 			if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, xcm_with_report) {
-				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
 					query_id: new_query_id,
 					send_error: Some(err),
@@ -1139,7 +1136,7 @@ pub mod pallet {
 				return Err(Error::<T>::AhUmpQueuePriorityAlreadySet.into());
 			}
 			ensure!(
-				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				new.get_priority_blocks().is_none_or(|blocks| !blocks.is_zero()),
 				Error::<T>::InvalidParameter
 			);
 			AhUmpQueuePriorityConfig::<T>::put(new.clone());
@@ -1197,8 +1194,7 @@ pub mod pallet {
 					|error| {
 						log::error!(
 							target: LOG_TARGET,
-							"XCM validation failed with error: {:?}; destination: {:?}; message: {:?}",
-							error, dest, message
+							"XCM validation failed with error: {error:?}; destination: {dest:?}; message: {message:?}"
 						);
 						Error::<T>::XcmError
 					},
@@ -1207,8 +1203,7 @@ pub mod pallet {
 			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
 				log::error!(
 					target: LOG_TARGET,
-					"XCM send failed with error: {:?}; destination: {:?}; message: {:?}",
-					error, dest, message
+					"XCM send failed with error: {error:?}; destination: {dest:?}; message: {message:?}"
 				);
 				Error::<T>::XcmError
 			})?;
@@ -1347,7 +1342,7 @@ pub mod pallet {
 			}
 
 			match stage {
-				MigrationStage::Pending | MigrationStage::MigrationPaused { .. } => {
+				MigrationStage::Pending | MigrationStage::MigrationPaused => {
 					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { start } => {
@@ -1389,8 +1384,7 @@ pub mod pallet {
 					} else {
 						log::info!(
 							target: LOG_TARGET,
-							"Waiting for the warm-up period to end, end_at: {:?}",
-							end_at,
+							"Waiting for the warm-up period to end, end_at: {end_at:?}"
 						);
 					}
 					return weight_counter.consumed();
@@ -1786,7 +1780,7 @@ pub mod pallet {
 				},
 				MigrationStage::IndicesMigrationInit => {
 					Self::transition(MigrationStage::IndicesMigrationOngoing {
-						next_key: Some(Default::default()),
+						next_key: Some(()),
 					});
 				},
 				MigrationStage::IndicesMigrationOngoing { next_key } => {
@@ -2292,7 +2286,7 @@ pub mod pallet {
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -2304,10 +2298,10 @@ pub mod pallet {
 		/// [`Canceller`] account id.
 		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
-				if Canceller::<T>::get().map_or(false, |canceller_id| canceller_id == account_id) {
+				if Canceller::<T>::get().is_some_and(|canceller_id| canceller_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -2326,17 +2320,13 @@ pub mod pallet {
 			if unconfirmed > unprocessed_buffer {
 				log::info!(
 					target: LOG_TARGET,
-					"Excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
-					unconfirmed,
-					unprocessed_buffer
+					"Excess unconfirmed XCM messages: unconfirmed = {unconfirmed}, unprocessed_buffer = {unprocessed_buffer}"
 				);
 				return true;
 			}
 			log::debug!(
 				target: LOG_TARGET,
-				"No excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
-				unconfirmed,
-				unprocessed_buffer
+				"No excess unconfirmed XCM messages: unconfirmed = {unconfirmed}, unprocessed_buffer = {unprocessed_buffer}"
 			);
 			false
 		}
@@ -2395,12 +2385,12 @@ pub mod pallet {
 		) -> Result<u32, Error<T>> {
 			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
-			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
+			defensive_assert!(!items.is_empty(), "Sending XCM with empty items");
 			let mut batch_count = 0;
 
 			while let Some(batch) = items.pop_front() {
 				let batch_len = batch.len() as u32;
-				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
+				log::info!(target: LOG_TARGET, "Sending XCM batch of {batch_len} items");
 
 				let asset_hub_location = Location::new(0, Parachain(1000));
 
@@ -2442,7 +2432,7 @@ pub mod pallet {
 				if let Err(err) =
 					send_xcm::<T::SendXcm>(asset_hub_location, Xcm(message_with_report))
 				{
-					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+					log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 					return Err(Error::XcmError);
 				} else {
 					PendingXcmMessages::<T>::insert(message_hash, Xcm(message));
@@ -2455,13 +2445,11 @@ pub mod pallet {
 				debug_assert!(false, "Unreachable: we always remaining len before pushing");
 				log::warn!(
 					target: LOG_TARGET,
-					"Maximum number of XCM messages ({}) to migrate per block exceeded, current msg count: {}",
-					MAX_XCM_MSG_PER_BLOCK,
-					batch_count
+					"Maximum number of XCM messages ({MAX_XCM_MSG_PER_BLOCK}) to migrate per block exceeded, current msg count: {batch_count}"
 				);
 			}
 
-			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);
+			log::info!(target: LOG_TARGET, "Sent {batch_count} XCM batch/es");
 			Ok(batch_count)
 		}
 
@@ -2488,7 +2476,7 @@ pub mod pallet {
 				Location::new(0, [Junction::Parachain(1000)]),
 				message.clone(),
 			) {
-				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 				return Err(Error::XcmError);
 			};
 

@@ -70,7 +70,7 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	///
 	/// Expected lock ids:
 	/// - "staking " : pallet-staking locks have been transformed to holds with https://github.com/paritytech/polkadot-sdk/pull/5501
-	/// but the conversion was lazy, so there may be some staking locks left
+	///   but the conversion was lazy, so there may be some staking locks left
 	/// - "vesting " : pallet-vesting
 	/// - "pyconvot" : pallet-conviction-voting
 	pub locks: BoundedVec<BalanceLock<Balance>, ConstU32<5>>,
@@ -314,7 +314,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 						who.clone(),
 						account_info.clone(),
 						&mut ah_weight,
-						batch.len() as u32,
+						batch.len(),
 					) {
 						Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
 						Err(e) => TransactionOutcome::Rollback(Err(e)),
@@ -469,7 +469,7 @@ impl<T: Config> AccountsMigrator<T> {
 				amount
 			};
 
-			if let Err(_) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
+			if <T as Config>::Currency::release(&id, &who, amount, Precision::Exact).is_err() {
 				defensive!(
 					"There is not enough reserved balance to release the hold for (account, hold id, amount) {:?}",
 					(who.to_ss58check(), id.clone(), amount)
@@ -600,7 +600,7 @@ impl<T: Config> AccountsMigrator<T> {
 		// account the weight for receiving a single account on Asset Hub.
 		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
+			log::info!("AH weight limit reached at batch length {batch_len}, stopping");
 			return Err(Error::OutOfWeight);
 		}
 
@@ -732,7 +732,8 @@ impl<T: Config> AccountsMigrator<T> {
 	/// weight.
 	pub fn obtain_free_proxy_candidates() -> (Option<u32>, Weight) {
 		if PureProxyCandidatesMigrated::<T>::iter_keys().next().is_some() {
-			defensive!("Init pure proxy candidates already ran, skipping");
+			// Not using defensive here since that would fail on idempotency check.
+			log::info!(target: LOG_TARGET, "Init pure proxy candidates already ran, skipping");
 			return (None, T::DbWeight::get().reads(1));
 		}
 
@@ -1006,7 +1007,7 @@ pub mod tests {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Polkadot RC => AH
 				[39, 0] => [80, 0].to_vec(),
-				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+				_ => panic!("Unknown freeze id: {freeze_id:?}"),
 			}
 		}
 
@@ -1019,7 +1020,7 @@ pub mod tests {
 				[7, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Polkadot RC => AH
 				[41, 0] => [83, 0].to_vec(),
-				_ => panic!("Unknown hold id: {:?}", hold_id),
+				_ => panic!("Unknown hold id: {hold_id:?}"),
 			}
 		}
 
@@ -1043,7 +1044,7 @@ pub mod tests {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Kusama RC => AH
 				[41, 0] => [80, 0].to_vec(),
-				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+				_ => panic!("Unknown freeze id: {freeze_id:?}"),
 			}
 		}
 		// Translate the RC hold id encoding to the corresponding AH hold id encoding.
@@ -1055,7 +1056,7 @@ pub mod tests {
 				[6, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Kusama RC => AH
 				[47, 0] => [83, 0].to_vec(),
-				_ => panic!("Unknown hold id: {:?}", hold_id),
+				_ => panic!("Unknown hold id: {hold_id:?}"),
 			}
 		}
 
@@ -1221,7 +1222,7 @@ pub mod tests {
 							let manager = Manager::<T>::get();
 							let on_demand_pallet_account: T::AccountId =
 								T::OnDemandPalletId::get().into_account_truncating();
-							let is_manager = manager.as_ref().map_or(false, |m| *m == who);
+							let is_manager = manager.as_ref().is_some_and(|m| *m == who);
 							let is_on_demand = who == on_demand_pallet_account;
 							assert!(
 								is_manager || is_on_demand,

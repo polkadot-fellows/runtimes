@@ -16,6 +16,7 @@
 
 //! Asset Hub Migration tests.
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
 use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};

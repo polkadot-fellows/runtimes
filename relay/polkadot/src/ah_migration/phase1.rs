@@ -26,7 +26,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDu
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (during, _after) = call_allowed_status(call);
 		if !during {
-			log::warn!("Call bounced by the filter during the migration: {:?}", call);
+			log::warn!("Call bounced by the filter during the migration: {call:?}");
 		}
 		during
 	}
@@ -38,7 +38,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (_during, after) = call_allowed_status(call);
 		if !after {
-			log::warn!("Call bounced by the filter after the migration: {:?}", call);
+			log::warn!("Call bounced by the filter after the migration: {call:?}");
 		}
 		after
 	}
