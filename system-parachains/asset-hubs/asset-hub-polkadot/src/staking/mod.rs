@@ -439,7 +439,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 
 		// Branch based off the 12AM 14th March 2026 initial stepping date -[Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
 		let relay_block_num = <RelaychainDataProvider::<Runtime> as BlockNumberProvider>::current_block_number();
-		let march_14_2026: BlockNumber = 30_367_108; // Extrapolated block number at desired date. 
+		let march_14_2026: BlockNumber = 30_362_493; // https://polkadot.subscan.io/block/30362493
 		
 		let yearly_emission = if relay_block_num < march_14_2026 {
 			// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
