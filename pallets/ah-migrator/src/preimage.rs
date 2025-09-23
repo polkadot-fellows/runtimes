@@ -18,7 +18,7 @@
 use crate::*;
 use frame_support::traits::{Consideration, Footprint};
 use pallet_rc_migrator::preimage::{chunks::*, *};
-use sp_runtime::traits::{BlakeTwo256, Hash};
+use sp_runtime::traits::Hash;
 
 // NOTE: preimage doesn't require post-check account translation: the account translation is applied
 // during processing and the post-checks focus on hash integrity rather than account-based
