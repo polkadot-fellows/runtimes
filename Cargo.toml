@@ -99,7 +99,7 @@ pallet-authority-discovery = { version = "42.0.0", default-features = false }
 pallet-authorship = { version = "42.0.0", default-features = false }
 pallet-babe = { version = "42.0.0", default-features = false }
 pallet-bags-list = { version = "41.0.0", default-features = false }
-pallet-balances = { version = "43.0.0", default-features = false }
+pallet-balances = { version = "43.0.1", default-features = false }
 pallet-beefy = { version = "43.0.0", default-features = false }
 pallet-beefy-mmr = { version = "43.0.0", default-features = false }
 pallet-bounties = { version = "41.0.0", default-features = false }
