@@ -452,7 +452,7 @@ pub mod pallet {
 
 	/// An optional account id of a manager.
 	///
-	/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
