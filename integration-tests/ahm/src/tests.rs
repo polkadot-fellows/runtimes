@@ -1874,3 +1874,111 @@ fn ah_calls_and_origins_work() {
 		assert_eq!(current_stage, AhMigrationStage::DataMigrationOngoing);
 	});
 }
+
+#[tokio::test]
+async fn low_balance_accounts_migration_works() {
+	use frame_system::Account as SystemAccount;
+	use pallet_rc_migrator::accounts::AccountsMigrator;
+
+	type PalletBalances = pallet_balances::Pallet<Polkadot>;
+
+	let mut rc = new_test_rc_ext();
+	let mut ah = new_test_ah_ext();
+
+	let ed = polkadot_runtime::ExistentialDeposit::get();
+	let ah_ed = asset_hub_polkadot_runtime::ExistentialDeposit::get();
+	assert!(ed > ah_ed);
+
+	// user with RC ED
+	let user: AccountId32 = [0; 32].into();
+	// user with AH ED
+	let user1: AccountId32 = [1; 32].into();
+	// user with AH ED and reserve
+	let user2: AccountId32 = [2; 32].into();
+	// user with AH ED and freeze
+	let user3: AccountId32 = [3; 32].into();
+	rc.execute_with(|| {
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user.clone().into(), ed + 1)
+			.expect("failed to set balance for `user`");
+
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user1.clone().into(), ed + 1)
+			.expect("failed to set balance for `user1`");
+		frame_system::Account::<Polkadot>::mutate(&user1, |account| {
+			account.data.free = ah_ed + 1;
+		});
+
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user2.clone().into(), ed + 1)
+			.expect("failed to set balance for `user2`");
+		frame_system::Account::<Polkadot>::mutate(&user2, |account| {
+			account.data.free = ah_ed + 1;
+			account.data.reserved = 1;
+		});
+
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user3.clone().into(), ed + 1)
+			.expect("failed to set balance for `user3`");
+		frame_system::Account::<Polkadot>::mutate(&user3, |account| {
+			account.data.free = ah_ed + 1;
+			account.data.frozen = 1;
+		});
+
+		pallet_rc_migrator::RcMigratedBalance::<Polkadot>::mutate(|tracker| {
+			tracker.kept = ed * 10000;
+			tracker.migrated = 0;
+		});
+	});
+
+	let accounts: Vec<(&str, AccountId32, bool)> = vec![
+		// (case name, account_id, should_be_migrated)
+		("user_with_rc_ed", user, true),
+		("user_with_ah_ed", user1, true),
+		("user_with_ah_ed_and_reserve", user2, false),
+		("user_with_ah_ed_and_freeze", user3, false),
+	];
+
+	for (case, account_id, should_be_migrated) in accounts {
+		let (maybe_withdrawn_account, removed) = rc.execute_with(|| {
+			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
+			log::info!("Case: {:?}", case);
+			log::info!("RC account info: {rc_account:?}");
+
+			let maybe_withdrawn_account = AccountsMigrator::<Polkadot>::withdraw_account(
+				account_id.clone(),
+				rc_account,
+				&mut WeightMeter::new(),
+				0,
+			)
+			.unwrap_or_else(|err| {
+				log::error!("Account withdrawal failed: {err:?}");
+				None
+			});
+
+			(maybe_withdrawn_account, !SystemAccount::<Polkadot>::contains_key(&account_id))
+		});
+
+		let withdrawn_account = match maybe_withdrawn_account {
+			Some(withdrawn_account) => {
+				assert!(should_be_migrated);
+				assert!(removed);
+				withdrawn_account
+			},
+			None => {
+				assert!(!should_be_migrated);
+				assert!(!removed);
+				log::warn!("Account is not withdrawable");
+				continue;
+			},
+		};
+
+		log::info!("Withdrawn account: {withdrawn_account:?}");
+
+		ah.execute_with(|| {
+			use codec::{Decode, Encode};
+
+			let encoded_account = withdrawn_account.encode();
+			let account = Decode::decode(&mut &encoded_account[..]).unwrap();
+			let res = AhMigrator::do_receive_account(account);
+			assert!(res.is_ok());
+			log::info!("Account integration result: {res:?}");
+		});
+	}
+}
