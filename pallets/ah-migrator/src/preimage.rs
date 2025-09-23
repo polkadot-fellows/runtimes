@@ -84,7 +84,10 @@ impl<T: Config> Pallet<T> {
 				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
 				defensive_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
 				let bounded_preimage: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
-					preimage.into_inner().try_into().expect("Asserted");
+					preimage
+						.into_inner()
+						.try_into()
+						.map_err(|_| Error::<T>::PreimageChunkMissing)?;
 				pallet_preimage::PreimageFor::<T>::insert(key, &bounded_preimage);
 				bounded_preimage
 			},
@@ -278,20 +281,20 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 	// The payload should come from the relay chain pre-check method on the same pallet
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
-		for (key, preimage) in pallet_preimage::PreimageFor::<T>::iter() {
+		for ((hash, len), preimage) in pallet_preimage::PreimageFor::<T>::iter() {
 			assert!(!preimage.is_empty(), "Preimage::PreimageFor is empty");
 			assert!(preimage.len() <= 4 * 1024 * 1024_usize, "Preimage::PreimageFor is too big");
 			assert!(
-				preimage.len() == key.1 as usize,
+				preimage.len() == len as usize,
 				"Preimage::PreimageFor is not the correct length"
 			);
 			assert!(
-				<T as frame_system::Config>::Hashing::hash(&preimage) == key.0,
+				<T as frame_system::Config>::Hashing::hash(&preimage) == hash,
 				"Preimage::PreimageFor hash mismatch"
 			);
 			// Assert storage "Preimage::RequestStatusFor::ah_post::consistent"
 			assert!(
-				pallet_preimage::RequestStatusFor::<T>::contains_key(key.0),
+				pallet_preimage::RequestStatusFor::<T>::contains_key(hash),
 				"Preimage::RequestStatusFor is missing"
 			);
 		}
@@ -327,16 +330,6 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			if !rc_pre_payload.contains(&(hash, len)) {
 				log::warn!("Asset Hub migrated Preimage::PreimageFor storage item with key {hash:?} {len:?} was not present on the relay chain");
 			}
-		}
-
-		// Integrity check that all preimages have the correct hash and length
-		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
-		for (hash, len) in pallet_preimage::PreimageFor::<T>::iter_keys() {
-			let preimage =
-				pallet_preimage::PreimageFor::<T>::get((hash, len)).expect("Storage corrupted");
-
-			assert_eq!(preimage.len(), len as usize);
-			assert_eq!(BlakeTwo256::hash(preimage.as_slice()), hash);
 		}
 	}
 }

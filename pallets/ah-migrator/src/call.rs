@@ -24,11 +24,7 @@ impl<T: Config> Pallet<T> {
 	pub fn map_rc_ah_call(
 		rc_bounded_call: &BoundedCallOf<T>,
 	) -> Result<BoundedCallOf<T>, Error<T>> {
-		let encoded_call = if let Ok(e) = Self::fetch_preimage(rc_bounded_call) {
-			e
-		} else {
-			return Err(Error::<T>::PreimageNotFound);
-		};
+		let encoded_call = Self::fetch_preimage(rc_bounded_call)?;
 
 		if let Some(hash) = rc_bounded_call.lookup_hash() {
 			if T::Preimage::is_requested(&hash) {

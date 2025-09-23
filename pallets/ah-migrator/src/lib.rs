@@ -218,7 +218,7 @@ impl MigrationStage {
 	///
 	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
-		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+		matches!(self, MigrationStage::DataMigrationOngoing)
 	}
 }
 

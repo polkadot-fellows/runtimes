@@ -173,7 +173,7 @@ account before, during and after the migration.
 
 #### Tracking Total Issuance Post-Migration
 
-Pre-migration RC checking account tracks total DOT/KSM that "left" RC and is currently on some other
+Pre-migration RC checking account tracks total DOT/KSM that "left" RC or is currently on some other
 system chain. The DOT/KSM in various accounts on AH is also tracked in this same RC checking account.
 
 Post-migration, we want the tracking to move to AH. So AH checking account will track total DOT/KSM
