@@ -392,7 +392,7 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	for LeftIfFinished<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		if Status::is_ongoing() {
+		if Status::is_finished() {
 			Left::get()
 		} else {
 			Right::get()
@@ -400,7 +400,7 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	}
 }
 
-/// A value that is `Left::get()` if the migration is finished, otherwise it is `Right::get()`.
+/// A value that is `Left::get()` if the migration is pending, otherwise it is `Right::get()`.
 pub struct LeftIfPending<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
 impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
 	for LeftIfPending<Status, Left, Right>
