@@ -65,9 +65,9 @@ impl AhMigrationCheck for RecoveryDataMigrated {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		// sanity checks
-		assert!(rc_pre_payload.recoverable.len() > 0);
-		assert!(rc_pre_payload.active_recoveries.len() > 0);
-		assert!(rc_pre_payload.proxy.len() > 0);
+		assert!(!rc_pre_payload.recoverable.is_empty());
+		assert!(!rc_pre_payload.active_recoveries.is_empty());
+		assert!(!rc_pre_payload.proxy.is_empty());
 
 		assert_eq!(
 			pallet_recovery::Recoverable::<AhRuntime>::iter().collect::<Vec<_>>(),

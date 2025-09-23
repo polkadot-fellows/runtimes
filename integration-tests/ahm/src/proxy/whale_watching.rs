@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(feature = "kusama-ahm")]
+use crate::porting_prelude::*;
+
 use crate::proxy::{Permission, ProxyBasicWorks};
 use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;

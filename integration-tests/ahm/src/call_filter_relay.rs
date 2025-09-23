@@ -16,6 +16,9 @@
 
 //! Asset Hub Migration tests.
 
+#[cfg(feature = "kusama-ahm")]
+use crate::porting_prelude::*;
+
 use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};
 use pallet_rc_migrator::*;
 use polkadot_primitives::Id as ParaId;
