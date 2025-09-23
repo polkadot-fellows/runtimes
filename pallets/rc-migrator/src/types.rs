@@ -109,16 +109,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 8)]
 	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
 	#[codec(index = 10)]
-	ReceiveReferendaValues {
-		values: Vec<(
-			// referendum_count
-			Option<u32>,
-			// deciding_count (track_id, count)
-			Vec<(TrackIdOf<T, ()>, u32)>,
-			// track_queue (referendum_id, votes)
-			Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
-		)>,
-	},
+	ReceiveReferendaValues { values: Vec<referenda::ReferendaMessage<TrackIdOf<T, ()>>> },
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 	#[codec(index = 12)]
@@ -144,12 +135,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::PortableTreasuryMessage> },
 	#[codec(index = 22)]
-	ReceiveSchedulerAgendaMessages {
-		messages: Vec<(
-			pallet_scheduler::BlockNumberFor<T>,
-			Vec<Option<scheduler::alias::ScheduledOf<T>>>,
-		)>,
-	},
+	ReceiveSchedulerAgendaMessages { messages: Vec<scheduler::SchedulerAgendaMessageOf<T>> },
 	#[codec(index = 23)]
 	ReceiveDelegatedStakingMessages {
 		messages: Vec<staking::delegated_staking::PortableDelegatedStakingMessage>,
@@ -238,26 +224,31 @@ pub trait RcMigrationCheck {
 	fn post_check(rc_pre_payload: Self::RcPrePayload);
 }
 
+#[cfg(feature = "std")]
+#[allow(clippy::unnecessary_operation)] // Testing only
+#[allow(clippy::no_effect)] // Testing only
+#[allow(clippy::unused_unit)]
 #[impl_trait_for_tuples::impl_for_tuples(24)]
 impl RcMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }
 
 	fn pre_check() -> Self::RcPrePayload {
 		(for_tuples! { #(
-			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
-			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
-				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::pre_check()))
-			}).expect("Always returning Ok")
+			hypothetical_fn(&Tuple::pre_check)
 		),* })
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		(for_tuples! { #(
-			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
-			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
-				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::post_check(rc_pre_payload.Tuple)))
-			}).expect("Always returning Ok")
+			hypothetical_fn(|| Tuple::post_check(rc_pre_payload.Tuple))
 		),* });
+	}
+}
+
+/// Wrapper for the `frame_support::hypothetically` macro since we want to use it in a macro again.
+pub fn hypothetical_fn<R>(f: impl FnOnce() -> R) -> R {
+	frame_support::hypothetically! {
+		f()
 	}
 }
 
@@ -387,7 +378,11 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	for LeftOrRight<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+		if Status::is_ongoing() {
+			Left::get()
+		} else {
+			Right::get()
+		}
 	}
 }
 
@@ -397,19 +392,25 @@ impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::
 	for LeftIfFinished<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		Status::is_ongoing().then(|| Left::get()).unwrap_or_else(|| Right::get())
+		if Status::is_finished() {
+			Left::get()
+		} else {
+			Right::get()
+		}
 	}
 }
 
-/// A value that is `Left::get()` if the migration is finished, otherwise it is `Right::get()`.
+/// A value that is `Left::get()` if the migration is pending, otherwise it is `Right::get()`.
 pub struct LeftIfPending<Status, Left, Right>(PhantomData<(Status, Left, Right)>);
 impl<Status: MigrationStatus, Left: TypedGet, Right: Get<Left::Type>> Get<Left::Type>
 	for LeftIfPending<Status, Left, Right>
 {
 	fn get() -> Left::Type {
-		(!Status::is_ongoing() && !Status::is_finished())
-			.then(|| Left::get())
-			.unwrap_or_else(|| Right::get())
+		if !Status::is_ongoing() && !Status::is_finished() {
+			Left::get()
+		} else {
+			Right::get()
+		}
 	}
 }
 
@@ -420,14 +421,18 @@ impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
 	pallet_fast_unstake::weights::WeightInfo for MaxOnIdleOrInner<Status, Inner>
 {
 	fn on_idle_unstake(b: u32) -> Weight {
-		Status::is_ongoing()
-			.then(|| Weight::MAX)
-			.unwrap_or_else(|| Inner::on_idle_unstake(b))
+		if Status::is_ongoing() {
+			Weight::MAX
+		} else {
+			Inner::on_idle_unstake(b)
+		}
 	}
 	fn on_idle_check(v: u32, b: u32) -> Weight {
-		Status::is_ongoing()
-			.then(|| Weight::MAX)
-			.unwrap_or_else(|| Inner::on_idle_check(v, b))
+		if Status::is_ongoing() {
+			Weight::MAX
+		} else {
+			Inner::on_idle_check(v, b)
+		}
 	}
 	fn register_fast_unstake() -> Weight {
 		Inner::register_fast_unstake()
@@ -445,6 +450,7 @@ impl<Status: MigrationStatus, Inner: pallet_fast_unstake::weights::WeightInfo>
 /// This struct manages collections of XCM messages, automatically creating
 /// new batches when size limits would be exceeded, ensuring that all batches
 /// remain within the maximum allowed XCM size.
+#[derive(frame_support::DefaultNoBound)]
 pub struct XcmBatch<T: Encode> {
 	/// Collection of batches with their sizes and messages
 	sized_batches: VecDeque<(u32, Vec<T>)>,
@@ -456,7 +462,7 @@ impl<T: Encode> XcmBatch<T> {
 	/// # Returns
 	/// A new XcmBatch instance with no messages.
 	pub fn new() -> Self {
-		Self { sized_batches: VecDeque::new() }
+		Self::default()
 	}
 
 	/// Pushes a message to the batch.
@@ -523,9 +529,9 @@ impl<T: Encode> XcmBatch<T> {
 	}
 }
 
-impl<T: Encode> Into<XcmBatch<T>> for XcmBatchAndMeter<T> {
-	fn into(self) -> XcmBatch<T> {
-		self.batch
+impl<T: Encode> From<XcmBatchAndMeter<T>> for XcmBatch<T> {
+	fn from(value: XcmBatchAndMeter<T>) -> Self {
+		value.batch
 	}
 }
 

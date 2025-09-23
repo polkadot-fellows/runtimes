@@ -200,7 +200,7 @@ impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
 		let rc_call = match RcRuntimeCall::decode_all(&mut a) {
 			Ok(rc_call) => rc_call,
 			Err(e) => {
-				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {:?}", e);
+				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {e:?}",);
 				return Err(a)
 			},
 		};
@@ -215,8 +215,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Bounties call to AH System call: {:?}",
-							err
+							"Failed to decode RC Bounties call to AH System call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::System(call))
@@ -225,8 +224,7 @@ impl RcToAhCall {
 				let origin = RcToAhPalletsOrigin::try_convert(*as_origin).map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to decode RC dispatch_as origin: {:?}",
-						err
+						"Failed to decode RC dispatch_as origin: {err:?}",
 					);
 				})?;
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::dispatch_as {
@@ -236,24 +234,15 @@ impl RcToAhCall {
 			},
 			RcRuntimeCall::Utility(RcUtilityCall::batch { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Utility(RcUtilityCall::batch_all { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch_all {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Utility(RcUtilityCall::force_batch { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::force_batch {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Treasury(RcTreasuryCall::spend {
 				asset_kind,
@@ -275,8 +264,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode inner RC call into inner AH call: {:?}",
-							err
+							"Failed to decode inner RC call into inner AH call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Treasury(call))
@@ -286,8 +274,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Referenda call to AH Referenda call: {:?}",
-							err
+							"Failed to decode RC Referenda call to AH Referenda call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Referenda(call))
@@ -297,8 +284,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Bounties call to AH Bounties call: {:?}",
-							err
+							"Failed to decode RC Bounties call to AH Bounties call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Bounties(call))
@@ -308,8 +294,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC ChildBounties call to AH ChildBounties call: {:?}",
-							err
+							"Failed to decode RC ChildBounties call to AH ChildBounties call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::ChildBounties(call))

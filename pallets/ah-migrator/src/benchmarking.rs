@@ -80,7 +80,7 @@ pub mod benchmarks {
 				&creator,
 				deposit + deposit,
 			);
-			let _ = <<T as pallet_multisig::Config>::Currency>::reserve(&creator, deposit).unwrap();
+			<<T as pallet_multisig::Config>::Currency>::reserve(&creator, deposit).unwrap();
 
 			RcMultisig { creator, deposit }
 		};
@@ -256,7 +256,7 @@ pub mod benchmarks {
 				&creator,
 				deposit + deposit,
 			);
-			let _ = <T as pallet_proxy::Config>::Currency::reserve(&creator, deposit).unwrap();
+			<T as pallet_proxy::Config>::Currency::reserve(&creator, deposit).unwrap();
 			RcProxyAnnouncement { depositor: creator, deposit }
 		};
 
@@ -306,7 +306,7 @@ pub mod benchmarks {
 		let create_nom_sub_pool = |n: u8| -> RcNomPoolsMessage<T> {
 			let mut with_era = BoundedBTreeMap::<_, _, _>::new();
 			for i in 0..TotalUnbondingPools::<T>::get() {
-				let key = i.into();
+				let key = i;
 				with_era
 					.try_insert(key, UnbondPool { points: n.into(), balance: n.into() })
 					.unwrap();
@@ -347,10 +347,10 @@ pub mod benchmarks {
 
 		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
 		for (i, track) in tracks.enumerate() {
-			deciding_count.push((track.id.clone(), (i as u32).into()));
+			deciding_count.push((track.id, i as u32));
 
 			track_queue.push((
-				track.id.clone(),
+				track.id,
 				vec![
 					(i as u32, (i as u32).into());
 					<T as pallet_referenda::Config>::MaxQueued::get() as usize
@@ -359,7 +359,14 @@ pub mod benchmarks {
 		}
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, vec![(Some(referendum_count), deciding_count, track_queue)]);
+		_(
+			RawOrigin::Root,
+			vec![ReferendaMessage {
+				referendum_count: Some(referendum_count),
+				deciding_count,
+				track_queue,
+			}],
+		);
 
 		assert_last_event::<T>(
 			Event::BatchProcessed {
@@ -455,7 +462,8 @@ pub mod benchmarks {
 			origin: Default::default(),
 		};
 
-		let agendas = vec![(m.into(), vec![Some(scheduled)])];
+		let agendas =
+			vec![SchedulerAgendaMessage { block: m.into(), agenda: vec![Some(scheduled)] }];
 
 		#[extrinsic_call]
 		receive_scheduler_agenda_messages(RawOrigin::Root, agendas);
@@ -526,7 +534,7 @@ pub mod benchmarks {
 	#[benchmark]
 	fn receive_indices(n: Linear<1, 255>) {
 		let create_indices_index = |n: u8| -> RcIndicesIndexOf<T> {
-			return RcIndicesIndex {
+			RcIndicesIndex {
 				index: n.into(),
 				who: [n; 32].into(),
 				deposit: n.into(),
@@ -549,6 +557,7 @@ pub mod benchmarks {
 	#[benchmark]
 	fn receive_conviction_voting_messages(n: Linear<1, 255>) {
 		let create_conviction_vote = |n: u8| -> RcConvictionVotingMessageOf<T> {
+			#[allow(clippy::iter_skip_next)]
 			let class = <T as pallet_conviction_voting::Config>::Polls::classes()
 				.iter()
 				.cycle()
@@ -659,10 +668,10 @@ pub mod benchmarks {
 		let create_crowdloan = |n: u8| -> RcCrowdloanMessageOf<T> {
 			RcCrowdloanMessage::CrowdloanContribution {
 				withdraw_block: n.into(),
-				contributor: [n.into(); 32].into(),
+				contributor: [n; 32].into(),
 				para_id: (n as u32).into(),
 				amount: n.into(),
-				crowdloan_account: [n.into(); 32].into(),
+				crowdloan_account: [n; 32].into(),
 			}
 		};
 
@@ -683,7 +692,7 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_referenda_metadata(n: Linear<1, 255>) {
-		let messages = (0..n).map(|i| (i.into(), H256::from([i as u8; 32]))).collect::<Vec<_>>();
+		let messages = (0..n).map(|i| (i, H256::from([i as u8; 32]))).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -703,13 +712,13 @@ pub mod benchmarks {
 		let create_treasury = |n: u8| -> PortableTreasuryMessage {
 			PortableTreasuryMessage::Spends {
 				id: n.into(),
-				status: PortableSpendStatus {
+				status: Box::new(PortableSpendStatus {
 					asset_kind: VersionedLocatableAsset::V4 {
 						location: Location::new(0, [xcm::v4::Junction::Parachain(1000)]),
 						asset_id: Location::new(
 							0,
 							[
-								xcm::v4::Junction::PalletInstance(n.into()),
+								xcm::v4::Junction::PalletInstance(n),
 								xcm::v4::Junction::GeneralIndex(n.into()),
 							],
 						)
@@ -718,12 +727,12 @@ pub mod benchmarks {
 					amount: n.into(),
 					beneficiary: VersionedLocation::V4(Location::new(
 						0,
-						[xcm::v4::Junction::AccountId32 { network: None, id: [n; 32].into() }],
+						[xcm::v4::Junction::AccountId32 { network: None, id: [n; 32] }],
 					)),
 					valid_from: n.into(),
 					expire_at: n.into(),
 					status: PortablePaymentState::Pending,
-				},
+				}),
 			}
 		};
 
@@ -780,8 +789,7 @@ pub mod benchmarks {
 				&depositor,
 				deposit + deposit,
 			);
-			let _ =
-				<<T as pallet_preimage::Config>::Currency>::reserve(&depositor, deposit).unwrap();
+			<<T as pallet_preimage::Config>::Currency>::reserve(&depositor, deposit).unwrap();
 
 			RcPreimageLegacyStatusOf::<T> { hash: [n; 32].into(), depositor, deposit }
 		};
@@ -855,7 +863,7 @@ pub mod benchmarks {
 		let preimage_rc_part = preimage[(preimage_len - CHUNK_SIZE) as usize..].to_vec();
 		let preimage_ah_part = preimage[..(preimage_len - CHUNK_SIZE) as usize].to_vec();
 
-		if preimage_ah_part.len() > 0 {
+		if !preimage_ah_part.is_empty() {
 			let preimage_ah_part: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
 				preimage_ah_part.try_into().unwrap();
 			PreimageFor::<T>::insert((hash, preimage_len), preimage_ah_part);

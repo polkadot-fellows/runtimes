@@ -1284,9 +1284,9 @@ parameter_types! {
 )]
 pub struct TransparentProxyType(pub ProxyType);
 
-impl Into<ProxyType> for TransparentProxyType {
-	fn into(self) -> ProxyType {
-		self.0
+impl From<TransparentProxyType> for ProxyType {
+	fn from(transparent_proxy_type: TransparentProxyType) -> Self {
+		transparent_proxy_type.0
 	}
 }
 
@@ -1842,7 +1842,7 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 		let message = SessionReportToXcm::convert(session_report);
 		let dest = AssetHubLocation::get();
 		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {:?}", err);
+			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {err:?}");
 		});
 	}
 
@@ -1869,7 +1869,7 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
 		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
 			|err| {
-				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {err:?}");
 			},
 		);
 	}

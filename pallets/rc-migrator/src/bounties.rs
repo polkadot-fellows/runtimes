@@ -92,7 +92,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_bounties_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_bounties_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -160,7 +160,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 								"Migration BountyDescription for bounty {:?}",
 								&key
 							);
-							pallet_bounties::BountyDescriptions::<T>::remove(&key);
+							pallet_bounties::BountyDescriptions::<T>::remove(key);
 							messages.push(RcBountiesMessage::BountyDescriptions((
 								key,
 								value.into_inner(),
@@ -179,7 +179,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					match iter.next() {
 						Some((key, value)) => {
 							log::debug!(target: LOG_TARGET, "Migration Bounty {:?}", &key);
-							alias::Bounties::<T>::remove(&key);
+							alias::Bounties::<T>::remove(key);
 							messages.push(RcBountiesMessage::Bounties((key, value)));
 							BountiesStage::Bounties { last_key: Some(key) }
 						},

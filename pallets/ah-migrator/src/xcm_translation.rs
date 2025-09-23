@@ -90,7 +90,7 @@ impl<T: Config> Pallet<T> {
 							return Ok(location);
 						},
 					};
-					let translated_junction = junction.clone().with_account_id32(translated_id);
+					let translated_junction = (*junction).with_account_id32(translated_id);
 					let translated_location = Location::new(0, translated_junction);
 
 					// Convert back to original version
@@ -102,8 +102,7 @@ impl<T: Config> Pallet<T> {
 						Err(_) => {
 							log::error!(
 								target: LOG_TARGET,
-								"Failed to convert back to original XCM version {}, returning original location",
-								original_version
+								"Failed to convert back to original XCM version {original_version}, returning original location",
 							);
 							Ok(location)
 						},

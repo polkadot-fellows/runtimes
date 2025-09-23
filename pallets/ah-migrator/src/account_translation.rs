@@ -41,7 +41,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Translate the account if its a parachain sovereign account.
 	pub fn maybe_sovereign_translate(account: &T::AccountId) -> Option<T::AccountId> {
-		let Some(new) = crate::sovereign_account_translation::SOV_TRANSLATIONS
+		let new = crate::sovereign_account_translation::SOV_TRANSLATIONS
 			.binary_search_by_key(account, |((rc_acc, _), _)| rc_acc.clone())
 			.map(|i| {
 				crate::sovereign_account_translation::SOV_TRANSLATIONS
@@ -51,10 +51,7 @@ impl<T: Config> Pallet<T> {
 			})
 			.ok()
 			.flatten()
-			.cloned()
-		else {
-			return None;
-		};
+			.cloned()?;
 
 		Self::deposit_event(crate::Event::AccountTranslatedParachainSovereign {
 			from: account.clone(),
@@ -66,7 +63,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Translate the account if its derived from a parachain sovereign account.
 	pub fn maybe_derived_translate(account: &T::AccountId) -> Option<T::AccountId> {
-		let Some((new, idx)) = crate::sovereign_account_translation::DERIVED_TRANSLATIONS
+		let (new, idx) = crate::sovereign_account_translation::DERIVED_TRANSLATIONS
 			.binary_search_by_key(account, |((rc_acc, _), _, _)| rc_acc.clone())
 			.map(|i| {
 				crate::sovereign_account_translation::DERIVED_TRANSLATIONS
@@ -75,10 +72,7 @@ impl<T: Config> Pallet<T> {
 					.defensive()
 			})
 			.ok()
-			.flatten()
-		else {
-			return None;
-		};
+			.flatten()?;
 
 		Self::deposit_event(crate::Event::AccountTranslatedParachainSovereignDerived {
 			from: account.clone(),

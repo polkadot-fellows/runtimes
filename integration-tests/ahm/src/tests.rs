@@ -41,12 +41,12 @@
 //! SNAP_RC_POST="rc-post.snap" \
 //! SNAP_AH_POST="ah-post.snap" \
 //! cargo test \
-//! 	-p polkadot-integration-tests-ahm \
-//! 	--features try-runtime \
-//! 	--features {{runtime}}-ahm \
-//! 	--release \
-//! 	post_migration_checks_only \
-//! 	-- --nocapture --ignored
+//!     -p polkadot-integration-tests-ahm \
+//!     --features try-runtime \
+//!     --features {{runtime}}-ahm \
+//!     --release \
+//!     post_migration_checks_only \
+//!     -- --nocapture --ignored
 //! ```
 
 use crate::porting_prelude::*;
@@ -58,13 +58,11 @@ use super::{
 	mock::*,
 	multisig_still_work::MultisigStillWork,
 	multisig_test::MultisigsAccountIdStaysTheSame,
-	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+	proxy::ProxyBasicWorks,
 };
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{
-	InboundDownwardMessage, Junction, Location, ParaId, UpwardMessageSender,
-};
+use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, UpwardMessageSender};
 use frame_support::{
 	assert_noop, hypothetically, hypothetically_ok,
 	traits::{
@@ -80,26 +78,27 @@ use pallet_ah_migrator::{
 	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
 use pallet_rc_migrator::{
-	child_bounties::ChildBountiesMigratedCorrectly,
-	staking::StakingMigratedCorrectly,
-	types::{RcMigrationCheck, ToPolkadotSs58},
+	staking::StakingMigratedCorrectly, types::RcMigrationCheck,
 	MigrationEndBlock as RcMigrationEndBlock, MigrationStage as RcMigrationStage,
 	MigrationStartBlock as RcMigrationStartBlock, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{RcMigrator, Runtime as Polkadot};
-use polkadot_runtime_common::slots as pallet_slots;
 use rand::Rng;
 use runtime_parachains::dmp::DownwardMessageQueues;
-use sp_core::{crypto::Ss58Codec, ByteArray, Get};
+use sp_core::crypto::Ss58Codec;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Dispatchable, AccountId32, BuildStorage, DispatchError, TokenError};
-use std::{
-	collections::{BTreeMap, BTreeSet, VecDeque},
-	str::FromStr,
-};
+use std::{collections::VecDeque, str::FromStr};
 use xcm::latest::*;
-use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
+use xcm_emulator::{assert_ok, WeightMeter};
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
+use ::{
+	cumuluse_primitives_core::ParaId,
+	sp_core::ByteArray,
+	std::collections::{BTreeMap, BTreeSet},
+	xcm_emulator::ConvertLocation,
+};
 
 type RcChecks = (
 	SanityChecks,
@@ -136,9 +135,9 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
-	ProxyWhaleWatching,
+	crate::proxy::ProxyWhaleWatching,
 	StakingMigratedCorrectly<Polkadot>,
-	ChildBountiesMigratedCorrectly<Polkadot>,
+	pallet_rc_migrator::child_bounties::ChildBountiesMigratedCorrectly<Polkadot>,
 );
 
 // Checks that are specific to Kusama.
@@ -192,9 +191,9 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
-	ProxyWhaleWatching,
+	crate::proxy::ProxyWhaleWatching,
 	StakingMigratedCorrectly<AssetHub>,
-	ChildBountiesMigratedCorrectly<AssetHub>,
+	pallet_rc_migrator::child_bounties::ChildBountiesMigratedCorrectly<AssetHub>,
 );
 
 #[cfg(feature = "kusama-ahm")]
@@ -265,6 +264,8 @@ fn run_check<R>(f: impl FnOnce() -> R, ext: &mut TestExternalities) -> Option<R>
 #[cfg(feature = "polkadot-ahm")]
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
+	use polkadot_runtime_common::slots as pallet_slots;
+
 	let mut rc = remote_ext_test_setup(Chain::Relay).await.unwrap();
 	let f = |now: BlockNumberFor<Polkadot>, num_leases: u32| {
 		frame_system::Pallet::<Polkadot>::set_block_number(now);
@@ -364,6 +365,8 @@ async fn find_translatable_accounts() {
 	write_account_translation_map(&sov_translations, &derived_translations);
 }
 
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
+#[allow(clippy::type_complexity)]
 fn account_translation_map(
 	rc_accounts: &BTreeSet<&AccountId32>,
 ) -> (Vec<(u32, (AccountId32, AccountId32))>, Vec<(ParaId, AccountId32, u16, AccountId32)>) {
@@ -379,7 +382,7 @@ fn account_translation_map(
 		// The Parachain sovereign account ID on the relay chain
 		let rc_para_sov =
 			xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(
-				&Location::new(0, Junction::Parachain(para_id.into())),
+				&Location::new(0, Junction::Parachain(para_id)),
 			)
 			.unwrap();
 
@@ -443,19 +446,20 @@ fn account_translation_map(
 	(sov_translations, derived_translations)
 }
 
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 fn write_account_translation_map(
-	sov_translations: &Vec<(u32, (AccountId32, AccountId32))>,
-	derived_translations: &Vec<(ParaId, AccountId32, u16, AccountId32)>,
+	sov_translations: &[(u32, (AccountId32, AccountId32))],
+	derived_translations: &[(ParaId, AccountId32, u16, AccountId32)],
 ) {
 	let mut rust = String::new();
 
 	rust.push_str(
 		"/// List of RC para to AH sibl sovereign account translation sorted by RC account.
-pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'static str))] = &[\n",
+pub const SOV_TRANSLATIONS: &[((AccountId32, &str), (AccountId32, &str))] = &[\n",
 	);
 
 	for (para_id, (rc_acc, ah_acc)) in sov_translations.iter() {
-		rust.push_str(&format!("\t// para {}\n", para_id));
+		rust.push_str(&format!("\t// para {para_id}\n"));
 		rust.push_str(&format!(
 			"\t(({}, \"{}\"), ({}, \"{}\")),\n",
 			format_account_id(rc_acc),
@@ -469,11 +473,11 @@ pub const SOV_TRANSLATIONS: &[((AccountId32, &'static str), (AccountId32, &'stat
 
 	rust.push_str(
 		"\n\n/// List of RC para to AH sibl derived account translation sorted by RC account.
-pub const DERIVED_TRANSLATIONS: &[((AccountId32, &'static str), u16, (AccountId32, &'static str))] = &[\n",
+pub const DERIVED_TRANSLATIONS: &[((AccountId32, &str), u16, (AccountId32, &str))] = &[\n",
 	);
 
 	for (para_id, rc_acc, derivation_index, ah_acc) in derived_translations.iter() {
-		rust.push_str(&format!("\t// para {} (derivation index {})\n", para_id, derivation_index));
+		rust.push_str(&format!("\t// para {para_id} (derivation index {derivation_index})\n"));
 		rust.push_str(&format!(
 			"\t(({}, \"{}\"), {}, ({}, \"{}\")),\n",
 			format_account_id(rc_acc),
@@ -516,6 +520,7 @@ fn translation_integrity_check() {
 	}
 }
 
+#[cfg(all(feature = "polkadot-ahm", feature = "kusama-ahm"))]
 fn format_account_id(acc: &AccountId32) -> String {
 	format!("AccountId32::new(hex!(\"{}\"))", hex::encode(acc.as_slice()))
 }
@@ -1155,9 +1160,17 @@ fn test_control_flow() {
 		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
 
 		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
-		batch.push((None, vec![], vec![]));
+		batch.push(pallet_rc_migrator::referenda::ReferendaMessage {
+			referendum_count: None,
+			deciding_count: vec![],
+			track_queue: vec![],
+		});
 		// adding a second item; this will cause the dispatchable on AH to fail.
-		batch.push((None, vec![], vec![]));
+		batch.push(pallet_rc_migrator::referenda::ReferendaMessage {
+			referendum_count: None,
+			deciding_count: vec![],
+			track_queue: vec![],
+		});
 
 		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(batch, |batch| {
 			pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
@@ -1235,7 +1248,11 @@ fn test_control_flow() {
 		frame_system::Pallet::<RcRuntime>::set_block_number(rc_now);
 
 		let mut batch = pallet_rc_migrator::types::XcmBatchAndMeter::new_from_config::<RcRuntime>();
-		batch.push((None, vec![], vec![]));
+		batch.push(pallet_rc_migrator::referenda::ReferendaMessage {
+			referendum_count: None,
+			deciding_count: vec![],
+			track_queue: vec![],
+		});
 
 		pallet_rc_migrator::Pallet::<RcRuntime>::send_chunked_xcm_and_track(batch, |batch| {
 			pallet_rc_migrator::types::AhMigratorCall::<RcRuntime>::ReceiveReferendaValues {
@@ -1389,12 +1406,11 @@ async fn post_migration_checks_only() {
 
 #[test]
 fn schedule_migration() {
-	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
 	new_test_rc_ext().execute_with(|| {
 		let now = u16::MAX as u32 * 2;
 		frame_system::Pallet::<RcRuntime>::set_block_number(now);
 		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
-		let rng = rand::thread_rng().gen_range(1..=u16::MAX) as u32;
+		let rng = rand::rng().random_range(1..=u16::MAX) as u32;
 
 		// Scheduling two sessions into the future works
 		hypothetically_ok!(pallet_rc_migrator::Pallet::<RcRuntime>::schedule_migration(
@@ -1447,12 +1463,11 @@ fn schedule_migration() {
 
 #[test]
 fn schedule_migration_staking_pause_works() {
-	use ::core::result::Result; // Circumvent a bug in the hypothetically macro
 	new_test_rc_ext().execute_with(|| {
 		let now = u16::MAX as u32 * 2;
 		frame_system::Pallet::<RcRuntime>::set_block_number(now);
 		let session_duration = polkadot_runtime::EpochDuration::get() as u32;
-		let rng = rand::thread_rng().gen_range(1..=10) as u32;
+		let rng = rand::rng().random_range(1..=10) as u32;
 
 		// Scheduling two sessions into the future works
 		hypothetically!({
@@ -1470,12 +1485,10 @@ fn schedule_migration_staking_pause_works() {
 			}
 
 			assert!(frame_system::Pallet::<RcRuntime>::events().iter().any(|record| {
-				match &record.event {
-					RcRuntimeEvent::RcMigrator(
-						pallet_rc_migrator::Event::StakingElectionsPaused,
-					) => true,
-					_ => false,
-				}
+				matches!(
+					&record.event,
+					RcRuntimeEvent::RcMigrator(pallet_rc_migrator::Event::StakingElectionsPaused,)
+				)
 			}));
 		});
 
@@ -1620,7 +1633,7 @@ fn bifrost_addresses_are_in_translation_map() {
 #[cfg(feature = "polkadot-ahm")]
 #[test]
 fn map_known_governance_calls() {
-	use codec::{Decode, Encode};
+	use codec::Decode;
 	use frame_support::traits::{Bounded, BoundedInline, StorePreimage};
 	use hex_literal::hex;
 
@@ -1632,7 +1645,7 @@ fn map_known_governance_calls() {
 
 	new_test_ah_ext().execute_with(|| {
 		for (referendum_id, rc_call) in calls {
-			log::info!("mapping referendum: {:?}", referendum_id);
+			log::info!("mapping referendum: {referendum_id:?}");
 
 			let rc_call = match BoundedInline::try_from(rc_call) {
 				Ok(bounded) => Bounded::Inline(bounded),
@@ -1655,9 +1668,9 @@ fn map_known_governance_calls() {
 			let ah_call_decoded = AhRuntimeCall::decode(&mut ah_call_encoded.as_slice())
 				.expect("failed to decode call");
 
-			log::info!("mapped call: {:?}", ah_call);
+			log::info!("mapped call: {ah_call:?}");
 			log::debug!("encoded call: 0x{}", hex::encode(ah_call_encoded.as_slice()));
-			log::debug!("decoded call: {:?}", ah_call_decoded);
+			log::debug!("decoded call: {ah_call_decoded:?}");
 		}
 	});
 }
@@ -1860,4 +1873,112 @@ fn ah_calls_and_origins_work() {
 		let current_stage = AhMigrationStageStorage::<AssetHub>::get();
 		assert_eq!(current_stage, AhMigrationStage::DataMigrationOngoing);
 	});
+}
+
+#[tokio::test]
+async fn low_balance_accounts_migration_works() {
+	use frame_system::Account as SystemAccount;
+	use pallet_rc_migrator::accounts::AccountsMigrator;
+
+	type PalletBalances = pallet_balances::Pallet<Polkadot>;
+
+	let mut rc = new_test_rc_ext();
+	let mut ah = new_test_ah_ext();
+
+	let ed = polkadot_runtime::ExistentialDeposit::get();
+	let ah_ed = asset_hub_polkadot_runtime::ExistentialDeposit::get();
+	assert!(ed > ah_ed);
+
+	// user with RC ED
+	let user: AccountId32 = [0; 32].into();
+	// user with AH ED
+	let user1: AccountId32 = [1; 32].into();
+	// user with AH ED and reserve
+	let user2: AccountId32 = [2; 32].into();
+	// user with AH ED and freeze
+	let user3: AccountId32 = [3; 32].into();
+	rc.execute_with(|| {
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user.clone().into(), ed + 1)
+			.expect("failed to set balance for `user`");
+
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user1.clone().into(), ed + 1)
+			.expect("failed to set balance for `user1`");
+		frame_system::Account::<Polkadot>::mutate(&user1, |account| {
+			account.data.free = ah_ed + 1;
+		});
+
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user2.clone().into(), ed + 1)
+			.expect("failed to set balance for `user2`");
+		frame_system::Account::<Polkadot>::mutate(&user2, |account| {
+			account.data.free = ah_ed + 1;
+			account.data.reserved = 1;
+		});
+
+		PalletBalances::force_set_balance(RcRuntimeOrigin::root(), user3.clone().into(), ed + 1)
+			.expect("failed to set balance for `user3`");
+		frame_system::Account::<Polkadot>::mutate(&user3, |account| {
+			account.data.free = ah_ed + 1;
+			account.data.frozen = 1;
+		});
+
+		pallet_rc_migrator::RcMigratedBalance::<Polkadot>::mutate(|tracker| {
+			tracker.kept = ed * 10000;
+			tracker.migrated = 0;
+		});
+	});
+
+	let accounts: Vec<(&str, AccountId32, bool)> = vec![
+		// (case name, account_id, should_be_migrated)
+		("user_with_rc_ed", user, true),
+		("user_with_ah_ed", user1, true),
+		("user_with_ah_ed_and_reserve", user2, false),
+		("user_with_ah_ed_and_freeze", user3, false),
+	];
+
+	for (case, account_id, should_be_migrated) in accounts {
+		let (maybe_withdrawn_account, removed) = rc.execute_with(|| {
+			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
+			log::info!("Case: {:?}", case);
+			log::info!("RC account info: {rc_account:?}");
+
+			let maybe_withdrawn_account = AccountsMigrator::<Polkadot>::withdraw_account(
+				account_id.clone(),
+				rc_account,
+				&mut WeightMeter::new(),
+				0,
+			)
+			.unwrap_or_else(|err| {
+				log::error!("Account withdrawal failed: {err:?}");
+				None
+			});
+
+			(maybe_withdrawn_account, !SystemAccount::<Polkadot>::contains_key(&account_id))
+		});
+
+		let withdrawn_account = match maybe_withdrawn_account {
+			Some(withdrawn_account) => {
+				assert!(should_be_migrated);
+				assert!(removed);
+				withdrawn_account
+			},
+			None => {
+				assert!(!should_be_migrated);
+				assert!(!removed);
+				log::warn!("Account is not withdrawable");
+				continue;
+			},
+		};
+
+		log::info!("Withdrawn account: {withdrawn_account:?}");
+
+		ah.execute_with(|| {
+			use codec::{Decode, Encode};
+
+			let encoded_account = withdrawn_account.encode();
+			let account = Decode::decode(&mut &encoded_account[..]).unwrap();
+			let res = AhMigrator::do_receive_account(account);
+			assert!(res.is_ok());
+			log::info!("Account integration result: {res:?}");
+		});
+	}
 }

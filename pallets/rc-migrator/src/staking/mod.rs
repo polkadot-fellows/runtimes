@@ -21,8 +21,8 @@ pub mod delegated_staking;
 pub mod message;
 pub mod nom_pools;
 pub mod nom_pools_alias;
-pub mod staking;
+pub mod staking_impl;
 
 #[cfg(feature = "std")]
 pub use checks::*;
-pub use staking::*;
+pub use staking_impl::*;
