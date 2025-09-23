@@ -557,8 +557,12 @@ pub mod benchmarks {
 	#[benchmark]
 	fn receive_conviction_voting_messages(n: Linear<1, 255>) {
 		let create_conviction_vote = |n: u8| -> RcConvictionVotingMessageOf<T> {
+			#[allow(clippy::iter_skip_next)]
 			let class = <T as pallet_conviction_voting::Config>::Polls::classes()
-				.get(n as usize)
+				.iter()
+				.cycle()
+				.skip(n as usize)
+				.next()
 				.unwrap()
 				.clone();
 			let votes = BoundedVec::<(_, AccountVote<_>), _>::try_from(
