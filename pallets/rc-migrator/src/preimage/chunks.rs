@@ -220,7 +220,9 @@ impl<T: Config> PreimageChunkMigrator<T> {
 			// loop, but it cannot be exploited since the pallet does not allow to add more items to
 			// the `StatusFor` map anymore.
 			.find(|(hash, len)| {
-				if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
+				if pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
+					true
+				} else {
 					log::info!(
 						"Ignoring old preimage that is not in the request status map: {hash:?}"
 					);
@@ -229,8 +231,6 @@ impl<T: Config> PreimageChunkMigrator<T> {
 						pallet_preimage::StatusFor::<T>::contains_key(hash),
 						"Preimage must be tracked somewhere"
 					);
-					true
-				} else {
 					false
 				}
 			});
