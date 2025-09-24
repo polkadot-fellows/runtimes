@@ -22,7 +22,9 @@ use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
-use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize, QueueFootprintQuery};
+use frame_support::traits::{
+	EnqueueMessage, OnFinalize, OnInitialize, QueueFootprintQuery
+};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{
 	MigrationStage as RcMigrationStage, MigrationStageOf as RcMigrationStageOf,
@@ -30,7 +32,8 @@ use pallet_rc_migrator::{
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{
-	Block as PolkadotBlock, RcMigrator, Runtime as Polkadot, RuntimeEvent as RcRuntimeEvent,
+	Block as PolkadotBlock, RcMigrator, Runtime as Polkadot,
+	RuntimeEvent as RcRuntimeEvent,
 };
 use remote_externalities::{Builder, Mode, OfflineConfig};
 use runtime_parachains::{
@@ -141,10 +144,81 @@ pub fn next_block_rc() {
 	log::debug!(target: LOG_RC, "Executing RC block: {now:?}");
 	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
-	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
-	let weight = <RcMigrator as OnInitialize<_>>::on_initialize(now).saturating_add(weight);
-	<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
-	<RcMigrator as OnFinalize<_>>::on_finalize(now);
+
+	// TODO: import form polkadot-runtime or kusama runtimes? pallets are same, but configs are different.
+	type AlmostAllRcPallets = (
+		kusama_runtime::System,
+		// kusama_runtime::Babe,
+		// kusama_runtime::Timestamp,
+		kusama_runtime::Indices,
+		kusama_runtime::Balances,
+		kusama_runtime::TransactionPayment,
+		kusama_runtime::Authorship,
+		kusama_runtime::Staking,
+		kusama_runtime::Offences,
+		kusama_runtime::Historical,
+		kusama_runtime::Session,
+		kusama_runtime::Grandpa,
+		kusama_runtime::AuthorityDiscovery,
+		kusama_runtime::Treasury,
+		kusama_runtime::ConvictionVoting,
+		kusama_runtime::Referenda,
+		kusama_runtime::FellowshipCollective,
+		kusama_runtime::FellowshipReferenda,
+		kusama_runtime::Origins,
+		kusama_runtime::Whitelist,
+		kusama_runtime::Parameters,
+		kusama_runtime::Claims,
+		kusama_runtime::Utility,
+		kusama_runtime::Society,
+		kusama_runtime::Recovery,
+		kusama_runtime::Vesting,
+		kusama_runtime::Scheduler,
+		kusama_runtime::Proxy,
+		kusama_runtime::Multisig,
+		kusama_runtime::Preimage,
+		kusama_runtime::Bounties,
+		kusama_runtime::ChildBounties,
+		kusama_runtime::ElectionProviderMultiPhase,
+		kusama_runtime::VoterList,
+		kusama_runtime::NominationPools,
+		kusama_runtime::FastUnstake,
+		kusama_runtime::DelegatedStaking,
+		kusama_runtime::StakingAhClient,
+		kusama_runtime::ParachainsOrigin,
+		kusama_runtime::Configuration,
+		kusama_runtime::ParasShared,
+		kusama_runtime::ParaInclusion,
+		// kusama_runtime::ParaInherent,
+		kusama_runtime::ParaScheduler,
+		kusama_runtime::Paras,
+		kusama_runtime::Initializer,
+		kusama_runtime::Dmp,
+		kusama_runtime::Hrmp,
+		kusama_runtime::ParaSessionInfo,
+		kusama_runtime::ParasDisputes,
+		kusama_runtime::ParasSlashing,
+		kusama_runtime::OnDemandAssignmentProvider,
+		kusama_runtime::CoretimeAssignmentProvider,
+		kusama_runtime::Registrar,
+		kusama_runtime::Slots,
+		kusama_runtime::Auctions,
+		kusama_runtime::Crowdloan,
+		kusama_runtime::Coretime,
+		kusama_runtime::XcmPallet,
+		kusama_runtime::MessageQueue,
+		kusama_runtime::AssetRate,
+		kusama_runtime::Beefy,
+		kusama_runtime::Mmr,
+		kusama_runtime::BeefyMmrLeaf,
+		kusama_runtime::RcMigrator,
+	);
+
+	// Run on_initialize for all pallets
+	let weight = <AlmostAllRcPallets as OnInitialize<_>>::on_initialize(now);
+
+	// Run on_finalize for all pallets
+	<AlmostAllRcPallets as OnFinalize<_>>::on_finalize(now);
 
 	let events = frame_system::Pallet::<Polkadot>::events();
 	assert!(
@@ -177,11 +251,78 @@ pub fn next_block_ah() {
 	let now = past + 1;
 	log::debug!(target: LOG_AH, "Executing AH block: {now:?}");
 	frame_system::Pallet::<AssetHub>::set_block_number(now);
+
+	// TODO: idea; why are we flushing this? instead, should we not check for events like `Minted` etc and fail migration if they happen (in rc)?
 	frame_system::Pallet::<AssetHub>::reset_events();
-	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
-	let weight = <AhMigrator as OnInitialize<_>>::on_initialize(now).saturating_add(weight);
-	<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
-	<AhMigrator as OnFinalize<_>>::on_finalize(now);
+
+	// all pallets minus the ones that annoy us a bit with check.
+	type AlmostAllAhPallets = (
+		asset_hub_kusama_runtime::System,
+		// asset_hub_kusama_runtime::ParachainSystem,
+		// asset_hub_kusama_runtime::Timestamp,
+		// asset_hub_kusama_runtime::ParachainInfo,
+		asset_hub_kusama_runtime::MultiBlockMigrations,
+		asset_hub_kusama_runtime::Preimage,
+		asset_hub_kusama_runtime::Scheduler,
+		asset_hub_kusama_runtime::Parameters,
+		asset_hub_kusama_runtime::Balances,
+		asset_hub_kusama_runtime::TransactionPayment,
+		asset_hub_kusama_runtime::AssetTxPayment,
+		asset_hub_kusama_runtime::Vesting,
+		asset_hub_kusama_runtime::Claims,
+		asset_hub_kusama_runtime::Authorship,
+		asset_hub_kusama_runtime::CollatorSelection,
+		asset_hub_kusama_runtime::Session,
+		asset_hub_kusama_runtime::Aura,
+		asset_hub_kusama_runtime::AuraExt,
+		asset_hub_kusama_runtime::XcmpQueue,
+		asset_hub_kusama_runtime::PolkadotXcm,
+		asset_hub_kusama_runtime::CumulusXcm,
+		asset_hub_kusama_runtime::ToPolkadotXcmRouter,
+		asset_hub_kusama_runtime::MessageQueue,
+		asset_hub_kusama_runtime::Utility,
+		asset_hub_kusama_runtime::Multisig,
+		asset_hub_kusama_runtime::Proxy,
+		asset_hub_kusama_runtime::RemoteProxyRelayChain,
+		asset_hub_kusama_runtime::Indices,
+		asset_hub_kusama_runtime::Assets,
+		asset_hub_kusama_runtime::Uniques,
+		asset_hub_kusama_runtime::Nfts,
+		asset_hub_kusama_runtime::ForeignAssets,
+		asset_hub_kusama_runtime::NftFractionalization,
+		asset_hub_kusama_runtime::PoolAssets,
+		asset_hub_kusama_runtime::AssetConversion,
+		asset_hub_kusama_runtime::Recovery,
+		asset_hub_kusama_runtime::Society,
+		asset_hub_kusama_runtime::Revive,
+		asset_hub_kusama_runtime::StateTrieMigration,
+		asset_hub_kusama_runtime::NominationPools,
+		asset_hub_kusama_runtime::VoterList,
+		asset_hub_kusama_runtime::DelegatedStaking,
+		asset_hub_kusama_runtime::StakingRcClient,
+		asset_hub_kusama_runtime::MultiBlockElection,
+		asset_hub_kusama_runtime::MultiBlockElectionVerifier,
+		asset_hub_kusama_runtime::MultiBlockElectionUnsigned,
+		asset_hub_kusama_runtime::MultiBlockElectionSigned,
+		asset_hub_kusama_runtime::Staking,
+		asset_hub_kusama_runtime::Treasury,
+		asset_hub_kusama_runtime::ConvictionVoting,
+		asset_hub_kusama_runtime::Referenda,
+		asset_hub_kusama_runtime::Origins,
+		asset_hub_kusama_runtime::Whitelist,
+		asset_hub_kusama_runtime::Bounties,
+		asset_hub_kusama_runtime::ChildBounties,
+		asset_hub_kusama_runtime::AssetRate,
+		asset_hub_kusama_runtime::AhOps,
+		asset_hub_kusama_runtime::AhMigrator,
+	);
+
+	// Run on_initialize for all pallets
+	let weight =
+		<AlmostAllAhPallets as OnInitialize<_>>::on_initialize(now);
+
+	// Run on_finalize for all pallets
+	<AlmostAllAhPallets as OnFinalize<_>>::on_finalize(now);
 
 	let events = frame_system::Pallet::<AssetHub>::events();
 	assert!(
