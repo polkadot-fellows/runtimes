@@ -37,9 +37,17 @@ const WHALES: &[(AccountId32, usize)] = &[
 #[cfg(feature = "kusama-ahm")]
 const WHALES: &[(AccountId32, u128)] = &[
 	(
-		AccountId32::new(hex!("f1c5ca0368e7a567945a59aaea92b9be1e0794fe5e077d017462b7ce8fc1ed7c")),
-		38000,
-	), // Bifrost staking proxy
+		AccountId32::new(hex!("4aca27604ad033f7c45b1cfc23b55520826db4abb69a8a7c165461c40f330c6b")),
+		1_000_000,
+	),
+	(
+		AccountId32::new(hex!("68e8ca19a25c1aee85d10ef31f6426d23b2fc84b9953aa2056029fade59450d6")),
+		300_000,
+	),
+	(
+		AccountId32::new(hex!("aeb435d6ff4727f364e52652e6dcf9cbda4644610b7d7329213f8c74a07e503c")),
+		200_000,
+	),
 ];
 
 pub struct BalanceWhaleWatching;
@@ -51,9 +59,10 @@ impl RcMigrationCheck for BalanceWhaleWatching {
 		for (whale, min_amount) in WHALES {
 			let acc = frame_system::Account::<RelayRuntime>::get(whale);
 			let total_amount = acc.data.free + acc.data.reserved;
+			let min_amount = (*min_amount) * RC_DOLLARS;
 
 			assert!(
-				total_amount >= (*min_amount) * RC_DOLLARS,
+				total_amount >= min_amount,
 				"Whale is missing pre balance {whale:?}: {total_amount} < {min_amount}"
 			);
 		}
@@ -72,9 +81,10 @@ impl AhMigrationCheck for BalanceWhaleWatching {
 		for (whale, min_amount) in WHALES {
 			let acc = frame_system::Account::<AssetHubRuntime>::get(whale);
 			let total_amount = acc.data.free + acc.data.reserved;
+			let min_amount = (*min_amount) * RC_DOLLARS;
 
 			assert!(
-				total_amount >= (*min_amount) * RC_DOLLARS,
+				total_amount >= min_amount,
 				"Whale is missing post balance {whale:?}: {total_amount} < {min_amount}"
 			);
 		}
