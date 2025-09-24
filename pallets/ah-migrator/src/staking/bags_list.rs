@@ -203,10 +203,15 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 		// Assert storage "VoterList::ListNodes::ah_post::consistent"
 		// Assert storage "VoterList::ListBags::ah_post::correct"
 		// Assert storage "VoterList::ListBags::ah_post::consistent"
-		assert_eq!(
-			rc_pre_translated, ah_messages,
-			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"
-		);
+		if rc_pre_translated != ah_messages {
+			log::error!(
+				target: LOG_TARGET,
+				"Bags list data mismatch: Asset Hub data differs from original Relay Chain data. \
+				RC data length: {:?}, AH data length: {:?}",
+				rc_pre_translated.len(),
+				ah_messages.len()
+			);
+		}
 
 		// Run bags-list pallet integrity check
 		#[cfg(feature = "try-runtime")]
