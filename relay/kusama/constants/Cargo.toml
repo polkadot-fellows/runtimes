@@ -20,7 +20,6 @@ sp-core = { workspace = true }
 sp-trie = { workspace = true, optional = true }
 pallet-remote-proxy = { workspace = true }
 
-xcm = { workspace = true }
 xcm-builder = { workspace = true }
 
 [features]
@@ -37,7 +36,6 @@ std = [
 	"sp-trie?/std",
 	"sp-weights/std",
 	"xcm-builder/std",
-	"xcm/std",
 ]
 fast-runtime = []
 runtime-benchmarks = [
@@ -48,5 +46,4 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"sp-trie",
 	"xcm-builder/runtime-benchmarks",
-	"xcm/runtime-benchmarks",
 ]

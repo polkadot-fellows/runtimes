@@ -6961,7 +6961,6 @@ dependencies = [
  "sp-runtime",
  "sp-trie",
  "sp-weights",
- "staging-xcm",
  "staging-xcm-builder",
 ]
 
