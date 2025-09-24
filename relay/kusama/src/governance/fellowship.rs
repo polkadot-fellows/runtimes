@@ -21,6 +21,7 @@
 
 use alloc::borrow::Cow;
 use frame_support::traits::{MapSuccess, TryMapSuccess};
+use kusama_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
 use sp_arithmetic::traits::CheckedSub;
 use sp_runtime::{
 	morph_types, str_array as s,
@@ -33,7 +34,7 @@ parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
 	pub const SubmissionDeposit: Balance = 0;
 	pub const UndecidingTimeout: BlockNumber = 7 * DAYS;
-	pub const FellowshipAdminBodyId: BodyId = kusama_runtime_constants::xcm::body::KUSAMA_FELLOWSHIP_ADMIN_BODY_ID;
+	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 }
 
 const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 10] = [
