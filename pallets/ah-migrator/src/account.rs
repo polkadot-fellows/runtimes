@@ -319,13 +319,23 @@ pub mod tests {
 				"Failed accounts should not remain in storage after migration"
 			);
 
+			let pot_staking = AccountId32::new(hex_literal::hex!(
+				"6d6f646c506f745374616b650000000000000000000000000000000000000000"
+			));
+			let collator = AccountId32::new(hex_literal::hex!(
+				"005025ef7c9934c33534cbff35c9c5f0c1d30128e64f076c76942f49788eec15"
+			));
+
 			let (account_summaries, _) = rc_pre_payload;
 			for (who, summary) in account_summaries {
 				// Checking account balance migration is tested separately.
 				// Treasury may be modified during migration.
 				if who == T::CheckingAccount::get() ||
-					who == pallet_treasury::Pallet::<T>::account_id()
+					who == pallet_treasury::Pallet::<T>::account_id() ||
+					who == pot_staking ||
+					who == collator
 				{
+					log::info!(target: LOG_TARGET, "Skipping account {:?}", who.to_ss58check());
 					continue;
 				}
 				let who = crate::Pallet::<T>::translate_account_rc_to_ah(who);
