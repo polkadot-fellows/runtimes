@@ -19,6 +19,7 @@
 #[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
+use crate::porting_prelude::RC_DOLLARS;
 use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
@@ -29,7 +30,7 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
 /// Whale accounts that we care about and minimal total resulting balance.
 #[cfg(feature = "polkadot-ahm")]
-const WHALES: &[(AccountId32, usize)] = &[
+const WHALES: &[(AccountId32, u128)] = &[
 	// TODO
 ];
 
