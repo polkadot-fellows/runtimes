@@ -17,11 +17,9 @@
 //! New governance configurations for the Polkadot runtime.
 
 use super::*;
-use crate::xcm_config::CollectivesLocation;
+use crate::xcm_config::{CollectivesLocation, FellowsBodyId};
 use frame_support::parameter_types;
 use frame_system::EnsureRootWithSuccess;
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use xcm::latest::BodyId;
 
 mod origins;
 pub use origins::{
@@ -60,11 +58,6 @@ parameter_types! {
 pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
 
 impl origins::pallet_custom_origins::Config for Runtime {}
-
-parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
-}
 
 impl pallet_whitelist::Config for Runtime {
 	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
