@@ -273,6 +273,7 @@ pub mod pallet {
 		+ pallet_ah_ops::Config
 		+ pallet_claims::Config
 		+ pallet_bounties::Config
+		+ pallet_collator_selection::Config
 		+ pallet_child_bounties::Config
 		+ pallet_treasury::Config<
 			Currency = pallet_balances::Pallet<Self>,

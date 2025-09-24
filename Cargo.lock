@@ -8447,6 +8447,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bounties",
  "pallet-child-bounties",
+ "pallet-collator-selection",
  "pallet-conviction-voting",
  "pallet-delegated-staking",
  "pallet-indices",
