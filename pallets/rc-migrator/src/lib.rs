@@ -947,7 +947,7 @@ pub mod pallet {
 			warm_up: DispatchTime<BlockNumberFor<T>>,
 			cool_off: DispatchTime<BlockNumberFor<T>>,
 			unsafe_ignore_staking_lock_check: bool,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
@@ -970,7 +970,7 @@ pub mod pallet {
 			CoolOffPeriod::<T>::put(cool_off);
 
 			Self::transition(MigrationStage::Scheduled { start });
-			Ok(())
+			Ok(Pays::No.into())
 		}
 
 		/// Start the data migration.
