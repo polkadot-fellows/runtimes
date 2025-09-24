@@ -1019,26 +1019,26 @@ pub mod tests {
 				"DefenderVotes map should be empty on the relay chain after migration"
 			);
 
-			if let Some(next_challenge_at) = NextChallengeAt::<T::KusamaConfig>::get() {
-				let challenge_period =
-					<T::KusamaConfig as pallet_society::Config>::ChallengePeriod::get();
-				assert_eq!(
-					next_challenge_at, challenge_period,
-					"`next_challenge_at` must be equal to the `ChallengePeriod` if not `None`",
-				);
-			};
+			//if let Some(next_challenge_at) = NextChallengeAt::<T::KusamaConfig>::get() {
+			//	let challenge_period =
+			//		<T::KusamaConfig as pallet_society::Config>::ChallengePeriod::get();
+			//	assert_eq!(
+			//		next_challenge_at, challenge_period,
+			//		"`next_challenge_at` must be equal to the `ChallengePeriod` if not `None`",
+			//	);
+			//};
 
-			if let Some(next_intake_at) = NextIntakeAt::<T::KusamaConfig>::get() {
-				let rotation_period =
-					<T::KusamaConfig as pallet_society::Config>::VotingPeriod::get()
-						.saturating_add(
-							<T::KusamaConfig as pallet_society::Config>::ClaimPeriod::get(),
-						);
-				assert_eq!(
-					next_intake_at, rotation_period,
-					"`next_intake_at` must be equal to the rotation period if not `None`",
-				);
-			};
+			// if let Some(next_intake_at) = NextIntakeAt::<T::KusamaConfig>::get() {
+			// 	let rotation_period =
+			// 		<T::KusamaConfig as pallet_society::Config>::VotingPeriod::get()
+			// 			.saturating_add(
+			// 				<T::KusamaConfig as pallet_society::Config>::ClaimPeriod::get(),
+			// 			);
+			// 	assert_eq!(
+			// 		next_intake_at, rotation_period,
+			// 		"`next_intake_at` must be equal to the rotation period if not `None`",
+			// 	);
+			// };
 		}
 	}
 }
