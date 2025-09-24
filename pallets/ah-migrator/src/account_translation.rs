@@ -21,8 +21,6 @@ use pallet_rc_migrator::types::ToPolkadotSs58;
 
 impl<T: Config> Pallet<T> {
 	/// Translate account from RC format to AH format.
-	///
-	/// TODO introduce different accountId types for RC and AH
 	pub fn translate_account_rc_to_ah(account: T::AccountId) -> T::AccountId {
 		let Some(new) = Self::maybe_sovereign_translate(&account)
 			.or_else(|| Self::maybe_derived_translate(&account))

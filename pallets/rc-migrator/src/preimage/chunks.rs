@@ -111,11 +111,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				defensive!("Storage corruption {:?}", next_key_inner);
 				// Remove the previous key for which the migration failed.
 				pallet_preimage::PreimageFor::<T>::remove(next_key_inner);
-				let (next_key_maybe, skipped) = Self::next_key();
-				for (old_hash, old_len) in skipped {
-					pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
-				}
-				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
+				next_key = None;
 				continue;
 			};
 			debug_assert!(last_offset < preimage.len() as u32);
@@ -133,11 +129,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				defensive!("Unreachable");
 				// Remove the previous key for which the migration failed.
 				pallet_preimage::PreimageFor::<T>::remove(next_key_inner);
-				let (next_key_maybe, skipped) = Self::next_key();
-				for (old_hash, old_len) in skipped {
-					pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
-				}
-				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
+				next_key = None;
 				continue;
 			};
 

@@ -149,6 +149,8 @@ pub type RcRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	crate::account_whale_watching::BalanceWhaleWatching,
+	crate::proxy::ProxyWhaleWatching,
 	StakingMigratedCorrectly<Polkadot>,
 	super::recovery_test::RecoveryDataMigrated,
 	pallet_rc_migrator::society::tests::SocietyMigratorTest<Polkadot>,
@@ -204,6 +206,8 @@ pub type AhRuntimeSpecificChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	crate::account_whale_watching::BalanceWhaleWatching,
+	crate::proxy::ProxyWhaleWatching,
 	StakingMigratedCorrectly<AssetHub>,
 	super::recovery_test::RecoveryDataMigrated,
 	pallet_rc_migrator::society::tests::SocietyMigratorTest<AssetHub>,
@@ -1938,7 +1942,7 @@ async fn low_balance_accounts_migration_works() {
 	for (case, account_id, should_be_migrated) in accounts {
 		let (maybe_withdrawn_account, removed) = rc.execute_with(|| {
 			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
-			log::info!("Case: {:?}", case);
+			log::info!("Case: {case:?}");
 			log::info!("RC account info: {rc_account:?}");
 
 			let maybe_withdrawn_account = AccountsMigrator::<Polkadot>::withdraw_account(

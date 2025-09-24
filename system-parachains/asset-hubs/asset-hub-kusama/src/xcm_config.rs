@@ -40,6 +40,7 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
+use kusama_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
@@ -95,6 +96,7 @@ parameter_types! {
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
 	pub const Here: Location = Location::here();
+	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
 
 /// Treasury account that changes once migration ends.
@@ -453,7 +455,7 @@ parameter_types! {
 	// `GeneralAdmin` pluralistic body.
 	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
 	// `FellowshipAdmin` pluralistic body.
-	pub const FellowshipAdminBodyId: BodyId = kusama_runtime_constants::xcm::body::KUSAMA_FELLOWSHIP_ADMIN_BODY_ID;
+	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 }
 
 /// Type to convert the `StakingAdmin` origin to a Plurality `Location` value.

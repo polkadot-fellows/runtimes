@@ -283,7 +283,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 				}
 			}
 
-			if batch.len() > MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -631,7 +631,7 @@ impl<T: Config> AccountsMigrator<T> {
 			{
 				log::info!(
 					target: LOG_TARGET,
-					"Account has no RC ED, but has enough free balance for AH RC. \
+					"Account has no RC ED, but has enough free balance for AH ED. \
 					Account: '{}', info: {:?}",
 					who.to_ss58check(),
 					account
