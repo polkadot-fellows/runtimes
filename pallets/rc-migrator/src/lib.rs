@@ -1430,21 +1430,20 @@ pub mod pallet {
 								Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 								Err(e) => TransactionOutcome::Rollback(Err(e)),
 							}
-						})
-						.expect("Always returning Ok; qed");
+						});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							// accounts migration is completed
 							Self::transition(MigrationStage::AccountsMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							// accounts migration continues with the next block
 							Self::transition(MigrationStage::AccountsMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating accounts: {:?}", err);
 							// stage unchanged, retry.
 						},
@@ -1467,15 +1466,14 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							// multisig migration is completed
 							Self::transition(MigrationStage::MultisigMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							// multisig migration continues with the next block
 							Self::transition(MigrationStage::MultisigMigrationOngoing {
 								last_key: Some(last_key),
@@ -1498,14 +1496,13 @@ pub mod pallet {
 							Ok(current_key) => TransactionOutcome::Commit(Ok(current_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ClaimsMigrationDone);
 						},
-						Ok(Some(current_key)) => {
+						Ok(Ok(Some(current_key))) => {
 							Self::transition(MigrationStage::ClaimsMigrationOngoing {
 								current_key: Some(current_key),
 							});
@@ -1528,16 +1525,15 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
 								last_key: None,
 							});
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ProxyMigrationProxies {
 								last_key: Some(last_key),
 							});
@@ -1556,14 +1552,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ProxyMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
 								last_key: Some(last_key),
 							});
@@ -1590,14 +1585,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::PreimageMigrationChunksDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
 								last_key: Some(last_key),
 							});
@@ -1621,14 +1615,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::PreimageMigrationRequestStatusDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(
 								MigrationStage::PreimageMigrationRequestStatusOngoing {
 									next_key: Some(next_key),
@@ -1657,16 +1650,15 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(
 								MigrationStage::PreimageMigrationLegacyRequestStatusDone,
 							);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(
 								MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
 									next_key: Some(next_key),
@@ -1696,14 +1688,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::NomPoolsMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::NomPoolsMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1726,14 +1717,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::VestingMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::VestingMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1758,14 +1748,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::DelegatedStakingMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1789,14 +1778,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::IndicesMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::IndicesMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1824,19 +1812,18 @@ pub mod pallet {
 								Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 								Err(e) => TransactionOutcome::Rollback(Err(e)),
 							}
-						})
-						.expect("Always returning Ok; qed");
+						});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ReferendaMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ReferendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating referenda: {:?}", err);
 						},
 					}
@@ -1853,14 +1840,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::BagsListMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::BagsListMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1885,19 +1871,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing { last_key: None });
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::SchedulerMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating scheduler: {:?}", err);
 						},
 					}
@@ -1911,19 +1896,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::SchedulerMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating scheduler: {:?}", err);
 						},
 					}
@@ -1945,19 +1929,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ConvictionVotingMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ConvictionVotingMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating conviction voting: {:?}", err);
 						},
 					}
@@ -1977,14 +1960,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::BountiesMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::BountiesMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2009,19 +1991,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ChildBountiesMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ChildBountiesMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating child bounties: {:?}", err);
 						},
 					}
@@ -2041,19 +2022,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::AssetRateMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::AssetRateMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating asset rates: {:?}", err);
 						},
 					}
@@ -2073,14 +2053,13 @@ pub mod pallet {
 						Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::CrowdloanMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::CrowdloanMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2105,14 +2084,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");	
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::TreasuryMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::TreasuryMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2142,14 +2120,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::RecoveryMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::RecoveryMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2177,19 +2154,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::SocietyMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::SocietyMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating society: {:?}", err);
 						},
 					}
@@ -2210,14 +2186,13 @@ pub mod pallet {
 							Ok(next_key) => TransactionOutcome::Commit(Ok(next_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::StakingMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::StakingMigrationOngoing { next_key: Some(next_key) });
 						},
 						e => {
