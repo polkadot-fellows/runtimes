@@ -965,6 +965,7 @@ impl pallet_aura::Config for Runtime {
 
 parameter_types! {
 	pub const PotId: PalletId = PalletId(*b"PotStake");
+	pub const EmptyPotId: PalletId = PalletId(*b"________");
 	pub const SessionLength: BlockNumber = 6 * HOURS;
 	// StakingAdmin pluralistic body.
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
@@ -985,7 +986,7 @@ impl pallet_collator_selection::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type UpdateOrigin = CollatorSelectionUpdateOrigin;
-	type PotId = PotId;
+	type PotId = pallet_ah_migrator::LeftOrRight<AhMigrator, EmptyPotId, PotId>;
 	type MaxCandidates = ConstU32<100>;
 	type MinEligibleCollators = ConstU32<4>;
 	type MaxInvulnerables = ConstU32<20>;
