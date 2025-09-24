@@ -53,7 +53,7 @@ impl RcMigrationCheck for BalanceWhaleWatching {
 			let total_amount = acc.data.free + acc.data.reserved;
 
 			assert!(
-				total_amount >= *min_amount,
+				total_amount >= (*min_amount) * RC_DOLLARS,
 				"Whale is missing pre balance {whale:?}: {total_amount} < {min_amount}"
 			);
 		}
@@ -74,7 +74,7 @@ impl AhMigrationCheck for BalanceWhaleWatching {
 			let total_amount = acc.data.free + acc.data.reserved;
 
 			assert!(
-				total_amount >= *min_amount,
+				total_amount >= (*min_amount) * RC_DOLLARS,
 				"Whale is missing post balance {whale:?}: {total_amount} < {min_amount}"
 			);
 		}
