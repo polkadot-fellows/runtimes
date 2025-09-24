@@ -631,7 +631,7 @@ impl<T: Config> AccountsMigrator<T> {
 			{
 				log::info!(
 					target: LOG_TARGET,
-					"Account has no RC ED, but has enough free balance for AH RC. \
+					"Account has no RC ED, but has enough free balance for AH ED. \
 					Account: '{}', info: {:?}",
 					who.to_ss58check(),
 					account
