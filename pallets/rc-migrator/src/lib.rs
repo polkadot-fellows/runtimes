@@ -1306,20 +1306,21 @@ pub mod pallet {
 		pub fn vote_cancel(
 			origin: OriginFor<T>,
 			// payload is only interpreted as "aye"
-			_payload: VotePayload<T>,
+			payload: VotePayload,
 			_sig: sp_core::sr25519::Signature,
 		) -> DispatchResult {
 			let _ = ensure_none(origin);
 
-			let should_cancel = CancelVotes::<T>::mutate(|v| {
-				*v += 1;
-				*v >= 3
-			});
+			let mut votes = CancelVotes::<T>::get();
+			ensure!(!votes.contains(&payload), "Duplicate");
+			votes.push(payload);
 
-			if should_cancel {
+			if votes.len() >= 3 {
 				Self::transition(MigrationStage::Pending);
 				Self::deposit_event(Event::MigrationCancelled);
 				CancelVotes::<T>::kill();
+			} else {
+				CancelVotes::<T>::put(votes);
 			}
 
 			Ok(())
@@ -1330,21 +1331,22 @@ pub mod pallet {
 		pub fn vote_pause(
 			origin: OriginFor<T>,
 			// payload is only interpreted as "aye"
-			_payload: VotePayload<T>,
+			payload: VotePayload,
 			_sig: sp_core::sr25519::Signature,
 		) -> DispatchResult {
 			let _ = ensure_none(origin);
 
-			let should_pause = PauseVotes::<T>::mutate(|v| {
-				*v += 1;
-				*v >= 3
-			});
+			let mut votes = PauseVotes::<T>::get();
+			ensure!(!votes.contains(&payload), "Duplicate");
+			votes.push(payload);
 
-			if should_pause {
+			if votes.len() >= 3 {
 				let pause_stage = RcMigrationStage::<T>::get();
 				Self::transition(MigrationStage::MigrationPaused);
 				Self::deposit_event(Event::MigrationPaused { pause_stage });
 				PauseVotes::<T>::kill();
+			} else {
+				PauseVotes::<T>::put(votes);
 			}
 
 			Ok(())
@@ -1361,32 +1363,29 @@ pub mod pallet {
 		TypeInfo,
 		sp_core::DecodeWithMemTracking,
 	)]
-	#[scale_info(skip_type_params(T))]
-	pub struct VotePayload<T: Config> {
+	pub struct VotePayload {
 		pub(crate) who: sp_core::sr25519::Public,
-		_marker: core::marker::PhantomData<T>,
 	}
 
-	impl<T: Config> VotePayload<T> {
+	impl VotePayload {
 		pub fn from(who: sp_core::sr25519::Public) -> Self {
-			Self { who, _marker: core::marker::PhantomData }
-		}
-
-		fn is_multisig_member(&self) -> bool {
-			T::MultisigMembers::get().contains(&self.who)
+			Self { who }
 		}
 	}
 
-	impl<T: Config> core::convert::AsRef<sp_core::sr25519::Public> for VotePayload<T> {
+	impl core::convert::AsRef<sp_core::sr25519::Public> for VotePayload {
 		fn as_ref(&self) -> &sp_core::sr25519::Public {
 			&self.who
 		}
 	}
 
 	#[pallet::storage]
-	pub type CancelVotes<T: Config> = StorageValue<_, u32, ValueQuery>;
+	#[pallet::unbounded]
+	pub type CancelVotes<T: Config> = StorageValue<_, Vec<VotePayload>, ValueQuery>;
+
 	#[pallet::storage]
-	pub type PauseVotes<T: Config> = StorageValue<_, u32, ValueQuery>;
+	#[pallet::unbounded]
+	pub type PauseVotes<T: Config> = StorageValue<_, Vec<VotePayload>, ValueQuery>;
 
 	#[pallet::validate_unsigned]
 	impl<T: Config> ValidateUnsigned for Pallet<T> {
@@ -1395,20 +1394,21 @@ pub mod pallet {
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 			use sp_runtime::traits::Verify;
 			match call {
-				// note: payload can be empty, but it is better to ask the signer to revel themselves, so we don't have to check against all of `MultisigMembers`.
-				Call::vote_cancel { payload, sig } | Call::vote_pause { payload, sig } => {
-					if payload.is_multisig_member() &&
+				// note: payload can be empty, but it is better to ask the signer to revel
+				// themselves, so we don't have to check against all of `MultisigMembers`.
+				Call::vote_cancel { payload, sig } | Call::vote_pause { payload, sig } =>
+					if T::MultisigMembers::get().contains(&payload.who) &&
 						sig.verify(&payload.encode()[..], &payload.who)
 					{
 						ValidTransaction::with_tag_prefix("AhmMultisig")
 							.priority(sp_runtime::traits::Bounded::max_value())
+							.and_provides(vec![("ahm_multi", payload.who).encode()])
 							.propagate(true)
 							.longevity(10)
 							.build()
 					} else {
 						InvalidTransaction::BadProof.into()
-					}
-				},
+					},
 				_ => return InvalidTransaction::Call.into(),
 			}
 		}

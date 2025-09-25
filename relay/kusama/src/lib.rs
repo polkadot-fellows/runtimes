@@ -3181,12 +3181,33 @@ sp_api::impl_runtime_apis! {
 
 #[cfg(test)]
 mod ahm_multisig {
-	use pallet_rc_migrator::{staking::checks, VotePayload};
+	use pallet_rc_migrator::VotePayload;
 	use sp_core::Pair;
 	use sp_io::TestExternalities;
 	use sp_runtime::traits::{Dispatchable, ValidateUnsigned};
 
 	use super::*;
+
+	#[test]
+	fn test_calls() {
+		let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+		let payload = VotePayload::from(alice.public());
+		let sig = alice.sign(payload.as_ref());
+		println!("alice payload: 0x{:?}", hex::encode(payload.as_ref()));
+		println!("alice sig: 0x{:?}", hex::encode(sig.0));
+
+		let bob = sp_keyring::Sr25519Keyring::Bob.pair();
+		let payload = VotePayload::from(bob.public());
+		let sig = bob.sign(payload.as_ref());
+		println!("bob payload: 0x{:?}", hex::encode(payload.as_ref()));
+		println!("bob sig: 0x{:?}", hex::encode(sig.0));
+
+		let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
+		let payload = VotePayload::from(charlie.public());
+		let sig = charlie.sign(payload.as_ref());
+		println!("charlie payload: 0x{:?}", hex::encode(payload.as_ref()));
+		println!("charlie sig: 0x{:?}", hex::encode(sig.0));
+	}
 
 	#[test]
 	fn multisig_cancel_works() {
@@ -3243,7 +3264,26 @@ mod ahm_multisig {
 					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
 					pallet_rc_migrator::MigrationStage::Starting
 				);
-				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get(), 1);
+				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get().len(), 1);
+			}
+
+			{
+				// Alice signs again, rejected, not cancelled yet
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = VotePayload::from(alice.public());
+				let sig = alice.sign(payload.as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+
+				assert_eq!(
+					RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).unwrap_err(),
+					sp_runtime::DispatchError::Other("Duplicate").into()
+				);
 			}
 
 			{
@@ -3263,7 +3303,7 @@ mod ahm_multisig {
 					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
 					pallet_rc_migrator::MigrationStage::Starting
 				);
-				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get(), 2);
+				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get().len(), 2);
 			}
 
 			{
@@ -3283,12 +3323,10 @@ mod ahm_multisig {
 					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
 					pallet_rc_migrator::MigrationStage::Pending
 				);
-				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get(), 0);
+				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get().len(), 0);
 			}
 		})
 	}
-
-
 }
 
 #[cfg(test)]
