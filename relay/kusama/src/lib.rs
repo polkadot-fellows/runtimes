@@ -1922,16 +1922,13 @@ fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 		vec![
 			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
 			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
-			"EGVQCe73TpFyAZx5uKfE1222XfkT3BSKozjgcqzLBnc5eYo", // shawn
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian/ksm
-			"G5MVrgFmBaYei8N6t6DnDrb8JE53wKDkazLv5f46wVpi14y", // alex
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
 			"Ea6jhP5gF4r7NqhkEoAXJDgSgYpNQNaTYU6gPsrEGfctaKR", // oliver
 			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
 			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
-			"129EYiTbv2J4LkYqRNssUfMuxNLYN8TW2LgfG1Gqyj8wCcs7", // cisco
 			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
-			"14DsLzVyTUTDMm2eP3czwPbH53KgqnQRp3CJJZS9GR7yxGDP", // brayn
 			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
+			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
 		]
 	};
 
