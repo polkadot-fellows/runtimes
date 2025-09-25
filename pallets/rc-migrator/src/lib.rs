@@ -28,6 +28,33 @@
 //! To simplify development and avoid the need to edit the original pallets, this pallet may
 //! duplicate private items such as storage entries from the original pallets. This ensures that the
 //! migration logic can be implemented without altering the original implementations.
+//!
+//! ### Roles:
+//! - **Admin**: Defined by [`Config::AdminOrigin`] (typically Root and Fellows origins).
+//!   - Has all permissions available to other roles.
+//!   - `set_manager` - allowed to set the manager account ID.
+//!
+//! - **Manager**: An optional role assigned to an account via the `set_manager` call.
+//!   - `schedule_migration` - able to schedule migration to start at a specific time.
+//!   - `force_set_stage` - permitted to forcefully set the migration stage.
+//!   - `set_canceller` - authorized to set the canceller account ID.
+//!   - `pause_migration` - may pause the migration.
+//!   - `receive_query_response` - may acknowledge XCM message sent to the Asset Hub.
+//!   - `set_unprocessed_msg_buffer` - controls the unprocessed message buffer size (i.e., the
+//!     number of unprocessed messages allowed before the RC migrator temporarily pauses sending
+//!     data to the Asset Hub).
+//!   - `set_ah_ump_queue_priority` - manages the priority of the Asset Hub UMP queue during
+//!     migration. The priority pattern determines how often the AH UMP queue is prioritized over
+//!     others during migration. See [`Config::AhUmpQueuePriorityPattern`] for details.
+//!   - `send_xcm_message` - can send XCM messages during migration to the Asset Hub as signed by
+//!     `Manager`.
+//!   - `preserve_accounts` - may designate accounts to be preserved on the Relay Chain during
+//!     migration.
+//!   - `cancel_migration` - has the ability to cancel migration.
+//!
+//! - **Canceller**: An optional role assigned to an account via the `set_canceller` call.
+//!   - `cancel_migration` - permitted to cancel migration, but only when the migration is in the
+//!     [`MigrationStage::Scheduled`] state.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -1055,7 +1082,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::RcWeightInfo::resend_xcm())]
 		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
-			Self::ensure_admin_or_manager(origin)?;
+			ensure_root(origin)?;
 
 			let message_hash =
 				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;

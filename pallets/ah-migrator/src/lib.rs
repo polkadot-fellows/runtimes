@@ -28,6 +28,25 @@
 //! To simplify development and avoid the need to edit the original pallets, this pallet may
 //! duplicate private items such as storage entries from the original pallets. This ensures that the
 //! migration logic can be implemented without altering the original implementations.
+//!
+//! ### Roles:
+//! - **Admin**: Defined by [`Config::AdminOrigin`] (typically Root and Fellows origins).
+//!   - Has all permissions available to other roles.
+//!   - `set_manager` - allowed to set the manager account ID.
+//!
+//! - **Manager**: An optional role assigned to an account via the `set_manager` call.
+//!   - `force_set_stage` - permitted to forcefully set the migration stage.
+//!   - `set_dmp_queue_priority` - manages the priority of the Asset Hub UMP queue during migration.
+//!     The priority pattern determines how often the RC DMP queue is prioritized over others during
+//!     migration. See [`Config::DmpQueuePriorityPattern`] for details.
+//!   - `send_xcm_message` - can send XCM messages during migration to the Relay Chain as signed by
+//!     `Manager`.
+//!   - `start_migration` – can initiate the migration process on the Asset Hub. This advances the
+//!     migration stage to [`MigrationStage::DataMigrationOngoing`] and sends a message to the Relay
+//!     Chain indicating readiness to receive data.
+//!   - `finish_migration` – can complete the migration process on the Asset Hub. This advances the
+//!     migration stage to [`MigrationStage::MigrationDone`] and performs the correction of the
+//!     checking account balance.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
