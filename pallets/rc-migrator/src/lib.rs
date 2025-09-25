@@ -1324,7 +1324,7 @@ pub mod pallet {
 			ensure!(ManagerMultisigRound::<T>::get() == payload.round, "RoundStale");
 			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
 			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
-			votes_for_call.push(payload.who.clone());
+			votes_for_call.push(payload.who);
 
 			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
 				let origin: <T as Config>::RuntimeOrigin =
@@ -1418,7 +1418,7 @@ pub mod pallet {
 						.longevity(30)
 						.build()
 				},
-				_ => return InvalidTransaction::Call.into(),
+				_ => InvalidTransaction::Call.into(),
 			}
 		}
 	}
