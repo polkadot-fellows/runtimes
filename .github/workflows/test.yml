@@ -53,6 +53,12 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -83,7 +89,12 @@ jobs:
         shell: bash
 
       - name: Test ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+        run: |
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features ${{ matrix.runtime.build_extra_features }}
+          else
+            cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+          fi
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
@@ -102,7 +113,11 @@ jobs:
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks,${{ matrix.runtime.build_extra_features }} -q --locked
+          else
+            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          fi
           # run benchmarking
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""
@@ -127,6 +142,12 @@ jobs:
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
         with:
           access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -188,8 +209,8 @@ jobs:
       - name: Download Kusama snaps
         run: |
           python3 -m pip install gdown
-          gdown 1NVUWhnQFfXOsXGoLkS4J_NJBZWb2LVtV # 2025-09-02 AH
-          gdown 1L2o3zQLHIdUGYzSBpzN3MFJ3heJ9ZqWe # 2025-09-02 RC
+          gdown 1ypya2WHc1f47H5ahLzXzUmLjGD9z8VpQ # 2025-09-24 AH
+          gdown 1I7odLC3fPcfPsRTTbeNz9rbjtYTdDsjR # 2025-09-24 RC
 
           lz4 -d kusama.snap.lz4 kusama.snap
           lz4 -d ah-kusama.snap.lz4 ah-kusama.snap
@@ -239,6 +260,12 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -275,6 +302,12 @@ jobs:
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
         with:
           access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -322,6 +355,12 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
@@ -349,9 +388,23 @@ jobs:
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
+          FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
-            FEATURES="--features=metadata-hash"
+            FEATURES="metadata-hash"
+          fi
+
+          # Add extra features
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            if [ -z "$FEATURES" ]; then
+              FEATURES="${{ matrix.runtime.build_extra_features }}"
+            else
+              FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+            fi
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            FEATURES="--features=$FEATURES"
           fi
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
@@ -370,6 +423,12 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event_name == 'pull_request'
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout sources
         uses: actions/checkout@v4
 

@@ -16,6 +16,8 @@
 
 //! The messages that we use to send the staking data over from RC to AH.
 
+#![allow(clippy::from_over_into)] // We just want Into<s>, no From<s> coercion needed.
+
 extern crate alloc;
 
 use crate::{
@@ -215,6 +217,7 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 
 impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 	/// Put the values into the storage.
+	#[allow(clippy::option_map_unit_fn)] // Using .map here return ()
 	pub fn put_values(values: StakingValues<pallet_staking_async::BalanceOf<T>>) {
 		use pallet_staking_async::*;
 

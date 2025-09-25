@@ -125,9 +125,9 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 				}
 			}
 
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_child_bounties_messages(
-				(messages.len() + 1) as u32,
-			)) {
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_child_bounties_messages(messages.len() + 1))
+			{
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -179,7 +179,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_child_bounties::ParentChildBounties::<T>::remove(&key);
+							pallet_child_bounties::ParentChildBounties::<T>::remove(key);
 							messages.push(PortableChildBountiesMessage::ParentChildBounties(
 								key, value,
 							));
@@ -199,7 +199,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_child_bounties::ParentTotalChildBounties::<T>::remove(&key);
+							pallet_child_bounties::ParentTotalChildBounties::<T>::remove(key);
 							messages.push(PortableChildBountiesMessage::ParentTotalChildBounties(
 								key, value,
 							));
@@ -212,7 +212,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 					let mut iter = if let Some((parent_id, child_id)) = ids {
 						pallet_child_bounties::ChildBounties::<T>::iter_from(
 							pallet_child_bounties::ChildBounties::<T>::hashed_key_for(
-								&parent_id, &child_id,
+								parent_id, child_id,
 							),
 						)
 					} else {
@@ -221,9 +221,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 
 					match iter.next() {
 						Some((parent_id, child_id, child_bounty)) => {
-							pallet_child_bounties::ChildBounties::<T>::remove(
-								&parent_id, &child_id,
-							);
+							pallet_child_bounties::ChildBounties::<T>::remove(parent_id, child_id);
 							messages.push(PortableChildBountiesMessage::ChildBounty {
 								parent_id,
 								child_id,
@@ -238,7 +236,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 					let mut iter = if let Some((parent_id, child_id)) = ids {
 						pallet_child_bounties::ChildBountyDescriptionsV1::<T>::iter_from(
 							pallet_child_bounties::ChildBountyDescriptionsV1::<T>::hashed_key_for(
-								&parent_id, &child_id,
+								parent_id, child_id,
 							),
 						)
 					} else {
@@ -248,7 +246,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 					match iter.next() {
 						Some((parent_id, child_id, description)) => {
 							pallet_child_bounties::ChildBountyDescriptionsV1::<T>::remove(
-								&parent_id, &child_id,
+								parent_id, child_id,
 							);
 							let description = description.into_inner().defensive_truncate_into();
 
@@ -275,7 +273,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 
 					match iter.next() {
 						Some((v0_child_id, (parent_id, v1_child_id))) => {
-							pallet_child_bounties::V0ToV1ChildBountyIds::<T>::remove(&v0_child_id);
+							pallet_child_bounties::V0ToV1ChildBountyIds::<T>::remove(v0_child_id);
 							messages.push(PortableChildBountiesMessage::V0ToV1ChildBountyIds {
 								v0_child_id,
 								parent_id,
@@ -291,7 +289,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 						Some(child_id) =>
 							pallet_child_bounties::ChildrenCuratorFees::<T>::iter_from(
 								pallet_child_bounties::ChildrenCuratorFees::<T>::hashed_key_for(
-									&child_id,
+									child_id,
 								),
 							),
 						None => pallet_child_bounties::ChildrenCuratorFees::<T>::iter(),
@@ -299,7 +297,7 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 
 					match iter.next() {
 						Some((child_id, amount)) => {
-							pallet_child_bounties::ChildrenCuratorFees::<T>::remove(&child_id);
+							pallet_child_bounties::ChildrenCuratorFees::<T>::remove(child_id);
 							messages.push(PortableChildBountiesMessage::ChildrenCuratorFees {
 								child_id,
 								amount,

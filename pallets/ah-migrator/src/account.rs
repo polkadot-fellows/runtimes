@@ -20,6 +20,7 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
+	#[allow(clippy::type_complexity)]
 	pub fn do_receive_accounts(
 		accounts: Vec<
 			RcAccount<T::AccountId, T::Balance, T::PortableHoldReason, T::PortableFreezeReason>,
@@ -280,12 +281,17 @@ pub mod tests {
 				"No freezes should exist on Asset Hub before migration"
 			);
 
+			#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 			let check_account = T::CheckingAccount::get();
+			#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 			let checking_balance = <T as Config>::Currency::total_balance(&check_account);
 			// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
 			// added DOT ED to all existing AH accounts.
 			// This is fine, we can just ignore/accept this small amount.
+			#[cfg(feature = "polkadot-ahm")]
 			defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
+			#[cfg(feature = "kusama-ahm")]
+			defensive_assert!(checking_balance.is_zero());
 
 			let mut ah_pre_payload = BTreeMap::new();
 			for (account, _) in frame_system::Account::<T>::iter() {
@@ -356,7 +362,7 @@ pub mod tests {
 					ah_locks.push((lock.id, lock.amount, lock.reasons as u8));
 					frozen += lock.amount;
 				}
-				ah_locks.sort_by_key(|(id, _, _)| id.clone());
+				ah_locks.sort_by_key(|(id, _, _)| *id);
 
 				let rc_migrated_balance =
 					summary.migrated_free.saturating_add(summary.migrated_reserved);
@@ -416,7 +422,7 @@ pub mod tests {
 				// There should be no locks on AH before the migration so we just need to check that
 				// the locks on AH after migration are the same as on RC before migration.
 				let mut rc_locks = summary.locks.clone();
-				rc_locks.sort_by_key(|(id, _, _)| id.clone());
+				rc_locks.sort_by_key(|(id, _, _)| *id);
 				assert_eq!(
 					rc_locks,
 					ah_locks,

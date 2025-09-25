@@ -37,7 +37,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => count_good += 1,
 				Err(e) => {
 					count_bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating vesting: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating vesting: {e:?}");
 				},
 			}
 		}
@@ -78,8 +78,7 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
-	type RcPrePayload =
-		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
+	type RcPrePayload = Vec<(Vec<u8>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
 
 	type AhPrePayload = ();
 
@@ -100,31 +99,30 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 
 		let rc_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
-			.map(|(who_encoded, balances, vesting_info)| {
+			.map(|(who_encoded, vesting_info)| {
 				let translated_encoded =
 					Pallet::<T>::translate_encoded_account_rc_to_ah(who_encoded);
-				(translated_encoded, (balances, vesting_info))
+				(translated_encoded, vesting_info)
 			})
 			.collect();
 
+		#[allow(clippy::type_complexity)]
 		let all_post: BTreeMap<
 			Vec<u8>,
-			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
+			Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>,
 		> = pallet_vesting::Vesting::<T>::iter()
 			.map(|(who, schedules)| {
-				let mut balances: Vec<BalanceOf<T>> = Vec::new();
 				let mut vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
 					Vec::new();
 
 				for s in schedules.iter() {
-					balances.push(s.locked());
 					vesting_info.push(GenericVestingInfo {
 						locked: s.locked(),
 						starting_block: s.starting_block(),
 						per_block: s.per_block(),
 					});
 				}
-				(who.encode(), (balances, vesting_info))
+				(who.encode(), vesting_info)
 			})
 			.collect();
 

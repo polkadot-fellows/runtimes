@@ -81,7 +81,7 @@ pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 		para_id: ParaId,
 		/// Amount that was reserved to create the crowdloan.
 		///
-		/// Normally this is 500 DOT. TODO: @ggwpez Should sanity check.
+		/// Normally this is 500 DOT.
 		amount: Balance,
 	},
 }
@@ -141,7 +141,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					break;
 				}
 			}
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages(messages.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -194,7 +194,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key
 				},
 				CrowdloanStage::LeaseReserve { last_key } => {
-					let mut iter = match last_key.clone() {
+					let mut iter = match last_key {
 						Some(last_key) => pallet_slots::Leases::<T>::iter_from_key(last_key),
 						None => pallet_slots::Leases::<T>::iter(),
 					};
@@ -205,7 +205,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							let Some(last_lease) = leases.last() else {
 								// This seems to be fine, but i don't know why it happens, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L108-L109
-								log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+								log::warn!(target: LOG_TARGET, "Empty leases for para_id: {para_id:?}");
 								continue;
 							};
 
@@ -216,6 +216,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							};
 
 							// Sanity check that all leases have the same account and amount:
+							let _ = lease_amount;  // clippy
 							#[cfg(feature = "std")]
 							for (acc, amount) in leases.iter().flatten() {
 								defensive_assert!(acc == lease_acc, "All leases should have the same account");
@@ -240,7 +241,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					}
 				},
 				CrowdloanStage::CrowdloanContribution { last_key } => {
-					let mut funds_iter = match last_key.clone() {
+					let mut funds_iter = match last_key {
 						Some(last_key) => pallet_crowdloan::Funds::<T>::iter_from_key(last_key),
 						None => pallet_crowdloan::Funds::<T>::iter(),
 					};
@@ -253,15 +254,15 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 						},
 					};
 
-					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
+					let contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
-					while let Some((contributor, (amount, memo))) = contributions_iter.next() {
+					for (contributor, (amount, memo)) in contributions_iter {
 						if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
 							// we break in outer loop for simplicity, but still consume the weight.
 							log::info!("RC weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
 						}
 
-						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages(messages.len() + 1)) {
 							// we break in outer loop for simplicity.
 							log::info!("AH weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
 						}
@@ -327,6 +328,11 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 	}
 }
 
+/// The conversion of a lease to its ending block failed.
+// To make Clippy happy instead of using `()` as error type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeaseToEndingBlockError;
+
 /// Calculate the lease ending block from the number of remaining leases (including the current).
 ///
 /// # Example
@@ -335,7 +341,9 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 /// |-0-|-1-|-2-|-3-|-4-|-5-|
 ///               ^-----^
 /// Then this function returns the end block number of period 4 (start block of period 5).
-pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNumberFor<T>, ()> {
+pub fn num_leases_to_ending_block<T: Config>(
+	num_leases: u32,
+) -> Result<BlockNumberFor<T>, LeaseToEndingBlockError> {
 	let now = frame_system::Pallet::<T>::block_number();
 	let num_leases: BlockNumberFor<T> = num_leases.into();
 	let offset = <T as pallet_slots::Config>::LeaseOffset::get();
@@ -343,17 +351,20 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 
 	// Sanity check:
 	if now < offset {
-		return Err(());
+		return Err(LeaseToEndingBlockError);
 	}
 
 	// The current period: (now - offset) / period
-	let current_period = now.checked_sub(&offset).and_then(|x| x.checked_div(&period)).ok_or(())?;
+	let current_period = now
+		.checked_sub(&offset)
+		.and_then(|x| x.checked_div(&period))
+		.ok_or(LeaseToEndingBlockError)?;
 	// (current_period + num_leases) * period + offset
 	let last_period_end_block = current_period
 		.checked_add(&num_leases)
 		.and_then(|x| x.checked_mul(&period))
 		.and_then(|x| x.checked_add(&offset))
-		.ok_or(())?;
+		.ok_or(LeaseToEndingBlockError)?;
 	Ok(last_period_end_block)
 }
 
@@ -423,7 +434,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 			};
 
 			let Some(last_lease) = leases.last() else {
-				log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+				log::warn!(target: LOG_TARGET, "Empty leases for para_id: {para_id:?}");
 				continue;
 			};
 			let Some((lease_acc, _)) = last_lease else {
@@ -523,26 +534,19 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		}
 
 		// Process crowdloan funds and their contributions
-		let mut crowdloan_data: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> = BTreeMap::new();
-		for (para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+		for (_para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
 			// Collect all contributions for this fund
 			let contributions: Vec<_> = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
 				.map(|(contributor, (amount, _memo))| {
 					// We don't need to decode block numbers here since we just want to verify everything is empty
-					(BlockNumberFor::<T>::default(), contributor, amount.try_into().unwrap_or_default())
+					(contributor, amount)
 				})
 				.collect();
 
 			if !contributions.is_empty() {
-				crowdloan_data.insert(para_id, contributions);
+				panic!("Crowdloan contributions should be empty after migration");
 			}
 		}
-
-		// Verify that all crowdloan data has been properly migrated
-		assert!(
-			crowdloan_data.is_empty(),
-			"Crowdloan contributions should be empty after migration"
-		);
 
 		// Assert storage "Crowdloan::Funds::rc_post::empty"
 		assert!(

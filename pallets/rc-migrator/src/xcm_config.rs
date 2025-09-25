@@ -27,7 +27,7 @@ impl<Stage: MigrationStatus, Inner: ContainsPair<Asset, Location>> ContainsPair<
 {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		let migration_ongoing = Stage::is_ongoing();
-		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {:?}", migration_ongoing);
+		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {migration_ongoing:?}");
 		let result = if migration_ongoing {
 			// during migration, no teleports (in or out) allowed
 			false
@@ -37,8 +37,7 @@ impl<Stage: MigrationStatus, Inner: ContainsPair<Asset, Location>> ContainsPair<
 		};
 		log::trace!(
 			target: "xcm::IsTeleport::contains",
-			"asset: {:?} origin {:?} result {:?}",
-			asset, origin, result
+			"asset: {asset:?} origin {origin:?} result {result:?}"
 		);
 		result
 	}

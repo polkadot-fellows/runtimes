@@ -74,9 +74,7 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 					break;
 				}
 			}
-			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_indices((messages.len() + 1) as u32))
-			{
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_indices(messages.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -111,8 +109,8 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 
 			match pallet_indices::Accounts::<T>::iter().next() {
 				Some((index, (who, deposit, frozen))) => {
-					pallet_indices::Accounts::<T>::remove(&index);
-					log::debug!(target: LOG_TARGET, "Migrating index: {:?}", index);
+					pallet_indices::Accounts::<T>::remove(index);
+					log::debug!(target: LOG_TARGET, "Migrating index: {index:?}");
 					messages.push(RcIndicesIndex { index, who, deposit, frozen });
 					inner_key = Some(());
 				},

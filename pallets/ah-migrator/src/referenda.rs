@@ -165,7 +165,7 @@ impl<T: Config> Pallet<T> {
 			count_good,
 			count_bad,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} referendums", count_good);
+		log::info!(target: LOG_TARGET, "Processed {count_good} referendums");
 
 		Ok(())
 	}
@@ -174,7 +174,7 @@ impl<T: Config> Pallet<T> {
 		id: u32,
 		referendum: RcReferendumInfoOf<T, ()>,
 	) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating referendum id: {}, info: {:?}", id, referendum);
+		log::debug!(target: LOG_TARGET, "Integrating referendum id: {id}, info: {referendum:?}");
 
 		let referendum: AhReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
@@ -189,7 +189,7 @@ impl<T: Config> Pallet<T> {
 						),
 					);
 					Self::deposit_event(Event::ReferendumCanceled { id });
-					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
+					log::error!(target: LOG_TARGET, "!!! Referendum {id} cancelled");
 				};
 
 				let origin = match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
@@ -207,7 +207,7 @@ impl<T: Config> Pallet<T> {
 				let proposal = if let Ok(proposal) = Self::map_rc_ah_call(&status.proposal) {
 					proposal
 				} else {
-					log::error!(target: LOG_TARGET, "Failed to convert RC call to AH call for referendum {}", id);
+					log::error!(target: LOG_TARGET, "Failed to convert RC call to AH call for referendum {id}");
 					cancel_referendum(id, status);
 					return Ok(());
 				};
@@ -237,7 +237,7 @@ impl<T: Config> Pallet<T> {
 
 		alias::ReferendumInfoFor::<T>::insert(id, referendum);
 
-		log::debug!(target: LOG_TARGET, "Referendum {} integrated", id);
+		log::debug!(target: LOG_TARGET, "Referendum {id} integrated");
 
 		Ok(())
 	}
@@ -253,9 +253,9 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for (id, hash) in metadata {
-			log::debug!(target: LOG_TARGET, "Integrating referendum {} metadata", id);
+			log::debug!(target: LOG_TARGET, "Integrating referendum {id} metadata");
 			MetadataOf::<T, ()>::insert(id, hash);
-			log::debug!(target: LOG_TARGET, "Referendum {} integrated", id);
+			log::debug!(target: LOG_TARGET, "Referendum {id} integrated");
 		}
 
 		Self::deposit_event(Event::BatchProcessed {
@@ -263,11 +263,12 @@ impl<T: Config> Pallet<T> {
 			count_good: count,
 			count_bad: 0,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} metadata", count);
+		log::info!(target: LOG_TARGET, "Processed {count} metadata");
 
 		Ok(())
 	}
 
+	#[allow(clippy::type_complexity)]
 	pub fn do_receive_referenda_values(
 		referendum_count: Option<u32>,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
@@ -282,12 +283,12 @@ impl<T: Config> Pallet<T> {
 		if let Some(referendum_count) = referendum_count {
 			ReferendumCount::<T, ()>::put(referendum_count);
 		}
-		if deciding_count.len() > 0 {
+		if !deciding_count.is_empty() {
 			deciding_count.iter().for_each(|(track_id, count)| {
 				DecidingCount::<T, ()>::insert(track_id, count);
 			});
 		}
-		if track_queue.len() > 0 {
+		if !track_queue.is_empty() {
 			track_queue.into_iter().for_each(|(track_id, queue)| {
 				let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
 				TrackQueue::<T, ()>::insert(track_id, queue);
@@ -323,7 +324,9 @@ pub mod alias {
 #[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	pub referendum_count: ReferendumIndex,
+	#[allow(clippy::type_complexity)]
 	pub deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
+	#[allow(clippy::type_complexity)]
 	pub track_queue: Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)>)>,
 	pub metadata: Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
 	pub referenda: Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
@@ -365,8 +368,6 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 			alias::ReferendumInfoFor::<T>::iter().next().is_none(),
 			"Referendum info for map should be empty on AH before the migration"
 		);
-
-		()
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {

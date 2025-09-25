@@ -76,7 +76,7 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &translated_id);
 			},
 			PortableBagsListMessage::Bag { score, bag } => {
-				debug_assert!(!pallet_bags_list::ListBags::<T, I>::contains_key(&score));
+				debug_assert!(!pallet_bags_list::ListBags::<T, I>::contains_key(score));
 
 				// Translate all AccountId fields in the bag structure
 				let translated_bag = pallet_bags_list::Bag {
@@ -86,7 +86,7 @@ impl<T: Config> Pallet<T> {
 					_phantom: Default::default(),
 				};
 
-				pallet_bags_list::ListBags::<T, I>::insert(&score, &translated_bag);
+				pallet_bags_list::ListBags::<T, I>::insert(score, &translated_bag);
 				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
 			},
 		}

@@ -16,9 +16,9 @@
 
 //! Test that account translation works (Para sovereign and derived).
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
-use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::{accounts::AccountState, types::RcMigrationCheck};
 use sp_application_crypto::Ss58Codec;
@@ -34,8 +34,12 @@ pub const TRANSLATIONS: &[(AccountId32, AccountId32)] = &[
 	// para 2034: 5Ec4AhPbkXX97KXMcf9v9SkRNG4Gyc3VhcMMuQe9QXfAHnrC ->
 	// 5Eg2fntQqFi3EvFWAf71G66Ecjjah26bmFzoANAeHFgj9Lia
 	(
-		AccountId32::new(hex!("70617261f2070000000000000000000000000000000000000000000000000000")),
-		AccountId32::new(hex!("7369626cf2070000000000000000000000000000000000000000000000000000")),
+		AccountId32::new(hex_literal::hex!(
+			"70617261f2070000000000000000000000000000000000000000000000000000"
+		)),
+		AccountId32::new(hex_literal::hex!(
+			"7369626cf2070000000000000000000000000000000000000000000000000000"
+		)),
 	),
 ];
 
@@ -61,7 +65,7 @@ impl RcMigrationCheck for AccountTranslationWorks {
 
 			// If an account still exists, then it must be in the RcAccounts map
 			let Some(entry) = pallet_rc_migrator::RcAccounts::<RelayRuntime>::get(rc_acc) else {
-				panic!("RC acc did not properly migrate: {}", rc_acc);
+				panic!("RC acc did not properly migrate: {rc_acc}");
 			};
 
 			match entry {

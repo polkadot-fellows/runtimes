@@ -31,7 +31,7 @@ impl<T: Config> Pallet<T> {
 			Self::do_receive_asset_rate(rate)?;
 		}
 
-		log::info!(target: LOG_TARGET, "Processed {} asset rates", count);
+		log::info!(target: LOG_TARGET, "Processed {count} asset rates");
 		Self::deposit_event(Event::BatchProcessed {
 			pallet: PalletEventName::AssetRates,
 			count_good: count,
@@ -45,7 +45,7 @@ impl<T: Config> Pallet<T> {
 		rate: (<T as pallet_asset_rate::Config>::AssetKind, FixedU128),
 	) -> Result<(), Error<T>> {
 		let (asset_kind, rate) = rate;
-		log::debug!(target: LOG_TARGET, "Inserting asset rate for {:?}: {}", asset_kind, rate);
+		log::debug!(target: LOG_TARGET, "Inserting asset rate for {asset_kind:?}: {rate}");
 		ConversionRateToNative::<T>::insert(asset_kind, rate);
 		Ok(())
 	}

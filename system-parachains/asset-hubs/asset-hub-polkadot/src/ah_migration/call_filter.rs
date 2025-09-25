@@ -24,7 +24,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledBe
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (before, _, _) = call_allowed_status(call);
 		if !before {
-			log::warn!("Call bounced by the filter before the migration: {:?}", call);
+			log::warn!("Call bounced by the filter before the migration: {call:?}",);
 		}
 		before
 	}
@@ -36,7 +36,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDu
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (_before, during, _after) = call_allowed_status(call);
 		if !during {
-			log::warn!("Call bounced by the filter during the migration: {:?}", call);
+			log::warn!("Call bounced by the filter during the migration: {call:?}",);
 		}
 		during
 	}
@@ -48,7 +48,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (_before, _during, after) = call_allowed_status(call);
 		if !after {
-			log::warn!("Call bounced by the filter after the migration: {:?}", call);
+			log::warn!("Call bounced by the filter after the migration: {call:?}",);
 		}
 		after
 	}
@@ -77,7 +77,8 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 ///       Start        End
 /// ```
 ///
-/// This call returns a 3-tuple to indicate whether a call is enabled during these periods.
+/// This call returns a 3-tuple to indicate whether a call is enabled during these periods. The
+/// Start period contains our Warmup period and the End period contains our Cool-off period.
 pub fn call_allowed_status(
 	call: &<Runtime as frame_system::Config>::RuntimeCall,
 ) -> (bool, bool, bool) {
@@ -119,7 +120,10 @@ pub fn call_allowed_status(
 		Referenda(..) => OFF,
 		Scheduler(..) => ON, // only permissioned service calls
 		Session(..) => OFF,
-		SnowbridgeSystemFrontend(..) => ON, // FAIL-CI @ggwpez TODO
+		SnowbridgeSystemFrontend(snowbridge_pallet_system_frontend::Call::set_operating_mode {
+			..
+		}) => ON, // Only root
+		SnowbridgeSystemFrontend(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
 		StateTrieMigration(..) => OFF, // Deprecated
@@ -133,6 +137,7 @@ pub fn call_allowed_status(
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
 		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
+		Parameters(..) => ON, // allow governance to still update any params if needed
 	};
 	// Exhaustive match. Compiler ensures that we did not miss any.
 
@@ -191,7 +196,7 @@ pub fn call_allowed_before_migration(
 		Proxy(..) |
 		Scheduler(..) |
 		Session(..) |
-		SnowbridgeSystemFrontend(..) | // TODO: @ggwpez
+		SnowbridgeSystemFrontend(..) |
 		StakingRcClient(..) |
 		StateTrieMigration(..) |
 		System(..) |
@@ -200,6 +205,7 @@ pub fn call_allowed_before_migration(
 		Uniques(..) |
 		Utility(..) |
 		Whitelist(..) |
-		XcmpQueue(..) => ON,
+		XcmpQueue(..) |
+		Parameters(..) => ON,
 	}
 }

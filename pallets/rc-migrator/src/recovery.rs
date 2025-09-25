@@ -149,6 +149,7 @@ impl TranslateAccounts for PortableRecoveryConfig {
 }
 
 // Portable -> AH
+#[allow(clippy::from_over_into)]
 impl
 	Into<pallet_recovery::RecoveryConfig<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>>
 	for PortableRecoveryConfig
@@ -189,6 +190,7 @@ impl IntoPortable
 }
 
 // Portable -> AH
+#[allow(clippy::from_over_into)]
 impl
 	Into<pallet_recovery::ActiveRecovery<u32, u128, BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>>>
 	for PortableActiveRecovery
@@ -224,6 +226,7 @@ impl TranslateAccounts for PortableRecoveryFriends {
 }
 
 // Portable -> AH
+#[allow(clippy::from_over_into)]
 impl Into<BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>> for PortableRecoveryFriends {
 	fn into(self) -> BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>> {
 		self.friends
@@ -261,9 +264,7 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 				}
 			}
 
-			if T::MaxAhWeight::get()
-				.any_lt(ah_receive_recovery_msg_weight((messages.len() + 1) as u32))
-			{
+			if T::MaxAhWeight::get().any_lt(ah_receive_recovery_msg_weight(messages.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",

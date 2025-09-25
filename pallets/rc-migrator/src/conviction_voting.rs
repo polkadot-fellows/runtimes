@@ -90,9 +90,9 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					break;
 				}
 			}
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_conviction_voting_messages(
-				(messages.len() + 1) as u32,
-			)) {
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_conviction_voting_messages(messages.len() + 1))
+			{
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",

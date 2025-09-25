@@ -17,11 +17,9 @@
 use crate as pallet_ah_ops;
 use crate::*;
 use frame_support::derive_impl;
+use frame_system::EnsureSigned;
 use sp_core::H256;
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup},
-	BuildStorage,
-};
+use sp_runtime::traits::{parameter_types, BlakeTwo256, IdentityLookup};
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
@@ -29,6 +27,7 @@ type Block = frame_system::mocking::MockBlock<Runtime>;
 frame_support::construct_runtime!(
 	pub enum Runtime {
 		System: frame_system,
+		Assets: pallet_assets,
 		Balances: pallet_balances,
 		AhOps: pallet_ah_ops,
 		Timestamp: pallet_timestamp,
@@ -67,6 +66,16 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 }
 
+#[derive_impl(pallet_assets::config_preludes::TestDefaultConfig)]
+impl pallet_assets::Config for Runtime {
+	type Balance = u128;
+	type Currency = Balances;
+	type CreateOrigin = EnsureSigned<Self::AccountId>;
+	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Holder = ();
+	type Freezer = ();
+}
+
 impl pallet_timestamp::Config for Runtime {
 	type Moment = u64;
 	type OnTimestampSet = ();
@@ -74,15 +83,26 @@ impl pallet_timestamp::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const MigrationCompletion: bool = true;
+	pub TreasuryPreMigrationAccount: AccountId32 = AccountId32::from([1; 32]);
+	pub TreasuryPostMigrationAccount: AccountId32 = AccountId32::from([2; 32]);
+}
+
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type Fungibles = Assets;
 	type RcBlockNumberProvider = System; // Wrong but unused
 	type WeightInfo = ();
+	type MigrationCompletion = MigrationCompletion;
+	type TreasuryPreMigrationAccount = TreasuryPreMigrationAccount;
+	type TreasuryPostMigrationAccount = TreasuryPostMigrationAccount;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
 pub fn new_test_ext() -> sp_io::TestExternalities {
+	use sp_runtime::BuildStorage;
 	let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
 	sp_io::TestExternalities::new(t)
 }

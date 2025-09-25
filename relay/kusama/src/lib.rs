@@ -21,7 +21,7 @@
 #![recursion_limit = "512"]
 
 #[cfg(all(not(feature = "kusama-ahm"), feature = "on-chain-release-build"))]
-compile_error!("Asset Hub migration requires the `kusama` feature");
+compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 
 extern crate alloc;
 
@@ -187,7 +187,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_006_001,
+	spec_version: 1_007_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1167,9 +1167,9 @@ impl pallet_utility::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
+	pub const MultisigDepositBase: Balance = deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const MultisigDepositFactor: Balance = deposit(0, 32);
 	pub const MaxSignatories: u32 = 100;
 }
 
@@ -1177,8 +1177,8 @@ impl pallet_multisig::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
-	type DepositBase = DepositBase;
-	type DepositFactor = DepositFactor;
+	type DepositBase = MultisigDepositBase;
+	type DepositFactor = MultisigDepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 	type BlockNumberProvider = System;
@@ -1212,11 +1212,23 @@ impl pallet_society::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = ConstU32<{ 5 * DAYS }>;
+	type VotingPeriod = pallet_rc_migrator::types::LeftIfPending<
+		RcMigrator,
+		ConstU32<{ 5 * DAYS }>,
+		// disable rotation `on_initialize` during and after migration
+		// { - 10 * DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
+		ConstU32<{ u32::MAX - 10 * DAYS }>,
+	>;
 	type ClaimPeriod = ConstU32<{ 2 * DAYS }>;
 	type MaxLockDuration = ConstU32<{ 36 * 30 * DAYS }>;
 	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = ConstU32<{ 7 * DAYS }>;
+	type ChallengePeriod = pallet_rc_migrator::types::LeftIfPending<
+		RcMigrator,
+		ConstU32<{ 7 * DAYS }>,
+		// disable challenge rotation `on_initialize` during and after migration
+		// { - 10 * DAYS } to make sure we don't overflow
+		ConstU32<{ u32::MAX - 10 * DAYS }>,
+	>;
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;
@@ -1272,9 +1284,9 @@ parameter_types! {
 )]
 pub struct TransparentProxyType(pub ProxyType);
 
-impl Into<ProxyType> for TransparentProxyType {
-	fn into(self) -> ProxyType {
-		self.0
+impl From<TransparentProxyType> for ProxyType {
+	fn from(transparent_proxy_type: TransparentProxyType) -> Self {
+		transparent_proxy_type.0
 	}
 }
 
@@ -1830,7 +1842,7 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 		let message = SessionReportToXcm::convert(session_report);
 		let dest = AssetHubLocation::get();
 		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {:?}", err);
+			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {err:?}");
 		});
 	}
 
@@ -1857,7 +1869,7 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
 		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
 			|err| {
-				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {:?}", err);
+				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {err:?}");
 			},
 		);
 	}
@@ -2132,24 +2144,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use pallet_balances::WeightInfo;
-
-	parameter_types! {
-		/// Weight for balance unreservations
-		pub BalanceTransferAllowDeath: Weight = weights::pallet_balances_native::WeightInfo::<Runtime>::transfer_allow_death();
-	}
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
-		pallet_session::migrations::v1::MigrateV0ToV1<
-			Runtime,
-			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
-		>,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2283,11 +2283,7 @@ mod benches {
 		}
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay can reserve transfer native token to some random parachain.
-			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				Parachain(RandomParaId::get().into()).into(),
-			))
+			None
 		}
 
 		fn set_up_complex_asset_transfer(

@@ -5,12 +5,9 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["never"]
-  # Disabled on AHM PRs
-  #push:
-  #  branches: ["main", "release-*"]
-  #pull_request:
-  #workflow_dispatch:
+    branches: ["main", "release-*"]
+  pull_request:
+  workflow_dispatch:
 
 # Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
 # triggered (ref https://stackoverflow.com/a/72408109)
@@ -123,8 +120,13 @@ jobs:
           CHECKS: ${{ env.CHECKS }}
         run: |
           cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.8.0 --locked && try-runtime --version
-
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            FEATURES="--features try-runtime,${{ matrix.runtime.build_extra_features }}"
+          else
+            FEATURES="--features try-runtime"
+          fi
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm

@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::from_over_into)] // We just want Into<s>, no From<s> coercion needed.
+
 use crate::*;
 use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
@@ -52,7 +54,7 @@ pub enum PortableTreasuryMessage {
 	Proposals((ProposalIndex, Proposal<AccountId32, u128>)),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
-	Spends { id: SpendIndex, status: PortableSpendStatus },
+	Spends { id: SpendIndex, status: Box<PortableSpendStatus> },
 	LastSpendPeriod(Option<u32>),
 	Funds,
 }
@@ -88,7 +90,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_treasury_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_treasury_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -138,7 +140,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_treasury::Proposals::<T>::remove(&key);
+							pallet_treasury::Proposals::<T>::remove(key);
 							messages.push(PortableTreasuryMessage::Proposals((key, value)));
 							TreasuryStage::Proposals(Some(key))
 						},
@@ -167,10 +169,10 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_treasury::Spends::<T>::remove(&key);
+							pallet_treasury::Spends::<T>::remove(key);
 							messages.push(PortableTreasuryMessage::Spends {
 								id: key,
-								status: value.into_portable(),
+								status: Box::new(value.into_portable()),
 							});
 							TreasuryStage::Spends(Some(key))
 						},
@@ -194,7 +196,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 			};
 		}
 
-		if messages.len() > 0 {
+		if !messages.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(messages, |messages| {
 				types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages }
 			})?;

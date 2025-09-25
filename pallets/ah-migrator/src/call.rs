@@ -24,11 +24,7 @@ impl<T: Config> Pallet<T> {
 	pub fn map_rc_ah_call(
 		rc_bounded_call: &BoundedCallOf<T>,
 	) -> Result<BoundedCallOf<T>, Error<T>> {
-		let encoded_call = if let Ok(e) = Self::fetch_preimage(rc_bounded_call) {
-			e
-		} else {
-			return Err(Error::<T>::PreimageNotFound);
-		};
+		let encoded_call = Self::fetch_preimage(rc_bounded_call)?;
 
 		if let Some(hash) = rc_bounded_call.lookup_hash() {
 			if T::Preimage::is_requested(&hash) {
@@ -42,7 +38,7 @@ impl<T: Config> Pallet<T> {
 			return Err(Error::<T>::FailedToConvertCall);
 		};
 
-		log::debug!(target: LOG_TARGET, "mapped call: {:?}", call);
+		log::debug!(target: LOG_TARGET, "mapped call: {call:?}");
 
 		let ah_bounded_call = T::Preimage::bound(call).map_err(|err| {
 			defensive!("Failed to bound call: {:?}", err);
@@ -58,7 +54,7 @@ impl<T: Config> Pallet<T> {
 		Ok(ah_bounded_call)
 	}
 
-	fn fetch_preimage(bounded_call: &BoundedCallOf<T>) -> Result<Vec<u8>, Error<T>> {
+	pub fn fetch_preimage(bounded_call: &BoundedCallOf<T>) -> Result<Vec<u8>, Error<T>> {
 		match bounded_call {
 			Bounded::Inline(encoded) => Ok(encoded.clone().into_inner()),
 			Bounded::Legacy { hash, .. } => {
@@ -66,7 +62,7 @@ impl<T: Config> Pallet<T> {
 					encoded
 				} else {
 					// not an error since a submitter can delete the preimage for ongoing referendum
-					log::warn!(target: LOG_TARGET, "No preimage found for call hash: {:?}", hash);
+					log::warn!(target: LOG_TARGET, "No preimage found for call hash: {hash:?}");
 					return Err(Error::<T>::PreimageNotFound);
 				};
 				Ok(encoded.into_owned())

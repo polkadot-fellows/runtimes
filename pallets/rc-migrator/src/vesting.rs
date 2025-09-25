@@ -76,7 +76,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_vesting_schedules((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_vesting_schedules(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -119,7 +119,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 				Some((who, schedules)) => {
 					pallet_vesting::Vesting::<T>::remove(&who);
 					messages.push(RcVestingSchedule { who: who.clone(), schedules });
-					log::debug!(target: LOG_TARGET, "Migrating vesting schedules for {:?}", who);
+					log::debug!(target: LOG_TARGET, "Migrating vesting schedules for {who:?}");
 					inner_key = Some(who);
 				},
 				None => {
@@ -148,13 +148,11 @@ pub struct GenericVestingInfo<BlockNumber, Balance> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
-	type RcPrePayload =
-		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
+	type RcPrePayload = Vec<(Vec<u8>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		pallet_vesting::Vesting::<T>::iter()
 			.map(|(who, schedules)| {
-				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
 				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
 					schedules
 						.iter()
@@ -164,7 +162,7 @@ impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
 							per_block: s.per_block(),
 						})
 						.collect();
-				(who.encode(), balances, vesting_info)
+				(who.encode(), vesting_info)
 			})
 			.collect()
 	}

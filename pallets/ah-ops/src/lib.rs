@@ -46,6 +46,7 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::Preservation,
 		Defensive, LockableCurrency, ReservableCurrency,
 	},
@@ -89,8 +90,23 @@ pub mod pallet {
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 
+		/// Fungibles registry type.
+		type Fungibles: FungiblesInspect<Self::AccountId, Balance = u128>
+			+ FungiblesMutate<Self::AccountId, Balance = u128>;
+
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
+		/// Whether the Asset Hub migration is completed.
+		///
+		/// Returns `true` if the Asset Hub migration is completed.
+		type MigrationCompletion: Get<bool>;
+
+		/// The pre-migration treasury account address.
+		type TreasuryPreMigrationAccount: Get<Self::AccountId>;
+
+		/// The post-migration treasury account address.
+		type TreasuryPostMigrationAccount: Get<Self::AccountId>;
 
 		/// The Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
@@ -187,6 +203,10 @@ pub mod pallet {
 		NotSovereign,
 		/// Internal error, please bug report.
 		InternalError,
+		/// The Asset Hub migration is not completed.
+		MigrationNotCompleted,
+		/// The balance is zero.
+		ZeroBalance,
 	}
 
 	#[pallet::event]
@@ -288,6 +308,41 @@ pub mod pallet {
 			let depositor = depositor.unwrap_or(sender);
 
 			Self::do_unreserve_crowdloan_reserve(block, depositor, para_id).map_err(Into::into)
+		}
+
+		/// Transfer the balance from the pre-migration treasury account to the post-migration
+		/// treasury account.
+		///
+		/// This call can only be called after the migration is completed.
+		#[pallet::call_index(3)]
+		#[pallet::weight({
+			Weight::from_parts(100_000_000, 9000)
+				.saturating_add(T::DbWeight::get().reads_writes(2, 2))
+		})]
+		pub fn transfer_to_post_migration_treasury(
+			origin: OriginFor<T>,
+			asset_id: Box<<T::Fungibles as FungiblesInspect<T::AccountId>>::AssetId>,
+		) -> DispatchResultWithPostInfo {
+			ensure_signed(origin)?;
+
+			ensure!(T::MigrationCompletion::get(), Error::<T>::MigrationNotCompleted);
+
+			let pre_migration_account = T::TreasuryPreMigrationAccount::get();
+			let post_migration_account = T::TreasuryPostMigrationAccount::get();
+
+			let balance =
+				<T as Config>::Fungibles::balance(*asset_id.clone(), &pre_migration_account);
+			ensure!(balance > 0, Error::<T>::ZeroBalance);
+
+			<T as Config>::Fungibles::transfer(
+				*asset_id,
+				&pre_migration_account,
+				&post_migration_account,
+				balance,
+				Preservation::Expendable,
+			)?;
+
+			Ok(Pays::No.into())
 		}
 	}
 

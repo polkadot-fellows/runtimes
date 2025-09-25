@@ -157,11 +157,10 @@ impl TryConvert<RcPalletsOrigin, OriginCaller> for RcToAhPalletsOrigin {
 /// Relay Chain Runtime Call.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcRuntimeCall {
-	// TODO: @muharem variant set code for Relay Chain
-	// TODO: @muharem variant set code for Parachains
-	// TODO: @muharem whitelisted caller
 	#[codec(index = 0u8)]
 	System(frame_system::Call<Runtime>),
+	#[codec(index = 1u8)]
+	Scheduler(RcSchedulerCall),
 	#[codec(index = 19u8)]
 	Treasury(RcTreasuryCall),
 	#[codec(index = 21u8)]
@@ -172,6 +171,8 @@ pub enum RcRuntimeCall {
 	Bounties(pallet_bounties::Call<Runtime>),
 	#[codec(index = 38u8)]
 	ChildBounties(pallet_child_bounties::Call<Runtime>),
+	#[codec(index = 99u8)]
+	XcmPallet(RcXcmCall),
 }
 
 /// Relay Chain Treasury Call obtained from cargo expand.
@@ -230,6 +231,39 @@ pub enum RcUtilityCall {
 	force_batch { calls: Vec<RcRuntimeCall> },
 }
 
+/// Relay Chain Scheduler Call.
+///
+/// The variants that are not generally used in Governance are not included.
+#[allow(non_camel_case_types)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum RcSchedulerCall {
+	#[codec(index = 4u8)]
+	schedule_after {
+		after: BlockNumber,
+		maybe_periodic: Option<frame_support::traits::schedule::Period<BlockNumber>>,
+		priority: frame_support::traits::schedule::Priority,
+		call: Box<RcRuntimeCall>,
+	},
+}
+
+/// Relay Chain XCM Call.
+///
+/// The variants that are not generally used in Governance are not included.
+#[allow(non_camel_case_types)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum RcXcmCall {
+	#[codec(index = 0u8)]
+	send { dest: Box<VersionedLocation>, message: Box<VersionedXcm<()>> },
+	#[codec(index = 8u8)]
+	limited_reserve_transfer_assets {
+		dest: Box<VersionedLocation>,
+		beneficiary: Box<VersionedLocation>,
+		assets: Box<VersionedAssets>,
+		fee_asset_item: u32,
+		weight_limit: WeightLimit,
+	},
+}
+
 /// Convert an encoded Relay Chain Call to a local AH one.
 pub struct RcToAhCall;
 impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
@@ -237,7 +271,7 @@ impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
 		let rc_call = match RcRuntimeCall::decode_all(&mut a) {
 			Ok(rc_call) => rc_call,
 			Err(e) => {
-				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {:?}", e);
+				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {e:?}");
 				return Err(a)
 			},
 		};
@@ -252,18 +286,27 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Bounties call to AH System call: {:?}",
-							err
+							"Failed to decode RC Bounties call to AH System call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::System(call))
 			},
+			RcRuntimeCall::Scheduler(RcSchedulerCall::schedule_after {
+				after,
+				maybe_periodic,
+				priority,
+				call,
+			}) => Ok(RuntimeCall::Scheduler(pallet_scheduler::Call::<Runtime>::schedule_after {
+				after,
+				maybe_periodic,
+				priority,
+				call: Box::new(Self::map(*call)?),
+			})),
 			RcRuntimeCall::Utility(RcUtilityCall::dispatch_as { as_origin, call }) => {
 				let origin = RcToAhPalletsOrigin::try_convert(*as_origin).map_err(|err| {
 					log::error!(
 						target: LOG_TARGET,
-						"Failed to decode RC dispatch_as origin: {:?}",
-						err
+						"Failed to decode RC dispatch_as origin: {err:?}"
 					);
 				})?;
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::dispatch_as {
@@ -273,24 +316,15 @@ impl RcToAhCall {
 			},
 			RcRuntimeCall::Utility(RcUtilityCall::batch { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Utility(RcUtilityCall::batch_all { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch_all {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Utility(RcUtilityCall::force_batch { calls }) =>
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::force_batch {
-					calls: calls
-						.into_iter()
-						.map(|c| Self::map(c))
-						.collect::<Result<Vec<_>, _>>()?,
+					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
 				})),
 			RcRuntimeCall::Treasury(RcTreasuryCall::spend {
 				asset_kind,
@@ -312,8 +346,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode inner RC call into inner AH call: {:?}",
-							err
+							"Failed to decode inner RC call into inner AH call: {err:?}"
 						);
 					})?;
 				Ok(RuntimeCall::Treasury(call))
@@ -323,8 +356,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Referenda call to AH Referenda call: {:?}",
-							err
+							"Failed to decode RC Referenda call to AH Referenda call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Referenda(call))
@@ -334,8 +366,7 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC Bounties call to AH Bounties call: {:?}",
-							err
+							"Failed to decode RC Bounties call to AH Bounties call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::Bounties(call))
@@ -345,11 +376,101 @@ impl RcToAhCall {
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
 							target: LOG_TARGET,
-							"Failed to decode RC ChildBounties call to AH ChildBounties call: {:?}",
-							err
+							"Failed to decode RC ChildBounties call to AH ChildBounties call: {err:?}",
 						);
 					})?;
 				Ok(RuntimeCall::ChildBounties(call))
+			},
+			RcRuntimeCall::XcmPallet(RcXcmCall::send { dest, message }) => {
+				// reanchor the destination and assets, since they are relative to the local
+				// chain, which was previously the Relay Chain for these calls.
+
+				// from the perspective of the Relay Chain.
+				let universal_location: InteriorLocation =
+					[GlobalConsensus(NetworkId::Polkadot)].into();
+				// from the perspective of the Relay Chain.
+				let ah_location = Location::new(0, [Parachain(1000)]);
+
+				// reanchore the destination
+				// example:
+				// from Location: Location { parents: 0, interior: X1(Parachain(2034)) }
+				//   to Location: Location { parents: 1, interior: X1(Parachain(2034)) }
+				let dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to convert versioned destination to the latest version: {err:?}",
+					);
+				})?;
+				let dest = dest.reanchored(&ah_location, &universal_location).map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to reanchor destination: {err:?}",
+					);
+				})?;
+
+				Ok(RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+					dest: Box::new(dest.into()),
+					message,
+				}))
+			},
+			RcRuntimeCall::XcmPallet(RcXcmCall::limited_reserve_transfer_assets {
+				dest,
+				beneficiary,
+				assets,
+				fee_asset_item,
+				weight_limit,
+			}) => {
+				// reanchor the destination and assets, since they are relative to the local
+				// chain, which was previously the Relay Chain for these calls.
+
+				// from the perspective of the Relay Chain.
+				let universal_location: InteriorLocation =
+					[GlobalConsensus(NetworkId::Polkadot)].into();
+				// from the perspective of the Relay Chain.
+				let ah_location = Location::new(0, [Parachain(1000)]);
+
+				// reanchore the destination
+				// example:
+				// from Location: Location { parents: 0, interior: X1(Parachain(2034)) }
+				//   to Location: Location { parents: 1, interior: X1(Parachain(2034)) }
+				let dest: xcm::latest::Location = (*dest).try_into().map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to convert versioned destination to the latest version: {err:?}",
+					);
+				})?;
+				let dest = dest.reanchored(&ah_location, &universal_location).map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to reanchor destination: {err:?}",
+					);
+				})?;
+
+				// reanchore the assets
+				let assets: xcm::latest::Assets = (*assets).try_into().map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to convert versioned assets to the latest version: {err:?}",
+					);
+				})?;
+				let assets =
+					assets.reanchored(&ah_location, &universal_location).map_err(|err| {
+						log::error!(
+							target: LOG_TARGET,
+							"Failed to reanchor assets: {err:?}",
+						);
+					})?;
+
+				Ok(RuntimeCall::PolkadotXcm(
+					pallet_xcm::Call::<Runtime>::limited_reserve_transfer_assets {
+						dest: Box::new(dest.into()),
+						// the `beneficiary` is relative to the `dest`, no needs to reanchor it.
+						beneficiary,
+						assets: Box::new(assets.into()),
+						fee_asset_item,
+						weight_limit,
+					},
+				))
 			},
 		}
 	}

@@ -70,7 +70,7 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	///
 	/// Expected lock ids:
 	/// - "staking " : pallet-staking locks have been transformed to holds with https://github.com/paritytech/polkadot-sdk/pull/5501
-	/// but the conversion was lazy, so there may be some staking locks left
+	///   but the conversion was lazy, so there may be some staking locks left
 	/// - "vesting " : pallet-vesting
 	/// - "pyconvot" : pallet-conviction-voting
 	pub locks: BoundedVec<BalanceLock<Balance>, ConstU32<5>>,
@@ -283,7 +283,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 				}
 			}
 
-			if batch.len() > MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -314,7 +314,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 						who.clone(),
 						account_info.clone(),
 						&mut ah_weight,
-						batch.len() as u32,
+						batch.len(),
 					) {
 						Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
 						Err(e) => TransactionOutcome::Rollback(Err(e)),
@@ -469,7 +469,7 @@ impl<T: Config> AccountsMigrator<T> {
 				amount
 			};
 
-			if let Err(_) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
+			if <T as Config>::Currency::release(&id, &who, amount, Precision::Exact).is_err() {
 				defensive!(
 					"There is not enough reserved balance to release the hold for (account, hold id, amount) {:?}",
 					(who.to_ss58check(), id.clone(), amount)
@@ -504,9 +504,16 @@ impl<T: Config> AccountsMigrator<T> {
 		// check accounts.md for more details.
 		SystemAccount::<T>::mutate(&who, |a| {
 			a.consumers = account_state.get_rc_consumers();
-			// the provider count is set to `1` to allow reaping accounts that provided the ED at
-			// the `burn_from` below.
-			a.providers = 1;
+			if a.data.free < rc_ed && a.data.free >= ah_ed {
+				// this account has a broken ED invariant. withdrawing the entire free balance will
+				// not decrease the provider count and remove the account from storage. by setting
+				// providers to `0`, we ensure the account is properly removed from storage.
+				a.providers = 0;
+			} else {
+				// the provider count is set to `1` to allow reaping accounts that provided the ED
+				// at the `burn_from` below.
+				a.providers = 1;
+			}
 		});
 
 		let total_balance = <T as Config>::Currency::total_balance(&who);
@@ -600,7 +607,7 @@ impl<T: Config> AccountsMigrator<T> {
 		// account the weight for receiving a single account on Asset Hub.
 		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
+			log::info!("AH weight limit reached at batch length {batch_len}, stopping");
 			return Err(Error::OutOfWeight);
 		}
 
@@ -615,12 +622,26 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Check if the account can be withdrawn and migrated to AH.
 	pub fn can_migrate_account(who: &T::AccountId, account: &AccountInfoFor<T>) -> bool {
 		let ed = <T as Config>::Currency::minimum_balance();
+		let ah_ed = T::AhExistentialDeposit::get();
 		let total_balance = <T as Config>::Currency::total_balance(who);
 		if total_balance < ed {
-			if account.nonce.is_zero() {
+			if account.data.free >= ah_ed &&
+				account.data.reserved.is_zero() &&
+				account.data.frozen.is_zero()
+			{
 				log::info!(
 					target: LOG_TARGET,
-					"Possible system non-migratable account detected. \
+					"Account has no RC ED, but has enough free balance for AH ED. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+				return true;
+			}
+			if !total_balance.is_zero() {
+				log::warn!(
+					target: LOG_TARGET,
+					"Non-migratable account has non-zero balance. \
 					Account: '{}', info: {:?}",
 					who.to_ss58check(),
 					account
@@ -628,16 +649,7 @@ impl<T: Config> AccountsMigrator<T> {
 			} else {
 				log::info!(
 					target: LOG_TARGET,
-					"Non-migratable account detected. \
-					Account: '{}', info: {:?}",
-					who.to_ss58check(),
-					account
-				);
-			}
-			if !total_balance.is_zero() || !account.data.frozen.is_zero() {
-				log::warn!(
-					target: LOG_TARGET,
-					"Non-migratable account has non-zero balance. \
+					"Possible system non-migratable account detected. \
 					Account: '{}', info: {:?}",
 					who.to_ss58check(),
 					account
@@ -732,6 +744,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// weight.
 	pub fn obtain_free_proxy_candidates() -> (Option<u32>, Weight) {
 		if PureProxyCandidatesMigrated::<T>::iter_keys().next().is_some() {
+			// Not using defensive here since that would fail on idempotency check.
 			log::info!(target: LOG_TARGET, "Init pure proxy candidates already ran, skipping");
 			return (None, T::DbWeight::get().reads(1));
 		}
@@ -743,7 +756,7 @@ impl<T: Config> AccountsMigrator<T> {
 			weight += T::DbWeight::get().reads(1);
 
 			if frame_system::Pallet::<T>::account_nonce(&acc).is_zero() {
-				PureProxyCandidatesMigrated::<T>::insert(acc, false);
+				PureProxyCandidatesMigrated::<T>::insert(&acc, false);
 				num_accounts += 1;
 			}
 		}
@@ -758,7 +771,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
 		if RcAccounts::<T>::iter_keys().next().is_some() {
-			log::info!(target: LOG_TARGET, "Init accounts migration already ran, skipping");
+			defensive!("Init accounts migration already ran, skipping");
 			return T::DbWeight::get().reads(1);
 		}
 
@@ -1006,7 +1019,7 @@ pub mod tests {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Polkadot RC => AH
 				[39, 0] => [80, 0].to_vec(),
-				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+				_ => panic!("Unknown freeze id: {freeze_id:?}"),
 			}
 		}
 
@@ -1019,7 +1032,7 @@ pub mod tests {
 				[7, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Polkadot RC => AH
 				[41, 0] => [83, 0].to_vec(),
-				_ => panic!("Unknown hold id: {:?}", hold_id),
+				_ => panic!("Unknown hold id: {hold_id:?}"),
 			}
 		}
 
@@ -1043,7 +1056,7 @@ pub mod tests {
 			match freeze_id.as_slice() {
 				// Nomination pools pallet indexes on Kusama RC => AH
 				[41, 0] => [80, 0].to_vec(),
-				_ => panic!("Unknown freeze id: {:?}", freeze_id),
+				_ => panic!("Unknown freeze id: {freeze_id:?}"),
 			}
 		}
 		// Translate the RC hold id encoding to the corresponding AH hold id encoding.
@@ -1055,7 +1068,7 @@ pub mod tests {
 				[6, 0] => [89, 0].to_vec(),
 				// Pallet delegated-staking indexes on Kusama RC => AH
 				[47, 0] => [83, 0].to_vec(),
-				_ => panic!("Unknown hold id: {:?}", hold_id),
+				_ => panic!("Unknown hold id: {hold_id:?}"),
 			}
 		}
 
@@ -1221,7 +1234,7 @@ pub mod tests {
 							let manager = Manager::<T>::get();
 							let on_demand_pallet_account: T::AccountId =
 								T::OnDemandPalletId::get().into_account_truncating();
-							let is_manager = manager.as_ref().map_or(false, |m| *m == who);
+							let is_manager = manager.as_ref().is_some_and(|m| *m == who);
 							let is_on_demand = who == on_demand_pallet_account;
 							assert!(
 								is_manager || is_on_demand,
@@ -1279,8 +1292,7 @@ pub mod tests {
 			}
 
 			let total_issuance = <T as Config>::Currency::total_issuance();
-			let tracker = RcMigratedBalance::<T>::get();
-			// verify total issuance hasn't changed for any other reason than the migrated funds
+			let tracker = RcMigratedBalanceArchive::<T>::get();
 			assert_eq!(
 				total_issuance,
 				rc_total_issuance_before.saturating_sub(tracker.migrated),
