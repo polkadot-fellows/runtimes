@@ -1147,8 +1147,7 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1771,6 +1770,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
+	type MultisigMembers = ();
+	type MultisigThreshold = ConstU32<{ u32::MAX }>;
 }
 
 construct_runtime! {

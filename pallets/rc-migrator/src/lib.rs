@@ -77,7 +77,7 @@ use frame_support::{
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
 		Contains, Defensive, DefensiveTruncateFrom, EnqueueMessage, LockableCurrency,
-		ReservableCurrency, UnfilteredDispatchable, VariantCount,
+		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 	PalletId,
@@ -103,7 +103,7 @@ use runtime_parachains::{
 };
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
-	traits::{BadOrigin, BlockNumberProvider, Hash, One, Zero},
+	traits::{BadOrigin, BlockNumberProvider, Dispatchable, Hash, One, Zero},
 	AccountId32, Saturating,
 };
 use sp_std::prelude::*;
@@ -505,7 +505,7 @@ pub mod pallet {
 		/// The overall runtime call type.
 		type RuntimeCall: From<Call<Self>>
 			+ IsType<<Self as pallet_xcm::Config>::RuntimeCall>
-			+ UnfilteredDispatchable<RuntimeOrigin = <Self as Config>::RuntimeOrigin>
+			+ Dispatchable<RuntimeOrigin = <Self as Config>::RuntimeOrigin>
 			+ Member
 			+ Parameter;
 		/// The runtime hold reasons.
@@ -1312,6 +1312,15 @@ pub mod pallet {
 			Ok(Pays::No.into())
 		}
 
+		/// Vote on on behalf of any of the members in `MultisigMembers`.
+		///
+		/// Unsigned extrinsic, requiring the `payload` to be signed.
+		///
+		/// Upon each call, a new entry is created in `ManagerMultisigs` map the `payload.call` to
+		/// be dispatched. Once `MultisigThreshold` is reached, the entire map is deleted, and we
+		/// move on to the next round.
+		///
+		/// The round system ensures that signatures from older round cannot be reused.
 		#[pallet::call_index(13)]
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
 		pub fn vote_manager_multisig(
@@ -1330,7 +1339,7 @@ pub mod pallet {
 				let origin: <T as Config>::RuntimeOrigin =
 					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
 				let call = payload.call.clone();
-				let res = call.dispatch_bypass_filter(origin);
+				let res = call.dispatch(origin);
 				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
 				Self::deposit_event(Event::ManagerMultisigDispatched {
 					res: res.map(|_| ()).map_err(|e| e.error),
@@ -1378,7 +1387,7 @@ pub mod pallet {
 		}
 
 		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
-			[b"<Bytes>", &*self.encode(), b"</Bytes>"].concat()
+			(b"<Bytes>", self, b"</Bytes>").encode()
 		}
 	}
 
@@ -1400,25 +1409,24 @@ pub mod pallet {
 
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 			use sp_runtime::traits::Verify;
-			match call {
-				Call::vote_manager_multisig { payload, sig } => {
-					if !T::MultisigMembers::get().contains(&payload.who) {
-						return InvalidTransaction::BadSigner.into()
-					}
-					if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
-						return InvalidTransaction::BadProof.into()
-					}
-					if ManagerMultisigRound::<T>::get() != payload.round {
-						return InvalidTransaction::Stale.into()
-					}
-					ValidTransaction::with_tag_prefix("AhmMultisig")
-						.priority(sp_runtime::traits::Bounded::max_value())
-						.and_provides(vec![("ahm_multi", payload.who).encode()])
-						.propagate(true)
-						.longevity(30)
-						.build()
-				},
-				_ => InvalidTransaction::Call.into(),
+			if let Call::vote_manager_multisig { payload, sig } = call {
+				if !T::MultisigMembers::get().contains(&payload.who) {
+					return InvalidTransaction::BadSigner.into()
+				}
+				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
+					return InvalidTransaction::BadProof.into()
+				}
+				if ManagerMultisigRound::<T>::get() != payload.round {
+					return InvalidTransaction::Stale.into()
+				}
+				ValidTransaction::with_tag_prefix("AhmMultisig")
+					.priority(sp_runtime::traits::Bounded::max_value())
+					.and_provides(vec![("ahm_multi", payload.who).encode()])
+					.propagate(true)
+					.longevity(30)
+					.build()
+			} else {
+				InvalidTransaction::Call.into()
 			}
 		}
 	}
