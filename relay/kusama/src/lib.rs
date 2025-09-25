@@ -3189,10 +3189,186 @@ sp_api::impl_runtime_apis! {
 #[cfg(test)]
 mod ahm_multisig {
 	use super::*;
-	use pallet_rc_migrator::{BailVote, ForceSetStageVote};
+	use pallet_rc_migrator::{BailVote, ForceSetStageVote, ManagerMultisigVote};
 	use sp_core::Pair;
 	use sp_io::TestExternalities;
 	use sp_runtime::traits::{Dispatchable, ValidateUnsigned};
+
+	#[test]
+	fn unsigned_manager_multisig_works() {
+		TestExternalities::default().execute_with(|| {
+			let call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
+				stage: Box::new(pallet_rc_migrator::MigrationStage::Starting),
+			};
+			let runtime_call = RuntimeCall::from(call.clone());
+			let other_call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
+				stage: Box::new(pallet_rc_migrator::MigrationStage::SchedulerMigrationInit),
+			};
+			let other_runtime_call = RuntimeCall::from(other_call.clone());
+
+			// initial round is zero
+			assert_eq!(pallet_rc_migrator::ManagerMultisigRound::<Runtime>::get(), 0);
+
+			{
+				// Ferdie is not part of the multisig, will get rejected on validate
+				let ferdie = sp_keyring::Sr25519Keyring::Ferdie.pair();
+				let payload = ManagerMultisigVote::new(ferdie.public(), runtime_call.clone(), 0);
+				let sig = ferdie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			{
+				// Alice signs a wrong message, rejected
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(
+					sp_keyring::Sr25519Keyring::Bob.pair().public(),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			let alice_sig_for_first_round = {
+				// Alice signs, not executed yet
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(alice.public(), runtime_call.clone(), 0);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: sig.clone(),
+				};
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					1
+				);
+
+				sig
+			};
+
+			{
+				// Bob signs, still waiting
+				let bob = sp_keyring::Sr25519Keyring::Bob.pair();
+				let payload = ManagerMultisigVote::new(bob.public(), runtime_call.clone(), 0);
+				let sig = bob.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					2
+				);
+			}
+
+			{
+				// charlie signs something else, stored but not used.
+				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
+				let payload =
+					ManagerMultisigVote::new(charlie.public(), other_runtime_call.clone(), 0);
+				let sig = charlie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				// 1 vote for the new one
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(
+						other_runtime_call.clone()
+					)
+					.len(),
+					1
+				);
+				// still 2 votes for this
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					2
+				);
+			}
+
+			{
+				// eve signs, dispatched
+				let eve = sp_keyring::Sr25519Keyring::Eve.pair();
+				let payload = ManagerMultisigVote::new(eve.public(), runtime_call.clone(), 0);
+				let sig = eve.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				// executed, so no more votes
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Starting
+				);
+				// votes erased
+				assert!(pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+					.is_empty(),);
+				// round incremented
+				assert_eq!(pallet_rc_migrator::ManagerMultisigRound::<Runtime>::get(), 1);
+			}
+
+			{
+				// Alice's signature from first round cannot be re-used
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(ManagerMultisigVote::new(
+						sp_keyring::Sr25519Keyring::Alice.pair().public(),
+						runtime_call.clone(),
+						0,
+					)),
+					sig: alice_sig_for_first_round,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+		})
+	}
 
 	#[test]
 	fn multisig_cancel_works() {
@@ -3457,10 +3633,7 @@ mod ahm_multisig {
 					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
 					consensus_stage.clone()
 				);
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::iter().count(),
-					0
-				);
+				assert_eq!(pallet_rc_migrator::ForceSetStageVotes::<Runtime>::iter().count(), 0);
 			}
 		})
 	}

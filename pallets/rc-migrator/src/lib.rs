@@ -1389,25 +1389,25 @@ pub mod pallet {
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
-			vote: Box<ManagerMultisigVote<T>>,
+			payload: Box<ManagerMultisigVote<T>>,
 			_sig: sp_core::sr25519::Signature,
 		) -> DispatchResult {
 			let _ = ensure_none(origin);
 
-			ensure!(ManagerMultisigRound::<T>::get() == vote.round, "RoundStale");
-			let mut votes_for_call = ManagerMultisigs::<T>::get(&vote.call);
-			ensure!(!votes_for_call.contains(&vote.who), "Duplicate");
-			votes_for_call.push(vote.who.clone());
+			ensure!(ManagerMultisigRound::<T>::get() == payload.round, "RoundStale");
+			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
+			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
+			votes_for_call.push(payload.who.clone());
 
 			if votes_for_call.len() >= 3 {
 				let origin: <T as Config>::RuntimeOrigin =
 					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
-				let call = vote.call.clone();
+				let call = payload.call.clone();
 				let res = call.dispatch_bypass_filter(origin);
 				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
 				ManagerMultisigRound::<T>::mutate(|r| *r += 1);
 			} else {
-				ManagerMultisigs::<T>::insert(vote.call, votes_for_call);
+				ManagerMultisigs::<T>::insert(payload.call, votes_for_call);
 			}
 
 			Ok(())
@@ -1436,6 +1436,20 @@ pub mod pallet {
 		who: sp_core::sr25519::Public,
 		call: <T as Config>::RuntimeCall,
 		round: u32,
+	}
+
+	impl<T: Config> ManagerMultisigVote<T> {
+		pub fn new(
+			who: sp_core::sr25519::Public,
+			call: <T as Config>::RuntimeCall,
+			round: u32,
+		) -> Self {
+			Self { who, call, round }
+		}
+
+		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
+			[b"<Bytes>", &*self.encode(), b"</Bytes>"].concat()
+		}
 	}
 
 	#[pallet::storage]
@@ -1573,6 +1587,23 @@ pub mod pallet {
 						return InvalidTransaction::BadProof.into()
 					}
 					if ForceSetStageRound::<T>::get() != payload.round {
+						return InvalidTransaction::Stale.into()
+					}
+					ValidTransaction::with_tag_prefix("AhmMultisig")
+						.priority(sp_runtime::traits::Bounded::max_value())
+						.and_provides(vec![("ahm_multi", payload.who).encode()])
+						.propagate(true)
+						.longevity(30)
+						.build()
+				},
+				Call::vote_manager_multisig { payload, sig } => {
+					if !T::MultisigMembers::get().contains(&payload.who) {
+						return InvalidTransaction::BadSigner.into()
+					}
+					if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
+						return InvalidTransaction::BadProof.into()
+					}
+					if ManagerMultisigRound::<T>::get() != payload.round {
 						return InvalidTransaction::Stale.into()
 					}
 					ValidTransaction::with_tag_prefix("AhmMultisig")
