@@ -6,13 +6,21 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
+pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
+pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
+pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
+pallet-election-provider-multi-block = { version = "0.3.2", default-features = false }
+pallet-staking-async = { version = "0.4.2", default-features = false }
+hex = { version = "0.4.3", default-features = false }
+rand = { version = "0.9.2" }
+impl-trait-for-tuples = { version = "0.2.3", default-features = false }
 assert_matches = { version = "1.5.0" }
 approx = { version = "0.5.1" }
 asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama" }
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "26.0.0" }
+asset-test-utils = { version = "26.0.1" }
 assets-common = { version = "0.24.0", default-features = false }
 authority-discovery-primitives = { version = "38.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.44.0", default-features = false, package = "sp-consensus-babe" }
@@ -51,7 +59,7 @@ cumulus-pallet-aura-ext = { version = "0.22.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.22.0", default-features = false }
 cumulus-pallet-session-benchmarking = { version = "23.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.21.0", default-features = false }
-cumulus-pallet-xcmp-queue = { version = "0.22.0", default-features = false }
+cumulus-pallet-xcmp-queue = { version = "0.22.1", default-features = false }
 cumulus-primitives-aura = { version = "0.19.0", default-features = false }
 cumulus-primitives-core = { version = "0.20.0", default-features = false }
 cumulus-primitives-utility = { version = "0.22.0", default-features = false }
@@ -64,7 +72,7 @@ encointer-primitives = { version = "~20.5.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "42.0.0", default-features = false }
 frame-election-provider-support = { version = "42.0.0", default-features = false }
-frame-executive = { version = "42.0.0", default-features = false }
+frame-executive = { version = "42.0.1", default-features = false }
 frame-support = { version = "42.0.0", default-features = false }
 frame-system = { version = "42.0.0", default-features = false }
 frame-system-benchmarking = { version = "42.0.0", default-features = false }
@@ -91,7 +99,7 @@ pallet-authority-discovery = { version = "42.0.0", default-features = false }
 pallet-authorship = { version = "42.0.0", default-features = false }
 pallet-babe = { version = "42.0.0", default-features = false }
 pallet-bags-list = { version = "41.0.0", default-features = false }
-pallet-balances = { version = "43.0.0", default-features = false }
+pallet-balances = { version = "43.0.1", default-features = false }
 pallet-beefy = { version = "43.0.0", default-features = false }
 pallet-beefy-mmr = { version = "43.0.0", default-features = false }
 pallet-bounties = { version = "41.0.0", default-features = false }
@@ -104,7 +112,7 @@ pallet-child-bounties = { version = "41.0.0", default-features = false }
 pallet-collator-selection = { version = "23.0.0", default-features = false }
 pallet-collective = { version = "42.0.0", default-features = false }
 pallet-conviction-voting = { version = "42.0.0", default-features = false }
-pallet-core-fellowship = { version = "26.0.0", default-features = false }
+pallet-core-fellowship = { version = "26.0.1", default-features = false }
 pallet-election-provider-multi-phase = { version = "41.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "41.0.0", default-features = false }
 pallet-encointer-balances = { version = "~20.2.0", default-features = false }
@@ -152,7 +160,7 @@ pallet-salary = { version = "27.0.0", default-features = false }
 pallet-scheduler = { version = "43.0.0", default-features = false }
 pallet-session = { version = "42.0.0", default-features = false }
 pallet-session-benchmarking = { version = "42.0.0", default-features = false }
-pallet-society = { version = "42.0.0", default-features = false }
+pallet-society = { version = "42.2.0", default-features = false }
 pallet-staking = { version = "42.0.0", default-features = false }
 pallet-delegated-staking = { version = "9.0.0", default-features = false }
 pallet-staking-async-ah-client = { version = "0.3.0", default-features = false }
@@ -170,7 +178,7 @@ pallet-uniques = { version = "42.0.0", default-features = false }
 pallet-utility = { version = "42.0.0", default-features = false }
 pallet-vesting = { version = "42.0.0", default-features = false }
 pallet-whitelist = { version = "41.0.0", default-features = false }
-pallet-xcm = { version = "22.0.0", default-features = false }
+pallet-xcm = { version = "22.0.1", default-features = false }
 pallet-xcm-benchmarks = { version = "22.0.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.18.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.20.0", default-features = false }
@@ -248,6 +256,7 @@ sp-version = { version = "41.0.0", default-features = false }
 sp-weights = { version = "33.0.0", default-features = false }
 substrate-wasm-builder = { version = "28.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
+system-parachains-common = { path = "system-parachains/common", default-features = false }
 tokio = { version = "1.45.0" }
 xcm = { version = "18.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "22.0.0", default-features = false, package = "staging-xcm-builder" }
@@ -266,6 +275,11 @@ ss58-registry = { version = "1.47.0" }
 resolver = "2"
 
 members = [
+	"integration-tests/ahm",
+	"pallets/ah-migrator",
+	"pallets/ah-ops",
+	"pallets/rc-migrator",
+
 	"chain-spec-generator",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
@@ -313,6 +327,7 @@ members = [
 	"system-parachains/bridge-hubs/bridge-hub-polkadot/primitives",
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/collectives/collectives-polkadot/constants",
+	"system-parachains/common",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",

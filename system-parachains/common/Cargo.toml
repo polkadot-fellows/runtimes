@@ -1,0 +1,42 @@
+[package]
+authors.workspace = true
+description = "Shared utilities between system-parachains runtimes"
+edition.workspace = true
+license.workspace = true
+name = "system-parachains-common"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+log = { workspace = true }
+
+sp-runtime = { workspace = true }
+sp-state-machine = { workspace = true }
+
+frame-support = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"cumulus-pallet-parachain-system/std",
+	"cumulus-primitives-core/std",
+	"frame-support/std",
+	"log/std",
+	"sp-runtime/std",
+	"sp-state-machine/std",
+]
+
+runtime-benchmarks = [
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+]
+
+try-runtime = [
+	"cumulus-pallet-parachain-system/try-runtime",
+	"frame-support/try-runtime",
+	"sp-runtime/try-runtime",
+]
