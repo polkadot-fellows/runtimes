@@ -1367,7 +1367,8 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1923,10 +1924,6 @@ fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
 			"EGVQCe73TpFyAZx5uKfE1222XfkT3BSKozjgcqzLBnc5eYo", // sahwn
 			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian/ksm
-			// for testing CI-FAIL
-			"157piwLd54nU9FeZAqifPkW2eaXeGJkTYTxdG1JtXGTgkk9q", // kian/gov
-			"1eTPAR2TuqLyidmPT9rMmuycHVm9s9czu78sePqg2KHMDrE",  // kian/dot
-			// for testing
 			"G5MVrgFmBaYei8N6t6DnDrb8JE53wKDkazLv5f46wVpi14y", // alex
 			"Ea6jhP5gF4r7NqhkEoAXJDgSgYpNQNaTYU6gPsrEGfctaKR", // oliver
 			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
