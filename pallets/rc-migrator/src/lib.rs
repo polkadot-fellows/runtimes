@@ -623,6 +623,9 @@ pub mod pallet {
 		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 
 		type MultisigMembers: Get<Vec<sp_core::sr25519::Public>>;
+
+		/// Same privileges as [Manager] but signed by [Self::MultisigMembers].
+		type MultisigAccount: Get<Self::AccountId>;
 	}
 
 	#[pallet::error]
@@ -766,6 +769,8 @@ pub mod pallet {
 			/// The number of indexed pure accounts.
 			num_pure_accounts: u32,
 		},
+		/// A call was dispatched as multisig.
+		DispatchedAsMultisig { result: DispatchResult },
 	}
 
 	/// The Relay Chain migration state.
@@ -1345,6 +1350,31 @@ pub mod pallet {
 				Self::transition(MigrationStage::MigrationPaused);
 				Self::deposit_event(Event::MigrationPaused { pause_stage });
 				PauseVotes::<T>::kill();
+			} else {
+				PauseVotes::<T>::put(votes);
+			}
+
+			Ok(())
+		}
+
+		#[pallet::call_index(15)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn dispatch_as_multisig(
+			origin: OriginFor<T>,
+			call: Box<<T as Config>::RuntimeCall>,
+		) -> DispatchResult {
+			let _ = ensure_none(origin);
+
+			let mut votes = PauseVotes::<T>::get();
+			ensure!(!votes.contains(&payload), "Duplicate");
+			votes.push(payload);
+
+			if votes.len() >= 3 {
+				let as_origin = frame_system::RawOrigin::Signed(MultisigAccount::<T>::get());
+				let res = call.dispatch_bypass_filter(as_origin.into());
+				Self::deposit_event(Event::DispatchedAsMultisig {
+					result: res.map(|_| ()).map_err(|e| e.error),
+				});
 			} else {
 				PauseVotes::<T>::put(votes);
 			}
@@ -2374,6 +2404,11 @@ pub mod pallet {
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if T::MultisigAccount::get() == account_id {
 					return Ok(());
 				}
 			}

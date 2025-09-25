@@ -421,6 +421,9 @@ pub mod pallet {
 		///
 		/// This configuration can be overridden by a storage item [`DmpQueuePriorityConfig`].
 		type DmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
+
+		/// Same privileges as [Manager] but signed by [Self::MultisigMembers].
+		type MultisigAccount: Get<Self::AccountId>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -1157,6 +1160,11 @@ pub mod pallet {
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if T::MultisigAccount::get() == account_id {
 					return Ok(());
 				}
 			}
