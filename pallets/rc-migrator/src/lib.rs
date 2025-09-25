@@ -77,7 +77,7 @@ use frame_support::{
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
 		Contains, Defensive, DefensiveTruncateFrom, EnqueueMessage, LockableCurrency,
-		ReservableCurrency, VariantCount,
+		ReservableCurrency, UnfilteredDispatchable, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 	PalletId,
@@ -454,8 +454,6 @@ type AccountInfoFor<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::UnfilteredDispatchable;
-	use sp_runtime::traits::Dispatchable;
 	use super::*;
 
 	/// Paras Registrar Pallet
@@ -502,11 +500,12 @@ pub mod pallet {
 	{
 		/// The overall runtime origin type.
 		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>
-			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>;
+			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>
+			+ From<frame_system::RawOrigin<Self::AccountId>>;
 		/// The overall runtime call type.
 		type RuntimeCall: From<Call<Self>>
 			+ IsType<<Self as pallet_xcm::Config>::RuntimeCall>
-			+ UnfilteredDispatchable<RuntimeOrigin = <Self as frame_system::Config>::RuntimeOrigin>
+			+ UnfilteredDispatchable<RuntimeOrigin = <Self as Config>::RuntimeOrigin>
 			+ Member
 			+ Parameter;
 		/// The runtime hold reasons.
@@ -1390,7 +1389,7 @@ pub mod pallet {
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
-			vote: ManagerMultisigVote<T>,
+			vote: Box<ManagerMultisigVote<T>>,
 			_sig: sp_core::sr25519::Signature,
 		) -> DispatchResult {
 			let _ = ensure_none(origin);
@@ -1401,7 +1400,7 @@ pub mod pallet {
 			votes_for_call.push(vote.who.clone());
 
 			if votes_for_call.len() >= 3 {
-				let origin: <T as frame_system::Config>::RuntimeOrigin =
+				let origin: <T as Config>::RuntimeOrigin =
 					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
 				let call = vote.call.clone();
 				let res = call.dispatch_bypass_filter(origin);
