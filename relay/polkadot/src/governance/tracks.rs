@@ -19,10 +19,14 @@
 use super::*;
 
 use alloc::borrow::Cow;
+use sp_arithmetic::FixedI64;
 use sp_runtime::str_array as s;
 
-const fn percent(x: i32) -> sp_arithmetic::FixedI64 {
-	sp_arithmetic::FixedI64::from_rational(x as u128, 100)
+const fn percent(x: i32) -> FixedI64 {
+	FixedI64::from_rational(x as u128, 100)
+}
+const fn per_mille(x: i32) -> FixedI64 {
+	FixedI64::from_rational(x as u128, 1000)
 }
 use pallet_referenda::Curve;
 const APP_ROOT: Curve = Curve::make_reciprocal(4, 28, percent(80), percent(50), percent(100));
@@ -31,7 +35,7 @@ const APP_STAKING_ADMIN: Curve = Curve::make_linear(17, 28, percent(50), percent
 const SUP_STAKING_ADMIN: Curve =
 	Curve::make_reciprocal(12, 28, percent(1), percent(0), percent(50));
 const APP_TREASURER: Curve = Curve::make_reciprocal(4, 28, percent(80), percent(50), percent(100));
-const SUP_TREASURER: Curve = Curve::make_linear(28, 28, percent(0), percent(50));
+const SUP_TREASURER: Curve = Curve::make_linear(28, 28, percent(1), percent(50));
 const APP_FELLOWSHIP_ADMIN: Curve = Curve::make_linear(17, 28, percent(50), percent(100));
 const SUP_FELLOWSHIP_ADMIN: Curve =
 	Curve::make_reciprocal(12, 28, percent(1), percent(0), percent(50));
@@ -57,12 +61,13 @@ const APP_BIG_TIPPER: Curve = Curve::make_linear(10, 28, percent(50), percent(10
 const SUP_BIG_TIPPER: Curve = Curve::make_reciprocal(8, 28, percent(1), percent(0), percent(50));
 const APP_SMALL_SPENDER: Curve = Curve::make_linear(17, 28, percent(50), percent(100));
 const SUP_SMALL_SPENDER: Curve =
-	Curve::make_reciprocal(12, 28, percent(1), percent(0), percent(50));
+	Curve::make_reciprocal(12, 28, percent(1), per_mille(5), percent(50));
 const APP_MEDIUM_SPENDER: Curve = Curve::make_linear(23, 28, percent(50), percent(100));
 const SUP_MEDIUM_SPENDER: Curve =
-	Curve::make_reciprocal(16, 28, percent(1), percent(0), percent(50));
+	Curve::make_reciprocal(16, 28, percent(1), per_mille(5), percent(50));
 const APP_BIG_SPENDER: Curve = Curve::make_linear(28, 28, percent(50), percent(100));
-const SUP_BIG_SPENDER: Curve = Curve::make_reciprocal(20, 28, percent(1), percent(0), percent(50));
+const SUP_BIG_SPENDER: Curve =
+	Curve::make_reciprocal(20, 28, percent(1), FixedI64::from_rational(75, 10000), percent(50));
 const APP_WHITELISTED_CALLER: Curve =
 	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
 const SUP_WHITELISTED_CALLER: Curve =
@@ -129,8 +134,8 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 		id: 11,
 		info: pallet_referenda::TrackInfo {
 			name: s("treasurer"),
-			max_deciding: 10,
-			decision_deposit: GRAND,
+			max_deciding: 2,
+			decision_deposit: 25 * GRAND,
 			prepare_period: 2 * HOURS,
 			decision_period: 28 * DAYS,
 			confirm_period: 7 * DAYS,
@@ -199,8 +204,8 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 		id: 20,
 		info: pallet_referenda::TrackInfo {
 			name: s("referendum_canceller"),
-			max_deciding: 1_000,
-			decision_deposit: 10 * GRAND,
+			max_deciding: 500,
+			decision_deposit: 5 * GRAND,
 			prepare_period: 2 * HOURS,
 			decision_period: 7 * DAYS,
 			confirm_period: 3 * HOURS,
@@ -255,8 +260,8 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 		id: 32,
 		info: pallet_referenda::TrackInfo {
 			name: s("small_spender"),
-			max_deciding: 50,
-			decision_deposit: 100 * DOLLARS,
+			max_deciding: 5,
+			decision_deposit: 500 * DOLLARS,
 			prepare_period: 4 * HOURS,
 			decision_period: 28 * DAYS,
 			confirm_period: 2 * DAYS,
@@ -269,8 +274,8 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 		id: 33,
 		info: pallet_referenda::TrackInfo {
 			name: s("medium_spender"),
-			max_deciding: 50,
-			decision_deposit: 200 * DOLLARS,
+			max_deciding: 5,
+			decision_deposit: GRAND,
 			prepare_period: 4 * HOURS,
 			decision_period: 28 * DAYS,
 			confirm_period: 4 * DAYS,
@@ -283,8 +288,8 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 		id: 34,
 		info: pallet_referenda::TrackInfo {
 			name: s("big_spender"),
-			max_deciding: 50,
-			decision_deposit: 400 * DOLLARS,
+			max_deciding: 3,
+			decision_deposit: 5 * GRAND,
 			prepare_period: 4 * HOURS,
 			decision_period: 28 * DAYS,
 			confirm_period: 7 * DAYS,
