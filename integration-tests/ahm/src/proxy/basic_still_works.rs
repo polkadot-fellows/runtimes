@@ -118,8 +118,6 @@ impl RcMigrationCheck for ProxyBasicWorks {
 			pallet_proxy::Proxies::<RelayRuntime>::iter().count()
 		);
 		// All Remaining ones are 'Any' proxies
-		// Collect delegators that are NOT in the expected zero_nonce_accounts set
-		let mut non_zero_nonce_delegators = std::collections::BTreeMap::new();
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
 				let inner = proxy.proxy_type.0;
@@ -129,64 +127,14 @@ impl RcMigrationCheck for ProxyBasicWorks {
 				assert_eq!(permission, Permission::Any, "All remaining proxies are 'Any'");
 				let nonce = frame_system::Pallet::<RelayRuntime>::account_nonce(&delegator);
 				if !zero_nonce_accounts.contains(&delegator) {
-					non_zero_nonce_delegators.insert(delegator.clone(), nonce);
-				}
-			}
-		}
-
-		if !non_zero_nonce_delegators.is_empty() {
-			// Separate accounts by actual nonce value
-			let actual_non_zero: Vec<_> =
-				non_zero_nonce_delegators.iter().filter(|(_, nonce)| **nonce != 0).collect();
-			let zero_but_unexpected: Vec<_> =
-				non_zero_nonce_delegators.iter().filter(|(_, nonce)| **nonce == 0).collect();
-
-			log::error!(target: "proxy_check",
-				"Found {} delegators NOT in the expected zero_nonce_accounts set:",
-				non_zero_nonce_delegators.len()
-			);
-
-			if !actual_non_zero.is_empty() {
-				log::error!(target: "proxy_check",
-					"  {} accounts with ACTUAL non-zero nonce:",
-					actual_non_zero.len()
-				);
-				for (delegator, nonce) in &actual_non_zero {
-					log::error!(target: "proxy_check",
-						"    Account: {:?}, Nonce: {}",
+					log::error!(
+						"All remaining proxies should be from zero nonce accounts but account {:?} is not, current nonce: {}",
 						delegator.to_polkadot_ss58(),
 						nonce
 					);
 				}
 			}
-
-			if !zero_but_unexpected.is_empty() {
-				log::error!(target: "proxy_check",
-					"  {} accounts with nonce=0 but NOT in zero_nonce_accounts set (unexpected):",
-					zero_but_unexpected.len()
-				);
-				// Only show first 10 to avoid spam
-				for (delegator, nonce) in zero_but_unexpected.iter().take(10) {
-					log::error!(target: "proxy_check",
-						"    Account: {:?}, Nonce: {}",
-						delegator.to_polkadot_ss58(),
-						nonce
-					);
-				}
-				if zero_but_unexpected.len() > 10 {
-					log::error!(target: "proxy_check",
-						"    ... and {} more accounts",
-						zero_but_unexpected.len() - 10
-					);
-				}
-			}
 		}
-		// We should assert here!!! Temporarily commenting it out to make post-migration check happy
-		// assert!(
-		// non_zero_nonce_delegators.is_empty(),
-		// "All remaining proxies should be from accounts in the zero_nonce_accounts set, but found
-		// {} unexpected accounts", non_zero_nonce_delegators.len()
-		// );
 	}
 }
 
