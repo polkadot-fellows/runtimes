@@ -1367,8 +1367,7 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1908,6 +1907,34 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	polkadot_primitives::MAX_POV_SIZE as u64,
 );
 
+fn multisig_members() -> Vec<sp_core::sr25519::Public> {
+	use sp_core::{crypto::Ss58Codec, ByteArray};
+	let addresses = if cfg!(test) {
+		vec![
+			"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F", // Alive
+			"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
+			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
+			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK", // Dave
+			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+		]
+	} else {
+		vec![
+			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
+			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
+			"EGVQCe73TpFyAZx5uKfE1222XfkT3BSKozjgcqzLBnc5eYo", // sahwn
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
+			"G5MVrgFmBaYei8N6t6DnDrb8JE53wKDkazLv5f46wVpi14y", // alex
+		]
+	};
+
+	addresses
+		.into_iter()
+		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).ok())
+		.map(|acc32| acc32.to_raw_vec())
+		.filter_map(|bytes| sp_core::sr25519::Public::from_slice(&bytes).ok())
+		.collect()
+}
+
 parameter_types! {
 	// Exvivalent to `kusama_asset_hub_runtime::MessageQueueServiceWeight`.
 	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
@@ -1917,6 +1944,9 @@ parameter_types! {
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
+
+	pub MultisigMembers: Vec<sp_core::sr25519::Public> = multisig_members();
+
 }
 
 pub struct ProxyTypeAny;
@@ -1960,6 +1990,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type KusamaConfig = Runtime;
 	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = System;
+	type MultisigMembers = MultisigMembers;
 }
 
 construct_runtime! {
@@ -3146,6 +3177,118 @@ sp_api::impl_runtime_apis! {
 			Ok(batches)
 		}
 	}
+}
+
+#[cfg(test)]
+mod ahm_multisig {
+	use pallet_rc_migrator::{staking::checks, VotePayload};
+	use sp_core::Pair;
+	use sp_io::TestExternalities;
+	use sp_runtime::traits::{Dispatchable, ValidateUnsigned};
+
+	use super::*;
+
+	#[test]
+	fn multisig_cancel_works() {
+		TestExternalities::default().execute_with(|| {
+			pallet_rc_migrator::RcMigrationStage::<Runtime>::put(
+				pallet_rc_migrator::MigrationStage::Starting,
+			);
+
+			{
+				// Ferdie is not in the multisig, will get rejected
+				let ferdie = sp_keyring::Sr25519Keyring::Ferdie.pair();
+
+				let payload = VotePayload::from(ferdie.public());
+				let sig = ferdie.sign(payload.as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			{
+				// Alice signs a wrong message, rejected
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+
+				let payload = VotePayload::from(sp_keyring::Sr25519Keyring::Bob.pair().public());
+				let sig = alice.sign(payload.as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			{
+				// Alice signs, not cancelled yet
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = VotePayload::from(alice.public());
+				let sig = alice.sign(payload.as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Starting
+				);
+				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get(), 1);
+			}
+
+			{
+				// Bob signs, not cancelled yet
+				let bob = sp_keyring::Sr25519Keyring::Bob.pair();
+				let payload = VotePayload::from(bob.public());
+				let sig = bob.sign(payload.as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Starting
+				);
+				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get(), 2);
+			}
+
+			{
+				// Charlie signs, cancelled
+				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
+				let payload = VotePayload::from(charlie.public());
+				let sig = charlie.sign(payload.as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Pending
+				);
+				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get(), 0);
+			}
+		})
+	}
+
+
 }
 
 #[cfg(test)]

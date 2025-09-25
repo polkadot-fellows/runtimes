@@ -621,6 +621,8 @@ pub mod pallet {
 		///
 		/// This configuration can be overridden by a storage item [`AhUmpQueuePriorityConfig`].
 		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
+
+		type MultisigMembers: Get<Vec<sp_core::sr25519::Public>>;
 	}
 
 	#[pallet::error]
@@ -1274,7 +1276,6 @@ pub mod pallet {
 
 			let pause_stage = RcMigrationStage::<T>::get();
 			Self::transition(MigrationStage::MigrationPaused);
-
 			Self::deposit_event(Event::MigrationPaused { pause_stage });
 
 			Ok(Pays::No.into())
@@ -1295,10 +1296,121 @@ pub mod pallet {
 			);
 
 			Self::transition(MigrationStage::Pending);
-
 			Self::deposit_event(Event::MigrationCancelled);
 
 			Ok(Pays::No.into())
+		}
+
+		#[pallet::call_index(13)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn vote_cancel(
+			origin: OriginFor<T>,
+			// payload is only interpreted as "aye"
+			_payload: VotePayload<T>,
+			_sig: sp_core::sr25519::Signature,
+		) -> DispatchResult {
+			let _ = ensure_none(origin);
+
+			let should_cancel = CancelVotes::<T>::mutate(|v| {
+				*v += 1;
+				*v >= 3
+			});
+
+			if should_cancel {
+				Self::transition(MigrationStage::Pending);
+				Self::deposit_event(Event::MigrationCancelled);
+				CancelVotes::<T>::kill();
+			}
+
+			Ok(())
+		}
+
+		#[pallet::call_index(14)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn vote_pause(
+			origin: OriginFor<T>,
+			// payload is only interpreted as "aye"
+			_payload: VotePayload<T>,
+			_sig: sp_core::sr25519::Signature,
+		) -> DispatchResult {
+			let _ = ensure_none(origin);
+
+			let should_pause = PauseVotes::<T>::mutate(|v| {
+				*v += 1;
+				*v >= 3
+			});
+
+			if should_pause {
+				let pause_stage = RcMigrationStage::<T>::get();
+				Self::transition(MigrationStage::MigrationPaused);
+				Self::deposit_event(Event::MigrationPaused { pause_stage });
+				PauseVotes::<T>::kill();
+			}
+
+			Ok(())
+		}
+	}
+
+	#[derive(
+		Encode,
+		Decode,
+		DebugNoBound,
+		CloneNoBound,
+		PartialEqNoBound,
+		EqNoBound,
+		TypeInfo,
+		sp_core::DecodeWithMemTracking,
+	)]
+	#[scale_info(skip_type_params(T))]
+	pub struct VotePayload<T: Config> {
+		pub(crate) who: sp_core::sr25519::Public,
+		_marker: core::marker::PhantomData<T>,
+	}
+
+	impl<T: Config> VotePayload<T> {
+		pub fn from(who: sp_core::sr25519::Public) -> Self {
+			Self { who, _marker: core::marker::PhantomData }
+		}
+
+		fn is_multisig_member(&self) -> bool {
+			T::MultisigMembers::get().contains(&self.who)
+		}
+	}
+
+	impl<T: Config> core::convert::AsRef<sp_core::sr25519::Public> for VotePayload<T> {
+		fn as_ref(&self) -> &sp_core::sr25519::Public {
+			&self.who
+		}
+	}
+
+	#[pallet::storage]
+	pub type CancelVotes<T: Config> = StorageValue<_, u32, ValueQuery>;
+	#[pallet::storage]
+	pub type PauseVotes<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			use sp_runtime::traits::Verify;
+			match call {
+				// note: payload can be empty, but it is better to ask the signer to revel themselves, so we don't have to check against all of `MultisigMembers`.
+				Call::vote_cancel { payload, sig } | Call::vote_pause { payload, sig } => {
+					if payload.is_multisig_member() &&
+						sig.verify(&payload.encode()[..], &payload.who)
+					{
+						ValidTransaction::with_tag_prefix("AhmMultisig")
+							.priority(sp_runtime::traits::Bounded::max_value())
+							.propagate(true)
+							.longevity(10)
+							.build()
+					} else {
+						InvalidTransaction::BadProof.into()
+					}
+				},
+				_ => return InvalidTransaction::Call.into(),
+			}
 		}
 	}
 
