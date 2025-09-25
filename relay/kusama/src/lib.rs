@@ -1922,7 +1922,7 @@ fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 		vec![
 			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
 			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
-			"EGVQCe73TpFyAZx5uKfE1222XfkT3BSKozjgcqzLBnc5eYo", // sahwn
+			"EGVQCe73TpFyAZx5uKfE1222XfkT3BSKozjgcqzLBnc5eYo", // shawn
 			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian/ksm
 			"G5MVrgFmBaYei8N6t6DnDrb8JE53wKDkazLv5f46wVpi14y", // alex
 			"Ea6jhP5gF4r7NqhkEoAXJDgSgYpNQNaTYU6gPsrEGfctaKR", // oliver
