@@ -1922,7 +1922,11 @@ fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
 			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
 			"EGVQCe73TpFyAZx5uKfE1222XfkT3BSKozjgcqzLBnc5eYo", // sahwn
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian/ksm
+			// for testing CI-FAIL
+			"157piwLd54nU9FeZAqifPkW2eaXeGJkTYTxdG1JtXGTgkk9q", // kian/gov
+			"1eTPAR2TuqLyidmPT9rMmuycHVm9s9czu78sePqg2KHMDrE",  // kian/dot
+			// for testing
 			"G5MVrgFmBaYei8N6t6DnDrb8JE53wKDkazLv5f46wVpi14y", // alex
 			"Ea6jhP5gF4r7NqhkEoAXJDgSgYpNQNaTYU6gPsrEGfctaKR", // oliver
 			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
@@ -1998,6 +2002,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = System;
 	type MultisigMembers = MultisigMembers;
+	type MultisigThreshold = ConstU32<3>;
 }
 
 construct_runtime! {
@@ -3189,7 +3194,7 @@ sp_api::impl_runtime_apis! {
 #[cfg(test)]
 mod ahm_multisig {
 	use super::*;
-	use pallet_rc_migrator::{BailVote, ForceSetStageVote, ManagerMultisigVote};
+	use pallet_rc_migrator::ManagerMultisigVote;
 	use sp_core::Pair;
 	use sp_io::TestExternalities;
 	use sp_runtime::traits::{Dispatchable, ValidateUnsigned};
@@ -3366,274 +3371,6 @@ mod ahm_multisig {
 					&call
 				)
 				.is_err());
-			}
-		})
-	}
-
-	#[test]
-	fn multisig_cancel_works() {
-		TestExternalities::default().execute_with(|| {
-			pallet_rc_migrator::RcMigrationStage::<Runtime>::put(
-				pallet_rc_migrator::MigrationStage::Starting,
-			);
-
-			{
-				// Ferdie is not in the multisig, will get rejected on validate
-				let ferdie = sp_keyring::Sr25519Keyring::Ferdie.pair();
-
-				let payload = BailVote::from(ferdie.public(), 0);
-				let sig = ferdie.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_err());
-			}
-
-			{
-				// Alice signs a wrong message, rejected
-				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
-
-				let payload = BailVote::from(sp_keyring::Sr25519Keyring::Bob.pair().public(), 0);
-				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_err());
-			}
-
-			let first_valid_sig_from_alice = {
-				// Alice signs, not cancelled yet
-				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
-				let payload = BailVote::from(alice.public(), 0);
-				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call =
-					pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig: sig.clone() };
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
-					pallet_rc_migrator::MigrationStage::Starting
-				);
-				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get().len(), 1);
-				sig
-			};
-
-			{
-				// Alice signs again, rejected, not cancelled yet
-				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
-				let payload = BailVote::from(alice.public(), 0);
-				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-
-				assert_eq!(
-					RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).unwrap_err(),
-					sp_runtime::DispatchError::Other("Duplicate").into()
-				);
-			}
-
-			{
-				// Bob signs, not cancelled yet
-				let bob = sp_keyring::Sr25519Keyring::Bob.pair();
-				let payload = BailVote::from(bob.public(), 0);
-				let sig = bob.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
-					pallet_rc_migrator::MigrationStage::Starting
-				);
-				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get().len(), 2);
-				assert_eq!(pallet_rc_migrator::CancelRound::<Runtime>::get(), 0);
-			}
-
-			{
-				// Charlie signs, cancelled
-				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
-				let payload = BailVote::from(charlie.public(), 0);
-				let sig = charlie.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel { payload, sig };
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
-					pallet_rc_migrator::MigrationStage::Pending
-				);
-				assert_eq!(pallet_rc_migrator::CancelVotes::<Runtime>::get().len(), 0);
-				assert_eq!(pallet_rc_migrator::CancelRound::<Runtime>::get(), 1);
-			}
-
-			{
-				// Valid alice signature from round 0 can no longer be used.
-				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
-				let payload = BailVote::from(alice.public(), 0);
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_cancel {
-					payload,
-					sig: first_valid_sig_from_alice,
-				};
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_err());
-			}
-		})
-	}
-
-	#[test]
-	fn force_set_stage_works() {
-		TestExternalities::default().execute_with(|| {
-			let consensus_stage = pallet_rc_migrator::MigrationStage::MigrationPaused;
-			let other_stage = pallet_rc_migrator::MigrationStage::WaitingForAh;
-
-			{
-				// Alice signs on the winning stage
-				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
-				let payload = ForceSetStageVote::new(alice.public(), 0, consensus_stage.clone());
-				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_force_set_stage {
-					payload: Box::new(payload),
-					sig,
-				};
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
-					// default value
-					pallet_rc_migrator::MigrationStage::Pending
-				);
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::get(consensus_stage.clone())
-						.len(),
-					1
-				);
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::get(other_stage.clone())
-						.len(),
-					0
-				);
-			}
-
-			{
-				// Alice signs on the other stage
-				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
-				let payload = ForceSetStageVote::new(alice.public(), 0, other_stage.clone());
-				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_force_set_stage {
-					payload: Box::new(payload),
-					sig,
-				};
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
-					// default value
-					pallet_rc_migrator::MigrationStage::Pending
-				);
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::get(other_stage.clone())
-						.len(),
-					1
-				);
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::get(consensus_stage.clone())
-						.len(),
-					1
-				);
-			}
-
-			{
-				// Bob signs on consensus state
-				let bob = sp_keyring::Sr25519Keyring::Bob.pair();
-				let payload = ForceSetStageVote::new(bob.public(), 0, consensus_stage.clone());
-				let sig = bob.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_force_set_stage {
-					payload: Box::new(payload),
-					sig,
-				};
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::get(other_stage.clone())
-						.len(),
-					1
-				);
-				assert_eq!(
-					pallet_rc_migrator::ForceSetStageVotes::<Runtime>::get(consensus_stage.clone())
-						.len(),
-					2
-				);
-			}
-
-			{
-				// charlie signs on consensus state, passed, all data deleted, round incremented
-				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
-				let payload = ForceSetStageVote::new(charlie.public(), 0, consensus_stage.clone());
-				let sig = charlie.sign(payload.encode_with_bytes_wrapper().as_ref());
-				let call = pallet_rc_migrator::Call::<Runtime>::vote_force_set_stage {
-					payload: Box::new(payload),
-					sig,
-				};
-
-				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
-					TransactionSource::External,
-					&call
-				)
-				.is_ok());
-
-				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
-				assert_eq!(
-					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
-					consensus_stage.clone()
-				);
-				assert_eq!(pallet_rc_migrator::ForceSetStageVotes::<Runtime>::iter().count(), 0);
 			}
 		})
 	}

@@ -627,7 +627,11 @@ pub mod pallet {
 		/// This configuration can be overridden by a storage item [`AhUmpQueuePriorityConfig`].
 		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 
+		/// Members of an multisig that can be submit unsigned txs and act as the manager.
 		type MultisigMembers: Get<Vec<sp_core::sr25519::Public>>;
+
+		/// Threshold of `MultisigMembers`.
+		type MultisigThreshold: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -771,6 +775,8 @@ pub mod pallet {
 			/// The number of indexed pure accounts.
 			num_pure_accounts: u32,
 		},
+		/// The manager multisig dispatched something
+		ManagerMultisigDispatched { res: DispatchResult },
 	}
 
 	/// The Relay Chain migration state.
@@ -1308,85 +1314,6 @@ pub mod pallet {
 
 		#[pallet::call_index(13)]
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
-		pub fn vote_cancel(
-			origin: OriginFor<T>,
-			payload: BailVote,
-			_sig: sp_core::sr25519::Signature,
-		) -> DispatchResult {
-			let _ = ensure_none(origin);
-
-			ensure!(CancelRound::<T>::get() == payload.round, "RoundStale");
-			let mut votes = CancelVotes::<T>::get();
-			ensure!(!votes.contains(&payload.who), "Duplicate");
-			votes.push(payload.who);
-
-			if votes.len() >= 3 {
-				Self::transition(MigrationStage::Pending);
-				Self::deposit_event(Event::MigrationCancelled);
-				CancelVotes::<T>::kill();
-				CancelRound::<T>::mutate(|r| *r += 1);
-			} else {
-				CancelVotes::<T>::put(votes);
-			}
-
-			Ok(())
-		}
-
-		#[pallet::call_index(14)]
-		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
-		pub fn vote_pause(
-			origin: OriginFor<T>,
-			payload: BailVote,
-			_sig: sp_core::sr25519::Signature,
-		) -> DispatchResult {
-			let _ = ensure_none(origin);
-
-			ensure!(PauseRound::<T>::get() == payload.round, "RoundStale");
-			let mut votes = PauseVotes::<T>::get();
-			ensure!(!votes.contains(&payload.who), "Duplicate");
-			votes.push(payload.who);
-
-			if votes.len() >= 3 {
-				let pause_stage = RcMigrationStage::<T>::get();
-				Self::transition(MigrationStage::MigrationPaused);
-				Self::deposit_event(Event::MigrationPaused { pause_stage });
-				PauseVotes::<T>::kill();
-				PauseRound::<T>::mutate(|r| *r += 1);
-			} else {
-				PauseVotes::<T>::put(votes);
-			}
-
-			Ok(())
-		}
-
-		#[pallet::call_index(15)]
-		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
-		pub fn vote_force_set_stage(
-			origin: OriginFor<T>,
-			payload: Box<ForceSetStageVote<T>>,
-			_sig: sp_core::sr25519::Signature,
-		) -> DispatchResult {
-			let _ = ensure_none(origin);
-
-			ensure!(ForceSetStageRound::<T>::get() == payload.round, "RoundStale");
-			let mut votes_for_stage = ForceSetStageVotes::<T>::get(&payload.stage);
-			ensure!(!votes_for_stage.contains(&payload.who), "Duplicate");
-			votes_for_stage.push(payload.who);
-
-			if votes_for_stage.len() >= 3 {
-				Self::transition(payload.stage);
-				// clear any votes, either in winning or losing stages.
-				let _ = ForceSetStageVotes::<T>::clear(u32::MAX, None);
-				ForceSetStageRound::<T>::mutate(|r| *r += 1);
-			} else {
-				ForceSetStageVotes::<T>::insert(payload.stage, votes_for_stage);
-			}
-
-			Ok(())
-		}
-
-		#[pallet::call_index(16)]
-		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
 			payload: Box<ManagerMultisigVote<T>>,
@@ -1399,12 +1326,15 @@ pub mod pallet {
 			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
 			votes_for_call.push(payload.who.clone());
 
-			if votes_for_call.len() >= 3 {
+			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
 				let origin: <T as Config>::RuntimeOrigin =
 					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
 				let call = payload.call.clone();
 				let res = call.dispatch_bypass_filter(origin);
 				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
+				Self::deposit_event(Event::ManagerMultisigDispatched {
+					res: res.map(|_| ()).map_err(|e| e.error),
+				});
 				ManagerMultisigRound::<T>::mutate(|r| *r += 1);
 			} else {
 				ManagerMultisigs::<T>::insert(payload.call, votes_for_call);
@@ -1464,77 +1394,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
 
-	#[derive(
-		Encode,
-		Decode,
-		DebugNoBound,
-		CloneNoBound,
-		PartialEqNoBound,
-		EqNoBound,
-		TypeInfo,
-		sp_core::DecodeWithMemTracking,
-	)]
-	pub struct BailVote {
-		pub(crate) who: sp_core::sr25519::Public,
-		pub(crate) round: u32,
-	}
-
-	impl BailVote {
-		pub fn from(who: sp_core::sr25519::Public, round: u32) -> Self {
-			Self { round, who }
-		}
-
-		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
-			[b"<Bytes>", &*self.encode(), b"</Bytes>"].concat()
-		}
-	}
-
-	#[pallet::storage]
-	#[pallet::unbounded]
-	pub type CancelVotes<T: Config> = StorageValue<_, Vec<sp_core::sr25519::Public>, ValueQuery>;
-	#[pallet::storage]
-	pub type CancelRound<T: Config> = StorageValue<_, u32, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::unbounded]
-	pub type PauseVotes<T: Config> = StorageValue<_, Vec<sp_core::sr25519::Public>, ValueQuery>;
-	#[pallet::storage]
-	pub type PauseRound<T: Config> = StorageValue<_, u32, ValueQuery>;
-
-	#[derive(
-		Encode,
-		Decode,
-		DebugNoBound,
-		CloneNoBound,
-		PartialEqNoBound,
-		EqNoBound,
-		TypeInfo,
-		sp_core::DecodeWithMemTracking,
-	)]
-	#[scale_info(skip_type_params(T))]
-	pub struct ForceSetStageVote<T: Config> {
-		pub(crate) round: u32,
-		pub(crate) who: sp_core::sr25519::Public,
-		pub(crate) stage: MigrationStageOf<T>,
-	}
-
-	impl<T: Config> ForceSetStageVote<T> {
-		pub fn new(who: sp_core::sr25519::Public, round: u32, stage: MigrationStageOf<T>) -> Self {
-			Self { who, round, stage }
-		}
-
-		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
-			[b"<Bytes>", &*self.encode(), b"</Bytes>"].concat()
-		}
-	}
-
-	#[pallet::storage]
-	pub type ForceSetStageRound<T: Config> = StorageValue<_, u32, ValueQuery>;
-	#[pallet::storage]
-	#[pallet::unbounded]
-	pub type ForceSetStageVotes<T: Config> =
-		StorageMap<_, Twox64Concat, MigrationStageOf<T>, Vec<sp_core::sr25519::Public>, ValueQuery>;
-
 	#[pallet::validate_unsigned]
 	impl<T: Config> ValidateUnsigned for Pallet<T> {
 		type Call = Call<T>;
@@ -1542,60 +1401,6 @@ pub mod pallet {
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 			use sp_runtime::traits::Verify;
 			match call {
-				// note: payload can be empty, but it is better to ask the signer to revel
-				// themselves, so we don't have to check against all of `MultisigMembers`.
-				Call::vote_cancel { payload, sig } => {
-					if !T::MultisigMembers::get().contains(&payload.who) {
-						return InvalidTransaction::BadSigner.into()
-					}
-					if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
-						return InvalidTransaction::BadProof.into()
-					}
-					if CancelRound::<T>::get() != payload.round {
-						return InvalidTransaction::Stale.into()
-					}
-					ValidTransaction::with_tag_prefix("AhmMultisig")
-						.priority(sp_runtime::traits::Bounded::max_value())
-						.and_provides(vec![("ahm_multi", payload.who).encode()])
-						.propagate(true)
-						.longevity(30)
-						.build()
-				},
-				Call::vote_pause { payload, sig } => {
-					if !T::MultisigMembers::get().contains(&payload.who) {
-						return InvalidTransaction::BadSigner.into()
-					}
-					if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
-						return InvalidTransaction::BadProof.into()
-					}
-					if PauseRound::<T>::get() != payload.round {
-						return InvalidTransaction::Stale.into()
-					}
-
-					ValidTransaction::with_tag_prefix("AhmMultisig")
-						.priority(sp_runtime::traits::Bounded::max_value())
-						.and_provides(vec![("ahm_multi", payload.who).encode()])
-						.propagate(true)
-						.longevity(30)
-						.build()
-				},
-				Call::vote_force_set_stage { payload, sig } => {
-					if !T::MultisigMembers::get().contains(&payload.who) {
-						return InvalidTransaction::BadSigner.into()
-					}
-					if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
-						return InvalidTransaction::BadProof.into()
-					}
-					if ForceSetStageRound::<T>::get() != payload.round {
-						return InvalidTransaction::Stale.into()
-					}
-					ValidTransaction::with_tag_prefix("AhmMultisig")
-						.priority(sp_runtime::traits::Bounded::max_value())
-						.and_provides(vec![("ahm_multi", payload.who).encode()])
-						.propagate(true)
-						.longevity(30)
-						.build()
-				},
 				Call::vote_manager_multisig { payload, sig } => {
 					if !T::MultisigMembers::get().contains(&payload.who) {
 						return InvalidTransaction::BadSigner.into()
