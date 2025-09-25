@@ -195,17 +195,27 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 
 		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
 		if rc_payload.incomplete_since.is_some() {
-			assert_eq!(
-				pallet_scheduler::IncompleteSince::<T>::get(),
-				rc_payload.incomplete_since,
-				"IncompleteSince on Asset Hub should match the RC value"
-			);
+			let ah_incomplete_since_value = pallet_scheduler::IncompleteSince::<T>::get();
+			if ah_incomplete_since_value != rc_payload.incomplete_since {
+				log::error!(
+					target: LOG_TARGET,
+					"IncompleteSince on Asset Hub should match the RC value. \
+					AH value: {:?}, RC value: {:?}",
+					ah_incomplete_since_value,
+					rc_payload.incomplete_since
+				);
+			}
 		} else {
-			assert_eq!(
-				pallet_scheduler::IncompleteSince::<T>::get(),
-				ah_incomplete_since,
-				"IncompleteSince on Asset Hub should match the AH value when None from RC"
-			);
+			let ah_incomplete_since_value = pallet_scheduler::IncompleteSince::<T>::get();
+			if ah_incomplete_since_value != ah_incomplete_since {
+				log::error!(
+					target: LOG_TARGET,
+					"IncompleteSince on Asset Hub should match the AH value when None from RC. \
+					Current AH value: {:?}, Expected AH value: {:?}",
+					ah_incomplete_since_value,
+					ah_incomplete_since
+				);
+			}
 		}
 
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct

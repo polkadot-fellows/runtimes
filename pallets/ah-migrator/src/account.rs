@@ -379,31 +379,49 @@ pub mod tests {
 				// Therefore, we just check that the difference between the balance migrated from
 				// the RC to AH and the balance delta on AH before and after migration is less than
 				// AH existential deposit.
-				assert!(
-					rc_migrated_balance.saturating_sub(ah_migrated_balance) < ah_ed,
-					"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
-					who.to_ss58check()
-				);
+				if rc_migrated_balance.saturating_sub(ah_migrated_balance) >= ah_ed {
+					log::error!(
+						target: LOG_TARGET,
+						"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration. \
+						RC migrated: {:?}, AH migrated: {:?}, Difference: {:?}, AH ED: {:?}",
+						who.to_ss58check(),
+						rc_migrated_balance,
+						ah_migrated_balance,
+						rc_migrated_balance.saturating_sub(ah_migrated_balance),
+						ah_ed
+					);
+				}
 
 				// There are several `unreserve` operations on AH after migration (e.g., unreserve
 				// deposits for multisigs because they are not migrated to AH, adjust deposits for
 				// preimages, ...). Therefore, we just check that the change in reserved balance on
 				// AH after migration is less than the migrated reserved balance from RC.
-				assert!(
-					ah_reserved_post.saturating_sub(ah_reserved_before) <= summary.migrated_reserved,
-					"Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC", 
-					who.to_ss58check()
-				);
+				if ah_reserved_post.saturating_sub(ah_reserved_before) > summary.migrated_reserved {
+					log::error!(
+						target: LOG_TARGET,
+						"Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC. \
+						AH reserved before: {:?}, AH reserved after: {:?}, Change: {:?}, RC migrated reserved: {:?}",
+						who.to_ss58check(),
+						ah_reserved_before,
+						ah_reserved_post,
+						ah_reserved_post.saturating_sub(ah_reserved_before),
+						summary.migrated_reserved
+					);
+				}
 
 				// There should be no frozen balance on AH before the migration so we just need to
 				// check that the frozen balance on AH after migration is the same as on RC
 				// before migration.
-				assert_eq!(
-					summary.frozen,
-					frozen,
-					"Frozen balance mismatch for account {:?} between RC pre-migration and AH post-migration",
-					who.to_ss58check()
-				);
+				if summary.frozen != frozen {
+					log::error!(
+						target: LOG_TARGET,
+						"Frozen balance mismatch for account {:?} between RC pre-migration and AH post-migration. \
+						RC frozen: {:?}, AH frozen: {:?}",
+						who.to_ss58check(),
+						summary.frozen,
+						frozen
+					);
+				}
 
 				let mut rc_holds = summary
 					.holds

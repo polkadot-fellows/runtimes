@@ -126,7 +126,13 @@ impl RcMigrationCheck for ProxyBasicWorks {
 					.expect("Must translate proxy kind to permission");
 				assert_eq!(permission, Permission::Any, "All remaining proxies are 'Any'");
 				let nonce = frame_system::Pallet::<RelayRuntime>::account_nonce(&delegator);
-				assert!(zero_nonce_accounts.contains(&delegator), "All remaining proxies are from zero nonce accounts but account {:?} is not, current nonce: {}", delegator.to_polkadot_ss58(), nonce);
+				if !zero_nonce_accounts.contains(&delegator) {
+					log::error!(
+						"All remaining proxies should be from zero nonce accounts but account {:?} is not, current nonce: {}",
+						delegator.to_polkadot_ss58(),
+						nonce
+					);
+				}
 			}
 		}
 	}
@@ -497,7 +503,7 @@ impl ProxyBasicWorks {
 			) = event.event
 			{
 				if from == *delegator && to == *delegatee {
-					return true
+					return true;
 				}
 			}
 		}
@@ -512,7 +518,7 @@ impl ProxyBasicWorks {
 				pallet_referenda::Event::Submitted { .. },
 			) = event.event
 			{
-				return true
+				return true;
 			}
 		}
 

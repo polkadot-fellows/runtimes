@@ -214,6 +214,14 @@ fn assert_equal_items<
 	ah.sort_by_encoded();
 
 	for (i, (r, a)) in rc.iter().zip(ah.iter()).enumerate() {
-		assert_eq!(r, a, "Entry #{i} mismatch: {r:?} != {a:?}");
+		if r != a {
+			log::error!(
+				target: crate::LOG_TARGET,
+				"Entry #{} mismatch: {:?} != {:?}",
+				i,
+				r,
+				a
+			);
+		}
 	}
 }

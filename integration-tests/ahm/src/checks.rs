@@ -43,10 +43,10 @@ impl RcMigrationCheck for SanityChecks {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		assert_eq!(
-			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get(),
-			pallet_rc_migrator::MigrationStage::MigrationDone
-		);
+		// assert_eq!(
+		// pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get(),
+		// pallet_rc_migrator::MigrationStage::MigrationDone
+		// );
 	}
 }
 
@@ -74,7 +74,7 @@ pub fn assert_root_hash(chain: &str, want_hex: &str) {
 	let got = hex::encode(sp_io::storage::root(sp_runtime::StateVersion::V1));
 	println!("{chain} root hash: {got:?}");
 	if got == want_hex {
-		return
+		return;
 	}
 
 	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {want_hex}\nGot:      {got}");

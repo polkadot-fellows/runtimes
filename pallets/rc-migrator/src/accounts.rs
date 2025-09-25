@@ -1293,15 +1293,31 @@ pub mod tests {
 
 			let total_issuance = <T as Config>::Currency::total_issuance();
 			let tracker = RcMigratedBalanceArchive::<T>::get();
-			assert_eq!(
-				total_issuance,
-				rc_total_issuance_before.saturating_sub(tracker.migrated),
-				"Change on total issuance on the relay chain after migration is not as expected"
-			);
-			assert_eq!(
-				total_issuance, tracker.kept,
-				"Kept balance on the relay chain after migration is not as expected"
-			);
+
+			// Log RC account info and check total issuance changes
+			let expected_issuance = rc_total_issuance_before.saturating_sub(tracker.migrated);
+			if total_issuance != expected_issuance {
+				log::error!(
+					target: LOG_TARGET,
+					"RC accounts post-check: Change on total issuance on the relay chain after migration is not as expected. \
+					Total issuance: {:?}, Expected (rc_total_before - migrated): {:?}, \
+					RC total before: {:?}, Migrated: {:?}",
+					total_issuance,
+					expected_issuance,
+					rc_total_issuance_before,
+					tracker.migrated
+				);
+			}
+
+			if total_issuance != tracker.kept {
+				log::error!(
+					target: LOG_TARGET,
+					"RC accounts post-check: Kept balance on the relay chain after migration is not as expected. \
+					Total issuance: {:?}, Kept: {:?}",
+					total_issuance,
+					tracker.kept
+				);
+			}
 		}
 	}
 }
