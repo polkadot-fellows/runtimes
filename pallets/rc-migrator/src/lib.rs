@@ -454,6 +454,8 @@ type AccountInfoFor<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::traits::UnfilteredDispatchable;
+	use sp_runtime::traits::Dispatchable;
 	use super::*;
 
 	/// Paras Registrar Pallet
@@ -502,7 +504,11 @@ pub mod pallet {
 		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>
 			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// The overall runtime call type.
-		type RuntimeCall: From<Call<Self>> + IsType<<Self as pallet_xcm::Config>::RuntimeCall>;
+		type RuntimeCall: From<Call<Self>>
+			+ IsType<<Self as pallet_xcm::Config>::RuntimeCall>
+			+ UnfilteredDispatchable<RuntimeOrigin = <Self as frame_system::Config>::RuntimeOrigin>
+			+ Member
+			+ Parameter;
 		/// The runtime hold reasons.
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
@@ -1379,7 +1385,71 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		#[pallet::call_index(16)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn vote_manager_multisig(
+			origin: OriginFor<T>,
+			vote: ManagerMultisigVote<T>,
+			_sig: sp_core::sr25519::Signature,
+		) -> DispatchResult {
+			let _ = ensure_none(origin);
+
+			ensure!(ManagerMultisigRound::<T>::get() == vote.round, "RoundStale");
+			let mut votes_for_call = ManagerMultisigs::<T>::get(&vote.call);
+			ensure!(!votes_for_call.contains(&vote.who), "Duplicate");
+			votes_for_call.push(vote.who.clone());
+
+			if votes_for_call.len() >= 3 {
+				let origin: <T as frame_system::Config>::RuntimeOrigin =
+					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
+				let call = vote.call.clone();
+				let res = call.dispatch_bypass_filter(origin);
+				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
+				ManagerMultisigRound::<T>::mutate(|r| *r += 1);
+			} else {
+				ManagerMultisigs::<T>::insert(vote.call, votes_for_call);
+			}
+
+			Ok(())
+		}
 	}
+
+	impl<T: Config> Pallet<T> {
+		fn manager_multisig_id() -> T::AccountId {
+			let pallet_id = PalletId(*b"rcmigmts");
+			pallet_id.into_account_truncating()
+		}
+	}
+
+	#[derive(
+		Encode,
+		Decode,
+		DebugNoBound,
+		CloneNoBound,
+		PartialEqNoBound,
+		EqNoBound,
+		TypeInfo,
+		sp_core::DecodeWithMemTracking,
+	)]
+	#[scale_info(skip_type_params(T))]
+	pub struct ManagerMultisigVote<T: Config> {
+		who: sp_core::sr25519::Public,
+		call: <T as Config>::RuntimeCall,
+		round: u32,
+	}
+
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type ManagerMultisigs<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		<T as Config>::RuntimeCall,
+		Vec<sp_core::sr25519::Public>,
+		ValueQuery,
+	>;
+	#[pallet::storage]
+	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	#[derive(
 		Encode,
@@ -2480,6 +2550,9 @@ pub mod pallet {
 				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
+				if account_id == Self::manager_multisig_id() {
+					return Ok(());
+				}
 			}
 			<T as Config>::AdminOrigin::ensure_origin(origin)?;
 			Ok(())
@@ -2490,6 +2563,9 @@ pub mod pallet {
 		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+				if account_id == Self::manager_multisig_id() {
 					return Ok(());
 				}
 				if Canceller::<T>::get().is_some_and(|canceller_id| canceller_id == account_id) {
