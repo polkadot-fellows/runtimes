@@ -1917,6 +1917,15 @@ fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
 			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK", // Dave
 			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
+			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
+			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
+			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
+			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
+			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
+			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
+			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
 		]
 	} else {
 		vec![
@@ -3192,6 +3201,12 @@ mod ahm_multisig {
 	use sp_core::Pair;
 	use sp_io::TestExternalities;
 	use sp_runtime::traits::{Dispatchable, ValidateUnsigned};
+
+	#[test]
+	fn all_ss58s_decode() {
+		// ensure all non-dev account ids we have are valid ss58s
+		assert_eq!(MultisigMembers::get().len(), 14);
+	}
 
 	#[test]
 	fn unsigned_manager_multisig_works() {
