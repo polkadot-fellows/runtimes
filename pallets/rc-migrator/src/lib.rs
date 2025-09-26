@@ -627,7 +627,7 @@ pub mod pallet {
 		/// This configuration can be overridden by a storage item [`AhUmpQueuePriorityConfig`].
 		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 
-		/// Members of an multisig that can be submit unsigned txs and act as the manager.
+		/// Members of a multisig that can be submit unsigned txs and act as the manager.
 		type MultisigMembers: Get<Vec<sp_core::sr25519::Public>>;
 
 		/// Threshold of `MultisigMembers`.
