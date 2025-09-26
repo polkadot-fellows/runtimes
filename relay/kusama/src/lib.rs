@@ -1928,7 +1928,7 @@ fn multisig_members() -> Vec<AccountId32> {
 		"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", /* Muharem Polkadot Fellowship https://polkadot.subscan.io/account/12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2 */
 		"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", /* Adrian Polkadot Fellowship https://polkadot.subscan.io/account/121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz */
 		"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", /* RobK Polkadot Fellowship https://polkadot.subscan.io/account/12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8 */
-		"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", /* Donald Polkadot Fellowship https://kusama.subscan.io/account/FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy */
+		"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", /* Donal Polkadot Fellowship https://kusama.subscan.io/account/FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy */
 	];
 
 	addresses
