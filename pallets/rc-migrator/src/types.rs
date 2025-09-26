@@ -749,7 +749,7 @@ mod xcm_batch_tests {
 
 		// Add messages to multiple batches
 		batch.push(TestMessage::new(10));
-		batch.push(TestMessage::new((MAX_XCM_SIZE - 1) as usize));
+		batch.push(TestMessage::new((MAX_XCM_SIZE - 4) as usize)); // -4 for length prefix
 		batch.push(TestMessage::new(10));
 
 		assert_eq!(batch.len(), 3);

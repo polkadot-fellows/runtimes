@@ -103,7 +103,7 @@ use runtime_parachains::{
 };
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
-	traits::{BadOrigin, BlockNumberProvider, Dispatchable, Hash, One, Zero},
+	traits::{BadOrigin, BlockNumberProvider, Dispatchable, Hash, IdentifyAccount, One, Zero},
 	AccountId32, Saturating,
 };
 use sp_std::prelude::*;
@@ -628,7 +628,7 @@ pub mod pallet {
 		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 
 		/// Members of a multisig that can be submit unsigned txs and act as the manager.
-		type MultisigMembers: Get<Vec<sp_core::sr25519::Public>>;
+		type MultisigMembers: Get<Vec<AccountId32>>;
 
 		/// Threshold of `MultisigMembers`.
 		type MultisigThreshold: Get<u32>;
@@ -965,26 +965,13 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
-			let now = frame_system::Pallet::<T>::block_number();
-			let start = start.evaluate(now);
+			Self::do_schedule_migration(
+				start,
+				warm_up,
+				cool_off,
+				unsafe_ignore_staking_lock_check,
+			)?;
 
-			ensure!(start > now, Error::<T>::PastBlockNumber);
-
-			if !unsafe_ignore_staking_lock_check {
-				let until_start = start.saturating_sub(now);
-				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
-					.saturating_mul(2)
-					.try_into()
-					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
-
-				// We check > and not >= here since the on_initialize for this block already ran.
-				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
-			}
-
-			WarmUpPeriod::<T>::put(warm_up);
-			CoolOffPeriod::<T>::put(cool_off);
-
-			Self::transition(MigrationStage::Scheduled { start });
 			Ok(Pays::No.into())
 		}
 
@@ -1328,7 +1315,7 @@ pub mod pallet {
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
 			payload: Box<ManagerMultisigVote<T>>,
-			_sig: sp_core::sr25519::Signature,
+			_sig: sp_runtime::MultiSignature,
 		) -> DispatchResult {
 			let _ = ensure_none(origin);
 
@@ -1377,14 +1364,14 @@ pub mod pallet {
 	)]
 	#[scale_info(skip_type_params(T))]
 	pub struct ManagerMultisigVote<T: Config> {
-		who: sp_core::sr25519::Public,
+		who: sp_runtime::MultiSigner,
 		call: <T as Config>::RuntimeCall,
 		round: u32,
 	}
 
 	impl<T: Config> ManagerMultisigVote<T> {
 		pub fn new(
-			who: sp_core::sr25519::Public,
+			who: sp_runtime::MultiSigner,
 			call: <T as Config>::RuntimeCall,
 			round: u32,
 		) -> Self {
@@ -1402,7 +1389,7 @@ pub mod pallet {
 		_,
 		Twox64Concat,
 		<T as Config>::RuntimeCall,
-		Vec<sp_core::sr25519::Public>,
+		Vec<sp_runtime::MultiSigner>,
 		ValueQuery,
 	>;
 	#[pallet::storage]
@@ -1415,10 +1402,12 @@ pub mod pallet {
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 			use sp_runtime::traits::Verify;
 			if let Call::vote_manager_multisig { payload, sig } = call {
-				if !T::MultisigMembers::get().contains(&payload.who) {
+				let account = payload.who.clone().into_account();
+
+				if !T::MultisigMembers::get().contains(&account) {
 					return InvalidTransaction::BadSigner.into()
 				}
-				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &payload.who) {
+				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
 					return InvalidTransaction::BadProof.into()
 				}
 				if ManagerMultisigRound::<T>::get() != payload.round {
@@ -1426,7 +1415,7 @@ pub mod pallet {
 				}
 				ValidTransaction::with_tag_prefix("AhmMultisig")
 					.priority(sp_runtime::traits::Bounded::max_value())
-					.and_provides(vec![("ahm_multi", payload.who).encode()])
+					.and_provides(vec![("ahm_multi", account).encode()])
 					.propagate(true)
 					.longevity(30)
 					.build()
@@ -2392,6 +2381,34 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		pub fn do_schedule_migration(
+			start: DispatchTime<BlockNumberFor<T>>,
+			warm_up: DispatchTime<BlockNumberFor<T>>,
+			cool_off: DispatchTime<BlockNumberFor<T>>,
+			unsafe_ignore_staking_lock_check: bool,
+		) -> DispatchResult {
+			let now = frame_system::Pallet::<T>::block_number();
+			let start = start.evaluate(now);
+
+			ensure!(start > now, Error::<T>::PastBlockNumber);
+
+			if !unsafe_ignore_staking_lock_check {
+				let until_start = start.saturating_sub(now);
+				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
+					.saturating_mul(2)
+					.try_into()
+					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
+
+				// We check > and not >= here since the on_initialize for this block already ran.
+				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+			}
+
+			WarmUpPeriod::<T>::put(warm_up);
+			CoolOffPeriod::<T>::put(cool_off);
+
+			Self::transition(MigrationStage::Scheduled { start });
+			Ok(())
+		}
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
