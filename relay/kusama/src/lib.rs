@@ -2190,12 +2190,43 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::{schedule::DispatchTime, OnRuntimeUpgrade};
+	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (KickoffAhm<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// Kickoff the Asset Hub Migration.
+	pub struct KickoffAhm<T>(pub core::marker::PhantomData<T>);
+	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickoffAhm<T> {
+		fn on_runtime_upgrade() -> Weight {
+			if MigrationStartBlock::<T>::exists() ||
+				RcMigrationStage::<T>::get() != MigrationStage::Pending
+			{
+				// Already started or scheduled
+				log::info!("KickoffAhm: Asset Hub Migration already started or scheduled");
+				return T::DbWeight::get().reads(2)
+			}
+
+			// We will set this as part of the release MR
+			/*let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				DispatchTime::After(/* START */),
+				DispatchTime::After(/* WARM UP */),
+				DispatchTime::After(/* COOL OFF */),
+				Default::default(),
+			);
+			if let Err(e) = result {
+				log::error!("KickoffAhm: Failed to schedule Asset Hub Migration: {:?}", e);
+			} else {
+				log::info!("KickoffAhm: Scheduled Asset Hub Migration");
+			}*/
+
+			T::DbWeight::get().reads_writes(1, 1)
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
