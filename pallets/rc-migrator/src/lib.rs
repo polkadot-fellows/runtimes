@@ -965,26 +965,13 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
-			let now = frame_system::Pallet::<T>::block_number();
-			let start = start.evaluate(now);
+			Self::do_schedule_migration(
+				start,
+				warm_up,
+				cool_off,
+				unsafe_ignore_staking_lock_check,
+			)?;
 
-			ensure!(start > now, Error::<T>::PastBlockNumber);
-
-			if !unsafe_ignore_staking_lock_check {
-				let until_start = start.saturating_sub(now);
-				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
-					.saturating_mul(2)
-					.try_into()
-					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
-
-				// We check > and not >= here since the on_initialize for this block already ran.
-				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
-			}
-
-			WarmUpPeriod::<T>::put(warm_up);
-			CoolOffPeriod::<T>::put(cool_off);
-
-			Self::transition(MigrationStage::Scheduled { start });
 			Ok(Pays::No.into())
 		}
 
@@ -2392,6 +2379,34 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		pub fn do_schedule_migration(
+			start: DispatchTime<BlockNumberFor<T>>,
+			warm_up: DispatchTime<BlockNumberFor<T>>,
+			cool_off: DispatchTime<BlockNumberFor<T>>,
+			unsafe_ignore_staking_lock_check: bool,
+		) -> DispatchResult {
+			let now = frame_system::Pallet::<T>::block_number();
+			let start = start.evaluate(now);
+
+			ensure!(start > now, Error::<T>::PastBlockNumber);
+
+			if !unsafe_ignore_staking_lock_check {
+				let until_start = start.saturating_sub(now);
+				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
+					.saturating_mul(2)
+					.try_into()
+					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
+
+				// We check > and not >= here since the on_initialize for this block already ran.
+				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+			}
+
+			WarmUpPeriod::<T>::put(warm_up);
+			CoolOffPeriod::<T>::put(cool_off);
+
+			Self::transition(MigrationStage::Scheduled { start });
+			Ok(())
+		}
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
