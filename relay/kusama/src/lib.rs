@@ -1908,6 +1908,11 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	polkadot_primitives::MAX_POV_SIZE as u64,
 );
 
+/// Kusama multisig members for the `Manager` privilege of the RC Migrator pallet with threshold 3.
+///
+/// ACCOUNTS MUST BE ABLE TO SIGN VIA POLKADOTJS APPS `DEVELOPER->SIGN AND VERIFY` FEATURE.
+/// This does *not* work for signing devices and implies that the account is *hot*. The account
+/// does not need to have a balance and the chain does not matter.
 fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 	use sp_core::{crypto::Ss58Codec, ByteArray};
 	let addresses = if cfg!(test) {
@@ -1920,15 +1925,15 @@ fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 		]
 	} else {
 		vec![
-			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
-			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
-			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
-			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
-			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
-			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
-			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
-			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
+			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", /* Basti Kusama Fellowship https://kusama.subscan.io/account/FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs */
+			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", /* Gav Kusama Fellowship https://kusama.subscan.io/account/FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL */
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", /* Kian Kusama Fellowship https://kusama.subscan.io/account/HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1 */
+			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", /* Oliver Hot https://kusama.subscan.io/account/F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6 */
+			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", /* Joe Kusama Fellowship https://kusama.subscan.io/account/GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p */
+			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", /* Muharem Polkadot Fellowship https://polkadot.subscan.io/account/12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2 */
+			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", /* Adrian Polkadot Fellowship https://polkadot.subscan.io/account/121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz */
+			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", /* RobK Polkadot Fellowship https://polkadot.subscan.io/account/12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8 */
+			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", /* Donald Polkadot Fellowship https://kusama.subscan.io/account/FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy */
 		]
 	};
 
