@@ -4,7 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.9.0] 26.09.2025
+
+### Added
+
+- Kusama Asset Hub Migration ([polkadot-fellows/runtimes/pull/856](https://github.com/polkadot-fellows/runtimes/pull/856))
 
 ### Changed
 
