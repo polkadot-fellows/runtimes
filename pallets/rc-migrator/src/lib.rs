@@ -1312,7 +1312,7 @@ pub mod pallet {
 			Ok(Pays::No.into())
 		}
 
-		/// Vote on on behalf of any of the members in `MultisigMembers`.
+		/// Vote on behalf of any of the members in `MultisigMembers`.
 		///
 		/// Unsigned extrinsic, requiring the `payload` to be signed.
 		///
