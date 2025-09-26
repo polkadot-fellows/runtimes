@@ -775,8 +775,10 @@ pub mod pallet {
 			/// The number of indexed pure accounts.
 			num_pure_accounts: u32,
 		},
-		/// The manager multisig dispatched something
+		/// The manager multisig dispatched something.
 		ManagerMultisigDispatched { res: DispatchResult },
+		/// The manager multisig received a vote.
+		ManagerMultisigVoted { votes: u32 },
 	}
 
 	/// The Relay Chain migration state.
@@ -1346,6 +1348,9 @@ pub mod pallet {
 				});
 				ManagerMultisigRound::<T>::mutate(|r| *r += 1);
 			} else {
+				Self::deposit_event(Event::ManagerMultisigVoted {
+					votes: votes_for_call.len() as u32,
+				});
 				ManagerMultisigs::<T>::insert(payload.call, votes_for_call);
 			}
 

@@ -3266,7 +3266,7 @@ mod ahm_multisig {
 				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
 				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
 					payload: Box::new(payload),
-					sig: sig.clone(),
+					sig,
 				};
 
 				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
