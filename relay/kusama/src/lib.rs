@@ -1919,30 +1919,17 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 /// but are just in place to act as emergency backup contacts.
 fn multisig_members() -> Vec<AccountId32> {
 	use sp_core::crypto::Ss58Codec;
-	let addresses = if cfg!(test) {
-		vec![
-			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
-			"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
-			"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
-			                                                     * Public Key) */
-			"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
-			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
-			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK", // Dave
-			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
-		]
-	} else {
-		vec![
-			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", /* Basti Kusama Fellowship https://kusama.subscan.io/account/FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs */
-			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", /* Gav Kusama Fellowship https://kusama.subscan.io/account/FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL */
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", /* Kian Kusama Fellowship https://kusama.subscan.io/account/HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1 */
-			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", /* Oliver Hot https://kusama.subscan.io/account/F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6 */
-			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", /* Joe Kusama Fellowship https://kusama.subscan.io/account/GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p */
-			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", /* Muharem Polkadot Fellowship https://polkadot.subscan.io/account/12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2 */
-			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", /* Adrian Polkadot Fellowship https://polkadot.subscan.io/account/121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz */
-			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", /* RobK Polkadot Fellowship https://polkadot.subscan.io/account/12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8 */
-			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", /* Donald Polkadot Fellowship https://kusama.subscan.io/account/FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy */
-		]
-	};
+	let addresses = vec![
+		"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", /* Basti Kusama Fellowship https://kusama.subscan.io/account/FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs */
+		"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", /* Gav Kusama Fellowship https://kusama.subscan.io/account/FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL */
+		"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", /* Kian Kusama Fellowship https://kusama.subscan.io/account/HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1 */
+		"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", /* Oliver Hot https://kusama.subscan.io/account/F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6 */
+		"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", /* Joe Kusama Fellowship https://kusama.subscan.io/account/GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p */
+		"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", /* Muharem Polkadot Fellowship https://polkadot.subscan.io/account/12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2 */
+		"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", /* Adrian Polkadot Fellowship https://polkadot.subscan.io/account/121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz */
+		"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", /* RobK Polkadot Fellowship https://polkadot.subscan.io/account/12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8 */
+		"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", /* Donald Polkadot Fellowship https://kusama.subscan.io/account/FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy */
+	];
 
 	addresses
 		.into_iter()
