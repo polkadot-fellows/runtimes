@@ -1908,6 +1908,47 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	polkadot_primitives::MAX_POV_SIZE as u64,
 );
 
+fn multisig_members() -> Vec<sp_core::sr25519::Public> {
+	use sp_core::{crypto::Ss58Codec, ByteArray};
+	let addresses = if cfg!(test) {
+		vec![
+			"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F", // Alice
+			"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
+			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
+			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK", // Dave
+			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
+			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
+			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
+			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
+			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
+			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
+			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
+			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
+		]
+	} else {
+		vec![
+			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
+			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
+			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
+			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
+			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
+			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
+			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
+			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
+		]
+	};
+
+	addresses
+		.into_iter()
+		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).ok())
+		.map(|acc32| acc32.to_raw_vec())
+		.filter_map(|bytes| sp_core::sr25519::Public::from_slice(&bytes).ok())
+		.collect()
+}
+
 parameter_types! {
 	// Exvivalent to `kusama_asset_hub_runtime::MessageQueueServiceWeight`.
 	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
@@ -1917,6 +1958,9 @@ parameter_types! {
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
+
+	pub MultisigMembers: Vec<sp_core::sr25519::Public> = multisig_members();
+
 }
 
 pub struct ProxyTypeAny;
@@ -1960,6 +2004,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type KusamaConfig = Runtime;
 	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = System;
+	type MultisigMembers = MultisigMembers;
+	type MultisigThreshold = ConstU32<3>;
 }
 
 construct_runtime! {
@@ -3145,6 +3191,197 @@ sp_api::impl_runtime_apis! {
 
 			Ok(batches)
 		}
+	}
+}
+
+#[cfg(test)]
+mod ahm_multisig {
+	use super::*;
+	use pallet_rc_migrator::ManagerMultisigVote;
+	use sp_core::Pair;
+	use sp_io::TestExternalities;
+	use sp_runtime::traits::{Dispatchable, ValidateUnsigned};
+
+	#[test]
+	fn all_ss58s_decode() {
+		// ensure all non-dev account ids we have are valid ss58s
+		assert_eq!(MultisigMembers::get().len(), 14);
+	}
+
+	#[test]
+	fn unsigned_manager_multisig_works() {
+		TestExternalities::default().execute_with(|| {
+			let call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
+				stage: Box::new(pallet_rc_migrator::MigrationStage::Starting),
+			};
+			let runtime_call = RuntimeCall::from(call.clone());
+			let other_call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
+				stage: Box::new(pallet_rc_migrator::MigrationStage::SchedulerMigrationInit),
+			};
+			let other_runtime_call = RuntimeCall::from(other_call.clone());
+
+			// initial round is zero
+			assert_eq!(pallet_rc_migrator::ManagerMultisigRound::<Runtime>::get(), 0);
+
+			{
+				// Ferdie is not part of the multisig, will get rejected on validate
+				let ferdie = sp_keyring::Sr25519Keyring::Ferdie.pair();
+				let payload = ManagerMultisigVote::new(ferdie.public(), runtime_call.clone(), 0);
+				let sig = ferdie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			{
+				// Alice signs a wrong message, rejected
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(
+					sp_keyring::Sr25519Keyring::Bob.pair().public(),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			let alice_sig_for_first_round = {
+				// Alice signs, not executed yet
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(alice.public(), runtime_call.clone(), 0);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					1
+				);
+
+				sig
+			};
+
+			{
+				// Bob signs, still waiting
+				let bob = sp_keyring::Sr25519Keyring::Bob.pair();
+				let payload = ManagerMultisigVote::new(bob.public(), runtime_call.clone(), 0);
+				let sig = bob.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					2
+				);
+			}
+
+			{
+				// charlie signs something else, stored but not used.
+				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
+				let payload =
+					ManagerMultisigVote::new(charlie.public(), other_runtime_call.clone(), 0);
+				let sig = charlie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				// 1 vote for the new one
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(
+						other_runtime_call.clone()
+					)
+					.len(),
+					1
+				);
+				// still 2 votes for this
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					2
+				);
+			}
+
+			{
+				// eve signs, dispatched
+				let eve = sp_keyring::Sr25519Keyring::Eve.pair();
+				let payload = ManagerMultisigVote::new(eve.public(), runtime_call.clone(), 0);
+				let sig = eve.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				// executed, so no more votes
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Starting
+				);
+				// votes erased
+				assert!(pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+					.is_empty(),);
+				// round incremented
+				assert_eq!(pallet_rc_migrator::ManagerMultisigRound::<Runtime>::get(), 1);
+			}
+
+			{
+				// Alice's signature from first round cannot be re-used
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(ManagerMultisigVote::new(
+						sp_keyring::Sr25519Keyring::Alice.pair().public(),
+						runtime_call.clone(),
+						0,
+					)),
+					sig: alice_sig_for_first_round,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+		})
 	}
 }
 

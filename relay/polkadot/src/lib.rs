@@ -1771,6 +1771,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
+	type MultisigMembers = ();
+	type MultisigThreshold = ConstU32<{ u32::MAX }>;
 }
 
 construct_runtime! {
