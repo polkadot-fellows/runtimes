@@ -2190,7 +2190,7 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::{schedule::DispatchTime, OnRuntimeUpgrade};
+	use frame_support::traits::OnRuntimeUpgrade;
 	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
