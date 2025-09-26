@@ -1914,19 +1914,21 @@ fn multisig_members() -> Vec<AccountId32> {
 		vec![
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
 			"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
-			"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP",  // Bob
-			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P",  // Charlie
-			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK",  // Dave
-			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam",  // Eve
-			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs",  // basti
-			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL",  // gav
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1",  // kian
-			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6",  // oliver
-			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p",  // joe
+			"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
+			                                                     * Public Key) */
+			"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
+			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
+			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK", // Dave
+			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
+			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
+			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
+			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
+			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
 			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
 			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
 			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
-			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy",  // donal
+			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
 		]
 	} else {
 		vec![
@@ -3207,7 +3209,7 @@ mod ahm_multisig {
 	#[test]
 	fn all_ss58s_decode() {
 		// ensure all non-dev account ids we have are valid ss58s
-		assert_eq!(MultisigMembers::get().len(), 14);
+		assert_eq!(MultisigMembers::get().len(), 16);
 	}
 
 	#[test]
@@ -3317,6 +3319,33 @@ mod ahm_multisig {
 					)
 					.is_ok(),
 					"Alice ED25519 signs"
+				);
+			});
+
+			frame_support::hypothetically!({
+				// Alice ECDSA Address signs
+				let seed = hex_literal::hex!(
+					"cb6df9de1efca7a3998a8ead4e02159d5fa99c3e0d4fd6432667390bb4726854"
+				);
+				let alice = sp_application_crypto::ecdsa::Pair::from_seed_slice(&seed).unwrap();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Ecdsa(alice.public()),
+					runtime_call.clone(),
+					0,
+				);
+
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Ecdsa(sig),
+				};
+				assert!(
+					pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+						TransactionSource::External,
+						&call
+					)
+					.is_ok(),
+					"Alice ECDSA Address signs"
 				);
 			});
 
