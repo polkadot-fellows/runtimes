@@ -51,6 +51,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, DefensiveResult, EitherOf, EitherOfDiverse,
 		EnsureOrigin, EnsureOriginWithArg, Equals, FromContains, InstanceFilter,
@@ -2199,18 +2200,23 @@ pub mod migrations {
 				return T::DbWeight::get().reads(2)
 			}
 
-			// We will set this as part of the release MR
-			/*let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
-				DispatchTime::After(/* START */),
-				DispatchTime::After(/* WARM UP */),
-				DispatchTime::After(/* COOL OFF */),
+			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				// Migration start block, Tuesday 7th Oct 8 AM UTC
+				// Naive estimate [30422513](https://kusama.subscan.io/block/30422513)
+				// Adjusted with -20.52 clock skew / day [30423691](https://kusama.subscan.io/block/30423691), avg delay per day over the last 30 days.
+				DispatchTime::At(30423691u32.into()),
+				// Warm up to wait for Messaging queues to empty
+				DispatchTime::After((5 * MINUTES).into()),
+				// Cool off to verify the success of the migration
+				DispatchTime::After((60 * MINUTES).into()),
+				// Respect the session scheduling check:
 				Default::default(),
 			);
 			if let Err(e) = result {
 				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {:?}", e);
 			} else {
 				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
-			}*/
+			}
 
 			T::DbWeight::get().reads_writes(1, 1)
 		}
