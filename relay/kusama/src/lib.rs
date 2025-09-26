@@ -1913,6 +1913,10 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 /// ACCOUNTS MUST BE ABLE TO SIGN VIA POLKADOTJS APPS `DEVELOPER->SIGN AND VERIFY` FEATURE.
 /// This does *not* work for signing devices and implies that the account is *hot*. The account
 /// does not need to have a balance and the chain does not matter.
+///
+/// Will be used to respond to issues during the Asset Hub Migration and to adjust the scheduled
+/// timepoint to ensure that it runs at the right time. Most members do not need to do anything
+/// but are just in place to act as emergency backup contacts.
 fn multisig_members() -> Vec<sp_core::sr25519::Public> {
 	use sp_core::{crypto::Ss58Codec, ByteArray};
 	let addresses = if cfg!(test) {
