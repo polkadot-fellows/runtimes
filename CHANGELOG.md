@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Kusama Asset Hub Migration ([polkadot-fellows/runtimes/pull/856](https://github.com/polkadot-fellows/runtimes/pull/856))
+- Enable the Asset Hub Migration for Kusama at block `30423691`, projected to be Tuesday 7th Oct 8 AM UTC ([polkadot-fellows/runtimes/pull/935](https://github.com/polkadot-fellows/runtimes/pull/935))
+- Code for the Asset Hub Migration ([polkadot-fellows/runtimes/pull/856](https://github.com/polkadot-fellows/runtimes/pull/856))
 
 ### Changed
 
