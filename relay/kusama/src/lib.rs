@@ -1918,8 +1918,30 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 /// Will be used to respond to issues during the Asset Hub Migration and to adjust the scheduled
 /// timepoint to ensure that it runs at the right time. Most members do not need to do anything
 /// but are just in place to act as emergency backup contacts.
+#[cfg(feature = "std")]
 fn multisig_members() -> Vec<AccountId32> {
 	use sp_core::crypto::Ss58Codec;
+
+	let addresses = vec![
+		"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
+		"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
+		"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
+		                                                     * Public Key) */
+		"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
+		"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
+		"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+	];
+
+	addresses
+		.into_iter()
+		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).defensive_ok())
+		.collect()
+}
+
+#[cfg(not(feature = "std"))]
+fn multisig_members() -> Vec<AccountId32> {
+	use sp_core::crypto::Ss58Codec;
+
 	let addresses = vec![
 		"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", /* Basti Kusama Fellowship https://kusama.subscan.io/account/FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs */
 		"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", /* Gav Kusama Fellowship https://kusama.subscan.io/account/FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL */
@@ -3235,7 +3257,7 @@ mod ahm_multisig {
 	#[test]
 	fn all_ss58s_decode() {
 		// ensure all non-dev account ids we have are valid ss58s
-		assert_eq!(MultisigMembers::get().len(), 16);
+		assert_eq!(MultisigMembers::get().len(), 6);
 	}
 
 	#[test]
