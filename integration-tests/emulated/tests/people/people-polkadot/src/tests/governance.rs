@@ -37,14 +37,16 @@ fn relay_commands_add_registrar() {
 			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-			Dmp::make_parachain_reachable(1004);
+			Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
 			let add_registrar_call =
 				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
 					account: registrar.into(),
 				});
 
 			let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+				dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+					PeoplePolkadot::para_id()
+				))),
 				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
@@ -154,14 +156,16 @@ fn relay_commands_add_registrar_wrong_origin() {
 		type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-		Dmp::make_parachain_reachable(1004);
+		Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
 		let add_registrar_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
 				account: registrar.into(),
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
@@ -233,7 +237,7 @@ fn relay_commands_kill_identity() {
 		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-		Dmp::make_parachain_reachable(1004);
+		Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
 				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(
@@ -242,15 +246,14 @@ fn relay_commands_kill_identity() {
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					// Making the weight's ref time any lower will prevent the XCM from triggering
-					// execution of the intended extrinsic on the People chain - beware of spurious
-					// test failure due to this.
-					fallback_max_weight: Some(Weight::from_parts(11_000_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: kill_identity_call.encode().into(),
 				}
 			]))),
@@ -295,7 +298,7 @@ fn relay_commands_kill_identity_wrong_origin() {
 		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-		Dmp::make_parachain_reachable(1004);
+		Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
 				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(
@@ -304,12 +307,14 @@ fn relay_commands_kill_identity_wrong_origin() {
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					fallback_max_weight: Some(Weight::from_parts(11_000_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: kill_identity_call.encode().into(),
 				}
 			]))),
@@ -355,7 +360,7 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-			Dmp::make_parachain_reachable(1004);
+			Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
 			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
 				PeopleRuntime,
 			>::add_username_authority {
@@ -365,12 +370,14 @@ fn relay_commands_add_remove_username_authority() {
 			});
 
 			let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+				dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+					PeoplePolkadot::para_id()
+				))),
 				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,
-						fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+						fallback_max_weight: None,
 						call: add_username_authority.encode().into(),
 					}
 				]))),
@@ -454,12 +461,14 @@ fn relay_commands_add_remove_username_authority() {
 
 			let remove_authority_xcm_msg =
 				RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-					dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+					dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+						PeoplePolkadot::para_id()
+					))),
 					message: bx!(VersionedXcm::from(Xcm(vec![
 						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 						Transact {
 							origin_kind,
-							fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+							fallback_max_weight: None,
 							call: remove_username_authority.encode().into(),
 						}
 					]))),
@@ -506,7 +515,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-		Dmp::make_parachain_reachable(1004);
+		Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
 		let add_username_authority =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
 				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
@@ -515,12 +524,14 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 			});
 
 		let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: add_username_authority.encode().into(),
 				}
 			]))),
@@ -565,12 +576,14 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		});
 
 		let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			dest: bx!(VersionedLocation::from(Polkadot::child_location_of(
+				PeoplePolkadot::para_id()
+			))),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::SovereignAccount,
-					fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: remove_username_authority.encode().into(),
 				}
 			]))),
@@ -597,4 +610,161 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 			]
 		);
 	});
+}
+
+#[test]
+fn asset_hub_commands_add_remove_username_authority() {
+	let people_polkadot_alice = PeoplePolkadot::account_id_of(ALICE);
+	let people_polkadot_bob = PeoplePolkadot::account_id_of(BOB);
+
+	let origins = vec![
+		(OriginKind::Xcm, GeneralAdminOriginFromAssetHub.into(), "generaladmin.suffix1"),
+		(
+			OriginKind::Superuser,
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			"rootusername.suffix1",
+		),
+	];
+	for (origin_kind, origin, usr) in origins {
+		// First, add a username authority.
+		AssetHubPolkadot::execute_with(|| {
+			type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+			type RuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+			type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
+
+			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::add_username_authority {
+				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
+				suffix: b"suffix1".into(),
+				allocation: 10,
+			});
+
+			let add_authority_xcm_msg =
+				RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+					dest: bx!(VersionedLocation::from(Location::new(1, [Parachain(1004)]))),
+					message: bx!(VersionedXcm::from(Xcm(vec![
+						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+						Transact {
+							origin_kind,
+							fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+							call: add_username_authority.encode().into(),
+						}
+					]))),
+				});
+
+			assert_ok!(add_authority_xcm_msg.dispatch(origin.clone()));
+
+			assert_expected_events!(
+				AssetHubPolkadot,
+				vec![
+					RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		// Check events system-parachain-side
+		PeoplePolkadot::execute_with(|| {
+			type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeoplePolkadot,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::AuthorityAdded { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+
+		// Now, use the previously added username authority to concede a username to an account.
+		PeoplePolkadot::execute_with(|| {
+			type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
+			assert_ok!(<PeoplePolkadot as PeoplePolkadotPallet>::Identity::set_username_for(
+				<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice.clone()),
+				people_polkadot_runtime::MultiAddress::Id(people_polkadot_bob.clone()),
+				usr.to_owned().into_bytes(),
+				None,
+				false,
+			));
+
+			assert_expected_events!(
+				PeoplePolkadot,
+				vec![
+					PeopleRuntimeEvent::Identity(pallet_identity::Event::UsernameQueued { .. }) => {},
+				]
+			);
+		});
+
+		// Accept the given username
+		PeoplePolkadot::execute_with(|| {
+			type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+			let full_username = usr.to_owned().into_bytes();
+
+			assert_ok!(<PeoplePolkadot as PeoplePolkadotPallet>::Identity::accept_username(
+				<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_bob.clone()),
+				full_username.try_into().unwrap(),
+			));
+
+			assert_expected_events!(
+				PeoplePolkadot,
+				vec![
+					PeopleRuntimeEvent::Identity(pallet_identity::Event::UsernameSet { .. }) => {},
+				]
+			);
+		});
+
+		// Now, remove the username authority with another privileged XCM call.
+		AssetHubPolkadot::execute_with(|| {
+			type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+			type RuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+			type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
+
+			let remove_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::remove_username_authority {
+				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
+				suffix: b"suffix1".to_vec(),
+			});
+
+			let remove_authority_xcm_msg =
+				RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+					dest: bx!(VersionedLocation::from(Location::new(1, [Parachain(1004)]))),
+					message: bx!(VersionedXcm::from(Xcm(vec![
+						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+						Transact {
+							origin_kind,
+							fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
+							call: remove_username_authority.encode().into(),
+						}
+					]))),
+				});
+
+			assert_ok!(remove_authority_xcm_msg.dispatch(origin));
+
+			assert_expected_events!(
+				AssetHubPolkadot,
+				vec![
+					RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		// Final event check.
+		PeoplePolkadot::execute_with(|| {
+			type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeoplePolkadot,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::AuthorityRemoved { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+	}
 }

@@ -336,7 +336,7 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	type WeightInfo = weights::pallet_ranked_collective::WeightInfo<Self>;
 	type RuntimeEvent = RuntimeEvent;
 	// Promotion is by any of:
-	// - Root can demote arbitrarily.
+	// - Root can promote arbitrarily.
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote by the rank *above* the new rank.
 	type PromoteOrigin = EitherOf<
