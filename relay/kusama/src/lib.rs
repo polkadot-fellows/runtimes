@@ -51,6 +51,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, DefensiveResult, EitherOf, EitherOfDiverse,
 		EnsureOrigin, EnsureOriginWithArg, Equals, FromContains, InstanceFilter,
@@ -187,7 +188,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_007_001,
+	spec_version: 1_009_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1908,41 +1909,50 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	polkadot_primitives::MAX_POV_SIZE as u64,
 );
 
+/// Kusama multisig members for the `Manager` privilege of the RC Migrator pallet with threshold 3.
+///
+/// ACCOUNTS MUST BE ABLE TO SIGN VIA POLKADOTJS APPS `DEVELOPER->SIGN AND VERIFY` FEATURE.
+/// This does *not* work for signing devices and implies that the account is *hot*. The account
+/// does not need to have a balance and the chain does not matter.
+///
+/// Will be used to respond to issues during the Asset Hub Migration and to adjust the scheduled
+/// timepoint to ensure that it runs at the right time. Most members do not need to do anything
+/// but are just in place to act as emergency backup contacts.
+#[cfg(feature = "std")]
 fn multisig_members() -> Vec<AccountId32> {
 	use sp_core::crypto::Ss58Codec;
-	let addresses = if cfg!(test) {
-		vec![
-			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
-			"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
-			"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
-			                                                     * Public Key) */
-			"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
-			"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
-			"DfnTB4z7eUvYRqcGtTpFsLC69o6tvBSC1pEv8vWPZFtCkaK", // Dave
-			"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
-			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
-			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
-			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
-			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
-			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
-			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
-			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
-			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
-		]
-	} else {
-		vec![
-			"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", // basti
-			"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", // gav
-			"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", // kian
-			"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", // oliver
-			"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", // joe
-			"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // muharem
-			"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // adrian
-			"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // robK
-			"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", // donal
-		]
-	};
+
+	let addresses = vec![
+		"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
+		"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
+		"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
+		                                                     * Public Key) */
+		"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
+		"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
+		"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+	];
+
+	addresses
+		.into_iter()
+		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).defensive_ok())
+		.collect()
+}
+
+#[cfg(not(feature = "std"))]
+fn multisig_members() -> Vec<AccountId32> {
+	use sp_core::crypto::Ss58Codec;
+
+	let addresses = vec![
+		"FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs", /* Basti Kusama Fellowship https://kusama.subscan.io/account/FFFF3gBSSDFSvK2HBq4qgLH75DHqXWPHeCnR1BSksAMacBs */
+		"FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL", /* Gav Kusama Fellowship https://kusama.subscan.io/account/FcxNWVy5RESDsErjwyZmPCW6Z8Y3fbfLzmou34YZTrbcraL */
+		"HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1", /* Kian Kusama Fellowship https://kusama.subscan.io/account/HL8bEp8YicBdrUmJocCAWVLKUaR2dd1y6jnD934pbre3un1 */
+		"F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6", /* Oliver Hot https://kusama.subscan.io/account/F2jgWXy7X8GQ2ykf1UGrsCXRERZvjEcd2aDf39fMf3BWVy6 */
+		"GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p", /* Joe Kusama Fellowship https://kusama.subscan.io/account/GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p */
+		"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", /* Muharem Polkadot Fellowship https://polkadot.subscan.io/account/12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2 */
+		"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", /* Adrian Polkadot Fellowship https://polkadot.subscan.io/account/121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz */
+		"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", /* RobK Polkadot Fellowship https://polkadot.subscan.io/account/12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8 */
+		"FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy", /* Donal Polkadot Fellowship https://kusama.subscan.io/account/FcJnhk4i1bfuN9E2B6yMnL8h97ogtuL7e4ZpqnYgvj9moQy */
+	];
 
 	addresses
 		.into_iter()
@@ -2212,18 +2222,23 @@ pub mod migrations {
 				return T::DbWeight::get().reads(2)
 			}
 
-			// We will set this as part of the release MR
-			/*let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
-				DispatchTime::After(/* START */),
-				DispatchTime::After(/* WARM UP */),
-				DispatchTime::After(/* COOL OFF */),
+			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				// Migration start block, Tuesday 7th Oct 8 AM UTC
+				// Naive estimate [30422513](https://kusama.subscan.io/block/30422513)
+				// Adjusted with -20.52 clock skew / day [30423691](https://kusama.subscan.io/block/30423691), avg delay per day over the last 30 days.
+				DispatchTime::At(30423691u32.into()),
+				// Warm up to wait for Messaging queues to empty
+				DispatchTime::After((5 * MINUTES).into()),
+				// Cool off to verify the success of the migration
+				DispatchTime::After((60 * MINUTES).into()),
+				// Respect the session scheduling check:
 				Default::default(),
 			);
 			if let Err(e) = result {
-				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {:?}", e);
+				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
 			} else {
 				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
-			}*/
+			}
 
 			T::DbWeight::get().reads_writes(1, 1)
 		}
@@ -3242,7 +3257,7 @@ mod ahm_multisig {
 	#[test]
 	fn all_ss58s_decode() {
 		// ensure all non-dev account ids we have are valid ss58s
-		assert_eq!(MultisigMembers::get().len(), 16);
+		assert_eq!(MultisigMembers::get().len(), 6);
 	}
 
 	#[test]
