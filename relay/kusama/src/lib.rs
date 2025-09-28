@@ -2235,7 +2235,7 @@ pub mod migrations {
 				Default::default(),
 			);
 			if let Err(e) = result {
-				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {:?}", e);
+				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
 			} else {
 				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
 			}
