@@ -1086,21 +1086,18 @@ mod inflation_tests {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			// Pre-march.
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
-			let (to_stakers, to_treasury) =
-				<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert!(March2026TI::get() == None);
 
 			// Post-march.
 			set_relay_number(MARCH_14_2026);
-			let (to_stakers, to_treasury) =
-				<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert!(March2026TI::get() == Some(MARCH_TI));
 
 			// No change on subsequent call.
 			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
-			let (to_stakers, to_treasury) =
-				<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert!(March2026TI::get() == Some(MARCH_TI));
 		});
 	}

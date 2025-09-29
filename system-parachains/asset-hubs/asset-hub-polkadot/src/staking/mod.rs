@@ -376,9 +376,9 @@ pub mod temp_curve {
 			let val_curr = self.evaluate(curr_period_point);
 
 			if val_curr >= val_prev {
-				return val_curr.saturating_sub(val_prev);
+				val_curr.saturating_sub(val_prev)
 			} else {
-				return val_prev.saturating_sub(val_curr);
+				val_prev.saturating_sub(val_curr)
 			}
 		}
 
@@ -415,15 +415,13 @@ pub mod temp_curve {
 					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
 					let scale = ratio.saturating_pow(num_periods_usize);
 
-					let res = if initial >= asymptote {
+					if initial >= asymptote {
 						let diff = initial.saturating_sub(asymptote);
 						asymptote.saturating_add(diff.saturating_mul(scale))
 					} else {
 						let diff = asymptote.saturating_sub(initial);
 						asymptote.saturating_sub(diff.saturating_mul(scale))
-					};
-
-					res
+					}
 				},
 			}
 		}
