@@ -70,7 +70,7 @@ impl<T: Config> Pallet<T> {
 			count_good,
 			count_bad,
 		});
-		log::info!(target: LOG_TARGET, "Processed {} delegated staking messages", count_good);
+		log::info!(target: LOG_TARGET, "Processed {count_good} delegated staking messages");
 
 		Ok(())
 	}
@@ -78,7 +78,7 @@ impl<T: Config> Pallet<T> {
 	fn do_process_delegated_staking_message(
 		message: PortableDelegatedStakingMessage,
 	) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing delegated staking message: {:?}", message);
+		log::debug!(target: LOG_TARGET, "Processing delegated staking message: {message:?}");
 
 		match message {
 			PortableDelegatedStakingMessage::Delegators { delegator, agent, amount } => {
@@ -152,21 +152,18 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 				pallet_delegated_staking::Delegators::<T>::get(&translated_delegator);
 			assert!(
 				ah_delegation_maybe.is_some(),
-				"Delegation for delegator {:?} should exist on the Asset Hub after migration",
-				translated_delegator
+				"Delegation for delegator {translated_delegator:?} should exist on the Asset Hub after migration",
 			);
 			let ah_delegation = ah_delegation_maybe.unwrap();
 			assert_eq!(
 				ah_delegation.agent,
 				translated_agent,
-				"Agent for delegation of delegator {:?} should be the same on the Asset Hub after migration",
-				translated_delegator
+				"Agent for delegation of delegator {translated_delegator:?} should be the same on the Asset Hub after migration",
 			);
 			assert_eq!(
 				ah_delegation.amount,
 				delegation.amount,
-				"Amount for delegation of delegator {:?} should be the same on the Asset Hub after migration",
-				translated_delegator
+				"Amount for delegation of delegator {translated_delegator:?} should be the same on the Asset Hub after migration",
 			);
 		}
 
@@ -181,33 +178,28 @@ impl<T: Config> crate::types::AhMigrationCheck for DelegatedStakingMigrator<T> {
 				pallet_delegated_staking::Agents::<T>::get(&translated_agent);
 			assert!(
 				ah_agent_ledger_maybe.is_some(),
-				"Agent ledger for agent {:?} should exist on the Asset Hub after migration",
-				translated_agent
+				"Agent ledger for agent {translated_agent:?} should exist on the Asset Hub after migration",
 			);
 			let ah_agent_ledger = ah_agent_ledger_maybe.unwrap();
 			assert_eq!(
 				ah_agent_ledger.payee,
 				translated_payee,
-				"Payee for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
-				translated_agent
+				"Payee for agent ledger of agent {translated_agent:?} should be the same on the Asset Hub after migration",
 			);
 			assert_eq!(
 				ah_agent_ledger.total_delegated,
 				agent_ledger.total_delegated,
-				"Total delegated for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
-				translated_agent
+				"Total delegated for agent ledger of agent {translated_agent:?} should be the same on the Asset Hub after migration",
 			);
 			assert_eq!(
 				ah_agent_ledger.unclaimed_withdrawals,
 				agent_ledger.unclaimed_withdrawals,
-				"Unclaimed withdrawals for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
-				translated_agent
+				"Unclaimed withdrawals for agent ledger of agent {translated_agent:?} should be the same on the Asset Hub after migration",
 			);
 			assert_eq!(
 				ah_agent_ledger.pending_slash,
 				agent_ledger.pending_slash,
-				"Pending slash for agent ledger of agent {:?} should be the same on the Asset Hub after migration",
-				translated_agent
+				"Pending slash for agent ledger of agent {translated_agent:?} should be the same on the Asset Hub after migration",
 			);
 		}
 	}

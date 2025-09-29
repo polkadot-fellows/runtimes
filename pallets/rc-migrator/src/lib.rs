@@ -444,7 +444,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"staking" => MigrationStage::StakingMigrationInit,
 			#[cfg(feature = "kusama-ahm")]
 			"society" => MigrationStage::SocietyMigrationInit,
-			other => return Err(format!("Unknown migration stage: {}", other)),
+			other => return Err(format!("Unknown migration stage: {other}")),
 		})
 	}
 }
@@ -786,6 +786,16 @@ pub mod pallet {
 	pub type RcMigratedBalance<T: Config> =
 		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
+	/// Helper storage item to store the total balance that should be kept on Relay Chain after
+	/// it is consumed from the `RcMigratedBalance` storage item and sent to the Asset Hub.
+	///
+	/// This let us to take the value from the `RcMigratedBalance` storage item and keep the
+	/// `SignalMigrationFinish` stage to be idempotent while preserving these values for tests and
+	/// later discoveries.
+	#[pallet::storage]
+	pub type RcMigratedBalanceArchive<T: Config> =
+		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
+
 	/// The pending XCM messages.
 	///
 	/// Contains data messages that have been sent to the Asset Hub but not yet confirmed.
@@ -814,7 +824,7 @@ pub mod pallet {
 	pub type PendingXcmQueries<T: Config> =
 		StorageMap<_, Twox64Concat, QueryId, T::Hash, OptionQuery>;
 
-	/// The DMP queue priority.
+	/// Manual override for `type UnprocessedMsgBuffer: Get<u32>`. Look there for docs.
 	#[pallet::storage]
 	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
 
@@ -830,7 +840,7 @@ pub mod pallet {
 
 	/// An optional account id of a manager.
 	///
-	/// This account id has the similar to [`Config::AdminOrigin`] privileges except that it
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
@@ -937,7 +947,7 @@ pub mod pallet {
 			warm_up: DispatchTime<BlockNumberFor<T>>,
 			cool_off: DispatchTime<BlockNumberFor<T>>,
 			unsafe_ignore_staking_lock_check: bool,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
@@ -960,7 +970,7 @@ pub mod pallet {
 			CoolOffPeriod::<T>::put(cool_off);
 
 			Self::transition(MigrationStage::Scheduled { start });
-			Ok(())
+			Ok(Pays::No.into())
 		}
 
 		/// Start the data migration.
@@ -1025,17 +1035,14 @@ pub mod pallet {
 			if matches!(response, MaybeErrorCode::Success) {
 				log::info!(
 					target: LOG_TARGET,
-					"Received success response for query id: {}",
-					query_id
+					"Received success response for query id: {query_id}"
 				);
 				PendingXcmMessages::<T>::remove(message_hash);
 				PendingXcmQueries::<T>::remove(query_id);
 			} else {
 				log::error!(
 					target: LOG_TARGET,
-					"Received error response for query id: {}; response: {:?}",
-					query_id,
-					response.clone(),
+					"Received error response for query id: {query_id}; response: {response:?}"
 				);
 			}
 
@@ -1079,7 +1086,7 @@ pub mod pallet {
 			};
 
 			if let Err(err) = send_xcm::<T::SendXcm>(asset_hub_location, xcm_with_report) {
-				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
 					query_id: new_query_id,
 					send_error: Some(err),
@@ -1129,7 +1136,7 @@ pub mod pallet {
 				return Err(Error::<T>::AhUmpQueuePriorityAlreadySet.into());
 			}
 			ensure!(
-				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				new.get_priority_blocks().is_none_or(|blocks| !blocks.is_zero()),
 				Error::<T>::InvalidParameter
 			);
 			AhUmpQueuePriorityConfig::<T>::put(new.clone());
@@ -1187,8 +1194,7 @@ pub mod pallet {
 					|error| {
 						log::error!(
 							target: LOG_TARGET,
-							"XCM validation failed with error: {:?}; destination: {:?}; message: {:?}",
-							error, dest, message
+							"XCM validation failed with error: {error:?}; destination: {dest:?}; message: {message:?}"
 						);
 						Error::<T>::XcmError
 					},
@@ -1197,8 +1203,7 @@ pub mod pallet {
 			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
 				log::error!(
 					target: LOG_TARGET,
-					"XCM send failed with error: {:?}; destination: {:?}; message: {:?}",
-					error, dest, message
+					"XCM send failed with error: {error:?}; destination: {dest:?}; message: {message:?}"
 				);
 				Error::<T>::XcmError
 			})?;
@@ -1337,7 +1342,7 @@ pub mod pallet {
 			}
 
 			match stage {
-				MigrationStage::Pending | MigrationStage::MigrationPaused { .. } => {
+				MigrationStage::Pending | MigrationStage::MigrationPaused => {
 					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { start } => {
@@ -1379,8 +1384,7 @@ pub mod pallet {
 					} else {
 						log::info!(
 							target: LOG_TARGET,
-							"Waiting for the warm-up period to end, end_at: {:?}",
-							end_at,
+							"Waiting for the warm-up period to end, end_at: {end_at:?}"
 						);
 					}
 					return weight_counter.consumed();
@@ -1426,21 +1430,20 @@ pub mod pallet {
 								Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 								Err(e) => TransactionOutcome::Rollback(Err(e)),
 							}
-						})
-						.expect("Always returning Ok; qed");
+						});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							// accounts migration is completed
 							Self::transition(MigrationStage::AccountsMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							// accounts migration continues with the next block
 							Self::transition(MigrationStage::AccountsMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating accounts: {:?}", err);
 							// stage unchanged, retry.
 						},
@@ -1463,15 +1466,14 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							// multisig migration is completed
 							Self::transition(MigrationStage::MultisigMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							// multisig migration continues with the next block
 							Self::transition(MigrationStage::MultisigMigrationOngoing {
 								last_key: Some(last_key),
@@ -1494,14 +1496,13 @@ pub mod pallet {
 							Ok(current_key) => TransactionOutcome::Commit(Ok(current_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ClaimsMigrationDone);
 						},
-						Ok(Some(current_key)) => {
+						Ok(Ok(Some(current_key))) => {
 							Self::transition(MigrationStage::ClaimsMigrationOngoing {
 								current_key: Some(current_key),
 							});
@@ -1524,16 +1525,15 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
 								last_key: None,
 							});
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ProxyMigrationProxies {
 								last_key: Some(last_key),
 							});
@@ -1552,14 +1552,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ProxyMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
 								last_key: Some(last_key),
 							});
@@ -1586,14 +1585,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::PreimageMigrationChunksDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
 								last_key: Some(last_key),
 							});
@@ -1617,14 +1615,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::PreimageMigrationRequestStatusDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(
 								MigrationStage::PreimageMigrationRequestStatusOngoing {
 									next_key: Some(next_key),
@@ -1653,16 +1650,15 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(
 								MigrationStage::PreimageMigrationLegacyRequestStatusDone,
 							);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(
 								MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
 									next_key: Some(next_key),
@@ -1692,14 +1688,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::NomPoolsMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::NomPoolsMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1722,14 +1717,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::VestingMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::VestingMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1754,14 +1748,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::DelegatedStakingMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::DelegatedStakingMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1776,7 +1769,7 @@ pub mod pallet {
 				},
 				MigrationStage::IndicesMigrationInit => {
 					Self::transition(MigrationStage::IndicesMigrationOngoing {
-						next_key: Some(Default::default()),
+						next_key: Some(()),
 					});
 				},
 				MigrationStage::IndicesMigrationOngoing { next_key } => {
@@ -1785,14 +1778,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::IndicesMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::IndicesMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1820,19 +1812,18 @@ pub mod pallet {
 								Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 								Err(e) => TransactionOutcome::Rollback(Err(e)),
 							}
-						})
-						.expect("Always returning Ok; qed");
+						});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ReferendaMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ReferendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating referenda: {:?}", err);
 						},
 					}
@@ -1849,14 +1840,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::BagsListMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::BagsListMigrationOngoing {
 								next_key: Some(next_key),
 							});
@@ -1881,19 +1871,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing { last_key: None });
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::SchedulerMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating scheduler: {:?}", err);
 						},
 					}
@@ -1907,19 +1896,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::SchedulerMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating scheduler: {:?}", err);
 						},
 					}
@@ -1941,19 +1929,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ConvictionVotingMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ConvictionVotingMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating conviction voting: {:?}", err);
 						},
 					}
@@ -1973,14 +1960,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::BountiesMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::BountiesMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2005,19 +1991,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::ChildBountiesMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::ChildBountiesMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating child bounties: {:?}", err);
 						},
 					}
@@ -2037,19 +2022,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::AssetRateMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::AssetRateMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating asset rates: {:?}", err);
 						},
 					}
@@ -2069,14 +2053,13 @@ pub mod pallet {
 						Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::CrowdloanMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::CrowdloanMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2101,14 +2084,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");	
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::TreasuryMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::TreasuryMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2138,14 +2120,13 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::RecoveryMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::RecoveryMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -2173,19 +2154,18 @@ pub mod pallet {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::SocietyMigrationDone);
 						},
-						Ok(Some(last_key)) => {
+						Ok(Ok(Some(last_key))) => {
 							Self::transition(MigrationStage::SocietyMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
-						Err(err) => {
+						err => {
 							defensive!("Error while migrating society: {:?}", err);
 						},
 					}
@@ -2206,14 +2186,13 @@ pub mod pallet {
 							Ok(next_key) => TransactionOutcome::Commit(Ok(next_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
-					})
-					.expect("Always returning Ok; qed");
+					});
 
 					match res {
-						Ok(None) => {
+						Ok(Ok(None)) => {
 							Self::transition(MigrationStage::StakingMigrationDone);
 						},
-						Ok(Some(next_key)) => {
+						Ok(Ok(Some(next_key))) => {
 							Self::transition(MigrationStage::StakingMigrationOngoing { next_key: Some(next_key) });
 						},
 						e => {
@@ -2243,7 +2222,7 @@ pub mod pallet {
 						// 1 read and 1 write for `staking::on_migration_end`;
 						// 1 read and 1 write for `RcMigratedBalance` storage item;
 						// plus one xcm send;
-						T::DbWeight::get().reads_writes(1, 1)
+						T::DbWeight::get().reads_writes(1, 2)
 							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
 					);
 
@@ -2251,12 +2230,8 @@ pub mod pallet {
 
 					// Send finish message to AH.
 					let data = if RcMigratedBalance::<T>::exists() {
-						let tracker = if cfg!(feature = "std") {
-							// we should keep this value for the tests.
-							RcMigratedBalance::<T>::get()
-						} else {
-							RcMigratedBalance::<T>::take()
-						};
+						let tracker = RcMigratedBalance::<T>::take();
+						RcMigratedBalanceArchive::<T>::put(&tracker);
 						Self::deposit_event(Event::MigratedBalanceConsumed {
 							kept: tracker.kept,
 							migrated: tracker.migrated,
@@ -2286,7 +2261,7 @@ pub mod pallet {
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -2298,10 +2273,10 @@ pub mod pallet {
 		/// [`Canceller`] account id.
 		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
-				if Canceller::<T>::get().map_or(false, |canceller_id| canceller_id == account_id) {
+				if Canceller::<T>::get().is_some_and(|canceller_id| canceller_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -2320,17 +2295,13 @@ pub mod pallet {
 			if unconfirmed > unprocessed_buffer {
 				log::info!(
 					target: LOG_TARGET,
-					"Excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
-					unconfirmed,
-					unprocessed_buffer
+					"Excess unconfirmed XCM messages: unconfirmed = {unconfirmed}, unprocessed_buffer = {unprocessed_buffer}"
 				);
 				return true;
 			}
 			log::debug!(
 				target: LOG_TARGET,
-				"No excess unconfirmed XCM messages: unconfirmed = {}, unprocessed_buffer = {}",
-				unconfirmed,
-				unprocessed_buffer
+				"No excess unconfirmed XCM messages: unconfirmed = {unconfirmed}, unprocessed_buffer = {unprocessed_buffer}"
 			);
 			false
 		}
@@ -2389,12 +2360,12 @@ pub mod pallet {
 		) -> Result<u32, Error<T>> {
 			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
-			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
+			defensive_assert!(!items.is_empty(), "Sending XCM with empty items");
 			let mut batch_count = 0;
 
 			while let Some(batch) = items.pop_front() {
 				let batch_len = batch.len() as u32;
-				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
+				log::info!(target: LOG_TARGET, "Sending XCM batch of {batch_len} items");
 
 				let asset_hub_location = Location::new(0, Parachain(1000));
 
@@ -2436,7 +2407,7 @@ pub mod pallet {
 				if let Err(err) =
 					send_xcm::<T::SendXcm>(asset_hub_location, Xcm(message_with_report))
 				{
-					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+					log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 					return Err(Error::XcmError);
 				} else {
 					PendingXcmMessages::<T>::insert(message_hash, Xcm(message));
@@ -2446,15 +2417,14 @@ pub mod pallet {
 			}
 
 			if batch_count > MAX_XCM_MSG_PER_BLOCK {
+				debug_assert!(false, "Unreachable: we always remaining len before pushing");
 				log::warn!(
 					target: LOG_TARGET,
-					"Maximum number of XCM messages ({}) to migrate per block exceeded, current msg count: {}",
-					MAX_XCM_MSG_PER_BLOCK,
-					batch_count
+					"Maximum number of XCM messages ({MAX_XCM_MSG_PER_BLOCK}) to migrate per block exceeded, current msg count: {batch_count}"
 				);
 			}
 
-			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);
+			log::info!(target: LOG_TARGET, "Sent {batch_count} XCM batch/es");
 			Ok(batch_count)
 		}
 
@@ -2463,8 +2433,6 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - call - the call to send
 		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
-			log::info!(target: LOG_TARGET, "Sending XCM message");
-
 			let call = types::AssetHubPalletConfig::<T>::AhmController(call);
 
 			let message = Xcm(vec![
@@ -2483,7 +2451,7 @@ pub mod pallet {
 				Location::new(0, [Junction::Parachain(1000)]),
 				message.clone(),
 			) {
-				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 				return Err(Error::XcmError);
 			};
 

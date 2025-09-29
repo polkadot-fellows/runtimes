@@ -79,12 +79,15 @@ impl AhMigrationCheck for BalancesCrossChecker {
 			&<AhRuntime as pallet_ah_migrator::Config>::CheckingAccount::get(),
 		);
 
-		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
-		// added DOT ED to all existing AH accounts.
+		// Polkadot AH checking account has incorrect 0.01 DOT balance because of the DED airdrop
+		// which added DOT ED to all existing AH accounts.
 		// This is fine, we can just ignore/accept this small amount.
+		#[cfg(feature = "polkadot-ahm")]
 		defensive_assert!(
 			ah_checking_balance_before == pallet_balances::Pallet::<AhRuntime>::minimum_balance()
 		);
+		#[cfg(feature = "kusama-ahm")]
+		defensive_assert!(ah_checking_balance_before == 0);
 
 		(ah_total_issuance_before, ah_checking_balance_before)
 	}

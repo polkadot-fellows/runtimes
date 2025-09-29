@@ -99,17 +99,14 @@ parameter_types! {
 pub struct RebagIffMigrationDone;
 impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 	fn get() -> u32 {
-		if cfg!(feature = "runtime-benchmarks") {
-			5
-		} else {
-			if matches!(
+		if cfg!(feature = "runtime-benchmarks") ||
+			matches!(
 				pallet_ah_migrator::AhMigrationStage::<Runtime>::get(),
 				pallet_ah_migrator::MigrationStage::MigrationDone
 			) {
-				5
-			} else {
-				0
-			}
+			5
+		} else {
+			0
 		}
 	}
 }
@@ -197,23 +194,21 @@ impl multi_block::verifier::Config for Runtime {
 
 /// ## Example
 /// ```
-/// fn main() {
-/// 	use asset_hub_polkadot_runtime::staking::GeometricDeposit;
-/// 	use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
-/// 	use polkadot_runtime_constants::currency::UNITS;
+/// use asset_hub_polkadot_runtime::staking::GeometricDeposit;
+/// use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
+/// use polkadot_runtime_constants::currency::UNITS;
 ///
-/// 	// Base deposit
-/// 	assert_eq!(GeometricDeposit::calculate_base_deposit(0), 4 * UNITS);
-/// 	assert_eq!(GeometricDeposit::calculate_base_deposit(1), 8 * UNITS );
-/// 	assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS);
-/// 	// and so on
+/// // Base deposit
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), 4 * UNITS);
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 8 * UNITS );
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS);
+/// // and so on
 ///
-/// 	// Full 16 page deposit, to be paid on top of the above base
-/// 	sp_io::TestExternalities::default().execute_with(|| {
-/// 		let deposit = asset_hub_polkadot_runtime::staking::SignedDepositPerPage::get() * 16;
-/// 		assert_eq!(deposit, 10_6_368_000_000); // around 10.6 DOTs
-/// 	})
-/// }
+/// // Full 16 page deposit, to be paid on top of the above base
+/// sp_io::TestExternalities::default().execute_with(|| {
+/// let deposit = asset_hub_polkadot_runtime::staking::SignedDepositPerPage::get() * 16;
+///     assert_eq!(deposit, 10_6_368_000_000); // around 10.6 DOTs
+/// })
 /// ```
 pub struct GeometricDeposit;
 impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
@@ -253,7 +248,7 @@ impl multi_block::signed::Config for Runtime {
 
 parameter_types! {
 	/// Priority of the offchain miner transactions.
-	pub MinerTxPriority: TransactionPriority = TransactionPriority::max_value() / 2;
+	pub MinerTxPriority: TransactionPriority = TransactionPriority::MAX / 2;
 }
 
 impl multi_block::unsigned::Config for Runtime {
@@ -495,7 +490,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 
 parameter_types! {
 	pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
-	pub const RelaySessionDuration: BlockNumber = prod_or_fast!(4 * RC_HOURS, 1 * RC_MINUTES);
+	pub const RelaySessionDuration: BlockNumber = prod_or_fast!(4 * RC_HOURS, RC_MINUTES);
 	pub const BondingDuration: sp_staking::EraIndex = 28;
 	pub const SlashDeferDuration: sp_staking::EraIndex = 27;
 	pub const MaxControllersInDeprecationBatch: u32 = 512;
@@ -595,7 +590,7 @@ impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 		let message = ValidatorSetToXcm::convert(report);
 		let dest = RelayLocation::get();
 		let _ = crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {:?}", err);
+			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {err:?}");
 		});
 	}
 }
@@ -696,14 +691,7 @@ mod tests {
 			Percent::from_rational(op_weight.proof_size(), limit_weight.proof_size());
 		let limit_ms = limit_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
 		let limit_kb = limit_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
-		log::info!(target: "runtime::asset-hub-polkadot", "weight of {:?} is: ref-time: {}ms, {:?} of total, proof-size: {}KiB, {:?} of total (total: {}ms, {}KiB)",
-			op_name,
-			ref_time_ms,
-			ref_time_ratio,
-			proof_size_kb,
-			proof_size_ratio,
-			limit_ms,
-			limit_kb
+		log::info!(target: "runtime::asset-hub-polkadot", "weight of {op_name:?} is: ref-time: {ref_time_ms}ms, {ref_time_ratio:?} of total, proof-size: {proof_size_kb}KiB, {proof_size_ratio:?} of total (total: {limit_ms}ms, {limit_kb}KiB)",
 		);
 
 		if let Some(max_ratio) = maybe_max_ratio {
@@ -862,7 +850,7 @@ mod tests {
 				<Runtime as multi_block::signed::Config>::WeightInfo::clear_old_round_data(
 					Pages::get(),
 				)
-				.mul(16 as u64),
+				.mul(16_u64),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);

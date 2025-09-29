@@ -171,7 +171,7 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_bags_list_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_bags_list_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -236,9 +236,9 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 
 					match iter.next() {
 						Some((score, bag)) => {
-							pallet_bags_list::ListBags::<T, I>::remove(&score);
+							pallet_bags_list::ListBags::<T, I>::remove(score);
 							messages.push(PortableBagsListMessage::Bag {
-								score: score.clone(),
+								score,
 								bag: bag.into_portable(),
 							});
 							BagsListStage::ListBags(Some(score))

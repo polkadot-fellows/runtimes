@@ -155,19 +155,18 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 	}
 }
 
+type ProxiesOf<T> = Vec<
+	pallet_proxy::ProxyDefinition<
+		<T as frame_system::Config>::AccountId,
+		<T as pallet_proxy::Config>::ProxyType,
+		pallet_proxy::BlockNumberFor<T>,
+	>,
+>;
+
 impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
-		(proxies, deposit): (
-			Vec<
-				pallet_proxy::ProxyDefinition<
-					T::AccountId,
-					T::ProxyType,
-					pallet_proxy::BlockNumberFor<T>,
-				>,
-			>,
-			BalanceOf<T>,
-		),
+		(proxies, deposit): (ProxiesOf<T>, BalanceOf<T>),
 		weight_counter: &mut WeightMeter,
 		batch: &mut XcmBatchAndMeter<RcProxyLocalOf<T>>,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
@@ -191,7 +190,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			return Err(OutOfWeightError);
 		}
 
-		if batch.len() > MAX_ITEMS_PER_BLOCK {
+		if batch.len() >= MAX_ITEMS_PER_BLOCK {
 			log::info!(
 				target: LOG_TARGET,
 				"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -264,7 +263,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_proxy_announcements(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -278,7 +277,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				}
 			}
 
-			if batch.len() > MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -346,7 +345,7 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 	fn post_check(pre_accs: Self::RcPrePayload) {
 		// sanity check
 		let remaining = pallet_proxy::Proxies::<T>::iter_keys().count();
-		assert!(remaining >= 10, "Not enough remaining pure proxies, {}", remaining);
+		assert!(remaining >= 10, "Not enough remaining pure proxies, {remaining}");
 
 		// All remaining ones are 'Any'
 		for (delegator, (proxies, deposit)) in pallet_proxy::Proxies::<T>::iter() {

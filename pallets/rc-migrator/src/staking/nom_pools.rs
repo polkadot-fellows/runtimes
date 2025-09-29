@@ -19,7 +19,7 @@
 use super::nom_pools_alias as alias;
 use crate::{types::*, *};
 use alias::{RewardPool, SubPools};
-use frame_support::traits::{ConstU32, Get};
+use frame_support::traits::Get;
 use pallet_nomination_pools::{BondedPoolInner, ClaimPermission, PoolId, PoolMember};
 use sp_runtime::Perbill;
 
@@ -159,7 +159,7 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_nom_pools_messages((messages.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_nom_pools_messages(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -386,6 +386,7 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 	/// Put all `StorageValues` into storage.
 	///
 	/// Called by Asset Hub after receiving the values.
+	#[allow(clippy::option_map_unit_fn)] // Using .map here return ()
 	pub fn put_values(values: NomPoolsStorageValuesOf<T>) {
 		use pallet_nomination_pools::*;
 
@@ -479,7 +480,7 @@ pub mod tests {
 		BondedPools { pool: (PoolId, GenericBondedPoolInner<Balance, AccountId, BlockNumber>) },
 		RewardPools { rewards: (PoolId, GenericRewardPool<Balance, RewardCounter>) },
 		SubPoolsStorage { sub_pools: (PoolId, GenericSubPools<Balance>) },
-		Metadata { meta: (PoolId, BoundedVec<u8, ConstU32<256>>) },
+		Metadata { meta: (PoolId, BoundedVec<u8, frame_support::traits::ConstU32<256>>) },
 		ReversePoolIdLookup { lookups: (AccountId, PoolId) },
 		ClaimPermissions { perms: (AccountId, ClaimPermission) },
 	}

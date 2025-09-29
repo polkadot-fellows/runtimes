@@ -44,6 +44,15 @@ pub struct ReferendaMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, TypeInfo, PartialEq, Eq)]
+pub struct ReferendaMessage<Track> {
+	pub referendum_count: Option<u32>,
+	/// (track_id, count)
+	pub deciding_count: Vec<(Track, u32)>,
+	/// (referendum_id, votes)
+	pub track_queue: Vec<(Track, Vec<(u32, u128)>)>,
+}
+
 impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 	type Key = ReferendaStage;
 	type Error = Error<T>;
@@ -103,7 +112,7 @@ impl<T: Config> ReferendaMigrator<T> {
 		}
 
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
-		batch.push((referendum_count, deciding_count, track_queue));
+		batch.push(ReferendaMessage { referendum_count, deciding_count, track_queue });
 		weight_counter.consume(batch.consume_weight());
 
 		Pallet::<T>::send_chunked_xcm_and_track(batch, |batch| {
@@ -139,7 +148,7 @@ impl<T: Config> ReferendaMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_referenda_metadata((batch.len() + 1) as u32))
+				.any_lt(T::AhWeightInfo::receive_referenda_metadata(batch.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -154,7 +163,7 @@ impl<T: Config> ReferendaMigrator<T> {
 				}
 			}
 
-			if batch.len() > MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -237,7 +246,7 @@ impl<T: Config> ReferendaMigrator<T> {
 				}
 			}
 
-			if batch.len() > MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -281,7 +290,7 @@ impl<T: Config> ReferendaMigrator<T> {
 			};
 
 			if ah_weight_counter
-				.try_consume(Self::weight_ah_referendum_info(batch.len() as u32, &info))
+				.try_consume(Self::weight_ah_referendum_info(batch.len(), &info))
 				.is_err()
 			{
 				log::info!(

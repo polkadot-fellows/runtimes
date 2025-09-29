@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
 use crate::proxy::{Permission, ProxyBasicWorks};
@@ -28,6 +29,7 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 /// Whale accounts that have a lot of proxies. We double-check those to make sure that all is well.
 ///
 /// We also store the number of proxies.
+#[cfg(feature = "polkadot-ahm")]
 const WHALES: &[(AccountId32, usize)] = &[
 	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 5),
 	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 5),
@@ -35,8 +37,21 @@ const WHALES: &[(AccountId32, usize)] = &[
 	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 4),
 ];
 
-const MILLION_DOT: polkadot_primitives::Balance =
+#[cfg(feature = "kusama-ahm")]
+const WHALES: &[(AccountId32, usize)] = &[
+	(AccountId32::new(hex!("b07540f07739fd2e72661b5e6a3ad6e1349c175b90f7f03501dda388f150cbb4")), 6),
+	(AccountId32::new(hex!("224b4123952e63a0ef3ecb41a4d283d0df1b36d7024eb19072a217f89572b089")), 4),
+	(AccountId32::new(hex!("5280a6d07acb3d96e732c49f1b2aa75cbfcfdbcd5f7530ad9a026ddeff3e0bbe")), 2),
+];
+
+/// One million DOT
+#[cfg(feature = "polkadot-ahm")]
+const RICH_AMOUNT: polkadot_primitives::Balance =
 	crate::porting_prelude::RC_DOLLARS * 1_000 * 1_000;
+
+/// One hundred thousand KSM
+#[cfg(feature = "kusama-ahm")]
+const RICH_AMOUNT: polkadot_primitives::Balance = crate::porting_prelude::RC_DOLLARS * 100 * 1_000;
 
 /// Proxy accounts can still be controlled by their delegates with the correct permissions.
 ///
@@ -54,7 +69,7 @@ impl RcMigrationCheck for ProxyWhaleWatching {
 			let acc = frame_system::Account::<RelayRuntime>::get(whale);
 			assert!(acc.nonce == 0, "Whales are pure");
 			assert!(
-				acc.data.free + acc.data.reserved >= MILLION_DOT,
+				acc.data.free + acc.data.reserved >= RICH_AMOUNT,
 				"Whales are rich on the relay"
 			);
 
@@ -81,7 +96,7 @@ impl AhMigrationCheck for ProxyWhaleWatching {
 		for (whale, num_proxies) in WHALES {
 			let acc = frame_system::Account::<AssetHubRuntime>::get(whale);
 			assert!(
-				acc.data.free + acc.data.reserved >= MILLION_DOT,
+				acc.data.free + acc.data.reserved >= RICH_AMOUNT,
 				"Whales are rich on the asset hub"
 			);
 

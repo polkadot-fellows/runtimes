@@ -50,7 +50,7 @@ pub enum SocietyStage {
 /// Data transfer message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Debug, TypeInfo, PartialEq, Eq)]
 pub enum PortableSocietyMessage {
-	Values(SocietyValues),
+	Values(Box<SocietyValues>),
 	Member(AccountId32, PortableMemberRecord),
 	Payout(AccountId32, PortablePayoutRecord),
 	MemberByIndex(u32, AccountId32),
@@ -65,7 +65,7 @@ impl TranslateAccounts for PortableSocietyMessage {
 	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		use PortableSocietyMessage::*;
 		match self {
-			Values(values) => Values(values.translate_accounts(f)),
+			Values(values) => Values(Box::new(values.translate_accounts(f))),
 			Member(account, member) => Member(f(account), member),
 			Payout(account, payout) => Payout(f(account), payout),
 			MemberByIndex(index, account) => MemberByIndex(index, f(account)),
@@ -133,6 +133,31 @@ impl SocietyValues {
 	{
 		use pallet_society::*;
 
+		let next_intake_at = if let Some(next_intake_at) = NextIntakeAt::<T>::take() {
+			let rotation_period = T::VotingPeriod::get().saturating_add(T::ClaimPeriod::get());
+			if next_intake_at != rotation_period {
+				Some(next_intake_at)
+			} else {
+				// current `next_intake_at` is the result of the `on_initialize` execution with
+				// disabled rotation. this may happen if this part of migration is executed twice.
+				None
+			}
+		} else {
+			None
+		};
+		let next_challenge_at = if let Some(next_challenge_at) = NextChallengeAt::<T>::take() {
+			let challenge_period = T::ChallengePeriod::get();
+			if next_challenge_at != challenge_period {
+				Some(next_challenge_at)
+			} else {
+				// current `next_challenge_at` is the result of the `on_initialize` execution with
+				// disabled rotation. this may happen if this part of migration is executed twice.
+				None
+			}
+		} else {
+			None
+		};
+
 		SocietyValues {
 			parameters: Parameters::<T>::take().map(|p| p.into_portable()),
 			pot: Pot::<T>::exists().then(Pot::<T>::take),
@@ -150,11 +175,12 @@ impl SocietyValues {
 				.then(ChallengeRoundCount::<T>::take),
 			defending: Defending::<T>::take()
 				.map(|(a, b, portable_tally)| (a, b, portable_tally.into_portable())),
-			next_intake_at: NextIntakeAt::<T>::take(),
-			next_challenge_at: NextChallengeAt::<T>::take(),
+			next_intake_at,
+			next_challenge_at,
 		}
 	}
 
+	#[allow(clippy::option_map_unit_fn)]
 	pub fn put_values<T>(values: Self)
 	where
 		T: pallet_society::Config,
@@ -215,6 +241,7 @@ impl IntoPortable for pallet_society::GroupParams<u128> {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::GroupParams<u128>> for PortableGroupParams {
 	fn into(self) -> pallet_society::GroupParams<u128> {
 		pallet_society::GroupParams {
@@ -250,6 +277,7 @@ impl IntoPortable for pallet_society::Bid<AccountId32, u128> {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::Bid<AccountId32, u128>> for PortableBid {
 	fn into(self) -> pallet_society::Bid<AccountId32, u128> {
 		pallet_society::Bid { who: self.who, kind: self.kind.into(), value: self.value }
@@ -277,6 +305,7 @@ impl IntoPortable for pallet_society::IntakeRecord<AccountId32, u128> {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::IntakeRecord<AccountId32, u128>> for PortableIntakeRecord {
 	fn into(self) -> pallet_society::IntakeRecord<AccountId32, u128> {
 		pallet_society::IntakeRecord { who: self.who, bid: self.bid, round: self.round }
@@ -317,6 +346,7 @@ impl IntoPortable for pallet_society::MemberRecord {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::MemberRecord> for PortableMemberRecord {
 	fn into(self) -> pallet_society::MemberRecord {
 		pallet_society::MemberRecord {
@@ -348,6 +378,7 @@ impl IntoPortable
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::PayoutRecord<u128, BoundedVec<(u32, u128), ConstU32<MAX_PAYOUTS>>>>
 	for PortablePayoutRecord
 {
@@ -402,6 +433,7 @@ impl IntoPortable for pallet_society::Candidacy<AccountId32, u128> {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::Candidacy<AccountId32, u128>> for PortableCandidacy {
 	fn into(self) -> pallet_society::Candidacy<AccountId32, u128> {
 		pallet_society::Candidacy {
@@ -446,6 +478,7 @@ impl IntoPortable for pallet_society::BidKind<AccountId32, u128> {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::BidKind<AccountId32, u128>> for PortableBidKind {
 	fn into(self) -> pallet_society::BidKind<AccountId32, u128> {
 		use PortableBidKind::*;
@@ -472,6 +505,7 @@ impl IntoPortable for pallet_society::Tally {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::Tally> for PortableTally {
 	fn into(self) -> pallet_society::Tally {
 		pallet_society::Tally { approvals: self.approvals, rejections: self.rejections }
@@ -492,6 +526,7 @@ impl IntoPortable for pallet_society::Vote {
 	}
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pallet_society::Vote> for PortableVote {
 	fn into(self) -> pallet_society::Vote {
 		pallet_society::Vote { approve: self.approve, weight: self.weight }
@@ -528,7 +563,7 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(Self::receive_society_messages_weight((messages.len() + 1) as u32))
+				.any_lt(Self::receive_society_messages_weight(messages.len() + 1))
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -566,7 +601,7 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 				SocietyStage::Values => {
 					weight_counter.consume(T::DbWeight::get().writes(12));
 					let values = SocietyValues::take_values::<T::KusamaConfig>();
-					messages.push(PortableSocietyMessage::Values(values));
+					messages.push(PortableSocietyMessage::Values(Box::new(values)));
 					SocietyStage::Members(None)
 				},
 				SocietyStage::Members(last_key) => {
@@ -614,7 +649,7 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_society::MemberByIndex::<T::KusamaConfig>::remove(&key);
+							pallet_society::MemberByIndex::<T::KusamaConfig>::remove(key);
 							messages.push(PortableSocietyMessage::MemberByIndex(key, value));
 							SocietyStage::MemberByIndex(Some(key))
 						},
@@ -708,7 +743,7 @@ impl<T: Config> PalletMigration for SocietyMigrator<T> {
 					};
 					match iter.next() {
 						Some((key1, key2, value)) => {
-							pallet_society::DefenderVotes::<T::KusamaConfig>::remove(&key1, &key2);
+							pallet_society::DefenderVotes::<T::KusamaConfig>::remove(key1, &key2);
 							messages.push(PortableSocietyMessage::DefenderVotes(
 								key1,
 								key2.clone(),
@@ -771,6 +806,7 @@ pub mod tests {
 		pub challenge_round_count: u32,
 		pub defending: Option<(AccountId32, AccountId32, pallet_society::Tally)>,
 		pub members: Vec<(AccountId32, pallet_society::MemberRecord)>,
+		#[allow(clippy::type_complexity)]
 		pub payouts: Vec<(
 			AccountId32,
 			pallet_society::PayoutRecord<u128, BoundedVec<(u32, u128), ConstU32<MAX_PAYOUTS>>>,
@@ -806,6 +842,7 @@ pub mod tests {
 			let defending = Defending::<T::KusamaConfig>::get();
 			let members: Vec<(AccountId32, pallet_society::MemberRecord)> =
 				Members::<T::KusamaConfig>::iter().collect();
+			#[allow(clippy::type_complexity)]
 			let payouts: Vec<(
 				AccountId32,
 				pallet_society::PayoutRecord<u128, BoundedVec<(u32, u128), ConstU32<MAX_PAYOUTS>>>,
@@ -824,8 +861,34 @@ pub mod tests {
 					.collect();
 			let defender_votes: Vec<(u32, AccountId32, pallet_society::Vote)> =
 				DefenderVotes::<T::KusamaConfig>::iter().collect();
-			let next_intake_at = NextIntakeAt::<T::KusamaConfig>::get();
-			let next_challenge_at = NextChallengeAt::<T::KusamaConfig>::get();
+
+			let next_intake_at =
+				if let Some(next_intake_at) = NextIntakeAt::<T::KusamaConfig>::get() {
+					let rotation_period =
+						<T::KusamaConfig as pallet_society::Config>::VotingPeriod::get()
+							.saturating_add(
+								<T::KusamaConfig as pallet_society::Config>::ClaimPeriod::get(),
+							);
+					if next_intake_at != rotation_period {
+						Some(next_intake_at)
+					} else {
+						None
+					}
+				} else {
+					None
+				};
+			let next_challenge_at =
+				if let Some(next_challenge_at) = NextChallengeAt::<T::KusamaConfig>::get() {
+					let challenge_period =
+						<T::KusamaConfig as pallet_society::Config>::ChallengePeriod::get();
+					if next_challenge_at != challenge_period {
+						Some(next_challenge_at)
+					} else {
+						None
+					}
+				} else {
+					None
+				};
 
 			RcPrePayload {
 				parameters,
@@ -956,15 +1019,26 @@ pub mod tests {
 				"DefenderVotes map should be empty on the relay chain after migration"
 			);
 
-			assert!(
-				!NextIntakeAt::<T::KusamaConfig>::exists(),
-				"NextIntakeAt should be None on the relay chain after migration"
-			);
+			if let Some(next_challenge_at) = NextChallengeAt::<T::KusamaConfig>::get() {
+				let challenge_period =
+					<T::KusamaConfig as pallet_society::Config>::ChallengePeriod::get();
+				assert_eq!(
+					next_challenge_at, challenge_period,
+					"`next_challenge_at` must be equal to the `ChallengePeriod` if not `None`",
+				);
+			};
 
-			assert!(
-				!NextChallengeAt::<T::KusamaConfig>::exists(),
-				"NextChallengeAt should be None on the relay chain after migration"
-			);
+			if let Some(next_intake_at) = NextIntakeAt::<T::KusamaConfig>::get() {
+				let rotation_period =
+					<T::KusamaConfig as pallet_society::Config>::VotingPeriod::get()
+						.saturating_add(
+							<T::KusamaConfig as pallet_society::Config>::ClaimPeriod::get(),
+						);
+				assert_eq!(
+					next_intake_at, rotation_period,
+					"`next_intake_at` must be equal to the rotation period if not `None`",
+				);
+			};
 		}
 	}
 }

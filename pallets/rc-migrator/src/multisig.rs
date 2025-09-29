@@ -79,8 +79,6 @@ pub struct RcMultisig<AccountId, Balance> {
 	pub creator: AccountId,
 	/// Amount of the deposit.
 	pub deposit: Balance,
-	/// Optional details field to debug. Can be `None` in prod. Contains the derived account.
-	pub details: Option<AccountId>,
 }
 
 pub type RcMultisigOf<T> = RcMultisig<AccountIdOf<T>, BalanceOf<T>>;
@@ -127,9 +125,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				}
 			}
 
-			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_multisigs((batch.len() + 1) as u32))
-			{
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_multisigs(batch.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -142,7 +138,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				}
 			}
 
-			if batch.len() > MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= MAX_ITEMS_PER_BLOCK {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
@@ -172,13 +168,9 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {k1:?}");
 
-			batch.push(RcMultisig {
-				creator: multisig.depositor,
-				deposit: multisig.deposit,
-				details: Some(k1.clone()),
-			});
+			batch.push(RcMultisig { creator: multisig.depositor, deposit: multisig.deposit });
 
-			aliases::Multisigs::<T>::remove(&k1, &k2);
+			aliases::Multisigs::<T>::remove(&k1, k2);
 			last_key = Some((k1, k2));
 		}
 

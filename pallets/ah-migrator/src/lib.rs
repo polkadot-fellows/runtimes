@@ -63,8 +63,8 @@ pub mod xcm_translation;
 pub use pallet::*;
 pub use pallet_rc_migrator::{
 	types::{
-		BenchmarkingDefault, ExceptResponseFor, LeftOrRight, MaxOnIdleOrInner,
-		QueuePriority as DmpQueuePriority, RouteInnerWithException,
+		BenchmarkingDefault, ExceptResponseFor, LeftIfFinished, LeftIfPending, LeftOrRight,
+		MaxOnIdleOrInner, QueuePriority as DmpQueuePriority, RouteInnerWithException,
 	},
 	weights_ah,
 };
@@ -86,13 +86,12 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 #[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
-#[cfg(not(feature = "kusama-ahm"))]
-type PortableRecoveryMessage = (); // somehow needed for FRAME
 #[cfg(feature = "kusama-ahm")]
 use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
-	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, staking::PortableStakingMessage,
+	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, referenda::ReferendaMessage,
+	scheduler::SchedulerAgendaMessage, staking::PortableStakingMessage,
 	treasury::PortableTreasuryMessage, types::MigrationStatus,
 };
 use parachains_common::pay::VersionedLocatableAccount;
@@ -219,7 +218,7 @@ impl MigrationStage {
 	///
 	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
-		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+		matches!(self, MigrationStage::DataMigrationOngoing)
 	}
 }
 
@@ -236,7 +235,7 @@ impl MigrationStage {
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub struct BalancesBefore<Balance: Default> {
+pub struct BalancesBefore<Balance> {
 	pub checking_account: Balance,
 	pub total_issuance: Balance,
 }
@@ -453,7 +452,7 @@ pub mod pallet {
 
 	/// An optional account id of a manager.
 	///
-	/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
@@ -754,20 +753,13 @@ pub mod pallet {
 			// `pallet_rc_migrator::Pallet::send_chunked_xcm_and_track` function and avoid
 			// introducing a send function for non-vector data or rewriting the referenda pallet
 			// migration.
-			mut values: Vec<(
-				// referendum_count
-				Option<u32>,
-				// deciding_count (track_id, count)
-				Vec<(TrackIdOf<T, ()>, u32)>,
-				// track_queue (referendum_id, votes)
-				Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
-			)>,
+			mut values: Vec<ReferendaMessage<TrackIdOf<T, ()>>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
 			ensure!(values.len() == 1, Error::<T>::InvalidParameter);
 
-			let (referendum_count, deciding_count, track_queue) =
+			let ReferendaMessage { referendum_count, deciding_count, track_queue } =
 				values.pop().ok_or(Error::<T>::InvalidParameter)?;
 
 			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
@@ -911,13 +903,13 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_treasury_messages(messages).map_err(Into::into)
+			Self::do_receive_treasury_messages(messages)
 		}
 
 		#[pallet::call_index(22)]
 		#[pallet::weight({
 			let mut total = Weight::zero();
-			for (_, agenda) in messages.iter() {
+			for SchedulerAgendaMessage { agenda, .. } in messages.iter() {
 				for maybe_task in agenda {
 					let Some(task) = maybe_task else {
 						continue;
@@ -935,7 +927,7 @@ pub mod pallet {
 		})]
 		pub fn receive_scheduler_agenda_messages(
 			origin: OriginFor<T>,
-			messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::RcScheduledOf<T>>>)>,
+			messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>, scheduler::RcScheduledOf<T>>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -950,7 +942,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_delegated_staking_messages(messages).map_err(Into::into)
+			Self::do_receive_delegated_staking_messages(messages)
 		}
 
 		#[pallet::call_index(24)]
@@ -1043,7 +1035,7 @@ pub mod pallet {
 				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
 			}
 			ensure!(
-				new.get_priority_blocks().map_or(true, |blocks| !blocks.is_zero()),
+				new.get_priority_blocks().is_none_or(|blocks| !blocks.is_zero()),
 				Error::<T>::InvalidParameter
 			);
 			DmpQueuePriorityConfig::<T>::put(new.clone());
@@ -1084,7 +1076,7 @@ pub mod pallet {
 		}
 
 		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
-		/// [Config::SendXcm] router which will be able to send messages to the Asset Hub during
+		/// [Config::SendXcm] router which will be able to send messages to the Relay Chain during
 		/// the migration.
 		#[pallet::call_index(111)]
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
@@ -1112,8 +1104,7 @@ pub mod pallet {
 					|error| {
 						log::error!(
 							target: LOG_TARGET,
-							"XCM validation failed with error: {:?}; destination: {:?}; message: {:?}",
-							error, dest, message
+							"XCM validation failed with error: {error:?}; destination: {dest:?}; message: {message:?}",
 						);
 						Error::<T>::XcmError
 					},
@@ -1122,8 +1113,7 @@ pub mod pallet {
 			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
 				log::error!(
 					target: LOG_TARGET,
-					"XCM send failed with error: {:?}; destination: {:?}; message: {:?}",
-					error, dest, message
+					"XCM send failed with error: {error:?}; destination: {dest:?}; message: {message:?}",
 				);
 				Error::<T>::XcmError
 			})?;
@@ -1166,7 +1156,7 @@ pub mod pallet {
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().map_or(false, |manager_id| manager_id == account_id) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
 					return Ok(());
 				}
 			}
@@ -1261,8 +1251,6 @@ pub mod pallet {
 
 		/// Send a single XCM message.
 		pub fn send_xcm(call: types::RcMigratorCall) -> Result<(), Error<T>> {
-			log::debug!(target: LOG_TARGET, "Sending XCM message");
-
 			let call = types::RcPalletConfig::RcmController(call);
 
 			let message = Xcm(vec![
@@ -1278,7 +1266,7 @@ pub mod pallet {
 			]);
 
 			if let Err(err) = send_xcm::<T::SendXcm>(Location::parent(), message.clone()) {
-				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 				return Err(Error::XcmError);
 			};
 

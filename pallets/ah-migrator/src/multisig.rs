@@ -16,22 +16,36 @@
 // limitations under the License.
 
 use crate::*;
+
+#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
 use hex_literal::hex;
 
 #[cfg(feature = "std")]
 use pallet_rc_migrator::types::AccountIdOf;
 
-/// These multisigs have historical issues where the deposit is missing for the creator.
+/// These multisigs have historical issues where the deposit is missing on the RC side.
+///
+/// We just ignore those.
+#[cfg(feature = "polkadot-ahm")]
 const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
 	AccountId32::new(hex!("e64d5c0de81b9c960c1dd900ad2a5d9d91c8a683e60dd1308e6bc7f80ea3b25f")),
 	AccountId32::new(hex!("d55ec415b6703ddf7bec9d5c02a0b642f1f5bd068c6b3c50c2145544046f1491")),
 	AccountId32::new(hex!("c2ff4f84b7fcee1fb04b4a97800e72321a4bc9939d456ad48d971127fc661c48")),
 	AccountId32::new(hex!("0a8933d3f2164648399cc48cb8bb8c915abb94a2164c40ad6b48cee005f1cb6e")),
 	AccountId32::new(hex!("ebe3cd53e580c4cd88acec1c952585b50a44a9b697d375ff648fee582ae39d38")),
-	AccountId32::new(hex!("e64d5c0de81b9c960c1dd900ad2a5d9d91c8a683e60dd1308e6bc7f80ea3b25f")),
 	AccountId32::new(hex!("caafae0aaa6333fcf4dc193146945fe8e4da74aa6c16d481eef0ca35b8279d73")),
 	AccountId32::new(hex!("d429458e57ba6e9b21688441ff292c7cf82700550446b061a6c5dec306e1ef05")),
 ];
+
+#[cfg(feature = "kusama-ahm")]
+const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
+	AccountId32::new(hex!("48df9c1a60044840351ef0fbe6b9713ee070578b26a74eb5637b06ac05505f66")),
+	AccountId32::new(hex!("e64d5c0de81b9c960c1dd900ad2a5d9d91c8a683e60dd1308e6bc7f80ea3b25f")),
+];
+
+// To make it compile without flags:
+#[cfg(all(not(feature = "kusama-ahm"), not(feature = "polkadot-ahm")))]
+const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[];
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_multisigs(multisigs: Vec<RcMultisigOf<T>>) -> Result<(), Error<T>> {
@@ -47,7 +61,7 @@ impl<T: Config> Pallet<T> {
 				Ok(()) => count_good += 1,
 				Err(e) => {
 					count_bad += 1;
-					log::error!(target: LOG_TARGET, "Error while integrating multisig: {:?}", e);
+					log::error!(target: LOG_TARGET, "Error while integrating multisig: {e:?}");
 				},
 			}
 		}
@@ -64,21 +78,6 @@ impl<T: Config> Pallet<T> {
 		// Translate the creator account from RC to AH format
 		let translated_creator = Self::translate_account_rc_to_ah(multisig.creator.clone());
 
-		// Translate the details account (derived multisig account) if present.
-		// NOTE: There are instances where we expect the translation to be a no-op. It's acceptable
-		// to retain it for now and remove it later if we determine it is consistently a no-op.
-		let translated_details = multisig
-			.details
-			.as_ref()
-			.map(|details_account| Self::translate_account_rc_to_ah(details_account.clone()));
-
-		log::trace!(target: LOG_TARGET, "Integrating multisig {}, deposit: {:?}, details: {:?} -> {:?}",
-			translated_creator.to_ss58check(),
-			multisig.deposit,
-			multisig.details.as_ref().map(|d| d.to_ss58check()),
-			translated_details.as_ref().map(|d| d.to_ss58check())
-		);
-
 		let missing = <T as pallet_multisig::Config>::Currency::unreserve(
 			&translated_creator,
 			multisig.deposit,
@@ -86,21 +85,12 @@ impl<T: Config> Pallet<T> {
 
 		if missing != Default::default() {
 			if KNOWN_BAD_MULTISIGS.contains(&multisig.creator) {
-				log::warn!(
-					target: LOG_TARGET,
-					"Failed to unreserve deposit for known bad multisig {}, missing: {:?}, account: {:?}",
-					translated_creator.to_ss58check(),
-					missing,
-					frame_system::Account::<T>::get(&translated_creator)
-				);
+				// This is "fine"
 			} else {
-				log::error!(
-					target: LOG_TARGET,
-					"Failed to unreserve deposit for multisig {}, missing: {:?}, details: {:?} -> {:?}",
+				debug_assert!(
+					false,
+					"Failed to unreserve deposit for multisig {}",
 					translated_creator.to_ss58check(),
-					missing,
-					multisig.details.as_ref().map(|d| d.to_ss58check()),
-					translated_details.as_ref().map(|d| d.to_ss58check())
 				);
 			}
 

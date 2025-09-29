@@ -96,9 +96,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					break;
 				}
 			}
-			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_claims((messages.len() + 1) as u32))
-			{
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_claims(messages.len() + 1)) {
 				log::info!(
 					target: LOG_TARGET,
 					"AH weight limit reached at batch length {}, stopping",
@@ -168,7 +166,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 
 					match iter.next() {
 						Some((address, schedule)) => {
-							pallet_claims::Vesting::<T>::remove(&address);
+							pallet_claims::Vesting::<T>::remove(address);
 							messages.push(RcClaimsMessage::Vesting { who: address, schedule });
 							ClaimsStage::Vesting(Some(address))
 						},
@@ -185,7 +183,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 
 					match iter.next() {
 						Some((address, statement)) => {
-							pallet_claims::Signing::<T>::remove(&address);
+							pallet_claims::Signing::<T>::remove(address);
 							messages.push(RcClaimsMessage::Signing((address, statement)));
 							ClaimsStage::Signing(Some(address))
 						},

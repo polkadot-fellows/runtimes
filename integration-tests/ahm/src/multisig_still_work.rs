@@ -16,6 +16,7 @@
 
 //! Test that Multisig Account IDs result in the same IDs and they can still dispatch calls.
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
 use frame_support::{dispatch::GetDispatchInfo, pallet_prelude::Weight, traits::Currency};
@@ -118,7 +119,7 @@ fn multisig_works<
 		value,
 	}
 	.into();
-	let call_hash = call.using_encoded(&sp_core::hashing::blake2_256);
+	let call_hash = call.using_encoded(sp_core::hashing::blake2_256);
 	let call_weight = call.get_dispatch_info().call_weight;
 
 	// All other signatories approve
@@ -131,8 +132,8 @@ fn multisig_works<
 		let other_signatories = multisig
 			.signatories
 			.iter()
+			.filter(|&s| s != signatory)
 			.cloned()
-			.filter(|s| s != signatory)
 			.collect::<Vec<_>>();
 		let timepoint = if i == 0 { None } else { Some(timepoint) };
 

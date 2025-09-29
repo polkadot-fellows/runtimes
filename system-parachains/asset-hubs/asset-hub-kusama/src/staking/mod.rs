@@ -109,17 +109,14 @@ parameter_types! {
 pub struct RebagIffMigrationDone;
 impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 	fn get() -> u32 {
-		if cfg!(feature = "runtime-benchmarks") {
-			5
-		} else {
-			if matches!(
+		if cfg!(feature = "runtime-benchmarks") ||
+			matches!(
 				pallet_ah_migrator::AhMigrationStage::<Runtime>::get(),
 				pallet_ah_migrator::MigrationStage::MigrationDone
 			) {
-				5
-			} else {
-				0
-			}
+			5
+		} else {
+			0
 		}
 	}
 }
@@ -209,23 +206,21 @@ impl multi_block::verifier::Config for Runtime {
 
 /// ## Example
 /// ```
-/// fn main() {
-/// 	use asset_hub_kusama_runtime::staking::GeometricDeposit;
-/// 	use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
-/// 	use kusama_runtime_constants::currency::UNITS;
+/// use asset_hub_kusama_runtime::staking::GeometricDeposit;
+/// use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
+/// use kusama_runtime_constants::currency::UNITS;
 ///
-/// 	// Base deposit
-/// 	assert_eq!(GeometricDeposit::calculate_base_deposit(0), UNITS / 10); // 0.1 KSM
-/// 	assert_eq!(GeometricDeposit::calculate_base_deposit(1), 4 * UNITS / 10); // 0.4 KSM
-/// 	assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS / 10); // 1.6 KSM
-/// 	// and so on
+/// // Base deposit
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), UNITS / 10); // 0.1 KSM
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 4 * UNITS / 10); // 0.4 KSM
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS / 10); // 1.6 KSM
+/// // and so on
 ///
-/// 	// Full 16 page deposit, to be paid on top of the above base
-/// 	sp_io::TestExternalities::default().execute_with(|| {
-/// 		let deposit = asset_hub_kusama_runtime::staking::SignedDepositPerPage::get() * 16;
-/// 		assert_eq!(deposit, 515_519_591_040); // 0.5 KSM
-/// 	})
-/// }
+/// // Full 16 page deposit, to be paid on top of the above base
+/// sp_io::TestExternalities::default().execute_with(|| {
+///     let deposit = asset_hub_kusama_runtime::staking::SignedDepositPerPage::get() * 16;
+///     assert_eq!(deposit, 515_519_591_040); // 0.5 KSM
+/// })
 /// ```
 pub struct GeometricDeposit;
 impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
@@ -233,15 +228,6 @@ impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 		let start: Balance = UNITS / 10;
 		let common: Balance = 4;
 		start.saturating_mul(common.saturating_pow(existing_submitters as u32))
-	}
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-pub struct ConstantDeposit;
-#[cfg(feature = "runtime-benchmarks")]
-impl multi_block::signed::CalculateBaseDeposit<Balance> for ConstantDeposit {
-	fn calculate_base_deposit(_: usize) -> Balance {
-		UNITS
 	}
 }
 
@@ -264,10 +250,7 @@ impl multi_block::signed::Config for Runtime {
 	type Currency = Balances;
 	type BailoutGraceRatio = BailoutGraceRatio;
 	type EjectGraceRatio = EjectGraceRatio;
-	#[cfg(not(feature = "runtime-benchmarks"))]
 	type DepositBase = GeometricDeposit;
-	#[cfg(feature = "runtime-benchmarks")]
-	type DepositBase = ConstantDeposit;
 	type DepositPerPage = SignedDepositPerPage;
 	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
@@ -278,7 +261,7 @@ impl multi_block::signed::Config for Runtime {
 
 parameter_types! {
 	/// Priority of the "offchain" miner transactions.
-	pub MinerTxPriority: TransactionPriority = TransactionPriority::max_value() / 2;
+	pub MinerTxPriority: TransactionPriority = TransactionPriority::MAX / 2;
 
 	/// Offchain miner transaction can fill up to 75% of the block size.
 	pub MinerMaxLength: u32 = Perbill::from_percent(75) *
@@ -356,7 +339,7 @@ parameter_types! {
 	/// confused in case AH block times change. Ideally, this value should be updated alongside AH's
 	/// block time. If AH blocks progress faster, our eras will become shorter, which is not a
 	/// critical issue.
-	pub const RelaySessionDuration: BlockNumber = 1 * RC_HOURS;
+	pub const RelaySessionDuration: BlockNumber = RC_HOURS;
 	pub const BondingDuration: sp_staking::EraIndex = 28;
 	pub const SlashDeferDuration: sp_staking::EraIndex = 27;
 	/// Note: smaller value than in RC as parachain PVF is more sensitive to over-weight execution.
@@ -468,7 +451,7 @@ impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 		let message = ValidatorSetToXcm::convert(report);
 		let dest = RelayLocation::get();
 		let _ = crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {:?}", err);
+			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {err:?}",);
 		});
 	}
 }
@@ -585,7 +568,7 @@ mod tests {
 		sp_io::TestExternalities::new_empty().execute_with(|| {
 			let duration = <<Runtime as pallet_staking_async::Config>::ElectionProvider as ElectionProvider>::duration();
 			let session = RelaySessionDuration::get();
-			log::info!(target: "runtime::asset-hub-kusama", "election duration is {:?}, relay session {:?}", duration, session);
+			log::info!(target: "runtime::asset-hub-kusama", "election duration is {duration:?}, relay session {session:?}",);
 			assert!(duration < session);
 		});
 	}
@@ -604,14 +587,7 @@ mod tests {
 			Percent::from_rational(op_weight.proof_size(), limit_weight.proof_size());
 		let limit_ms = limit_weight.ref_time() / WEIGHT_REF_TIME_PER_MILLIS;
 		let limit_kb = limit_weight.proof_size() / WEIGHT_PROOF_SIZE_PER_KB;
-		log::info!(target: "runtime::asset-hub-kusama", "weight of {:?} is: ref-time: {}ms, {:?} of total, proof-size: {}KiB, {:?} of total (total: {}ms, {}KiB)",
-			op_name,
-			ref_time_ms,
-			ref_time_ratio,
-			proof_size_kb,
-			proof_size_ratio,
-			limit_ms,
-			limit_kb
+		log::info!(target: "runtime::asset-hub-kusama", "weight of {op_name:?} is: ref-time: {ref_time_ms}ms, {ref_time_ratio:?} of total, proof-size: {proof_size_kb}KiB, {proof_size_ratio:?} of total (total: {limit_ms}ms, {limit_kb}KiB)",
 		);
 
 		if let Some(max_ratio) = maybe_max_ratio {
@@ -770,7 +746,7 @@ mod tests {
 				<Runtime as multi_block::signed::Config>::WeightInfo::clear_old_round_data(
 					Pages::get(),
 				)
-				.mul(16 as u64),
+				.mul(16_u64),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);

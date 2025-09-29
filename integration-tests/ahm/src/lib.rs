@@ -18,6 +18,7 @@
 
 #![cfg(all(test, any(feature = "polkadot-ahm", feature = "kusama-ahm")))]
 
+pub mod account_whale_watching;
 pub mod accounts_translation_works;
 pub mod balances_test;
 pub mod bench_ah;

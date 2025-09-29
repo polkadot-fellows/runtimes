@@ -18,6 +18,7 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
 use pallet_rc_migrator::benchmarking::*;

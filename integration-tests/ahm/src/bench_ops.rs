@@ -18,6 +18,7 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+#[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
 
 use asset_hub_polkadot_runtime::{Runtime as AssetHub, System as AssetHubSystem};

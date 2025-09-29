@@ -111,11 +111,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				defensive!("Storage corruption {:?}", next_key_inner);
 				// Remove the previous key for which the migration failed.
 				pallet_preimage::PreimageFor::<T>::remove(next_key_inner);
-				let (next_key_maybe, skipped) = Self::next_key();
-				for (old_hash, old_len) in skipped {
-					pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
-				}
-				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
+				next_key = None;
 				continue;
 			};
 			debug_assert!(last_offset < preimage.len() as u32);
@@ -133,11 +129,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				defensive!("Unreachable");
 				// Remove the previous key for which the migration failed.
 				pallet_preimage::PreimageFor::<T>::remove(next_key_inner);
-				let (next_key_maybe, skipped) = Self::next_key();
-				for (old_hash, old_len) in skipped {
-					pallet_preimage::PreimageFor::<T>::remove((old_hash, old_len));
-				}
-				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
+				next_key = None;
 				continue;
 			};
 
@@ -164,9 +156,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			last_offset += chunk_bytes.len() as u32;
 			log::debug!(
 				target: LOG_TARGET,
-				"Exported preimage chunk {:?} until offset {}",
-				next_key_inner,
-				last_offset
+				"Exported preimage chunk {next_key_inner:?} until offset {last_offset}"
 			);
 
 			// set the offset of the next_key
@@ -208,46 +198,47 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 	}
 }
 
+/// Key into the `PreimageFor` map.
+type PreimageKey = (H256, u32);
+
 impl<T: Config> PreimageChunkMigrator<T> {
 	// Returns the next key to migrated and all the legacy preimages skipped before that, which will
 	// be deleted
 	#[allow(deprecated)] // StatusFor is deprecated
-	fn next_key() -> (Option<(H256, u32)>, Vec<(H256, u32)>) {
+	fn next_key() -> (Option<PreimageKey>, Vec<PreimageKey>) {
 		let mut skipped = Vec::new();
 		let next_key_maybe = pallet_preimage::PreimageFor::<T>::iter_keys()
 			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
 			// loop, but it cannot be exploited since the pallet does not allow to add more items to
 			// the `StatusFor` map anymore.
-			.skip_while(|(hash, len)| {
-				if !pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
+			.find(|(hash, len)| {
+				if pallet_preimage::RequestStatusFor::<T>::contains_key(hash) {
+					true
+				} else {
 					log::info!(
-						"Ignoring old preimage that is not in the request status map: {:?}",
-						hash
+						"Ignoring old preimage that is not in the request status map: {hash:?}"
 					);
 					skipped.push((*hash, *len));
 					debug_assert!(
 						pallet_preimage::StatusFor::<T>::contains_key(hash),
 						"Preimage must be tracked somewhere"
 					);
-					true
-				} else {
 					false
 				}
-			})
-			.next();
+			});
 		(next_key_maybe, skipped)
 	}
 }
 
 impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
-	type RcPrePayload = Vec<(H256, u32)>;
+	type RcPrePayload = Vec<PreimageKey>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let all_keys = pallet_preimage::PreimageFor::<T>::iter_keys().count();
 		let good_keys = pallet_preimage::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| pallet_preimage::RequestStatusFor::<T>::contains_key(hash))
 			.count();
-		log::info!("Migrating {} keys out of {}", good_keys, all_keys);
+		log::info!("Migrating {good_keys} keys out of {all_keys}");
 		pallet_preimage::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| pallet_preimage::RequestStatusFor::<T>::contains_key(hash))
 			.collect()

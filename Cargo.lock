@@ -6962,7 +6962,6 @@ dependencies = [
  "sp-runtime",
  "sp-trie",
  "sp-weights",
- "staging-xcm",
  "staging-xcm-builder",
 ]
 
@@ -8709,9 +8708,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-balances"
-version = "43.0.0"
+version = "43.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c624f9a10bf1931e9347f0e0a5e8dec4a8813a8290939aefa9f185e8f2d0d252"
+checksum = "54e1d878d53272e0b47d4a55170ea6966b97ccc6f83107cf6173407c6407c730"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -9003,9 +9002,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-election-provider-multi-block"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e61d2f6ab8b107c1752fb13846814c4d4ca91c5b8c6529b4bb245b8d1671d801"
+checksum = "6f6b7e9ad0ef845f0f9ddeb7b51df2c9e1448dd23a32be1cb231062b76bdeec9"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",

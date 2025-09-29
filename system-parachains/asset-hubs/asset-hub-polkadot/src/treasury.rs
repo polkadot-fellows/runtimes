@@ -111,7 +111,10 @@ impl pallet_child_bounties::Config for Runtime {
 pub type AssetRateWithNative = UnityOrOuterConversion<
 	ContainsParts<
 		FromContains<
-			xcm_builder::IsChildSystemParachain<ParaId>,
+			(
+				xcm_builder::IsSiblingSystemParachain<ParaId, xcm_config::SelfParaId>,
+				Equals<xcm_config::Here>,
+			),
 			xcm_builder::IsParentsOnly<ConstU8<1>>,
 		>,
 	>,
