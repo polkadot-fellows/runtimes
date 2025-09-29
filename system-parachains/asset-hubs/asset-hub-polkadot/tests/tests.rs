@@ -1087,7 +1087,7 @@ mod inflation_tests {
 			// Pre-march.
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert!(March2026TI::get() == None);
+			assert!(March2026TI::get().is_none());
 
 			// Post-march.
 			set_relay_number(MARCH_14_2026);
@@ -1279,7 +1279,7 @@ mod inflation_tests {
 			);
 
 			// Payout is less than 1 UNIT after 41 steps.
-			assert!(to_stakers + to_treasury < 1 * UNITS);
+			assert!(to_stakers + to_treasury < UNITS);
 
 			let far_future: RC_BlockNumber = MARCH_14_2026 + (RC_YEARS * 500);
 			set_relay_number(far_future);
@@ -1319,7 +1319,7 @@ mod inflation_tests {
 			}
 
 			// TI has hit asymptote.
-			assert!(current_ti > TARGET_TI - 1 * UNITS);
+			assert!(current_ti > TARGET_TI - UNITS);
 			assert!(current_ti < TARGET_TI);
 		});
 	}
