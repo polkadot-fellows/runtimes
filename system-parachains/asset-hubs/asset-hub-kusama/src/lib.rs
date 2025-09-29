@@ -1530,10 +1530,11 @@ parameter_types! {
 impl pallet_society::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type Randomness = system_parachains_common::randomness::RelayChainOneEpochAgoWithoutBlockNumber<
-		Runtime,
-		cumulus_primitives_core::relay_chain::BlockNumber,
-	>;
+	type Randomness =
+		system_parachains_common::randomness::RelayChainOneEpochAgoWithoutBlockNumberWarningUnsafe<
+			Runtime,
+			cumulus_primitives_core::relay_chain::BlockNumber,
+		>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
 	type VotingPeriod = pallet_ah_migrator::LeftIfFinished<
