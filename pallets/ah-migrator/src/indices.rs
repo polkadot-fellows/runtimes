@@ -37,7 +37,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_index(index: RcIndicesIndexOf<T>) {
-		log::debug!(target: LOG_TARGET, "Integrating index {:?}", &index.index);
 		defensive_assert!(!pallet_indices::Accounts::<T>::contains_key(index.index));
 
 		let translated_who = Self::translate_account_rc_to_ah(index.who);

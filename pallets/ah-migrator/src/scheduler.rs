@@ -63,8 +63,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_process_scheduler_message(message: RcSchedulerMessageOf<T>) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing scheduler message: {message:?}");
-
 		match message {
 			RcSchedulerMessage::IncompleteSince(block_number) => {
 				pallet_scheduler::IncompleteSince::<T>::put(block_number);

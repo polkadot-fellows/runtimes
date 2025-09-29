@@ -50,8 +50,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_process_treasury_message(message: PortableTreasuryMessage) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing treasury message: {message:?}");
-
 		match message {
 			PortableTreasuryMessage::ProposalCount(proposal_count) => {
 				pallet_treasury::ProposalCount::<T>::put(proposal_count);
@@ -108,7 +106,6 @@ impl<T: Config> Pallet<T> {
 					expire_at,
 					status,
 				};
-				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {spend:?}");
 				pallet_treasury::Spends::<T>::insert(spend_index, spend);
 			},
 			PortableTreasuryMessage::LastSpendPeriod(last_spend_period) => {

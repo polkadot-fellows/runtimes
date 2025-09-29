@@ -1496,7 +1496,6 @@ pub mod pallet {
 				},
 				MigrationStage::WaitingForAh => {
 					// waiting AH to send a message and to start sending the data.
-					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
 					// We transition out here in `start_data_migration`
 					return weight_counter.consumed();
 				},
@@ -2456,10 +2455,6 @@ pub mod pallet {
 				);
 				return true;
 			}
-			log::debug!(
-				target: LOG_TARGET,
-				"No excess unconfirmed XCM messages: unconfirmed = {unconfirmed}, unprocessed_buffer = {unprocessed_buffer}"
-			);
 			false
 		}
 

@@ -81,8 +81,6 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 
 impl<T: Config> ReferendaMigrator<T> {
 	fn migrate_values(weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Migrating referenda values");
-
 		let referendum_count =
 			ReferendumCount::<T, ()>::exists().then(ReferendumCount::<T, ()>::take);
 
@@ -126,8 +124,6 @@ impl<T: Config> ReferendaMigrator<T> {
 		mut last_key: Option<u32>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<u32>, Error<T>> {
-		log::debug!(target: LOG_TARGET, "Migrating referenda metadata");
-
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
@@ -222,8 +218,6 @@ impl<T: Config> ReferendaMigrator<T> {
 		mut last_key: Option<u32>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<u32>, Error<T>> {
-		log::debug!(target: LOG_TARGET, "Migrating referenda info");
-
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 

@@ -134,8 +134,6 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 					if pallet_claims::Total::<T>::exists() {
 						let total = pallet_claims::Total::<T>::take();
 						messages.push(RcClaimsMessage::StorageValues { total });
-					} else {
-						log::debug!(target: LOG_TARGET, "Not migrating empty claims::Total");
 					}
 					ClaimsStage::Claims(None)
 				},

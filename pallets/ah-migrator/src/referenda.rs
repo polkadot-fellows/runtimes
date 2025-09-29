@@ -174,8 +174,6 @@ impl<T: Config> Pallet<T> {
 		id: u32,
 		referendum: RcReferendumInfoOf<T, ()>,
 	) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating referendum id: {id}, info: {referendum:?}");
-
 		let referendum: AhReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
 				let cancel_referendum = |id, status: RcReferendumStatusOf<T, ()>| {
@@ -237,8 +235,6 @@ impl<T: Config> Pallet<T> {
 
 		alias::ReferendumInfoFor::<T>::insert(id, referendum);
 
-		log::debug!(target: LOG_TARGET, "Referendum {id} integrated");
-
 		Ok(())
 	}
 
@@ -253,9 +249,7 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for (id, hash) in metadata {
-			log::debug!(target: LOG_TARGET, "Integrating referendum {id} metadata");
 			MetadataOf::<T, ()>::insert(id, hash);
-			log::debug!(target: LOG_TARGET, "Referendum {id} integrated");
 		}
 
 		Self::deposit_event(Event::BatchProcessed {

@@ -102,15 +102,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_process_bounty_message(message: RcBountiesMessageOf<T>) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing bounties message: {message:?}");
-
 		match message {
 			RcBountiesMessage::BountyCount(count) => {
-				log::debug!(target: LOG_TARGET, "Integrating bounties count: {count:?}");
 				pallet_bounties::BountyCount::<T>::put(count);
 			},
 			RcBountiesMessage::BountyApprovals(approvals) => {
-				log::debug!(target: LOG_TARGET, "Integrating bounties approvals: {approvals:?}");
 				let approvals = BoundedVec::<
                     _,
                     <T as pallet_treasury::Config>::MaxApprovals
@@ -118,7 +114,6 @@ impl<T: Config> Pallet<T> {
 				pallet_bounties::BountyApprovals::<T>::put(approvals);
 			},
 			RcBountiesMessage::BountyDescriptions((index, description)) => {
-				log::debug!(target: LOG_TARGET, "Integrating bounties descriptions: {description:?}");
 				let description = BoundedVec::<
 					_,
 					<T as pallet_bounties::Config>::MaximumReasonLength,
@@ -126,7 +121,6 @@ impl<T: Config> Pallet<T> {
 				pallet_bounties::BountyDescriptions::<T>::insert(index, description);
 			},
 			RcBountiesMessage::Bounties((index, bounty)) => {
-				log::debug!(target: LOG_TARGET, "Integrating bounty: {index:?}");
 				let translated_bounty = Self::translate_bounty(bounty);
 				pallet_rc_migrator::bounties::alias::Bounties::<T>::insert(
 					index,
@@ -135,7 +129,6 @@ impl<T: Config> Pallet<T> {
 			},
 		}
 
-		log::debug!(target: LOG_TARGET, "Processed bounties message");
 		Ok(())
 	}
 }

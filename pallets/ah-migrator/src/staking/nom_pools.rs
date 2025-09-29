@@ -21,7 +21,7 @@ use pallet_nomination_pools::BondedPoolInner;
 #[cfg(feature = "std")]
 use pallet_rc_migrator::staking::nom_pools::{tests, NomPoolsMigrator, NomPoolsStorageValues};
 
-use pallet_rc_migrator::{staking::nom_pools::BalanceOf, types::ToPolkadotSs58};
+use pallet_rc_migrator::staking::nom_pools::BalanceOf;
 
 /// Trait to provide account translation logic for bonded pool structures.
 ///
@@ -202,47 +202,36 @@ impl<T: Config> Pallet<T> {
 		match translated_message {
 			StorageValues { values } => {
 				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::put_values(values);
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsStorageValues");
 			},
 			PoolMembers { member: (account_id, member_data) } => {
 				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(
 					&account_id
 				));
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsPoolMember: {}",
-					account_id.to_polkadot_ss58());
 				pallet_nomination_pools::PoolMembers::<T>::insert(account_id, member_data);
 			},
 			BondedPools { pool: (pool_id, pool_data) } => {
 				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(pool_id));
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsBondedPool: {}", &pool_id);
 				pallet_nomination_pools::BondedPools::<T>::insert(pool_id, pool_data);
 			},
 			RewardPools { rewards } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsRewardPool: {:?}", &rewards.0);
 				// Not sure if it is the best to use the alias here, but it is the easiest...
 				pallet_rc_migrator::staking::nom_pools_alias::RewardPools::<T>::insert(
 					rewards.0, rewards.1,
 				);
 			},
 			SubPoolsStorage { sub_pools } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
 				pallet_rc_migrator::staking::nom_pools_alias::SubPoolsStorage::<T>::insert(
 					sub_pools.0,
 					sub_pools.1,
 				);
 			},
 			Metadata { meta } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsMetadata: {:?}", &meta.0);
 				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
 			},
 			ReversePoolIdLookup { lookups: (account_id, pool_id) } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsReversePoolIdLookup: {}",
-					account_id.to_polkadot_ss58());
 				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(account_id, pool_id);
 			},
 			ClaimPermissions { perms: (account_id, permissions) } => {
-				log::debug!(target: LOG_TARGET, "Integrating NomPoolsClaimPermissions: {}",
-					account_id.to_polkadot_ss58());
 				pallet_nomination_pools::ClaimPermissions::<T>::insert(account_id, permissions);
 			},
 		}

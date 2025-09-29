@@ -51,11 +51,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_preimage_chunk(chunk: RcPreimageChunk) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating preimage chunk {} offset {}/{}", chunk.preimage_hash, chunk.chunk_byte_offset + chunk.chunk_bytes.len() as u32, chunk.preimage_len);
 		let key = (chunk.preimage_hash, chunk.preimage_len);
 
 		// First check that we did not miss a chunk
-		let preimage = match pallet_preimage::PreimageFor::<T>::get(key) {
+		let _preimage = match pallet_preimage::PreimageFor::<T>::get(key) {
 			Some(preimage) => {
 				if preimage.len() != chunk.chunk_byte_offset as usize {
 					defensive!("Preimage chunk missing");
@@ -92,10 +91,6 @@ impl<T: Config> Pallet<T> {
 				bounded_preimage
 			},
 		};
-
-		if preimage.len() == chunk.preimage_len as usize + chunk.chunk_byte_offset as usize {
-			log::debug!(target: LOG_TARGET, "Preimage complete: {}", chunk.preimage_hash);
-		}
 
 		Ok(())
 	}
@@ -214,7 +209,6 @@ impl<T: Config> Pallet<T> {
 		};
 
 		pallet_preimage::RequestStatusFor::<T>::insert(request_status.hash, &new_request_status);
-		log::debug!(target: LOG_TARGET, "Integrating preimage request status: {new_request_status:?}");
 
 		Ok(())
 	}

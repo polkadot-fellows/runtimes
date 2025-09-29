@@ -154,10 +154,6 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			});
 
 			last_offset += chunk_bytes.len() as u32;
-			log::debug!(
-				target: LOG_TARGET,
-				"Exported preimage chunk {next_key_inner:?} until offset {last_offset}"
-			);
 
 			// set the offset of the next_key
 			next_key = Some((next_key_inner, last_offset));

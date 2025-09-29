@@ -233,7 +233,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
 
-							log::debug!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &lease_acc, &amount, &unreserve_block);
 							messages.push(RcCrowdloanMessage::LeaseReserve { unreserve_block, account: lease_acc.clone(), para_id, amount });
 							inner_key
 						},
@@ -282,8 +281,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 						// We directly remove so that we dont have to store a cursor:
 						pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 
-						log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
-
 						messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
 					}
 					CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
@@ -300,8 +297,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 								continue;
 							}
 							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
-
-							log::debug!(target: LOG_TARGET, "Migrating out crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund.fund_index, &fund.deposit, &fund.depositor);
 
 							messages.push(RcCrowdloanMessage::CrowdloanReserve { unreserve_block, para_id, amount: fund.deposit.into(), depositor: fund.depositor });
 							inner_key

@@ -130,20 +130,14 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 				BountiesStage::BountyCount => {
 					if pallet_bounties::BountyCount::<T>::exists() {
 						let count = pallet_bounties::BountyCount::<T>::take();
-						log::debug!(target: LOG_TARGET, "Migration BountyCount {:?}", &count);
 						messages.push(RcBountiesMessage::BountyCount(count));
-					} else {
-						log::debug!(target: LOG_TARGET, "Not migrating empty BountyCount");
 					}
 					BountiesStage::BountyApprovals
 				},
 				BountiesStage::BountyApprovals => {
 					if pallet_bounties::BountyApprovals::<T>::exists() {
 						let approvals = pallet_bounties::BountyApprovals::<T>::take();
-						log::debug!(target: LOG_TARGET, "Migration BountyApprovals {:?}", &approvals);
 						messages.push(RcBountiesMessage::BountyApprovals(approvals.into_inner()));
-					} else {
-						log::debug!(target: LOG_TARGET, "Not migrating empty BountyApprovals");
 					}
 					BountiesStage::BountyDescriptions { last_key: None }
 				},
@@ -155,11 +149,6 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							log::debug!(
-								target: LOG_TARGET,
-								"Migration BountyDescription for bounty {:?}",
-								&key
-							);
 							pallet_bounties::BountyDescriptions::<T>::remove(key);
 							messages.push(RcBountiesMessage::BountyDescriptions((
 								key,
@@ -178,7 +167,6 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							log::debug!(target: LOG_TARGET, "Migration Bounty {:?}", &key);
 							alias::Bounties::<T>::remove(key);
 							messages.push(RcBountiesMessage::Bounties((key, value)));
 							BountiesStage::Bounties { last_key: Some(key) }

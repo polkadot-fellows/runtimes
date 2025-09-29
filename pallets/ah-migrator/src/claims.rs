@@ -51,28 +51,24 @@ impl<T: Config> Pallet<T> {
 				if pallet_claims::Total::<T>::exists() {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: total {total:?}");
 				pallet_claims::Total::<T>::put(total);
 			},
 			RcClaimsMessage::Claims((who, amount)) => {
 				if pallet_claims::Claims::<T>::contains_key(who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: claims {who:?}");
 				pallet_claims::Claims::<T>::insert(who, amount);
 			},
 			RcClaimsMessage::Vesting { who, schedule } => {
 				if pallet_claims::Vesting::<T>::contains_key(who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: vesting {who:?}");
 				pallet_claims::Vesting::<T>::insert(who, schedule);
 			},
 			RcClaimsMessage::Signing((who, statement_kind)) => {
 				if pallet_claims::Signing::<T>::contains_key(who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: signing {who:?}");
 				pallet_claims::Signing::<T>::insert(who, statement_kind);
 			},
 			RcClaimsMessage::Preclaims((who, address)) => {
@@ -80,7 +76,6 @@ impl<T: Config> Pallet<T> {
 				if pallet_claims::Preclaims::<T>::contains_key(&translated_who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims {translated_who:?}");
 				pallet_claims::Preclaims::<T>::insert(translated_who, address);
 			},
 		}

@@ -444,10 +444,6 @@ impl<T: Config> AccountsMigrator<T> {
 			// This scenario causes a panic in the test environment - see:
 			// https://github.com/paritytech/polkadot-sdk/blob/35e6befc5dd61deb154ff0eb7c180a038e626d66/substrate/frame/balances/src/impl_fungible.rs#L285
 			let amount = if free < rc_ed && amount.saturating_sub(rc_ed - free) > 0 {
-				log::debug!(
-					target: LOG_TARGET,
-					"Partially releasing hold to prevent the free balance from being burned"
-				);
 				let partial_amount = rc_ed - free;
 				if let Err(e) =
 					<T as Config>::Currency::release(&id, &who, partial_amount, Precision::Exact)
@@ -708,7 +704,6 @@ impl<T: Config> AccountsMigrator<T> {
 	/// The state is retrieved from storage if previously set, otherwise defaults to `Migrate`.
 	pub fn get_account_state(who: &T::AccountId) -> AccountStateFor<T> {
 		if let Some(state) = RcAccounts::<T>::get(who) {
-			log::debug!(target: LOG_TARGET, "Account state for '{}': {:?}", who.to_ss58check(), state);
 			return state;
 		}
 		AccountStateFor::<T>::Migrate
@@ -834,11 +829,6 @@ impl<T: Config> AccountsMigrator<T> {
 			.saturating_sub(missing_free);
 
 			if actual_rc_reserved == 0 {
-				log::debug!(
-					target: LOG_TARGET,
-					"Account doesn't have enough reserved balance to keep on RC. account: {:?}.",
-					id.to_ss58check(),
-				);
 				continue;
 			}
 
@@ -882,11 +872,6 @@ impl<T: Config> AccountsMigrator<T> {
 		weight += T::DbWeight::get().writes(1);
 		let on_demand_pallet_account: T::AccountId =
 			T::OnDemandPalletId::get().into_account_truncating();
-		log::debug!(
-			target: LOG_TARGET,
-			"Preserve on-demand pallet account on Relay Chain: '{:?}'",
-			on_demand_pallet_account.to_ss58check()
-		);
 		RcAccounts::<T>::insert(&on_demand_pallet_account, AccountState::Preserve);
 
 		weight

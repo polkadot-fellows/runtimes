@@ -92,13 +92,11 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 
 			match iter.next() {
 				Some((key, value)) => {
-					log::debug!(target: LOG_TARGET, "Extracting asset rate for {:?}", &key);
 					ConversionRateToNative::<T>::remove(&key);
 					messages.push((key.clone(), value));
 					last_key = Some(key);
 				},
 				None => {
-					log::debug!(target: LOG_TARGET, "No more asset rates to migrate");
 					last_key = None;
 					break;
 				},

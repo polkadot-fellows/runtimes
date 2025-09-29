@@ -46,59 +46,46 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_society_message(message: PortableSocietyMessage) {
-		log::debug!(target: LOG_TARGET, "Processing society message: {message:?}");
-
 		let message = message.translate_accounts(&Self::translate_account_rc_to_ah);
 
 		match message {
 			PortableSocietyMessage::Values(values) => {
-				log::debug!(target: LOG_TARGET, "Integrating society values: {values:?}");
 				pallet_rc_migrator::society::SocietyValues::put_values::<T::KusamaConfig>(*values);
 			},
 			PortableSocietyMessage::Member(account, member) => {
-				log::debug!(target: LOG_TARGET, "Integrating society member: {account:?}, {member:?}");
 				let member: pallet_society::MemberRecord = member.into();
 				pallet_society::Members::<T::KusamaConfig>::insert(account, member);
 			},
 			PortableSocietyMessage::Payout(account, payout) => {
-				log::debug!(target: LOG_TARGET, "Integrating society payout: {account:?}, {payout:?}");
 				let payout: pallet_society::PayoutRecord<_, _> = payout.into();
 				pallet_society::Payouts::<T::KusamaConfig>::insert(account, payout);
 			},
 			PortableSocietyMessage::MemberByIndex(index, account) => {
-				log::debug!(target: LOG_TARGET, "Integrating society member by index: {index:?}, {account:?}");
 				pallet_society::MemberByIndex::<T::KusamaConfig>::insert(index, account);
 			},
 			PortableSocietyMessage::SuspendedMembers(account, member) => {
-				log::debug!(target: LOG_TARGET, "Integrating suspended society member: {account:?}, {member:?}");
 				let member: pallet_society::MemberRecord = member.into();
 				pallet_society::SuspendedMembers::<T::KusamaConfig>::insert(account, member);
 			},
 			PortableSocietyMessage::Candidates(account, candidacy) => {
-				log::debug!(target: LOG_TARGET, "Integrating society candidate: {account:?}, {candidacy:?}");
 				let candidacy: pallet_society::Candidacy<_, _> = candidacy.into();
 				pallet_society::Candidates::<T::KusamaConfig>::insert(account, candidacy);
 			},
 			PortableSocietyMessage::Votes(account1, account2, vote) => {
-				log::debug!(target: LOG_TARGET, "Integrating society vote: {account1:?}, {account2:?}, {vote:?}");
 				let vote: pallet_society::Vote = vote.into();
 				pallet_society::Votes::<T::KusamaConfig>::insert(account1, account2, vote);
 			},
 			PortableSocietyMessage::VoteClearCursor(account, cursor) => {
-				log::debug!(target: LOG_TARGET, "Integrating society vote clear cursor: {account:?}, {cursor:?}");
 				pallet_society::VoteClearCursor::<T::KusamaConfig>::insert(
 					account,
 					BoundedVec::<u8, KeyLenOf<pallet_society::Votes<T::KusamaConfig>>>::defensive_truncate_from(cursor),
 				);
 			},
 			PortableSocietyMessage::DefenderVotes(index, account, vote) => {
-				log::debug!(target: LOG_TARGET, "Integrating society defender vote: {index:?}, {account:?}, {vote:?}");
 				let vote: pallet_society::Vote = vote.into();
 				pallet_society::DefenderVotes::<T::KusamaConfig>::insert(index, account, vote);
 			},
 		}
-
-		log::debug!(target: LOG_TARGET, "Processed society message");
 	}
 }
 

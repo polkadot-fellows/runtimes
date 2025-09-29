@@ -51,10 +51,6 @@ impl<T: Config> Pallet<T> {
 		// Translate the delegator account from RC to AH format
 		let translated_delegator = Self::translate_account_rc_to_ah(proxy.delegator.clone());
 
-		log::debug!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}",
-			translated_delegator.to_polkadot_ss58(),
-			proxy.deposit
-		);
 		let max_proxies = <T as pallet_proxy::Config>::MaxProxies::get() as usize;
 
 		// Translate the incoming ones from RC
@@ -68,10 +64,6 @@ impl<T: Config> Pallet<T> {
 			// Translate the delegate account from RC to AH format
 			let translated_delegate = Self::translate_account_rc_to_ah(p.delegate.clone());
 
-			log::debug!(target: LOG_TARGET, "Proxy type: {:?} delegate: {}",
-				proxy_type,
-				translated_delegate.to_polkadot_ss58()
-			);
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: translated_delegate,
 				delay: p.delay,
@@ -146,11 +138,6 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		// Translate the depositor account from RC to AH format
 		let translated_depositor = Self::translate_account_rc_to_ah(announcement.depositor.clone());
-
-		log::debug!(target: LOG_TARGET, "Unreserving proxy announcement deposit for {}, amount {:?}",
-			translated_depositor.to_polkadot_ss58(),
-			announcement.deposit
-		);
 
 		let before = frame_system::Account::<T>::get(&translated_depositor);
 		let missing = <T as pallet_proxy::Config>::Currency::unreserve(

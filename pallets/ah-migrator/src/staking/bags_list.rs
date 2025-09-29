@@ -73,7 +73,6 @@ impl<T: Config> Pallet<T> {
 				};
 
 				pallet_bags_list::ListNodes::<T, I>::insert(&translated_id, &translated_node);
-				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &translated_id);
 			},
 			PortableBagsListMessage::Bag { score, bag } => {
 				debug_assert!(!pallet_bags_list::ListBags::<T, I>::contains_key(score));
@@ -87,7 +86,6 @@ impl<T: Config> Pallet<T> {
 				};
 
 				pallet_bags_list::ListBags::<T, I>::insert(score, &translated_bag);
-				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
 			},
 		}
 

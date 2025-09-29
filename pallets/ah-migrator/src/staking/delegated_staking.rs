@@ -78,8 +78,6 @@ impl<T: Config> Pallet<T> {
 	fn do_process_delegated_staking_message(
 		message: PortableDelegatedStakingMessage,
 	) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Processing delegated staking message: {message:?}");
-
 		match message {
 			PortableDelegatedStakingMessage::Delegators { delegator, agent, amount } => {
 				let delegation = pallet_delegated_staking::types::Delegation { agent, amount };

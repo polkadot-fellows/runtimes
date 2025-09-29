@@ -70,7 +70,6 @@ impl<T: Config> Pallet<T> {
 		}
 
 		pallet_vesting::Vesting::<T>::insert(&translated_account, &ah_schedules);
-		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", translated_account, ah_schedules.len());
 
 		Ok(())
 	}

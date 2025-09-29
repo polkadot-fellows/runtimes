@@ -110,7 +110,6 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 								.collect::<Vec<_>>()
 								.defensive_truncate_into();
 							let deposit: BalanceOf<T> = Zero::zero();
-							log::debug!(target: LOG_TARGET, "Pure account {} gets {} proxies for free: {:?}", acc.to_ss58check(), free_proxies.len(), free_proxies);
 
 							if !free_proxies.is_empty() {
 								pallet_proxy::Proxies::<T>::insert(&acc, (free_proxies, deposit));

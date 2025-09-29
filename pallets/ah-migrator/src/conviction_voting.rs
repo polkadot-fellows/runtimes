@@ -21,7 +21,7 @@ use pallet_rc_migrator::{
 	conviction_voting::{
 		alias, ConvictionVotingMigrator, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
 	},
-	types::{SortByEncoded, ToPolkadotSs58},
+	types::SortByEncoded,
 };
 
 impl<T: Config> Pallet<T> {
@@ -67,10 +67,6 @@ impl<T: Config> Pallet<T> {
 		// Translate the voter account from RC to AH format
 		let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
 
-		log::debug!(target: LOG_TARGET, "Processing VotingFor record for {}",
-			translated_account.to_polkadot_ss58()
-		);
-
 		// Translate any delegate accounts within the voting structure if it's delegating
 		let mut translated_voting = voting;
 		if let pallet_conviction_voting::Voting::Delegating(ref mut delegating) = translated_voting
@@ -88,10 +84,6 @@ impl<T: Config> Pallet<T> {
 	) {
 		// Translate the account from RC to AH format
 		let translated_account = Self::translate_account_rc_to_ah(account_id.clone());
-
-		log::debug!(target: LOG_TARGET, "Processing ClassLocksFor record for {}",
-			translated_account.to_polkadot_ss58()
-		);
 
 		let balance_per_class =
 			BoundedVec::<_, ClassCountOf<T::Polls, TallyOf<T, ()>>>::defensive_truncate_from(

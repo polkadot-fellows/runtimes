@@ -38,18 +38,10 @@ impl<T: Config> Pallet<T> {
 			return Err(Error::<T>::FailedToConvertCall);
 		};
 
-		log::debug!(target: LOG_TARGET, "mapped call: {call:?}");
-
 		let ah_bounded_call = T::Preimage::bound(call).map_err(|err| {
 			defensive!("Failed to bound call: {:?}", err);
 			Error::<T>::FailedToBoundCall
 		})?;
-
-		if ah_bounded_call.lookup_needed() {
-			// Noted preimages for referendums that did not pass will need to be manually removed
-			// later.
-			log::debug!(target: LOG_TARGET, "New preimage was noted for call");
-		}
 
 		Ok(ah_bounded_call)
 	}
