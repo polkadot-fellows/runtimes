@@ -54,9 +54,15 @@ pub mod ranks {
 type ApproveOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<65535>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<65535>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<65535>>,
+			>,
 		>,
 		MapSuccess<Fellows, Replace<ConstU16<65535>>>,
 	>,
