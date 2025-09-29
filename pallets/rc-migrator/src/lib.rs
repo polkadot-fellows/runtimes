@@ -103,7 +103,7 @@ use runtime_parachains::{
 };
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{
-	traits::{BadOrigin, BlockNumberProvider, Hash, One, Zero},
+	traits::{BadOrigin, BlockNumberProvider, Dispatchable, Hash, IdentifyAccount, One, Zero},
 	AccountId32, Saturating,
 };
 use sp_std::prelude::*;
@@ -500,9 +500,14 @@ pub mod pallet {
 	{
 		/// The overall runtime origin type.
 		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>
-			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>;
+			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>
+			+ From<frame_system::RawOrigin<Self::AccountId>>;
 		/// The overall runtime call type.
-		type RuntimeCall: From<Call<Self>> + IsType<<Self as pallet_xcm::Config>::RuntimeCall>;
+		type RuntimeCall: From<Call<Self>>
+			+ IsType<<Self as pallet_xcm::Config>::RuntimeCall>
+			+ Dispatchable<RuntimeOrigin = <Self as Config>::RuntimeOrigin>
+			+ Member
+			+ Parameter;
 		/// The runtime hold reasons.
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
@@ -621,6 +626,12 @@ pub mod pallet {
 		///
 		/// This configuration can be overridden by a storage item [`AhUmpQueuePriorityConfig`].
 		type AhUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
+
+		/// Members of a multisig that can be submit unsigned txs and act as the manager.
+		type MultisigMembers: Get<Vec<AccountId32>>;
+
+		/// Threshold of `MultisigMembers`.
+		type MultisigThreshold: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -764,6 +775,10 @@ pub mod pallet {
 			/// The number of indexed pure accounts.
 			num_pure_accounts: u32,
 		},
+		/// The manager multisig dispatched something.
+		ManagerMultisigDispatched { res: DispatchResult },
+		/// The manager multisig received a vote.
+		ManagerMultisigVoted { votes: u32 },
 	}
 
 	/// The Relay Chain migration state.
@@ -950,26 +965,13 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
-			let now = frame_system::Pallet::<T>::block_number();
-			let start = start.evaluate(now);
+			Self::do_schedule_migration(
+				start,
+				warm_up,
+				cool_off,
+				unsafe_ignore_staking_lock_check,
+			)?;
 
-			ensure!(start > now, Error::<T>::PastBlockNumber);
-
-			if !unsafe_ignore_staking_lock_check {
-				let until_start = start.saturating_sub(now);
-				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
-					.saturating_mul(2)
-					.try_into()
-					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
-
-				// We check > and not >= here since the on_initialize for this block already ran.
-				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
-			}
-
-			WarmUpPeriod::<T>::put(warm_up);
-			CoolOffPeriod::<T>::put(cool_off);
-
-			Self::transition(MigrationStage::Scheduled { start });
 			Ok(Pays::No.into())
 		}
 
@@ -1055,7 +1057,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::RcWeightInfo::resend_xcm())]
 		pub fn resend_xcm(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
-			Self::ensure_admin_or_manager(origin)?;
+			ensure_root(origin)?;
 
 			let message_hash =
 				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
@@ -1274,7 +1276,6 @@ pub mod pallet {
 
 			let pause_stage = RcMigrationStage::<T>::get();
 			Self::transition(MigrationStage::MigrationPaused);
-
 			Self::deposit_event(Event::MigrationPaused { pause_stage });
 
 			Ok(Pays::No.into())
@@ -1295,10 +1296,132 @@ pub mod pallet {
 			);
 
 			Self::transition(MigrationStage::Pending);
-
 			Self::deposit_event(Event::MigrationCancelled);
 
 			Ok(Pays::No.into())
+		}
+
+		/// Vote on behalf of any of the members in `MultisigMembers`.
+		///
+		/// Unsigned extrinsic, requiring the `payload` to be signed.
+		///
+		/// Upon each call, a new entry is created in `ManagerMultisigs` map the `payload.call` to
+		/// be dispatched. Once `MultisigThreshold` is reached, the entire map is deleted, and we
+		/// move on to the next round.
+		///
+		/// The round system ensures that signatures from older round cannot be reused.
+		#[pallet::call_index(13)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn vote_manager_multisig(
+			origin: OriginFor<T>,
+			payload: Box<ManagerMultisigVote<T>>,
+			_sig: sp_runtime::MultiSignature,
+		) -> DispatchResult {
+			let _ = ensure_none(origin);
+
+			ensure!(ManagerMultisigRound::<T>::get() == payload.round, "RoundStale");
+			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
+			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
+			votes_for_call.push(payload.who);
+
+			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
+				let origin: <T as Config>::RuntimeOrigin =
+					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
+				let call = payload.call.clone();
+				let res = call.dispatch(origin);
+				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
+				Self::deposit_event(Event::ManagerMultisigDispatched {
+					res: res.map(|_| ()).map_err(|e| e.error),
+				});
+				ManagerMultisigRound::<T>::mutate(|r| *r += 1);
+			} else {
+				Self::deposit_event(Event::ManagerMultisigVoted {
+					votes: votes_for_call.len() as u32,
+				});
+				ManagerMultisigs::<T>::insert(payload.call, votes_for_call);
+			}
+
+			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn manager_multisig_id() -> T::AccountId {
+			let pallet_id = PalletId(*b"rcmigmts");
+			pallet_id.into_account_truncating()
+		}
+	}
+
+	#[derive(
+		Encode,
+		Decode,
+		DebugNoBound,
+		CloneNoBound,
+		PartialEqNoBound,
+		EqNoBound,
+		TypeInfo,
+		sp_core::DecodeWithMemTracking,
+	)]
+	#[scale_info(skip_type_params(T))]
+	pub struct ManagerMultisigVote<T: Config> {
+		who: sp_runtime::MultiSigner,
+		call: <T as Config>::RuntimeCall,
+		round: u32,
+	}
+
+	impl<T: Config> ManagerMultisigVote<T> {
+		pub fn new(
+			who: sp_runtime::MultiSigner,
+			call: <T as Config>::RuntimeCall,
+			round: u32,
+		) -> Self {
+			Self { who, call, round }
+		}
+
+		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
+			(b"<Bytes>", self, b"</Bytes>").encode()
+		}
+	}
+
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type ManagerMultisigs<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		<T as Config>::RuntimeCall,
+		Vec<sp_runtime::MultiSigner>,
+		ValueQuery,
+	>;
+	#[pallet::storage]
+	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			use sp_runtime::traits::Verify;
+			if let Call::vote_manager_multisig { payload, sig } = call {
+				let account = payload.who.clone().into_account();
+
+				if !T::MultisigMembers::get().contains(&account) {
+					return InvalidTransaction::BadSigner.into()
+				}
+				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
+					return InvalidTransaction::BadProof.into()
+				}
+				if ManagerMultisigRound::<T>::get() != payload.round {
+					return InvalidTransaction::Stale.into()
+				}
+				ValidTransaction::with_tag_prefix("AhmMultisig")
+					.priority(sp_runtime::traits::Bounded::max_value())
+					.and_provides(vec![("ahm_multi", account).encode()])
+					.propagate(true)
+					.longevity(30)
+					.build()
+			} else {
+				InvalidTransaction::Call.into()
+			}
 		}
 	}
 
@@ -2258,10 +2381,41 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		pub fn do_schedule_migration(
+			start: DispatchTime<BlockNumberFor<T>>,
+			warm_up: DispatchTime<BlockNumberFor<T>>,
+			cool_off: DispatchTime<BlockNumberFor<T>>,
+			unsafe_ignore_staking_lock_check: bool,
+		) -> DispatchResult {
+			let now = frame_system::Pallet::<T>::block_number();
+			let start = start.evaluate(now);
+
+			ensure!(start > now, Error::<T>::PastBlockNumber);
+
+			if !unsafe_ignore_staking_lock_check {
+				let until_start = start.saturating_sub(now);
+				let two_session_duration: u32 = <T as Config>::SessionDuration::get()
+					.saturating_mul(2)
+					.try_into()
+					.map_err(|_| Error::<T>::EraEndsTooSoon)?;
+
+				// We check > and not >= here since the on_initialize for this block already ran.
+				ensure!(until_start > two_session_duration.into(), Error::<T>::EraEndsTooSoon);
+			}
+
+			WarmUpPeriod::<T>::put(warm_up);
+			CoolOffPeriod::<T>::put(cool_off);
+
+			Self::transition(MigrationStage::Scheduled { start });
+			Ok(())
+		}
 		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+				if account_id == Self::manager_multisig_id() {
 					return Ok(());
 				}
 			}
@@ -2274,6 +2428,9 @@ pub mod pallet {
 		fn ensure_privileged_origin(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(account_id) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+				if account_id == Self::manager_multisig_id() {
 					return Ok(());
 				}
 				if Canceller::<T>::get().is_some_and(|canceller_id| canceller_id == account_id) {
