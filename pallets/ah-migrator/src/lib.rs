@@ -36,7 +36,7 @@
 //!
 //! - **Manager**: An optional role assigned to an account via the `set_manager` call.
 //!   - `force_set_stage` - permitted to forcefully set the migration stage.
-//!   - `set_dmp_queue_priority` - manages the priority of the Asset Hub UMP queue during migration.
+//!   - `set_dmp_queue_priority` - manages the priority of the Asset Hub DMP queue during migration.
 //!     The priority pattern determines how often the RC DMP queue is prioritized over others during
 //!     migration. See [`Config::DmpQueuePriorityPattern`] for details.
 //!   - `send_xcm_message` - can send XCM messages during migration to the Relay Chain as signed by
