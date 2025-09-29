@@ -39,7 +39,7 @@
 //!   - `set_dmp_queue_priority` - manages the priority of the Asset Hub DMP queue during migration.
 //!     The priority pattern determines how often the RC DMP queue is prioritized over others during
 //!     migration. See [`Config::DmpQueuePriorityPattern`] for details.
-//!   - `send_xcm_message` - can send XCM messages during migration to the Relay Chain as signed by
+//!   - `send_xcm_message` - can send XCM messages during migration to the Relay Chain with the origin
 //!     `Manager`.
 //!   - `start_migration` – can initiate the migration process on the Asset Hub. This advances the
 //!     migration stage to [`MigrationStage::DataMigrationOngoing`] and sends a message to the Relay
