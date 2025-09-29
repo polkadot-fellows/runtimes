@@ -4,6 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- AH Polkadot - A stepped curve primitive in [#898](https://github.com/polkadot-fellows/runtimes/pull/898), to be used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
+
+### Changed
+
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) in [#898](https://github.com/polkadot-fellows/runtimes/pull/898).
+
 ## [1.9.0] 26.09.2025
 
 ### Added
