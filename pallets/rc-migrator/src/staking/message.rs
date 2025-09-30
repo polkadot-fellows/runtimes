@@ -175,7 +175,7 @@ pub struct StakingValues<Balance> {
 	pub max_nominators_count: Option<u32>,
 	pub current_era: Option<EraIndex>,
 	pub active_era: Option<PortableActiveEraInfo>,
-	// pub force_era: Option<PortableForcing>,
+	pub force_era: Option<PortableForcing>,
 	pub max_staked_rewards: Option<Percent>,
 	pub slash_reward_fraction: Option<Perbill>,
 	pub canceled_slash_payout: Option<Balance>,
