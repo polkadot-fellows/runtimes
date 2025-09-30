@@ -175,7 +175,7 @@ pub struct StakingValues<Balance> {
 	pub max_nominators_count: Option<u32>,
 	pub current_era: Option<EraIndex>,
 	pub active_era: Option<PortableActiveEraInfo>,
-	pub force_era: Option<PortableForcing>,
+	// pub force_era: Option<PortableForcing>,
 	pub max_staked_rewards: Option<Percent>,
 	pub slash_reward_fraction: Option<Perbill>,
 	pub canceled_slash_payout: Option<Balance>,
@@ -234,10 +234,11 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 			ActiveEra::<T>::put(&active_era);
 			CurrentEra::<T>::put(active_era.index);
 		});
-		values.force_era.map(|force_era| {
-			let force_era: pallet_staking_async::Forcing = force_era.into();
-			ForceEra::<T>::put(force_era);
-		});
+		// don't interpret the forcing, as it is is artificially set to ForceNone on RC.
+		// values.force_era.map(|force_era| {
+		// 	let force_era: pallet_staking_async::Forcing = force_era.into();
+		// 	ForceEra::<T>::put(force_era);
+		// });
 		values.max_staked_rewards.map(MaxStakedRewards::<T>::put);
 		values.slash_reward_fraction.map(SlashRewardFraction::<T>::put);
 		values.canceled_slash_payout.map(CanceledSlashPayout::<T>::put);
