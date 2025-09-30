@@ -3814,7 +3814,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 2.0.104",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -15112,9 +15112,9 @@ dependencies = [
 
 [[package]]
 name = "sp-maybe-compressed-blob"
-version = "11.0.0"
+version = "11.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c768c11afbe698a090386876911da4236af199cd38a5866748df4d8628aeff"
+checksum = "c9d204064a17660455603ae152b02fc7ea4cfff2d14796f6483d7a35c4cca336"
 dependencies = [
  "thiserror 1.0.69",
  "zstd 0.12.4",
