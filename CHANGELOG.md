@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1] 30.09.2025
+
+### Fixed
+
+- Reduce runtime blob size by 800KB to fit the limits ([polkadot-fellows/runtimes/pull/938](https://github.com/polkadot-fellows/runtimes/pull/938))
+
 ## [1.9.0] 26.09.2025
 
 ### Added
