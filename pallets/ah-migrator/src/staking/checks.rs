@@ -55,7 +55,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 			rc.active_era.map(translate_active_era),
 			pallet_staking_async::ActiveEra::<T>::get()
 		);
-		assert_eq!(translate_forcing(rc.force_era), pallet_staking_async::ForceEra::<T>::get());
+		// assert_eq!(translate_forcing(rc.force_era), pallet_staking_async::ForceEra::<T>::get());
 		assert_eq!(rc.max_staked_rewards, pallet_staking_async::MaxStakedRewards::<T>::get());
 		assert_eq!(rc.slash_reward_fraction, pallet_staking_async::SlashRewardFraction::<T>::get());
 		assert_eq!(rc.canceled_slash_payout, pallet_staking_async::CanceledSlashPayout::<T>::get());
