@@ -55,7 +55,6 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 			rc.active_era.map(translate_active_era),
 			pallet_staking_async::ActiveEra::<T>::get()
 		);
-		// assert_eq!(translate_forcing(rc.force_era), pallet_staking_async::ForceEra::<T>::get());
 		assert_eq!(rc.max_staked_rewards, pallet_staking_async::MaxStakedRewards::<T>::get());
 		assert_eq!(rc.slash_reward_fraction, pallet_staking_async::SlashRewardFraction::<T>::get());
 		assert_eq!(rc.canceled_slash_payout, pallet_staking_async::CanceledSlashPayout::<T>::get());
@@ -146,16 +145,6 @@ fn translate_reward_destination(
 
 fn translate_active_era(era: pallet_staking::ActiveEraInfo) -> pallet_staking_async::ActiveEraInfo {
 	pallet_staking_async::ActiveEraInfo { index: era.index, start: era.start }
-}
-
-fn translate_forcing(forcing: pallet_staking::Forcing) -> pallet_staking_async::Forcing {
-	use pallet_staking_async::Forcing;
-	match forcing {
-		pallet_staking::Forcing::NotForcing => Forcing::NotForcing,
-		pallet_staking::Forcing::ForceNew => Forcing::ForceNew,
-		pallet_staking::Forcing::ForceNone => Forcing::ForceNone,
-		pallet_staking::Forcing::ForceAlways => Forcing::ForceAlways,
-	}
 }
 
 fn translate_validator_prefs(
