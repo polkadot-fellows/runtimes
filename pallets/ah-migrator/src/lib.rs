@@ -335,6 +335,11 @@ pub mod pallet {
 		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
+		/// Staking pot account (CollatorSelection account).
+		///
+		/// This account holds the collator selection staking pot and should be excluded from
+		/// balance migration checks as it may be modified during migration.
+		type StakingPotAccount: Get<Self::AccountId>;
 		/// The abridged Relay Chain Proxy Type.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
