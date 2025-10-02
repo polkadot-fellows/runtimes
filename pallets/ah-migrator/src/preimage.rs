@@ -55,47 +55,24 @@ impl<T: Config> Pallet<T> {
 		let key = (chunk.preimage_hash, chunk.preimage_len);
 
 		// First check that we did not miss a chunk
-		let preimage = match pallet_preimage::PreimageFor::<T>::get(key) {
-			Some(preimage) => {
-				if preimage.len() != chunk.chunk_byte_offset as usize {
-					defensive!("Preimage chunk missing");
-					return Err(Error::<T>::PreimageChunkMissing);
-				}
+		if pallet_preimage::PreimageFor::<T>::contains_key(key) {
+			let raw_key = pallet_preimage::PreimageFor::<T>::hashed_key_for(key);
+			sp_io::storage::append(&raw_key, chunk.chunk_bytes.to_vec());
+		} else {
+			if chunk.chunk_byte_offset != 0 {
+				defensive!("Preimage chunk missing");
+				return Err(Error::<T>::PreimageChunkMissing);
+			}
 
-				match preimage.try_mutate(|p| {
-					p.extend(chunk.chunk_bytes.clone());
-				}) {
-					Some(preimage) => {
-						pallet_preimage::PreimageFor::<T>::insert(key, &preimage);
-						preimage
-					},
-					None => {
-						defensive!("Preimage too big");
-						return Err(Error::<T>::PreimageTooBig);
-					},
-				}
-			},
-			None => {
-				if chunk.chunk_byte_offset != 0 {
-					defensive!("Preimage chunk missing");
-					return Err(Error::<T>::PreimageChunkMissing);
-				}
-
-				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
-				defensive_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
-				let bounded_preimage: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
-					preimage
-						.into_inner()
-						.try_into()
-						.map_err(|_| Error::<T>::PreimageChunkMissing)?;
-				pallet_preimage::PreimageFor::<T>::insert(key, &bounded_preimage);
-				bounded_preimage
-			},
+			let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
+			defensive_assert!(CHUNK_SIZE <= pallet_preimage::MAX_SIZE);
+			let bounded_preimage: BoundedVec<u8, ConstU32<{ pallet_preimage::MAX_SIZE }>> =
+				preimage
+					.into_inner()
+					.try_into()
+					.map_err(|_| Error::<T>::PreimageChunkMissing)?;
+			pallet_preimage::PreimageFor::<T>::insert(key, &bounded_preimage);
 		};
-
-		if preimage.len() == chunk.preimage_len as usize + chunk.chunk_byte_offset as usize {
-			log::debug!(target: LOG_TARGET, "Preimage complete: {}", chunk.preimage_hash);
-		}
 
 		Ok(())
 	}
