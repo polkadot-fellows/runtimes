@@ -18,6 +18,7 @@
 //! Fast unstake migration logic.
 
 use crate::*;
+use frame_election_provider_support::SortedListProvider;
 use pallet_rc_migrator::{
 	staking::bags_list::{BagsListMigrator, PortableBagsListMessage},
 	types::SortByEncoded,
@@ -35,6 +36,12 @@ impl<T: Config> Pallet<T> {
 			pallet: PalletEventName::BagsList,
 			count: messages.len() as u32,
 		});
+
+		// Lock bags-list to prevent any score updates during migration
+		if !messages.is_empty() && pallet_bags_list::ListNodes::<T, I>::count() == 0 {
+			log::info!(target: LOG_TARGET, "Locking bags-list for migration");
+			<pallet_bags_list::Pallet<T, I> as SortedListProvider<T::AccountId>>::lock();
+		}
 
 		// Use direct translation instead of rebuilding to preserve exact structure.
 		// Rebuilding with SortedListProvider::on_insert changes the insertion order within bags
@@ -203,6 +210,136 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 		// Assert storage "VoterList::ListNodes::ah_post::consistent"
 		// Assert storage "VoterList::ListBags::ah_post::correct"
 		// Assert storage "VoterList::ListBags::ah_post::consistent"
+
+		// Enhanced diagnostic logging before assertion
+		if rc_pre_translated != ah_messages {
+			log::error!(
+				target: LOG_TARGET,
+				"Bags list mismatch detected. Total items - RC: {}, AH: {}",
+				rc_pre_translated.len(),
+				ah_messages.len()
+			);
+
+			let mut node_score_mismatches = 0;
+			let mut node_structure_mismatches = 0;
+			let mut bag_mismatches = 0;
+			let mut first_10_logged = 0;
+
+			for (idx, (rc_msg, ah_msg)) in
+				rc_pre_translated.iter().zip(ah_messages.iter()).enumerate()
+			{
+				match (rc_msg, ah_msg) {
+					(
+						PortableBagsListMessage::Node { id: rc_id, node: rc_node },
+						PortableBagsListMessage::Node { id: ah_id, node: ah_node },
+					) =>
+						if rc_id != ah_id || rc_node.id != ah_node.id {
+							node_structure_mismatches += 1;
+							if first_10_logged < 10 {
+								log::error!(
+									target: LOG_TARGET,
+									"Node ID mismatch at index {}: RC={:?}, AH={:?}",
+									idx,
+									rc_id,
+									ah_id
+								);
+								first_10_logged += 1;
+							}
+						} else if rc_node.score != ah_node.score {
+							node_score_mismatches += 1;
+							if first_10_logged < 10 {
+								log::error!(
+									target: LOG_TARGET,
+									"Score mismatch for node {:?} at index {}: RC_score={}, AH_score={}, diff={}",
+									rc_id,
+									idx,
+									rc_node.score,
+									ah_node.score,
+									(rc_node.score as i128) - (ah_node.score as i128)
+								);
+								first_10_logged += 1;
+							}
+						} else if rc_node.prev != ah_node.prev || rc_node.next != ah_node.next {
+							node_structure_mismatches += 1;
+							if first_10_logged < 10 {
+								log::error!(
+									target: LOG_TARGET,
+									"Structure mismatch for node {:?} at index {}: RC(prev={:?}, next={:?}), AH(prev={:?}, next={:?})",
+									rc_id,
+									idx,
+									rc_node.prev,
+									rc_node.next,
+									ah_node.prev,
+									ah_node.next
+								);
+								first_10_logged += 1;
+							}
+						} else if rc_node.bag_upper != ah_node.bag_upper {
+							node_structure_mismatches += 1;
+							if first_10_logged < 10 {
+								log::error!(
+									target: LOG_TARGET,
+									"Bag upper mismatch for node {:?} at index {}: RC={}, AH={}",
+									rc_id,
+									idx,
+									rc_node.bag_upper,
+									ah_node.bag_upper
+								);
+								first_10_logged += 1;
+							}
+						},
+					(
+						PortableBagsListMessage::Bag { score: rc_score, bag: rc_bag },
+						PortableBagsListMessage::Bag { score: ah_score, bag: ah_bag },
+					) => {
+						if rc_score != ah_score ||
+							rc_bag.head != ah_bag.head ||
+							rc_bag.tail != ah_bag.tail ||
+							rc_bag.bag_upper != ah_bag.bag_upper
+						{
+							bag_mismatches += 1;
+							if first_10_logged < 10 {
+								log::error!(
+									target: LOG_TARGET,
+									"Bag mismatch at index {}: RC(score={}, head={:?}, tail={:?}), AH(score={}, head={:?}, tail={:?})",
+									idx,
+									rc_score,
+									rc_bag.head,
+									rc_bag.tail,
+									ah_score,
+									ah_bag.head,
+									ah_bag.tail
+								);
+								first_10_logged += 1;
+							}
+						}
+					},
+					_ => {
+						log::error!(
+							target: LOG_TARGET,
+							"Type mismatch at index {}: RC and AH have different message types",
+							idx
+						);
+					},
+				}
+			}
+
+			log::error!(
+				target: LOG_TARGET,
+				"Mismatch summary: {} node score mismatches, {} node structure mismatches, {} bag mismatches",
+				node_score_mismatches,
+				node_structure_mismatches,
+				bag_mismatches
+			);
+
+			panic!(
+				"Bags list data mismatch: {} node score mismatches, {} node structure mismatches, {} bag mismatches. See logs for details.",
+				node_score_mismatches,
+				node_structure_mismatches,
+				bag_mismatches
+			);
+		}
+
 		assert_eq!(
 			rc_pre_translated, ah_messages,
 			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"
