@@ -9,11 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
-- Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942)):
-- Exclude staking pot account from balance migration checks
-- Fix pre and post-check on AH migrator to work with ZB snaphshots taken at proper synchronized migration states (pre: AccountsMigrationInit, post: MigrationDone).
-- Delay auto-rebagging after migration is done
-- Lock bags-list to prevent any score updates during migration.
+- Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
 
 ## [1.9.1] 30.09.2025
 
