@@ -60,6 +60,7 @@ use super::{
 	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::ProxyBasicWorks,
 };
+use pallet_rc_migrator::types::ToPolkadotSs58;
 use asset_hub_polkadot_runtime::{AhMigrator, Runtime as AssetHub, Runtime as PAH};
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{InboundDownwardMessage, Junction, Location, UpwardMessageSender};
@@ -77,6 +78,7 @@ use pallet_ah_migrator::{
 	AhMigrationStage as AhMigrationStageStorage, MigrationEndBlock as AhMigrationEndBlock,
 	MigrationStage as AhMigrationStage, MigrationStartBlock as AhMigrationStartBlock,
 };
+use sp_core::ByteArray;
 use pallet_rc_migrator::{
 	staking::StakingMigratedCorrectly, types::RcMigrationCheck,
 	MigrationEndBlock as RcMigrationEndBlock, MigrationStage as RcMigrationStage,
@@ -612,6 +614,7 @@ async fn migration_works_time() {
 		// received and processed immediately without delay.
 		let mut dmp_messages: VecDeque<(Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)> =
 			vec![].into();
+		let mut rng = rand::thread_rng();
 
 		// finish the loop when the migration is done.
 		while ah.execute_with(AhMigrationStageStorage::<AssetHub>::get) !=
@@ -638,6 +641,22 @@ async fn migration_works_time() {
 			// execute next RC block.
 			rc.execute_with(|| {
 				next_block_rc();
+
+				if matches!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::AccountsMigrationOngoing { .. }) {
+					// Insert a random account
+					let acc_id = AccountId32::from_slice(&rng.gen::<[u8; 32]>()).unwrap();
+					let nonce = rng.gen::<u32>();
+					frame_system::Account::<Polkadot>::insert(&acc_id, frame_system::AccountInfo {
+						nonce,
+						sufficients: 1,
+						data: pallet_balances::AccountData {
+							free: 123234234u32.into(),
+							..Default::default()
+						},
+						..Default::default()
+					});
+					log::error!("Inserted a random account: {:?}", acc_id.to_polkadot_ss58());
+				}
 			});
 
 			// read dmp messages sent to AH.
