@@ -226,7 +226,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = ();
+	type SingleBlockMigrations = migrations::SingleBlockMigrations;
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();
@@ -1921,12 +1921,6 @@ pub type TxExtension = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-/// All migrations that will run on the next runtime upgrade.
-///
-/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
-/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = (migrations::Unreleased, migrations::Permanent);
-
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
@@ -1937,6 +1931,9 @@ pub mod migrations {
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// All migrations that will run on the next runtime upgrade.
+	pub type SingleBlockMigrations = (Unreleased, Permanent);
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1949,7 +1946,6 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	Migrations,
 >;
 
 /// The payload being signed in transactions.
