@@ -110,10 +110,9 @@ pub struct RebagIffMigrationDone;
 impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 	fn get() -> u32 {
 		if cfg!(feature = "runtime-benchmarks") ||
-			matches!(
-				pallet_ah_migrator::AhMigrationStage::<Runtime>::get(),
-				pallet_ah_migrator::MigrationStage::MigrationDone
-			) {
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
+				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
+		{
 			5
 		} else {
 			0
