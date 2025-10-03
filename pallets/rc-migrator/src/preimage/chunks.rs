@@ -60,7 +60,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
-		let mut ah_weight_counter = WeightMeter::new();
+		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		let last_key = loop {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err() ||
