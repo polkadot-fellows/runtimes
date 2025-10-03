@@ -43,6 +43,7 @@ decl_test_parachains! {
 			Balances: collectives_polkadot_runtime::Balances,
 			FellowshipTreasury: collectives_polkadot_runtime::FellowshipTreasury,
 			AssetRate: collectives_polkadot_runtime::AssetRate,
+			FellowshipCore: collectives_polkadot_runtime::FellowshipCore,
 		}
 	},
 }
