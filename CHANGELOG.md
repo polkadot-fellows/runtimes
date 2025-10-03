@@ -4,6 +4,13 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
+- Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
+
 ## [1.9.1] 30.09.2025
 
 ### Fixed
