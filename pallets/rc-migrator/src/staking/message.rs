@@ -200,9 +200,8 @@ impl<T: pallet_staking::Config> StakingMigrator<T> {
 			max_nominators_count: MaxNominatorsCount::<T>::take(),
 			current_era: CurrentEra::<T>::take(),
 			active_era: ActiveEra::<T>::take().map(IntoPortable::into_portable),
-			force_era: ForceEra::<T>::exists()
-				.then(ForceEra::<T>::take)
-				.map(IntoPortable::into_portable),
+			// always send `Forcing::NotForcing`, as we want the value to stay put in RC.
+			force_era: Forcing::NotForcing.into_portable().into(),
 			max_staked_rewards: MaxStakedRewards::<T>::take(),
 			slash_reward_fraction: SlashRewardFraction::<T>::exists()
 				.then(SlashRewardFraction::<T>::take),
@@ -234,6 +233,7 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 			ActiveEra::<T>::put(&active_era);
 			CurrentEra::<T>::put(active_era.index);
 		});
+		// this will always be Forcing::NotForcing, so it will be a no-op
 		values.force_era.map(|force_era| {
 			let force_era: pallet_staking_async::Forcing = force_era.into();
 			ForceEra::<T>::put(force_era);
