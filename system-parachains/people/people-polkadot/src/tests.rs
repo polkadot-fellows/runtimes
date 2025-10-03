@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use crate::{
-	xcm_config::{GovernanceLocation, LocationToAccountId},
+	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
 };
 use cumulus_primitives_core::relay_chain::AccountId;
@@ -142,9 +142,9 @@ fn xcm_payment_api_works() {
 
 #[test]
 fn governance_authorize_upgrade_works() {
-	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
+	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;
 
-	// no - random para
+	// no - random non-system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
@@ -152,14 +152,15 @@ fn governance_authorize_upgrade_works() {
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
 		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
-	// no - AssetHub
+	// no - random system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
-		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
 		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
+
 	// no - Collectives
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
@@ -184,9 +185,11 @@ fn governance_authorize_upgrade_works() {
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(Location::parent())));
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+
+	// ok - AssetHub
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }

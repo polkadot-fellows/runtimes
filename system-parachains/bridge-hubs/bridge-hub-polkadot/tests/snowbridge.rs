@@ -21,7 +21,7 @@ use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-	xcm_config::{GovernanceLocation, UniversalLocation, XcmConfig},
+	xcm_config::{UniversalLocation, XcmConfig},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, EthereumBeaconClient,
 	Executive, MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	SessionKeys, TxExtension, UncheckedExtrinsic,
@@ -54,6 +54,8 @@ use xcm_executor::traits::{ConvertLocation, FeeManager, FeeReason};
 
 parameter_types! {
 	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
+	// Local OpenGov
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Origin(RuntimeOrigin::root());
 }
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
@@ -117,7 +119,7 @@ fn change_ethereum_gateway_by_governance_works() {
 	change_storage_constant_by_governance_works::<Runtime, EthereumGatewayAddress, H160>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| (EthereumGatewayAddress::key().to_vec(), EthereumGatewayAddress::get()),
 		|_| [1; 20].into(),
 	)

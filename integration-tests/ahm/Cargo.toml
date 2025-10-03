@@ -1,0 +1,160 @@
+[package]
+name = "polkadot-integration-tests-ahm"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Polkadot integration tests for the Asset Hub Migration"
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+authority-discovery-primitives = { workspace = true, default-features = true }
+babe-primitives = { workspace = true, default-features = true }
+beefy-primitives = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
+emulated-integration-tests-common = { workspace = true }
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+grandpa = { workspace = true }
+log = { workspace = true, default-features = true }
+pallet-rc-migrator = { workspace = true, default-features = true }
+pallet-ah-migrator = { workspace = true, default-features = true }
+pallet-ah-ops = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-indices = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+pallet-recovery = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
+parachains-common = { workspace = true, default-features = true }
+pallet-multisig = { workspace = true, default-features = true }
+polkadot-parachain-primitives = { workspace = true, default-features = true }
+polkadot-primitives = { workspace = true, default-features = true }
+polkadot-runtime-common = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
+runtime-parachains = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-storage = { workspace = true, default-features = true }
+sp-tracing = { workspace = true, default-features = true }
+tokio = { features = ["full", "macros"], workspace = true }
+xcm-builder = { workspace = true, default-features = true }
+xcm-emulator = { workspace = true }
+scale-info = { workspace = true, default-features = true }
+pallet-proxy = { workspace = true, default-features = true }
+sp-application-crypto = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
+hex = { workspace = true }
+hex-literal = { workspace = true }
+pallet-whitelist = { workspace = true, default-features = true }
+pallet-bounties = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true }
+pallet-xcm = { workspace = true, default-features = true }
+frame-benchmarking = { workspace = true }
+rand = { workspace = true }
+pallet-preimage = { workspace = true, default-features = true }
+pallet-staking-async = { workspace = true, default-features = true }
+pallet-referenda = { workspace = true, default-features = true }
+
+polkadot-runtime = { workspace = true, optional = true }
+polkadot-runtime-constants = { workspace = true, default-features = true, optional = true }
+asset-hub-polkadot-runtime = { workspace = true, optional = true }
+
+kusama-runtime = { workspace = true, optional = true }
+kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
+asset-hub-kusama-runtime = { workspace = true, optional = true }
+
+[features]
+default = ["std"]
+polkadot-ahm = [
+	"asset-hub-polkadot-runtime",
+	"asset-hub-polkadot-runtime?/polkadot-ahm",
+	"pallet-ah-migrator/polkadot-ahm",
+	"pallet-rc-migrator/polkadot-ahm",
+	"polkadot-runtime",
+	"polkadot-runtime-constants",
+	"polkadot-runtime?/polkadot-ahm",
+]
+kusama-ahm = [
+	"asset-hub-kusama-runtime/kusama-ahm",
+	"kusama-runtime-constants",
+	"kusama-runtime/kusama-ahm",
+	"pallet-ah-migrator/kusama-ahm",
+	"pallet-rc-migrator/kusama-ahm",
+]
+std = [
+	"cumulus-pallet-parachain-system/std",
+	"frame-benchmarking/std",
+	"hex/std",
+	"kusama-runtime?/std",
+	"log/std",
+	"polkadot-runtime?/std",
+	"rand/std",
+]
+try-runtime = [
+	"asset-hub-kusama-runtime?/try-runtime",
+	"asset-hub-polkadot-runtime?/try-runtime",
+	"cumulus-pallet-parachain-system/try-runtime",
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"kusama-runtime?/try-runtime",
+	"pallet-ah-migrator/try-runtime",
+	"pallet-ah-ops/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-bounties/try-runtime",
+	"pallet-indices/try-runtime",
+	"pallet-message-queue/try-runtime",
+	"pallet-multisig/try-runtime",
+	"pallet-preimage/try-runtime",
+	"pallet-proxy/try-runtime",
+	"pallet-rc-migrator/try-runtime",
+	"pallet-recovery/try-runtime",
+	"pallet-referenda/try-runtime",
+	"pallet-staking-async/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"pallet-whitelist/try-runtime",
+	"pallet-xcm/try-runtime",
+	"parachains-common/try-runtime",
+	"polkadot-runtime-common/try-runtime",
+	"polkadot-runtime?/try-runtime",
+	"runtime-parachains/try-runtime",
+	"sp-runtime/try-runtime",
+]
+runtime-benchmarks = [
+	"asset-hub-kusama-runtime?/runtime-benchmarks",
+	"asset-hub-polkadot-runtime?/runtime-benchmarks",
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"kusama-runtime-constants?/runtime-benchmarks",
+	"kusama-runtime?/runtime-benchmarks",
+	"pallet-ah-migrator/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-bounties/runtime-benchmarks",
+	"pallet-indices/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
+	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-recovery/runtime-benchmarks",
+	"pallet-referenda/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
+	"pallet-whitelist/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants?/runtime-benchmarks",
+	"polkadot-runtime?/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+]

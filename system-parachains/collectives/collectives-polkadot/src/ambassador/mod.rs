@@ -101,9 +101,15 @@ impl pallet_ambassador_origins::Config for Runtime {}
 pub type DemoteOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+			>,
 		>,
 		TryMapSuccess<
 			EnsureAmbassadorsFrom<ConstU16<{ ranks::SENIOR }>>,
@@ -117,7 +123,10 @@ pub type OpenGovOrGlobalHead = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<
 		GlobalHead,
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		EitherOf<
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+		>,
 	>,
 >;
 
@@ -208,9 +217,15 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	// - a vote among all Global Head Ambassadors.
 	type ParamsOrigin = OpenGovOrGlobalHead;
 	type ApproveOrigin = EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+			>,
 		>,
 		EnsureCanRetainAt,
 	>;
@@ -255,7 +270,19 @@ pub type AmbassadorTreasuryPaymaster = PayOverXcm<
 	VersionedLocationConverter,
 >;
 
-pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
+pub type TreasurySpender = EitherOf<
+			EnsureRootWithSuccess<AccountId, MaxBalance>,
+			EitherOf<
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+					Spender,
+				>,
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
+					Spender,
+				>,
+			>,
+		>;
 
 pub type AmbassadorTreasuryInstance = pallet_treasury::Instance2;
 
