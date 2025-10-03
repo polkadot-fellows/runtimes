@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
+- Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942)):
+- Exclude staking pot account from balance migration checks
+- Fix pre and post-check on AH migrator to work with ZB snaphshots taken at proper synchronized migration states (pre: AccountsMigrationInit, post: MigrationDone).
+- Delay auto-rebagging after migration is done
+- Lock bags-list to prevent any score updates during migration.
 
 ## [1.9.1] 30.09.2025
 
@@ -25,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--  Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
+- Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
   🚨 Pallet XCM's `limited_reserve_transfer_assets` and `reserve_transfer_assets` extrinsics now returns an error when it determines that a reserve transfer of DOT|KSM has to be done.
   This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
   After the migration, another patch will remove this error case and use the correct reserve.
@@ -52,13 +57,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub ([polkadot-fellows/runtimes/pull/709](https://github.com/polkadot-fellows/runtimes/pull/709))
 
 ### Added
+
 - Integrate "Empowered XCM Origins" features to System Chains ([polkadot-fellows/runtimes/pull/799](https://github.com/polkadot-fellows/runtimes/pull/799))
 - Test cases for all system chains to verify if parachain is able to process authorize_upgrade call as if it was received from governance chain ([polkadot-fellows/runtimes/pull/783](https://github.com/polkadot-fellows/runtimes/pull/783))
 - Add Secretary Salary Pay Test Over XCM ([https://github.com/polkadot-fellows/runtimes/pull/778](https://github.com/polkadot-fellows/runtimes/pull/778))
 - Upgrade to Polkadot-SDK `stable2506` ([polkadot-fellows/runtimes/pull/817](https://github.com/polkadot-fellows/runtimes/pull/817))
   - [#7833](https://github.com/paritytech/polkadot-sdk/pull/7833): Add `poke_deposit` extrinsic to pallet-society
   - [#7995](https://github.com/paritytech/polkadot-sdk/pull/7995): Add `PureKilled` event to pallet-proxy
-  - [#8254]((https://github.com/paritytech/polkadot-sdk/pull/9202)): Introduce `remove_upgrade_cooldown`
+  - [#8254](<(https://github.com/paritytech/polkadot-sdk/pull/9202)>): Introduce `remove_upgrade_cooldown`
     This dispatchable enables anyone to pay for removing an active upgrade cooldown from a parachain instead of waiting for the cooldown to be finished. It is useful for times when a parachain needs to apply an upgrade faster than the upgrade cooldown, but it will need to pay in this case. The dispatchable enables anyone to remove an upgrade cooldown of any parachain. The caller needs to pay for the removal and the tokens are burned on a successful removal.
   - [#8171](https://github.com/paritytech/polkadot-sdk/pull/8171): Add event `VestingCreated` and emit on vested transfer.
   - [#8382](https://github.com/paritytech/polkadot-sdk/pull/8382): Add `poke_deposit` extrinsic to pallet-bounties
@@ -83,8 +89,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Upgrade to Polkadot-SDK `unstable2507` ([polkadot-fellows/runtimes/pull/849](https://github.com/polkadot-fellows/runtimes/pull/849))
   - [#7953](https://github.com/paritytech/polkadot-sdk/pull/7953): Add deposit for setting session keys
-    * 🚨 Setting session keys now might charge a storage deposit. The amount can be inspected in the Session::KeyDeposit of the runtime metadata. This value is intended to be set post AHM. Validators should make sure they have some free balance to cover this deposit the next time they want to rotate their keys.
-    * Session keys previously could be set only by the associated controller account of a stash. Now, this filter no longer exists, and they can be set by anyone (ergo, the deposit). For validators, please make sure to submit your session keys (henceforth) **from the stash account**.
+    - 🚨 Setting session keys now might charge a storage deposit. The amount can be inspected in the Session::KeyDeposit of the runtime metadata. This value is intended to be set post AHM. Validators should make sure they have some free balance to cover this deposit the next time they want to rotate their keys.
+    - Session keys previously could be set only by the associated controller account of a stash. Now, this filter no longer exists, and they can be set by anyone (ergo, the deposit). For validators, please make sure to submit your session keys (henceforth) **from the stash account**.
 - Add foreign-consensus cousin Asset Hub as trusted aliaser to allow XCMv5 origin preservation for foreign-consensus parachains [polkadot-fellows/runtimes/pull/794](https://github.com/polkadot-fellows/runtimes/pull/794))
 - Configure block providers for pallets requiring block context ([polkadot-fellows/runtimes/pull/813](https://github.com/polkadot-fellows/runtimes/pull/813)):
   - vesting: keep using Relay Chain block provider
@@ -106,12 +112,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     If your chain uses pallet-revive, you can support ERC20s as well by adding the transactor, which lives in assets-common.
   - [#8197](https://github.com/paritytech/polkadot-sdk/pull/8197): [pallet-revive] Add `fee_history`
   - [#8148](https://github.com/paritytech/polkadot-sdk/pull/8148): [pallet-revive] eth-rpc refactoring
-      - Refactor eth-rpc.
-      - Get rid of the in-memory cache; we can just store receipts / logs into sqlite.
-      - Track both best and finalized blocks so that we can properly index transactions in case of a Relay Chain re-org.
-      - Keep reference to the latest finalized block so that we can use that for queries that use the finalized block tag.
-      - Use `--index-last-n-blocks` CLI parameter to re-index the last `n` blocks when the server starts.
-      - Fix issue with `gas_price` calculation for EIP1559.
+    - Refactor eth-rpc.
+    - Get rid of the in-memory cache; we can just store receipts / logs into sqlite.
+    - Track both best and finalized blocks so that we can properly index transactions in case of a Relay Chain re-org.
+    - Keep reference to the latest finalized block so that we can use that for queries that use the finalized block tag.
+    - Use `--index-last-n-blocks` CLI parameter to re-index the last `n` blocks when the server starts.
+    - Fix issue with `gas_price` calculation for EIP1559.
   - [#8545](https://github.com/paritytech/polkadot-sdk/pull/8545): [pallet-revive] eth-rpc improved healthcheck
   - [#8587](https://github.com/paritytech/polkadot-sdk/pull/8587): [pallet-revive] Make subscription task panic on error
   - [#8664](https://github.com/paritytech/polkadot-sdk/pull/8664): [pallet-revive] Fix rpc-types
@@ -195,7 +201,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Ensure Consistent Topic IDs for Traceable Cross-Chain XCM ([SDK stable2503 #7691](https://github.com/paritytech/polkadot-sdk/pull/7691)).
 
 - [[#753](https://github.com/polkadot-fellows/runtimes/pull/753)] Upgrades Polkadot and Kusama AssetHub to XCM v5. Adds a migration to check upgrade safety.
-- [[#754](https://github.com/polkadot-fellows/runtimes/pull/754)]  Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
+- [[#754](https://github.com/polkadot-fellows/runtimes/pull/754)] Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
 
 - Extend bounty update period to ~10 years ([polkadot-fellows/runtimes/pull/766](https://github.com/polkadot-fellows/runtimes/pull/766))
 
@@ -337,7 +343,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fix `experimental_inflation_info` in Polkadot and remove unused code (https://github.com/polkadot-fellows/runtimes/pull/497)
+- Fix `experimental_inflation_info` in Polkadot and remove unused code (<https://github.com/polkadot-fellows/runtimes/pull/497>)
 
 ## [1.3.3] 01.10.2024
 
