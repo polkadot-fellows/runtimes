@@ -8,8 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
-- Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
+- [AHM] Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
+- [AHM] Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
+- [AHM] Fix crowdloan withdrawing and weight limit ([polkadot-fellows/runtimes/pull/943](https://github.com/polkadot-fellows/runtimes/pull/943))
 
 ## [1.9.1] 30.09.2025
 
