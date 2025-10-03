@@ -18,7 +18,6 @@
 //! Fast unstake migration logic.
 
 use crate::*;
-use frame_election_provider_support::SortedListProvider;
 use pallet_rc_migrator::{
 	staking::bags_list::{BagsListMigrator, PortableBagsListMessage},
 	types::SortByEncoded,
@@ -36,12 +35,6 @@ impl<T: Config> Pallet<T> {
 			pallet: PalletEventName::BagsList,
 			count: messages.len() as u32,
 		});
-
-		// Lock bags-list to prevent any score updates during migration
-		if !messages.is_empty() && pallet_bags_list::ListNodes::<T, I>::count() == 0 {
-			log::info!(target: LOG_TARGET, "Locking bags-list for migration");
-			<pallet_bags_list::Pallet<T, I> as SortedListProvider<T::AccountId>>::lock();
-		}
 
 		// Use direct translation instead of rebuilding to preserve exact structure.
 		// Rebuilding with SortedListProvider::on_insert changes the insertion order within bags

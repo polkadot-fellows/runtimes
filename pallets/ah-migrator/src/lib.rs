@@ -1184,6 +1184,10 @@ pub mod pallet {
 		pub fn migration_start_hook() -> Result<(), Error<T>> {
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
 
+			// Lock bags-list for migration
+			log::info!(target: LOG_TARGET, "Locking bags-list for migration");
+			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::lock();
+
 			// Accounts
 			let checking_account = T::CheckingAccount::get();
 			let balances_before = BalancesBefore {
@@ -1217,6 +1221,10 @@ pub mod pallet {
 				}
 			}
 
+			// Unlock bags-list now that migration is complete
+			log::info!(target: LOG_TARGET, "Unlocking bags-list after migration completion");
+			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::unlock();
+
 			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
@@ -1240,10 +1248,6 @@ pub mod pallet {
 					"MigrationDone can only enter from DataMigrationOngoing"
 				);
 				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
-
-				// Unlock bags-list now that migration is complete
-				log::info!(target: LOG_TARGET, "Unlocking bags-list after migration completion");
-				<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::unlock();
 
 				Self::deposit_event(Event::AssetHubMigrationFinished);
 			}
