@@ -178,6 +178,8 @@ fn remote_treasury_usdt_payout_works() {
 		.unwrap();
 	});
 
+	assert_asset_hub_kusama_tokens_received(recipient.clone());
+
 	<AssetHubKusama as TestExt>::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
@@ -237,5 +239,23 @@ fn remote_treasury_native_payout_works() {
 			TREASURY_INITIAL_BALANCE - remote_fee() - SPEND_AMOUNT
 		);
 		assert_eq!(Balances::free_balance(&recipient), SPEND_AMOUNT);
+	});
+}
+
+
+fn assert_asset_hub_kusama_tokens_received(who: AccountId) {
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+				RuntimeEvent::Assets(pallet_assets::Event::Transferred { to, .. }) => {
+					to: *to == who,
+				},
+			]
+		);
 	});
 }
