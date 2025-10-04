@@ -30,7 +30,7 @@ pub use pallet_encointer_treasuries::Transfer;
 // This is the value that has been queried from the Asset Hub Kusama runtime.
 // There is an integration test in `integration-tests/emulated/tests/encointer/encointer-kusama/
 // That verifies that this fee is correct and will catch fee changes in Asset-Hub Kusama
-pub const REMOTE_XCM_TRANSFER_REMOTE_EXECUTION_FEE: u128 = 12905733320;
+pub const REMOTE_XCM_TRANSFER_REMOTE_EXECUTION_FEE: u128 = 12699199987;
 
 pub trait GetRemoteFee {
 	fn get_remote_fee(xcm: Xcm<()>, asset_id: Option<AssetId>) -> Asset;
@@ -258,7 +258,7 @@ fn remote_transfer_xcm(
 	asset_id: AssetId,
 	amount: u128,
 	remote_fee: Asset,
-	query_id: QueryId,
+	_query_id: QueryId,
 ) -> Result<Xcm<()>, Error> {
 	// Transform `from` into Location::new(1, XX([Parachain(source), from.interior }])
 	// We need this one for the refunds.
@@ -271,11 +271,6 @@ fn remote_transfer_xcm(
 		WithdrawAsset(vec![remote_fee.clone()].into()),
 		PayFees { asset: remote_fee },
 		SetAppendix(Xcm(vec![
-			ReportError(QueryResponseInfo {
-				destination: destination.clone(),
-				query_id,
-				max_weight: Weight::zero(),
-			}),
 			RefundSurplus,
 			DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: from_at_target },
 		])),
