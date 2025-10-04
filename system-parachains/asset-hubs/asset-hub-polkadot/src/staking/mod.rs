@@ -412,7 +412,7 @@ pub mod temp_curve {
 			match self.step {
 				Step::RemainingPct { target: asymptote, pct: percent } => {
 					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
-					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
+					let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
 					let scale = ratio.saturating_pow(num_periods_u32 as usize);
 
 					if initial >= asymptote {
