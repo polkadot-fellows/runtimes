@@ -335,6 +335,11 @@ pub mod pallet {
 		///
 		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
+		/// Staking pot account (CollatorSelection account).
+		///
+		/// This account holds the collator selection staking pot and should be excluded from
+		/// balance migration checks as it may be modified during migration.
+		type StakingPotAccount: Get<Self::AccountId>;
 		/// The abridged Relay Chain Proxy Type.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
@@ -1179,6 +1184,10 @@ pub mod pallet {
 		pub fn migration_start_hook() -> Result<(), Error<T>> {
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
 
+			// Lock bags-list for migration
+			log::info!(target: LOG_TARGET, "Locking bags-list for migration");
+			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::lock();
+
 			// Accounts
 			let checking_account = T::CheckingAccount::get();
 			let balances_before = BalancesBefore {
@@ -1212,6 +1221,10 @@ pub mod pallet {
 				}
 			}
 
+			// Unlock bags-list now that migration is complete
+			log::info!(target: LOG_TARGET, "Unlocking bags-list after migration completion");
+			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::unlock();
+
 			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
@@ -1235,6 +1248,7 @@ pub mod pallet {
 					"MigrationDone can only enter from DataMigrationOngoing"
 				);
 				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
+
 				Self::deposit_event(Event::AssetHubMigrationFinished);
 			}
 
