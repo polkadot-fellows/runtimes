@@ -347,12 +347,12 @@ pub mod temp_curve {
 		pub fn last_step_size(&self, point: FixedU128) -> FixedU128 {
 			// No step taken yet.
 			if point <= self.start {
-				return FixedU128::zero();
+				return Zero::zero();
 			}
 
 			// If the period is zero, the value never changes.
 			if self.period.is_zero() {
-				return FixedU128::zero();
+				return Zero::zero();
 			}
 
 			// Calculate how many full periods have passed, saturate.
@@ -361,7 +361,7 @@ pub mod temp_curve {
 
 			// No periods have passed.
 			if num_periods < FixedU128::one() {
-				return FixedU128::zero();
+				return Zero::zero();
 			}
 
 			// Points for calculating step difference.
