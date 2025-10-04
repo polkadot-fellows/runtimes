@@ -360,14 +360,14 @@ pub mod temp_curve {
 				(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
 
 			// No periods have passed.
-			if num_periods < FixedU128::one() {
+			if num_periods < One::one() {
 				return Zero::zero();
 			}
 
 			// Points for calculating step difference.
 			let prev_period_point = self
 				.start
-				.saturating_add((num_periods - FixedU128::one()).saturating_mul(self.period));
+				.saturating_add((num_periods - One::one()).saturating_mul(self.period));
 			let curr_period_point =
 				self.start.saturating_add(num_periods.saturating_mul(self.period));
 
