@@ -281,6 +281,7 @@ mod tests {
 		currency::{CENTS, DOLLARS, MILLICENTS},
 		fee::WeightToFee,
 		proxy::ProxyType,
+		time::YEARS,
 	};
 	use crate::weights::ExtrinsicBaseWeight;
 	use codec::{Decode, DecodeWithMemTracking, Encode};
@@ -341,5 +342,11 @@ mod tests {
 		}
 		assert!(ProxyType::decode(&mut &OldProxyType::SudoBalances.encode()[..]).is_err());
 		assert!(ProxyType::decode(&mut &OldProxyType::IdentityJudgement.encode()[..]).is_err());
+	}
+
+	#[test]
+	fn years_constant_does_not_round() {
+		// Years should be 60 * 60 * 24 * 365.25 / 6 = 5259600
+		assert!(YEARS == 5259600)
 	}
 }
