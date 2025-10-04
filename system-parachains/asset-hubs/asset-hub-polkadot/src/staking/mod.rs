@@ -384,7 +384,7 @@ pub mod temp_curve {
 
 		/// Evaluate the curve at a given point.
 		///
-		/// Max number of steps is `usize::MAX`.
+		/// Max number of steps is `u32::MAX`.
 		pub fn evaluate(&self, point: FixedU128) -> FixedU128 {
 			let initial = self.initial_value;
 
@@ -401,11 +401,11 @@ pub mod temp_curve {
 			// Calculate how many full periods have passed, downsampled to usize.
 			let num_periods =
 				(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
-			let num_periods_usize =
-				(num_periods.into_inner() / FixedU128::DIV).saturated_into::<usize>();
+			let num_periods_u32 =
+				(num_periods.into_inner() / FixedU128::DIV).saturated_into::<u32>();
 
 			// No periods have passed.
-			if num_periods_usize.is_zero() {
+			if num_periods_u32.is_zero() {
 				return initial;
 			}
 
@@ -413,7 +413,7 @@ pub mod temp_curve {
 				Step::RemainingPct { target: asymptote, pct: percent } => {
 					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
 					let ratio = FixedU128::one().saturating_sub(FixedU128::from(percent));
-					let scale = ratio.saturating_pow(num_periods_usize);
+					let scale = ratio.saturating_pow(num_periods_u32 as usize);
 
 					if initial >= asymptote {
 						let diff = initial.saturating_sub(asymptote);
