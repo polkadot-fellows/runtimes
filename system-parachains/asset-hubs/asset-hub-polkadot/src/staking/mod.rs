@@ -301,13 +301,13 @@ pub mod temp_curve {
 
 	/// The step type for the stepped curve.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub enum Step<Y> {
+	pub enum Step {
 		/// Move towards a desired value by a percentage of the remaining difference at each step.
 		///
 		/// Step size will be (target_total - current_value) * pct.
 		RemainingPct {
 			/// The asymptote the curve will move towards.
-			target: Y,
+			target: FixedU128,
 			/// The percentage closer to the `target` at each step.
 			pct: Perbill,
 		},
@@ -318,23 +318,23 @@ pub mod temp_curve {
 	/// Steps every `period` from the `initial_value` as defined by `step`.
 	/// First step from `initial_value` takes place at `start` + `period`.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub struct SteppedCurve<X, Y> {
+	pub struct SteppedCurve {
 		/// The starting point for the curve.
-		pub start: X,
+		pub start: FixedU128,
 		/// The initial value of the curve at the `start` point.
-		pub initial_value: Y,
+		pub initial_value: FixedU128,
 		/// The change to apply at the end of each `period`.
-		pub step: Step<Y>,
+		pub step: Step,
 		/// The duration of each step.
-		pub period: X,
+		pub period: FixedU128,
 	}
 
-	impl SteppedCurve<FixedU128, FixedU128> {
+	impl SteppedCurve {
 		/// Creates a new `SteppedCurve`.
 		pub fn new(
 			start: FixedU128,
 			initial_value: FixedU128,
-			step: Step<FixedU128>,
+			step: Step,
 			period: FixedU128,
 		) -> Self {
 			Self { start, initial_value, step, period }
