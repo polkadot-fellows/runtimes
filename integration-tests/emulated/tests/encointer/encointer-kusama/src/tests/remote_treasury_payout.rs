@@ -242,7 +242,6 @@ fn remote_treasury_native_payout_works() {
 	});
 }
 
-
 fn assert_asset_hub_kusama_tokens_received(who: AccountId) {
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;

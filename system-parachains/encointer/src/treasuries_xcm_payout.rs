@@ -21,7 +21,7 @@ use alloc::vec;
 use core::marker::PhantomData;
 use frame_support::traits::{tokens::PaymentStatus, Get};
 use sp_runtime::traits::TryConvert;
-use xcm::{latest::Error, opaque::lts::Weight, prelude::*};
+use xcm::{latest::Error, prelude::*};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
