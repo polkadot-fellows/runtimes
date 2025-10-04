@@ -347,6 +347,6 @@ mod tests {
 	#[test]
 	fn years_constant_does_not_round() {
 		// Years should be 60 * 60 * 24 * 365.25 / 6 = 5259600
-		assert!(YEARS == 5259600)
+		assert_eq!(YEARS, 5259600);
 	}
 }
