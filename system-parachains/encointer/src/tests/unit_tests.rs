@@ -117,11 +117,6 @@ fn transfer_over_xcm_works() {
 			WithdrawAsset(fee_asset.clone().into()),
 			PayFees { asset: fee_asset },
 			SetAppendix(Xcm(vec![
-				ReportError(QueryResponseInfo {
-					destination: (Parent, Parachain(42)).into(),
-					query_id: 1,
-					max_weight: Weight::zero(),
-				}),
 				RefundSurplus,
 				DepositAsset {
 					assets: AssetFilter::Wild(WildAsset::All),
