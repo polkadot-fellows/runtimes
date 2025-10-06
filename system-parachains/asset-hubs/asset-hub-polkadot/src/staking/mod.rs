@@ -99,10 +99,9 @@ pub struct RebagIffMigrationDone;
 impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 	fn get() -> u32 {
 		if cfg!(feature = "runtime-benchmarks") ||
-			matches!(
-				pallet_ah_migrator::AhMigrationStage::<Runtime>::get(),
-				pallet_ah_migrator::MigrationStage::MigrationDone
-			) {
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
+				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
+		{
 			5
 		} else {
 			0
@@ -460,7 +459,7 @@ impl InitiateStakingAsync {
 impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	fn on_runtime_upgrade() -> Weight {
 		if !Self::needs_init() {
-			return <Runtime as frame_system::Config>::DbWeight::get().writes(1)
+			return <Runtime as frame_system::Config>::DbWeight::get().writes(1);
 		}
 		use pallet_election_provider_multi_block::verifier::Verifier;
 		// set parity staking miner as the invulnerable submitter in `multi-block`.

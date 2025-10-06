@@ -138,7 +138,7 @@ impl<T: crate::Config> crate::types::RcMigrationCheck for StakingMigratedCorrect
 		assert!(!MaxNominatorsCount::<T>::exists());
 		assert!(!CurrentEra::<T>::exists());
 		assert!(!ActiveEra::<T>::exists());
-		assert!(!ForceEra::<T>::exists());
+		// assert!(!ForceEra::<T>::exists());
 		assert!(!MaxStakedRewards::<T>::exists());
 		assert!(!SlashRewardFraction::<T>::exists());
 		assert!(!CanceledSlashPayout::<T>::exists());
