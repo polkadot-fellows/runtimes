@@ -35,7 +35,7 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::{kusama::locations::AssetHubLocation, TREASURY_PALLET_ID};
+use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -43,19 +43,20 @@ use xcm_builder::{
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
-	NonFungibleAdapter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	LocationAsSuperuser, NonFungibleAdapter, ParentIsPreset, RelayChainAsNative,
+	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
-pub use system_parachains_constants::kusama::locations::GovernanceLocation;
+pub use system_parachains_constants::kusama::locations::{
+	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
+};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
-	pub const KsmRelayLocation: Location = Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
@@ -64,7 +65,7 @@ parameter_types! {
 		PalletInstance(<Broker as PalletInfoAccess>::index() as u8).into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub const FellowshipLocation: Location = Location::parent();
+	pub FellowshipLocation: Location = RelayChainLocation::get();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
@@ -90,7 +91,7 @@ pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<KsmRelayLocation>,
+	IsConcrete<RelayChainLocation>,
 	// Do a simple punn to convert an `AccountId32` `Location` into a native chain
 	// `AccountId`:
 	LocationToAccountId,
@@ -132,9 +133,9 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	// Native converter for sibling Parachains; will convert to a `SiblingPara` origin when
 	// recognized.
 	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, RuntimeOrigin>,
-	// Superuser converter for the Relay-chain (Parent) location. This will allow it to issue a
-	// transaction from the Root origin.
-	ParentAsSuperuser<RuntimeOrigin>,
+	// AssetHub or Relay can execute as root (based on: https://github.com/polkadot-fellows/runtimes/issues/651).
+	// This will allow them to issue a transaction from the Root origin.
+	LocationAsSuperuser<(Equals<RelayChainLocation>, Equals<AssetHubLocation>), RuntimeOrigin>,
 	// Native signed account converter; this just converts an `AccountId32` origin into a normal
 	// `RuntimeOrigin::Signed` origin of the same 32-byte value.
 	SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
@@ -163,7 +164,12 @@ pub type Barrier = TrailingSetTopicAsId<
 					// allow it.
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent and its pluralities (i.e. governance bodies) get free execution.
-					AllowExplicitUnpaidExecutionFrom<ParentOrParentsPlurality>,
+					AllowExplicitUnpaidExecutionFrom<(
+						ParentOrParentsPlurality,
+						// For OpenGov on AH
+						Equals<AssetHubLocation>,
+						AssetHubPlurality,
+					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
@@ -216,7 +222,7 @@ impl xcm_executor::Config for XcmConfig {
 	// where allowed (e.g. with the Relay Chain).
 	type IsReserve = ();
 	/// Only allow teleportation of KSM.
-	type IsTeleporter = ConcreteAssetFromSystem<KsmRelayLocation>;
+	type IsTeleporter = ConcreteAssetFromSystem<RelayChainLocation>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -226,7 +232,7 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type Trader = UsingComponents<
 		WeightToFee,
-		KsmRelayLocation,
+		RelayChainLocation,
 		AccountId,
 		Balances,
 		ResolveTo<StakingPot, Balances>,

@@ -81,7 +81,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOfDiverse, FromContains,
+		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, FromContains,
 		InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
@@ -101,8 +101,8 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	GovernanceLocation, LocationToAccountId, SelfParaId, StakingPot, TreasurerBodyId,
-	XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, LocationToAccountId, RelayChainLocation, SelfParaId, StakingPot,
+	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -130,7 +130,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 1_007_001,
+	spec_version: 1_009_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -576,7 +576,10 @@ parameter_types! {
 /// We allow root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
@@ -724,7 +727,13 @@ impl pallet_asset_rate::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type CreateOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
-		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
+		EitherOfDiverse<
+			EitherOf<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
+			>,
+			Fellows,
+		>,
 	>;
 	type RemoveOrigin = Self::CreateOrigin;
 	type UpdateOrigin = Self::CreateOrigin;

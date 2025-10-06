@@ -38,8 +38,8 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
-		Everything, InstanceFilter, TransformOrigin,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf,
+		EitherOfDiverse, Everything, InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -78,8 +78,8 @@ use xcm::{
 	VersionedXcm,
 };
 use xcm_config::{
-	FellowshipLocation, GovernanceLocation, PriceForSiblingParachainDelivery, StakingPot,
-	XcmConfig, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, FellowshipLocation, PriceForSiblingParachainDelivery, RelayChainLocation,
+	StakingPot, XcmConfig, XcmOriginToTransactDispatchOrigin,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -163,7 +163,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("people-polkadot"),
 	impl_name: Cow::Borrowed("people-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_007_001,
+	spec_version: 1_009_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -403,7 +403,10 @@ parameter_types! {
 /// We allow Root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
