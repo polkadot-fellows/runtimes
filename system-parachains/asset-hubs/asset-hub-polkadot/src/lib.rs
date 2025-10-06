@@ -1341,6 +1341,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type TreasuryPaymaster = treasury::TreasuryPaymaster;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
+	type StakingPotAccount = xcm_config::StakingPot;
 	type RcProxyType = ah_migration::RcProxyType;
 	type RcToProxyType = ah_migration::RcToProxyType;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;

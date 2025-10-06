@@ -323,8 +323,10 @@ pub mod tests {
 			for (who, summary) in account_summaries {
 				// Checking account balance migration is tested separately.
 				// Treasury may be modified during migration.
+				// StakingPot (CollatorSelection) account may also be modified during migration.
 				if who == T::CheckingAccount::get() ||
-					who == pallet_treasury::Pallet::<T>::account_id()
+					who == pallet_treasury::Pallet::<T>::account_id() ||
+					who == T::StakingPotAccount::get()
 				{
 					continue;
 				}
@@ -381,7 +383,8 @@ pub mod tests {
 				// AH existential deposit.
 				assert!(
 					rc_migrated_balance.saturating_sub(ah_migrated_balance) < ah_ed,
-					"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
+					"Total balance mismatch for account {:?} between RC pre-migration and AH
+				 post-migration",
 					who.to_ss58check()
 				);
 
@@ -391,7 +394,7 @@ pub mod tests {
 				// AH after migration is less than the migrated reserved balance from RC.
 				assert!(
 					ah_reserved_post.saturating_sub(ah_reserved_before) <= summary.migrated_reserved,
-					"Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC", 
+					"Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC",
 					who.to_ss58check()
 				);
 
