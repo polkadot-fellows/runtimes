@@ -2015,8 +2015,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type KusamaConfig = Runtime;
 	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = System;
-	type MultisigMembers = MultisigMembers;
-	type MultisigThreshold = ConstU32<3>;
+	type MultisigMembers = ();
+	type MultisigThreshold = ConstU32<{ u32::MAX }>;
 }
 
 construct_runtime! {
