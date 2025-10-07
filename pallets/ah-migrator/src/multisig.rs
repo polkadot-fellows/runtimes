@@ -92,6 +92,11 @@ impl<T: Config> Pallet<T> {
 					"Failed to unreserve deposit for multisig {}",
 					translated_creator.to_ss58check(),
 				);
+				log::error!(
+					target: LOG_TARGET,
+					"Failed to unreserve deposit for multisig {}",
+					translated_creator.to_ss58check(),
+				);
 			}
 
 			return Err(Error::<T>::FailedToUnreserveDeposit);
