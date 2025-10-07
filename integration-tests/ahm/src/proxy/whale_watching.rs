@@ -40,7 +40,7 @@ const WHALES: &[(AccountId32, usize)] = &[
 #[cfg(feature = "kusama-ahm")]
 const WHALES: &[(AccountId32, usize)] = &[
 	(AccountId32::new(hex!("b07540f07739fd2e72661b5e6a3ad6e1349c175b90f7f03501dda388f150cbb4")), 6),
-	(AccountId32::new(hex!("224b4123952e63a0ef3ecb41a4d283d0df1b36d7024eb19072a217f89572b089")), 4),
+	(AccountId32::new(hex!("224b4123952e63a0ef3ecb41a4d283d0df1b36d7024eb19072a217f89572b089")), 5),
 	(AccountId32::new(hex!("5280a6d07acb3d96e732c49f1b2aa75cbfcfdbcd5f7530ad9a026ddeff3e0bbe")), 2),
 ];
 
