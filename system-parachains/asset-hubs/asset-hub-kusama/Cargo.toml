@@ -338,6 +338,7 @@ std = [
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
 	"pallet-nomination-pools-benchmarking?/std",
+	"pallet-nomination-pools-runtime-api/std",
 	"pallet-nomination-pools/std",
 	"pallet-parameters/std",
 	"pallet-preimage/std",
@@ -352,6 +353,7 @@ std = [
 	"pallet-society/std",
 	"pallet-staking-async-rc-client/std",
 	"pallet-staking-async/std",
+	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
@@ -397,8 +399,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-nomination-pools-runtime-api/std",
-	"pallet-staking-runtime-api/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
