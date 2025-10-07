@@ -73,7 +73,9 @@ pallet-staking-async-rc-client = { workspace = true }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-runtime-api = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
+pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
@@ -395,6 +397,8 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-nomination-pools-runtime-api/std",
+	"pallet-staking-runtime-api/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
