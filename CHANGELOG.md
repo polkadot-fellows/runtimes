@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Kusama Asset Hub: Nomination Pools and Staking Runtime APIs ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+
 ### Fixed
 
 - [AHM] Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
