@@ -541,7 +541,7 @@ mod tests {
 								offender: <AccountId>::from([i as u8; 32]),
 								reporters: vec![<AccountId>::from([1u8; 32])],
 								slash_fraction: Perbill::from_percent(10),
-							}
+							},
 						)
 					})
 					.collect();
