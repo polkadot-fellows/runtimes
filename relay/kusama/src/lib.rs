@@ -72,6 +72,8 @@ pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDeposit
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
+use pallet_staking_async_ah_client as ah_client;
+use pallet_staking_async_rc_client as rc_client;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
@@ -140,8 +142,6 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
-use pallet_staking_async_rc_client as rc_client;
-use pallet_staking_async_ah_client as ah_client;
 
 /// Constant values used within the runtime.
 use kusama_runtime_constants::{
@@ -1814,9 +1814,7 @@ enum RcClientCalls<AccountId> {
 }
 
 pub struct SessionReportToXcm;
-impl Convert<rc_client::SessionReport<AccountId>, Xcm<()>>
-	for SessionReportToXcm
-{
+impl Convert<rc_client::SessionReport<AccountId>, Xcm<()>> for SessionReportToXcm {
 	fn convert(a: rc_client::SessionReport<AccountId>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -1835,9 +1833,7 @@ impl Convert<rc_client::SessionReport<AccountId>, Xcm<()>>
 }
 
 pub struct QueuedOffenceToXcm;
-impl Convert<Vec<ah_client::QueuedOffenceOf<Runtime>>, Xcm<()>>
-	for QueuedOffenceToXcm
-{
+impl Convert<Vec<ah_client::QueuedOffenceOf<Runtime>>, Xcm<()>> for QueuedOffenceToXcm {
 	fn convert(offences: Vec<ah_client::QueuedOffenceOf<Runtime>>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {

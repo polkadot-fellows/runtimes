@@ -381,9 +381,7 @@ pub enum AhClientCalls {
 }
 
 pub struct ValidatorSetToXcm;
-impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>>
-	for ValidatorSetToXcm
-{
+impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>> for ValidatorSetToXcm {
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {
