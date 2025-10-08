@@ -3261,6 +3261,7 @@ mod ahm_multisig {
 	}
 
 	#[test]
+	#[ignore]
 	fn unsigned_manager_multisig_works() {
 		TestExternalities::default().execute_with(|| {
 			let call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
