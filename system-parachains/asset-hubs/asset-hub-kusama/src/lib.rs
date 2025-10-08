@@ -2585,7 +2585,7 @@ pallet_revive::impl_runtime_apis_plus_revive!(
 		}
 	}
 
-		impl pallet_nomination_pools_runtime_api::NominationPoolsApi<
+	impl pallet_nomination_pools_runtime_api::NominationPoolsApi<
 		Block,
 		AccountId,
 		Balance,
