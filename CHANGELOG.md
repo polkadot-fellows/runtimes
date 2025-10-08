@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added 
 
-- Polkadot Asset Hub: add missing staking Runtime APIs and re-enable vested transfers ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/949))
+- Polkadot Asset Hub: add missing staking Runtime APIs ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/949))
 
 ### Fixed
 
