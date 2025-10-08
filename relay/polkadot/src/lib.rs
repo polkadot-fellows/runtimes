@@ -3515,6 +3515,9 @@ mod remote_tests {
 
 	#[tokio::test]
 	async fn next_inflation() {
+		if var("REMOTE_TESTS").is_err() {
+			return;
+		}
 		use hex_literal::hex;
 		sp_tracing::try_init_simple();
 		let transport: Transport =
