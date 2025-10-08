@@ -124,7 +124,7 @@ use frame_support::{
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
 		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
-		PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
+		PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -230,16 +230,9 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-pub struct VestedTransferCalls;
-impl Contains<RuntimeCall> for VestedTransferCalls {
-	fn contains(call: &RuntimeCall) -> bool {
-		matches!(call, RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. }))
-	}
-}
-
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = TheseExcept<AhMigrator, VestedTransferCalls>;
+	type BaseCallFilter = AhMigrator;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
