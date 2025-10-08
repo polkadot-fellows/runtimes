@@ -362,6 +362,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
+	type MaxValidatorSetRetries = ConstU32<64>;
 }
 
 #[derive(Encode, Decode)]
@@ -380,7 +381,7 @@ pub enum AhClientCalls {
 }
 
 pub struct ValidatorSetToXcm;
-impl sp_runtime::traits::Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>>
+impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>>
 	for ValidatorSetToXcm
 {
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
@@ -408,13 +409,13 @@ pub struct StakingXcmToRelayChain;
 
 impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 	type AccountId = AccountId;
-	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) {
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send`
-		let message = ValidatorSetToXcm::convert(report);
-		let dest = RelayLocation::get();
-		let _ = crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {err:?}");
-		});
+	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			RelayLocation,
+			rc_client::ValidatorSetReport<Self::AccountId>,
+			ValidatorSetToXcm,
+		>::send(report)
 	}
 }
 
