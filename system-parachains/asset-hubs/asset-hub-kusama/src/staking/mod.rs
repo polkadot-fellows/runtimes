@@ -606,20 +606,20 @@ mod tests {
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
-				// up to a 1/3 of the validators are reported in a single batch of offences
-				let hefty_offences = (0..333)
+				// MaxOffenceBatchSize in RC is 32;
+				let hefty_offences = (0..32)
 					.map(|i| {
-						rc_client::Offence {
-							offender: <AccountId>::from([i as u8; 32]), /* overflows, but
-							                                             * whatever,
-							                                             * don't matter */
-							reporters: vec![<AccountId>::from([1u8; 32])],
-							slash_fraction: Perbill::from_percent(10),
-						}
+						(
+							42,
+							rc_client::Offence {
+								offender: <AccountId>::from([i as u8; 32]),
+								reporters: vec![<AccountId>::from([1u8; 32])],
+								slash_fraction: Perbill::from_percent(10),
+							}
+						)
 					})
 					.collect();
-				let di = rc_client::Call::<Runtime>::relay_new_offence {
-					slash_session: 42,
+				let di = rc_client::Call::<Runtime>::relay_new_offence_paged {
 					offences: hefty_offences,
 				}
 				.get_dispatch_info();
