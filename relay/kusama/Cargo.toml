@@ -122,6 +122,7 @@ remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
 ss58-registry = { workspace = true }
+hex = { workspace = true, default-features = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
@@ -145,6 +146,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime/std",
+	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-asset-rate/std",

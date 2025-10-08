@@ -34,11 +34,14 @@ impl RcMigrationCheck for SanityChecks {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let stage = pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get();
-		// rust tests trigger pre-checks when pending(0), while the ZB snapshots are from when the
-		// migration is still pending. Both okay.
+		// rust tests trigger pre-checks when pending(0), while the ZB snapshots are taken at
+		// AccountsMigrationInit stage. Both okay.
 		assert!(
 			stage == pallet_rc_migrator::MigrationStage::Pending ||
-				stage == pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 },
+				stage == pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 } ||
+				stage == pallet_rc_migrator::MigrationStage::AccountsMigrationInit,
+			"Expected Pending, Scheduled, or AccountsMigrationInit, but found: {:?}",
+			stage
 		);
 	}
 
@@ -55,16 +58,23 @@ impl AhMigrationCheck for SanityChecks {
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		assert_eq!(
-			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get(),
-			pallet_ah_migrator::MigrationStage::Pending
+		let stage = pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get();
+		assert!(
+			stage == pallet_ah_migrator::MigrationStage::Pending ||
+				stage == pallet_ah_migrator::MigrationStage::DataMigrationOngoing,
+			"Expected Pending or DataMigrationOngoing, but found: {:?}",
+			stage
 		);
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let stage = pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get();
+		// Post-migration snapshots should capture AH when migration is actually complete
 		assert_eq!(
-			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get(),
-			pallet_ah_migrator::MigrationStage::MigrationDone
+			stage,
+			pallet_ah_migrator::MigrationStage::MigrationDone,
+			"Expected MigrationDone, but found: {:?}",
+			stage
 		);
 	}
 }
@@ -74,7 +84,7 @@ pub fn assert_root_hash(chain: &str, want_hex: &str) {
 	let got = hex::encode(sp_io::storage::root(sp_runtime::StateVersion::V1));
 	println!("{chain} root hash: {got:?}");
 	if got == want_hex {
-		return
+		return;
 	}
 
 	panic!("The root hash of {chain} is not as expected. Please adjust the root hash in integration-tests/ahm/src/checks.rs\nExpected: {want_hex}\nGot:      {got}");
