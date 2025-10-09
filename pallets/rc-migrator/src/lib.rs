@@ -380,9 +380,6 @@ pub enum MigrationStage<
 
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
-		///
-		/// After the cool-off period ends, the Relay Chain will signal migration end to the Asset
-		/// Hub and finish the migration.
 		end_at: BlockNumber,
 	},
 	SignalMigrationFinish,
@@ -2324,34 +2321,19 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::StakingMigrationDone => {
-					let now = frame_system::Pallet::<T>::block_number();
-					let end_at = if let Some(end_at) = CoolOffPeriod::<T>::get() {
-						end_at.evaluate(now)
-					} else {
-						now
-					};
-					Self::transition(MigrationStage::CoolOff {
-						end_at,
-					});
-				},
-				MigrationStage::CoolOff { end_at } => {
-					let now = frame_system::Pallet::<T>::block_number();
-					if now >= end_at {
-						Self::transition(MigrationStage::SignalMigrationFinish);
-					}
+					Self::transition(MigrationStage::SignalMigrationFinish);
 				},
 				MigrationStage::SignalMigrationFinish => {
 					weight_counter.consume(
-						// 1 read and 1 write for `staking::on_migration_end`;
 						// 1 read and 1 write for `RcMigratedBalance` storage item;
-						// plus one xcm send;
-						T::DbWeight::get().reads_writes(1, 2)
+						// one xcm send;
+						// 1 read `CoolOffPeriod` storage item;
+						T::DbWeight::get().reads_writes(2, 1)
 							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
 					);
 
-					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
-
 					// Send finish message to AH.
+
 					let data = if RcMigratedBalance::<T>::exists() {
 						let tracker = RcMigratedBalance::<T>::take();
 						RcMigratedBalanceArchive::<T>::put(&tracker);
@@ -2365,15 +2347,37 @@ pub mod pallet {
 					} else {
 						None
 					};
-					let call = types::AhMigratorCall::<T>::FinishMigration { data };
+
+					let cool_off_end_at = if let Some(end_at) = CoolOffPeriod::<T>::get() {
+						end_at.evaluate(frame_system::Pallet::<T>::block_number())
+					} else {
+						frame_system::Pallet::<T>::block_number()
+					};
+
+					let call = types::AhMigratorCall::<T>::FinishMigration { data, cool_off_end_at };
 					if let Err(err) = Self::send_xcm(call) {
 						defensive!("Failed to send FinishMigration message to AH, \
 								retry with the next block: {:?}", err);
 					}
 
-					Self::transition(MigrationStage::MigrationDone);
+					// Transition to cool-off period.
+					Self::transition(MigrationStage::CoolOff {
+						end_at: cool_off_end_at,
+					});
 				},
-				MigrationStage::MigrationDone => (),
+				MigrationStage::CoolOff { end_at } => {
+					let now = frame_system::Pallet::<T>::block_number();
+					if now >= end_at {
+						Self::transition(MigrationStage::MigrationDone);
+					}
+				},
+				MigrationStage::MigrationDone => {
+					weight_counter.consume(
+						// 1 read and 1 write for `staking::on_migration_end`;
+						T::DbWeight::get().reads_writes(1, 1)
+					);
+					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
+				},
 			};
 
 			weight_counter.consumed()
