@@ -40,9 +40,9 @@ pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
+pallet-ranked-collective = { workspace = true }
 pallet-utility = { workspace = true }
 pallet-referenda = { workspace = true }
-pallet-ranked-collective = { workspace = true }
 pallet-core-fellowship = { workspace = true }
 pallet-salary = { workspace = true }
 sp-api = { workspace = true }
