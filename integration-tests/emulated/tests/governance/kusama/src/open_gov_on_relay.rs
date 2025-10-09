@@ -27,13 +27,9 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	type KusamaRuntimeCall = <Kusama as Chain>::RuntimeCall;
 	type KusamaRuntimeOrigin = <Kusama as Chain>::RuntimeOrigin;
 
+	// upgrade the relaychain
 	let authorize_upgrade =
-		KusamaRuntimeCall::Utility(pallet_utility::Call::<KusamaRuntime>::force_batch {
-			calls: vec![
-				// upgrade the relaychain
-				KusamaRuntimeCall::System(frame_system::Call::authorize_upgrade { code_hash }),
-			],
-		});
+		KusamaRuntimeCall::System(frame_system::Call::authorize_upgrade { code_hash });
 
 	// bad origin
 	let invalid_origin: KusamaRuntimeOrigin = Origin::StakingAdmin.into();
