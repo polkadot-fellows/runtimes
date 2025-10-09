@@ -138,7 +138,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		MessageQueue(..) => (ON, ON), // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (ON, ON), // For reporting equivocation proofs; security relevant
-		RcMigrator(..) => (ON, ON), // Required for the migration, only permissioned calls
+		RcMigrator(..) => (ON, OFF), // Permissioned calls during the migration and not needed after
 
 		// Kusama specific calls
 		Society(..) => (OFF, OFF),  // migrating pallet
