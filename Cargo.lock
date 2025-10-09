@@ -3855,7 +3855,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -4503,9 +4503,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-primitives"
-version = "20.5.0"
+version = "20.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5fd87346c56bb7b2034bbecae6a40e604f62b357aff07e482f343be1f11f37c"
+checksum = "fc7e044392be671ef64d5f0924bf07b37b33876bf098599a104887910b6f82ec"
 dependencies = [
  "bs58",
  "crc",
@@ -9222,9 +9222,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-democracy"
-version = "20.6.0"
+version = "20.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d9dc656fbebbf9f59591642d6f23470d8a912882bcaefc7582659e936aade68"
+checksum = "3253d5e8d9b37348e13e415528cb7588f0623909bda30fe5816e4c07db78f9e3"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -9311,9 +9311,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-treasuries"
-version = "20.7.0"
+version = "20.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "884fc4e531d51ffc69c20d1a0d8695fd28497080df2d6be4d839cdf2c70e7d1d"
+checksum = "4c7744026a0e76fb82e9c766fd8aa055a01235b45a61e73d248d5e01d0c56d39"
 dependencies = [
  "approx",
  "encointer-primitives",

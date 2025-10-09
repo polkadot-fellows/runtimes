@@ -317,7 +317,7 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 >;
 
 impl cumulus_pallet_weight_reclaim::Config for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
 parameter_types! {
