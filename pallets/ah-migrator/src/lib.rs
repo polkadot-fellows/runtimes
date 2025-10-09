@@ -1149,6 +1149,7 @@ pub mod pallet {
 
 			match AhMigrationStage::<T>::get() {
 				MigrationStage::CoolOff { end_at } => {
+					// `TreasuryBlockNumberProvider` is the RC block number provider.
 					let rc_block = T::TreasuryBlockNumberProvider::current_block_number();
 					if rc_block >= end_at {
 						Self::transition(MigrationStage::MigrationDone);
