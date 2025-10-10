@@ -4,13 +4,21 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.9.2] 08.10.2025
+
+### Added
+
+- Kusama Asset Hub: add missing staking Runtime APIs and  re-enable vested transfers ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- Polkadot Asset Hub: add missing staking Runtime APIs ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/949))
 
 ### Fixed
 
 - [AHM] Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
 - [AHM] Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
 - [AHM] Fix crowdloan withdrawing and weight limit ([polkadot-fellows/runtimes/pull/943](https://github.com/polkadot-fellows/runtimes/pull/943))
+- [Encointer] Fix remote treasury payout on asset hub ([polkadot-fellows/runtimes/pull/944](https://github.com/polkadot-fellows/runtimes/pull/944))
+- [AHM] Post Kusama Migration cleanup ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- [AHM] Improve StakingAsync's VMP Messaging (https://github.com/polkadot-fellows/runtimes/pull/950)
 
 ## [1.9.1] 30.09.2025
 
