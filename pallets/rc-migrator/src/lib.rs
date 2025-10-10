@@ -1434,6 +1434,16 @@ pub mod pallet {
 			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
 		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber: Into<u32>
 	{
+		fn on_runtime_upgrade() -> Weight {
+			// We set the round to 100 if it does not exist to ensure that the Polkadot Multisigs
+			// do not overlap with the Kusama Multisigs.
+			if !ManagerMultisigRound::<T>::exists() {
+				ManagerMultisigRound::<T>::put(100);
+			}
+			
+			T::DbWeight::get().reads_writes(1, 1)
+		}
+
 		fn integrity_test() {
 			let (ah_ump_priority_blocks, _) = T::AhUmpQueuePriorityPattern::get();
 			assert!(!ah_ump_priority_blocks.is_zero(), "the `ah_ump_priority_blocks` should be non-zero");
