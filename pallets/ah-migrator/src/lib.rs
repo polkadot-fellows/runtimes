@@ -1147,15 +1147,12 @@ pub mod pallet {
 				weight = weight.saturating_add(T::AhWeightInfo::force_dmp_queue_priority());
 			}
 
-			match AhMigrationStage::<T>::get() {
-				MigrationStage::CoolOff { end_at } => {
-					// `TreasuryBlockNumberProvider` is the RC block number provider.
-					let rc_block = T::TreasuryBlockNumberProvider::current_block_number();
-					if rc_block >= end_at {
-						Self::transition(MigrationStage::MigrationDone);
-					}
-				},
-				_ => {},
+			if let MigrationStage::CoolOff { end_at } = AhMigrationStage::<T>::get() {
+				// `TreasuryBlockNumberProvider` is the RC block number provider.
+				let rc_block = T::TreasuryBlockNumberProvider::current_block_number();
+				if rc_block >= end_at {
+					Self::transition(MigrationStage::MigrationDone);
+				}
 			}
 
 			weight
