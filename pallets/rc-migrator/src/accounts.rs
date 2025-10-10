@@ -410,6 +410,26 @@ impl<T: Config> AccountsMigrator<T> {
 			return Ok(None);
 		}
 
+		let rc_ed = <T as Config>::Currency::minimum_balance();
+		let ah_ed = T::AhExistentialDeposit::get();
+
+		// if the free balance is below the ED, we mint the ED so that all holds and freezes can be
+		// removed without failing. after this, we burn the same amount to restore the correct total
+		// balance.
+		let imbalance = if account_info.data.free < rc_ed {
+			<T as Config>::Currency::mint_into(&who, rc_ed).unwrap_or_else(|e| {
+				log::error!(
+					target: LOG_TARGET,
+					"Failed to mint ED into account {}: {:?}",
+					who.to_ss58check(),
+					e
+				);
+				0
+			})
+		} else {
+			0
+		};
+
 		let freezes: Vec<IdAmount<<T as pallet::Config>::RuntimeFreezeReason, T::Balance>> =
 			pallet_balances::Freezes::<T>::get(&who).into_inner();
 
@@ -427,8 +447,6 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 		}
 
-		let rc_ed = <T as Config>::Currency::minimum_balance();
-		let ah_ed = T::AhExistentialDeposit::get();
 		let holds: Vec<IdAmount<<T as pallet_balances::Config>::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
@@ -494,6 +512,27 @@ impl<T: Config> AccountsMigrator<T> {
 			.checked_sub(account_state.get_rc_reserved())
 			.defensive_unwrap_or_default();
 		let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
+
+		// burn previously minted ED to align the total balance.
+		if imbalance > 0 {
+			let burned = <T as Config>::Currency::burn_from(
+				&who,
+				imbalance,
+				Preservation::Preserve,
+				Precision::Exact,
+				Fortitude::Polite,
+			)
+			.unwrap_or_else(|e| {
+				log::error!(
+					target: LOG_TARGET,
+					"Failed to burn imbalance from account: {}, error: {:?}",
+					who.to_ss58check(),
+					e
+				);
+				0
+			});
+			defensive_assert!(imbalance == burned, "imbalance == burned");
+		}
 
 		// ensuring the account can be fully withdrawn from RC to AH requires force-updating
 		// the references here. Instead, for accounts meant to be fully migrated to the AH, we will

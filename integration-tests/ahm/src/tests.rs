@@ -962,7 +962,17 @@ async fn some_account_migration_works() {
 		// 04.07.2025 - account with free balance below ED, a delegated-staking hold to migrate to
 		// AH. When migrating the hold on AH, the free balance is dusted.
 		"5HBpFvUckfYEevbMnGXgGidcCRBygFww1FyksaJXYxjagPCK".parse().unwrap(),
+		// 09.10.2025 - account with free balance below ED, and two holds, where first hold
+		// { hold_amount + free < ED } and second hold { hold_amount >= ED }
+		"16M9nru37CFpUEsqEU7Q5W11Ye28rg9CcAtGqdYmnqhcoTU5".parse().unwrap(),
 	];
+
+	rc.execute_with(|| {
+		pallet_rc_migrator::RcMigratedBalance::<Polkadot>::mutate(|tracker| {
+			tracker.kept = pallet_balances::Pallet::<Polkadot>::total_issuance();
+			tracker.migrated = 0;
+		});
+	});
 
 	for account_id in accounts {
 		let maybe_withdrawn_account = rc.execute_with(|| {
@@ -987,7 +997,7 @@ async fn some_account_migration_works() {
 		let withdrawn_account = match maybe_withdrawn_account {
 			Some(withdrawn_account) => withdrawn_account,
 			None => {
-				log::warn!("Account is not withdrawable");
+				log::error!("Account is not withdrawable");
 				continue;
 			},
 		};
@@ -1001,6 +1011,7 @@ async fn some_account_migration_works() {
 			let account = Decode::decode(&mut &encoded_account[..]).unwrap();
 			let res = AhMigrator::do_receive_account(account);
 			log::info!("Account integration result: {res:?}");
+			assert!(res.is_ok());
 		});
 	}
 }
