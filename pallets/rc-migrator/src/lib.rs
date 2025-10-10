@@ -1440,7 +1440,7 @@ pub mod pallet {
 			if !ManagerMultisigRound::<T>::exists() {
 				ManagerMultisigRound::<T>::put(100);
 			}
-			
+
 			T::DbWeight::get().reads_writes(1, 1)
 		}
 
