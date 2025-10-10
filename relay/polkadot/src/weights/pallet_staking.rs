@@ -59,6 +59,7 @@ impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {
 	/// Storage: `Staking::Payee` (r:0 w:1)
 	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
 	fn bond() -> Weight {
+                // TODO: fresh
 		// Proof Size summary in bytes:
 		//  Measured:  `1002`
 		//  Estimated: `4556`
