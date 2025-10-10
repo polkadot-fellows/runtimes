@@ -22,11 +22,12 @@ use crate::{TransactionByteFee, CENTS};
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, ContainsPair,
+		Equals,	Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
+use hex_literal::hex;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::{
 	xcm_config::{
@@ -235,15 +236,31 @@ pub type TrustedAliasers = (
 	AuthorizedAliasers<Runtime>,
 );
 
+/// The parachain id of the Hydration DEX.
+pub const HYDRATION_PARA_ID: u32 = 2034;
+
+/// The address of the HOLLAR contract, which identifies it.
+pub const HOLLAR_CONTRACT_ADDRESS: [u8; 20] = hex!("531a654d1696ed52e7275a8cede955e82620f99a");
+
+/// A type that matches the pair `(Hollar, Hydration)`, used in `IsReserve`.
+pub struct HollarFromHydration;
+impl ContainsPair<Asset, Location> for HollarFromHydration {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let is_hydration = matches!(origin.unpack(), (1, [Parachain(HYDRATION_PARA_ID)]));
+		let is_hollar = matches!(asset.id.0.unpack(), (1, [Parachain(HYDRATION_PARA_ID), AccountKey20 { key: HOLLAR_CONTRACT_ADDRESS, network: None }]));
+
+		is_hydration && is_hollar
+	}
+}
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
 	type AssetTransactor = FungibleTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	// People chain does not recognize a reserve location for any asset. Users must teleport DOT
-	// where allowed (e.g. with the Relay Chain).
-	type IsReserve = ();
+	/// We only accept HOLLAR from Hydration.
+	type IsReserve = HollarFromHydration;
 	/// Only allow teleportation of DOT.
 	type IsTeleporter = ConcreteAssetFromSystem<RelayLocation>;
 	type UniversalLocation = UniversalLocation;
