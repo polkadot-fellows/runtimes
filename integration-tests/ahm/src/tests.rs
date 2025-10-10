@@ -964,6 +964,13 @@ async fn some_account_migration_works() {
 		"5HBpFvUckfYEevbMnGXgGidcCRBygFww1FyksaJXYxjagPCK".parse().unwrap(),
 	];
 
+	rc.execute_with(|| {
+		pallet_rc_migrator::RcMigratedBalance::<Polkadot>::mutate(|tracker| {
+			tracker.kept = pallet_balances::Pallet::<Polkadot>::total_issuance();
+			tracker.migrated = 0;
+		});
+	});
+
 	for account_id in accounts {
 		let maybe_withdrawn_account = rc.execute_with(|| {
 			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
