@@ -974,12 +974,12 @@ pub mod benchmarks {
 	fn finish_migration() {
 		AhMigrationStage::<T>::put(&MigrationStage::DataMigrationOngoing);
 		#[extrinsic_call]
-		_(RawOrigin::Root, Some(MigrationFinishedData { rc_balance_kept: 100 }));
+		_(RawOrigin::Root, Some(MigrationFinishedData { rc_balance_kept: 100 }), 100);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: MigrationStage::DataMigrationOngoing,
-				new: MigrationStage::MigrationDone,
+				new: MigrationStage::CoolOff { end_at: 100 },
 			}
 			.into(),
 		);

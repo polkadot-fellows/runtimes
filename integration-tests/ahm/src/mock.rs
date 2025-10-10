@@ -172,6 +172,21 @@ pub fn next_block_rc() {
 	);
 }
 
+pub fn next_block_ah_with_rc_block(rc_block: u32) {
+	cumulus_pallet_parachain_system::ValidationData::<AssetHub>::mutate(|maybe_data| {
+		if let Some(data) = maybe_data.as_mut() {
+			data.relay_parent_number = rc_block;
+		} else {
+			*maybe_data = Some(polkadot_primitives::PersistedValidationData {
+				relay_parent_number: rc_block,
+				..Default::default()
+			});
+		}
+	});
+
+	next_block_ah();
+}
+
 pub fn next_block_ah() {
 	let past = frame_system::Pallet::<AssetHub>::block_number();
 	let now = past + 1;
