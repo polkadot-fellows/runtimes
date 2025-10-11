@@ -207,6 +207,10 @@ parameter_types! {
 			version: hex!("05000000"),
 			epoch: 364032,
 		},
+		fulu: Fork {
+			version: hex!("06000000"),
+			epoch: 468_000, // Pending, not yet released! Fake arbitrary epoch defined
+		}
 	};
 }
 
@@ -236,7 +240,10 @@ parameter_types! {
 		electra: Fork {
 			version: hex!("05000000"),
 			epoch: 0,
-		}
+		},
+		fulu: Fork {
+			version: hex!("06000000"),
+			epoch: 0 }
 	};
 }
 
@@ -267,9 +274,10 @@ pub struct AllowFromEthereumFrontend;
 impl Contains<Location> for AllowFromEthereumFrontend {
 	fn contains(location: &Location) -> bool {
 		match location.unpack() {
-			(1, [Parachain(para_id), PalletInstance(index)]) =>
-				*para_id == polkadot_runtime_constants::system_parachain::ASSET_HUB_ID &&
-					*index == SystemFrontendPalletInstance::get(),
+			(1, [Parachain(para_id), PalletInstance(index)]) => {
+				*para_id == polkadot_runtime_constants::system_parachain::ASSET_HUB_ID
+					&& *index == SystemFrontendPalletInstance::get()
+			},
 			_ => false,
 		}
 	}

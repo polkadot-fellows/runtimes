@@ -175,37 +175,37 @@ pub fn call_allowed_before_migration(
 		Treasury(..) => OFF,
 		// Everything else is enabled before the migration.
 		// Exhaustive match in case a pallet is added:
-		AhMigrator(..) |
-		AhOps(..) |
-		AssetConversion(..) |
-		AssetRate(..) |
-		Assets(..) |
-		Balances(..) |
-		Claims(..) |
-		CollatorSelection(..) |
-		CumulusXcm(..) |
-		ForeignAssets(..) |
-		MessageQueue(..) |
-		Multisig(..) |
-		Nfts(..) |
-		ParachainInfo(..) |
-		ParachainSystem(..) |
-		PolkadotXcm(..) |
-		PoolAssets(..) |
-		Preimage(..) |
-		Proxy(..) |
-		Scheduler(..) |
-		Session(..) |
-		SnowbridgeSystemFrontend(..) |
-		StakingRcClient(..) |
-		StateTrieMigration(..) |
-		System(..) |
-		Timestamp(..) |
-		ToKusamaXcmRouter(..) |
-		Uniques(..) |
-		Utility(..) |
-		Whitelist(..) |
-		XcmpQueue(..) |
-		Parameters(..) => ON,
+		AhMigrator(..)
+		| AhOps(..)
+		| AssetConversion(..)
+		| AssetRate(..)
+		| Assets(..)
+		| Balances(..)
+		| Claims(..)
+		| CollatorSelection(..)
+		| CumulusXcm(..)
+		| ForeignAssets(..)
+		| MessageQueue(..)
+		| Multisig(..)
+		| Nfts(..)
+		| ParachainInfo(..)
+		| ParachainSystem(..)
+		| PolkadotXcm(..)
+		| PoolAssets(..)
+		| Preimage(..)
+		| Proxy(..)
+		| Scheduler(..)
+		| Session(..)
+		| SnowbridgeSystemFrontend(..)
+		| StakingRcClient(..)
+		| StateTrieMigration(..)
+		| System(..)
+		| Timestamp(..)
+		| ToKusamaXcmRouter(..)
+		| Uniques(..)
+		| Utility(..)
+		| Whitelist(..)
+		| XcmpQueue(..)
+		| Parameters(..) => ON,
 	}
 }

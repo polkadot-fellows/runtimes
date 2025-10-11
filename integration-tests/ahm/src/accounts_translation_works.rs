@@ -69,8 +69,9 @@ impl RcMigrationCheck for AccountTranslationWorks {
 			};
 
 			match entry {
-				AccountState::Migrate =>
-					panic!("RC acc did not properly migrate: {}", rc_acc.to_ss58check()),
+				AccountState::Migrate => {
+					panic!("RC acc did not properly migrate: {}", rc_acc.to_ss58check())
+				},
 				AccountState::Preserve | AccountState::Part { .. } => {
 					// This is fine
 				},

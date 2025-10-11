@@ -52,13 +52,14 @@ impl<T: Config> Pallet<T> {
 		use PortableChildBountiesMessage::*;
 
 		match message {
-			ChildBountyCount(count) =>
+			ChildBountyCount(count) => {
 				if pallet_child_bounties::ChildBountyCount::<T>::exists() {
 					// We try to not sent it twice, so this should not happen.
 					defensive!("ChildBountyCount already exists, skipping");
 				} else {
 					pallet_child_bounties::ChildBountyCount::<T>::set(count);
-				},
+				}
+			},
 			ParentChildBounties(parent_id, count) => {
 				pallet_child_bounties::ParentChildBounties::<T>::insert(parent_id, count);
 			},

@@ -249,7 +249,7 @@ pub fn enqueue_ump(msgs: (Vec<UpwardMessage>, BlockNumberFor<AssetHub>)) {
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	match xcm {
-		VersionedXcm::V3(inner) =>
+		VersionedXcm::V3(inner) => {
 			for instruction in inner.0 {
 				if let xcm::v3::Instruction::Transact { call, .. } = instruction {
 					// Interesting part here: ensure that the receiving runtime can decode the
@@ -257,8 +257,9 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 						.expect("Must decode DMP XCM call");
 				}
-			},
-		VersionedXcm::V4(inner) =>
+			}
+		},
+		VersionedXcm::V4(inner) => {
 			for instruction in inner.0 {
 				if let xcm::v4::Instruction::Transact { call, .. } = instruction {
 					// Interesting part here: ensure that the receiving runtime can decode the
@@ -266,8 +267,9 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 						.expect("Must decode DMP XCM call");
 				}
-			},
-		VersionedXcm::V5(inner) =>
+			}
+		},
+		VersionedXcm::V5(inner) => {
 			for instruction in inner.0 {
 				if let xcm::v5::Instruction::Transact { call, .. } = instruction {
 					// Interesting part here: ensure that the receiving runtime can decode the
@@ -275,7 +277,8 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 						.expect("Must decode DMP XCM call");
 				}
-			},
+			}
+		},
 	};
 }
 

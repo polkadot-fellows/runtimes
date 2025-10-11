@@ -62,7 +62,7 @@ where
 				Some(a) => a,
 				None => {
 					log::warn!("Failed to convert root origin into account id");
-					return
+					return;
 				},
 			};
 		let treasury_account: AccountIdOf<T> = TreasuryAccount::get();
@@ -146,7 +146,7 @@ pub struct EqualOrGreatestRootCmp;
 impl PrivilegeCmp<OriginCaller> for EqualOrGreatestRootCmp {
 	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
 		if left == right {
-			return Some(Ordering::Equal)
+			return Some(Ordering::Equal);
 		}
 		match (left, right) {
 			// Root is greater than anything.

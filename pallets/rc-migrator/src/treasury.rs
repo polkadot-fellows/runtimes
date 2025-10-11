@@ -75,8 +75,8 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
-				weight_counter.try_consume(messages.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
+				|| weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -274,8 +274,9 @@ impl IntoPortable for pallet_treasury::PaymentState<u64> {
 	fn into_portable(self) -> Self::Portable {
 		match self {
 			pallet_treasury::PaymentState::Pending => PortablePaymentState::Pending,
-			pallet_treasury::PaymentState::Attempted { id } =>
-				PortablePaymentState::Attempted { id },
+			pallet_treasury::PaymentState::Attempted { id } => {
+				PortablePaymentState::Attempted { id }
+			},
 			pallet_treasury::PaymentState::Failed => PortablePaymentState::Failed,
 		}
 	}
@@ -286,8 +287,9 @@ impl Into<pallet_treasury::PaymentState<u64>> for PortablePaymentState {
 	fn into(self) -> pallet_treasury::PaymentState<u64> {
 		match self {
 			PortablePaymentState::Pending => pallet_treasury::PaymentState::Pending,
-			PortablePaymentState::Attempted { id } =>
-				pallet_treasury::PaymentState::Attempted { id },
+			PortablePaymentState::Attempted { id } => {
+				pallet_treasury::PaymentState::Attempted { id }
+			},
 			PortablePaymentState::Failed => pallet_treasury::PaymentState::Failed,
 		}
 	}

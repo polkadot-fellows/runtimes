@@ -67,8 +67,8 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
-				weight_counter.try_consume(messages.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
+				|| weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -197,8 +197,8 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
-				weight_counter.try_consume(messages.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
+				|| weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
@@ -425,15 +425,17 @@ impl<T: Config> SchedulerMigrator<T> {
 					// Inline. Grab inlined call.
 					Bounded::Inline(bounded_call) => Some(bounded_call.into_inner()),
 					// Lookup. Fetch preimage and store.
-					Bounded::Lookup { hash, len } =>
+					Bounded::Lookup { hash, len } => {
 						<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len))
 							.ok()
-							.map(|preimage| preimage.into_owned()),
+							.map(|preimage| preimage.into_owned())
+					},
 					// Legacy. Fetch preimage and store.
-					Bounded::Legacy { hash, .. } =>
+					Bounded::Legacy { hash, .. } => {
 						<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None)
 							.ok()
-							.map(|preimage| preimage.into_owned()),
+							.map(|preimage| preimage.into_owned())
+					},
 				})
 			})
 			.collect::<Vec<_>>()

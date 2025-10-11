@@ -1301,8 +1301,9 @@ pub mod pallet {
 			let (dmp_priority_blocks, round_robin_blocks) = match DmpQueuePriorityConfig::<T>::get()
 			{
 				DmpQueuePriority::Config => T::DmpQueuePriorityPattern::get(),
-				DmpQueuePriority::OverrideConfig(dmp_priority_blocks, round_robin_blocks) =>
-					(dmp_priority_blocks, round_robin_blocks),
+				DmpQueuePriority::OverrideConfig(dmp_priority_blocks, round_robin_blocks) => {
+					(dmp_priority_blocks, round_robin_blocks)
+				},
 				DmpQueuePriority::Disabled => return,
 			};
 

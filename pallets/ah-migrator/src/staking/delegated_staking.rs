@@ -24,12 +24,13 @@ impl<T: Config> Pallet<T> {
 		message: PortableDelegatedStakingMessage,
 	) -> PortableDelegatedStakingMessage {
 		match message {
-			PortableDelegatedStakingMessage::Delegators { delegator, agent, amount } =>
+			PortableDelegatedStakingMessage::Delegators { delegator, agent, amount } => {
 				PortableDelegatedStakingMessage::Delegators {
 					delegator: Self::translate_account_rc_to_ah(delegator),
 					agent: Self::translate_account_rc_to_ah(agent),
 					amount,
-				},
+				}
+			},
 			PortableDelegatedStakingMessage::Agents {
 				agent,
 				payee,

@@ -63,8 +63,8 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err() ||
-				weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err()
+				|| weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
