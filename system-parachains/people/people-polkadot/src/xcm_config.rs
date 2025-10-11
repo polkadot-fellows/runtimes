@@ -22,8 +22,8 @@ use crate::{TransactionByteFee, CENTS};
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, ContainsPair,
-		Equals,	Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
+		ContainsPair, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -240,14 +240,17 @@ pub type TrustedAliasers = (
 pub const HYDRATION_PARA_ID: u32 = 2034;
 
 /// The address of the HOLLAR contract, which identifies it.
-pub const HOLLAR_CONTRACT_ADDRESS: [u8; 20] = hex!("531a654d1696ed52e7275a8cede955e82620f99a");
+pub const HOLLAR_ASSET_ID: u128 = 222;
 
 /// A type that matches the pair `(Hollar, Hydration)`, used in `IsReserve`.
 pub struct HollarFromHydration;
 impl ContainsPair<Asset, Location> for HollarFromHydration {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		let is_hydration = matches!(origin.unpack(), (1, [Parachain(HYDRATION_PARA_ID)]));
-		let is_hollar = matches!(asset.id.0.unpack(), (1, [Parachain(HYDRATION_PARA_ID), AccountKey20 { key: HOLLAR_CONTRACT_ADDRESS, network: None }]));
+		let is_hollar = matches!(
+			asset.id.0.unpack(),
+			(1, [Parachain(HYDRATION_PARA_ID), GeneralIndex(HYDRATION_ASSET_ID)])
+		);
 
 		is_hydration && is_hollar
 	}
