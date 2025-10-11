@@ -118,6 +118,7 @@ jobs:
           else
             cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
           fi
+          # TODO: fix for new struct and re-check `pallet_nomination_pools::apply_slash_fail` for kusama
           # run benchmarking
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""

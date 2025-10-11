@@ -150,7 +150,7 @@ if args.command == 'bench':
             excluded = excluded_extrinsics.get(pallet, [])
             excluded_string = ",".join(f"{pallet}::{e}" for e in excluded)
 
-            print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template}')
+            print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template} and excluded {excluded_string}')
 
             status = os.system(f"frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
