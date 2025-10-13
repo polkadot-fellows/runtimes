@@ -163,4 +163,47 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block_verifier::Wei
 			.saturating_add(T::DbWeight::get().reads(109))
 			.saturating_add(T::DbWeight::get().writes(101))
 	}
+	/// TODO: https://github.com/polkadot-fellows/runtimes/issues/963 (copied from Kusama)
+	/// Storage: `MultiBlockElection::CurrentPhase` (r:1 w:1)
+	/// Proof: `MultiBlockElection::CurrentPhase` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::StatusStorage` (r:1 w:1)
+	/// Proof: `MultiBlockElectionVerifier::StatusStorage` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `Measured`)
+	/// Storage: `MultiBlockElection::Round` (r:1 w:0)
+	/// Proof: `MultiBlockElection::Round` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
+	/// Storage: `MultiBlockElectionSigned::SortedScores` (r:1 w:1)
+	/// Proof: `MultiBlockElectionSigned::SortedScores` (`max_values`: None, `max_size`: Some(1293), added: 3768, mode: `Measured`)
+	/// Storage: `Parameters::Parameters` (r:3 w:0)
+	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(53), added: 2528, mode: `Measured`)
+	/// Storage: `MultiBlockElectionSigned::SubmissionStorage` (r:16 w:16)
+	/// Proof: `MultiBlockElectionSigned::SubmissionStorage` (`max_values`: None, `max_size`: Some(76724), added: 79199, mode: `Measured`)
+	/// Storage: `MultiBlockElection::PagedTargetSnapshot` (r:1 w:0)
+	/// Proof: `MultiBlockElection::PagedTargetSnapshot` (`max_values`: None, `max_size`: Some(80026), added: 82501, mode: `Measured`)
+	/// Storage: `MultiBlockElection::PagedVoterSnapshot` (r:1 w:0)
+	/// Proof: `MultiBlockElection::PagedVoterSnapshot` (`max_values`: None, `max_size`: Some(632664), added: 635139, mode: `Measured`)
+	/// Storage: `MultiBlockElection::DesiredTargets` (r:1 w:0)
+	/// Proof: `MultiBlockElection::DesiredTargets` (`max_values`: None, `max_size`: Some(16), added: 2491, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::QueuedValidVariant` (r:1 w:0)
+	/// Proof: `MultiBlockElectionVerifier::QueuedValidVariant` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::QueuedSolutionX` (r:15 w:15)
+	/// Proof: `MultiBlockElectionVerifier::QueuedSolutionX` (`max_values`: None, `max_size`: Some(37586026), added: 37588501, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::QueuedSolutionBackings` (r:15 w:15)
+	/// Proof: `MultiBlockElectionVerifier::QueuedSolutionBackings` (`max_values`: None, `max_size`: Some(52026), added: 54501, mode: `Measured`)
+	/// Storage: `MultiBlockElectionSigned::SubmissionMetadataStorage` (r:1 w:1)
+	/// Proof: `MultiBlockElectionSigned::SubmissionMetadataStorage` (`max_values`: None, `max_size`: Some(165), added: 2640, mode: `Measured`)
+	/// Storage: `Balances::Holds` (r:1 w:1)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(247), added: 2722, mode: `Measured`)
+	/// The range of component `v` is `[0, 15]`.
+	fn on_initialize_invalid_non_terminal(v: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `629577 + v * (53 ±0)`
+		//  Estimated: `640861 + v * (6479 ±1_339)`
+		// Minimum execution time: 1_068_649_000 picoseconds.
+		Weight::from_parts(1_324_371_758, 0)
+			.saturating_add(Weight::from_parts(0, 640861))
+			.saturating_add(T::DbWeight::get().reads(29))
+			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(v.into())))
+			.saturating_add(T::DbWeight::get().writes(21))
+			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(v.into())))
+			.saturating_add(Weight::from_parts(0, 6479).saturating_mul(v.into()))
+	}
 }
