@@ -153,10 +153,12 @@ impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
 
 		match self {
 			RuntimeHoldReason::Preimage(inner) => PortableHoldReason::Preimage(inner),
-			RuntimeHoldReason::StateTrieMigration(inner) =>
-				PortableHoldReason::StateTrieMigration(inner),
-			RuntimeHoldReason::DelegatedStaking(inner) =>
-				PortableHoldReason::DelegatedStaking(inner),
+			RuntimeHoldReason::StateTrieMigration(inner) => {
+				PortableHoldReason::StateTrieMigration(inner)
+			},
+			RuntimeHoldReason::DelegatedStaking(inner) => {
+				PortableHoldReason::DelegatedStaking(inner)
+			},
 			RuntimeHoldReason::Staking(inner) => PortableHoldReason::Staking(inner),
 			RuntimeHoldReason::Session(inner) => PortableHoldReason::Session(inner),
 			RuntimeHoldReason::XcmPallet(inner) => PortableHoldReason::XcmPallet(inner),
@@ -169,8 +171,9 @@ impl pallet_rc_migrator::types::IntoPortable for RuntimeFreezeReason {
 
 	fn into_portable(self) -> Self::Portable {
 		match self {
-			RuntimeFreezeReason::NominationPools(inner) =>
-				PortableFreezeReason::NominationPools(inner),
+			RuntimeFreezeReason::NominationPools(inner) => {
+				PortableFreezeReason::NominationPools(inner)
+			},
 		}
 	}
 }

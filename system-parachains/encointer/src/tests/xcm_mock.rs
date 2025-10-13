@@ -80,19 +80,19 @@ impl Dispatchable for TestCall {
 	fn dispatch(self, origin: Self::RuntimeOrigin) -> DispatchResultWithPostInfo {
 		let mut post_info = PostDispatchInfo::default();
 		let maybe_actual = match self {
-			TestCall::OnlyRoot(_, maybe_actual) |
-			TestCall::OnlySigned(_, maybe_actual, _) |
-			TestCall::OnlyParachain(_, maybe_actual, _) |
-			TestCall::Any(_, maybe_actual) => maybe_actual,
+			TestCall::OnlyRoot(_, maybe_actual)
+			| TestCall::OnlySigned(_, maybe_actual, _)
+			| TestCall::OnlyParachain(_, maybe_actual, _)
+			| TestCall::Any(_, maybe_actual) => maybe_actual,
 		};
 		post_info.actual_weight = maybe_actual;
 		if match (&origin, &self) {
 			(TestOrigin::Parachain(i), TestCall::OnlyParachain(_, _, Some(j))) => i == j,
 			(TestOrigin::Signed(i), TestCall::OnlySigned(_, _, Some(j))) => i == j,
-			(TestOrigin::Root, TestCall::OnlyRoot(..)) |
-			(TestOrigin::Parachain(_), TestCall::OnlyParachain(_, _, None)) |
-			(TestOrigin::Signed(_), TestCall::OnlySigned(_, _, None)) |
-			(_, TestCall::Any(..)) => true,
+			(TestOrigin::Root, TestCall::OnlyRoot(..))
+			| (TestOrigin::Parachain(_), TestCall::OnlyParachain(_, _, None))
+			| (TestOrigin::Signed(_), TestCall::OnlySigned(_, _, None))
+			| (_, TestCall::Any(..)) => true,
 			_ => false,
 		} {
 			Ok(post_info)
@@ -105,10 +105,10 @@ impl Dispatchable for TestCall {
 impl GetDispatchInfo for TestCall {
 	fn get_dispatch_info(&self) -> DispatchInfo {
 		let call_weight = *match self {
-			TestCall::OnlyRoot(estimate, ..) |
-			TestCall::OnlyParachain(estimate, ..) |
-			TestCall::OnlySigned(estimate, ..) |
-			TestCall::Any(estimate, ..) => estimate,
+			TestCall::OnlyRoot(estimate, ..)
+			| TestCall::OnlyParachain(estimate, ..)
+			| TestCall::OnlySigned(estimate, ..)
+			| TestCall::Any(estimate, ..) => estimate,
 		};
 		DispatchInfo { call_weight, ..Default::default() }
 	}
@@ -614,12 +614,15 @@ pub struct TestTicket(LockTraceItem);
 impl Enact for TestTicket {
 	fn enact(self) -> Result<(), LockError> {
 		match &self.0 {
-			LockTraceItem::Lock { unlocker, asset, owner } =>
-				allow_unlock(unlocker.clone(), asset.clone(), owner.clone()),
-			LockTraceItem::Unlock { unlocker, asset, owner } =>
-				disallow_unlock(unlocker.clone(), asset.clone(), owner.clone()),
-			LockTraceItem::Reduce { locker, asset, owner } =>
-				disallow_request_unlock(locker.clone(), asset.clone(), owner.clone()),
+			LockTraceItem::Lock { unlocker, asset, owner } => {
+				allow_unlock(unlocker.clone(), asset.clone(), owner.clone())
+			},
+			LockTraceItem::Unlock { unlocker, asset, owner } => {
+				disallow_unlock(unlocker.clone(), asset.clone(), owner.clone())
+			},
+			LockTraceItem::Reduce { locker, asset, owner } => {
+				disallow_request_unlock(locker.clone(), asset.clone(), owner.clone())
+			},
 			_ => {},
 		}
 		LOCK_TRACE.with(move |l| l.borrow_mut().push(self.0));

@@ -118,8 +118,9 @@ fn encointer_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
 		sp_genesis_builder::DEV_RUNTIME_PRESET => encointer_kusama_development_genesis(1001.into()),
-		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
-			encointer_kusama_local_testnet_genesis(1001.into()),
+		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => {
+			encointer_kusama_local_testnet_genesis(1001.into())
+		},
 		_ => return None,
 	};
 	Some(

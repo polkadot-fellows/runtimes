@@ -4,6 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.3] 13.10.2025
+
+### Changed
+
+- Upgrade to Polkadot-SDK `stable2509`
+- Updated all runtime dependencies to `stable2509`
+- Fixed configuration types affected by upstream changes
+- Applied code formatting updates across the codebase
+
+
 ## [1.9.2] 08.10.2025
 
 ### Added

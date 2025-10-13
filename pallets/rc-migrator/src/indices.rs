@@ -60,8 +60,8 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
-				weight_counter.try_consume(messages.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
+				|| weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,

@@ -35,13 +35,16 @@ impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
 		match reason {
 			PortableHoldReason::Preimage(preimage) => Preimage(preimage),
 			PortableHoldReason::Staking(staking) => match staking {
-				pallet_staking::HoldReason::Staking =>
-					Staking(pallet_staking_async::HoldReason::Staking),
+				pallet_staking::HoldReason::Staking => {
+					Staking(pallet_staking_async::HoldReason::Staking)
+				},
 			},
-			PortableHoldReason::StateTrieMigration(state_trie_migration) =>
-				StateTrieMigration(state_trie_migration),
-			PortableHoldReason::DelegatedStaking(delegated_staking) =>
-				DelegatedStaking(delegated_staking),
+			PortableHoldReason::StateTrieMigration(state_trie_migration) => {
+				StateTrieMigration(state_trie_migration)
+			},
+			PortableHoldReason::DelegatedStaking(delegated_staking) => {
+				DelegatedStaking(delegated_staking)
+			},
 			PortableHoldReason::Session(session) => Session(session),
 			PortableHoldReason::XcmPallet(xcm_pallet) => PolkadotXcm(xcm_pallet),
 		}
@@ -53,8 +56,9 @@ impl From<pallet_rc_migrator::types::PortableFreezeReason> for RuntimeFreezeReas
 		use pallet_rc_migrator::types::PortableFreezeReason;
 
 		match reason {
-			PortableFreezeReason::NominationPools(nomination_pools) =>
-				RuntimeFreezeReason::NominationPools(nomination_pools),
+			PortableFreezeReason::NominationPools(nomination_pools) => {
+				RuntimeFreezeReason::NominationPools(nomination_pools)
+			},
 		}
 	}
 }
@@ -232,18 +236,21 @@ impl RcToAhCall {
 					call: Box::new(Self::map(*call)?),
 				}))
 			},
-			RcRuntimeCall::Utility(RcUtilityCall::batch { calls }) =>
+			RcRuntimeCall::Utility(RcUtilityCall::batch { calls }) => {
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch {
 					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
-				})),
-			RcRuntimeCall::Utility(RcUtilityCall::batch_all { calls }) =>
+				}))
+			},
+			RcRuntimeCall::Utility(RcUtilityCall::batch_all { calls }) => {
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch_all {
 					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
-				})),
-			RcRuntimeCall::Utility(RcUtilityCall::force_batch { calls }) =>
+				}))
+			},
+			RcRuntimeCall::Utility(RcUtilityCall::force_batch { calls }) => {
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::force_batch {
 					calls: calls.into_iter().map(Self::map).collect::<Result<Vec<_>, _>>()?,
-				})),
+				}))
+			},
 			RcRuntimeCall::Treasury(RcTreasuryCall::spend {
 				asset_kind,
 				amount,

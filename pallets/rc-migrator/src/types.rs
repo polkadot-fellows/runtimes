@@ -287,8 +287,8 @@ impl<
 		destination: &mut Option<Location>,
 		message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
-		if MigrationState::is_ongoing() &&
-			Exception::contains(
+		if MigrationState::is_ongoing()
+			&& Exception::contains(
 				destination.as_ref().ok_or(SendError::MissingArgument)?,
 				message.as_ref().ok_or(SendError::MissingArgument)?,
 			) {
@@ -515,9 +515,9 @@ impl<T: Encode> XcmBatch<T> {
 	/// # Returns
 	/// `true` if there are no batches or if the only batch is empty, `false` otherwise.
 	pub fn is_empty(&self) -> bool {
-		self.sized_batches.is_empty() ||
-			(self.sized_batches.len() == 1 &&
-				self.sized_batches.front().is_none_or(|(_, batch)| batch.is_empty()))
+		self.sized_batches.is_empty()
+			|| (self.sized_batches.len() == 1
+				&& self.sized_batches.front().is_none_or(|(_, batch)| batch.is_empty()))
 	}
 
 	/// Takes the first batch of messages.

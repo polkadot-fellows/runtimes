@@ -274,9 +274,10 @@ pub struct AllowFromEthereumFrontend;
 impl Contains<Location> for AllowFromEthereumFrontend {
 	fn contains(location: &Location) -> bool {
 		match location.unpack() {
-			(1, [Parachain(para_id), PalletInstance(index)]) =>
-				*para_id == polkadot_runtime_constants::system_parachain::ASSET_HUB_ID &&
-					*index == SystemFrontendPalletInstance::get(),
+			(1, [Parachain(para_id), PalletInstance(index)]) => {
+				*para_id == polkadot_runtime_constants::system_parachain::ASSET_HUB_ID
+					&& *index == SystemFrontendPalletInstance::get()
+			},
 			_ => false,
 		}
 	}

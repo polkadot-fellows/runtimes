@@ -170,8 +170,8 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 		batch: &mut XcmBatchAndMeter<RcProxyLocalOf<T>>,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
-		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
-			weight_counter.try_consume(batch.consume_weight()).is_err()
+		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
+			|| weight_counter.try_consume(batch.consume_weight()).is_err()
 		{
 			log::info!(
 				target: LOG_TARGET,
@@ -247,8 +247,8 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 		// Process announcements until we run out of weight
 		for (acc, (_announcements, deposit)) in iter.by_ref() {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
-				weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
+				|| weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,

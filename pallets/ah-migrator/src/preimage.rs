@@ -196,11 +196,12 @@ impl<T: Config> Pallet<T> {
 				count,
 			},
 			_ => match ah_status {
-				pallet_preimage::RequestStatus::Unrequested { ticket: (who, ticket), len } =>
+				pallet_preimage::RequestStatus::Unrequested { ticket: (who, ticket), len } => {
 					pallet_preimage::RequestStatus::Unrequested {
 						ticket: (Self::translate_account_rc_to_ah(who), ticket),
 						len,
-					},
+					}
+				},
 				pallet_preimage::RequestStatus::Requested { maybe_ticket, count, maybe_len } => {
 					let translated_maybe_ticket = maybe_ticket
 						.map(|(who, ticket)| (Self::translate_account_rc_to_ah(who), ticket));

@@ -405,9 +405,9 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(
 			self,
-			MigrationStage::Pending |
-				MigrationStage::Scheduled { .. } |
-				MigrationStage::MigrationDone
+			MigrationStage::Pending
+				| MigrationStage::Scheduled { .. }
+				| MigrationStage::MigrationDone
 		)
 	}
 }
@@ -985,12 +985,13 @@ pub mod pallet {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let end_at = match RcMigrationStage::<T>::get() {
-				MigrationStage::WaitingForAh =>
+				MigrationStage::WaitingForAh => {
 					if let Some(end_at) = WarmUpPeriod::<T>::get() {
 						end_at.evaluate(frame_system::Pallet::<T>::block_number())
 					} else {
 						frame_system::Pallet::<T>::block_number()
-					},
+					}
+				},
 				stage => {
 					defensive!("start_data_migration called in invalid stage: {:?}", stage);
 					return Err(Error::<T>::UnreachableStage.into());
