@@ -62,9 +62,6 @@
     "extra_args": "--disable-mbm-checks",
     "try_runtime_args": "--overwrite-state-version 1",
     "build_extra_features": "polkadot-ahm",
-    "benchmarks_exclude_extrinsics": {
-      "pallet_election_provider_multi_block_verifier": ["on_initialize_invalid_non_terminal"]
-    },
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
