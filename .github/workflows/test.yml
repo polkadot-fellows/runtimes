@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
@@ -33,7 +33,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
@@ -48,7 +48,7 @@ jobs:
   # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -133,7 +133,7 @@ jobs:
   # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       matrix:
         itest: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
@@ -177,7 +177,7 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
   ahm-test-polkadot:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -231,7 +231,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -274,7 +274,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -326,7 +326,7 @@ jobs:
 
   build-runtimes:
     needs: [ runtime-matrix ]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       # Ensure the other jobs are continue
       fail-fast: false
@@ -398,7 +398,7 @@ jobs:
 
   ecosystem-tests:
     needs: [runtime-matrix, build-runtimes]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     if: github.event_name == 'pull_request'
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -447,7 +447,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
     needs:
