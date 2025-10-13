@@ -180,9 +180,9 @@ impl<T: Config> Pallet<T> {
 			T::PortableFreezeReason,
 		>,
 	) -> bool {
-		frame_system::Pallet::<T>::providers(&account.who) > 0
-			|| <T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free)
-				>= <T as pallet::Config>::Currency::minimum_balance()
+		frame_system::Pallet::<T>::providers(&account.who) > 0 ||
+			<T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free) >=
+				<T as pallet::Config>::Currency::minimum_balance()
 	}
 
 	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {
@@ -324,9 +324,9 @@ pub mod tests {
 				// Checking account balance migration is tested separately.
 				// Treasury may be modified during migration.
 				// StakingPot (CollatorSelection) account may also be modified during migration.
-				if who == T::CheckingAccount::get()
-					|| who == pallet_treasury::Pallet::<T>::account_id()
-					|| who == T::StakingPotAccount::get()
+				if who == T::CheckingAccount::get() ||
+					who == pallet_treasury::Pallet::<T>::account_id() ||
+					who == T::StakingPotAccount::get()
 				{
 					continue;
 				}

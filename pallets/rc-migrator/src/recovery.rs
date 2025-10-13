@@ -111,19 +111,16 @@ pub struct PortableRecoveryFriends {
 impl TranslateAccounts for PortableRecoveryMessage {
 	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		match self {
-			PortableRecoveryMessage::Recoverable((who, config)) => {
-				PortableRecoveryMessage::Recoverable((f(who), config.translate_accounts(f)))
-			},
-			PortableRecoveryMessage::ActiveRecoveries((w1, w2, config)) => {
+			PortableRecoveryMessage::Recoverable((who, config)) =>
+				PortableRecoveryMessage::Recoverable((f(who), config.translate_accounts(f))),
+			PortableRecoveryMessage::ActiveRecoveries((w1, w2, config)) =>
 				PortableRecoveryMessage::ActiveRecoveries((
 					f(w1),
 					f(w2),
 					config.translate_accounts(f),
-				))
-			},
-			PortableRecoveryMessage::Proxy((w1, w2)) => {
-				PortableRecoveryMessage::Proxy((f(w1), f(w2)))
-			},
+				)),
+			PortableRecoveryMessage::Proxy((w1, w2)) =>
+				PortableRecoveryMessage::Proxy((f(w1), f(w2))),
 		}
 	}
 }
@@ -252,8 +249,8 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
-				|| weight_counter.try_consume(messages.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -303,9 +300,8 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 			last_key = match last_key {
 				RecoveryStage::Recoverable(last_key) => {
 					let mut iter = match last_key {
-						Some(last_key) => {
-							pallet_recovery::Recoverable::<T::KusamaConfig>::iter_from_key(last_key)
-						},
+						Some(last_key) =>
+							pallet_recovery::Recoverable::<T::KusamaConfig>::iter_from_key(last_key),
 						None => pallet_recovery::Recoverable::<T::KusamaConfig>::iter(),
 					};
 
@@ -344,9 +340,8 @@ impl<T: Config> PalletMigration for RecoveryMigrator<T> {
 				},
 				RecoveryStage::Proxy(last_key) => {
 					let mut iter = match last_key {
-						Some(last_key) => {
-							pallet_recovery::Proxy::<T::KusamaConfig>::iter_from_key(last_key)
-						},
+						Some(last_key) =>
+							pallet_recovery::Proxy::<T::KusamaConfig>::iter_from_key(last_key),
 						None => pallet_recovery::Proxy::<T::KusamaConfig>::iter(),
 					};
 

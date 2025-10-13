@@ -119,22 +119,17 @@ impl TranslateAccounts for PortableStakingMessage {
 
 		match self {
 			Values(values) => Values(values),
-			Invulnerables(invulnerables) => {
-				Invulnerables(invulnerables.into_iter().map(f).collect::<Vec<_>>())
-			},
+			Invulnerables(invulnerables) =>
+				Invulnerables(invulnerables.into_iter().map(f).collect::<Vec<_>>()),
 			Bonded { stash, controller } => Bonded { stash: f(stash), controller: f(controller) },
-			Ledger { controller, ledger } => {
-				Ledger { controller: f(controller), ledger: ledger.translate_accounts(f) }
-			},
-			Payee { stash, payment } => {
-				Payee { stash: f(stash), payment: payment.translate_accounts(f) }
-			},
-			Validators { stash, validators } => {
-				Validators { stash: f(stash), validators: validators.translate_accounts(f) }
-			},
-			Nominators { stash, nominations } => {
-				Nominators { stash: f(stash), nominations: nominations.translate_accounts(f) }
-			},
+			Ledger { controller, ledger } =>
+				Ledger { controller: f(controller), ledger: ledger.translate_accounts(f) },
+			Payee { stash, payment } =>
+				Payee { stash: f(stash), payment: payment.translate_accounts(f) },
+			Validators { stash, validators } =>
+				Validators { stash: f(stash), validators: validators.translate_accounts(f) },
+			Nominators { stash, nominations } =>
+				Nominators { stash: f(stash), nominations: nominations.translate_accounts(f) },
 			VirtualStakers(stash) => VirtualStakers(f(stash)),
 			ErasStakersOverview { era, validator, exposure } => ErasStakersOverview {
 				era,
@@ -147,26 +142,22 @@ impl TranslateAccounts for PortableStakingMessage {
 				page,
 				exposure: exposure.translate_accounts(f),
 			},
-			ClaimedRewards { era, validator, rewards } => {
-				ClaimedRewards { era, validator: f(validator), rewards }
-			},
+			ClaimedRewards { era, validator, rewards } =>
+				ClaimedRewards { era, validator: f(validator), rewards },
 			ErasValidatorPrefs { era, validator, prefs } => ErasValidatorPrefs {
 				era,
 				validator: f(validator),
 				prefs: prefs.translate_accounts(f),
 			},
 			ErasValidatorReward { era, reward } => ErasValidatorReward { era, reward },
-			ErasRewardPoints { era, points } => {
-				ErasRewardPoints { era, points: points.translate_accounts(f) }
-			},
+			ErasRewardPoints { era, points } =>
+				ErasRewardPoints { era, points: points.translate_accounts(f) },
 			ErasTotalStake { era, total_stake } => ErasTotalStake { era, total_stake },
-			UnappliedSlashes { era, slash } => {
-				UnappliedSlashes { era, slash: slash.translate_accounts(f) }
-			},
+			UnappliedSlashes { era, slash } =>
+				UnappliedSlashes { era, slash: slash.translate_accounts(f) },
 			BondedEras(eras) => BondedEras(eras),
-			ValidatorSlashInEra { era, validator, slash } => {
-				ValidatorSlashInEra { era, validator: f(validator), slash }
-			},
+			ValidatorSlashInEra { era, validator, slash } =>
+				ValidatorSlashInEra { era, validator: f(validator), slash },
 		}
 	}
 }
@@ -551,9 +542,8 @@ pub enum PortableRewardDestination {
 impl TranslateAccounts for PortableRewardDestination {
 	fn translate_accounts(self, f: &impl Fn(AccountId32) -> AccountId32) -> Self {
 		match self {
-			PortableRewardDestination::Account(account) => {
-				PortableRewardDestination::Account(f(account))
-			},
+			PortableRewardDestination::Account(account) =>
+				PortableRewardDestination::Account(f(account)),
 			_ => self,
 		}
 	}

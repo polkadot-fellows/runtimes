@@ -244,9 +244,9 @@ impl ProxyBasicWorks {
 			);
 		}
 
-		let allowed_governance = permissions.contains(&Permission::Any)
-			|| permissions.contains(&Permission::NonTransfer)
-			|| permissions.contains(&Permission::Governance);
+		let allowed_governance = permissions.contains(&Permission::Any) ||
+			permissions.contains(&Permission::NonTransfer) ||
+			permissions.contains(&Permission::Governance);
 		if allowed_governance {
 			assert!(
 				Self::can_governance(delegatee, delegator, permissions, true),
@@ -259,9 +259,9 @@ impl ProxyBasicWorks {
 			);
 		}
 
-		let allowed_staking = permissions.contains(&Permission::Any)
-			|| permissions.contains(&Permission::NonTransfer)
-			|| permissions.contains(&Permission::Staking);
+		let allowed_staking = permissions.contains(&Permission::Any) ||
+			permissions.contains(&Permission::NonTransfer) ||
+			permissions.contains(&Permission::Staking);
 		if allowed_staking {
 			assert!(
 				Self::can_stake(delegatee, delegator, permissions, true),
@@ -440,8 +440,8 @@ impl ProxyBasicWorks {
 		frame_support::hypothetically!({
 			// Migration should have finished
 			assert!(
-				pallet_ah_migrator::AhMigrationStage::<AssetHubRuntime>::get()
-					== pallet_ah_migrator::MigrationStage::MigrationDone,
+				pallet_ah_migrator::AhMigrationStage::<AssetHubRuntime>::get() ==
+					pallet_ah_migrator::MigrationStage::MigrationDone,
 				"Migration should have finished"
 			);
 			Self::fund_accounts(delegatee, delegator);

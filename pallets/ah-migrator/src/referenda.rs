@@ -554,9 +554,8 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 				},
 				ReferendumInfo::Approved(a, b, c) => AhReferendumInfoOf::<T, ()>::Approved(a, b, c),
 				ReferendumInfo::Rejected(a, b, c) => AhReferendumInfoOf::<T, ()>::Rejected(a, b, c),
-				ReferendumInfo::Cancelled(a, b, c) => {
-					AhReferendumInfoOf::<T, ()>::Cancelled(a, b, c)
-				},
+				ReferendumInfo::Cancelled(a, b, c) =>
+					AhReferendumInfoOf::<T, ()>::Cancelled(a, b, c),
 				ReferendumInfo::TimedOut(a, b, c) => AhReferendumInfoOf::<T, ()>::TimedOut(a, b, c),
 				ReferendumInfo::Killed(a) => AhReferendumInfoOf::<T, ()>::Killed(a),
 			}
@@ -581,11 +580,9 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 
 				// Other enum variants.
 				(ref1_variant, ref2_variant)
-					if core::mem::discriminant(ref1_variant)
-						== core::mem::discriminant(ref2_variant) =>
-				{
-					ref1 == ref2
-				},
+					if core::mem::discriminant(ref1_variant) ==
+						core::mem::discriminant(ref2_variant) =>
+					ref1 == ref2,
 
 				// Variants are different (e.g., Ongoing vs Approved), they are not equal.
 				_ => false,

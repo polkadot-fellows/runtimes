@@ -83,14 +83,14 @@ pub struct NomPoolsStorageValues<Balance> {
 
 impl<Balance> NomPoolsStorageValues<Balance> {
 	pub fn is_empty(&self) -> bool {
-		self.total_value_locked.is_none()
-			&& self.min_join_bond.is_none()
-			&& self.min_create_bond.is_none()
-			&& self.max_pools.is_none()
-			&& self.max_pool_members.is_none()
-			&& self.max_pool_members_per_pool.is_none()
-			&& self.global_max_commission.is_none()
-			&& self.last_pool_id.is_none()
+		self.total_value_locked.is_none() &&
+			self.min_join_bond.is_none() &&
+			self.min_create_bond.is_none() &&
+			self.max_pools.is_none() &&
+			self.max_pool_members.is_none() &&
+			self.max_pool_members_per_pool.is_none() &&
+			self.global_max_commission.is_none() &&
+			self.last_pool_id.is_none()
 	}
 }
 
@@ -144,8 +144,8 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
-				|| weight_counter.try_consume(messages.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -300,13 +300,12 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 				},
 				NomPoolsStage::ReversePoolIdLookup(pool_iter) => {
 					let mut new_pool_iter = match pool_iter.clone() {
-						Some(pool_iter) => {
+						Some(pool_iter) =>
 							pallet_nomination_pools::ReversePoolIdLookup::<T>::iter_from(
 								pallet_nomination_pools::ReversePoolIdLookup::<T>::hashed_key_for(
 									pool_iter,
 								),
-							)
-						},
+							),
 						None => pallet_nomination_pools::ReversePoolIdLookup::<T>::iter(),
 					};
 
@@ -323,13 +322,12 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 				},
 				NomPoolsStage::ClaimPermissions(pool_iter) => {
 					let mut new_pool_iter = match pool_iter.clone() {
-						Some(pool_iter) => {
+						Some(pool_iter) =>
 							pallet_nomination_pools::ClaimPermissions::<T>::iter_from(
 								pallet_nomination_pools::ClaimPermissions::<T>::hashed_key_for(
 									pool_iter,
 								),
-							)
-						},
+							),
 						None => pallet_nomination_pools::ClaimPermissions::<T>::iter(),
 					};
 

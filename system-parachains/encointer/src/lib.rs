@@ -204,29 +204,29 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_)
-					| RuntimeCall::ParachainSystem(_)
-					| RuntimeCall::Timestamp(_)
-					| RuntimeCall::CollatorSelection(_)
-					| RuntimeCall::Session(_)
-					| RuntimeCall::Utility(_)
-					| RuntimeCall::Proxy(_)
-					| RuntimeCall::Collective(_)
-					| RuntimeCall::Membership(_)
-					| RuntimeCall::EncointerScheduler(_)
-					| RuntimeCall::EncointerCeremonies(_)
-					| RuntimeCall::EncointerCommunities(_)
-					| RuntimeCall::EncointerBazaar(_)
-					| RuntimeCall::EncointerReputationCommitments(_)
-					| RuntimeCall::EncointerFaucet(_)
-					| RuntimeCall::EncointerDemocracy(_)
-					| RuntimeCall::EncointerTreasuries(_)
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Collective(_) |
+					RuntimeCall::Membership(_) |
+					RuntimeCall::EncointerScheduler(_) |
+					RuntimeCall::EncointerCeremonies(_) |
+					RuntimeCall::EncointerCommunities(_) |
+					RuntimeCall::EncointerBazaar(_) |
+					RuntimeCall::EncointerReputationCommitments(_) |
+					RuntimeCall::EncointerFaucet(_) |
+					RuntimeCall::EncointerDemocracy(_) |
+					RuntimeCall::EncointerTreasuries(_)
 			),
 			ProxyType::BazaarEdit => matches!(
 				c,
-				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. })
-					| RuntimeCall::EncointerBazaar(EncointerBazaarCall::update_offering { .. })
-					| RuntimeCall::EncointerBazaar(EncointerBazaarCall::delete_offering { .. })
+				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. }) |
+					RuntimeCall::EncointerBazaar(EncointerBazaarCall::update_offering { .. }) |
+					RuntimeCall::EncointerBazaar(EncointerBazaarCall::delete_offering { .. })
 			),
 		}
 	}

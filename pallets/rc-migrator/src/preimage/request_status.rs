@@ -68,20 +68,18 @@ impl<Ticket: Encode + MaxEncodedLen> IntoPortable
 
 	fn into_portable(self) -> Self::Portable {
 		match self {
-			pallet_preimage::RequestStatus::Unrequested { ticket: (acc, inner), len } => {
+			pallet_preimage::RequestStatus::Unrequested { ticket: (acc, inner), len } =>
 				PortableRequestStatusInner::Unrequested {
 					ticket: (acc, inner.encode().defensive_truncate_into()),
 					len,
-				}
-			},
-			pallet_preimage::RequestStatus::Requested { maybe_ticket, count, maybe_len } => {
+				},
+			pallet_preimage::RequestStatus::Requested { maybe_ticket, count, maybe_len } =>
 				PortableRequestStatusInner::Requested {
 					maybe_ticket: maybe_ticket
 						.map(|(acc, inner)| (acc, inner.encode().defensive_truncate_into())),
 					count,
 					maybe_len,
-				}
-			},
+				},
 		}
 	}
 }
@@ -97,13 +95,12 @@ impl<Ticket: Decode> TryInto<pallet_preimage::RequestStatus<AccountId32, Ticket>
 				let inner = Ticket::decode(&mut inner.into_inner().as_slice()).map_err(|_| ())?;
 				Ok(pallet_preimage::RequestStatus::Unrequested { ticket: (acc, inner), len })
 			},
-			PortableRequestStatusInner::Requested { maybe_ticket: None, count, maybe_len } => {
+			PortableRequestStatusInner::Requested { maybe_ticket: None, count, maybe_len } =>
 				Ok(pallet_preimage::RequestStatus::Requested {
 					maybe_ticket: None,
 					count,
 					maybe_len,
-				})
-			},
+				}),
 			PortableRequestStatusInner::Requested {
 				maybe_ticket: Some((acc, inner)),
 				count,
@@ -135,8 +132,8 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let new_next_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
-				|| weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,

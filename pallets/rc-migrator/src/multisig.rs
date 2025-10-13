@@ -104,15 +104,14 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 	) -> Result<Option<Self::Key>, Error<T>> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		let mut iter = match last_key.clone() {
-			Some((k1, k2)) => {
-				aliases::Multisigs::<T>::iter_from(aliases::Multisigs::<T>::hashed_key_for(k1, k2))
-			},
+			Some((k1, k2)) =>
+				aliases::Multisigs::<T>::iter_from(aliases::Multisigs::<T>::hashed_key_for(k1, k2)),
 			None => aliases::Multisigs::<T>::iter(),
 		};
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
-				|| weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,

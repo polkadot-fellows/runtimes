@@ -56,20 +56,18 @@ impl<T: Config> Pallet<T> {
 			BountyStatus::Proposed => BountyStatus::Proposed,
 			BountyStatus::Approved => BountyStatus::Approved,
 			BountyStatus::Funded => BountyStatus::Funded,
-			BountyStatus::CuratorProposed { curator } => {
-				BountyStatus::CuratorProposed { curator: Self::translate_account_rc_to_ah(curator) }
-			},
+			BountyStatus::CuratorProposed { curator } =>
+				BountyStatus::CuratorProposed { curator: Self::translate_account_rc_to_ah(curator) },
 			BountyStatus::Active { curator, update_due } => BountyStatus::Active {
 				curator: Self::translate_account_rc_to_ah(curator),
 				update_due,
 			},
-			BountyStatus::PendingPayout { curator, beneficiary, unlock_at } => {
+			BountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
 				BountyStatus::PendingPayout {
 					curator: Self::translate_account_rc_to_ah(curator),
 					beneficiary: Self::translate_account_rc_to_ah(beneficiary),
 					unlock_at,
-				}
-			},
+				},
 			BountyStatus::ApprovedWithCurator { curator } => BountyStatus::ApprovedWithCurator {
 				curator: Self::translate_account_rc_to_ah(curator),
 			},

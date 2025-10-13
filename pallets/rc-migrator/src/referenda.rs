@@ -66,16 +66,14 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 				Self::migrate_values(weight_counter)?;
 				Some(ReferendaStage::Metadata(None))
 			},
-			Some(ReferendaStage::Metadata(last_key)) => {
+			Some(ReferendaStage::Metadata(last_key)) =>
 				Self::migrate_many_metadata(last_key, weight_counter)?
 					.map_or(Some(ReferendaStage::ReferendumInfo(None)), |last_key| {
 						Some(ReferendaStage::Metadata(Some(last_key)))
-					})
-			},
-			Some(ReferendaStage::ReferendumInfo(last_key)) => {
+					}),
+			Some(ReferendaStage::ReferendumInfo(last_key)) =>
 				Self::migrate_many_referendum_info(last_key, weight_counter)?
-					.map(|last_key| ReferendaStage::ReferendumInfo(Some(last_key)))
-			},
+					.map(|last_key| ReferendaStage::ReferendumInfo(Some(last_key))),
 		};
 		Ok(stage)
 	}
@@ -133,8 +131,8 @@ impl<T: Config> ReferendaMigrator<T> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
-				|| weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -232,8 +230,8 @@ impl<T: Config> ReferendaMigrator<T> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err()
-				|| weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -334,14 +332,13 @@ impl<T: Config> ReferendaMigrator<T> {
 				);
 				T::AhWeightInfo::receive_single_active_referendums(len)
 			},
-			_ => {
+			_ =>
 				if batch_len == 0 {
 					T::AhWeightInfo::receive_complete_referendums(1)
 				} else {
 					T::AhWeightInfo::receive_complete_referendums(1)
 						.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
-				}
-			},
+				},
 		}
 	}
 }
