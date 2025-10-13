@@ -209,7 +209,7 @@ parameter_types! {
 		},
 		fulu: Fork {
 			version: hex!("06000000"),
-			epoch: 0, // Pending, not yet released!
+			epoch: 411392, // Pending, not yet released!
 		}
 	};
 }
@@ -243,7 +243,7 @@ parameter_types! {
 		},
 		fulu: Fork {
 			version: hex!("06000000"),
-			epoch: 0 }
+			epoch: 50000000 }
 	};
 }
 
