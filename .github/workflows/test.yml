@@ -209,6 +209,8 @@ jobs:
       - name: Download Polkadot snaps
         run: |
           python3 -m pip install gdown
+
+          export PATH=$PATH:$HOME/.local/bin
           gdown 1Z01NFTNUlRo93yeI4M3XYj6338tgfuu9 # 2025-09-05 RC
           gdown 1r5z9MqtHubCVlkCcutNbuwWd2F9l0iNy # 2025-09-05 AH
 
