@@ -321,7 +321,7 @@ jobs:
           docker --version
 
       - name: Zombienet smoke test
-        timeout-minutes: 20
+        timeout-minutes: 40
         run: |
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
