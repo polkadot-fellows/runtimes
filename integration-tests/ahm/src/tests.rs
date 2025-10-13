@@ -614,8 +614,8 @@ async fn migration_works_time() {
 			vec![].into();
 
 		// finish the loop when the migration is done.
-		while ah.execute_with(AhMigrationStageStorage::<AssetHub>::get)
-			!= AhMigrationStage::MigrationDone
+		while ah.execute_with(AhMigrationStageStorage::<AssetHub>::get) !=
+			AhMigrationStage::MigrationDone
 		{
 			// with async backing having three unincluded segments, we expect the Asset Hub block
 			// to typically be backed not in the immediate next block, but in the block after that.

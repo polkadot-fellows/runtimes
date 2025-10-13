@@ -338,71 +338,71 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_)
-					| RuntimeCall::ParachainSystem(_)
-					| RuntimeCall::Timestamp(_)
-					| RuntimeCall::CollatorSelection(_)
-					| RuntimeCall::Session(_)
-					| RuntimeCall::Utility(_)
-					| RuntimeCall::Multisig(_)
-					| RuntimeCall::Proxy(_)
-					| RuntimeCall::Preimage(_)
-					| RuntimeCall::Alliance(_)
-					| RuntimeCall::AllianceMotion(_)
-					| RuntimeCall::FellowshipCollective(_)
-					| RuntimeCall::FellowshipReferenda(_)
-					| RuntimeCall::FellowshipCore(_)
-					| RuntimeCall::FellowshipSalary(_)
-					| RuntimeCall::FellowshipTreasury(_)
-					| RuntimeCall::AmbassadorCollective(_)
-					| RuntimeCall::AmbassadorReferenda(_)
-					| RuntimeCall::AmbassadorCore(_)
-					| RuntimeCall::AmbassadorSalary(_)
-					| RuntimeCall::AmbassadorTreasury(_)
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Preimage(_) |
+					RuntimeCall::Alliance(_) |
+					RuntimeCall::AllianceMotion(_) |
+					RuntimeCall::FellowshipCollective(_) |
+					RuntimeCall::FellowshipReferenda(_) |
+					RuntimeCall::FellowshipCore(_) |
+					RuntimeCall::FellowshipSalary(_) |
+					RuntimeCall::FellowshipTreasury(_) |
+					RuntimeCall::AmbassadorCollective(_) |
+					RuntimeCall::AmbassadorReferenda(_) |
+					RuntimeCall::AmbassadorCore(_) |
+					RuntimeCall::AmbassadorSalary(_) |
+					RuntimeCall::AmbassadorTreasury(_)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. }
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Alliance => matches!(
 				c,
-				RuntimeCall::AllianceMotion { .. }
-					| RuntimeCall::Alliance { .. }
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::AllianceMotion { .. } |
+					RuntimeCall::Alliance { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Fellowship => matches!(
 				c,
-				RuntimeCall::FellowshipCollective { .. }
-					| RuntimeCall::FellowshipReferenda { .. }
-					| RuntimeCall::FellowshipCore { .. }
-					| RuntimeCall::FellowshipSalary { .. }
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::FellowshipCollective { .. } |
+					RuntimeCall::FellowshipReferenda { .. } |
+					RuntimeCall::FellowshipCore { .. } |
+					RuntimeCall::FellowshipSalary { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Ambassador => matches!(
 				c,
-				RuntimeCall::AmbassadorCollective { .. }
-					| RuntimeCall::AmbassadorReferenda { .. }
-					| RuntimeCall::AmbassadorCore { .. }
-					| RuntimeCall::AmbassadorSalary { .. }
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::AmbassadorCollective { .. } |
+					RuntimeCall::AmbassadorReferenda { .. } |
+					RuntimeCall::AmbassadorCore { .. } |
+					RuntimeCall::AmbassadorSalary { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Secretary => matches!(
 				c,
-				RuntimeCall::SecretaryCollective { .. }
-					| RuntimeCall::SecretarySalary { .. }
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::SecretaryCollective { .. } |
+					RuntimeCall::SecretarySalary { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 		}
 	}
@@ -1441,13 +1441,13 @@ fn scheduler_weight_is_sane() {
 	type W = <Runtime as pallet_scheduler::Config>::WeightInfo;
 
 	fn lookup_weight(s: u32) -> Weight {
-		W::service_agendas_base()
-			+ W::service_agenda_base(
+		W::service_agendas_base() +
+			W::service_agenda_base(
 				<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
-			) + W::service_task_base()
-			+ W::service_task_fetched(s)
-			+ W::service_task_named()
-			+ W::service_task_periodic()
+			) + W::service_task_base() +
+			W::service_task_fetched(s) +
+			W::service_task_named() +
+			W::service_task_periodic()
 	}
 
 	let limit = Perbill::from_percent(90) * MaximumSchedulerWeight::get();

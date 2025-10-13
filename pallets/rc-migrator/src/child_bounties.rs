@@ -286,13 +286,12 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 				},
 				ChildBountiesStage::ChildrenCuratorFees { child_id } => {
 					let mut iter = match child_id {
-						Some(child_id) => {
+						Some(child_id) =>
 							pallet_child_bounties::ChildrenCuratorFees::<T>::iter_from(
 								pallet_child_bounties::ChildrenCuratorFees::<T>::hashed_key_for(
 									child_id,
 								),
-							)
-						},
+							),
 						None => pallet_child_bounties::ChildrenCuratorFees::<T>::iter(),
 					};
 
@@ -422,9 +421,8 @@ impl<BlockNumber: Into<u32>> IntoPortable for ChildBountyStatus<AccountId32, Blo
 			ChildBountyStatus::Added => Added,
 			ChildBountyStatus::CuratorProposed { curator } => CuratorProposed { curator },
 			ChildBountyStatus::Active { curator } => Active { curator },
-			ChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } => {
-				PendingPayout { curator, beneficiary, unlock_at: unlock_at.into() }
-			},
+			ChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
+				PendingPayout { curator, beneficiary, unlock_at: unlock_at.into() },
 		}
 	}
 }
@@ -436,17 +434,15 @@ impl<BlockNumber: From<u32>> From<PortableChildBountyStatus>
 	fn from(portable: PortableChildBountyStatus) -> Self {
 		match portable {
 			PortableChildBountyStatus::Added => ChildBountyStatus::Added,
-			PortableChildBountyStatus::CuratorProposed { curator } => {
-				ChildBountyStatus::CuratorProposed { curator }
-			},
+			PortableChildBountyStatus::CuratorProposed { curator } =>
+				ChildBountyStatus::CuratorProposed { curator },
 			PortableChildBountyStatus::Active { curator } => ChildBountyStatus::Active { curator },
-			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } => {
+			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
 				ChildBountyStatus::PendingPayout {
 					curator,
 					beneficiary,
 					unlock_at: unlock_at.into(),
-				}
-			},
+				},
 		}
 	}
 }
@@ -459,19 +455,16 @@ impl PortableChildBountyStatus {
 	) -> Self {
 		match self {
 			PortableChildBountyStatus::Added => PortableChildBountyStatus::Added,
-			PortableChildBountyStatus::CuratorProposed { curator } => {
-				PortableChildBountyStatus::CuratorProposed { curator: translate_account(curator) }
-			},
-			PortableChildBountyStatus::Active { curator } => {
-				PortableChildBountyStatus::Active { curator: translate_account(curator) }
-			},
-			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } => {
+			PortableChildBountyStatus::CuratorProposed { curator } =>
+				PortableChildBountyStatus::CuratorProposed { curator: translate_account(curator) },
+			PortableChildBountyStatus::Active { curator } =>
+				PortableChildBountyStatus::Active { curator: translate_account(curator) },
+			PortableChildBountyStatus::PendingPayout { curator, beneficiary, unlock_at } =>
 				PortableChildBountyStatus::PendingPayout {
 					curator: translate_account(curator),
 					beneficiary: translate_account(beneficiary),
 					unlock_at,
-				}
-			},
+				},
 		}
 	}
 }

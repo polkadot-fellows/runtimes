@@ -20,6 +20,7 @@ use super::*;
 use crate as remote_proxy;
 use codec::{Decode, DecodeWithMemTracking};
 use cumulus_pallet_parachain_system::OnSystemEvent;
+use cumulus_primitives_core::relay_chain::BlockNumber;
 use frame_support::{
 	assert_err, assert_ok, construct_runtime, derive_impl,
 	traits::{Contains, Currency},
@@ -233,6 +234,8 @@ fn remote_proxy_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 0,
+				at: System::block_number(),
+				extrinsic_index: System::extrinsic_index().expect("Extrinsic submitted"),
 			}
 			.into(),
 		);
@@ -314,6 +317,8 @@ fn remote_proxy_register_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 0,
+				at: System::block_number(),
+				extrinsic_index: System::extrinsic_index().expect("Extrinsic submitted"),
 			}
 			.into(),
 		);
@@ -436,6 +441,8 @@ fn remote_proxy_multiple_register_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 0,
+				at: System::block_number(),
+				extrinsic_index: System::extrinsic_index().expect("Extrinsic submitted"),
 			}
 			.into(),
 		);
@@ -449,6 +456,8 @@ fn remote_proxy_multiple_register_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 1,
+				at: System::block_number(),
+				extrinsic_index: System::extrinsic_index().expect("Extrinsic submitted"),
 			}
 			.into(),
 		);

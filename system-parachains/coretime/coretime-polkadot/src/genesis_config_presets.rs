@@ -154,12 +154,10 @@ pub fn preset_names() -> Vec<PresetId> {
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
 		"live" => coretime_polkadot_live_genesis(1005.into()),
-		sp_genesis_builder::DEV_RUNTIME_PRESET => {
-			coretime_polkadot_development_genesis(1005.into())
-		},
-		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => {
-			coretime_polkadot_local_testnet_genesis(1005.into())
-		},
+		sp_genesis_builder::DEV_RUNTIME_PRESET =>
+			coretime_polkadot_development_genesis(1005.into()),
+		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
+			coretime_polkadot_local_testnet_genesis(1005.into()),
 		_ => return None,
 	};
 	Some(

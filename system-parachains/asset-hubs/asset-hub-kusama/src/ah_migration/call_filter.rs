@@ -180,39 +180,39 @@ pub fn call_allowed_before_migration(
 		MultiBlockMigrations(..) => OFF, // has not calls
 		// Everything else is enabled before the migration.
 		// Exhaustive match in case a pallet is added:
-		AhMigrator(..)
-		| AhOps(..)
-		| AssetConversion(..)
-		| AssetRate(..)
-		| Assets(..)
-		| Balances(..)
-		| Claims(..)
-		| CollatorSelection(..)
-		| CumulusXcm(..)
-		| ForeignAssets(..)
-		| MessageQueue(..)
-		| Multisig(..)
-		| Nfts(..)
-		| ParachainInfo(..)
-		| ParachainSystem(..)
-		| PolkadotXcm(..)
-		| PoolAssets(..)
-		| Preimage(..)
-		| Proxy(..)
-		| Scheduler(..)
-		| Session(..)
-		| StakingRcClient(..)
-		| StateTrieMigration(..)
-		| System(..)
-		| Timestamp(..)
-		| ToPolkadotXcmRouter(..)
-		| Uniques(..)
-		| Utility(..)
-		| Whitelist(..)
-		| XcmpQueue(..)
-		| RemoteProxyRelayChain(..)
-		| NftFractionalization(..)
-		| Revive(..)
-		| Parameters(..) => ON,
+		AhMigrator(..) |
+		AhOps(..) |
+		AssetConversion(..) |
+		AssetRate(..) |
+		Assets(..) |
+		Balances(..) |
+		Claims(..) |
+		CollatorSelection(..) |
+		CumulusXcm(..) |
+		ForeignAssets(..) |
+		MessageQueue(..) |
+		Multisig(..) |
+		Nfts(..) |
+		ParachainInfo(..) |
+		ParachainSystem(..) |
+		PolkadotXcm(..) |
+		PoolAssets(..) |
+		Preimage(..) |
+		Proxy(..) |
+		Scheduler(..) |
+		Session(..) |
+		StakingRcClient(..) |
+		StateTrieMigration(..) |
+		System(..) |
+		Timestamp(..) |
+		ToPolkadotXcmRouter(..) |
+		Uniques(..) |
+		Utility(..) |
+		Whitelist(..) |
+		XcmpQueue(..) |
+		RemoteProxyRelayChain(..) |
+		NftFractionalization(..) |
+		Revive(..) |
+		Parameters(..) => ON,
 	}
 }

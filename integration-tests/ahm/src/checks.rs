@@ -37,9 +37,9 @@ impl RcMigrationCheck for SanityChecks {
 		// rust tests trigger pre-checks when pending(0), while the ZB snapshots are taken at
 		// AccountsMigrationInit stage. Both okay.
 		assert!(
-			stage == pallet_rc_migrator::MigrationStage::Pending
-				|| stage == pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 }
-				|| stage == pallet_rc_migrator::MigrationStage::AccountsMigrationInit,
+			stage == pallet_rc_migrator::MigrationStage::Pending ||
+				stage == pallet_rc_migrator::MigrationStage::Scheduled { start: 0u32 } ||
+				stage == pallet_rc_migrator::MigrationStage::AccountsMigrationInit,
 			"Expected Pending, Scheduled, or AccountsMigrationInit, but found: {:?}",
 			stage
 		);
@@ -60,8 +60,8 @@ impl AhMigrationCheck for SanityChecks {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let stage = pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get();
 		assert!(
-			stage == pallet_ah_migrator::MigrationStage::Pending
-				|| stage == pallet_ah_migrator::MigrationStage::DataMigrationOngoing,
+			stage == pallet_ah_migrator::MigrationStage::Pending ||
+				stage == pallet_ah_migrator::MigrationStage::DataMigrationOngoing,
 			"Expected Pending or DataMigrationOngoing, but found: {:?}",
 			stage
 		);

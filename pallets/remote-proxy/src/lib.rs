@@ -471,20 +471,16 @@ pub mod pallet {
 				match c.is_sub_type() {
 					// Proxy call cannot add or remove a proxy with more permissions than it already
 					// has.
-					Some(pallet_proxy::Call::add_proxy { ref proxy_type, .. })
-					| Some(pallet_proxy::Call::remove_proxy { ref proxy_type, .. })
+					Some(pallet_proxy::Call::add_proxy { ref proxy_type, .. }) |
+					Some(pallet_proxy::Call::remove_proxy { ref proxy_type, .. })
 						if !def.proxy_type.is_superset(proxy_type) =>
-					{
-						false
-					},
+						false,
 					// Proxy call cannot remove all proxies or kill pure proxies unless it has full
 					// permissions.
-					Some(pallet_proxy::Call::remove_proxies { .. })
-					| Some(pallet_proxy::Call::kill_pure { .. })
+					Some(pallet_proxy::Call::remove_proxies { .. }) |
+					Some(pallet_proxy::Call::kill_pure { .. })
 						if def.proxy_type != T::ProxyType::default() =>
-					{
-						false
-					},
+						false,
 					_ => def.proxy_type.filter(c),
 				}
 			});

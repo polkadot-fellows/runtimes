@@ -97,10 +97,10 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 {
 	/// Check if the total account balance is liquid.
 	pub fn is_liquid(&self) -> bool {
-		self.unnamed_reserve.is_zero()
-			&& self.freezes.is_empty()
-			&& self.locks.is_empty()
-			&& self.holds.is_empty()
+		self.unnamed_reserve.is_zero() &&
+			self.freezes.is_empty() &&
+			self.locks.is_empty() &&
+			self.holds.is_empty()
 	}
 }
 
@@ -267,8 +267,8 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		let mut total_items_iterated = 0;
 		loop {
 			// account the weight for migrating a single account on Relay Chain.
-			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err()
-				|| weight_counter.try_consume(batch.consume_weight()).is_err()
+			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!(
 					target: LOG_TARGET,
@@ -545,8 +545,8 @@ impl<T: Config> AccountsMigrator<T> {
 			);
 		}
 		defensive_assert!(
-			teleport_total
-				== total_balance - account_state.get_rc_free() - account_state.get_rc_reserved()
+			teleport_total ==
+				total_balance - account_state.get_rc_free() - account_state.get_rc_reserved()
 		);
 		defensive_assert!(
 			teleport_total == teleport_free + teleport_reserved,
@@ -625,9 +625,9 @@ impl<T: Config> AccountsMigrator<T> {
 		let ah_ed = T::AhExistentialDeposit::get();
 		let total_balance = <T as Config>::Currency::total_balance(who);
 		if total_balance < ed {
-			if account.data.free >= ah_ed
-				&& account.data.reserved.is_zero()
-				&& account.data.frozen.is_zero()
+			if account.data.free >= ah_ed &&
+				account.data.reserved.is_zero() &&
+				account.data.frozen.is_zero()
 			{
 				log::info!(
 					target: LOG_TARGET,
