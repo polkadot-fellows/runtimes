@@ -72,6 +72,8 @@ pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDeposit
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
+use pallet_staking_async_ah_client as ah_client;
+use pallet_staking_async_rc_client as rc_client;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
@@ -188,7 +190,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_009_001,
+	spec_version: 1_009_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -239,7 +241,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = ();
+	type SingleBlockMigrations = migrations::SingleBlockMigrations;
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();
@@ -1771,7 +1773,9 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
-	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
+	type MaximumValidatorsWithPoints = ConstU32<{ MaxActiveValidators::get() * 2 }>;
+	// Session length is 1h, we retry for about 6m.
+	type MaxSessionReportRetries = ConstU32<64>;
 }
 
 pub struct EnsureAssetHub;
@@ -1803,19 +1807,15 @@ enum AssetHubRuntimePallets<AccountId> {
 
 #[derive(Encode, Decode)]
 enum RcClientCalls<AccountId> {
-	// TODO @kianenigma: double check the call indices after https://github.com/paritytech/polkadot-sdk/pull/9619/files.
-	// RelayNewOffence is removed, RelayNewOffencePaged is new, and is still in index 1
 	#[codec(index = 0)]
-	RelaySessionReport(pallet_staking_async_rc_client::SessionReport<AccountId>),
+	RelaySessionReport(rc_client::SessionReport<AccountId>),
 	#[codec(index = 1)]
-	RelayNewOffence(SessionIndex, Vec<pallet_staking_async_rc_client::Offence<AccountId>>),
+	RelayNewOffencePaged(Vec<(SessionIndex, rc_client::Offence<AccountId>)>),
 }
 
 pub struct SessionReportToXcm;
-impl sp_runtime::traits::Convert<pallet_staking_async_rc_client::SessionReport<AccountId>, Xcm<()>>
-	for SessionReportToXcm
-{
-	fn convert(a: pallet_staking_async_rc_client::SessionReport<AccountId>) -> Xcm<()> {
+impl Convert<rc_client::SessionReport<AccountId>, Xcm<()>> for SessionReportToXcm {
+	fn convert(a: rc_client::SessionReport<AccountId>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
@@ -1832,26 +1832,10 @@ impl sp_runtime::traits::Convert<pallet_staking_async_rc_client::SessionReport<A
 	}
 }
 
-pub struct StakingXcmToAssetHub;
-impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
-	type AccountId = AccountId;
-
-	fn relay_session_report(
-		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
-	) {
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
-		let message = SessionReportToXcm::convert(session_report);
-		let dest = AssetHubLocation::get();
-		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {err:?}");
-		});
-	}
-
-	fn relay_new_offence(
-		session_index: SessionIndex,
-		offences: Vec<pallet_staking_async_rc_client::Offence<Self::AccountId>>,
-	) {
-		let message = Xcm(vec![
+pub struct QueuedOffenceToXcm;
+impl Convert<Vec<ah_client::QueuedOffenceOf<Runtime>>, Xcm<()>> for QueuedOffenceToXcm {
+	fn convert(offences: Vec<ah_client::QueuedOffenceOf<Runtime>>) -> Xcm<()> {
+		Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
 				check_origin: None,
@@ -1859,20 +1843,40 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 			Instruction::Transact {
 				origin_kind: OriginKind::Superuser,
 				fallback_max_weight: None,
-				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelayNewOffence(
-					session_index,
+				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelayNewOffencePaged(
 					offences,
 				))
 				.encode()
 				.into(),
 			},
-		]);
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
-		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
-			|err| {
-				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {err:?}");
-			},
-		);
+		])
+	}
+}
+
+pub struct StakingXcmToAssetHub;
+impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
+	type AccountId = AccountId;
+
+	fn relay_session_report(
+		session_report: rc_client::SessionReport<Self::AccountId>,
+	) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			AssetHubLocation,
+			rc_client::SessionReport<AccountId>,
+			SessionReportToXcm,
+		>::send(session_report)
+	}
+
+	fn relay_new_offence_paged(
+		offences: Vec<ah_client::QueuedOffenceOf<Runtime>>,
+	) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			AssetHubLocation,
+			Vec<ah_client::QueuedOffenceOf<Runtime>>,
+			QueuedOffenceToXcm,
+		>::send(offences)
 	}
 }
 
@@ -2191,12 +2195,6 @@ pub type TxExtension = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-/// All migrations that will run on the next runtime upgrade.
-///
-/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
-/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = (migrations::Unreleased, migrations::Permanent);
-
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
@@ -2209,6 +2207,9 @@ pub mod migrations {
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// All migrations that will run on the next runtime upgrade.
+	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 	/// Kick off the Asset Hub Migration.
 	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
@@ -2255,7 +2256,6 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	Migrations,
 >;
 /// The payload being signed in the transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
@@ -3727,6 +3727,9 @@ mod remote_tests {
 
 	#[tokio::test]
 	async fn next_inflation() {
+		if var("REMOTE_TESTS").is_err() {
+			return;
+		}
 		use hex_literal::hex;
 		sp_tracing::try_init_simple();
 		let transport: Transport =
