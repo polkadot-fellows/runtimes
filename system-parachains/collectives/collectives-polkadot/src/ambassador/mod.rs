@@ -133,7 +133,10 @@ pub type OpenGovOrGlobalHead = EitherOfDiverse<
 /// Root or FellowshipAdmin
 pub type RootOrOpenGov = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+	>,
 >;
 
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective::Instance2;
@@ -230,9 +233,15 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 		EnsureCanRetainAt,
 	>;
 	type PromoteOrigin = EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::GLOBAL_HEAD }>>,
+			>,
 		>,
 		EnsureCanPromoteTo,
 	>;
@@ -270,19 +279,7 @@ pub type AmbassadorTreasuryPaymaster = PayOverXcm<
 	VersionedLocationConverter,
 >;
 
-pub type TreasurySpender = EitherOf<
-			EnsureRootWithSuccess<AccountId, MaxBalance>,
-			EitherOf<
-				MapSuccess<
-					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
-					Spender,
-				>,
-				MapSuccess<
-					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
-					Spender,
-				>,
-			>,
-		>;
+pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
 
 pub type AmbassadorTreasuryInstance = pallet_treasury::Instance2;
 

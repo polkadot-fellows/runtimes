@@ -146,12 +146,12 @@ pub mod pallet_origins {
 	pub struct Spender;
 
 	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for Spender {
-		type Success = Balance; // ← Changed to Balance
+		type Success = Balance;
 
 		fn try_origin(o: O) -> Result<Self::Success, O> {
 			o.into().and_then(|o| match o {
-				Origin::Tip => Ok(250 * DOLLARS),          // ← Return value
-				Origin::Treasurer => Ok(10_000 * DOLLARS), // ← Return value
+				Origin::Tip => Ok(250 * DOLLARS),
+				Origin::Treasurer => Ok(10_000 * DOLLARS),
 				r => Err(O::from(r)),
 			})
 		}
