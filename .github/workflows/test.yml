@@ -324,7 +324,7 @@ jobs:
         timeout-minutes: 40
         run: |
           export PATH=$(pwd)/target/release:$PATH
-          cargo test --manifest-path integration-tests/zombienet/Cargo.toml --release -- --nocapture
+          RUST_LOG=debug cargo test --manifest-path integration-tests/zombienet/Cargo.toml --release -- --nocapture
 
   build-runtimes:
     needs: [ runtime-matrix ]
