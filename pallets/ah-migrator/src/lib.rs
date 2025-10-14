@@ -103,7 +103,7 @@ use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
 	indices::RcIndicesIndexOf,
-	multisig::*,
+	multisig::{MultisigMigrationChecker, RcMultisigOf},
 	preimage::*,
 	proxy::*,
 	staking::{
@@ -606,6 +606,24 @@ pub mod pallet {
 			destination: Location,
 			message: Xcm<()>,
 			message_id: XcmHash,
+		},
+		/// Failed to unreserve a multisig deposit.
+		FailedToUnreserveMultisigDeposit {
+			/// The expected amount of the deposit that was expected to be unreserved.
+			expected_amount: pallet_rc_migrator::multisig::BalanceOf<T>,
+			/// The missing amount of the deposit.
+			missing_amount: pallet_rc_migrator::multisig::BalanceOf<T>,
+			/// The account that the deposit was unreserved from.
+			account: T::AccountId,
+		},
+		/// Failed to unreserve a legacy status preimage deposit.
+		FailedToUnreservePreimageDeposit {
+			/// The expected amount of the deposit that was expected to be unreserved.
+			expected_amount: pallet_preimage::BalanceOf<T>,
+			/// The missing amount of the deposit.
+			missing_amount: pallet_preimage::BalanceOf<T>,
+			/// The account that the deposit was unreserved from.
+			account: T::AccountId,
 		},
 	}
 
