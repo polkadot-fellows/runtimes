@@ -1552,7 +1552,8 @@ impl ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator count increasing.
+	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
+	// count increasing.
 	type MinimumValidatorSetSize = ConstU32<600>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
