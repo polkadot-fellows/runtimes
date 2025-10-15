@@ -675,6 +675,8 @@ pub mod pallet {
 		InvalidOrigin,
 		/// The stage transition is invalid.
 		InvalidStageTransition,
+		/// Unsigned validation failed.
+		UnsignedValidationFailed,
 	}
 
 	#[pallet::event]
@@ -1318,9 +1320,13 @@ pub mod pallet {
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
 			payload: Box<ManagerMultisigVote<T>>,
-			_sig: sp_runtime::MultiSignature,
+			sig: sp_runtime::MultiSignature,
 		) -> DispatchResult {
-			let _ = ensure_none(origin);
+			let _ = ensure_none(origin)?;
+
+			Self::do_validate_unsigned(&payload, &sig)
+				.map_err(|_| Error::<T>::UnsignedValidationFailed)?;
+			let who = payload.who.into_account();
 
 			ensure!(ManagerMultisigRound::<T>::get() == payload.round, "RoundStale");
 			let num_votes = ManagerVotesInCurrentRound::<T>::get(&who);
@@ -1328,8 +1334,8 @@ pub mod pallet {
 			ManagerVotesInCurrentRound::<T>::insert(&who, num_votes.saturating_add(1));
 
 			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
-			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
-			votes_for_call.push(payload.who);
+			ensure!(!votes_for_call.contains(&who), "Duplicate");
+			votes_for_call.push(who);
 
 			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
 				let origin: <T as Config>::RuntimeOrigin =
@@ -1417,28 +1423,37 @@ pub mod pallet {
 		type Call = Call<T>;
 
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-			use sp_runtime::traits::Verify;
 			if let Call::vote_manager_multisig { payload, sig } = call {
-				let account = payload.who.clone().into_account();
-
-				if !T::MultisigMembers::get().contains(&account) {
-					return InvalidTransaction::BadSigner.into()
-				}
-				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
-					return InvalidTransaction::BadProof.into()
-				}
-				if ManagerMultisigRound::<T>::get() != payload.round {
-					return InvalidTransaction::Stale.into()
-				}
-				ValidTransaction::with_tag_prefix("AhmMultisig")
-					.priority(sp_runtime::traits::Bounded::max_value())
-					.and_provides(vec![("ahm_multi", account).encode()])
-					.propagate(true)
-					.longevity(30)
-					.build()
+				Self::do_validate_unsigned(payload, sig)
 			} else {
 				InvalidTransaction::Call.into()
 			}
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn do_validate_unsigned(
+			payload: &ManagerMultisigVote<T>,
+			sig: &sp_runtime::MultiSignature,
+		) -> TransactionValidity {
+			use sp_runtime::traits::Verify;
+			let account = payload.who.clone().into_account();
+
+			if !T::MultisigMembers::get().contains(&account) {
+				return InvalidTransaction::BadSigner.into()
+			}
+			if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
+				return InvalidTransaction::BadProof.into()
+			}
+			if ManagerMultisigRound::<T>::get() != payload.round {
+				return InvalidTransaction::Stale.into()
+			}
+			ValidTransaction::with_tag_prefix("AhmMultisig")
+				.priority(sp_runtime::traits::Bounded::max_value())
+				.and_provides(vec![("ahm_multi", account).encode()])
+				.propagate(true)
+				.longevity(30)
+				.build()
 		}
 	}
 
