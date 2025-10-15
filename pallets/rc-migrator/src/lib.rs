@@ -819,7 +819,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
-		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+		CountedStorageMap<_, Twox64Concat, (QueryId, T::Hash), Xcm<()>, OptionQuery>;
 
 	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
 	///
@@ -1039,7 +1039,7 @@ pub mod pallet {
 					target: LOG_TARGET,
 					"Received success response for query id: {query_id}"
 				);
-				PendingXcmMessages::<T>::remove(message_hash);
+				PendingXcmMessages::<T>::remove((query_id, message_hash));
 				PendingXcmQueries::<T>::remove(query_id);
 			} else {
 				log::error!(
@@ -1061,8 +1061,8 @@ pub mod pallet {
 
 			let message_hash =
 				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
-			let xcm =
-				PendingXcmMessages::<T>::get(message_hash).ok_or(Error::<T>::QueryNotFound)?;
+			let xcm = PendingXcmMessages::<T>::get((query_id, message_hash))
+				.ok_or(Error::<T>::QueryNotFound)?;
 
 			let asset_hub_location = Location::new(0, Parachain(1000));
 			let receive_notification_call =
@@ -2577,7 +2577,7 @@ pub mod pallet {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 					return Err(Error::XcmError);
 				} else {
-					PendingXcmMessages::<T>::insert(message_hash, Xcm(message));
+					PendingXcmMessages::<T>::insert((query_id, message_hash), Xcm(message));
 					PendingXcmQueries::<T>::insert(query_id, message_hash);
 					batch_count += 1;
 				}
