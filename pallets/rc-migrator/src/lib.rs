@@ -1401,13 +1401,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::unbounded]
-	pub type ManagerMultisigs<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		<T as Config>::RuntimeCall,
-		Vec<sp_runtime::MultiSigner>,
-		ValueQuery,
-	>;
+	pub type ManagerMultisigs<T: Config> =
+		StorageMap<_, Twox64Concat, <T as Config>::RuntimeCall, Vec<AccountId32>, ValueQuery>;
 	#[pallet::storage]
 	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
 
