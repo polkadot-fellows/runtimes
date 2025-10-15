@@ -197,6 +197,7 @@ pub enum MigrationStage {
 	Pending,
 	/// Migrating data from the Relay Chain.
 	DataMigrationOngoing,
+	/// Cool off-stage for manual verification. Calls are still locked.
 	CoolOff {
 		/// The RC block number at which the post migration cool-off period will end.
 		end_at: u32,
