@@ -122,8 +122,9 @@ jobs:
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""
           else
-            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
-            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+            EXCLUDE_EXTRINSICS_JSON='${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}'
+            EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
