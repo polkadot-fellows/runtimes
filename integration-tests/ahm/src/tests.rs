@@ -905,7 +905,7 @@ async fn scheduled_migration_works() {
 	});
 	rc.commit_all().unwrap();
 
-	// Relay Chain finished the migration andsends the signal to finish the migration to
+	// Relay Chain finished the migration and sends the signal to finish the migration to
 	// the Asset Hub.
 	let (dmp_messages, cool_off_end_at) = rc.execute_with(|| {
 		log::info!("Fast forward to the data migrating finish");
