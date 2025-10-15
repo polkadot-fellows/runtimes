@@ -1307,7 +1307,7 @@ fn test_control_flow() {
 		// again with the new query id.
 		assert!(pallet_rc_migrator::PendingXcmQueries::<RcRuntime>::get(third_query_id).is_some());
 		assert!(pallet_rc_migrator::PendingXcmMessages::<RcRuntime>::get((
-			third_query_id,
+			second_query_id,
 			second_message_hash
 		))
 		.is_some());
