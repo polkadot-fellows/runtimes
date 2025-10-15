@@ -172,6 +172,7 @@ pub fn next_block_rc() {
 	);
 }
 
+/// Create a new Asset Hub block that references the given Relay chain block number.
 pub fn next_block_ah_with_rc_block(rc_block: u32) {
 	cumulus_pallet_parachain_system::ValidationData::<AssetHub>::mutate(|maybe_data| {
 		if let Some(data) = maybe_data.as_mut() {
