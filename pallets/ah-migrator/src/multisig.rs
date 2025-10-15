@@ -23,30 +23,6 @@ use hex_literal::hex;
 #[cfg(feature = "std")]
 use pallet_rc_migrator::types::AccountIdOf;
 
-/// These multisigs have historical issues where the deposit is missing on the RC side.
-///
-/// We just ignore those.
-#[cfg(feature = "polkadot-ahm")]
-const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
-	AccountId32::new(hex!("e64d5c0de81b9c960c1dd900ad2a5d9d91c8a683e60dd1308e6bc7f80ea3b25f")),
-	AccountId32::new(hex!("d55ec415b6703ddf7bec9d5c02a0b642f1f5bd068c6b3c50c2145544046f1491")),
-	AccountId32::new(hex!("c2ff4f84b7fcee1fb04b4a97800e72321a4bc9939d456ad48d971127fc661c48")),
-	AccountId32::new(hex!("0a8933d3f2164648399cc48cb8bb8c915abb94a2164c40ad6b48cee005f1cb6e")),
-	AccountId32::new(hex!("ebe3cd53e580c4cd88acec1c952585b50a44a9b697d375ff648fee582ae39d38")),
-	AccountId32::new(hex!("caafae0aaa6333fcf4dc193146945fe8e4da74aa6c16d481eef0ca35b8279d73")),
-	AccountId32::new(hex!("d429458e57ba6e9b21688441ff292c7cf82700550446b061a6c5dec306e1ef05")),
-];
-
-#[cfg(feature = "kusama-ahm")]
-const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
-	AccountId32::new(hex!("48df9c1a60044840351ef0fbe6b9713ee070578b26a74eb5637b06ac05505f66")),
-	AccountId32::new(hex!("e64d5c0de81b9c960c1dd900ad2a5d9d91c8a683e60dd1308e6bc7f80ea3b25f")),
-];
-
-// To make it compile without flags:
-#[cfg(all(not(feature = "kusama-ahm"), not(feature = "polkadot-ahm")))]
-const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[];
-
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_multisigs(multisigs: Vec<RcMultisigOf<T>>) -> Result<(), Error<T>> {
 		Self::deposit_event(Event::BatchReceived {
@@ -84,17 +60,18 @@ impl<T: Config> Pallet<T> {
 		);
 
 		if missing != Default::default() {
-			if KNOWN_BAD_MULTISIGS.contains(&multisig.creator) {
-				// This is "fine"
-			} else {
-				debug_assert!(
-					false,
-					"Failed to unreserve deposit for multisig {}",
-					translated_creator.to_ss58check(),
-				);
-			}
+			log::error!(
+				target: LOG_TARGET,
+				"Failed to unreserve deposit for multisig {}: missing amount: {:?}",
+				translated_creator.to_ss58check(),
+				missing
+			);
 
-			return Err(Error::<T>::FailedToUnreserveDeposit);
+			Self::deposit_event(Event::FailedToUnreserveMultisigDeposit {
+				expected_amount: multisig.deposit,
+				missing_amount: missing,
+				account: translated_creator,
+			});
 		}
 
 		Ok(())

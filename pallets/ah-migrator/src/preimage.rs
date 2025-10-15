@@ -136,12 +136,6 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		if !pallet_preimage::PreimageFor::<T>::iter_keys()
-			.any(|(key_hash, _)| key_hash == request_status.hash)
-		{
-			log::error!("Missing preimage for request status hash {:?}", request_status.hash);
-			return Err(Error::<T>::PreimageMissing);
-		}
 		let ah_status: pallet_preimage::RequestStatus<AccountId32, pallet_preimage::TicketOf<T>> =
 			request_status
 				.request_status
@@ -258,8 +252,19 @@ impl<T: Config> Pallet<T> {
 		);
 
 		if missing != Default::default() {
-			log::error!(target: LOG_TARGET, "Failed to unreserve deposit for preimage legacy status {:?}, who: {}, missing {:?}", status.hash, translated_depositor.to_ss58check(), missing);
-			return Err(Error::<T>::FailedToUnreserveDeposit);
+			log::error!(
+				target: LOG_TARGET,
+				"Failed to unreserve deposit for preimage legacy status {:?}, who: {}, missing {:?}",
+				status.hash,
+				translated_depositor.to_ss58check(),
+				missing
+			);
+
+			Self::deposit_event(Event::FailedToUnreservePreimageDeposit {
+				expected_amount: status.deposit,
+				missing_amount: missing,
+				account: translated_depositor,
+			});
 		}
 
 		Ok(())
@@ -411,9 +416,12 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 			}
 		}
 
+		// there are two preimage statuses in the Polkadot state that have no preimages
+		const STATUSES_MISSING_PREIMAGE_COUNT: usize = 2;
+
 		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
 		assert_eq!(
-			pallet_preimage::PreimageFor::<T>::iter_keys().count(),
+			pallet_preimage::PreimageFor::<T>::iter_keys().count() + STATUSES_MISSING_PREIMAGE_COUNT,
 			pallet_preimage::RequestStatusFor::<T>::iter_keys().count(),
 			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths on Asset Hub"
 		);
