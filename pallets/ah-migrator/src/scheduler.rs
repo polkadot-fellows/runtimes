@@ -94,7 +94,7 @@ impl<T: Config> Pallet<T> {
 
 		for SchedulerAgendaMessage { block, agenda } in messages {
 			if block < incomplete_since {
-				log::debug!(
+				log::info!(
 					target: LOG_TARGET,
 					"Skipping outdated agenda: block number = {:?}, incomplete since = {:?}",
 					block,
