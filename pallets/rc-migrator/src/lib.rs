@@ -1094,6 +1094,8 @@ pub mod pallet {
 					send_error: Some(err),
 				});
 			} else {
+				PendingXcmMessages::<T>::remove((query_id, message_hash));
+				PendingXcmMessages::<T>::insert((new_query_id, message_hash), xcm);
 				PendingXcmQueries::<T>::insert(new_query_id, message_hash);
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
 					query_id: new_query_id,
