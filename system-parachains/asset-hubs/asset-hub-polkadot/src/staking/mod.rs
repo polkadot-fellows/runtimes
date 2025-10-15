@@ -252,7 +252,7 @@ parameter_types! {
 impl multi_block::unsigned::Config for Runtime {
 	type MinerPages = MinerPages;
 	type OffchainStorage = ConstBool<true>;
-	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>>;
+	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>, ()>;
 	type MinerTxPriority = MinerTxPriority;
 	type OffchainRepeat = OffchainRepeat;
 	type WeightInfo = weights::pallet_election_provider_multi_block_unsigned::WeightInfo<Runtime>;
@@ -471,20 +471,29 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 
 		// Set the minimum score for the election, as per the Polkadot RC state.
 		//
-		// This value is set from block 27,730,872 of Polkadot RC.
+		// These values are created using script:
+		//
+		// https://github.com/paritytech/polkadot-scripts/blob/master/src/services/election_score_stats.ts
+		//
+		// At https://polkadot.subscan.io/block/28207264.
+		//
+		// Note: the script looks at the last 30 elections, gets their average, and calculates 70%
+		// threshold thereof.
+		//
 		// Recent election scores in Polkadot can be found on:
 		// https://polkadot.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
 		//
-		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0) being:
+		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0)
+		// being:
 		//
-		// * minimal_stake: 10907549130714057 (1.28x the minimum)
-		// * sum_stake: 8028519336725652293 (2.44x the minimum)
-		// * sum_stake_squared: 108358993218278434700023844467997545 (0.4 the minimum, the lower the
-		//   better)
+		// * minimal_stake: 10907549130714057 (1.38x the minimum)
+		// * sum_stake: 8028519336725652293 (1.49x the minimum)
+		// * sum_stake_squared: 108358993218278434700023844467997545 (0.57 the minimum, the lower
+		//   the better)
 		let minimum_score = sp_npos_elections::ElectionScore {
-			minimal_stake: 8474057820699941,
-			sum_stake: 3276970719352749444,
-			sum_stake_squared: 244059208045236715654727835467163294,
+			minimal_stake: 7895552765679931,
+			sum_stake: 5655838551978860651,
+			sum_stake_squared: 187148285683372481445131595645808873,
 		};
 		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 

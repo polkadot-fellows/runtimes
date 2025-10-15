@@ -1545,15 +1545,16 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
-impl pallet_staking_async_ah_client::Config for Runtime {
+impl ah_client::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	// Polkadot RC currently has 600 validators. 500 minimum for now.
-	type MinimumValidatorSetSize = ConstU32<500>;
+	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
+	// count increasing.
+	type MinimumValidatorSetSize = ConstU32<600>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
@@ -1585,7 +1586,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
 
 #[derive(Encode, Decode)]
 enum AssetHubRuntimePallets<AccountId> {
-	// Audit: `StakingRcClient` in asset-hub-westend
+	// Audit: `StakingRcClient` in asset-hub-polkadot
 	#[codec(index = 84)]
 	RcClient(RcClientCalls<AccountId>),
 }
