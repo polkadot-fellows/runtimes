@@ -1115,11 +1115,16 @@ parameter_types! {
 		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
+ord_parameter_types! {
+	pub const ManagerMultisig: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
+}
+
 impl pallet_preimage::Config for Runtime {
 	type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<ManagerMultisig, AccountId>>;
 	type Consideration = HoldConsideration<
 		AccountId,
 		Balances,
