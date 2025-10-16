@@ -67,7 +67,7 @@ jobs:
         continue-on-error: true
 
       - name: Debug pods
-        if: failure()
+        if: success() || failure()
         run: |
 
           docker ps
