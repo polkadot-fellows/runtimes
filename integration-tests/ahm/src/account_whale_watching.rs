@@ -18,9 +18,10 @@
 
 #[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
+#[cfg(feature = "polkadot-ahm")]
+use hex_literal::hex;
 
 use crate::porting_prelude::RC_DOLLARS;
-use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_runtime::AccountId32;
