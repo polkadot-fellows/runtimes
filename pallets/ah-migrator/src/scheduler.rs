@@ -96,9 +96,7 @@ impl<T: Config> Pallet<T> {
 			if block < incomplete_since {
 				log::info!(
 					target: LOG_TARGET,
-					"Skipping outdated agenda: block number = {:?}, incomplete since = {:?}",
-					block,
-					incomplete_since
+					"Skipping outdated agenda: block number = {block:?}, incomplete since = {incomplete_since:?}",
 				);
 				continue;
 			}
