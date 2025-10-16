@@ -1116,7 +1116,7 @@ parameter_types! {
 }
 
 ord_parameter_types! {
-	pub const ManagerMultisig: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
+	pub const ManagerMultisig: AccountId = pallet_rc_migrator::Pallet::<Runtime>::manager_multisig_id();
 }
 
 impl pallet_preimage::Config for Runtime {

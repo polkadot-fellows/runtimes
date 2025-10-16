@@ -1344,8 +1344,8 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Pallet<T> {
-		fn manager_multisig_id() -> T::AccountId {
+	impl<T: frame_system::Config> Pallet<T> {
+		pub fn manager_multisig_id() -> T::AccountId {
 			let pallet_id = PalletId(*b"rcmigmts");
 			pallet_id.into_account_truncating()
 		}
