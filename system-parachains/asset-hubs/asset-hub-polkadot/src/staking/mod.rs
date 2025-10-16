@@ -694,7 +694,7 @@ mod tests {
 				"export terminal",
 				<Runtime as multi_block::Config>::WeightInfo::export_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(95)), // TODO: reduce to 75 once re-benchmarked.
+				Some(Percent::from_percent(75)),
 			);
 		}
 
