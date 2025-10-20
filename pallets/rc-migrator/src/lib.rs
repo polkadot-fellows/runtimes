@@ -1322,7 +1322,7 @@ pub mod pallet {
 			payload: Box<ManagerMultisigVote<T>>,
 			sig: sp_runtime::MultiSignature,
 		) -> DispatchResult {
-			let _ = ensure_none(origin)?;
+			ensure_none(origin)?;
 
 			Self::do_validate_unsigned(&payload, &sig)
 				.map_err(|_| Error::<T>::UnsignedValidationFailed)?;
@@ -1399,10 +1399,15 @@ pub mod pallet {
 		}
 	}
 
+	/// The multisig AccountIDs that votes to execute a specific call.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type ManagerMultisigs<T: Config> =
 		StorageMap<_, Twox64Concat, <T as Config>::RuntimeCall, Vec<AccountId32>, ValueQuery>;
+
+	/// The current round of the multisig voting.
+	///
+	/// Votes are only valid for the current round.
 	#[pallet::storage]
 	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
 
@@ -1443,6 +1448,11 @@ pub mod pallet {
 			if ManagerMultisigRound::<T>::get() != payload.round {
 				return InvalidTransaction::Stale.into()
 			}
+			if ManagerVotesInCurrentRound::<T>::get(&account) >= T::MultisigMaxVotesPerRound::get()
+			{
+				return InvalidTransaction::Stale.into()
+			}
+
 			ValidTransaction::with_tag_prefix("AhmMultisig")
 				.priority(sp_runtime::traits::Bounded::max_value())
 				.and_provides(vec![("ahm_multi", account).encode()])
