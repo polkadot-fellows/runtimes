@@ -17,9 +17,6 @@
 
 use crate::*;
 
-#[cfg(any(feature = "kusama-ahm", feature = "polkadot-ahm"))]
-use hex_literal::hex;
-
 #[cfg(feature = "std")]
 use pallet_rc_migrator::types::AccountIdOf;
 
