@@ -99,10 +99,9 @@ pub struct RebagIffMigrationDone;
 impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 	fn get() -> u32 {
 		if cfg!(feature = "runtime-benchmarks") ||
-			matches!(
-				pallet_ah_migrator::AhMigrationStage::<Runtime>::get(),
-				pallet_ah_migrator::MigrationStage::MigrationDone
-			) {
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
+				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
+		{
 			5
 		} else {
 			0
@@ -363,6 +362,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
+	type MaxValidatorSetRetries = ConstU32<64>;
 }
 
 #[derive(Encode, Decode)]
@@ -381,9 +381,7 @@ pub enum AhClientCalls {
 }
 
 pub struct ValidatorSetToXcm;
-impl sp_runtime::traits::Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>>
-	for ValidatorSetToXcm
-{
+impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>> for ValidatorSetToXcm {
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -409,13 +407,13 @@ pub struct StakingXcmToRelayChain;
 
 impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 	type AccountId = AccountId;
-	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) {
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send`
-		let message = ValidatorSetToXcm::convert(report);
-		let dest = RelayLocation::get();
-		let _ = crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {err:?}");
-		});
+	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			RelayLocation,
+			rc_client::ValidatorSetReport<Self::AccountId>,
+			ValidatorSetToXcm,
+		>::send(report)
 	}
 }
 
@@ -460,7 +458,7 @@ impl InitiateStakingAsync {
 impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	fn on_runtime_upgrade() -> Weight {
 		if !Self::needs_init() {
-			return <Runtime as frame_system::Config>::DbWeight::get().writes(1)
+			return <Runtime as frame_system::Config>::DbWeight::get().writes(1);
 		}
 		use pallet_election_provider_multi_block::verifier::Verifier;
 		// set parity staking miner as the invulnerable submitter in `multi-block`.
@@ -534,20 +532,20 @@ mod tests {
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
-				// up to a 1/3 of the validators are reported in a single batch of offences
-				let hefty_offences = (0..333)
+				// MaxOffenceBatchSize in RC is 32;
+				let hefty_offences = (0..32)
 					.map(|i| {
-						rc_client::Offence {
-							offender: <AccountId>::from([i as u8; 32]), /* overflows, but
-							                                             * whatever,
-							                                             * don't matter */
-							reporters: vec![<AccountId>::from([1u8; 32])],
-							slash_fraction: Perbill::from_percent(10),
-						}
+						(
+							42,
+							rc_client::Offence {
+								offender: <AccountId>::from([i as u8; 32]),
+								reporters: vec![<AccountId>::from([1u8; 32])],
+								slash_fraction: Perbill::from_percent(10),
+							},
+						)
 					})
 					.collect();
-				let di = rc_client::Call::<Runtime>::relay_new_offence {
-					slash_session: 42,
+				let di = rc_client::Call::<Runtime>::relay_new_offence_paged {
 					offences: hefty_offences,
 				}
 				.get_dispatch_info();

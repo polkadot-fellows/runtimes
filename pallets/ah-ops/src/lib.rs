@@ -391,7 +391,7 @@ pub mod pallet {
 				&pot,
 				&depositor,
 				contribution,
-				Preservation::Preserve,
+				Preservation::Expendable,
 			)
 			.defensive()
 			.map_err(|_| Error::<T>::FailedToWithdrawCrowdloanContribution)?;

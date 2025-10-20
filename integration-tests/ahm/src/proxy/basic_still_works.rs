@@ -179,15 +179,6 @@ impl AhMigrationCheck for ProxyBasicWorks {
 		}
 
 		for ((delegatee, delegator), permissions) in pre_and_post.iter() {
-			// Assert storage "Proxy::Proxies::ah_post::correct"
-			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(delegator);
-			if entry.is_empty() {
-				defensive!("Storage entry must exist");
-			}
-
-			let maybe_delay =
-				entry.iter().find(|proxy| proxy.delegate == *delegatee).map(|proxy| proxy.delay);
-
 			let delegatee =
 				pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(
 					delegatee.clone(),
@@ -196,6 +187,14 @@ impl AhMigrationCheck for ProxyBasicWorks {
 				pallet_ah_migrator::Pallet::<AssetHubRuntime>::translate_account_rc_to_ah(
 					delegator.clone(),
 				);
+
+			// Assert storage "Proxy::Proxies::ah_post::correct"
+			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);
+			assert!(!entry.is_empty(), "Proxies must exist");
+
+			let maybe_delay =
+				entry.iter().find(|proxy| proxy.delegate == delegatee).map(|proxy| proxy.delay);
+
 			Self::check_proxy(&delegatee, &delegator, permissions, maybe_delay.unwrap_or(0));
 		}
 	}
