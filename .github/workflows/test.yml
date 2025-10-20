@@ -210,8 +210,8 @@ jobs:
       - name: Download Polkadot snaps
         run: |
           python3 -m pip install gdown
-          gdown 1Z01NFTNUlRo93yeI4M3XYj6338tgfuu9 # 2025-09-05 RC
-          gdown 1r5z9MqtHubCVlkCcutNbuwWd2F9l0iNy # 2025-09-05 AH
+          gdown 1C6DXgdk6WLLor59T5TwFnuOtgoXaRbua # 2025-10-20 AH
+          gdown 1nrFvYRLqouNRFOuQ4X3fsTCfqTc4JXIV # 2025-10-20 RC
 
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
