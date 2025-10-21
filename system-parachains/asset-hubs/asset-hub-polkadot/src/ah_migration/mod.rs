@@ -419,18 +419,17 @@ impl RcToAhCall {
 					);
 				})?;
 
-				// Convert DescendOrigin to AliasOrigin (message is already from destination's perspective)
-				let converted_xcm = xcm_mapping::reanchor_xcm_for_send(xcm, &ah_location, &universal_location)?;
+				// Convert DescendOrigin to AliasOrigin (message is already from destination's
+				// perspective)
+				let converted_xcm =
+					xcm_mapping::reanchor_xcm_for_send(xcm, &ah_location, &universal_location)?;
 
 				Ok(RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
 					dest: Box::new(dest.into()),
 					message: Box::new(VersionedXcm::from(converted_xcm)),
 				}))
 			},
-			RcRuntimeCall::XcmPallet(RcXcmCall::execute {
-				message,
-				max_weight,
-			}) => {
+			RcRuntimeCall::XcmPallet(RcXcmCall::execute { message, max_weight }) => {
 				// Go through the instructions and reanchor destinations and assets, since they
 				// are relative to the local chain, which was previously the Relay Chain.
 
@@ -449,14 +448,13 @@ impl RcToAhCall {
 				})?;
 
 				// Reanchor the XCM message
-				let reanchored_xcm = xcm_mapping::reanchor_xcm(xcm, &ah_location, &universal_location)?;
+				let reanchored_xcm =
+					xcm_mapping::reanchor_xcm(xcm, &ah_location, &universal_location)?;
 
-				Ok(RuntimeCall::PolkadotXcm(
-					pallet_xcm::Call::<Runtime>::execute {
-						message: Box::new(VersionedXcm::from(reanchored_xcm.into())),
-						max_weight,
-					}
-				))
+				Ok(RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::execute {
+					message: Box::new(VersionedXcm::from(reanchored_xcm.into())),
+					max_weight,
+				}))
 			},
 			RcRuntimeCall::XcmPallet(RcXcmCall::limited_reserve_transfer_assets {
 				dest,
