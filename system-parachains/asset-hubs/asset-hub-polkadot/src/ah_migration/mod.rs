@@ -411,9 +411,20 @@ impl RcToAhCall {
 					);
 				})?;
 
+				// Convert the versioned XCM to latest version for DescendOrigin conversion
+				let xcm: xcm::latest::Xcm<()> = (*message).try_into().map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to convert versioned XCM to latest version: {err:?}",
+					);
+				})?;
+
+				// Convert DescendOrigin to AliasOrigin (message is already from destination's perspective)
+				let converted_xcm = xcm_mapping::reanchor_xcm_for_send(xcm, &ah_location, &universal_location)?;
+
 				Ok(RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
 					dest: Box::new(dest.into()),
-					message,
+					message: Box::new(VersionedXcm::from(converted_xcm)),
 				}))
 			},
 			RcRuntimeCall::XcmPallet(RcXcmCall::execute {

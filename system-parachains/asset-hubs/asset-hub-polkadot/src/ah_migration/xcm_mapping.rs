@@ -15,7 +15,7 @@
 
 use alloc::vec::Vec;
 use pallet_ah_migrator::LOG_TARGET;
-use xcm::latest::{AssetFilter, Instruction, InteriorLocation, Junction, Location, Xcm, Reanchorable};
+use xcm::latest::{Instruction, InteriorLocation, Junction, Location, Xcm, Reanchorable};
 
 pub fn reanchor_xcm(
 	xcm: Xcm<()>,
@@ -29,6 +29,20 @@ pub fn reanchor_xcm(
 	Ok(Xcm(reanchored_instructions?))
 }
 
+pub fn reanchor_xcm_for_send(
+	xcm: Xcm<()>,
+	_ah_location: &Location,
+	_universal_location: &InteriorLocation,
+) -> Result<Xcm<()>, ()> {
+	// For send operations, the message is already from the destination's perspective
+	// We only need to convert DescendOrigin to AliasOrigin
+	let converted_instructions: Result<Vec<_>, ()> = xcm.0.into_iter().map(|instruction| {
+		convert_descend_to_alias_origin(instruction)
+	}).collect();
+	
+	Ok(Xcm(converted_instructions?))
+}
+
 pub fn reanchor_instruction(
 	instruction: Instruction<()>,
 	ah_location: &Location,
@@ -37,24 +51,12 @@ pub fn reanchor_instruction(
 	use Instruction::*;
 
 	match instruction {
-		// Instructions that contain assets that need reanchoring
+		// Only map the essential instructions that are actually needed
 		WithdrawAsset(assets) => {
 			let reanchored_assets = assets.reanchored(ah_location, universal_location).map_err(|err| {
 				log::error!(target: LOG_TARGET, "Failed to reanchor assets: {err:?}");
 			})?;
 			Ok(WithdrawAsset(reanchored_assets))
-		},
-		ReserveAssetDeposited(assets) => {
-			let reanchored_assets = assets.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor assets: {err:?}");
-			})?;
-			Ok(ReserveAssetDeposited(reanchored_assets))
-		},
-		ReceiveTeleportedAsset(assets) => {
-			let reanchored_assets = assets.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor assets: {err:?}");
-			})?;
-			Ok(ReceiveTeleportedAsset(reanchored_assets))
 		},
 		PayFees { asset } => {
 			let reanchored_asset = asset.reanchored(ah_location, universal_location).map_err(|err| {
@@ -62,14 +64,6 @@ pub fn reanchor_instruction(
 			})?;
 			Ok(PayFees { asset: reanchored_asset })
 		},
-		BuyExecution { fees, weight_limit } => {
-			let reanchored_fees = fees.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor fees: {err:?}");
-			})?;
-			Ok(BuyExecution { fees: reanchored_fees, weight_limit })
-		},
-		
-		// Instructions that contain locations that need reanchoring
 		DepositAsset { assets, beneficiary } => {
 			let reanchored_beneficiary = if is_local_account(&beneficiary) {
 				// Local accounts (parents: 0, AccountId32/AccountKey20) don't need reanchoring
@@ -81,7 +75,6 @@ pub fn reanchor_instruction(
 			};
 			Ok(DepositAsset { assets, beneficiary: reanchored_beneficiary })
 		},
-		
 		DepositReserveAsset { assets, dest, xcm } => {
 			let reanchored_dest = dest.reanchored(ah_location, universal_location).map_err(|err| {
 				log::error!(target: LOG_TARGET, "Failed to reanchor dest: {err:?}");
@@ -90,53 +83,12 @@ pub fn reanchor_instruction(
 			Ok(DepositReserveAsset { assets, dest: reanchored_dest, xcm })
 		},
 		
-		// Instructions that contain both locations and nested XCM that need reanchoring
-		InitiateReserveWithdraw { assets, reserve, xcm } => {
-			let reanchored_reserve = reserve.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor reserve: {err:?}");
-			})?;
-			let reanchored_xcm = reanchor_xcm(xcm, ah_location, universal_location)?;
-			Ok(InitiateReserveWithdraw { assets, reserve: reanchored_reserve, xcm: reanchored_xcm })
-		},
-		InitiateTeleport { assets, dest, xcm } => {
-			let reanchored_dest = dest.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor dest: {err:?}");
-			})?;
-			let reanchored_xcm = reanchor_xcm(xcm, ah_location, universal_location)?;
-			Ok(InitiateTeleport { assets, dest: reanchored_dest, xcm: reanchored_xcm })
-		},
-		ExchangeAsset { give, want, maximal } => {
-			let reanchored_give = reanchor_asset_filter(give, ah_location, universal_location)?;
-			let reanchored_want = want.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor want assets: {err:?}");
-			})?;
-			Ok(ExchangeAsset { give: reanchored_give, want: reanchored_want, maximal })
-		},
-		
-		// Instructions that don't contain locations or assets - pass through unchanged
+		// All other instructions pass through unchanged
 		instruction => Ok(instruction),
 	}
 }
 
 
-fn reanchor_asset_filter(
-	filter: AssetFilter,
-	ah_location: &Location,
-	universal_location: &InteriorLocation,
-) -> Result<AssetFilter, ()> {
-	match filter {
-		AssetFilter::Definite(assets) => {
-			let reanchored_assets = assets.reanchored(ah_location, universal_location).map_err(|err| {
-				log::error!(target: LOG_TARGET, "Failed to reanchor asset filter assets: {err:?}");
-			})?;
-			Ok(AssetFilter::Definite(reanchored_assets))
-		},
-		AssetFilter::Wild(wild) => {
-			// Wild filters don't contain specific locations, so pass through unchanged
-			Ok(AssetFilter::Wild(wild))
-		},
-	}
-}
 
 fn is_local_account(location: &Location) -> bool {
 	// Check if this is a local account (parents: 0, AccountId32/AccountKey20)
@@ -147,5 +99,21 @@ fn is_local_account(location: &Location) -> bool {
 	match location.interior.first() {
 		Some(Junction::AccountId32 { .. }) | Some(Junction::AccountKey20 { .. }) => true,
 		_ => false,
+	}
+}
+
+fn convert_descend_to_alias_origin(instruction: Instruction<()>) -> Result<Instruction<()>, ()> {
+	use Instruction::*;
+	
+	match instruction {
+		DescendOrigin(interior) => {
+			// Convert DescendOrigin to AliasOrigin for Asset Hub
+			// DescendOrigin operates from one parent up, so we need to add one parent
+			// to the location when converting to AliasOrigin
+			let alias_location = Location::new(1, interior);
+			Ok(AliasOrigin(alias_location))
+		},
+		// All other instructions pass through unchanged
+		instruction => Ok(instruction),
 	}
 }
