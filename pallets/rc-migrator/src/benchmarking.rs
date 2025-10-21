@@ -168,7 +168,8 @@ pub mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Root, query_id);
 
-		assert!(PendingXcmMessages::<T>::get((query_id, message_hash)).is_some());
+		assert!(PendingXcmMessages::<T>::get((query_id, message_hash)).is_none());
+		assert!(PendingXcmMessages::<T>::get((next_query_id, message_hash)).is_some());
 		assert!(PendingXcmQueries::<T>::get(query_id).is_some());
 		assert!(PendingXcmQueries::<T>::get(next_query_id).is_some());
 		assert_last_event::<T>(
