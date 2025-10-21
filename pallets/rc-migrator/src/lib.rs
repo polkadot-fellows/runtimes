@@ -629,6 +629,9 @@ pub mod pallet {
 
 		/// Threshold of `MultisigMembers`.
 		type MultisigThreshold: Get<u32>;
+
+		/// Limit the number of votes of each participant per round.
+		type MultisigMaxVotesPerRound: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -669,6 +672,8 @@ pub mod pallet {
 		InvalidOrigin,
 		/// The stage transition is invalid.
 		InvalidStageTransition,
+		/// Unsigned validation failed.
+		UnsignedValidationFailed,
 	}
 
 	#[pallet::event]
@@ -1314,14 +1319,22 @@ pub mod pallet {
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
 			payload: Box<ManagerMultisigVote<T>>,
-			_sig: sp_runtime::MultiSignature,
+			sig: sp_runtime::MultiSignature,
 		) -> DispatchResult {
-			let _ = ensure_none(origin);
+			ensure_none(origin)?;
+
+			Self::do_validate_unsigned(&payload, &sig)
+				.map_err(|_| Error::<T>::UnsignedValidationFailed)?;
+			let who = payload.who.into_account();
 
 			ensure!(ManagerMultisigRound::<T>::get() == payload.round, "RoundStale");
+			let num_votes = ManagerVotesInCurrentRound::<T>::get(&who);
+			ensure!(num_votes < T::MultisigMaxVotesPerRound::get(), "MaxVotesPerRound");
+			ManagerVotesInCurrentRound::<T>::insert(&who, num_votes.saturating_add(1));
+
 			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
-			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
-			votes_for_call.push(payload.who);
+			ensure!(!votes_for_call.contains(&who), "Duplicate");
+			votes_for_call.push(who);
 
 			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
 				let origin: <T as Config>::RuntimeOrigin =
@@ -1329,6 +1342,9 @@ pub mod pallet {
 				let call = payload.call.clone();
 				let res = call.dispatch(origin);
 				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
+				let _ = ManagerVotesInCurrentRound::<T>::clear(u32::MAX, None);
+				debug_assert!(ManagerVotesInCurrentRound::<T>::iter_keys().next().is_none());
+
 				Self::deposit_event(Event::ManagerMultisigDispatched {
 					res: res.map(|_| ()).map_err(|e| e.error),
 				});
@@ -1382,45 +1398,66 @@ pub mod pallet {
 		}
 	}
 
+	/// The multisig AccountIDs that votes to execute a specific call.
 	#[pallet::storage]
 	#[pallet::unbounded]
-	pub type ManagerMultisigs<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		<T as Config>::RuntimeCall,
-		Vec<sp_runtime::MultiSigner>,
-		ValueQuery,
-	>;
+	pub type ManagerMultisigs<T: Config> =
+		StorageMap<_, Twox64Concat, <T as Config>::RuntimeCall, Vec<AccountId32>, ValueQuery>;
+
+	/// The current round of the multisig voting.
+	///
+	/// Votes are only valid for the current round.
 	#[pallet::storage]
 	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// How often each participant voted in the current round.
+	///
+	/// Will be cleared at the end of each round.
+	#[pallet::storage]
+	pub type ManagerVotesInCurrentRound<T: Config> =
+		StorageMap<_, Blake2_128Concat, AccountId32, u32, ValueQuery>;
 
 	#[pallet::validate_unsigned]
 	impl<T: Config> ValidateUnsigned for Pallet<T> {
 		type Call = Call<T>;
 
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-			use sp_runtime::traits::Verify;
 			if let Call::vote_manager_multisig { payload, sig } = call {
-				let account = payload.who.clone().into_account();
-
-				if !T::MultisigMembers::get().contains(&account) {
-					return InvalidTransaction::BadSigner.into()
-				}
-				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
-					return InvalidTransaction::BadProof.into()
-				}
-				if ManagerMultisigRound::<T>::get() != payload.round {
-					return InvalidTransaction::Stale.into()
-				}
-				ValidTransaction::with_tag_prefix("AhmMultisig")
-					.priority(sp_runtime::traits::Bounded::max_value())
-					.and_provides(vec![("ahm_multi", account).encode()])
-					.propagate(true)
-					.longevity(30)
-					.build()
+				Self::do_validate_unsigned(payload, sig)
 			} else {
 				InvalidTransaction::Call.into()
 			}
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn do_validate_unsigned(
+			payload: &ManagerMultisigVote<T>,
+			sig: &sp_runtime::MultiSignature,
+		) -> TransactionValidity {
+			use sp_runtime::traits::Verify;
+			let account = payload.who.clone().into_account();
+
+			if !T::MultisigMembers::get().contains(&account) {
+				return InvalidTransaction::BadSigner.into()
+			}
+			if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
+				return InvalidTransaction::BadProof.into()
+			}
+			if ManagerMultisigRound::<T>::get() != payload.round {
+				return InvalidTransaction::Stale.into()
+			}
+			if ManagerVotesInCurrentRound::<T>::get(&account) >= T::MultisigMaxVotesPerRound::get()
+			{
+				return InvalidTransaction::Stale.into()
+			}
+
+			ValidTransaction::with_tag_prefix("AhmMultisig")
+				.priority(sp_runtime::traits::Bounded::max_value())
+				.and_provides(vec![("ahm_multi", account).encode()])
+				.propagate(true)
+				.longevity(30)
+				.build()
 		}
 	}
 
