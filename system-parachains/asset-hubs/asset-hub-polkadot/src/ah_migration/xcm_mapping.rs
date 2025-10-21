@@ -160,7 +160,11 @@ mod tests {
 			.deposit_reserve_asset(
 				AllCounted(1),
 				Location::new(0, [Parachain(1004)]),
-				Xcm(Vec::new()),
+				// Whatever.
+				Xcm::builder_unsafe()
+					.clear_origin()
+					.withdraw_asset((Parent, 10_000_000_000u128))
+					.build(),
 			)
 			.refund_surplus()
 			.deposit_asset(AllCounted(1), [1u8; 32])
@@ -182,7 +186,12 @@ mod tests {
 							AllCounted(1),
 							// Parachain location gets a parent.
 							Location::new(1, [Parachain(1004)]),
-							Xcm(Vec::new())
+							// The same remote xcm, since it was already meant
+							// for the destination.
+							Xcm::builder_unsafe()
+								.clear_origin()
+								.withdraw_asset((Parent, 10_000_000_000u128))
+								.build(),
 						)
 						.refund_surplus()
 						// Local accounts are not reanchored.
@@ -191,6 +200,55 @@ mod tests {
 				)),
 				max_weight: Weight::MAX,
 			})
+		);
+	}
+
+	#[test]
+	fn map_xcm_send() {
+		let destination = Location::new(0, [Parachain(1004)]);
+		// Relay wants to act as any parachain.
+		let xcm = Xcm::builder_unsafe()
+			.descend_origin(Parachain(1002))
+			.withdraw_asset((Parent, 10_000_000_000u128))
+			.buy_execution((Parent, 100_000_000u128), Unlimited)
+			.transact(
+				OriginKind::SovereignAccount,
+				Weight::from_parts(10_000_000_000, 100_000),
+				Vec::new(),
+			)
+			.refund_surplus()
+			.deposit_asset(AllCounted(1), [1u8; 32])
+			.build();
+		let rc_call = RcRuntimeCall::XcmPallet(RcXcmCall::send {
+			dest: Box::new(VersionedLocation::from(destination)),
+			message: Box::new(VersionedXcm::from(xcm)),
+		});
+		let mapped_call = RcToAhCall::map(rc_call).expect("Call can be mapped");
+		assert_eq!(
+			mapped_call,
+			RuntimeCall::PolkadotXcm(pallet_xcm::Call::send {
+				message: Box::new(VersionedXcm::from(
+					Xcm::builder_unsafe()
+						// Descend becomes Alias with one additional parent.
+						.alias_origin((Parent, Parachain(1002)))
+						// The rest stays the same since it was already meant
+						// for execution on the destination.
+						.withdraw_asset((Parent, 10_000_000_000u128))
+						.buy_execution((Parent, 100_000_000u128), Unlimited)
+						.transact(
+							OriginKind::SovereignAccount,
+							Weight::from_parts(10_000_000_000, 100_000),
+							Vec::new()
+						)
+						.refund_surplus()
+						.deposit_asset(AllCounted(1), [1u8; 32])
+						.build()
+				)),
+				dest: Box::new(VersionedLocation::from(
+					// Added 1 more parent.
+					Location::new(1, [Parachain(1004)])
+				)),
+			}),
 		);
 	}
 }
