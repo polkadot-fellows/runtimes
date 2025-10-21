@@ -14,6 +14,7 @@
 // limitations under the License.
 
 pub mod call_filter;
+pub mod xcm_mapping;
 
 extern crate alloc;
 
@@ -254,6 +255,8 @@ pub enum RcSchedulerCall {
 pub enum RcXcmCall {
 	#[codec(index = 0u8)]
 	send { dest: Box<VersionedLocation>, message: Box<VersionedXcm<()>> },
+	#[codec(index = 3u8)]
+	execute { message: Box<VersionedXcm<()>>, max_weight: Weight },
 	#[codec(index = 8u8)]
 	limited_reserve_transfer_assets {
 		dest: Box<VersionedLocation>,
@@ -412,6 +415,37 @@ impl RcToAhCall {
 					dest: Box::new(dest.into()),
 					message,
 				}))
+			},
+			RcRuntimeCall::XcmPallet(RcXcmCall::execute {
+				message,
+				max_weight,
+			}) => {
+				// Go through the instructions and reanchor destinations and assets, since they
+				// are relative to the local chain, which was previously the Relay Chain.
+
+				// Absolute location of the Relay Chain.
+				let universal_location: InteriorLocation =
+					[GlobalConsensus(NetworkId::Polkadot)].into();
+				// Relative location of Asset Hub from the perspective of the Relay Chain.
+				let ah_location = Location::new(0, [Parachain(1000)]);
+
+				// Convert the versioned XCM to latest version for reanchoring
+				let xcm: xcm::latest::Xcm<()> = (*message).try_into().map_err(|err| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to convert versioned XCM to latest version: {err:?}",
+					);
+				})?;
+
+				// Reanchor the XCM message
+				let reanchored_xcm = xcm_mapping::reanchor_xcm(xcm, &ah_location, &universal_location)?;
+
+				Ok(RuntimeCall::PolkadotXcm(
+					pallet_xcm::Call::<Runtime>::execute {
+						message: Box::new(VersionedXcm::from(reanchored_xcm.into())),
+						max_weight,
+					}
+				))
 			},
 			RcRuntimeCall::XcmPallet(RcXcmCall::limited_reserve_transfer_assets {
 				dest,
