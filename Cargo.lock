@@ -10032,9 +10032,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a6146d944ff5ed8e5696b47dc7b9ae7388d51e4c56d4d3fe9e320beb8b586a4"
+checksum = "ae5d872880114aa775ae374d217a1f22e25a72df323451ce9905c05d2ae4401d"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
