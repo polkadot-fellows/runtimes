@@ -2030,7 +2030,7 @@ pub mod migrations {
 				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
 			}
 
-			T::DbWeight::get().reads_writes(1, 1)
+			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
 		}
 	}
 }
