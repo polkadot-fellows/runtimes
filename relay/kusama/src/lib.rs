@@ -51,7 +51,6 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
-		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, DefensiveResult, EitherOf, EitherOfDiverse,
 		EnsureOrigin, EnsureOriginWithArg, Equals, FromContains, InstanceFilter,
@@ -2146,8 +2145,6 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = ();

@@ -45,6 +45,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, DefensiveResult, EitherOf, EitherOfDiverse, Equals,
 		FromContains, Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp,
@@ -1987,9 +1988,11 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (KickOffAhm<Runtime>);
+	pub type Unreleased = (KickOffAhm<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
