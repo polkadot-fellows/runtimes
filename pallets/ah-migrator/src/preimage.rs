@@ -416,8 +416,8 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 			}
 		}
 
-		// there are two preimage statuses in the Polkadot state that have no preimages
-		const STATUSES_MISSING_PREIMAGE_COUNT: usize = 2;
+		// there are preimage statuses in the Polkadot state that have no preimages
+		const STATUSES_MISSING_PREIMAGE_COUNT: usize = 1;
 
 		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
 		assert_eq!(
