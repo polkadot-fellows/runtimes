@@ -215,6 +215,7 @@ snowbridge-beacon-primitives = { version = "0.15.0", default-features = false }
 snowbridge-core = { version = "0.15.0", default-features = false }
 snowbridge-merkle-tree = { version = "0.4.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.15.0", default-features = false }
+snowbridge-outbound-queue-v2-runtime-api = { version = "0.4.0", default-features = false }
 snowbridge-outbound-queue-primitives = { version = "0.4.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.15.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.15.0", default-features = false }
@@ -230,6 +231,7 @@ snowbridge-inbound-queue-primitives = { version = "0.4.0", default-features = fa
 snowbridge-runtime-common = { version = "0.16.0", default-features = false }
 snowbridge-runtime-test-common = { version = "0.18.0" }
 snowbridge-system-runtime-api = { version = "0.15.0", default-features = false }
+snowbridge-system-v2-runtime-api = { version = "0.4.0", default-features = false }
 sp-api = { version = "38.0.0", default-features = false }
 sp-application-crypto = { version = "42.0.0", default-features = false }
 sp-arithmetic = { version = "28.0.0", default-features = false }
@@ -275,12 +277,8 @@ ss58-registry = { version = "1.47.0" }
 resolver = "2"
 
 members = [
-	"integration-tests/ahm",
-	"pallets/ah-migrator",
-	"pallets/ah-ops",
-	"pallets/rc-migrator",
-
 	"chain-spec-generator",
+	"integration-tests/ahm",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
@@ -311,6 +309,9 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
+	"pallets/ah-migrator",
+	"pallets/ah-ops",
+	"pallets/rc-migrator",
 	"pallets/remote-proxy",
 	"relay/common",
 	"relay/kusama",

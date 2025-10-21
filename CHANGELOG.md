@@ -4,6 +4,13 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- [BHP](https://github.com/polkadot-fellows/runtimes/pull/978) Add missing snowbridge runtime API to the BridgeHub
+  runtime.
+
 ## [1.9.2] 08.10.2025
 
 ### Added

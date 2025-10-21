@@ -2268,6 +2268,7 @@ dependencies = [
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-outbound-queue-runtime-api",
+ "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-ethereum-client-fixtures",
  "snowbridge-pallet-inbound-queue",
@@ -2279,6 +2280,7 @@ dependencies = [
  "snowbridge-runtime-common",
  "snowbridge-runtime-test-common",
  "snowbridge-system-runtime-api",
+ "snowbridge-system-v2-runtime-api",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -14308,6 +14310,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "snowbridge-outbound-queue-v2-runtime-api"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fba0dad8d62ebf43477fddd34921925549bccbc059a8b978e0fab792c43aea6e"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "snowbridge-merkle-tree",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "snowbridge-pallet-ethereum-client"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -14614,6 +14630,19 @@ name = "snowbridge-system-runtime-api"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a67e999bee83f205802816ce43455530e6715167a333d4520fb58a6eb24d802"
+dependencies = [
+ "parity-scale-codec",
+ "snowbridge-core",
+ "sp-api",
+ "sp-std",
+ "staging-xcm",
+]
+
+[[package]]
+name = "snowbridge-system-v2-runtime-api"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3bcae93f3784a197b6d770d895156a40a875852192255a4097feed1546ab90e"
 dependencies = [
  "parity-scale-codec",
  "snowbridge-core",
