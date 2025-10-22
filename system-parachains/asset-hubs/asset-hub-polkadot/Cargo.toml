@@ -308,6 +308,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-ah-ops/std",
@@ -392,7 +393,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"hex/std"
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
