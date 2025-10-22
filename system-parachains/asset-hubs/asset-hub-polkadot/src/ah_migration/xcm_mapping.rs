@@ -24,6 +24,7 @@ use xcm::prelude::*;
 /// It iterates over all instructions, changing locations and assets when needed.
 ///
 /// Only some instructions are mapped, the rest will throw an error.
+#[allow(clippy::result_unit_err)]
 pub fn reanchor_xcm(
 	xcm: Xcm<()>,
 	ah_location: &Location,
@@ -100,10 +101,10 @@ fn is_local_account(location: &Location) -> bool {
 		return false;
 	}
 
-	match location.interior.first() {
-		Some(Junction::AccountId32 { .. }) | Some(Junction::AccountKey20 { .. }) => true,
-		_ => false,
-	}
+	matches!(
+		location.interior.first(),
+		Some(Junction::AccountId32 { .. }) | Some(Junction::AccountKey20 { .. })
+	)
 }
 
 fn reanchor_asset_filter(
