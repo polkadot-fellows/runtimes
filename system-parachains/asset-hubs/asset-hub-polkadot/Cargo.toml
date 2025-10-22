@@ -67,7 +67,9 @@ pallet-staking-async-rc-client = { workspace = true }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-runtime-api = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
+pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
@@ -329,6 +331,7 @@ std = [
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
 	"pallet-nomination-pools-benchmarking?/std",
+	"pallet-nomination-pools-runtime-api/std",
 	"pallet-nomination-pools/std",
 	"pallet-parameters/std",
 	"pallet-preimage/std",
@@ -339,6 +342,7 @@ std = [
 	"pallet-session/std",
 	"pallet-staking-async-rc-client/std",
 	"pallet-staking-async/std",
+	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",

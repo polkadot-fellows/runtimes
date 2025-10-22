@@ -916,6 +916,7 @@ dependencies = [
  "pallet-nfts-runtime-api",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
+ "pallet-nomination-pools-runtime-api",
  "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
@@ -930,6 +931,7 @@ dependencies = [
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-rc-client",
+ "pallet-staking-runtime-api",
  "pallet-state-trie-migration",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -1086,6 +1088,7 @@ dependencies = [
  "pallet-nfts-runtime-api",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
+ "pallet-nomination-pools-runtime-api",
  "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
@@ -1096,6 +1099,7 @@ dependencies = [
  "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-rc-client",
+ "pallet-staking-runtime-api",
  "pallet-state-trie-migration",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -2265,6 +2269,7 @@ dependencies = [
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-outbound-queue-runtime-api",
+ "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-ethereum-client-fixtures",
  "snowbridge-pallet-inbound-queue",
@@ -2276,6 +2281,7 @@ dependencies = [
  "snowbridge-runtime-common",
  "snowbridge-runtime-test-common",
  "snowbridge-system-runtime-api",
+ "snowbridge-system-v2-runtime-api",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -3815,7 +3821,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -4463,9 +4469,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-primitives"
-version = "20.5.0"
+version = "20.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5fd87346c56bb7b2034bbecae6a40e604f62b357aff07e482f343be1f11f37c"
+checksum = "fc7e044392be671ef64d5f0924bf07b37b33876bf098599a104887910b6f82ec"
 dependencies = [
  "bs58",
  "crc",
@@ -9182,9 +9188,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-democracy"
-version = "20.6.0"
+version = "20.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d9dc656fbebbf9f59591642d6f23470d8a912882bcaefc7582659e936aade68"
+checksum = "3253d5e8d9b37348e13e415528cb7588f0623909bda30fe5816e4c07db78f9e3"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -9271,9 +9277,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-treasuries"
-version = "20.7.0"
+version = "20.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "884fc4e531d51ffc69c20d1a0d8695fd28497080df2d6be4d839cdf2c70e7d1d"
+checksum = "4c7744026a0e76fb82e9c766fd8aa055a01235b45a61e73d248d5e01d0c56d39"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -10027,9 +10033,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.4.2"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f08e204511964e2fdf7224a3bab431ec071b3ee402b315fd5ca85011e0181a52"
+checksum = "ae5d872880114aa775ae374d217a1f22e25a72df323451ce9905c05d2ae4401d"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10051,9 +10057,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async-ah-client"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83a6bb5a297c0b60c8b1ceb966a3455c9ce3beb6f8feaa4e9ed95926f27b9066"
+checksum = "c82b0dda27f51e07b4d4fbae80f716ef73efb006a2764d5e9b8ee27ac37f64c0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -10073,9 +10079,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async-rc-client"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34b9c00bbdfa226a820a5a25fa2b938926b0b9d5186cb634a7e8c5c0967e107b"
+checksum = "aaf81d91ffeeb7da45327ac8b852030e95a316555702ff3cc066f3e7db659ecd"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -14305,6 +14311,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "snowbridge-outbound-queue-v2-runtime-api"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fba0dad8d62ebf43477fddd34921925549bccbc059a8b978e0fab792c43aea6e"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "snowbridge-merkle-tree",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "snowbridge-pallet-ethereum-client"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -14611,6 +14631,19 @@ name = "snowbridge-system-runtime-api"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a67e999bee83f205802816ce43455530e6715167a333d4520fb58a6eb24d802"
+dependencies = [
+ "parity-scale-codec",
+ "snowbridge-core",
+ "sp-api",
+ "sp-std",
+ "staging-xcm",
+]
+
+[[package]]
+name = "snowbridge-system-v2-runtime-api"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3bcae93f3784a197b6d770d895156a40a875852192255a4097feed1546ab90e"
 dependencies = [
  "parity-scale-codec",
  "snowbridge-core",

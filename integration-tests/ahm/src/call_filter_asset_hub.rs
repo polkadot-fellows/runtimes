@@ -27,6 +27,7 @@ use sp_runtime::AccountId32;
 
 /// Check that the call filtering mechanism works.
 #[test]
+#[cfg(not(feature = "kusama-ahm"))] // Kusama AHM is done and we removed the call filter.
 fn call_filter_works() {
 	let mut t: sp_io::TestExternalities =
 		frame_system::GenesisConfig::<T>::default().build_storage().unwrap().into();
