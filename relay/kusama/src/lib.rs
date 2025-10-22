@@ -51,7 +51,6 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
-		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
 		EnsureOriginWithArg, Equals, FromContains, InstanceFilter, KeyOwnerProofSystem,
@@ -2146,51 +2145,15 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (KickOffAhm<Runtime>,);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// Kick off the Asset Hub Migration.
-	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
-	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
-		fn on_runtime_upgrade() -> Weight {
-			if MigrationStartBlock::<T>::exists() ||
-				RcMigrationStage::<T>::get() != MigrationStage::Pending
-			{
-				// Already started or scheduled
-				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
-				return T::DbWeight::get().reads(2)
-			}
-
-			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
-				// Migration start block, Tuesday 7th Oct 8 AM UTC
-				// Naive estimate [30422513](https://kusama.subscan.io/block/30422513)
-				// Adjusted with -20.52 clock skew / day [30423691](https://kusama.subscan.io/block/30423691), avg delay per day over the last 30 days.
-				DispatchTime::At(30423691u32.into()),
-				// Warm up to wait for Messaging queues to empty
-				DispatchTime::After((5 * MINUTES).into()),
-				// Cool off to verify the success of the migration
-				DispatchTime::After((60 * MINUTES).into()),
-				// Respect the session scheduling check:
-				Default::default(),
-			);
-			if let Err(e) = result {
-				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
-			} else {
-				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
-			}
-
-			T::DbWeight::get().reads_writes(1, 1)
-		}
-	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.

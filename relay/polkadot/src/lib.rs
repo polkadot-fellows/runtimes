@@ -45,6 +45,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, DefensiveResult, EitherOf, EitherOfDiverse, Equals,
 		FromContains, Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp,
@@ -1987,15 +1988,51 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (KickOffAhm<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
+
+	/// Kick off the Asset Hub Migration.
+	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
+	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
+		fn on_runtime_upgrade() -> Weight {
+			if MigrationStartBlock::<T>::exists() ||
+				RcMigrationStage::<T>::get() != MigrationStage::Pending
+			{
+				// Already started or scheduled
+				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
+				return T::DbWeight::get().reads(2)
+			}
+
+			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				// Migration start block, Tuesday 4th Nov 8 AM UTC
+				// https://polkadot.subscan.io/block/28490502
+				DispatchTime::At(28490502u32.into()),
+				// Warm up to wait for Messaging queues to empty
+				DispatchTime::After((60 * MINUTES).into()),
+				// Cool off to verify the success of the migration
+				DispatchTime::After((60 * MINUTES).into()),
+				// Respect the session scheduling check:
+				Default::default(),
+			);
+
+			if let Err(e) = result {
+				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
+			} else {
+				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
+			}
+
+			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2266,8 +2303,10 @@ mod benches {
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 			let origin = Location::new(0, [Parachain(1000)]);
-			let target =
-				Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
+			let target = Location::new(
+				0,
+				[Parachain(1000), Junction::AccountId32 { id: [128u8; 32], network: None }],
+			);
 			Ok((origin, target))
 		}
 	}
