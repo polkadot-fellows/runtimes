@@ -27,7 +27,6 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
-use hex_literal::hex;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::{
 	xcm_config::{
@@ -246,10 +245,12 @@ pub const HOLLAR_ASSET_ID: u128 = 222;
 pub struct HollarFromHydration;
 impl ContainsPair<Asset, Location> for HollarFromHydration {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
-		let is_hydration = matches!(origin.unpack(), (1, [Parachain(HYDRATION_PARA_ID)]));
+		let is_hydration =
+			matches!(origin.unpack(), (1, [Parachain(para_id)]) if *para_id == HYDRATION_PARA_ID);
 		let is_hollar = matches!(
 			asset.id.0.unpack(),
-			(1, [Parachain(HYDRATION_PARA_ID), GeneralIndex(HYDRATION_ASSET_ID)])
+			(1, [Parachain(para_id), GeneralIndex(asset_id)])
+			if *para_id == HYDRATION_PARA_ID && *asset_id == HOLLAR_ASSET_ID
 		);
 
 		is_hydration && is_hollar
