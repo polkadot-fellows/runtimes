@@ -38,31 +38,6 @@ pub fn reanchor_xcm(
 	Ok(Xcm(reanchored_instructions?))
 }
 
-/// Reanchors an XCM used in `send` to the Asset Hub.
-///
-/// Since the message is already sent somewhere else, mostly the destination
-/// needs to be reanchored.
-///
-/// If `DescendOrigin` is used, it has to be mapped to `AliasOrigin` since
-/// Asset Hub's location is one lower than the Relay.
-/// For `AliasOrigin` to work, the recipient chain needs to comply with the
-/// suggested aliasing rules in RFC#122:
-/// https://github.com/polkadot-fellows/RFCs/blob/main/text/0122-alias-origin-on-asset-transfers.md#suggested-aliasing-rules.
-pub fn reanchor_xcm_for_send(
-	xcm: Xcm<()>,
-	_ah_location: &Location,
-	_universal_location: &InteriorLocation,
-) -> Result<Xcm<()>, ()> {
-	// For send operations, the message is already from the destination's perspective.
-	let converted_instructions: Result<Vec<_>, ()> = xcm
-		.0
-		.into_iter()
-		.map(|instruction| convert_descend_to_alias_origin(instruction))
-		.collect();
-
-	Ok(Xcm(converted_instructions?))
-}
-
 fn reanchor_instruction(
 	instruction: Instruction<()>,
 	ah_location: &Location,
@@ -102,8 +77,9 @@ fn reanchor_instruction(
 				dest.reanchored(ah_location, universal_location).map_err(|err| {
 					log::error!(target: LOG_TARGET, "Failed to reanchor dest: {err:?}");
 				})?;
+			let reanchored_assets = reanchor_asset_filter(assets, ah_location, universal_location)?;
 			// The nested xcm is already from the perspective of the dest, so no reanchoring needed.
-			Ok(DepositReserveAsset { assets, dest: reanchored_dest, xcm })
+			Ok(DepositReserveAsset { assets: reanchored_assets, dest: reanchored_dest, xcm })
 		},
 		RefundSurplus => Ok(RefundSurplus),
 
@@ -120,7 +96,7 @@ fn reanchor_instruction(
 
 fn is_local_account(location: &Location) -> bool {
 	// Check if this is a local account (parents: 0, AccountId32/AccountKey20)
-	if location.parents != 0 {
+	if location.parents != 0 && location.interior.len() != 1 {
 		return false;
 	}
 
@@ -130,25 +106,31 @@ fn is_local_account(location: &Location) -> bool {
 	}
 }
 
-fn convert_descend_to_alias_origin(instruction: Instruction<()>) -> Result<Instruction<()>, ()> {
-	use Instruction::*;
-
-	match instruction {
-		DescendOrigin(interior) => {
-			// Convert `DescendOrigin` to `AliasOrigin` from Asset Hub.
-			// `DescendOrigin` by the Relay Chain operated from one parent up,
-			// so we need to add one parent	to the location when converting to `AliasOrigin`.
-			let alias_location = Location::new(1, interior);
-			Ok(AliasOrigin(alias_location))
+fn reanchor_asset_filter(
+	filter: AssetFilter,
+	ah_location: &Location,
+	universal_location: &InteriorLocation,
+) -> Result<AssetFilter, ()> {
+	match filter {
+		AssetFilter::Definite(assets) => {
+			let reanchored_assets =
+				assets.reanchored(ah_location, universal_location).map_err(|err| {
+					log::error!(target: LOG_TARGET, "Failed to reanchor asset filter assets: {err:?}");
+				})?;
+			Ok(AssetFilter::Definite(reanchored_assets))
 		},
-		// All other instructions pass through unchanged
-		instruction => Ok(instruction),
+		AssetFilter::Wild(wild) => {
+			// Wild filters don't contain specific locations, so pass through unchanged.
+			Ok(AssetFilter::Wild(wild))
+		},
 	}
 }
 
 #[cfg(test)]
 mod tests {
-	use crate::ah_migration::{RcRuntimeCall, RcToAhCall, RcXcmCall, RuntimeCall};
+	use crate::ah_migration::{RcRuntimeCall, RcToAhCall, RcXcmCall, RuntimeCall, RuntimeOrigin};
+
+	use codec::DecodeAll;
 	use xcm::prelude::*;
 
 	#[test]
@@ -203,51 +185,83 @@ mod tests {
 		);
 	}
 
+	// Test that the referendum from https://polkadot.subsquare.io/referenda/1770 gets mapped
+	// and the mapping is correct.
 	#[test]
-	fn map_xcm_send() {
-		let destination = Location::new(0, [Parachain(1004)]);
-		// Relay wants to act as any parachain.
-		let xcm = Xcm::builder_unsafe()
-			.descend_origin(Parachain(1002))
-			.withdraw_asset((Parent, 10_000_000_000u128))
-			.buy_execution((Parent, 100_000_000u128), Unlimited)
-			.transact(
-				OriginKind::SovereignAccount,
-				Weight::from_parts(10_000_000_000, 100_000),
-				Vec::new(),
-			)
-			.refund_surplus()
-			.deposit_asset(AllCounted(1), [1u8; 32])
-			.build();
-		let rc_call = RcRuntimeCall::XcmPallet(RcXcmCall::send {
-			dest: Box::new(VersionedLocation::from(destination)),
-			message: Box::new(VersionedXcm::from(xcm)),
-		});
-		let mapped_call = RcToAhCall::map(rc_call).expect("Call can be mapped");
+	fn mapping_complex_ref_works() {
+		let call_hex = "0x1a02081a0300016d6f646c70792f747273727900000000000000000000000000000000000000006303051400040000000f00109b70ce1627300000000700e40b54020e010204000100c91f08130100000700e40b5402000d010204010100b10f140d010204000101006d6f646c70792f7472737279000000000000000000000000000000000000000062a4f7b739a90104020000000000630005000100c91f05180b0100b10f00040100000700e40b5402130100000700e40b5402000601010700e40b5402821a0600b50142007369626cec03000000000000000000000000000000000000000000000000000014000000008848065a1627000000000000000000010a01204e000001102700000005000000de0000000038be697903000000000000000000000000d02d048daefb39000000000000000000140d010204010100b10f";
+		let call_bytes = hex::decode(&call_hex[2..]).expect("Invalid hex string");
+		let rc_call = RcRuntimeCall::decode_all(&mut call_bytes.as_slice()).expect("Invalid bytes");
+		let ah_call = RcToAhCall::map(rc_call).expect("Failed to map RC call to AH call");
 		assert_eq!(
-			mapped_call,
-			RuntimeCall::PolkadotXcm(pallet_xcm::Call::send {
-				message: Box::new(VersionedXcm::from(
-					Xcm::builder_unsafe()
-						// Descend becomes Alias with one additional parent.
-						.alias_origin((Parent, Parachain(1002)))
-						// The rest stays the same since it was already meant
-						// for execution on the destination.
-						.withdraw_asset((Parent, 10_000_000_000u128))
-						.buy_execution((Parent, 100_000_000u128), Unlimited)
-						.transact(
-							OriginKind::SovereignAccount,
-							Weight::from_parts(10_000_000_000, 100_000),
-							Vec::new()
-						)
-						.refund_surplus()
-						.deposit_asset(AllCounted(1), [1u8; 32])
-						.build()
-				)),
-				dest: Box::new(VersionedLocation::from(
-					// Added 1 more parent.
-					Location::new(1, [Parachain(1004)])
-				)),
+			ah_call,
+			RuntimeCall::Utility(pallet_utility::Call::batch_all {
+				calls: vec![
+					RuntimeCall::Utility(pallet_utility::Call::dispatch_as {
+						as_origin: Box::new(RuntimeOrigin::signed(
+							sp_runtime::AccountId32::from([109, 111, 100, 108, 112, 121, 47, 116, 114, 115, 114, 121, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+						).caller),
+						call: Box::new(RuntimeCall::PolkadotXcm(pallet_xcm::Call::execute {
+							message: Box::new(VersionedXcm::V5(
+								Xcm::builder()
+									// DOT turns from `Here` to `Parent`.
+									.withdraw_asset((Parent, 11_002_600_000_000_000u128))
+									.pay_fees((Parent, 10_000_000_000u128))
+									.deposit_reserve_asset(
+										AllCounted(1),
+										// A `Parent` is added.
+										(Parent, Parachain(2034)),
+										// This stays exactly the same as it was already meant for the destination.
+										Xcm::builder_unsafe()
+											.buy_execution(
+												(Parent, 10_000_000_000u128),
+												Unlimited
+											)
+											.deposit_asset(
+												AllCounted(1),
+												(Parent, Parachain(1004))
+											)
+											.build()
+									)
+									.refund_surplus()
+									.deposit_asset(
+										AllCounted(1),
+										// Local accounts don't get reanchored.
+										[109, 111, 100, 108, 112, 121, 47, 116, 114, 115, 114, 121, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+									)
+									.build()
+								)),
+							max_weight: Weight::from_parts(771_615_000, 10_830),
+						})),
+					}),
+					RuntimeCall::Scheduler(pallet_scheduler::Call::schedule_after {
+						after: 2,
+						maybe_periodic: None,
+						priority: 0,
+						call: Box::new(RuntimeCall::PolkadotXcm(pallet_xcm::Call::send {
+							dest: Box::new(VersionedLocation::V5(Location::new(1, [Parachain(2034)]))),
+							message: Box::new(VersionedXcm::V5(
+								Xcm::builder_unsafe()
+									// This descend won't really work if origin is AH,
+									// so it shouldn't be used in refs pre AHM.
+									.descend_origin(Parachain(1004))
+									.withdraw_asset((Parent, 10_000_000_000u128))
+									.buy_execution((Parent, 10_000_000_000u128), Unlimited)
+									.transact(
+										OriginKind::SovereignAccount,
+										Weight::from_parts(10000000000, 100000),
+										hex::decode("42007369626cec03000000000000000000000000000000000000000000000000000014000000008848065a1627000000000000000000010a01204e000001102700000005000000de0000000038be697903000000000000000000000000d02d048daefb39000000000000000000").unwrap()
+									)
+									.refund_surplus()
+									.deposit_asset(
+										AllCounted(1),
+										(Parent, Parachain(1004))
+									)
+									.build()
+							))
+						}))
+					})
+				],
 			}),
 		);
 	}
