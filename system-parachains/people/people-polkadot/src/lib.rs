@@ -20,6 +20,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
+pub mod assets;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod people;
@@ -643,6 +644,9 @@ construct_runtime!(
 
 		// The main stage.
 		Identity: pallet_identity = 50,
+
+		// Assets.
+		Assets: pallet_assets = 60,
 	}
 );
 
