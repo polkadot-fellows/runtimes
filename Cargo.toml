@@ -10,7 +10,7 @@ pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.4.0", default-features = false }
-pallet-staking-async = { version = "0.5.0", default-features = false }
+pallet-staking-async = { version = "0.5.1", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
 impl-trait-for-tuples = { version = "0.2.3", default-features = false }
@@ -93,7 +93,7 @@ pallet-asset-conversion = { version = "25.0.0", default-features = false }
 pallet-asset-conversion-tx-payment = { version = "25.0.0", default-features = false }
 pallet-asset-rate = { version = "22.0.0", default-features = false }
 pallet-asset-tx-payment = { version = "43.0.0", default-features = false }
-pallet-assets = { version = "46.0.0", default-features = false }
+pallet-assets = { version = "46.1.0", default-features = false }
 pallet-aura = { version = "42.0.0", default-features = false }
 pallet-authority-discovery = { version = "43.0.0", default-features = false }
 pallet-authorship = { version = "43.0.0", default-features = false }
@@ -151,7 +151,7 @@ pallet-offences-benchmarking = { version = "43.0.0", default-features = false }
 pallet-parameters = { version = "0.14.0", default-features = false }
 pallet-preimage = { version = "43.0.0", default-features = false }
 pallet-proxy = { version = "43.0.0", default-features = false }
-pallet-ranked-collective = { version = "43.0.0", default-features = false }
+pallet-ranked-collective = { version = "43.0.1", default-features = false }
 pallet-recovery = { version = "43.0.0", default-features = false }
 pallet-referenda = { version = "43.0.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
