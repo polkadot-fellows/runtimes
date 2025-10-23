@@ -2425,8 +2425,7 @@ pub mod pallet {
 						Self::transition(MigrationStage::MigrationDone);
 					}
 				},
-				MigrationStage::MigrationDone => {
-				},
+				MigrationStage::MigrationDone => (),
 			};
 
 			weight_counter.consumed()
