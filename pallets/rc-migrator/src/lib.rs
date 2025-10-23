@@ -2417,15 +2417,19 @@ pub mod pallet {
 				MigrationStage::CoolOff { end_at } => {
 					let now = frame_system::Pallet::<T>::block_number();
 					if now >= end_at {
+						Self::transition(MigrationStage::MigrationDone);
+					}
+				},
+				MigrationStage::MigrationDone => {
+					use pallet_staking_async_ah_client as ah_client;
+					if ah_client::Mode::<T>::get() == ah_client::OperatingMode::Buffered {
 						weight_counter.consume(
 							// 1 read and 1 write for `staking::on_migration_end`;
 							T::DbWeight::get().reads_writes(1, 1)
 						);
-						pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
-						Self::transition(MigrationStage::MigrationDone);
+						ah_client::Pallet::<T>::on_migration_end();
 					}
 				},
-				MigrationStage::MigrationDone => (),
 			};
 
 			weight_counter.consumed()
