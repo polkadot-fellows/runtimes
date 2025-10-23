@@ -14,9 +14,9 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balance, Balances, CollatorSelection, ParachainInfo,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
-	RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Assets as AssetsPallet, Balance, Balances, CollatorSelection,
+	ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
 use frame_support::{
@@ -44,8 +44,8 @@ use xcm_builder::{
 	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
-	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
-	LocationAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
+	LocationAsSuperuser, NoChecking, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
@@ -72,6 +72,7 @@ parameter_types! {
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location =
 		(Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -113,7 +114,7 @@ pub type LocationToAccountId = (
 
 /// Means for transacting the native currency on this chain.
 pub type FungibleTransactor = FungibleAdapter<
-	// Use this currency:
+	// Use this implementation of `fungible::*`.
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	IsConcrete<RelayLocation>,
@@ -123,6 +124,22 @@ pub type FungibleTransactor = FungibleAdapter<
 	AccountId,
 	// We don't track any teleports of `Balances`.
 	(),
+>;
+
+/// Means for transacting other fungible tokens on this chain.
+pub type FungiblesTransactor = FungiblesAdapter<
+	// Use this implementation of `fungibles::*`.
+	AssetsPallet,
+	// Match everything that comes from outside.
+	assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>,
+	// Convert an XCM `Location` into a local account ID.
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId,
+	// No checking.
+	NoChecking,
+	// We still need to specify the checking account.
+	CheckingAccount,
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -257,11 +274,14 @@ impl ContainsPair<Asset, Location> for HollarFromHydration {
 	}
 }
 
+/// The asset transactors responsible for handling assets in XCM.
+pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor);
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
-	type AssetTransactor = FungibleTransactor;
+	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	/// We only accept HOLLAR from Hydration.
 	type IsReserve = HollarFromHydration;
@@ -291,7 +311,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<FungibleTransactor, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
