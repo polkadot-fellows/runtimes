@@ -267,6 +267,15 @@ pub mod proxy {
 	}
 }
 
+/// XCM protocol related constants.
+pub mod xcm {
+	/// Pluralistic bodies existing within the consensus.
+	pub mod body {
+		// The body corresponding to the Kusama OpenGov FellowshipAdmin Origin.
+		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::{

@@ -42,7 +42,7 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
 		EitherOfDiverse, EverythingBut, InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
@@ -78,7 +78,7 @@ use system_parachains_constants::{
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::prelude::*;
 use xcm_config::{
-	FellowshipLocation, GovernanceLocation, KsmRelayLocation, StakingPot,
+	AssetHubLocation, FellowshipLocation, RelayChainLocation, StakingPot,
 	XcmOriginToTransactDispatchOrigin,
 };
 use xcm_runtime_apis::{
@@ -115,12 +115,6 @@ pub type TxExtensions = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtensions>;
 
-/// All migrations that will run on the next runtime upgrade.
-///
-/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
-/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = (migrations::Unreleased, migrations::Permanent);
-
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
@@ -131,6 +125,9 @@ pub mod migrations {
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// All migrations that will run on the next runtime upgrade.
+	pub type SingleBlockMigrations = (Unreleased, Permanent);
 }
 
 /// Executive: handles dispatch to the various modules.
@@ -140,7 +137,6 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	Migrations,
 >;
 
 impl_opaque_keys! {
@@ -154,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("coretime-kusama"),
 	impl_name: Cow::Borrowed("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 1_007_001,
+	spec_version: 1_009_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -254,7 +250,7 @@ impl frame_system::Config for Runtime {
 	/// The action to take on a Runtime Upgrade
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = ConstU32<16>;
-	type SingleBlockMigrations = ();
+	type SingleBlockMigrations = migrations::SingleBlockMigrations;
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();
@@ -382,7 +378,7 @@ parameter_types! {
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = AssetId(KsmRelayLocation::get());
+	pub FeeAssetId: AssetId = AssetId(RelayChainLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -461,7 +457,10 @@ parameter_types! {
 /// We allow Root and the `StakingAdmin` to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<GovernanceLocation, StakingAdminBodyId>>,
+	EitherOf<
+		EnsureXcm<IsVoiceOfBody<RelayChainLocation, StakingAdminBodyId>>,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+	>,
 >;
 
 impl pallet_collator_selection::Config for Runtime {
@@ -725,11 +724,9 @@ mod benches {
 
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
-	use xcm_config::KsmRelayLocation;
-
 	parameter_types! {
 		pub ExistentialDepositAsset: Option<Asset> = Some((
-			KsmRelayLocation::get(),
+			RelayChainLocation::get(),
 			ExistentialDeposit::get()
 		).into());
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
@@ -823,7 +820,7 @@ mod benches {
 		fn worst_case_holding(_depositable_count: u32) -> Assets {
 			// just concrete assets according to relay chain.
 			let assets: Vec<Asset> = vec![Asset {
-				id: AssetId(KsmRelayLocation::get()),
+				id: AssetId(RelayChainLocation::get()),
 				fun: Fungible(1_000_000 * UNITS),
 			}];
 			assets.into()
@@ -833,7 +830,7 @@ mod benches {
 	parameter_types! {
 		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
 			AssetHubLocation::get(),
-			Asset { fun: Fungible(UNITS), id: AssetId(KsmRelayLocation::get()) },
+			Asset { fun: Fungible(UNITS), id: AssetId(RelayChainLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
@@ -847,7 +844,7 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(UNITS) }
+			Asset { id: AssetId(RelayChainLocation::get()), fun: Fungible(UNITS) }
 		}
 	}
 
@@ -880,14 +877,14 @@ mod benches {
 
 		fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 			let origin = AssetHubLocation::get();
-			let assets: Assets = (AssetId(KsmRelayLocation::get()), 1_000 * UNITS).into();
+			let assets: Assets = (AssetId(RelayChainLocation::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
 		}
 
 		fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
 			Ok((
-				Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) },
+				Asset { id: AssetId(RelayChainLocation::get()), fun: Fungible(1_000_000 * UNITS) },
 				Limited(Weight::from_parts(5000, 5000)),
 			))
 		}
@@ -1028,6 +1025,15 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl frame_support::view_functions::runtime_api::RuntimeViewFunction<Block> for Runtime {
+		fn execute_view_function(
+			id: frame_support::view_functions::ViewFunctionId,
+			input: Vec<u8>
+		) -> Result<Vec<u8>, frame_support::view_functions::ViewFunctionDispatchError> {
+			Runtime::execute_view_function(id, input)
+		}
+	}
+
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
 		fn account_nonce(account: AccountId) -> Nonce {
 			System::account_nonce(account)
@@ -1080,7 +1086,7 @@ impl_runtime_apis! {
 
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let acceptable_assets = vec![AssetId(xcm_config::KsmRelayLocation::get())];
+			let acceptable_assets = vec![AssetId(RelayChainLocation::get())];
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 
