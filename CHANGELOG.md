@@ -4,6 +4,19 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.3] 21.10.2025
+
+### Added
+- Enable view functions on System Chains([polkadot-fellows/runtimes/pull/981](https://github.com/polkadot-fellows/runtimes/pull/981))
+
+## [1.9.3] 21.10.2025
+
+### Fixed
+
+- [BHP](https://github.com/polkadot-fellows/runtimes/pull/978) Add missing snowbridge runtime API to the BridgeHub
+  runtime.
+- Bump `pallet-staking-async` to `0.6.2` to fix incorrect self stake accounting (https://github.com/polkadot-fellows/runtimes/pull/980)
+
 ## [1.9.2] 08.10.2025
 
 ### Added
@@ -165,6 +178,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
 - Proxy type `NonTranfer`: Use a whitelist of calls and remove some not useful calls from the whitelist ([polkadot-fellows/runtimes/pull/646](https://github.com/polkadot-fellows/runtimes/pull/646))
 - Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
+- Moves single block migrations from frame_executive::Executive to frame_system::Config. [polkadot-fellows/runtimes/pull/844](https://github.com/polkadot-fellows/runtimes/pull/844)
 
 ## [1.6.1] 24.06.2025
 
