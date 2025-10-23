@@ -1,0 +1,97 @@
+name: "Zombie debug tests"
+
+# If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
+# which is located at the end of this file (more info in the job)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+
+# cancel previous runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zombienet-smoke:
+    runs-on: [self-hosted, benchmark]
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build
+        run: |
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
+
+      - name: Zombienet smoke test
+        timeout-minutes: 10
+        run: |
+          export PATH=$(pwd)/target/release:$PATH
+          RUST_LOG=debug cargo test --manifest-path integration-tests/zombienet/Cargo.toml --release -- --nocapture
+        continue-on-error: true
+
+      - name: Debug pods
+        if: success() || failure()
+        run: |
+
+          docker ps
+          echo "::group::inspect"
+          for pod in $(docker ps --format '{{.Names}}' --filter name="zombie-");do
+            echo "Pod: $pod";
+            docker inspect $pod;
+          done;
+          echo "::endgroup::"
+
+      - name: Collect_logs
+        if: success() || failure()
+        run: |
+          mkdir -p ./logs
+          for pod in $(docker ps --format '{{.Names}}' --filter name="zombie-");do
+            docker logs $pod > "./logs/${pod}.log" 2>&1;
+            docker stop $pod;
+            docker rm $pod;
+          done;
+
+      - name: Upload_logs
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie-smoke-test-logs-${{ github.sha }}
+          path: |
+            ./logs

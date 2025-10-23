@@ -46,6 +46,9 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	let elapsed = now.elapsed();
 	log::info!("🚀🚀🚀🚀 network deployed in {elapsed:.2?}");
 
+	// prevent delete on drop
+	network.detach().await;
+
 	let alice = network.get_node("alice")?;
 	// wait until the subxt client is ready
 	let alice_client: OnlineClient<PolkadotConfig> = alice.wait_client().await?;

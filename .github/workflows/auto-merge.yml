@@ -7,7 +7,7 @@ on:
 
 jobs:
   set-auto-merge:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: master
     timeout-minutes: 10
     # Important! This forces the job to run only on comments on Pull Requests that starts with '/merge'
