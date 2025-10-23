@@ -2417,15 +2417,15 @@ pub mod pallet {
 				MigrationStage::CoolOff { end_at } => {
 					let now = frame_system::Pallet::<T>::block_number();
 					if now >= end_at {
+						weight_counter.consume(
+							// 1 read and 1 write for `staking::on_migration_end`;
+							T::DbWeight::get().reads_writes(1, 1)
+						);
+						pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 						Self::transition(MigrationStage::MigrationDone);
 					}
 				},
 				MigrationStage::MigrationDone => {
-					weight_counter.consume(
-						// 1 read and 1 write for `staking::on_migration_end`;
-						T::DbWeight::get().reads_writes(1, 1)
-					);
-					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
 				},
 			};
 
