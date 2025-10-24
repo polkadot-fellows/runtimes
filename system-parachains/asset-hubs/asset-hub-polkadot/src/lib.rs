@@ -1115,11 +1115,16 @@ parameter_types! {
 		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
+ord_parameter_types! {
+	pub const ManagerMultisig: AccountId = pallet_rc_migrator::Pallet::<Runtime>::manager_multisig_id();
+}
+
 impl pallet_preimage::Config for Runtime {
 	type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<ManagerMultisig, AccountId>>;
 	type Consideration = HoldConsideration<
 		AccountId,
 		Balances,
@@ -1418,7 +1423,6 @@ construct_runtime!(
 		StateTrieMigration: pallet_state_trie_migration = 70,
 
 		// Staking in the 80s
-		Staking: pallet_staking_async = 89,
 		NominationPools: pallet_nomination_pools = 80,
 		VoterList: pallet_bags_list::<Instance1> = 82,
 		DelegatedStaking: pallet_delegated_staking = 83,
@@ -1427,6 +1431,7 @@ construct_runtime!(
 		MultiBlockElectionVerifier: pallet_election_provider_multi_block::verifier = 86,
 		MultiBlockElectionUnsigned: pallet_election_provider_multi_block::unsigned = 87,
 		MultiBlockElectionSigned: pallet_election_provider_multi_block::signed = 88,
+		Staking: pallet_staking_async = 89,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,

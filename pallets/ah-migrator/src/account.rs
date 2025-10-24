@@ -320,12 +320,14 @@ pub mod tests {
 			);
 
 			let (account_summaries, _) = rc_pre_payload;
+			let (old_account_id, _) = T::TreasuryAccounts::get();
 			for (who, summary) in account_summaries {
 				// Checking account balance migration is tested separately.
 				// Treasury may be modified during migration.
 				// StakingPot (CollatorSelection) account may also be modified during migration.
 				if who == T::CheckingAccount::get() ||
 					who == pallet_treasury::Pallet::<T>::account_id() ||
+					who == old_account_id ||
 					who == T::StakingPotAccount::get()
 				{
 					continue;

@@ -296,13 +296,15 @@ impl Into<pallet_treasury::PaymentState<u64>> for PortablePaymentState {
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 	// (proposals with data, historical proposals count, approvals ids, spends, historical spends
-	// count)
+	// count, old account balance, new account balance)
 	type RcPrePayload = (
 		Vec<(ProposalIndex, Proposal<AccountId32, u128>)>,
 		u32,
 		Vec<ProposalIndex>,
 		Vec<(SpendIndex, PortableSpendStatus)>,
 		u32,
+		u128,
+		u128,
 	);
 
 	fn pre_check() -> Self::RcPrePayload {
@@ -326,7 +328,24 @@ impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 			})
 			.collect::<Vec<_>>();
 		let spends_count = pallet_treasury::SpendCount::<T>::get();
-		(proposals, proposals_count, approvals, spends, spends_count)
+
+		// pre migration treasury account id on Asset Hub
+		let old_account_id =
+			T::AccountId::from_ss58check("14xmwinmCEz6oRrFdczHKqHgWNMiCysE2KrA4jXXAAM1Eogk")
+				.unwrap();
+		let new_account_id = pallet_treasury::Pallet::<T>::account_id();
+		let old_account_balance = <T as Config>::Currency::total_balance(&old_account_id);
+		let new_account_balance = <T as Config>::Currency::total_balance(&new_account_id);
+
+		(
+			proposals,
+			proposals_count,
+			approvals,
+			spends,
+			spends_count,
+			old_account_balance,
+			new_account_balance,
+		)
 	}
 
 	fn post_check(_rc_payload: Self::RcPrePayload) {

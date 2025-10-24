@@ -83,7 +83,7 @@ pub struct RcMultisig<AccountId, Balance> {
 
 pub type RcMultisigOf<T> = RcMultisig<AccountIdOf<T>, BalanceOf<T>>;
 
-type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
+pub type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 

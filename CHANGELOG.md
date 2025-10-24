@@ -4,12 +4,27 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+## Added
+
+- Scheduled the Polkadot Asset Hub Migration for block [28490502](https://polkadot.subscan.io/block/28490502), circa Tuesday 4th Nov 8 AM UTC ([polkadot-fellows/runtimes/pull/984](https://github.com/polkadot-fellows/runtimes/pull/984)).
+
+### Changed
+
+- Enable preimages pallet on Kusama Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Allow the AHM multisig to act as preimage manager ([polkadot-fellows/runtimes/pull/976](https://github.com/polkadot-fellows/runtimes/pull/976))
+- `RcToAhCall` supports mapping some basic XCMs ([polkadot-fellows/runtimes/pull/983](https://github.com/polkadot-fellows/runtimes/pull/983))
+
+### Fixed
+
+- Let multisig round start from 100 for Polkadot Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+
 ## [1.9.3] 21.10.2025
 
 ### Added
-- Enable view functions on System Chains([polkadot-fellows/runtimes/pull/981](https://github.com/polkadot-fellows/runtimes/pull/981))
 
-## [1.9.3] 21.10.2025
+- Enable view functions on System Chains([polkadot-fellows/runtimes/pull/981](https://github.com/polkadot-fellows/runtimes/pull/981))
 
 ### Fixed
 

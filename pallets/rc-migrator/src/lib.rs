@@ -380,9 +380,6 @@ pub enum MigrationStage<
 
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end.
-		///
-		/// After the cool-off period ends, the Relay Chain will signal migration end to the Asset
-		/// Hub and finish the migration.
 		end_at: BlockNumber,
 	},
 	SignalMigrationFinish,
@@ -632,6 +629,9 @@ pub mod pallet {
 
 		/// Threshold of `MultisigMembers`.
 		type MultisigThreshold: Get<u32>;
+
+		/// Limit the number of votes of each participant per round.
+		type MultisigMaxVotesPerRound: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -672,6 +672,8 @@ pub mod pallet {
 		InvalidOrigin,
 		/// The stage transition is invalid.
 		InvalidStageTransition,
+		/// Unsigned validation failed.
+		UnsignedValidationFailed,
 	}
 
 	#[pallet::event]
@@ -819,7 +821,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type PendingXcmMessages<T: Config> =
-		CountedStorageMap<_, Twox64Concat, T::Hash, Xcm<()>, OptionQuery>;
+		CountedStorageMap<_, Twox64Concat, (QueryId, T::Hash), Xcm<()>, OptionQuery>;
 
 	/// Accounts that use the proxy pallet to delegate permissions and have no nonce.
 	///
@@ -1039,7 +1041,7 @@ pub mod pallet {
 					target: LOG_TARGET,
 					"Received success response for query id: {query_id}"
 				);
-				PendingXcmMessages::<T>::remove(message_hash);
+				PendingXcmMessages::<T>::remove((query_id, message_hash));
 				PendingXcmQueries::<T>::remove(query_id);
 			} else {
 				log::error!(
@@ -1061,8 +1063,8 @@ pub mod pallet {
 
 			let message_hash =
 				PendingXcmQueries::<T>::get(query_id).ok_or(Error::<T>::QueryNotFound)?;
-			let xcm =
-				PendingXcmMessages::<T>::get(message_hash).ok_or(Error::<T>::QueryNotFound)?;
+			let xcm = PendingXcmMessages::<T>::get((query_id, message_hash))
+				.ok_or(Error::<T>::QueryNotFound)?;
 
 			let asset_hub_location = Location::new(0, Parachain(1000));
 			let receive_notification_call =
@@ -1094,6 +1096,8 @@ pub mod pallet {
 					send_error: Some(err),
 				});
 			} else {
+				PendingXcmMessages::<T>::remove((query_id, message_hash));
+				PendingXcmMessages::<T>::insert((new_query_id, message_hash), xcm);
 				PendingXcmQueries::<T>::insert(new_query_id, message_hash);
 				Self::deposit_event(Event::<T>::XcmResendAttempt {
 					query_id: new_query_id,
@@ -1315,14 +1319,22 @@ pub mod pallet {
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
 			payload: Box<ManagerMultisigVote<T>>,
-			_sig: sp_runtime::MultiSignature,
+			sig: sp_runtime::MultiSignature,
 		) -> DispatchResult {
-			let _ = ensure_none(origin);
+			ensure_none(origin)?;
+
+			Self::do_validate_unsigned(&payload, &sig)
+				.map_err(|_| Error::<T>::UnsignedValidationFailed)?;
+			let who = payload.who.into_account();
 
 			ensure!(ManagerMultisigRound::<T>::get() == payload.round, "RoundStale");
+			let num_votes = ManagerVotesInCurrentRound::<T>::get(&who);
+			ensure!(num_votes < T::MultisigMaxVotesPerRound::get(), "MaxVotesPerRound");
+			ManagerVotesInCurrentRound::<T>::insert(&who, num_votes.saturating_add(1));
+
 			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
-			ensure!(!votes_for_call.contains(&payload.who), "Duplicate");
-			votes_for_call.push(payload.who);
+			ensure!(!votes_for_call.contains(&who), "Duplicate");
+			votes_for_call.push(who);
 
 			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
 				let origin: <T as Config>::RuntimeOrigin =
@@ -1330,6 +1342,9 @@ pub mod pallet {
 				let call = payload.call.clone();
 				let res = call.dispatch(origin);
 				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
+				let _ = ManagerVotesInCurrentRound::<T>::clear(u32::MAX, None);
+				debug_assert!(ManagerVotesInCurrentRound::<T>::iter_keys().next().is_none());
+
 				Self::deposit_event(Event::ManagerMultisigDispatched {
 					res: res.map(|_| ()).map_err(|e| e.error),
 				});
@@ -1345,8 +1360,8 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Pallet<T> {
-		fn manager_multisig_id() -> T::AccountId {
+	impl<T: frame_system::Config> Pallet<T> {
+		pub fn manager_multisig_id() -> T::AccountId {
 			let pallet_id = PalletId(*b"rcmigmts");
 			pallet_id.into_account_truncating()
 		}
@@ -1383,45 +1398,66 @@ pub mod pallet {
 		}
 	}
 
+	/// The multisig AccountIDs that votes to execute a specific call.
 	#[pallet::storage]
 	#[pallet::unbounded]
-	pub type ManagerMultisigs<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		<T as Config>::RuntimeCall,
-		Vec<sp_runtime::MultiSigner>,
-		ValueQuery,
-	>;
+	pub type ManagerMultisigs<T: Config> =
+		StorageMap<_, Twox64Concat, <T as Config>::RuntimeCall, Vec<AccountId32>, ValueQuery>;
+
+	/// The current round of the multisig voting.
+	///
+	/// Votes are only valid for the current round.
 	#[pallet::storage]
 	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// How often each participant voted in the current round.
+	///
+	/// Will be cleared at the end of each round.
+	#[pallet::storage]
+	pub type ManagerVotesInCurrentRound<T: Config> =
+		StorageMap<_, Blake2_128Concat, AccountId32, u32, ValueQuery>;
 
 	#[pallet::validate_unsigned]
 	impl<T: Config> ValidateUnsigned for Pallet<T> {
 		type Call = Call<T>;
 
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-			use sp_runtime::traits::Verify;
 			if let Call::vote_manager_multisig { payload, sig } = call {
-				let account = payload.who.clone().into_account();
-
-				if !T::MultisigMembers::get().contains(&account) {
-					return InvalidTransaction::BadSigner.into()
-				}
-				if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
-					return InvalidTransaction::BadProof.into()
-				}
-				if ManagerMultisigRound::<T>::get() != payload.round {
-					return InvalidTransaction::Stale.into()
-				}
-				ValidTransaction::with_tag_prefix("AhmMultisig")
-					.priority(sp_runtime::traits::Bounded::max_value())
-					.and_provides(vec![("ahm_multi", account).encode()])
-					.propagate(true)
-					.longevity(30)
-					.build()
+				Self::do_validate_unsigned(payload, sig)
 			} else {
 				InvalidTransaction::Call.into()
 			}
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn do_validate_unsigned(
+			payload: &ManagerMultisigVote<T>,
+			sig: &sp_runtime::MultiSignature,
+		) -> TransactionValidity {
+			use sp_runtime::traits::Verify;
+			let account = payload.who.clone().into_account();
+
+			if !T::MultisigMembers::get().contains(&account) {
+				return InvalidTransaction::BadSigner.into()
+			}
+			if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
+				return InvalidTransaction::BadProof.into()
+			}
+			if ManagerMultisigRound::<T>::get() != payload.round {
+				return InvalidTransaction::Stale.into()
+			}
+			if ManagerVotesInCurrentRound::<T>::get(&account) >= T::MultisigMaxVotesPerRound::get()
+			{
+				return InvalidTransaction::Stale.into()
+			}
+
+			ValidTransaction::with_tag_prefix("AhmMultisig")
+				.priority(sp_runtime::traits::Bounded::max_value())
+				.and_provides(vec![("ahm_multi", account).encode()])
+				.propagate(true)
+				.longevity(30)
+				.build()
 		}
 	}
 
@@ -1434,6 +1470,16 @@ pub mod pallet {
 			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
 		<<T as pallet_treasury::Config>::BlockNumberProvider as BlockNumberProvider>::BlockNumber: Into<u32>
 	{
+		fn on_runtime_upgrade() -> Weight {
+			// We set the round to 100 if it does not exist to ensure that the Polkadot Multisigs
+			// do not overlap with the Kusama Multisigs.
+			if !ManagerMultisigRound::<T>::exists() {
+				ManagerMultisigRound::<T>::put(100);
+			}
+
+			T::DbWeight::get().reads_writes(1, 1)
+		}
+
 		fn integrity_test() {
 			let (ah_ump_priority_blocks, _) = T::AhUmpQueuePriorityPattern::get();
 			assert!(!ah_ump_priority_blocks.is_zero(), "the `ah_ump_priority_blocks` should be non-zero");
@@ -2324,34 +2370,19 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::StakingMigrationDone => {
-					let now = frame_system::Pallet::<T>::block_number();
-					let end_at = if let Some(end_at) = CoolOffPeriod::<T>::get() {
-						end_at.evaluate(now)
-					} else {
-						now
-					};
-					Self::transition(MigrationStage::CoolOff {
-						end_at,
-					});
-				},
-				MigrationStage::CoolOff { end_at } => {
-					let now = frame_system::Pallet::<T>::block_number();
-					if now >= end_at {
-						Self::transition(MigrationStage::SignalMigrationFinish);
-					}
+					Self::transition(MigrationStage::SignalMigrationFinish);
 				},
 				MigrationStage::SignalMigrationFinish => {
 					weight_counter.consume(
-						// 1 read and 1 write for `staking::on_migration_end`;
 						// 1 read and 1 write for `RcMigratedBalance` storage item;
-						// plus one xcm send;
-						T::DbWeight::get().reads_writes(1, 2)
+						// one xcm send;
+						// 1 read `CoolOffPeriod` storage item;
+						T::DbWeight::get().reads_writes(2, 1)
 							.saturating_add(T::RcWeightInfo::send_chunked_xcm_and_track())
 					);
 
-					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
-
 					// Send finish message to AH.
+
 					let data = if RcMigratedBalance::<T>::exists() {
 						let tracker = RcMigratedBalance::<T>::take();
 						RcMigratedBalanceArchive::<T>::put(&tracker);
@@ -2365,15 +2396,40 @@ pub mod pallet {
 					} else {
 						None
 					};
-					let call = types::AhMigratorCall::<T>::FinishMigration { data };
+
+					let cool_off_end_at = if let Some(end_at) = CoolOffPeriod::<T>::get() {
+						end_at.evaluate(frame_system::Pallet::<T>::block_number())
+					} else {
+						frame_system::Pallet::<T>::block_number()
+					};
+
+					let call = types::AhMigratorCall::<T>::FinishMigration { data, cool_off_end_at };
 					if let Err(err) = Self::send_xcm(call) {
 						defensive!("Failed to send FinishMigration message to AH, \
 								retry with the next block: {:?}", err);
 					}
 
-					Self::transition(MigrationStage::MigrationDone);
+					// Transition to cool-off period.
+					Self::transition(MigrationStage::CoolOff {
+						end_at: cool_off_end_at,
+					});
 				},
-				MigrationStage::MigrationDone => (),
+				MigrationStage::CoolOff { end_at } => {
+					let now = frame_system::Pallet::<T>::block_number();
+					if now >= end_at {
+						Self::transition(MigrationStage::MigrationDone);
+					}
+				},
+				MigrationStage::MigrationDone => {
+					use pallet_staking_async_ah_client as ah_client;
+					if ah_client::Mode::<T>::get() == ah_client::OperatingMode::Buffered {
+						weight_counter.consume(
+							// 1 read and 1 write for `staking::on_migration_end`;
+							T::DbWeight::get().reads_writes(1, 1)
+						);
+						ah_client::Pallet::<T>::on_migration_end();
+					}
+				},
 			};
 
 			weight_counter.consumed()
@@ -2567,7 +2623,7 @@ pub mod pallet {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
 					return Err(Error::XcmError);
 				} else {
-					PendingXcmMessages::<T>::insert(message_hash, Xcm(message));
+					PendingXcmMessages::<T>::insert((query_id, message_hash), Xcm(message));
 					PendingXcmQueries::<T>::insert(query_id, message_hash);
 					batch_count += 1;
 				}

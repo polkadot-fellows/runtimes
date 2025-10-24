@@ -206,7 +206,7 @@ impl<T: Config> Pallet<T> {
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 	// (proposals with ids, data, historical proposals count, approvals ids, spends, historical
-	// spends count)
+	// spends count, old account balance, new account balance)
 	type RcPrePayload = (
 		Vec<(
 			ProposalIndex,
@@ -216,8 +216,18 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		Vec<ProposalIndex>,
 		Vec<(SpendIndex, PortableSpendStatus)>,
 		u32,
+		u128,
+		u128,
 	);
-	type AhPrePayload = ();
+
+	type AhPrePayload = (
+		(u128, u128),
+		Vec<(
+			<T::Assets as FungiblesInspect<T::AccountId>>::AssetId,
+			<T::Assets as FungiblesInspect<T::AccountId>>::Balance,
+			<T::Assets as FungiblesInspect<T::AccountId>>::Balance,
+		)>,
+	);
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Assert storage 'Treasury::ProposalCount::ah_pre::empty'
@@ -251,12 +261,60 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 			pallet_treasury::Spends::<T>::iter().next().is_none(),
 			"Spends should be empty on Asset Hub before migration"
 		);
+
+		let (old_account_id, assets) = T::TreasuryAccounts::get();
+		let account_id = pallet_treasury::Pallet::<T>::account_id();
+
+		let mut balances = Vec::new();
+		for asset in assets {
+			balances.push((
+				asset.clone(),
+				T::Assets::total_balance(asset.clone(), &old_account_id),
+				T::Assets::total_balance(asset, &account_id),
+			));
+		}
+
+		(
+			(
+				<T as Config>::Currency::total_balance(&old_account_id),
+				<T as Config>::Currency::total_balance(&account_id),
+			),
+			balances,
+		)
 	}
 
 	fn post_check(
-		(proposals, proposals_count, approvals, rc_spends, spends_count): Self::RcPrePayload,
-		_: Self::AhPrePayload,
+		(
+			proposals,
+			proposals_count,
+			approvals,
+			rc_spends,
+			spends_count,
+			rc_old_account_balance,
+			rc_new_account_balance,
+		): Self::RcPrePayload,
+		ah_pre_payload: Self::AhPrePayload,
 	) {
+		let ((ah_old_account_balance, ah_new_account_balance), assets_balances) = ah_pre_payload;
+		let (old_account_id, _) = T::TreasuryAccounts::get();
+		let account_id = pallet_treasury::Pallet::<T>::account_id();
+		assert_eq!(<T as Config>::Currency::total_balance(&old_account_id), 0);
+		assert_eq!(
+			<T as Config>::Currency::total_balance(&account_id),
+			rc_new_account_balance +
+				rc_old_account_balance +
+				ah_old_account_balance +
+				ah_new_account_balance
+		);
+
+		for (asset, ah_old_account_balance, ah_new_account_balance) in assets_balances {
+			assert!(T::Assets::total_balance(asset.clone(), &old_account_id).is_zero());
+			assert_eq!(
+				T::Assets::total_balance(asset.clone(), &account_id),
+				ah_old_account_balance + ah_new_account_balance
+			);
+		}
+
 		// Assert storage 'Treasury::ProposalCount::ah_post::correct'
 		assert_eq!(
 			pallet_treasury::ProposalCount::<T>::get(),
