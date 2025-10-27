@@ -479,7 +479,8 @@ pub fn max_items_per_block<T: Config>() -> u32 {
 /// Returns constant [MAX_ITEMS_PER_BLOCK] if no settings are set in storage by the manager.
 pub fn max_accounts_per_block<T: Config>() -> u32 {
 	Settings::<T>::get()
-		.map(|settings| settings.max_accounts_per_block.unwrap_or(max_items_per_block::<T>()))
+		.map(|settings| settings.max_accounts_per_block)
+		.flatten()
 		.unwrap_or(max_items_per_block::<T>())
 }
 
@@ -815,6 +816,13 @@ pub mod pallet {
 		ManagerMultisigDispatched { res: DispatchResult },
 		/// The manager multisig received a vote.
 		ManagerMultisigVoted { votes: u32 },
+		/// The migration settings were set.
+		MigrationSettingsSet {
+			/// The old migration settings.
+			old: Option<MigrationSettings>,
+			/// The new migration settings.
+			new: Option<MigrationSettings>,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -1405,7 +1413,9 @@ pub mod pallet {
 			settings: Option<MigrationSettings>,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
-			Settings::<T>::set(settings);
+			let old = Settings::<T>::get();
+			Settings::<T>::set(settings.clone());
+			Self::deposit_event(Event::MigrationSettingsSet { old, new: settings });
 			Ok(())
 		}
 	}
