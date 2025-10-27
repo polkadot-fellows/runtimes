@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Enable preimages pallet on Kusama Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
 - Allow the AHM multisig to act as preimage manager ([polkadot-fellows/runtimes/pull/976](https://github.com/polkadot-fellows/runtimes/pull/976))
 - `RcToAhCall` supports mapping some basic XCMs ([polkadot-fellows/runtimes/pull/983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: map more Referenda XCM instructions ([#983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: Schedule polkadot migration for block [28490502](https://polkadot.subscan.io/block/28490502) ([#984](https://github.com/polkadot-fellows/runtimes/pull/984))
 
 ### Fixed
 
