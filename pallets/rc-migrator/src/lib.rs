@@ -1403,7 +1403,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			settings: Option<MigrationSettings>,
 		) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin.clone())?;
+			Self::ensure_admin_or_manager(origin)?;
 			Settings::<T>::set(settings);
 			Ok(())
 		}
