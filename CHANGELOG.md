@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.0.0] 27.10.2025
 
-## Added
+### Added
 
 - Scheduled the Polkadot Asset Hub Migration for block [28490502](https://polkadot.subscan.io/block/28490502), circa Tuesday 4th Nov 8 AM UTC ([polkadot-fellows/runtimes/pull/984](https://github.com/polkadot-fellows/runtimes/pull/984)).
 
