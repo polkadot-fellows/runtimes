@@ -1779,7 +1779,7 @@ fn multisig_members() -> Vec<AccountId32> {
 		"13fvj4bNfrTo8oW6U8525soRp6vhjAFLum6XBdtqq9yP22E7", // Basti
 		"16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna", // Gav
 		"1eTPAR2TuqLyidmPT9rMmuycHVm9s9czu78sePqg2KHMDrE",  // Kian
-		"16a357f5Sxab3V2ne4emGQvqJaCLeYpTMx3TCjnQhmJQ71DX", // Oliver
+		"13TRAXTALwNp5vApqwiE74fg8G8ypMyaF9TxRfs4RwrCwxUE", // Oliver / ggwpez
 		"15DCWHQknBjc5YPFoVj8Pn2KoqrqYywJJ95BYNYJ4Fj3NLqz", // Joe
 		"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // Muharem
 		"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // Adrian
