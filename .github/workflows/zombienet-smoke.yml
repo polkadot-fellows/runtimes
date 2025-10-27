@@ -24,8 +24,6 @@ on:
           default: "docker.io/parity/polkadot-parachain:latest"
           type: string
 
-env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2412-4
 
 # cancel previous runs
 concurrency:
