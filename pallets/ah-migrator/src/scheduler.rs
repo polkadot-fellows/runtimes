@@ -90,7 +90,16 @@ impl<T: Config> Pallet<T> {
 		});
 		let (count_good, mut count_bad) = (messages.len() as u32, 0);
 
+		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get().unwrap_or_default();
+
 		for SchedulerAgendaMessage { block, agenda } in messages {
+			if block < incomplete_since {
+				log::info!(
+					target: LOG_TARGET,
+					"Skipping outdated agenda: block number = {block:?}, incomplete since = {incomplete_since:?}",
+				);
+				continue;
+			}
 			let mut ah_tasks = Vec::new();
 			for task in agenda {
 				let Some(task) = task else {
@@ -208,12 +217,15 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			);
 		}
 
+		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get().unwrap_or_default();
+
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct
 		// expected Agendas. Critically, use the passed agenda call encodings to remove reliance
 		// on pallet-preimage state, which will have been changed from the actual migration.
 		let mut expected_ah_agenda: Vec<_> = rc_payload
 			.agenda_and_call_encodings
 			.into_iter()
+			.filter(|(block_number, _, _)| *block_number >= incomplete_since)
 			.filter_map(|(block_number, rc_tasks, rc_task_call_encodings)| {
 				let mut ah_tasks = Vec::new();
 				let tasks = rc_tasks.into_iter();
