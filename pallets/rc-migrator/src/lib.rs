@@ -1396,7 +1396,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Set the migration settings.
+		/// Set the migration settings. Can only be done by admin or manager.
 		#[pallet::call_index(14)]
 		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
 		pub fn set_settings(
