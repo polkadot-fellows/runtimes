@@ -469,7 +469,8 @@ pub struct MigrationSettings {
 /// Returns constant [MAX_ITEMS_PER_BLOCK] if no settings are set in storage by the manager.
 pub fn max_items_per_block<T: Config>() -> u32 {
 	Settings::<T>::get()
-		.map(|settings| settings.max_items_per_block.unwrap_or(MAX_ITEMS_PER_BLOCK))
+		.map(|settings| settings.max_items_per_block)
+		.flatten()
 		.unwrap_or(MAX_ITEMS_PER_BLOCK)
 }
 
