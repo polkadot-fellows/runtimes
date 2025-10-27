@@ -1888,6 +1888,59 @@ fn rc_calls_and_origins_work() {
 
 		let current_stage = RcMigrationStageStorage::<Polkadot>::get();
 		assert_eq!(current_stage, RcMigrationStage::WarmUp { end_at: start + 1 });
+
+		// set migration settings
+
+		assert!(pallet_rc_migrator::Settings::<Polkadot>::get().is_none());
+		assert_eq!(
+			pallet_rc_migrator::max_items_per_block::<Polkadot>(),
+			pallet_rc_migrator::MAX_ITEMS_PER_BLOCK
+		);
+		assert_eq!(
+			pallet_rc_migrator::max_accounts_per_block::<Polkadot>(),
+			pallet_rc_migrator::MAX_ITEMS_PER_BLOCK
+		);
+
+		RcMigrator::set_settings(
+			RcRuntimeOrigin::signed(manager.clone()),
+			Some(pallet_rc_migrator::MigrationSettings {
+				max_items_per_block: Some(11),
+				max_accounts_per_block: Some(12),
+			}),
+		)
+		.expect("failed to set settings");
+
+		let settings = pallet_rc_migrator::Settings::<Polkadot>::get().unwrap();
+		assert_eq!(settings.max_items_per_block, Some(11));
+		assert_eq!(settings.max_accounts_per_block, Some(12));
+
+		assert_eq!(pallet_rc_migrator::max_items_per_block::<Polkadot>(), 11);
+		assert_eq!(pallet_rc_migrator::max_accounts_per_block::<Polkadot>(), 12);
+
+		RcMigrator::set_settings(
+			RcRuntimeOrigin::signed(manager.clone()),
+			Some(pallet_rc_migrator::MigrationSettings {
+				max_items_per_block: Some(11),
+				max_accounts_per_block: None,
+			}),
+		)
+		.expect("failed to set settings");
+
+		assert_eq!(pallet_rc_migrator::max_items_per_block::<Polkadot>(), 11);
+		assert_eq!(pallet_rc_migrator::max_accounts_per_block::<Polkadot>(), 11);
+
+		RcMigrator::set_settings(RcRuntimeOrigin::signed(manager.clone()), None)
+			.expect("failed to set settings");
+
+		assert!(pallet_rc_migrator::Settings::<Polkadot>::get().is_none());
+		assert_eq!(
+			pallet_rc_migrator::max_items_per_block::<Polkadot>(),
+			pallet_rc_migrator::MAX_ITEMS_PER_BLOCK
+		);
+		assert_eq!(
+			pallet_rc_migrator::max_accounts_per_block::<Polkadot>(),
+			pallet_rc_migrator::MAX_ITEMS_PER_BLOCK
+		);
 	});
 }
 

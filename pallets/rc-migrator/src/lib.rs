@@ -449,6 +449,39 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 type AccountInfoFor<T> =
 	AccountInfo<<T as frame_system::Config>::Nonce, <T as frame_system::Config>::AccountData>;
 
+/// Migration settings.
+#[derive(
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq,
+)]
+pub struct MigrationSettings {
+	/// The maximum number of items that can be  extracted and migrated in a single block.
+	///
+	/// Overrides [MAX_ITEMS_PER_BLOCK] and [Self::max_items_per_block] if set.
+	pub max_accounts_per_block: Option<u32>,
+	/// The maximum number of items that can be  extracted and migrated in a single block.
+	///
+	/// Overrides [MAX_ITEMS_PER_BLOCK] if set.
+	pub max_items_per_block: Option<u32>,
+}
+
+/// The maximum number of items that can be extracted and migrated in a single block.
+///
+/// Returns constant [MAX_ITEMS_PER_BLOCK] if no settings are set in storage by the manager.
+pub fn max_items_per_block<T: Config>() -> u32 {
+	Settings::<T>::get()
+		.map(|settings| settings.max_items_per_block.unwrap_or(MAX_ITEMS_PER_BLOCK))
+		.unwrap_or(MAX_ITEMS_PER_BLOCK)
+}
+
+/// The maximum number of accounts that can be extracted and migrated in a single block.
+///
+/// Returns constant [MAX_ITEMS_PER_BLOCK] if no settings are set in storage by the manager.
+pub fn max_accounts_per_block<T: Config>() -> u32 {
+	Settings::<T>::get()
+		.map(|settings| settings.max_accounts_per_block.unwrap_or(max_items_per_block::<T>()))
+		.unwrap_or(max_items_per_block::<T>())
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -898,6 +931,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type CoolOffPeriod<T: Config> =
 		StorageValue<_, DispatchTime<BlockNumberFor<T>>, OptionQuery>;
+
+	/// The migration settings.
+	#[pallet::storage]
+	pub type Settings<T: Config> = StorageValue<_, MigrationSettings, OptionQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -1356,6 +1393,18 @@ pub mod pallet {
 				ManagerMultisigs::<T>::insert(payload.call, votes_for_call);
 			}
 
+			Ok(())
+		}
+
+		/// Set the migration settings.
+		#[pallet::call_index(14)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn set_settings(
+			origin: OriginFor<T>,
+			settings: Option<MigrationSettings>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin.clone())?;
+			Settings::<T>::set(settings);
 			Ok(())
 		}
 	}
