@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Let multisig round start from 100 for Polkadot Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Fix staking-async [sdk #9926](https://github.com/paritytech/polkadot-sdk/pull/9926): chill stakers should not have a score ([#960](https://github.com/polkadot-fellows/runtimes/pull/960))
+- Fix resending of duplicate AHM messages ([#970](https://github.com/polkadot-fellows/runtimes/pull/970))
 
 ## [1.9.3] 21.10.2025
 
