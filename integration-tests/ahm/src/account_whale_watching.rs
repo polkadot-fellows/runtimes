@@ -18,9 +18,10 @@
 
 #[cfg(feature = "kusama-ahm")]
 use crate::porting_prelude::*;
+#[cfg(feature = "polkadot-ahm")]
+use hex_literal::hex;
 
 use crate::porting_prelude::RC_DOLLARS;
-use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_runtime::AccountId32;
@@ -31,25 +32,26 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 /// Whale accounts that we care about and minimal total resulting balance.
 #[cfg(feature = "polkadot-ahm")]
 const WHALES: &[(AccountId32, u128)] = &[
-	// TODO
+	(
+		AccountId32::new(hex!("f5d5714c084c112843aca74f8c498da06cc5a2d63153b825189baa51043b1f0b")),
+		100_000_000,
+	),
+	(
+		AccountId32::new(hex!("70f59acb102933da7bb3014e9417745a1f5b1a8ef6dfb141c493597a7b723f26")),
+		40_000_000,
+	),
+	(
+		AccountId32::new(hex!("5003aa0a3e9eaf4a3727bccb8dd0ffc7e3b8c936bba435328652a78545b54d25")),
+		10_000_000,
+	),
+	(
+		AccountId32::new(hex!("0bd1177d190c955fac5de6a176769fb1b3237c47c3a22a8bff2451a39979634d")),
+		10_000_000,
+	),
 ];
 
-/// Whale accounts that we care about and minimal total resulting balance.
 #[cfg(feature = "kusama-ahm")]
-const WHALES: &[(AccountId32, u128)] = &[
-	(
-		AccountId32::new(hex!("4aca27604ad033f7c45b1cfc23b55520826db4abb69a8a7c165461c40f330c6b")),
-		1_000_000,
-	),
-	(
-		AccountId32::new(hex!("68e8ca19a25c1aee85d10ef31f6426d23b2fc84b9953aa2056029fade59450d6")),
-		300_000,
-	),
-	(
-		AccountId32::new(hex!("aeb435d6ff4727f364e52652e6dcf9cbda4644610b7d7329213f8c74a07e503c")),
-		200_000,
-	),
-];
+const WHALES: &[(AccountId32, u128)] = &[];
 
 pub struct BalanceWhaleWatching;
 

@@ -103,7 +103,7 @@ use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
 	indices::RcIndicesIndexOf,
-	multisig::*,
+	multisig::{MultisigMigrationChecker, RcMultisigOf},
 	preimage::*,
 	proxy::*,
 	staking::{
@@ -199,6 +199,11 @@ pub enum MigrationStage {
 	DataMigrationOngoing,
 	/// The migration is done.
 	MigrationDone,
+	/// Cool off-stage for manual verification. Calls are still locked.
+	CoolOff {
+		/// The RC block number at which the post migration cool-off period will end.
+		end_at: u32,
+	},
 }
 
 impl MigrationStage {
@@ -218,7 +223,7 @@ impl MigrationStage {
 	///
 	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
-		matches!(self, MigrationStage::DataMigrationOngoing)
+		matches!(self, MigrationStage::DataMigrationOngoing | MigrationStage::CoolOff { .. })
 	}
 }
 
@@ -606,6 +611,24 @@ pub mod pallet {
 			destination: Location,
 			message: Xcm<()>,
 			message_id: XcmHash,
+		},
+		/// Failed to unreserve a multisig deposit.
+		FailedToUnreserveMultisigDeposit {
+			/// The expected amount of the deposit that was expected to be unreserved.
+			expected_amount: pallet_rc_migrator::multisig::BalanceOf<T>,
+			/// The missing amount of the deposit.
+			missing_amount: pallet_rc_migrator::multisig::BalanceOf<T>,
+			/// The account that the deposit was unreserved from.
+			account: T::AccountId,
+		},
+		/// Failed to unreserve a legacy status preimage deposit.
+		FailedToUnreservePreimageDeposit {
+			/// The expected amount of the deposit that was expected to be unreserved.
+			expected_amount: pallet_preimage::BalanceOf<T>,
+			/// The missing amount of the deposit.
+			missing_amount: pallet_preimage::BalanceOf<T>,
+			/// The account that the deposit was unreserved from.
+			account: T::AccountId,
 		},
 	}
 
@@ -1074,10 +1097,11 @@ pub mod pallet {
 		pub fn finish_migration(
 			origin: OriginFor<T>,
 			data: Option<MigrationFinishedData<T::Balance>>,
+			cool_off_end_at: u32,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
-			Self::migration_finish_hook(data).map_err(Into::into)
+			Self::migration_finish_hook(data, cool_off_end_at).map_err(Into::into)
 		}
 
 		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
@@ -1140,6 +1164,14 @@ pub mod pallet {
 
 			if Self::is_ongoing() {
 				weight = weight.saturating_add(T::AhWeightInfo::force_dmp_queue_priority());
+			}
+
+			if let MigrationStage::CoolOff { end_at } = AhMigrationStage::<T>::get() {
+				// `TreasuryBlockNumberProvider` is the RC block number provider.
+				let rc_block = T::TreasuryBlockNumberProvider::current_block_number();
+				if rc_block >= end_at {
+					Self::transition(MigrationStage::MigrationDone);
+				}
 			}
 
 			weight
@@ -1213,6 +1245,7 @@ pub mod pallet {
 		/// Auxiliary logic to be done after the migration finishes.
 		pub fn migration_finish_hook(
 			data: Option<MigrationFinishedData<T::Balance>>,
+			cool_off_end_at: u32,
 		) -> Result<(), Error<T>> {
 			// Accounts
 			if let Some(data) = data {
@@ -1226,7 +1259,7 @@ pub mod pallet {
 			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::unlock();
 
 			// We have to go into the Done state, otherwise the chain will be blocked
-			Self::transition(MigrationStage::MigrationDone);
+			Self::transition(MigrationStage::CoolOff { end_at: cool_off_end_at });
 			Ok(())
 		}
 
@@ -1244,8 +1277,8 @@ pub mod pallet {
 			}
 			if new == MigrationStage::MigrationDone {
 				defensive_assert!(
-					old == MigrationStage::DataMigrationOngoing,
-					"MigrationDone can only enter from DataMigrationOngoing"
+					matches!(old, MigrationStage::CoolOff { .. }),
+					"MigrationDone can only enter from CoolOff"
 				);
 				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
 

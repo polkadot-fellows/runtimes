@@ -83,7 +83,7 @@ pub struct RcMultisig<AccountId, Balance> {
 
 pub type RcMultisigOf<T> = RcMultisig<AccountIdOf<T>, BalanceOf<T>>;
 
-type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
+pub type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
@@ -138,11 +138,11 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				}
 			}
 
-			if batch.len() >= MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= max_items_per_block::<T>() {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
-					MAX_ITEMS_PER_BLOCK,
+					max_items_per_block::<T>(),
 					batch.len()
 				);
 				break;
