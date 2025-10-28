@@ -414,6 +414,15 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
+/// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
+pub struct XcmBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> Location {
+		Location::new(1, Parachain(id))
+	}
+}
+
 #[test]
 fn treasury_pallet_account_not_none() {
 	assert_eq!(

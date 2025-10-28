@@ -50,5 +50,5 @@ impl pallet_assets::Config for Runtime {
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
+	type BenchmarkHelper = xcm_config::XcmBenchmarkHelper;
 }
