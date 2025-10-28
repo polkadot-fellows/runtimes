@@ -8,7 +8,7 @@ on:
 
 jobs:
   collect-release-information:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       should-release: ${{ steps.run.outputs.should-release }}
       version: ${{ steps.run.outputs.version }}
@@ -23,7 +23,7 @@ jobs:
   runtime-matrix:
     needs: [ collect-release-information ]
     if: needs.collect-release-information.outputs.should-release == '1'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     steps:
@@ -37,7 +37,7 @@ jobs:
   build-runtimes:
     needs: [ runtime-matrix ]
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -103,7 +103,7 @@ jobs:
           path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
 
   publish-release:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [ build-runtimes, collect-release-information ]
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
@@ -185,7 +185,7 @@ jobs:
   publish-runtimes:
     needs: [ runtime-matrix, publish-release ]
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       RUNTIME_DIR: runtime
     strategy:
@@ -218,7 +218,7 @@ jobs:
 
   package-compact-wasms:
     needs: [ build-runtimes, publish-release ]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Download compact artfacts
         uses: actions/download-artifact@v4
