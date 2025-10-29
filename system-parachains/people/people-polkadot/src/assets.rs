@@ -20,7 +20,7 @@ use frame_system::{EnsureNever, EnsureRoot};
 use xcm::latest::prelude::*;
 
 parameter_types! {
-	pub const AssetDeposit: Balance = 0;
+	pub const AssetDeposit: Balance = UNITS;
 	pub const AssetAccountDeposit: Balance = 0;
 	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
 	pub const AssetsStringLimit: u32 = 50;
