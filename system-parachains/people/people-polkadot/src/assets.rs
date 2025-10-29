@@ -15,9 +15,9 @@
 
 use super::*;
 
-use frame_support::parameter_types;
+use frame_support::{parameter_types, traits::fungibles::Balanced};
 use frame_system::{EnsureNever, EnsureRoot};
-use xcm::latest::prelude::*;
+use xcm::latest::{Asset, AssetId, Junction::*, Location};
 
 parameter_types! {
 	pub const AssetDeposit: Balance = UNITS;
@@ -42,7 +42,7 @@ impl pallet_assets::Config for Runtime {
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
 	type StringLimit = AssetsStringLimit;
-	type Holder = ();
+	type Holder = AssetsHolder;
 	type Freezer = ();
 	type Extra = ();
 	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
@@ -51,6 +51,103 @@ impl pallet_assets::Config for Runtime {
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = xcm_config::XcmBenchmarkHelper;
+}
+
+/// Handles crediting transaction fees to the staking pot.
+pub struct CreditToStakingPot;
+impl pallet_asset_tx_payment::HandleCredit<AccountId, Assets> for CreditToStakingPot {
+	fn handle_credit(credit: frame_support::traits::fungibles::Credit<AccountId, Assets>) {
+		use sp_core::TypedGet;
+		let staking_pot = pallet_collator_selection::StakingPotAccountId::<Runtime>::get();
+		let _ = Assets::resolve(&staking_pot, credit);
+	}
+}
+
+type OnChargeStableTransaction =
+	pallet_asset_tx_payment::FungiblesAdapter<AssetRate, CreditToStakingPot>;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct AssetTxPaymentBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_asset_tx_payment::BenchmarkHelperTrait<AccountId, Location, Location>
+	for AssetTxPaymentBenchmarkHelper
+{
+	fn create_asset_id_parameter(id: u32) -> (Location, Location) {
+		assert_eq!(id, 1);
+		let l = Location::new(
+			1,
+			[
+				xcm::latest::Junction::Parachain(1000),
+				xcm::latest::Junction::PalletInstance(50),
+				xcm::latest::Junction::GeneralIndex(1337),
+			],
+		);
+		(l.clone(), l)
+	}
+
+	fn setup_balances_and_pool(asset_id: Location, account: AccountId) {
+		use alloc::boxed::Box;
+		use frame_support::traits::{
+			fungible::Mutate as _,
+			fungibles::{Inspect as _, Mutate as _},
+		};
+
+		AssetRate::create(RuntimeOrigin::root(), Box::new(asset_id.clone()), 1.into()).unwrap();
+		if !Assets::asset_exists(asset_id.clone()) {
+			Assets::force_create(
+				RuntimeOrigin::root(),
+				asset_id.clone(),
+				account.clone().into(),
+				true,
+				1,
+			)
+			.unwrap();
+		}
+		Assets::mint_into(asset_id, &account, 10_000 * UNITS).unwrap();
+		Balances::mint_into(&account, 10_000 * UNITS).unwrap();
+	}
+}
+
+impl pallet_asset_tx_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Fungibles = Assets;
+	type OnChargeAssetTransaction = OnChargeStableTransaction;
+	type WeightInfo = (); // TODO: weight
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = AssetTxPaymentBenchmarkHelper;
+}
+
+impl pallet_asset_rate::Config for Runtime {
+	type WeightInfo = ();
+	type RuntimeEvent = RuntimeEvent;
+	type CreateOrigin = EnsureRoot<AccountId>;
+	type RemoveOrigin = EnsureRoot<AccountId>;
+	type UpdateOrigin = EnsureRoot<AccountId>;
+	type Currency = Balances;
+	type AssetKind = <Runtime as pallet_assets::Config>::AssetId;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = AssetRateBenchmarkHelper;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct AssetRateBenchmarkHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_asset_rate::AssetKindFactory<Location> for AssetRateBenchmarkHelper {
+	fn create_asset_kind(seed: u32) -> Location {
+		Location::new(
+			1,
+			[
+				xcm::latest::Junction::Parachain(1000),
+				xcm::latest::Junction::GeneralIndex(seed as u128),
+			],
+		)
+	}
+}
+
+impl pallet_assets_holder::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeHoldReason = RuntimeHoldReason;
 }
 
 /// Module that holds everything related to the HOLLAR asset.
@@ -69,7 +166,8 @@ pub mod hollar {
 
 	parameter_types! {
 		pub HydrationLocation: Location = Location::new(1, [Parachain(HYDRATION_PARA_ID)]);
-		pub HollarId: AssetId = AssetId(Location::new(1, [Parachain(HYDRATION_PARA_ID), GeneralIndex(HOLLAR_ASSET_ID)]));
+		pub HollarLocation: Location = Location::new(1, [Parachain(HYDRATION_PARA_ID), GeneralIndex(HOLLAR_ASSET_ID)]);
+		pub HollarId: AssetId = AssetId(HollarLocation::get());
 		pub Hollar: Asset = (HollarId::get(), 10 * HOLLAR_UNITS).into();
 	}
 

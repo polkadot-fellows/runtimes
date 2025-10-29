@@ -108,6 +108,7 @@ pub type TxExtension = (
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
+	pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
@@ -623,6 +624,10 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		Assets: pallet_assets = 12,
+		AssetRate: pallet_asset_rate = 13,
+		AssetTxPayment: pallet_asset_tx_payment = 14,
+		AssetsHolder: pallet_assets_holder = 15,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -644,9 +649,6 @@ construct_runtime!(
 
 		// The main stage.
 		Identity: pallet_identity = 50,
-
-		// Assets.
-		Assets: pallet_assets = 60,
 	}
 );
 
@@ -665,6 +667,9 @@ mod benches {
 		// Substrate
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
+		[pallet_asset_tx_payment, AssetTxPayment]
+		[pallet_asset_rate, AssetRate]
+		[pallet_assets, Assets]
 		[pallet_balances, Balances]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]

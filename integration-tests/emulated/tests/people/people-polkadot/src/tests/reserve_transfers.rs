@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use crate::*;
+use emulated_integration_tests_common::macros::XcmPaymentApiV1;
 use frame_support::traits::fungibles;
 use people_polkadot_runtime::xcm_config::XcmConfig;
 
@@ -33,14 +34,17 @@ fn can_receive_hollar_from_hydration() {
 	)]);
 
 	PeoplePolkadot::execute_with(|| {
+		type Runtime = <PeoplePolkadot as Chain>::Runtime;
+		type RuntimeOrigin = <PeoplePolkadot as Chain>::RuntimeOrigin;
 		type PeopleAssets = <PeoplePolkadot as PeoplePolkadotPallet>::Assets;
+		type AssetRate = <PeoplePolkadot as PeoplePolkadotPallet>::AssetRate;
 
 		// HOLLAR is not registered at first.
 		assert!(!<PeopleAssets as fungibles::Inspect<_>>::asset_exists(hollar_id.clone()));
 
 		// We force create it via root.
 		assert_ok!(PeopleAssets::force_create(
-			<PeoplePolkadot as Chain>::RuntimeOrigin::root(),
+			RuntimeOrigin::root(),
 			hollar_id.clone(),
 			hydration_sovereign_account.into(),
 			true,
@@ -56,6 +60,14 @@ fn can_receive_hollar_from_hydration() {
 			<PeopleAssets as fungibles::Inspect<_>>::balance(hollar_id.clone(), &receiver);
 		assert_eq!(balance_before, 0);
 
+		// We need to create a rate between DOT and HOLLAR
+		// to be able to pay fees in HOLLAR.
+		assert_ok!(AssetRate::create(
+			RuntimeOrigin::root(),
+			Box::new(HollarLocation::get()),
+			1u128.into(),
+		));
+
 		// And we can transfer it from Hydration.
 		let transfer_amount = 10_000_000_000_000_000_000u128;
 		let transfer_xcm = Xcm::builder_unsafe()
@@ -66,7 +78,7 @@ fn can_receive_hollar_from_hydration() {
 		let mut hash = transfer_xcm.using_encoded(sp_io::hashing::blake2_256);
 		assert_ok!(xcm_executor::XcmExecutor::<XcmConfig>::prepare_and_execute(
 			hydration_location,
-			transfer_xcm,
+			transfer_xcm.clone(),
 			&mut hash,
 			Weight::MAX,
 			Weight::zero(),
@@ -74,8 +86,15 @@ fn can_receive_hollar_from_hydration() {
 		.ensure_complete());
 
 		let balance_after = <PeopleAssets as fungibles::Inspect<_>>::balance(hollar_id, &receiver);
-		// TODO: Need to benchmark.
-		let fees = 1;
+
+		// Calculate actual fees.
+		let transfer_xcm_weight =
+			Runtime::query_xcm_weight(VersionedXcm::from(transfer_xcm.into())).unwrap();
+		let fees = Runtime::query_weight_to_asset_fee(
+			transfer_xcm_weight,
+			VersionedAssetId::from(HollarId::get()),
+		)
+		.unwrap();
 		assert_eq!(balance_after, transfer_amount - fees);
 	});
 }

@@ -14,17 +14,18 @@
 // limitations under the License.
 
 use super::{
-	assets::hollar::HollarFromHydration, AccountId, AllPalletsWithSystem, Assets as AssetsPallet,
-	Balance, Balances, CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	assets::hollar::{HollarFromHydration, HollarLocation},
+	AccountId, AllPalletsWithSystem, AssetRate, Assets as AssetsPallet, Balance, Balances,
+	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
-use cumulus_primitives_utility::TakeFirstAssetTrader;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		fungible::{HoldConsideration, ItemOf},
+		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
+		ConstU32, Contains, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -266,21 +267,38 @@ pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentia
 	(),
 >;
 
+pub type WeightToNativeFee = WeightToFee;
+pub struct WeightToStableFee;
+impl frame_support::weights::WeightToFee for WeightToStableFee {
+	type Balance = Balance;
+
+	fn weight_to_fee(weight: &Weight) -> Self::Balance {
+		let native_fee = WeightToNativeFee::weight_to_fee(weight);
+
+		AssetRate::to_asset_balance(native_fee, HollarLocation::get())
+			// Using max value will make the payment fail and go to the next trader component.
+			.unwrap_or(Balance::MAX)
+	}
+}
+
+/// A fungible adapter for the stable asset
+pub type FungibleHollar = ItemOf<AssetsPallet, HollarLocation, AccountId>;
+
 /// All ways of paying for execution fees via XCM.
 pub type Traders = (
 	UsingComponents<
-		WeightToFee,
+		WeightToNativeFee,
 		RelayLocation,
 		AccountId,
 		Balances,
 		ResolveTo<StakingPot, Balances>,
 	>,
-	TakeFirstAssetTrader<
+	UsingComponents<
+		WeightToStableFee,
+		HollarLocation,
 		AccountId,
-		AssetFeeAsExistentialDepositMultiplierFeeCharger,
-		assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>,
-		AssetsPallet,
-		(),
+		FungibleHollar,
+		ResolveTo<StakingPot, FungibleHollar>,
 	>,
 );
 
