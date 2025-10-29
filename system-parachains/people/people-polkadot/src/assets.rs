@@ -22,7 +22,7 @@ use xcm::latest::prelude::*;
 parameter_types! {
 	pub const AssetDeposit: Balance = 0;
 	pub const AssetAccountDeposit: Balance = 0;
-	pub const ApprovalDeposit: Balance = 0;
+	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
 	pub const AssetsStringLimit: u32 = 50;
 	pub const MetadataDepositBase: Balance = deposit(1, 68);
 	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
