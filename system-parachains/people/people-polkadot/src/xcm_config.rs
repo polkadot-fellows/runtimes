@@ -14,17 +14,17 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Assets as AssetsPallet, Balance, Balances, CollatorSelection,
-	ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	assets::hollar::HollarFromHydration, AccountId, AllPalletsWithSystem, Assets as AssetsPallet,
+	Balance, Balances, CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
 use cumulus_primitives_utility::TakeFirstAssetTrader;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
-		ContainsPair, Equals, Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
+		Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -253,28 +253,6 @@ pub type TrustedAliasers = (
 	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
 	AuthorizedAliasers<Runtime>,
 );
-
-/// The parachain id of the Hydration DEX.
-pub const HYDRATION_PARA_ID: u32 = 2034;
-
-/// The address of the HOLLAR contract, which identifies it.
-pub const HOLLAR_ASSET_ID: u128 = 222;
-
-/// A type that matches the pair `(Hollar, Hydration)`, used in `IsReserve`.
-pub struct HollarFromHydration;
-impl ContainsPair<Asset, Location> for HollarFromHydration {
-	fn contains(asset: &Asset, origin: &Location) -> bool {
-		let is_hydration =
-			matches!(origin.unpack(), (1, [Parachain(para_id)]) if *para_id == HYDRATION_PARA_ID);
-		let is_hollar = matches!(
-			asset.id.0.unpack(),
-			(1, [Parachain(para_id), GeneralIndex(asset_id)])
-			if *para_id == HYDRATION_PARA_ID && *asset_id == HOLLAR_ASSET_ID
-		);
-
-		is_hydration && is_hollar
-	}
-}
 
 /// The asset transactors responsible for handling assets in XCM.
 pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor);

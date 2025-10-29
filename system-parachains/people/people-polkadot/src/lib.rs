@@ -653,6 +653,7 @@ construct_runtime!(
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::{
+		assets::hollar::{Hollar, HydrationLocation},
 		parameter_types, vec, xcm_config, AccountId, Balances, ExistentialDeposit, ParachainSystem,
 		PriceForSiblingParachainDelivery, Runtime, RuntimeCall, System, XcmConfig, UNITS,
 	};
@@ -776,8 +777,6 @@ mod benches {
 			Asset { fun: Fungible(UNITS), id: AssetId(RelayLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
-		pub HydrationLocation: Location = Location::new(1, [Parachain(2034)]);
-		pub Hollar: Asset = (HydrationLocation::get(), 10_000_000_000_000_000_000u128).into();
 		pub TrustedReserve: Option<(Location, Asset)> = Some((
 			HydrationLocation::get(),
 			Hollar::get(),
