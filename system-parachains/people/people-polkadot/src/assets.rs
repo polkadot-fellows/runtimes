@@ -34,7 +34,7 @@ impl pallet_assets::Config for Runtime {
 	type AssetId = Location;
 	type AssetIdParameter = Location;
 	type Currency = Balances;
-	// Assets can only be created by root.
+	// Assets can only be force created by root.
 	type CreateOrigin = EnsureNever<AccountId>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
