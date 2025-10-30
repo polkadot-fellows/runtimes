@@ -237,7 +237,7 @@ impl multi_block::signed::Config for Runtime {
 	type EjectGraceRatio = EjectGraceRatio;
 	type DepositBase = GeometricDeposit;
 	type DepositPerPage = SignedDepositPerPage;
-	type InvulnerableDeposit = ();
+	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
