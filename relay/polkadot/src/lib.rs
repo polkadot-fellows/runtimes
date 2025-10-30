@@ -45,10 +45,11 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, ConstUint, DefensiveResult, EitherOf, EitherOfDiverse, Equals,
+		FromContains, Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp,
+		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -89,7 +90,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
-use sp_runtime::traits::Convert;
+use sp_runtime::{traits::Convert, AccountId32};
 
 use pallet_staking_async_ah_client as ah_client;
 use pallet_staking_async_rc_client as rc_client;
@@ -177,7 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_009_002,
+	spec_version: 1_009_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1545,15 +1546,16 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
-impl pallet_staking_async_ah_client::Config for Runtime {
+impl ah_client::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	// Polkadot RC currently has 600 validators. 500 minimum for now.
-	type MinimumValidatorSetSize = ConstU32<500>;
+	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
+	// count increasing.
+	type MinimumValidatorSetSize = ConstU32<600>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
@@ -1585,7 +1587,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
 
 #[derive(Encode, Decode)]
 enum AssetHubRuntimePallets<AccountId> {
-	// Audit: `StakingRcClient` in asset-hub-westend
+	// Audit: `StakingRcClient` in asset-hub-polkadot
 	#[codec(index = 84)]
 	RcClient(RcClientCalls<AccountId>),
 }
@@ -1735,6 +1737,60 @@ parameter_types! {
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
+	pub MultisigMembers: Vec<AccountId32> = multisig_members();
+}
+
+/// Polkadot multisig members for the `Manager` privilege of the RC Migrator pallet with threshold
+/// 3.
+///
+/// ACCOUNTS MUST BE ABLE TO SIGN VIA POLKADOTJS APPS `DEVELOPER->SIGN AND VERIFY` FEATURE.
+/// This does *not* work for signing devices and implies that the account is *hot*. The account
+/// does not need to have a balance and the chain does not matter.
+///
+/// Will be used to respond to issues during the Asset Hub Migration and to adjust the scheduled
+/// timepoint to ensure that it runs at the right time. Most members do not need to do anything
+/// but are just in place to act as emergency backup contacts.
+// We need these dev accounts to run unit tests.
+#[cfg(feature = "std")]
+fn multisig_members() -> Vec<AccountId32> {
+	use sp_core::crypto::Ss58Codec;
+
+	let addresses = vec![
+		"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
+		"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
+		"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
+		                                                     * Public Key) */
+		"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
+		"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
+		"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
+	];
+
+	addresses
+		.into_iter()
+		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).defensive_ok())
+		.collect()
+}
+
+#[cfg(not(feature = "std"))]
+fn multisig_members() -> Vec<AccountId32> {
+	use sp_core::crypto::Ss58Codec;
+
+	let addresses = vec![
+		"13fvj4bNfrTo8oW6U8525soRp6vhjAFLum6XBdtqq9yP22E7", // Basti
+		"16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna", // Gav
+		"1eTPAR2TuqLyidmPT9rMmuycHVm9s9czu78sePqg2KHMDrE",  // Kian
+		"13TRAXTALwNp5vApqwiE74fg8G8ypMyaF9TxRfs4RwrCwxUE", // Oliver / ggwpez
+		"15DCWHQknBjc5YPFoVj8Pn2KoqrqYywJJ95BYNYJ4Fj3NLqz", // Joe
+		"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // Muharem
+		"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // Adrian
+		"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // RobK
+		"142zGifFwRrDbFLJD7LvbyoHQAqDaXeHjkxJbUVwmDYBD7Gf", // Donal
+	];
+
+	addresses
+		.into_iter()
+		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).defensive_ok())
+		.collect()
 }
 
 pub struct ProxyTypeAny;
@@ -1777,8 +1833,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type MultisigMembers = ();
-	type MultisigThreshold = ConstU32<{ u32::MAX }>;
+	type MultisigMembers = MultisigMembers;
+	type MultisigThreshold = ConstU32<3>;
+	type MultisigMaxVotesPerRound = ConstU32<10>;
 }
 
 construct_runtime! {
@@ -1931,15 +1988,51 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (KickOffAhm<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
+
+	/// Kick off the Asset Hub Migration.
+	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
+	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
+		fn on_runtime_upgrade() -> Weight {
+			if MigrationStartBlock::<T>::exists() ||
+				RcMigrationStage::<T>::get() != MigrationStage::Pending
+			{
+				// Already started or scheduled
+				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
+				return T::DbWeight::get().reads(2)
+			}
+
+			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				// Migration start block, Tuesday 4th Nov 8 AM UTC
+				// https://polkadot.subscan.io/block/28490502
+				DispatchTime::At(28490502u32.into()),
+				// Warm up to wait for Messaging queues to empty
+				DispatchTime::After((60 * MINUTES).into()),
+				// Cool off to verify the success of the migration
+				DispatchTime::After((60 * MINUTES).into()),
+				// Respect the session scheduling check:
+				Default::default(),
+			);
+
+			if let Err(e) = result {
+				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
+			} else {
+				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
+			}
+
+			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2210,8 +2303,10 @@ mod benches {
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 			let origin = Location::new(0, [Parachain(1000)]);
-			let target =
-				Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
+			let target = Location::new(
+				0,
+				[Parachain(1000), Junction::AccountId32 { id: [128u8; 32], network: None }],
+			);
 			Ok((origin, target))
 		}
 	}
@@ -2777,6 +2872,15 @@ sp_api::impl_runtime_apis! {
 			encoded: Vec<u8>,
 		) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
 			SessionKeys::decode_into_raw_public_keys(&encoded)
+		}
+	}
+
+	impl frame_support::view_functions::runtime_api::RuntimeViewFunction<Block> for Runtime {
+		fn execute_view_function(
+			id: frame_support::view_functions::ViewFunctionId,
+			input: Vec<u8>
+		) -> Result<Vec<u8>, frame_support::view_functions::ViewFunctionDispatchError> {
+			Runtime::execute_view_function(id, input)
 		}
 	}
 
@@ -3570,5 +3674,300 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
 		});
+	}
+}
+
+#[cfg(test)]
+mod ahm_multisig {
+	use super::*;
+	use pallet_rc_migrator::ManagerMultisigVote;
+	use sp_core::Pair;
+	use sp_io::TestExternalities;
+	use sp_runtime::{
+		traits::{Dispatchable, ValidateUnsigned},
+		MultiSignature, MultiSigner,
+	};
+
+	#[test]
+	fn all_ss58s_decode() {
+		// ensure all non-dev account ids we have are valid ss58s
+		assert_eq!(MultisigMembers::get().len(), 6);
+	}
+
+	#[test]
+	fn unsigned_manager_multisig_works() {
+		TestExternalities::default().execute_with(|| {
+			let call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
+				stage: Box::new(pallet_rc_migrator::MigrationStage::Starting),
+			};
+			let runtime_call = RuntimeCall::from(call.clone());
+			let other_call = pallet_rc_migrator::Call::<Runtime>::force_set_stage {
+				stage: Box::new(pallet_rc_migrator::MigrationStage::SchedulerMigrationInit),
+			};
+			let other_runtime_call = RuntimeCall::from(other_call.clone());
+
+			// initial round is zero
+			assert_eq!(pallet_rc_migrator::ManagerMultisigRound::<Runtime>::get(), 0);
+
+			{
+				// Ferdie is not part of the multisig, will get rejected on validate
+				let ferdie = sp_keyring::Sr25519Keyring::Ferdie.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(ferdie.public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = ferdie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+
+			{
+				// Alice signs a wrong message, rejected
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(sp_keyring::Sr25519Keyring::Bob.pair().public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+				assert!(
+					pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+						TransactionSource::External,
+						&call
+					)
+					.is_err(),
+					"Alice signs a wrong message, rejected"
+				);
+			}
+
+			let alice_sig_for_first_round = {
+				// Alice signs, not executed yet
+				let alice = sp_keyring::Sr25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(alice.public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					1
+				);
+
+				MultiSignature::Sr25519(sig)
+			};
+
+			frame_support::hypothetically!({
+				// Alice ED25519 signs
+				let alice = sp_keyring::Ed25519Keyring::Alice.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Ed25519(sp_keyring::Ed25519Keyring::Alice.pair().public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Ed25519(sig),
+				};
+				assert!(
+					pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+						TransactionSource::External,
+						&call
+					)
+					.is_ok(),
+					"Alice ED25519 signs"
+				);
+			});
+
+			frame_support::hypothetically!({
+				// Alice ECDSA Address signs
+				let seed = hex_literal::hex!(
+					"cb6df9de1efca7a3998a8ead4e02159d5fa99c3e0d4fd6432667390bb4726854"
+				);
+				let alice = sp_application_crypto::ecdsa::Pair::from_seed_slice(&seed).unwrap();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Ecdsa(alice.public()),
+					runtime_call.clone(),
+					0,
+				);
+
+				let sig = alice.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Ecdsa(sig),
+				};
+				assert!(
+					pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+						TransactionSource::External,
+						&call
+					)
+					.is_ok(),
+					"Alice ECDSA Address signs"
+				);
+			});
+
+			{
+				// Bob signs, still waiting
+				let bob = sp_keyring::Sr25519Keyring::Bob.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(bob.public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = bob.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					2
+				);
+			}
+
+			{
+				// charlie signs something else, stored but not used.
+				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(charlie.public()),
+					other_runtime_call.clone(),
+					0,
+				);
+				let sig = charlie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				// 1 vote for the new one
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(
+						other_runtime_call.clone()
+					)
+					.len(),
+					1
+				);
+				// still 2 votes for this
+				assert_eq!(
+					pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+						.len(),
+					2
+				);
+			}
+
+			{
+				// Signed origin wont work
+				let charlie = sp_keyring::Sr25519Keyring::Charlie.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(charlie.public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = charlie.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				assert!(RuntimeCall::from(call)
+					.dispatch(RuntimeOrigin::signed(charlie.public().into()))
+					.is_err());
+			}
+
+			{
+				// eve signs, dispatched
+				let eve = sp_keyring::Sr25519Keyring::Eve.pair();
+				let payload = ManagerMultisigVote::new(
+					MultiSigner::Sr25519(eve.public()),
+					runtime_call.clone(),
+					0,
+				);
+				let sig = eve.sign(payload.encode_with_bytes_wrapper().as_ref());
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(payload),
+					sig: MultiSignature::Sr25519(sig),
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_ok());
+				// We are in pending
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Pending
+				);
+				// Now force it into Starting
+				assert!(RuntimeCall::from(call).dispatch(RuntimeOrigin::none()).is_ok());
+				// executed, so no more votes
+				assert_eq!(
+					pallet_rc_migrator::RcMigrationStage::<Runtime>::get(),
+					pallet_rc_migrator::MigrationStage::Starting
+				);
+				// votes erased
+				assert!(pallet_rc_migrator::ManagerMultisigs::<Runtime>::get(runtime_call.clone())
+					.is_empty(),);
+				// round incremented
+				assert_eq!(pallet_rc_migrator::ManagerMultisigRound::<Runtime>::get(), 1);
+			}
+
+			{
+				// Alice's signature from first round cannot be re-used
+				let call = pallet_rc_migrator::Call::<Runtime>::vote_manager_multisig {
+					payload: Box::new(ManagerMultisigVote::new(
+						MultiSigner::Sr25519(sp_keyring::Sr25519Keyring::Alice.pair().public()),
+						runtime_call.clone(),
+						0,
+					)),
+					sig: alice_sig_for_first_round,
+				};
+				assert!(pallet_rc_migrator::Pallet::<Runtime>::validate_unsigned(
+					TransactionSource::External,
+					&call
+				)
+				.is_err());
+			}
+		})
 	}
 }
