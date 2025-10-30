@@ -41,7 +41,9 @@ pub use emulated_integration_tests_common::{
 };
 pub use parachains_common::{AccountId, Balance};
 pub use people_polkadot_runtime::{
-	assets::hollar::{HollarId, HollarLocation},
+	assets::hollar::{
+		HollarId, HollarLocation, HydrationLocation, HOLLAR_UNITS, HYDRATION_PARA_ID,
+	},
 	ExistentialDeposit as PeoplePolkadotExistentialDeposit,
 };
 pub use polkadot_system_emulated_network::{
