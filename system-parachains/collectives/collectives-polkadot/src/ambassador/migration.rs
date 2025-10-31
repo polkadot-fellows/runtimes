@@ -216,12 +216,7 @@ pub(crate) mod add_accounts {
 
 pub(crate) mod change_params {
 	use super::*;
-	use alloc::boxed::Box;
-	#[cfg(feature = "try-runtime")]
-	use alloc::vec::Vec;
-	use pallet_core_fellowship::{
-		Config, Pallet as CoreFellowship, Params, ParamsType, WeightInfo,
-	};
+	use pallet_core_fellowship::{Config, Params};
 
 	/// Implements `OnRuntimeUpgrade` trait.
 	#[allow(dead_code)]
@@ -231,39 +226,11 @@ pub(crate) mod change_params {
 	where
 		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
 	{
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			// Verify old storage exists
-			ensure!(Params::<T, I>::exists(), "Old AmbassadorCore::Params should exist");
-
-			// Return old value for comparison
-			Ok(Params::<T, I>::get().encode())
-		}
-
 		fn on_runtime_upgrade() -> Weight {
-			let mut weight = Weight::zero();
-
 			// Kill existing params if they exist
-			if Params::<T, I>::exists() {
-				Params::<T, I>::kill();
-				weight = weight.saturating_add(T::DbWeight::get().reads_writes(1, 1));
-			}
+			Params::<T, I>::kill();
 
-			// Set default values
-			let default_params = ParamsType {
-				active_salary: Default::default(),
-				passive_salary: Default::default(),
-				demotion_period: Default::default(),
-				min_promotion_period: Default::default(),
-				offboard_timeout: Zero::zero(),
-			};
-			let origin = frame_system::RawOrigin::Root.into();
-			let _ = CoreFellowship::<T, I>::set_params(origin, Box::new(default_params));
-
-			// Add weight for set_params operation
-			weight = weight.saturating_add(T::WeightInfo::set_params());
-
-			weight
+			T::DbWeight::get().reads_writes(1, 1)
 		}
 	}
 }
@@ -275,14 +242,7 @@ pub mod tests {
 		ambassador::{AmbassadorCollectiveInstance as Ambassador, AmbassadorCoreInstance},
 		Runtime, System,
 	};
-	#[cfg(feature = "try-runtime")]
-	use codec::Encode;
-	#[cfg(feature = "try-runtime")]
-	use frame_support::assert_ok;
-	use frame_support::{
-		traits::{DefensiveTruncateFrom, OnRuntimeUpgrade},
-		BoundedVec,
-	};
+	use frame_support::traits::OnRuntimeUpgrade;
 	use pallet_core_fellowship::{Params, ParamsType};
 	use pallet_ranked_collective::Rank;
 	use parachains_common::AccountId;
@@ -470,60 +430,14 @@ pub mod tests {
 
 			// Check that default params were set
 			let expected_default = ParamsType {
-				active_salary: BoundedVec::defensive_truncate_from(vec![]),
-				passive_salary: BoundedVec::defensive_truncate_from(vec![]),
-				demotion_period: BoundedVec::defensive_truncate_from(vec![]),
-				min_promotion_period: BoundedVec::defensive_truncate_from(vec![]),
-				offboard_timeout: 0,
+				active_salary: Default::default(),
+				passive_salary: Default::default(),
+				demotion_period: Default::default(),
+				min_promotion_period: Default::default(),
+				offboard_timeout: Default::default(),
 			};
 
 			assert_eq!(Params::<Runtime, AmbassadorCoreInstance>::get(), expected_default);
-		});
-	}
-
-	#[cfg(feature = "try-runtime")]
-	#[test]
-	fn test_change_params_pre_upgrade() {
-		// Create test externalities
-		let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
-		let mut ext = sp_io::TestExternalities::new(t);
-
-		ext.execute_with(|| {
-			// Set up initial state with some old params
-			let old_params = ParamsType {
-				active_salary: BoundedVec::defensive_truncate_from(vec![100, 200, 300]),
-				passive_salary: BoundedVec::defensive_truncate_from(vec![50, 100, 150]),
-				demotion_period: BoundedVec::defensive_truncate_from(vec![7, 14, 30]),
-				min_promotion_period: BoundedVec::defensive_truncate_from(vec![30, 60, 90]),
-				offboard_timeout: 90,
-			};
-
-			// Store old params
-			Params::<Runtime, AmbassadorCoreInstance>::put(old_params.clone());
-
-			// Test pre_upgrade
-			let result = SetDefaultParams::<Runtime, AmbassadorCoreInstance>::pre_upgrade();
-			assert_ok!(result.clone());
-
-			let encoded_old_params = result.unwrap();
-			assert_eq!(encoded_old_params, old_params.encode());
-		});
-	}
-
-	#[cfg(feature = "try-runtime")]
-	#[test]
-	#[should_panic(expected = "Old AmbassadorCore::Params should exist")]
-	fn test_change_params_pre_upgrade_fails_when_no_params() {
-		// Create test externalities
-		let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
-		let mut ext = sp_io::TestExternalities::new(t);
-
-		ext.execute_with(|| {
-			// Ensure no params exist
-			assert!(!Params::<Runtime, AmbassadorCoreInstance>::exists());
-
-			// This should panic with the expected error message
-			SetDefaultParams::<Runtime, AmbassadorCoreInstance>::pre_upgrade().unwrap();
 		});
 	}
 }
