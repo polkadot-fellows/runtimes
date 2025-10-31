@@ -283,11 +283,11 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 				}
 			}
 
-			if batch.len() >= MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= max_accounts_per_block::<T>() {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
-					MAX_ITEMS_PER_BLOCK,
+					max_accounts_per_block::<T>(),
 					batch.len()
 				);
 				break;
