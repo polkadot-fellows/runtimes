@@ -172,7 +172,7 @@ pub mod hollar {
 	}
 
 	/// A type that matches the pair `(Hollar, Hydration)`,
-	/// used in the XCM	configuration's `IsReserve`.
+	/// used in the XCM configuration's `IsReserve`.
 	pub struct HollarFromHydration;
 	impl ContainsPair<Asset, Location> for HollarFromHydration {
 		fn contains(asset: &Asset, origin: &Location) -> bool {
