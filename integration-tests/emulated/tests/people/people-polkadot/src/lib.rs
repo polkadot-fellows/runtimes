@@ -40,7 +40,12 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
 pub use parachains_common::{AccountId, Balance};
-pub use people_polkadot_runtime::ExistentialDeposit as PeoplePolkadotExistentialDeposit;
+pub use people_polkadot_runtime::{
+	assets::hollar::{
+		HollarId, HollarLocation, HydrationLocation, HOLLAR_UNITS, HYDRATION_PARA_ID,
+	},
+	ExistentialDeposit as PeoplePolkadotExistentialDeposit,
+};
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
 		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
