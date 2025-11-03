@@ -35,7 +35,17 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 				.chain_spec_command_is_local(true)
 				.with_chain("coretime-polkadot-local")
 				.with_collator(|n| n.with_name(COLLATOR))
+		});
+
+	let config = if let Ok(local_ip) = std::env::var("ZOMBIE_LOCAL_IP") {
+		config.with_global_settings(|s|{
+			s.with_local_ip(&local_ip)
 		})
+	} else {
+		config
+	};
+
+	let config = config
 		.build()
 		.map_err(|errs| {
 			let e = errs.iter().fold("".to_string(), |memo, err| format!("{memo} \n {err}"));
