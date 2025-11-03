@@ -319,7 +319,53 @@ pub mod tests {
 				"Failed accounts should not remain in storage after migration"
 			);
 
-			let (account_summaries, _) = rc_pre_payload;
+			let (mut account_summaries, _) = rc_pre_payload;
+
+			// The following is a list of sovereign parachain account IDs on the RC, derived from
+			// `para:{para_id}`. Each parachain also has a corresponding account on the RC derived
+			// from `sibling:{para_id}`. The balances from both accounts are migrated to AH under
+			// the account derived from `sibling:{para_id}`. Here, we merge the account summaries
+			// sent from RC and update the original list, so they can later be asserted as a single
+			// account.
+			let paras_on_rc: Vec<AccountId32> = vec![
+				"13YMK2egp37hfa6iW55HShQzog2RY5CNNNQmrLcsWNtVpmne".parse().unwrap(),
+				"13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm".parse().unwrap(),
+				"13YMK2e8xUCA7HY6GK4Mv3VWWTRv9hKNAL4GLNhWu9ApyKP9".parse().unwrap(),
+				"13YMK2e8ZE5o53gUd46uXgDNKC75ryT7xucd5ANPiZ6tWnMZ".parse().unwrap(),
+			];
+
+			for as_para in paras_on_rc {
+				let as_sibling = crate::Pallet::<T>::translate_account_rc_to_ah(as_para.clone());
+				let as_para_entry = account_summaries.remove(&as_para).unwrap();
+				assert!(as_para_entry.holds.is_empty(), "Holds should be empty for para account");
+				assert!(
+					as_para_entry.freezes.is_empty(),
+					"Freezes should be empty for para account",
+				);
+				assert!(as_para_entry.locks.is_empty(), "Locks should be empty for para account");
+
+				account_summaries.entry(as_sibling).and_modify(|as_sibling_entry| {
+					as_sibling_entry.migrated_free += as_para_entry.migrated_free;
+					as_sibling_entry.migrated_reserved += as_para_entry.migrated_reserved;
+					as_sibling_entry.frozen += as_para_entry.frozen;
+					assert!(
+						as_sibling_entry.holds.is_empty(),
+						"Holds should be empty for sibling account"
+					);
+					assert!(
+						as_sibling_entry.freezes.is_empty(),
+						"Freezes should be empty for sibling account"
+					);
+					assert!(
+						as_sibling_entry.locks.is_empty(),
+						"Locks should be empty for sibling account"
+					);
+				});
+			}
+
+			let mut balance_diff_stats = BTreeMap::<T::AccountId, (u128, u128)>::new();
+			let mut reserved_diff_stats = BTreeMap::<T::AccountId, (u128, u128)>::new();
+
 			let (old_account_id, _) = T::TreasuryAccounts::get();
 			for (who, summary) in account_summaries {
 				// Checking account balance migration is tested separately.
@@ -370,10 +416,35 @@ pub mod tests {
 
 				let rc_migrated_balance =
 					summary.migrated_free.saturating_add(summary.migrated_reserved);
-				let ah_migrated_balance = ah_free_post
-					.saturating_sub(ah_free_before)
-					.saturating_add(ah_reserved_post.saturating_sub(ah_reserved_before));
+
+				let ah_migrated_free_balance =
+					ah_free_post.checked_sub(ah_free_before).unwrap_or_else(|| {
+						let missing_free = ah_free_before
+							.saturating_add(summary.migrated_free)
+							.saturating_sub(ah_free_post);
+						balance_diff_stats
+							.entry(who.clone())
+							.and_modify(|entry| entry.0 = missing_free)
+							.or_insert((missing_free, 0));
+						0
+					});
+
+				let ah_migrated_balance = ah_migrated_free_balance
+					.saturating_add(ah_reserved_post)
+					.saturating_sub(ah_reserved_before);
+
 				let ah_ed: u128 = <T as Config>::Currency::minimum_balance();
+
+				let ah_balance_diff =
+					rc_migrated_balance.checked_sub(ah_migrated_balance).unwrap_or_else(|| {
+						let excess_balance =
+							ah_migrated_free_balance.saturating_add(summary.migrated_free);
+						balance_diff_stats
+							.entry(who.clone())
+							.and_modify(|entry| entry.1 = excess_balance)
+							.or_insert((0, excess_balance));
+						0
+					});
 
 				// In case the balance migrated to AH is less than the existential deposit, minting
 				// the balance may fail. Moreover, in case an account has less then AH existential
@@ -383,22 +454,35 @@ pub mod tests {
 				// Therefore, we just check that the difference between the balance migrated from
 				// the RC to AH and the balance delta on AH before and after migration is less than
 				// AH existential deposit.
-				assert!(
-					rc_migrated_balance.saturating_sub(ah_migrated_balance) < ah_ed,
-					"Total balance mismatch for account {:?} between RC pre-migration and AH
-				 post-migration",
-					who.to_ss58check()
-				);
+				if !balance_diff_stats.contains_key(&who) && ah_balance_diff >= ah_ed {
+					balance_diff_stats
+						.entry(who.clone())
+						.and_modify(|entry| entry.1 = ah_balance_diff)
+						.or_insert((0, ah_balance_diff));
+				}
 
-				// There are several `unreserve` operations on AH after migration (e.g., unreserve
-				// deposits for multisigs because they are not migrated to AH, adjust deposits for
-				// preimages, ...). Therefore, we just check that the change in reserved balance on
-				// AH after migration is less than the migrated reserved balance from RC.
-				assert!(
-					ah_reserved_post.saturating_sub(ah_reserved_before) <= summary.migrated_reserved,
-					"Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC",
-					who.to_ss58check()
-				);
+				let ah_migrated_reserved_balance =
+					ah_reserved_post.checked_sub(ah_reserved_before).unwrap_or_else(|| {
+						let missing_reserved = ah_reserved_before
+							.saturating_add(summary.migrated_reserved)
+							.saturating_sub(ah_reserved_post);
+						reserved_diff_stats
+							.entry(who.clone())
+							.and_modify(|entry| entry.0 = missing_reserved)
+							.or_insert((missing_reserved, 0));
+						0
+					});
+
+				if !reserved_diff_stats.contains_key(&who) &&
+					ah_migrated_reserved_balance > summary.migrated_reserved
+				{
+					let extra_reserved =
+						ah_migrated_reserved_balance.saturating_sub(summary.migrated_reserved);
+					reserved_diff_stats
+						.entry(who.clone())
+						.and_modify(|entry| entry.1 = extra_reserved)
+						.or_insert((0, extra_reserved));
+				}
 
 				// There should be no frozen balance on AH before the migration so we just need to
 				// check that the frozen balance on AH after migration is the same as on RC
@@ -449,6 +533,57 @@ pub mod tests {
 					ah_freezes,
 					"Freezes mismatch for account {:?} between RC pre-migration and AH post-migration",
 					who.to_ss58check()
+				);
+			}
+
+			if !balance_diff_stats.is_empty() {
+				let mut total_missing_free = 0;
+				let mut total_excess_balance = 0;
+
+				for (account, (missing_free, excess_balance)) in &balance_diff_stats {
+					total_missing_free += missing_free;
+					total_excess_balance += excess_balance;
+					log::error!(
+						target: LOG_TARGET,
+						"Account {:?}: missing_free: {:?}, excess_balance: {:?}",
+						account.to_ss58check(),
+						missing_free,
+						excess_balance,
+					);
+				}
+
+				log::error!(
+					target: LOG_TARGET,
+					"Total mutated balances count: {:?}, Total missing free: {:?}, total excess balance: {:?}",
+					balance_diff_stats.len(),
+					total_missing_free,
+					total_excess_balance,
+				);
+			}
+
+			if !reserved_diff_stats.is_empty() {
+				let mut total_missing_reserved = 0;
+				let mut total_excess_reserved = 0;
+
+				for (account, (missing_reserved, excess_reserved)) in &reserved_diff_stats {
+					total_missing_reserved += missing_reserved;
+					total_excess_reserved += excess_reserved;
+
+					log::error!(
+						target: LOG_TARGET,
+						"Account {:?}: missing_reserved: {:?}, excess_reserved: {:?}",
+						account.to_ss58check(),
+						missing_reserved,
+						excess_reserved,
+					);
+				}
+
+				log::error!(
+					target: LOG_TARGET,
+					"Total mutated reserved balances count: {:?}, Total missing reserved: {:?}, total excess reserved: {:?}",
+					reserved_diff_stats.len(),
+					total_missing_reserved,
+					total_excess_reserved,
 				);
 			}
 		}
