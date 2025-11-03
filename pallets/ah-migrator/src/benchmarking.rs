@@ -82,7 +82,7 @@ pub mod benchmarks {
 			);
 			<<T as pallet_multisig::Config>::Currency>::reserve(&creator, deposit).unwrap();
 
-			RcMultisig { creator, deposit }
+			pallet_rc_migrator::multisig::RcMultisig { creator, deposit }
 		};
 
 		let messages = (0..n).map(|i| create_multisig(i.try_into().unwrap())).collect::<Vec<_>>();
@@ -974,12 +974,12 @@ pub mod benchmarks {
 	fn finish_migration() {
 		AhMigrationStage::<T>::put(&MigrationStage::DataMigrationOngoing);
 		#[extrinsic_call]
-		_(RawOrigin::Root, Some(MigrationFinishedData { rc_balance_kept: 100 }));
+		_(RawOrigin::Root, Some(MigrationFinishedData { rc_balance_kept: 100 }), 100);
 
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: MigrationStage::DataMigrationOngoing,
-				new: MigrationStage::MigrationDone,
+				new: MigrationStage::CoolOff { end_at: 100 },
 			}
 			.into(),
 		);

@@ -4,6 +4,38 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0] 27.10.2025
+
+### Added
+
+- Scheduled the Polkadot Asset Hub Migration for block [28490502](https://polkadot.subscan.io/block/28490502), circa Tuesday 4th Nov 8 AM UTC ([polkadot-fellows/runtimes/pull/984](https://github.com/polkadot-fellows/runtimes/pull/984)).
+
+### Changed
+
+- Enable preimages pallet on Kusama Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Allow the AHM multisig to act as preimage manager ([polkadot-fellows/runtimes/pull/976](https://github.com/polkadot-fellows/runtimes/pull/976))
+- `RcToAhCall` supports mapping some basic XCMs ([polkadot-fellows/runtimes/pull/983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: map more Referenda XCM instructions ([#983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: Schedule polkadot migration for block [28490502](https://polkadot.subscan.io/block/28490502) ([#984](https://github.com/polkadot-fellows/runtimes/pull/984))
+
+### Fixed
+
+- Let multisig round start from 100 for Polkadot Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Fix staking-async [sdk #9926](https://github.com/paritytech/polkadot-sdk/pull/9926): chill stakers should not have a score ([#960](https://github.com/polkadot-fellows/runtimes/pull/960))
+- Fix resending of duplicate AHM messages ([#970](https://github.com/polkadot-fellows/runtimes/pull/970))
+
+## [1.9.3] 21.10.2025
+
+### Added
+
+- Enable view functions on System Chains([polkadot-fellows/runtimes/pull/981](https://github.com/polkadot-fellows/runtimes/pull/981))
+
+### Fixed
+
+- [BHP](https://github.com/polkadot-fellows/runtimes/pull/978) Add missing snowbridge runtime API to the BridgeHub
+  runtime.
+- Bump `pallet-staking-async` to `0.6.2` to fix incorrect self stake accounting (https://github.com/polkadot-fellows/runtimes/pull/980)
+
 ## [1.9.2] 08.10.2025
 
 ### Added

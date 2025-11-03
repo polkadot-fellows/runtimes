@@ -84,7 +84,7 @@ fn asset_hub_polkadot_genesis(
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
 		"staking": {
-			"validatorCount": 1000,
+			"validatorCount": 600,
 			"devStakers": Some((2_000, 25_000)),
 		},
 		"foreignAssets": ForeignAssetsConfig {

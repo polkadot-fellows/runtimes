@@ -153,7 +153,10 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]
-	FinishMigration { data: Option<MigrationFinishedData<BalanceOf<T>>> },
+	FinishMigration {
+		data: Option<MigrationFinishedData<BalanceOf<T>>>,
+		cool_off_end_at: BlockNumberFor<T>,
+	},
 
 	#[codec(index = 255)]
 	#[cfg(feature = "runtime-benchmarks")]
