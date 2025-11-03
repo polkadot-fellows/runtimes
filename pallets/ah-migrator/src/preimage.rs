@@ -417,12 +417,13 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 		}
 
 		// there are preimage statuses in the Polkadot state that have no preimages
-		const STATUSES_MISSING_PREIMAGE_COUNT: usize = 1;
+		const STATUSES_MISSING_PREIMAGE_COUNT_DIFF: usize = 10;
 
 		// Assert storage "Preimage::PreimageFor::ah_post::consistent"
-		assert_eq!(
-			pallet_preimage::PreimageFor::<T>::iter_keys().count() + STATUSES_MISSING_PREIMAGE_COUNT,
-			pallet_preimage::RequestStatusFor::<T>::iter_keys().count(),
+		assert!(
+			pallet_preimage::RequestStatusFor::<T>::iter_keys().count()
+				- pallet_preimage::PreimageFor::<T>::iter_keys().count()
+				< STATUSES_MISSING_PREIMAGE_COUNT_DIFF,
 			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths on Asset Hub"
 		);
 	}

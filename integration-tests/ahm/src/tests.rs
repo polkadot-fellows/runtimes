@@ -700,7 +700,7 @@ async fn migration_works_time() {
 
 	rc.execute_with(|| {
 		assert_eq!(RcMigrationStartBlock::<Polkadot>::get(), Some(rc_block_start + 1));
-		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(rc_block_end));
+		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(rc_block_end - 1));
 	});
 
 	ah.execute_with(|| {
@@ -742,7 +742,7 @@ async fn migration_works_time() {
 
 	rc.execute_with(|| {
 		assert_eq!(RcMigrationStartBlock::<Polkadot>::get(), Some(rc_block_start + 1));
-		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(new_rc_block_end));
+		assert_eq!(RcMigrationEndBlock::<Polkadot>::get(), Some(new_rc_block_end - 1));
 	});
 
 	ah.execute_with(|| {

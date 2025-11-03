@@ -22,6 +22,7 @@ use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_runtime::{traits::TryConvert, AccountId32};
+use sp_application_crypto::Ss58Codec;
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
@@ -31,10 +32,10 @@ type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 /// We also store the number of proxies.
 #[cfg(feature = "polkadot-ahm")]
 const WHALES: &[(AccountId32, usize)] = &[
-	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 5),
-	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 5),
-	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 4),
-	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 4),
+	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 6),
+	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 6),
+	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 5),
+	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 5),
 ];
 
 #[cfg(feature = "kusama-ahm")]
@@ -77,7 +78,8 @@ impl RcMigrationCheck for ProxyWhaleWatching {
 			assert_eq!(
 				delegations.len(),
 				*num_proxies,
-				"Number of proxies is correct for whale {whale:?}"
+				"Number of proxies is correct for whale {:?}",
+				whale.to_ss58check(),
 			);
 		}
 	}
