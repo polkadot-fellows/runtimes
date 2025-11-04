@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
- - Remove AHM Test code to speed up CI and bump deps ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Remove AHM Test code to speed up CI ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Relinquish AHM multisig functionality post AHM ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+
+### Changed
+
+- Bump deps ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
 
 ## [2.0.0] 27.10.2025
 

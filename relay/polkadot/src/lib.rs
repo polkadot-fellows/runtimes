@@ -47,9 +47,9 @@ use frame_support::{
 		fungible::HoldConsideration,
 		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, DefensiveResult, EitherOf, EitherOfDiverse, Equals,
-		FromContains, Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp,
-		ProcessMessage, ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -90,7 +90,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
-use sp_runtime::{traits::Convert, AccountId32};
+use sp_runtime::traits::Convert;
 
 use pallet_staking_async_ah_client as ah_client;
 use pallet_staking_async_rc_client as rc_client;
@@ -1737,60 +1737,6 @@ parameter_types! {
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
 	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-	pub MultisigMembers: Vec<AccountId32> = multisig_members();
-}
-
-/// Polkadot multisig members for the `Manager` privilege of the RC Migrator pallet with threshold
-/// 3.
-///
-/// ACCOUNTS MUST BE ABLE TO SIGN VIA POLKADOTJS APPS `DEVELOPER->SIGN AND VERIFY` FEATURE.
-/// This does *not* work for signing devices and implies that the account is *hot*. The account
-/// does not need to have a balance and the chain does not matter.
-///
-/// Will be used to respond to issues during the Asset Hub Migration and to adjust the scheduled
-/// timepoint to ensure that it runs at the right time. Most members do not need to do anything
-/// but are just in place to act as emergency backup contacts.
-// We need these dev accounts to run unit tests.
-#[cfg(feature = "std")]
-fn multisig_members() -> Vec<AccountId32> {
-	use sp_core::crypto::Ss58Codec;
-
-	let addresses = vec![
-		"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", // Alice SR25519
-		"5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", // Alice ED25519
-		"5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X", /* Alice ECDSA Address (not SS58
-		                                                     * Public Key) */
-		"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP", // Bob
-		"Fr4NzY1udSFFLzb2R3qxVQkwz9cZraWkyfH4h3mVVk7BK7P", // Charlie
-		"HnMAUz7r2G8G3hB27SYNyit5aJmh2a5P4eMdDtACtMFDbam", // Eve
-	];
-
-	addresses
-		.into_iter()
-		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).defensive_ok())
-		.collect()
-}
-
-#[cfg(not(feature = "std"))]
-fn multisig_members() -> Vec<AccountId32> {
-	use sp_core::crypto::Ss58Codec;
-
-	let addresses = vec![
-		"13fvj4bNfrTo8oW6U8525soRp6vhjAFLum6XBdtqq9yP22E7", // Basti
-		"16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna", // Gav
-		"1eTPAR2TuqLyidmPT9rMmuycHVm9s9czu78sePqg2KHMDrE",  // Kian
-		"13TRAXTALwNp5vApqwiE74fg8G8ypMyaF9TxRfs4RwrCwxUE", // Oliver / ggwpez
-		"15DCWHQknBjc5YPFoVj8Pn2KoqrqYywJJ95BYNYJ4Fj3NLqz", // Joe
-		"12HWjfYxi7xt7EvpTxUis7JoNWF7YCqa19JXmuiwizfwJZY2", // Muharem
-		"121dd6J26VUnBZ8BqLGjANWkEAXSb9mWq1SB7LsS9QNTGFvz", // Adrian
-		"12pRzYaysQz6Tr1e78sRmu9FGB8gu8yTek9x6xwVFFAwXTM8", // RobK
-		"142zGifFwRrDbFLJD7LvbyoHQAqDaXeHjkxJbUVwmDYBD7Gf", // Donal
-	];
-
-	addresses
-		.into_iter()
-		.filter_map(|ss| sp_runtime::AccountId32::from_ss58check(ss).defensive_ok())
-		.collect()
 }
 
 pub struct ProxyTypeAny;
@@ -1833,9 +1779,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type MultisigMembers = MultisigMembers;
-	type MultisigThreshold = ConstU32<3>;
-	type MultisigMaxVotesPerRound = ConstU32<10>;
+	type MultisigMembers = (); // disabled post AHM
+	type MultisigThreshold = ConstU32<{ u32::MAX }>; // disabled
+	type MultisigMaxVotesPerRound = (); // disabled
 }
 
 construct_runtime! {
