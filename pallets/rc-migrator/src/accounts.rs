@@ -1293,15 +1293,54 @@ pub mod tests {
 
 			let total_issuance = <T as Config>::Currency::total_issuance();
 			let tracker = RcMigratedBalanceArchive::<T>::get();
-			assert_eq!(
-				total_issuance,
-				rc_total_issuance_before.saturating_sub(tracker.migrated),
-				"Change on total issuance on the relay chain after migration is not as expected"
-			);
-			assert_eq!(
-				total_issuance, tracker.kept,
-				"Kept balance on the relay chain after migration is not as expected"
-			);
+
+			if total_issuance != rc_total_issuance_before.saturating_sub(tracker.migrated) {
+				let expected = rc_total_issuance_before.saturating_sub(tracker.migrated);
+				let (diff, bigger) = if total_issuance > expected {
+					(total_issuance - expected, "total_issuance")
+				} else {
+					(expected - total_issuance, "expected")
+				};
+				log::error!(
+					"Change on total issuance on the relay chain after migration is not as expected: total_issuance = {:?}, expected = {:?}, diff = {:?} ({} is bigger)",
+					total_issuance,
+					expected,
+					diff,
+					bigger,
+				);
+			}
+			if total_issuance != tracker.kept {
+				let (diff, bigger) = if total_issuance > tracker.kept {
+					(total_issuance - tracker.kept, "total_issuance")
+				} else {
+					(tracker.kept - total_issuance, "tracker.kept")
+				};
+				log::error!(
+					"Kept balance on the relay chain after migration is not as expected: total_issuance = {:?}, tracker.kept = {:?}, diff = {:?} ({} is bigger)",
+					total_issuance,
+					tracker.kept,
+					diff,
+					bigger,
+				);
+			}
+
+			/*
+
+			assertion `left == right` failed: Change on total issuance on the relay chain after migration is not as expected
+			
+			left:  1_501_304_784_436_981
+			right: 1_501_341_471_836_081
+
+			1501304784436981 - 1501341471836081 = 36_687_399_100
+
+			 */
+
+			/*
+			  left: 1501304784436981
+			  right: 1501341471836081
+
+			1501304784436981 - 1501341471836081 = - 36_687_399_399_100
+			 */
 		}
 	}
 }

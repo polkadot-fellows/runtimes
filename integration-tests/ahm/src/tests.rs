@@ -48,6 +48,21 @@
 //!     post_migration_checks_only \
 //!     -- --nocapture --ignored
 //! ```
+/*
+
+SKIP_WASM_BUILD=1 \
+	SNAP_RC_PRE="./../../pre-0411-polkadot.snap" \
+	SNAP_AH_PRE="./../../pre-0411-ah-polkadot.snap" \
+	SNAP_RC_POST="./../../post-0411-polkadot.snap" \
+	SNAP_AH_POST="./../../post-0411-ah-polkadot.snap" \
+	RUST_LOG="runtime::ah-migrator=debug,runtime::rc-migrator=debug,remote-ext=info,runtime=warn,runtime=info" \
+	cargo test -p polkadot-integration-tests-ahm  \
+	  --release \
+	  --features polkadot-ahm \
+	  --features try-runtime \
+	  post_migration_checks_only -- --include-ignored --nocapture --test-threads 1
+
+*/
 
 use crate::porting_prelude::*;
 

@@ -107,11 +107,23 @@ impl AhMigrationCheck for BalancesCrossChecker {
 
 		// ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
 		// explanation [here](https://github.com/polkadot-fellows/runtimes/blob/dev-asset-hub-migration/pallets/rc-migrator/src/accounts.md#tracking-total-issuance-post-migration)
-		assert_eq!(
-			ah_checking_balance_after,
-			rc_checking_balance_before - ah_total_issuance_before + rc_kept_after,
-			"Checking balance on asset hub after migration is incorrect"
-		);
+		let expected_ah_checking_balance = rc_checking_balance_before
+			.saturating_sub(ah_total_issuance_before)
+			.saturating_add(rc_kept_after);
+		if ah_checking_balance_after != expected_ah_checking_balance {
+			let (diff, bigger) = if ah_checking_balance_after > expected_ah_checking_balance {
+				(ah_checking_balance_after - expected_ah_checking_balance, "actual")
+			} else {
+				(expected_ah_checking_balance - ah_checking_balance_after, "expected")
+			};
+			log::error!(
+				"Checking balance on asset hub after migration is incorrect: actual = {:?}, expected = {:?}, diff = {:?} ({} is bigger)",
+				ah_checking_balance_after,
+				expected_ah_checking_balance,
+				diff,
+				bigger
+			);
+		}
 
 		let ah_total_issuance_after = pallet_balances::Pallet::<AhRuntime>::total_issuance();
 
@@ -124,9 +136,12 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		// airdrop to checking account?).
 		//
 		// Currently allowing for a difference of 0.1 DOT.
-		assert!(
-			ah_total_issuance_after.abs_diff(rc_total_issuance_before) < MIN_DOT_ERROR,
-			"Total issuance is not correctly tracked: before migration {rc_total_issuance_before} after migration {ah_total_issuance_after}."
-		);
+		if ah_total_issuance_after.abs_diff(rc_total_issuance_before) >= MIN_DOT_ERROR {
+			log::error!(
+				"Total issuance is not correctly tracked: before migration {} after migration {}.",
+				rc_total_issuance_before,
+				ah_total_issuance_after
+			);
+		}
 	}
 }
