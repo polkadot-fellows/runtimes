@@ -38,19 +38,15 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 		});
 
 	let config = if let Ok(local_ip) = std::env::var("ZOMBIE_LOCAL_IP") {
-		config.with_global_settings(|s|{
-			s.with_local_ip(&local_ip)
-		})
+		config.with_global_settings(|s| s.with_local_ip(&local_ip))
 	} else {
 		config
 	};
 
-	let config = config
-		.build()
-		.map_err(|errs| {
-			let e = errs.iter().fold("".to_string(), |memo, err| format!("{memo} \n {err}"));
-			anyhow!(e)
-		})?;
+	let config = config.build().map_err(|errs| {
+		let e = errs.iter().fold("".to_string(), |memo, err| format!("{memo} \n {err}"));
+		anyhow!(e)
+	})?;
 
 	Ok(config)
 }
