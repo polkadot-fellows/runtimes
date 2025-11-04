@@ -24,8 +24,8 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 				.with_chain_spec_command(CMD_TPL)
 				.with_default_args(vec!["-lparachain=debug,runtime=debug".into()])
 				.chain_spec_command_is_local(true)
-				.with_node(|node| node.with_name(ALICE))
-				.with_node(|node| node.with_name(BOB))
+				.with_validator(|node| node.with_name(ALICE))
+				.with_validator(|node| node.with_name(BOB))
 		})
 		.with_parachain(|p| {
 			p.with_id(1005)
