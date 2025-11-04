@@ -302,23 +302,34 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		  	left: 2193837272
  			right: 0
 
-
 			150819961877857038 - 150819891423871614 = 70_453_985_424
 		 */
-		// assert_eq!(<T as Config>::Currency::total_balance(&old_account_id), 0);
-
+		let balance = <T as Config>::Currency::total_balance(&old_account_id);
+		if balance != 0u32.into() {
+			log::error!(
+				"Expected balance of 0 for old treasury account after migration, found: {:?} ( ss58: {})",
+				balance,
+				old_account_id.to_ss58check(),
+			);
+		}
 
 		/*
 		  left: 150819961877857038
  		 right: 150819891423871614
 		 */
-		// assert_eq!(
-		// 	<T as Config>::Currency::total_balance(&account_id),
-		// 	rc_new_account_balance +
-		// 		rc_old_account_balance +
-		// 		ah_old_account_balance +
-		// 		ah_new_account_balance
-		// );
+		let expected = rc_new_account_balance +
+			rc_old_account_balance +
+			ah_old_account_balance +
+			ah_new_account_balance;
+		let actual = <T as Config>::Currency::total_balance(&account_id);
+		if actual != expected {
+			log::error!(
+				"Post-migration treasury account balance is incorrect on Asset Hub: expected = {:?}, actual = {:?}, account_id (ss58) = {}",
+				expected,
+				actual,
+				account_id.to_ss58check()
+			);
+		}
 
 		for (asset, ah_old_account_balance, ah_new_account_balance) in assets_balances {
 			assert!(T::Assets::total_balance(asset.clone(), &old_account_id).is_zero());
