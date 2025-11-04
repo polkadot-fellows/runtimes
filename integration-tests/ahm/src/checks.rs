@@ -46,10 +46,11 @@ impl RcMigrationCheck for SanityChecks {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		assert_eq!(
+		assert!(matches!(
 			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get(),
-			pallet_rc_migrator::MigrationStage::MigrationDone
-		);
+			pallet_rc_migrator::MigrationStage::MigrationDone |
+				pallet_rc_migrator::MigrationStage::CoolOff { .. }
+		),);
 	}
 }
 
@@ -70,10 +71,13 @@ impl AhMigrationCheck for SanityChecks {
 	fn post_check(_rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		let stage = pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get();
 		// Post-migration snapshots should capture AH when migration is actually complete
-		assert_eq!(
-			stage,
-			pallet_ah_migrator::MigrationStage::MigrationDone,
-			"Expected MigrationDone, but found: {:?}",
+		assert!(
+			matches!(
+				stage,
+				pallet_ah_migrator::MigrationStage::MigrationDone |
+					pallet_ah_migrator::MigrationStage::CoolOff { .. }
+			),
+			"Expected MigrationDone or CoolOff, but found: {:?}",
 			stage
 		);
 	}

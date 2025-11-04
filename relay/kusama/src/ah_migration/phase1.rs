@@ -83,7 +83,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 	match call {
 		System(..) => (ON, ON), // Remarks, root calls and `set_code` if we need for emergency.
 		Scheduler(..) => (OFF, OFF), // Only for governance, hence disabled.
-		Preimage(..) => (OFF, OFF), // Only for governance, hence disabled.
+		Preimage(..) => (OFF, ON), // Needed for Fellowship Referenda.
 		Babe(..) => (ON, ON),   // For equivocation proof submissions; security relevant
 		Timestamp(..) => (ON, ON), // only `set` inherit
 		Indices(..) => (OFF, OFF), // Not needed anymore and migrated to AH.
