@@ -1325,6 +1325,7 @@ pub mod tests {
 			}
 
 			/*
+			
 
 			assertion `left == right` failed: Change on total issuance on the relay chain after migration is not as expected
 			
