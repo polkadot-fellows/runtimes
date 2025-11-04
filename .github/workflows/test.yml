@@ -177,61 +177,6 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
-  ahm-test-polkadot:
-    runs-on: self-hosted
-    steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32-unknown-unknown"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests-ahm"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Download Polkadot snaps
-        run: |
-          python3 -m pip install gdown
-
-          export PATH=$PATH:$HOME/.local/bin
-          gdown 1Z01NFTNUlRo93yeI4M3XYj6338tgfuu9 # 2025-09-05 RC
-          gdown 1r5z9MqtHubCVlkCcutNbuwWd2F9l0iNy # 2025-09-05 AH
-
-          lz4 -d polkadot.snap.lz4 polkadot.snap
-          lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
-
-      - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features polkadot-ahm --features try-runtime -- --nocapture --test-threads 1
-        env:
-          RUST_BACKTRACE: 1
-          SNAP_RC: "../../polkadot.snap"
-          SNAP_AH: "../../ah-polkadot.snap"
-          RUST_LOG: "warn"
-
-      - name: Test Benchmarks Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features polkadot-ahm --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
-        env:
-          RUST_BACKTRACE: 1
-          RUST_LOG: "warn"
-
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
     runs-on: self-hosted
@@ -405,7 +350,6 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - ahm-test-polkadot
       - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
