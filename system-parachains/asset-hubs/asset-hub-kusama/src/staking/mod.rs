@@ -349,7 +349,7 @@ impl EraPayout {
 			era_duration,
 		);
 		let total = next_mint.0 + next_mint.1;
-		const NUM_ERAS_PER_DAY: u32 = 4;
+		const NUM_ERAS_PER_DAY: u128 = 4;
 		let annual_issuance = total * 36525 * NUM_ERAS_PER_DAY / 100;
 		let issuance = Perquintill::from_rational(annual_issuance, ti);
 
