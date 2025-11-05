@@ -59,7 +59,7 @@ jobs:
 
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.8.0
+        uses: paritytech/srtool-actions@v0.9.4
         env:
           BUILD_OPTS: ${{ env.PROD_FEATURES }}
         with:
@@ -87,7 +87,7 @@ jobs:
             
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
-        uses: chevdor/srtool-actions@v0.8.0
+        uses: paritytech/srtool-actions@v0.9.4
         env:
           BUILD_OPTS: ${{ env.TRY_RUNTIME_LOGGING_FEATURES }}
         with:
