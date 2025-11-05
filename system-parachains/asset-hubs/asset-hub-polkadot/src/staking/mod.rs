@@ -29,10 +29,11 @@ use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
-	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber,
+	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber, Perquintill,
 	SaturatedConversion,
 };
 use sp_staking::SessionIndex;
+use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
 
 // stuff aliased to `parameters` pallet.
@@ -314,6 +315,23 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
+impl EraPayout {
+	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
+		// We assume un-delayed 24h eras.
+		let era_duration = 24 * 60 * 60 * 1000;
+		let next_mint =
+			<Self as pallet_staking_async::EraPayout<Balance>>::era_payout(0, 0, era_duration);
+
+		// What is our effective issuance rate now?
+		let total = next_mint.0 + next_mint.1;
+		let annual_issuance = total * 36525 / 100;
+		let ti = pallet_balances::TotalIssuance::<Runtime>::get();
+		let issuance = Perquintill::from_rational(annual_issuance, ti);
+
+		InflationInfo { issuance, next_mint }
+	}
+}
+
 parameter_types! {
 	pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
 	pub const RelaySessionDuration: BlockNumber = prod_or_fast!(4 * RC_HOURS, RC_MINUTES);
@@ -513,12 +531,13 @@ mod tests {
 
 	#[test]
 	fn inflation_sanity_check() {
-		use pallet_staking_async::EraPayout;
+		use pallet_staking_async::EraPayout as _;
 		// values taken from the last Polkadot staking payout while it was in RC.
 		// https://polkadot.subscan.io/block/28481296
 		// Payout: 279k DOT to validators / 49k DOT to treasury
 		// active era: 1980
-		// Ext needed because of parameters, which are not set in kusama, so the defaults are gud.
+		// Note: Amount don't exactly match due to timestamp being an estimate. Same ballpark is
+		// good.
 		sp_io::TestExternalities::new_empty().execute_with(|| {
 			let average_era_duration_millis = 24 * 60 * 60 * 1000; // 24h
 			let (staking, treasury) = super::EraPayout::era_payout(
@@ -528,6 +547,19 @@ mod tests {
 			);
 			assert_eq!(staking, 279477_8104198508);
 			assert_eq!(treasury, 49319_6136035030);
+
+			// a recent TI of Polkadot
+			pallet_balances::TotalIssuance::<Runtime>::put(1_633_681_779_7_558_128_793);
+			let expected_issuance_parts = 73510802784664934;
+			assert_eq!(
+				super::EraPayout::impl_experimental_inflation_info(),
+				InflationInfo {
+					issuance: Perquintill::from_parts(expected_issuance_parts),
+					next_mint: (2794778104198508, 493196136035030)
+				}
+			);
+			// around 7% for now.
+			assert_eq!(expected_issuance_parts * 100 / 10u64.pow(18), 7);
 		});
 	}
 

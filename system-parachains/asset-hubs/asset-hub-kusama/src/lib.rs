@@ -714,8 +714,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						RuntimeCall::Utility { .. } |
 						RuntimeCall::Multisig { .. } |
 						RuntimeCall::NftFractionalization { .. } |
-						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
+						RuntimeCall::Nfts { .. } | RuntimeCall::Uniques { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -1440,7 +1439,8 @@ pub mod dynamic_params {
 	pub mod staking_election {
 		/// 10m worth of local 6s blocks for signed phase.
 		#[codec(index = 0)]
-		pub static SignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
+		pub static SignedPhase: BlockNumber =
+			10 * system_parachains_constants::async_backing::MINUTES;
 
 		/// Allow up to 16 signed solutions to be submitted.
 		#[codec(index = 1)]
@@ -1448,7 +1448,8 @@ pub mod dynamic_params {
 
 		/// 10m for unsigned phase...
 		#[codec(index = 2)]
-		pub static UnsignedPhase: BlockNumber = 10 * system_parachains_constants::MINUTES;
+		pub static UnsignedPhase: BlockNumber =
+			10 * system_parachains_constants::async_backing::MINUTES;
 
 		/// .. in which we try and mine a 4-page solution.
 		#[codec(index = 3)]
@@ -2647,6 +2648,12 @@ pallet_revive::impl_runtime_apis_plus_revive!(
 
 		fn pending_rewards(era: sp_staking::EraIndex, account: AccountId) -> bool {
 			Staking::api_pending_rewards(era, account)
+		}
+	}
+
+	impl system_parachains_common::apis::Inflation<Block> for Runtime {
+		fn experimental_issuance_prediction_info() -> system_parachains_common::apis::InflationInfo {
+			crate::staking::EraPayout::impl_experimental_inflation_info()
 		}
 	}
 

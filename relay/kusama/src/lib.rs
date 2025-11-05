@@ -97,7 +97,6 @@ use polkadot_runtime_common::{
 	paras_registrar, prod_or_fast, slots, BalanceToU256, BlockHashCount, BlockLength,
 	CurrencyToVote, SlowAdjustingFeeUpdate, U256ToBalance,
 };
-use relay_common::apis::*;
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime,
 	configuration::{
@@ -124,7 +123,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
-		Get, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Saturating, Verify,
+		Get, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
@@ -2437,43 +2436,7 @@ mod benches {
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
-impl Runtime {
-	fn impl_experimental_inflation_info() -> InflationInfo {
-		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
-		let (staked, _start) = ActiveEra::<Runtime>::get()
-			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
-			.unwrap_or((0, 0));
-
-		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
-		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
-			let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
-				.into_iter()
-				// All active para-ids that do not belong to a system chain is the number of
-				// parachains that we should take into account for inflation.
-				.filter(|i| *i >= LOWEST_PUBLIC_ID)
-				.count() as u64;
-			ideal_staking_rate
-				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
-		} else {
-			ideal_staking_rate
-		};
-
-		// We assume un-delayed 6h eras.
-		let era_duration = 6 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
-		let next_mint =
-			<Self as pallet_staking::Config>::EraPayout::era_payout(staked, 0, era_duration);
-
-		InflationInfo { inflation, next_mint }
-	}
-}
-
 sp_api::impl_runtime_apis! {
-	impl relay_common::apis::Inflation<Block> for Runtime {
-		fn experimental_inflation_prediction_info() -> InflationInfo {
-			Runtime::impl_experimental_inflation_info()
-		}
-	}
-
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
