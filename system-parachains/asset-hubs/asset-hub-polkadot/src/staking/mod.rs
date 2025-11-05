@@ -301,7 +301,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
 
 		// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
-		let fixed_total_issuance: i128 = 5_216_342_402_773_185_773;
+		let fixed_total_issuance: i128 = 15_011_657_390_566_252_333;
 		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
 		let yearly_emission = fixed_inflation_rate.saturating_mul_int(fixed_total_issuance);
 
@@ -510,6 +510,26 @@ mod tests {
 	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
+
+	#[test]
+	fn inflation_sanity_check() {
+		use pallet_staking_async::EraPayout;
+		// values taken from the last Polkadot staking payout while it was in RC.
+		// https://polkadot.subscan.io/block/28481296
+		// Payout: 279k DOT to validators / 49k DOT to treasury
+		// active era: 1980
+		// Ext needed because of parameters, which are not set in kusama, so the defaults are gud.
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let average_era_duration_millis = 24 * 60 * 60 * 1000; // 24h
+			let (staking, treasury) = super::EraPayout::era_payout(
+				0, // not used
+				0, // not used
+				average_era_duration_millis,
+			);
+			assert_eq!(staking, 279477_8104198508);
+			assert_eq!(treasury, 49319_6136035030);
+		});
+	}
 
 	fn analyze_weight(
 		op_name: &str,
