@@ -549,7 +549,7 @@ mod tests {
 			assert_eq!(treasury, 49319_6136035030);
 
 			// a recent TI of Polkadot
-			pallet_balances::TotalIssuance::<Runtime>::put(1_633_681_779_7_558_128_793);
+			pallet_balances::TotalIssuance::<Runtime>::put(16_336_817_797_558_128_793);
 			let expected_issuance_parts = 73510802784664934;
 			assert_eq!(
 				super::EraPayout::impl_experimental_inflation_info(),
