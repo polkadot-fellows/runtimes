@@ -349,8 +349,8 @@ impl EraPayout {
 			era_duration,
 		);
 		let total = next_mint.0 + next_mint.1;
-		// note on `* 4`: kusama does 4 eras per day.
-		let annual_issuance = total * 36525 * 4 / 100;
+		const NUM_ERAS_PER_DAY: u32 = 4;
+		let annual_issuance = total * 36525 * NUM_ERAS_PER_DAY / 100;
 		let issuance = Perquintill::from_rational(annual_issuance, ti);
 
 		InflationInfo { issuance, next_mint }
