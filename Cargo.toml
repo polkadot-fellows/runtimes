@@ -64,11 +64,11 @@ cumulus-primitives-aura = { version = "0.20.0", default-features = false }
 cumulus-primitives-core = { version = "0.21.0", default-features = false }
 cumulus-primitives-utility = { version = "0.23.0", default-features = false }
 emulated-integration-tests-common = { version = "25.0.0" }
-encointer-balances-tx-payment = { version = "~20.1.0", default-features = false }
-encointer-balances-tx-payment-rpc-runtime-api = { version = "~20.1.0", default-features = false }
+encointer-balances-tx-payment = { version = "20.1.1", default-features = false }
+encointer-balances-tx-payment-rpc-runtime-api = { version = "20.1.1", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
-encointer-primitives = { version = "~20.5.1", default-features = false }
+encointer-primitives = { version = "20.5.2", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "43.0.0", default-features = false }
 frame-election-provider-support = { version = "43.0.0", default-features = false }
