@@ -608,6 +608,7 @@ mod tests {
 		// session `n` and the results to be ready before the end of that session. Atm RC and KAH
 		// have the same block time, 6s.
 		sp_io::TestExternalities::new_empty().execute_with(|| {
+			sp_tracing::try_init_simple();
 			let duration = <<Runtime as pallet_staking_async::Config>::ElectionProvider as ElectionProvider>::duration();
 			let session = RelaySessionDuration::get();
 			log::info!(target: "runtime::asset-hub-kusama", "election duration is {duration:?}, relay session {session:?}",);

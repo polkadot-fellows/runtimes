@@ -1450,7 +1450,7 @@ pub mod dynamic_params {
 		/// 10m for unsigned phase...
 		#[codec(index = 2)]
 		pub static UnsignedPhase: BlockNumber =
-			10 * system_parachains_constants::async_backing::MINUTES;
+			5 * system_parachains_constants::async_backing::MINUTES;
 
 		/// .. in which we try and mine a 4-page solution.
 		#[codec(index = 3)]

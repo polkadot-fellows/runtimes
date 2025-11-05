@@ -1230,7 +1230,7 @@ pub mod dynamic_params {
 		pub static MaxSignedSubmissions: u32 = 16;
 		/// Unsigned phase duration for election-provider-multi-block.
 		#[codec(index = 2)]
-		pub static UnsignedPhase: BlockNumber = 30 * MINUTES;
+		pub static UnsignedPhase: BlockNumber = 15 * MINUTES;
 		/// Miner pages for unsigned phase.
 		#[codec(index = 3)]
 		pub static MinerPages: u32 = 4;
