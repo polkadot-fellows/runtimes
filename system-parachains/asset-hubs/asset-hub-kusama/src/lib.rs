@@ -1447,7 +1447,7 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static MaxSignedSubmissions: u32 = 16;
 
-		/// 10m for unsigned phase...
+		/// 5m for unsigned phase...
 		#[codec(index = 2)]
 		pub static UnsignedPhase: BlockNumber =
 			5 * system_parachains_constants::async_backing::MINUTES;
