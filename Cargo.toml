@@ -94,6 +94,7 @@ pallet-asset-conversion-tx-payment = { version = "25.0.0", default-features = fa
 pallet-asset-rate = { version = "22.0.0", default-features = false }
 pallet-asset-tx-payment = { version = "43.0.0", default-features = false }
 pallet-assets = { version = "46.1.0", default-features = false }
+pallet-assets-precompiles = { version = "0.2.0", default-features = false }
 pallet-aura = { version = "42.0.0", default-features = false }
 pallet-authority-discovery = { version = "43.0.0", default-features = false }
 pallet-authorship = { version = "43.0.0", default-features = false }

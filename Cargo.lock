@@ -1019,6 +1019,7 @@ dependencies = [
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
  "pallet-assets",
+ "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
  "pallet-bags-list",
@@ -8854,6 +8855,18 @@ dependencies = [
  "scale-info",
  "sp-core 38.1.0",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-assets-precompiles"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c1a426bce581bac76343e67f3d3e5b04574b5ac0ff82007334861e8021d71c5"
+dependencies = [
+ "ethereum-standards",
+ "frame-support",
+ "pallet-assets",
+ "pallet-revive",
 ]
 
 [[package]]

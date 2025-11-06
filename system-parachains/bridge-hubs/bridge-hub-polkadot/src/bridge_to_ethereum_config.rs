@@ -240,7 +240,7 @@ parameter_types! {
 		electra: Fork {
 			version: hex!("05000000"),
 			epoch: 0,
-		}
+		},
 		fulu: Fork {
 			version: hex!("06000000"),
 			epoch: 50000000,
