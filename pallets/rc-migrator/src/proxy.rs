@@ -190,11 +190,11 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			return Err(OutOfWeightError);
 		}
 
-		if batch.len() >= MAX_ITEMS_PER_BLOCK {
+		if batch.len() >= max_items_per_block::<T>() {
 			log::info!(
 				target: LOG_TARGET,
 				"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
-				MAX_ITEMS_PER_BLOCK,
+				max_items_per_block::<T>(),
 				batch.len()
 			);
 			return Err(OutOfWeightError);
@@ -277,11 +277,11 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				}
 			}
 
-			if batch.len() >= MAX_ITEMS_PER_BLOCK {
+			if batch.len() >= max_items_per_block::<T>() {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
-					MAX_ITEMS_PER_BLOCK,
+					max_items_per_block::<T>(),
 					batch.len()
 				);
 				break;

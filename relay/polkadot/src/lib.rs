@@ -45,6 +45,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
@@ -91,6 +92,8 @@ use polkadot_runtime_common::{
 };
 use sp_runtime::traits::Convert;
 
+use pallet_staking_async_ah_client as ah_client;
+use pallet_staking_async_rc_client as rc_client;
 use relay_common::apis::InflationInfo;
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
@@ -175,7 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_009_001,
+	spec_version: 2_000_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -226,7 +229,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = ();
+	type SingleBlockMigrations = migrations::SingleBlockMigrations;
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();
@@ -1543,20 +1546,23 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
-impl pallet_staking_async_ah_client::Config for Runtime {
+impl ah_client::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	// Polkadot RC currently has 600 validators. 500 minimum for now.
-	type MinimumValidatorSetSize = ConstU32<500>;
+	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
+	// count increasing.
+	type MinimumValidatorSetSize = ConstU32<600>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
 	type Fallback = Staking;
-	type WeightInfo = pallet_staking_async_ah_client::weights::SubstrateWeight<Runtime>;
+	type MaximumValidatorsWithPoints = ConstU32<{ MaxActiveValidators::get() * 2 }>;
+	// Session length is 4h, we retry for about 6m.
+	type MaxSessionReportRetries = ConstU32<64>;
 }
 
 pub struct EnsureAssetHub;
@@ -1581,7 +1587,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
 
 #[derive(Encode, Decode)]
 enum AssetHubRuntimePallets<AccountId> {
-	// Audit: `StakingRcClient` in asset-hub-westend
+	// Audit: `StakingRcClient` in asset-hub-polkadot
 	#[codec(index = 84)]
 	RcClient(RcClientCalls<AccountId>),
 }
@@ -1589,16 +1595,14 @@ enum AssetHubRuntimePallets<AccountId> {
 #[derive(Encode, Decode)]
 enum RcClientCalls<AccountId> {
 	#[codec(index = 0)]
-	RelaySessionReport(pallet_staking_async_rc_client::SessionReport<AccountId>),
+	RelaySessionReport(rc_client::SessionReport<AccountId>),
 	#[codec(index = 1)]
-	RelayNewOffence(SessionIndex, Vec<pallet_staking_async_rc_client::Offence<AccountId>>),
+	RelayNewOffencePaged(Vec<(SessionIndex, rc_client::Offence<AccountId>)>),
 }
 
 pub struct SessionReportToXcm;
-impl sp_runtime::traits::Convert<pallet_staking_async_rc_client::SessionReport<AccountId>, Xcm<()>>
-	for SessionReportToXcm
-{
-	fn convert(a: pallet_staking_async_rc_client::SessionReport<AccountId>) -> Xcm<()> {
+impl Convert<rc_client::SessionReport<AccountId>, Xcm<()>> for SessionReportToXcm {
+	fn convert(a: rc_client::SessionReport<AccountId>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
@@ -1615,26 +1619,10 @@ impl sp_runtime::traits::Convert<pallet_staking_async_rc_client::SessionReport<A
 	}
 }
 
-pub struct StakingXcmToAssetHub;
-impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
-	type AccountId = AccountId;
-
-	fn relay_session_report(
-		session_report: pallet_staking_async_rc_client::SessionReport<Self::AccountId>,
-	) {
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
-		let message = SessionReportToXcm::convert(session_report);
-		let dest = AssetHubLocation::get();
-		let _ = xcm::prelude::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send relay session report: {err:?}");
-		});
-	}
-
-	fn relay_new_offence(
-		session_index: SessionIndex,
-		offences: Vec<pallet_staking_async_rc_client::Offence<Self::AccountId>>,
-	) {
-		let message = Xcm(vec![
+pub struct QueuedOffenceToXcm;
+impl Convert<Vec<ah_client::QueuedOffenceOf<Runtime>>, Xcm<()>> for QueuedOffenceToXcm {
+	fn convert(offences: Vec<ah_client::QueuedOffenceOf<Runtime>>) -> Xcm<()> {
+		Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
 				check_origin: None,
@@ -1642,20 +1630,40 @@ impl pallet_staking_async_ah_client::SendToAssetHub for StakingXcmToAssetHub {
 			Instruction::Transact {
 				origin_kind: OriginKind::Superuser,
 				fallback_max_weight: None,
-				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelayNewOffence(
-					session_index,
+				call: AssetHubRuntimePallets::RcClient(RcClientCalls::RelayNewOffencePaged(
 					offences,
 				))
 				.encode()
 				.into(),
 			},
-		]);
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send` and handle error
-		let _ = send_xcm::<xcm_config::XcmRouter>(AssetHubLocation::get(), message).inspect_err(
-			|err| {
-				log::error!(target: "runtime::ah-client", "Failed to send relay offence message: {err:?}");
-			},
-		);
+		])
+	}
+}
+
+pub struct StakingXcmToAssetHub;
+impl ah_client::SendToAssetHub for StakingXcmToAssetHub {
+	type AccountId = AccountId;
+
+	fn relay_session_report(
+		session_report: rc_client::SessionReport<Self::AccountId>,
+	) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			AssetHubLocation,
+			rc_client::SessionReport<AccountId>,
+			SessionReportToXcm,
+		>::send(session_report)
+	}
+
+	fn relay_new_offence_paged(
+		offences: Vec<ah_client::QueuedOffenceOf<Runtime>>,
+	) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			AssetHubLocation,
+			Vec<ah_client::QueuedOffenceOf<Runtime>>,
+			QueuedOffenceToXcm,
+		>::send(offences)
 	}
 }
 
@@ -1771,8 +1779,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type MultisigMembers = ();
-	type MultisigThreshold = ConstU32<{ u32::MAX }>;
+	type MultisigMembers = (); // disabled post AHM
+	type MultisigThreshold = ConstU32<{ u32::MAX }>; // disabled
+	type MultisigMaxVotesPerRound = (); // disabled
 }
 
 construct_runtime! {
@@ -1921,22 +1930,55 @@ pub type TxExtension = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-/// All migrations that will run on the next runtime upgrade.
-///
-/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
-/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = (migrations::Unreleased, migrations::Permanent);
-
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (KickOffAhm<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+
+	/// All migrations that will run on the next runtime upgrade.
+	pub type SingleBlockMigrations = (Unreleased, Permanent);
+
+	/// Kick off the Asset Hub Migration.
+	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
+	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
+		fn on_runtime_upgrade() -> Weight {
+			if MigrationStartBlock::<T>::exists() ||
+				RcMigrationStage::<T>::get() != MigrationStage::Pending
+			{
+				// Already started or scheduled
+				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
+				return T::DbWeight::get().reads(2)
+			}
+
+			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				// Migration start block, Tuesday 4th Nov 8 AM UTC
+				// https://polkadot.subscan.io/block/28490502
+				DispatchTime::At(28490502u32.into()),
+				// Warm up to wait for Messaging queues to empty
+				DispatchTime::After((60 * MINUTES).into()),
+				// Cool off to verify the success of the migration
+				DispatchTime::After((60 * MINUTES).into()),
+				// Respect the session scheduling check:
+				Default::default(),
+			);
+
+			if let Err(e) = result {
+				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
+			} else {
+				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
+			}
+
+			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1949,7 +1991,6 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	Migrations,
 >;
 
 /// The payload being signed in transactions.
@@ -2208,8 +2249,10 @@ mod benches {
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 			let origin = Location::new(0, [Parachain(1000)]);
-			let target =
-				Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
+			let target = Location::new(
+				0,
+				[Parachain(1000), Junction::AccountId32 { id: [128u8; 32], network: None }],
+			);
 			Ok((origin, target))
 		}
 	}
@@ -2775,6 +2818,15 @@ sp_api::impl_runtime_apis! {
 			encoded: Vec<u8>,
 		) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
 			SessionKeys::decode_into_raw_public_keys(&encoded)
+		}
+	}
+
+	impl frame_support::view_functions::runtime_api::RuntimeViewFunction<Block> for Runtime {
+		fn execute_view_function(
+			id: frame_support::view_functions::ViewFunctionId,
+			input: Vec<u8>
+		) -> Result<Vec<u8>, frame_support::view_functions::ViewFunctionDispatchError> {
+			Runtime::execute_view_function(id, input)
 		}
 	}
 
@@ -3509,6 +3561,9 @@ mod remote_tests {
 
 	#[tokio::test]
 	async fn next_inflation() {
+		if var("REMOTE_TESTS").is_err() {
+			return;
+		}
 		use hex_literal::hex;
 		sp_tracing::try_init_simple();
 		let transport: Transport =

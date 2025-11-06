@@ -252,7 +252,7 @@ parameter_types! {
 impl multi_block::unsigned::Config for Runtime {
 	type MinerPages = MinerPages;
 	type OffchainStorage = ConstBool<true>;
-	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>>;
+	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>, ()>;
 	type MinerTxPriority = MinerTxPriority;
 	type OffchainRepeat = OffchainRepeat;
 	type WeightInfo = weights::pallet_election_provider_multi_block_unsigned::WeightInfo<Runtime>;
@@ -276,6 +276,9 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type MaxVotesPerVoter =
 		<<Self as multi_block::Config>::DataProvider as ElectionDataProvider>::MaxVotesPerVoter;
 	type MaxLength = MinerMaxLength;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Solver = frame_election_provider_support::QuickDirtySolver<AccountId, Perbill>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Solver = <Runtime as multi_block::unsigned::Config>::OffchainSolver;
 	type Pages = Pages;
 	type Solution = NposCompactSolution16;
@@ -362,6 +365,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
+	type MaxValidatorSetRetries = ConstU32<64>;
 }
 
 #[derive(Encode, Decode)]
@@ -380,9 +384,7 @@ pub enum AhClientCalls {
 }
 
 pub struct ValidatorSetToXcm;
-impl sp_runtime::traits::Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>>
-	for ValidatorSetToXcm
-{
+impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>> for ValidatorSetToXcm {
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
 		Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -408,13 +410,13 @@ pub struct StakingXcmToRelayChain;
 
 impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 	type AccountId = AccountId;
-	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) {
-		// TODO: after https://github.com/paritytech/polkadot-sdk/pull/9619, use `XCMSender::send`
-		let message = ValidatorSetToXcm::convert(report);
-		let dest = RelayLocation::get();
-		let _ = crate::send_xcm::<xcm_config::XcmRouter>(dest, message).inspect_err(|err| {
-			log::error!(target: "runtime::ah-client", "Failed to send validator set report: {err:?}");
-		});
+	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) -> Result<(), ()> {
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			RelayLocation,
+			rc_client::ValidatorSetReport<Self::AccountId>,
+			ValidatorSetToXcm,
+		>::send(report)
 	}
 }
 
@@ -472,20 +474,29 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 
 		// Set the minimum score for the election, as per the Polkadot RC state.
 		//
-		// This value is set from block 27,730,872 of Polkadot RC.
+		// These values are created using script:
+		//
+		// https://github.com/paritytech/polkadot-scripts/blob/master/src/services/election_score_stats.ts
+		//
+		// At https://polkadot.subscan.io/block/28207264.
+		//
+		// Note: the script looks at the last 30 elections, gets their average, and calculates 70%
+		// threshold thereof.
+		//
 		// Recent election scores in Polkadot can be found on:
 		// https://polkadot.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
 		//
-		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0) being:
+		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0)
+		// being:
 		//
-		// * minimal_stake: 10907549130714057 (1.28x the minimum)
-		// * sum_stake: 8028519336725652293 (2.44x the minimum)
-		// * sum_stake_squared: 108358993218278434700023844467997545 (0.4 the minimum, the lower the
-		//   better)
+		// * minimal_stake: 10907549130714057 (1.38x the minimum)
+		// * sum_stake: 8028519336725652293 (1.49x the minimum)
+		// * sum_stake_squared: 108358993218278434700023844467997545 (0.57 the minimum, the lower
+		//   the better)
 		let minimum_score = sp_npos_elections::ElectionScore {
-			minimal_stake: 8474057820699941,
-			sum_stake: 3276970719352749444,
-			sum_stake_squared: 244059208045236715654727835467163294,
+			minimal_stake: 7895552765679931,
+			sum_stake: 5655838551978860651,
+			sum_stake_squared: 187148285683372481445131595645808873,
 		};
 		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 
@@ -533,20 +544,20 @@ mod tests {
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
-				// up to a 1/3 of the validators are reported in a single batch of offences
-				let hefty_offences = (0..333)
+				// MaxOffenceBatchSize in RC is 32;
+				let hefty_offences = (0..32)
 					.map(|i| {
-						rc_client::Offence {
-							offender: <AccountId>::from([i as u8; 32]), /* overflows, but
-							                                             * whatever,
-							                                             * don't matter */
-							reporters: vec![<AccountId>::from([1u8; 32])],
-							slash_fraction: Perbill::from_percent(10),
-						}
+						(
+							42,
+							rc_client::Offence {
+								offender: <AccountId>::from([i as u8; 32]),
+								reporters: vec![<AccountId>::from([1u8; 32])],
+								slash_fraction: Perbill::from_percent(10),
+							},
+						)
 					})
 					.collect();
-				let di = rc_client::Call::<Runtime>::relay_new_offence {
-					slash_session: 42,
+				let di = rc_client::Call::<Runtime>::relay_new_offence_paged {
 					offences: hefty_offences,
 				}
 				.get_dispatch_info();
@@ -686,7 +697,7 @@ mod tests {
 				"export terminal",
 				<Runtime as multi_block::Config>::WeightInfo::export_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(95)), // TODO: reduce to 75 once re-benchmarked.
+				Some(Percent::from_percent(75)),
 			);
 		}
 

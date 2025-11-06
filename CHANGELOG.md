@@ -4,13 +4,64 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [2.0.1] 04.11.2025
+
+### Removed
+
+ - Remove AHM Test code to speed up CI ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Relinquish AHM multisig functionality post AHM ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+
+### Changed
+
+- Bump deps ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+
+## [2.0.0] 27.10.2025
+
+### Added
+
+- Scheduled the Polkadot Asset Hub Migration for block [28490502](https://polkadot.subscan.io/block/28490502), circa Tuesday 4th Nov 8 AM UTC ([polkadot-fellows/runtimes/pull/984](https://github.com/polkadot-fellows/runtimes/pull/984)).
+
+### Changed
+
+- Enable preimages pallet on Kusama Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Allow the AHM multisig to act as preimage manager ([polkadot-fellows/runtimes/pull/976](https://github.com/polkadot-fellows/runtimes/pull/976))
+- `RcToAhCall` supports mapping some basic XCMs ([polkadot-fellows/runtimes/pull/983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: map more Referenda XCM instructions ([#983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: Schedule polkadot migration for block [28490502](https://polkadot.subscan.io/block/28490502) ([#984](https://github.com/polkadot-fellows/runtimes/pull/984))
+
+### Fixed
+
+- Let multisig round start from 100 for Polkadot Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Fix staking-async [sdk #9926](https://github.com/paritytech/polkadot-sdk/pull/9926): chill stakers should not have a score ([#960](https://github.com/polkadot-fellows/runtimes/pull/960))
+- Fix resending of duplicate AHM messages ([#970](https://github.com/polkadot-fellows/runtimes/pull/970))
+
+## [1.9.3] 21.10.2025
+
+### Added
+
+- Enable view functions on System Chains([polkadot-fellows/runtimes/pull/981](https://github.com/polkadot-fellows/runtimes/pull/981))
+
+### Fixed
+
+- [BHP](https://github.com/polkadot-fellows/runtimes/pull/978) Add missing snowbridge runtime API to the BridgeHub
+  runtime.
+- Bump `pallet-staking-async` to `0.6.2` to fix incorrect self stake accounting (https://github.com/polkadot-fellows/runtimes/pull/980)
+
+## [1.9.2] 08.10.2025
+
+### Added
+
+- Kusama Asset Hub: add missing staking Runtime APIs and  re-enable vested transfers ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- Polkadot Asset Hub: add missing staking Runtime APIs ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/949))
 
 ### Fixed
 
 - [AHM] Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
 - [AHM] Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
 - [AHM] Fix crowdloan withdrawing and weight limit ([polkadot-fellows/runtimes/pull/943](https://github.com/polkadot-fellows/runtimes/pull/943))
+- [Encointer] Fix remote treasury payout on asset hub ([polkadot-fellows/runtimes/pull/944](https://github.com/polkadot-fellows/runtimes/pull/944))
+- [AHM] Post Kusama Migration cleanup ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- [AHM] Improve StakingAsync's VMP Messaging (https://github.com/polkadot-fellows/runtimes/pull/950)
 
 ## [1.9.1] 30.09.2025
 
@@ -158,6 +209,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
 - Proxy type `NonTranfer`: Use a whitelist of calls and remove some not useful calls from the whitelist ([polkadot-fellows/runtimes/pull/646](https://github.com/polkadot-fellows/runtimes/pull/646))
 - Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
+- Moves single block migrations from frame_executive::Executive to frame_system::Config. [polkadot-fellows/runtimes/pull/844](https://github.com/polkadot-fellows/runtimes/pull/844)
 
 ## [1.6.1] 24.06.2025
 
