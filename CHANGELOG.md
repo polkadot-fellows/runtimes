@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fix AH staking inflation calculation to use correct total issuance (https://github.com/polkadot-fellows/runtimes/pull/998).
+- Set invulnerable deposit for Polkadot AssetHub staking election ([#993](https://github.com/polkadot-fellows/runtimes/pull/993))
 
 ## [2.0.1] 04.11.2025
 
