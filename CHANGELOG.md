@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed 
+
+- Set invulnerable deposit for Polkadot AssetHub staking election ([#993](https://github.com/polkadot-fellows/runtimes/pull/993))
+
 ## [2.0.1] 04.11.2025
 
 ### Removed
