@@ -1167,6 +1167,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -12748,10 +12749,7 @@ name = "relay-common"
 version = "1.0.0"
 dependencies = [
  "pallet-staking-reward-fn",
- "parity-scale-codec",
  "polkadot-primitives",
- "scale-info",
- "sp-api 38.0.0",
  "sp-runtime 43.0.0",
 ]
 
@@ -17328,6 +17326,10 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support 42.0.0",
  "log",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "scale-info",
+ "sp-api 38.0.0",
  "sp-runtime 43.0.0",
  "sp-state-machine 0.47.0",
 ]
