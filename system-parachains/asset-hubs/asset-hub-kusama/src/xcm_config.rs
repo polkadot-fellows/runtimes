@@ -490,6 +490,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) => true,
 			// Allow staking stuff through XCM
 			RuntimeCall::Staking(pallet_staking_async::Call::bond_extra { .. }) => true,
+			RuntimeCall::Staking(pallet_staking_async::Call::bond { .. }) => true,
 			RuntimeCall::Staking(pallet_staking_async::Call::rebond { .. }) => true,
 			RuntimeCall::Staking(pallet_staking_async::Call::unbond { .. }) => true,
 			RuntimeCall::Staking(pallet_staking_async::Call::withdraw_unbonded { .. }) => true,
