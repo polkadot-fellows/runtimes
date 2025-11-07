@@ -9,21 +9,30 @@ version.workspace = true
 
 [dependencies]
 log = { workspace = true }
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 
 sp-runtime = { workspace = true }
 sp-state-machine = { workspace = true }
+sp-api = { workspace = true }
 
 frame-support = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-primitives-core = { workspace = true }
+polkadot-primitives = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
+	"codec/std",
+	"scale-info/std",
+
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"log/std",
+	"polkadot-primitives/std",
+	"sp-api/std",
 	"sp-runtime/std",
 	"sp-state-machine/std",
 ]
@@ -32,6 +41,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
 
