@@ -30,6 +30,7 @@ use pallet_staking_async_rc_client as rc_client;
 use scale_info::TypeInfo;
 use sp_runtime::{transaction_validity::TransactionPriority, Perquintill};
 use sp_staking::SessionIndex;
+use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
 
 // alias for the ones backed by parameters-pallet.
@@ -332,6 +333,30 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
+impl EraPayout {
+	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
+		use pallet_staking_async::{ActiveEra, ActiveEraInfo, ErasTotalStake};
+		let staked = ActiveEra::<Runtime>::get()
+			.map(|ActiveEraInfo { index, .. }| ErasTotalStake::<Runtime>::get(index))
+			.unwrap_or(0);
+		let ti = pallet_balances::Pallet::<Runtime>::total_issuance();
+
+		// We assume un-delayed 6h eras.
+		let era_duration = 6 * 60 * 60 * 1000;
+		let next_mint = <Self as pallet_staking_async::EraPayout<Balance>>::era_payout(
+			staked,
+			ti,
+			era_duration,
+		);
+		let total = next_mint.0 + next_mint.1;
+		const NUM_ERAS_PER_DAY: u128 = 4;
+		let annual_issuance = total * 36525 * NUM_ERAS_PER_DAY / 100;
+		let issuance = Perquintill::from_rational(annual_issuance, ti);
+
+		InflationInfo { issuance, next_mint }
+	}
+}
+
 parameter_types! {
 	pub const SessionsPerEra: SessionIndex = 6;
 	/// Note: This is measured in RC block time. Our calculation of when to plan a new era might get
@@ -557,6 +582,23 @@ mod tests {
 			);
 			assert_eq!(staking, 844_606070970705);
 			assert_eq!(treasury, 320_110565207524);
+
+			pallet_balances::TotalIssuance::<Runtime>::put(17016510054564053390u128);
+			pallet_staking_async::ActiveEra::<Runtime>::put(pallet_staking_async::ActiveEraInfo {
+				index: 777,
+				start: None,
+			});
+			pallet_staking_async::ErasTotalStake::<Runtime>::insert(777, 8085567183241128549u128);
+			let expected_issuance_parts = 99999999999999249;
+			assert_eq!(
+				super::EraPayout::impl_experimental_inflation_info(),
+				InflationInfo {
+					issuance: Perquintill::from_parts(99999999999999249),
+					next_mint: (staking, treasury),
+				}
+			);
+			// around 9% now
+			assert_eq!(expected_issuance_parts * 100 / 10u64.pow(18), 9)
 		});
 	}
 
@@ -566,6 +608,7 @@ mod tests {
 		// session `n` and the results to be ready before the end of that session. Atm RC and KAH
 		// have the same block time, 6s.
 		sp_io::TestExternalities::new_empty().execute_with(|| {
+			sp_tracing::try_init_simple();
 			let duration = <<Runtime as pallet_staking_async::Config>::ElectionProvider as ElectionProvider>::duration();
 			let session = RelaySessionDuration::get();
 			log::info!(target: "runtime::asset-hub-kusama", "election duration is {duration:?}, relay session {session:?}",);
