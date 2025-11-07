@@ -512,7 +512,10 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type SafeCallFilter = SafeCallFilter;
+	#[cfg(feature = "runtime-benchmarks")]
+	type SafeCallFilter = Everything;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
@@ -581,6 +584,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			) => true,
 			RuntimeCall::System(frame_system::Call::authorize_upgrade { .. }) => true,
 			RuntimeCall::System(frame_system::Call::set_storage { .. }) => true,
+			RuntimeCall::System(frame_system::Call::remark { .. }) => true,
+			RuntimeCall::System(frame_system::Call::remark_with_event { .. }) => true,
 			RuntimeCall::ToKusamaXcmRouter(pallet_xcm_bridge_hub_router::Call::<
 				Runtime,
 				crate::ToKusamaXcmRouterInstance,
