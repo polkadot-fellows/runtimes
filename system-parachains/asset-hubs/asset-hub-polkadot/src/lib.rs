@@ -100,7 +100,7 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
-use system_parachains_constants::MINUTES;
+use system_parachains_constants::async_backing::MINUTES;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -1230,7 +1230,7 @@ pub mod dynamic_params {
 		pub static MaxSignedSubmissions: u32 = 16;
 		/// Unsigned phase duration for election-provider-multi-block.
 		#[codec(index = 2)]
-		pub static UnsignedPhase: BlockNumber = 30 * MINUTES;
+		pub static UnsignedPhase: BlockNumber = 15 * MINUTES;
 		/// Miner pages for unsigned phase.
 		#[codec(index = 3)]
 		pub static MinerPages: u32 = 4;
@@ -2438,6 +2438,12 @@ impl_runtime_apis! {
 
 		fn pending_rewards(era: sp_staking::EraIndex, account: AccountId) -> bool {
 			Staking::api_pending_rewards(era, account)
+		}
+	}
+
+	impl system_parachains_common::apis::Inflation<Block> for Runtime {
+		fn experimental_issuance_prediction_info() -> system_parachains_common::apis::InflationInfo {
+			crate::staking::EraPayout::impl_experimental_inflation_info()
 		}
 	}
 
