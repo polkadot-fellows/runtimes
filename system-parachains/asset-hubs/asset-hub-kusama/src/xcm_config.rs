@@ -493,6 +493,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			RuntimeCall::Staking(pallet_staking_async::Call::rebond { .. }) => true,
 			RuntimeCall::Staking(pallet_staking_async::Call::unbond { .. }) => true,
 			RuntimeCall::Staking(pallet_staking_async::Call::withdraw_unbonded { .. }) => true,
+			RuntimeCall::StakingRcClient(pallet_staking_async_rc_client::Call::relay_session_report { .. }) => true,
+			RuntimeCall::StakingRcClient(pallet_staking_async_rc_client::Call::relay_new_offence_paged { .. }) => true,
 			RuntimeCall::System(frame_system::Call::authorize_upgrade { .. }) => true,
 			RuntimeCall::System(frame_system::Call::set_storage { .. }) => true,
 			RuntimeCall::ToPolkadotXcmRouter(pallet_xcm_bridge_hub_router::Call::<
