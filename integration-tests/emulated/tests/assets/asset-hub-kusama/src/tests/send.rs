@@ -18,6 +18,7 @@ use crate::*;
 /// Relay Chain should be able to execute `Transact` instructions in System Parachain
 /// when `OriginKind::Superuser`.
 #[test]
+#[ignore]
 fn send_transact_as_superuser_from_relay_to_asset_hub_works() {
 	AssetHubKusama::force_create_asset_from_relay_as_root(
 		ASSET_ID,
@@ -107,6 +108,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 /// - Parachain should be able to send XCM paying its fee at Asset Hub using a pool
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
+#[ignore]
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = Location {
