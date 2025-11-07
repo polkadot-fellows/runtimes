@@ -512,13 +512,76 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = Everything;
+	type SafeCallFilter = SafeCallFilter;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
 	type XcmEventEmitter = PolkadotXcm;
+}
+
+pub struct SafeCallFilter;
+impl Contains<RuntimeCall> for SafeCallFilter {
+	fn contains(call: &RuntimeCall) -> bool {
+		match call {
+			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { .. }) => true,
+			// Foreign assets instance
+			RuntimeCall::ForeignAssets(pallet_assets::Call::<
+				Runtime,
+				crate::ForeignAssetsInstance,
+			>::create {
+				..
+			}) => true,
+			RuntimeCall::ForeignAssets(pallet_assets::Call::<
+				Runtime,
+				crate::ForeignAssetsInstance,
+			>::force_set_metadata {
+				..
+			}) => true,
+			RuntimeCall::ForeignAssets(pallet_assets::Call::<
+				Runtime,
+				crate::ForeignAssetsInstance,
+			>::set_metadata {
+				..
+			}) => true,
+			RuntimeCall::ForeignAssets(pallet_assets::Call::<
+				Runtime,
+				crate::ForeignAssetsInstance,
+			>::set_team {
+				..
+			}) => true,
+			RuntimeCall::ForeignAssets(pallet_assets::Call::<
+				Runtime,
+				crate::ForeignAssetsInstance,
+			>::touch {
+				..
+			}) => true,
+			RuntimeCall::Nfts(pallet_nfts::Call::create { .. }) => true,
+			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify {
+				..
+			}) => true,
+			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) => true,
+			// Allow staking stuff through XCM
+			RuntimeCall::Staking(pallet_staking_async::Call::bond_extra { .. }) => true,
+			RuntimeCall::Staking(pallet_staking_async::Call::rebond { .. }) => true,
+			RuntimeCall::Staking(pallet_staking_async::Call::unbond { .. }) => true,
+			RuntimeCall::Staking(pallet_staking_async::Call::withdraw_unbonded { .. }) => true,
+			RuntimeCall::System(frame_system::Call::authorize_upgrade { .. }) => true,
+			RuntimeCall::System(frame_system::Call::set_storage { .. }) => true,
+			RuntimeCall::ToKusamaXcmRouter(pallet_xcm_bridge_hub_router::Call::<
+				Runtime,
+				crate::ToKusamaXcmRouterInstance,
+			>::report_bridge_status {
+				..
+			}) => true,
+			RuntimeCall::Utility(pallet_utility::Call::as_derivative { .. }) => true,
+			RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) => true,
+			RuntimeCall::Utility(pallet_utility::Call::force_batch { .. }) => true,
+			RuntimeCall::Whitelist(pallet_whitelist::Call::whitelist_call { .. }) => true,
+			_ => false,
+		}
+	}
 }
 
 parameter_types! {
