@@ -561,6 +561,11 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify {
 				..
 			}) => true,
+			RuntimeCall::SnowbridgeSystemFrontend(snowbridge_pallet_system_frontend::Call::<
+				Runtime,
+			>::register_token {
+				..
+			}) => true,
 			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) => true,
 			// Allow staking stuff through XCM
 			RuntimeCall::Staking(pallet_staking_async::Call::bond_extra { .. }) => true,
