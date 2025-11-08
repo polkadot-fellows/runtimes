@@ -592,9 +592,12 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			>::report_bridge_status {
 				..
 			}) => true,
-			RuntimeCall::Utility(pallet_utility::Call::as_derivative { call, .. }) => Self::contains(call),
-			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) => calls.iter().all(Self::contains),
-			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) => calls.iter().all(Self::contains),
+			RuntimeCall::Utility(pallet_utility::Call::as_derivative { call, .. }) =>
+				Self::contains(call),
+			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) =>
+				calls.iter().all(Self::contains),
+			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) =>
+				calls.iter().all(Self::contains),
 			RuntimeCall::Whitelist(pallet_whitelist::Call::whitelist_call { .. }) => true,
 			_ => false,
 		}
