@@ -15,11 +15,14 @@
 
 //! The Ambassador Program's origins.
 
+pub use pallet_origins::*;
+
 #[frame_support::pallet]
 pub mod pallet_origins {
-	use crate::ambassador::ranks;
+	use crate::{ambassador::ranks, Balance};
 	use frame_support::pallet_prelude::*;
 	use pallet_ranked_collective::Rank;
+	use polkadot_runtime_constants::currency::DOLLARS;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -41,59 +44,156 @@ pub mod pallet_origins {
 	)]
 	#[pallet::origin]
 	pub enum Origin {
-		/// Plurality voice of the [ranks::AMBASSADOR] members or above given via
-		/// referendum.
-		Ambassadors,
-		/// Plurality voice of the [ranks::SENIOR_AMBASSADOR] members or above given via
-		/// referendum.
-		SeniorAmbassadors,
-		/// Plurality voice of the [ranks::HEAD_AMBASSADOR] members given via referendum.
-		HeadAmbassadors,
+		Associate,
+		Lead,
+		Senior,
+		Principal,
+		Global,
+		GlobalHead,
+		RetainAtAssociate,
+		RetainAtLead,
+		RetainAtSenior,
+		RetainAtPrincipal,
+		PromoteToAssociate,
+		PromoteToLead,
+		PromoteToSenior,
+		PromoteToPrincipal,
+		FastPromoteToAssociate,
+		FastPromoteToLead,
+		FastPromoteToSenior,
+		Tip,
+		Treasurer,
 	}
 
 	impl Origin {
 		/// Returns the rank that the origin `self` speaks for, or `None` if it doesn't speak for
 		/// any.
-		pub fn as_voice(&self) -> Option<Rank> {
+		pub fn as_voice(&self) -> Option<pallet_ranked_collective::Rank> {
 			Some(match &self {
-				Origin::Ambassadors => ranks::AMBASSADOR,
-				Origin::SeniorAmbassadors => ranks::SENIOR_AMBASSADOR,
-				Origin::HeadAmbassadors => ranks::HEAD_AMBASSADOR,
+				Origin::Associate => ranks::ASSOCIATE,
+				Origin::Lead => ranks::LEAD,
+				Origin::Senior => ranks::SENIOR,
+				Origin::Principal => ranks::PRINCIPAL,
+				Origin::Global => ranks::GLOBAL,
+				Origin::GlobalHead => ranks::GLOBAL_HEAD,
+				_ => return None,
 			})
 		}
 	}
 
-	/// Ensures [`Origin::HeadAmbassadors`] origin.
-	pub struct HeadAmbassadors;
-	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for HeadAmbassadors {
-		type Success = ();
+	pub struct EnsureCanRetainAt;
+
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for EnsureCanRetainAt {
+		type Success = Rank;
+
 		fn try_origin(o: O) -> Result<Self::Success, O> {
 			o.into().and_then(|o| match o {
-				Origin::HeadAmbassadors => Ok(()),
+				Origin::RetainAtAssociate => Ok(ranks::ASSOCIATE),
+				Origin::RetainAtLead => Ok(ranks::LEAD),
+				Origin::RetainAtSenior => Ok(ranks::SENIOR),
+				Origin::RetainAtPrincipal => Ok(ranks::PRINCIPAL),
 				r => Err(O::from(r)),
 			})
 		}
 
 		#[cfg(feature = "runtime-benchmarks")]
 		fn try_successful_origin() -> Result<O, ()> {
-			Ok(O::from(Origin::HeadAmbassadors))
+			Ok(O::from(Origin::RetainAtPrincipal))
 		}
 	}
 
-	/// Ensures [`Origin::SeniorAmbassadors`] origin.
-	pub struct SeniorAmbassadors;
-	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for SeniorAmbassadors {
-		type Success = ();
+	pub struct EnsureCanPromoteTo;
+
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for EnsureCanPromoteTo {
+		type Success = Rank;
+
 		fn try_origin(o: O) -> Result<Self::Success, O> {
 			o.into().and_then(|o| match o {
-				Origin::SeniorAmbassadors => Ok(()),
+				Origin::PromoteToAssociate => Ok(ranks::ASSOCIATE),
+				Origin::PromoteToLead => Ok(ranks::LEAD),
+				Origin::PromoteToSenior => Ok(ranks::SENIOR),
+				Origin::PromoteToPrincipal => Ok(ranks::PRINCIPAL),
 				r => Err(O::from(r)),
 			})
 		}
 
 		#[cfg(feature = "runtime-benchmarks")]
 		fn try_successful_origin() -> Result<O, ()> {
-			Ok(O::from(Origin::SeniorAmbassadors))
+			Ok(O::from(Origin::PromoteToPrincipal))
+		}
+	}
+
+	pub struct EnsureCanFastPromoteTo;
+
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for EnsureCanFastPromoteTo {
+		type Success = Rank;
+
+		fn try_origin(o: O) -> Result<Self::Success, O> {
+			o.into().and_then(|o| match o {
+				Origin::FastPromoteToAssociate => Ok(ranks::ASSOCIATE),
+				Origin::FastPromoteToLead => Ok(ranks::LEAD),
+				Origin::FastPromoteToSenior => Ok(ranks::SENIOR),
+				r => Err(O::from(r)),
+			})
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn try_successful_origin() -> Result<O, ()> {
+			Ok(O::from(Origin::FastPromoteToSenior))
+		}
+	}
+
+	pub struct Spender;
+
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for Spender {
+		type Success = Balance;
+
+		fn try_origin(o: O) -> Result<Self::Success, O> {
+			o.into().and_then(|o| match o {
+				Origin::Tip => Ok(250 * DOLLARS),
+				Origin::Treasurer => Ok(10_000 * DOLLARS),
+				r => Err(O::from(r)),
+			})
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn try_successful_origin() -> Result<O, ()> {
+			// Use highest-privilege origin for benchmarks
+			Ok(O::from(Origin::Treasurer))
+		}
+	}
+
+	/// Ensures [`Origin::GlobalHead`] origin.
+	pub struct GlobalHead;
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for GlobalHead {
+		type Success = ();
+		fn try_origin(o: O) -> Result<Self::Success, O> {
+			o.into().and_then(|o| match o {
+				Origin::GlobalHead => Ok(()),
+				r => Err(O::from(r)),
+			})
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn try_successful_origin() -> Result<O, ()> {
+			Ok(O::from(Origin::GlobalHead))
+		}
+	}
+
+	/// Ensures [`Origin::Senior`] origin.
+	pub struct Senior;
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for Senior {
+		type Success = ();
+		fn try_origin(o: O) -> Result<Self::Success, O> {
+			o.into().and_then(|o| match o {
+				Origin::Senior => Ok(()),
+				r => Err(O::from(r)),
+			})
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn try_successful_origin() -> Result<O, ()> {
+			Ok(O::from(Origin::Senior))
 		}
 	}
 
@@ -113,10 +213,7 @@ pub mod pallet_origins {
 
 		#[cfg(feature = "runtime-benchmarks")]
 		fn try_successful_origin() -> Result<O, ()> {
-			ranks::HEAD_AMBASSADOR
-				.ge(&R::get())
-				.then(|| O::from(Origin::HeadAmbassadors))
-				.ok_or(())
+			ranks::GLOBAL_HEAD.ge(&R::get()).then(|| O::from(Origin::GlobalHead)).ok_or(())
 		}
 	}
 }
