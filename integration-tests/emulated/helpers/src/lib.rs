@@ -21,7 +21,7 @@ pub use pallet_message_queue;
 
 // Polkadot
 pub use pallet_xcm;
-pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
+pub use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
 // Cumulus
 pub use cumulus_pallet_xcmp_queue;
@@ -29,6 +29,9 @@ pub use emulated_integration_tests_common::{macros::Dmp, test_chain_can_claim_as
 pub use xcm_emulator::Chain;
 
 pub mod common;
+use codec::Encode;
+use emulated_integration_tests_common::impls::bx;
+use sp_runtime::traits::StaticLookup;
 
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
@@ -449,4 +452,536 @@ macro_rules! test_parachain_is_trusted_teleporter {
 			)+
 		}
 	};
+}
+
+/// Builds a `pallet_xcm::send` call wrapped in an unpaid XCM `Transact`
+pub fn build_xcm_send_call<T, D>(
+	location: Location,
+	fallback_max_weight: Option<Weight>,
+	transact_call: D::RuntimeCall,
+	origin_kind: OriginKind,
+) -> T::RuntimeCall
+where
+	T: Chain,
+	T::Runtime: pallet_xcm::Config,
+	T::RuntimeCall: Encode + From<pallet_xcm::Call<T::Runtime>>,
+	D: Chain,
+	D::RuntimeCall: Encode,
+{
+	let call: T::RuntimeCall = pallet_xcm::Call::send {
+		dest: bx!(VersionedLocation::from(location)),
+		message: bx!(VersionedXcm::from(Xcm(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			Transact { origin_kind, fallback_max_weight, call: transact_call.encode().into() },
+			ExpectTransactStatus(MaybeErrorCode::Success)
+		]))),
+	}
+	.into();
+	call
+}
+
+/// Builds a `pallet_xcm::send` call to induct Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_induct_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::induct { who }.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to add Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_add_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by call
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::add_member {
+			who: who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remove Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_remove_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	min_rank: u16,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by call
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::remove_member {
+			who: who_lookup,
+			min_rank,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to promote Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_promote_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by call
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::promote_member {
+			who: who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to promote Fellowship Core member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_core_promote_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	to_rank: pallet_core_fellowship::pallet::RankOf<DestChain::Runtime, Instance>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::promote { who, to_rank }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to demote Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_demote_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::demote_member {
+			who: who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to exchange Fellowship member,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_fellowship_exchange_member<SourceChain, DestChain, Instance>(
+	dest: Location,
+	who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	new_who: <DestChain::Runtime as frame_system::Config>::AccountId,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_ranked_collective::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_ranked_collective::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	// Convert AccountId -> Lookup::Source expected by add_member
+	type LookupSrcOf<R> = <<R as frame_system::Config>::Lookup as StaticLookup>::Source;
+
+	let who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(who);
+
+	let new_who_lookup: LookupSrcOf<DestChain::Runtime> =
+		<<DestChain::Runtime as frame_system::Config>::Lookup as StaticLookup>::unlookup(new_who);
+
+	let call: DestChain::RuntimeCall =
+		pallet_ranked_collective::Call::<DestChain::Runtime, Instance>::exchange_member {
+			who: who_lookup,
+			new_who: new_who_lookup,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to set min_promotion_period param for Fellowship Core,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`
+///
+/// Note: This call assumes other params are not important and will get overriden by empty/zero
+/// values
+pub fn build_xcm_send_fellowship_core_set_rank1_min_promotion_period<
+	SourceChain,
+	DestChain,
+	Instance,
+>(
+	dest: Location,
+	min_promotion_period: frame_system::pallet_prelude::BlockNumberFor<DestChain::Runtime>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_core_fellowship::Config<Instance>,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_core_fellowship::Call<DestChain::Runtime, Instance>>,
+	Instance: 'static,
+{
+	use pallet_core_fellowship::pallet::ParamsOf;
+	use sp_runtime::{bounded_vec, traits::Zero};
+
+	let params = ParamsOf::<DestChain::Runtime, Instance> {
+		active_salary: bounded_vec![],
+		passive_salary: bounded_vec![],
+		demotion_period: bounded_vec![],
+		min_promotion_period: bounded_vec![min_promotion_period],
+		offboard_timeout: frame_system::pallet_prelude::BlockNumberFor::<DestChain::Runtime>::zero(
+		),
+	};
+
+	let dest_call: DestChain::RuntimeCall =
+		pallet_core_fellowship::Call::<DestChain::Runtime, Instance>::set_params {
+			params: Box::new(params),
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(
+		dest,
+		fallback_max_weight,
+		dest_call,
+		OriginKind::Xcm,
+	)
+}
+
+/// Builds a `pallet_xcm::send` call set desired Collator candidates,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_set_desired_candidates<SourceChain, DestChain>(
+	dest: Location,
+	max: u32,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_collator_selection::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_collator_selection::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_collator_selection::Call::<DestChain::Runtime>::set_desired_candidates { max }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to force hrmp clean,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_force_clean_hrmp<SourceChain, DestChain>(
+	dest: Location,
+	para: polkadot_parachain_primitives::primitives::Id,
+	num_inbound: u32,
+	num_outbound: u32,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + runtime_parachains::hrmp::Config,
+	DestChain::RuntimeCall: Encode + From<runtime_parachains::hrmp::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		runtime_parachains::hrmp::Call::<DestChain::Runtime>::force_clean_hrmp {
+			para,
+			num_inbound,
+			num_outbound,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to set min commisions,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_set_min_commissions<SourceChain, DestChain>(
+	dest: Location,
+	new_commissions: sp_runtime::Perbill,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_staking::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_staking::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_staking::Call::<DestChain::Runtime>::set_min_commission { new: new_commissions }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to set min untrusted score,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_set_minimum_untrusted_score<SourceChain, DestChain>(
+	dest: Location,
+	maybe_next_score: Option<sp_npos_elections::ElectionScore>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_election_provider_multi_phase::Config,
+	DestChain::RuntimeCall:
+		Encode + From<pallet_election_provider_multi_phase::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall = pallet_election_provider_multi_phase::Call::<
+		DestChain::Runtime,
+	>::set_minimum_untrusted_score {
+		maybe_next_score,
+	}
+	.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to create asset rate,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_asset_rate_create<SourceChain, DestChain>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_asset_rate::Config>::AssetKind,
+	rate: sp_runtime::FixedU128,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_asset_rate::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_asset_rate::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_asset_rate::Call::<DestChain::Runtime>::create { asset_kind: bx!(asset_kind), rate }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to update asset rate,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_asset_rate_update<SourceChain, DestChain>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_asset_rate::Config>::AssetKind,
+	rate: sp_runtime::FixedU128,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_asset_rate::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_asset_rate::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_asset_rate::Call::<DestChain::Runtime>::update { asset_kind: bx!(asset_kind), rate }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to remote asset rate,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_asset_rate_remove<SourceChain, DestChain>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_asset_rate::Config>::AssetKind,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_asset_rate::Config,
+	DestChain::RuntimeCall: Encode + From<pallet_asset_rate::Call<DestChain::Runtime>>,
+{
+	let call: DestChain::RuntimeCall =
+		pallet_asset_rate::Call::<DestChain::Runtime>::remove { asset_kind: bx!(asset_kind) }
+			.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(dest, fallback_max_weight, call, OriginKind::Xcm)
+}
+
+/// Builds a `pallet_xcm::send` call to create treasury spend,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_treasury_spend<SourceChain, DestChain, Instance, Beneficiary>(
+	dest: Location,
+	asset_kind: <DestChain::Runtime as pallet_treasury::Config<Instance>>::AssetKind,
+	amount: pallet_treasury::AssetBalanceOf<DestChain::Runtime, Instance>,
+	beneficiary: Beneficiary,
+	valid_from: Option<pallet_treasury::BlockNumberFor<DestChain::Runtime, Instance>>,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_treasury::Config<Instance>,
+	DestChain::RuntimeCall: Encode + From<pallet_treasury::Call<DestChain::Runtime, Instance>>,
+
+	Instance: 'static,
+
+	Beneficiary: Into<<DestChain::Runtime as pallet_treasury::Config<Instance>>::Beneficiary>,
+{
+	// Convert AccountId -> Lookup::Source expected by treasury::spend
+	type BenLookupSrcOf<R, I> =
+		<<R as pallet_treasury::Config<I>>::BeneficiaryLookup as StaticLookup>::Source;
+
+	let ben_lookup: BenLookupSrcOf<DestChain::Runtime, Instance> =
+        <<DestChain::Runtime as pallet_treasury::Config<Instance>>::BeneficiaryLookup as StaticLookup>
+            ::unlookup(beneficiary.into());
+
+	let dest_call: DestChain::RuntimeCall =
+		pallet_treasury::Call::<DestChain::Runtime, Instance>::spend {
+			asset_kind: bx!(asset_kind),
+			amount,
+			beneficiary: bx!(ben_lookup),
+			valid_from,
+		}
+		.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(
+		dest,
+		fallback_max_weight,
+		dest_call,
+		OriginKind::Xcm,
+	)
+}
+
+/// Builds a `pallet_xcm::send` call to void existing treasury spend,
+/// wrapped in an unpaid XCM `Transact` with `OriginKind::Xcm`.
+pub fn build_xcm_send_treasury_void_spend<SourceChain, DestChain, Instance>(
+	dest: Location,
+	index: pallet_treasury::SpendIndex,
+	fallback_max_weight: Option<Weight>,
+) -> SourceChain::RuntimeCall
+where
+	SourceChain: Chain,
+	SourceChain::Runtime: pallet_xcm::Config,
+	SourceChain::RuntimeCall: Encode + From<pallet_xcm::Call<SourceChain::Runtime>>,
+	DestChain: Chain,
+	DestChain::Runtime: frame_system::Config + pallet_treasury::Config<Instance>,
+	DestChain::RuntimeCall: Encode + From<pallet_treasury::Call<DestChain::Runtime, Instance>>,
+
+	Instance: 'static,
+{
+	let dest_call: DestChain::RuntimeCall =
+		pallet_treasury::Call::<DestChain::Runtime, Instance>::void_spend { index }.into();
+
+	build_xcm_send_call::<SourceChain, DestChain>(
+		dest,
+		fallback_max_weight,
+		dest_call,
+		OriginKind::Xcm,
+	)
 }
