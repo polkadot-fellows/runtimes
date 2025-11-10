@@ -961,32 +961,42 @@ mod inflation_tests {
 	use asset_hub_polkadot_runtime::staking;
 	use asset_test_utils::ExtBuilder;
 	use cumulus_pallet_parachain_system::pallet::ValidationData;
-	use cumulus_primitives_core::{
-		relay_chain::BlockNumber as RC_BlockNumber, PersistedValidationData,
-	};
-	use pallet_staking_async::EraPayout;
+	use cumulus_primitives_core::{relay_chain::BlockNumber, PersistedValidationData};
+	use pallet_staking_async::EraPayout as _;
 	use polkadot_runtime_constants::time::YEARS as RC_YEARS;
 	use sp_runtime::Perbill;
-	use staking::March2026TI;
+	use staking::{EraPayout, March2026TI};
 
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
+
+	const APPROX_PRE_CAP_STAKING: Balance = 279_477 * UNITS;
+	const APPROX_PRE_CAP_TREASURY: Balance = 49_320 * UNITS;
+	const APPROX_PRE_CAP_TOTAL: Balance = APPROX_PRE_CAP_STAKING + APPROX_PRE_CAP_TREASURY;
 
 	#[test]
 	fn pre_march_2026_formula_staking_inflation_correct_single_era() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
 
 			// Values are within 0.1%
-			assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
-			assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
+			assert_relative_eq!(
+				to_stakers as f64,
+				APPROX_PRE_CAP_STAKING as f64,
+				max_relative = 0.001
+			);
+			assert_relative_eq!(
+				to_treasury as f64,
+				APPROX_PRE_CAP_TREASURY as f64,
+				max_relative = 0.001
+			);
 			// Total per day is ~328,797 DOT
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
-				(328_797 * UNITS) as f64,
+				APPROX_PRE_CAP_TOTAL as f64,
 				max_relative = 0.001
 			);
 		});
@@ -996,7 +1006,7 @@ mod inflation_tests {
 	fn pre_march_2026_formula_staking_inflation_correct_longer_era() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			// Twice the era duration means twice the emission:
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				2 * MILLISECONDS_PER_DAY,
@@ -1004,12 +1014,12 @@ mod inflation_tests {
 
 			assert_relative_eq!(
 				to_stakers as f64,
-				(279_477 * UNITS) as f64 * 2.0,
+				APPROX_PRE_CAP_STAKING as f64 * 2.0,
 				max_relative = 0.001
 			);
 			assert_relative_eq!(
 				to_treasury as f64,
-				(49_320 * UNITS) as f64 * 2.0,
+				APPROX_PRE_CAP_TREASURY as f64 * 2.0,
 				max_relative = 0.001
 			);
 		});
@@ -1018,14 +1028,14 @@ mod inflation_tests {
 	#[test]
 	fn pre_march_2026_formula_staking_inflation_correct_whole_year() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123,                                  // ignored
 				456,                                  // ignored
 				(36525 * MILLISECONDS_PER_DAY) / 100, // 1 year
 			);
 
 			// Our yearly emissions is about 120M DOT:
-			let yearly_emission = 120_093_259 * UNITS;
+			let yearly_emission = APPROX_PRE_CAP_TOTAL * 36525 / 100;
 			assert_relative_eq!(
 				to_stakers as f64 + to_treasury as f64,
 				yearly_emission as f64,
@@ -1049,7 +1059,7 @@ mod inflation_tests {
 	#[test]
 	fn pre_march_2026_formula_staking_inflation_correct_not_overflow() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123,                                 // ignored
 				456,                                 // ignored
 				(36525 * MILLISECONDS_PER_DAY) / 10, // 10 years
@@ -1057,7 +1067,7 @@ mod inflation_tests {
 			let initial_ti: i128 = 15_011_657_390_566_252_333;
 			let projected_total_issuance = (to_stakers as i128 + to_treasury as i128) + initial_ti;
 
-			// In 2034, there will be about 2.7 billion DOT in existence.
+			// In 2034, there will be about 2.7 billion DOT in existence with the current model.
 			assert_relative_eq!(
 				projected_total_issuance as f64,
 				(2_700_000_000 * UNITS) as f64,
@@ -1067,7 +1077,7 @@ mod inflation_tests {
 	}
 
 	// Sets the view of the relay chain block number.
-	fn set_relay_number(n: RC_BlockNumber) {
+	fn set_relay_number(n: BlockNumber) {
 		ValidationData::<Runtime>::set(Some(PersistedValidationData {
 			parent_head: vec![].into(),
 			relay_parent_number: n,
@@ -1076,7 +1086,7 @@ mod inflation_tests {
 		}));
 	}
 
-	const MARCH_14_2026: RC_BlockNumber = 30_349_908;
+	const MARCH_14_2026: BlockNumber = 30_349_908;
 	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
 	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
@@ -1086,18 +1096,18 @@ mod inflation_tests {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			// Pre-march.
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
-			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert!(March2026TI::get().is_none());
 
 			// Post-march.
 			set_relay_number(MARCH_14_2026);
-			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert!(March2026TI::get() == Some(MARCH_TI));
 
 			// No change on subsequent call.
 			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
-			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert!(March2026TI::get() == Some(MARCH_TI));
 		});
 	}
@@ -1107,16 +1117,16 @@ mod inflation_tests {
 	fn set_to_stepped_inflation_transition_works() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			// Check before transition date.
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
-			assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
+			assert_relative_eq!(to_stakers as f64, APPROX_PRE_CAP_STAKING as f64, max_relative = 0.001);
+			assert_relative_eq!(to_treasury as f64, APPROX_PRE_CAP_TREASURY as f64, max_relative = 0.001);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
-				(328_797 * UNITS) as f64,
+				APPROX_PRE_CAP_TOTAL as f64,
 				max_relative = 0.001
 			);
 
@@ -1124,12 +1134,12 @@ mod inflation_tests {
 
 			// Check after transition date.
 			set_relay_number(MARCH_14_2026);
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
+			let two_year_rate = EraPayout::BI_ANNUAL_RATE;
 			let era_rate = two_year_rate *
 				Perbill::from_rational(1u32, 2u32) *
 				Perbill::from_rational(100u32, 36525u32);
@@ -1148,17 +1158,17 @@ mod inflation_tests {
 		ExtBuilder::<Runtime>::default()
 		.build()
 		.execute_with(|| {
-			let two_years: RC_BlockNumber = RC_YEARS * 2;
+			let two_years: BlockNumber = RC_YEARS * 2;
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
 			// First period - March 14, 2026 -> March 14, 2028.
 			set_relay_number(MARCH_14_2026);
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
+			let two_year_rate = EraPayout::BI_ANNUAL_RATE;
 			let first_period_emission = two_year_rate * (TARGET_TI - MARCH_TI);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
@@ -1180,7 +1190,7 @@ mod inflation_tests {
 			// Second period - March 14, 2028 -> March 14, 2030.
 			let march_14_2028 = MARCH_14_2026 + two_years;
 			set_relay_number(march_14_2028);
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
@@ -1207,7 +1217,7 @@ mod inflation_tests {
 			// Third period - March 14, 2030 -> March 14, 2032.
 			let march_14_2030 = march_14_2028 + two_years;
 			set_relay_number(march_14_2030);
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
@@ -1237,27 +1247,25 @@ mod inflation_tests {
 	#[test]
 	fn emission_value_static_throughout_period() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let two_years: RC_BlockNumber = RC_YEARS * 2;
+			let two_years: BlockNumber = RC_YEARS * 2;
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
 			// Get payout at the beginning of the first stepped period.
 			set_relay_number(MARCH_14_2026);
-			let (to_stakers_start, to_treasury_start) =
-				<staking::EraPayout as EraPayout<Balance>>::era_payout(
-					123, // ignored
-					456, // ignored
-					MILLISECONDS_PER_DAY,
-				);
+			let (to_stakers_start, to_treasury_start) = EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				MILLISECONDS_PER_DAY,
+			);
 
 			// Get payout just before the end of the first stepped period.
-			let almost_two_years_later: RC_BlockNumber = MARCH_14_2026 + two_years - 1;
+			let almost_two_years_later: BlockNumber = MARCH_14_2026 + two_years - 1;
 			set_relay_number(almost_two_years_later);
-			let (to_stakers_end, to_treasury_end) =
-				<staking::EraPayout as EraPayout<Balance>>::era_payout(
-					123, // ignored
-					456, // ignored
-					MILLISECONDS_PER_DAY,
-				);
+			let (to_stakers_end, to_treasury_end) = EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				MILLISECONDS_PER_DAY,
+			);
 
 			// Payout identical.
 			assert_eq!(to_stakers_start + to_treasury_start, to_stakers_end + to_treasury_end);
@@ -1270,9 +1278,9 @@ mod inflation_tests {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
-			let forseeable_future: RC_BlockNumber = MARCH_14_2026 + (RC_YEARS * 80);
+			let forseeable_future: BlockNumber = MARCH_14_2026 + (RC_YEARS * 80);
 			set_relay_number(forseeable_future);
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
@@ -1281,9 +1289,9 @@ mod inflation_tests {
 			// Payout is less than 1 UNIT after 41 steps.
 			assert!(to_stakers + to_treasury < UNITS);
 
-			let far_future: RC_BlockNumber = MARCH_14_2026 + (RC_YEARS * 500);
+			let far_future: BlockNumber = MARCH_14_2026 + (RC_YEARS * 500);
 			set_relay_number(far_future);
-			let (to_stakers, to_treasury) = <staking::EraPayout as EraPayout<Balance>>::era_payout(
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
@@ -1307,12 +1315,11 @@ mod inflation_tests {
 			// We know from `emission_eventually_zero` that at this point era emissions are 0.
 			set_relay_number(current_bn);
 			for _ in 0..250 {
-				let (to_stakers, to_treasury) =
-					<staking::EraPayout as EraPayout<Balance>>::era_payout(
-						123,                                      // ignored
-						456,                                      // ignored
-						(MILLISECONDS_PER_DAY * 36525 * 2) / 100, // two year era
-					);
+				let (to_stakers, to_treasury) = EraPayout::era_payout(
+					123,                                      // ignored
+					456,                                      // ignored
+					(MILLISECONDS_PER_DAY * 36525 * 2) / 100, // two year era
+				);
 				current_ti += to_stakers + to_treasury;
 				current_bn += RC_YEARS * 2;
 				set_relay_number(current_bn);

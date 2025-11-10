@@ -20,23 +20,22 @@
 
 pub mod bags_thresholds;
 pub mod nom_pools;
+pub mod stepped_curve;
 
 use crate::{governance::StakingAdmin, *};
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::{
-	pallet_prelude::{CheckedDiv, OptionQuery, Zero},
-	storage_alias,
-	traits::tokens::imbalance::ResolveTo,
-	BoundedVec,
+	pallet_prelude::OptionQuery, storage_alias, traits::tokens::imbalance::ResolveTo, BoundedVec,
 };
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
-use sp_arithmetic::{traits::Bounded, FixedU128};
+use sp_arithmetic::FixedU128;
 use sp_runtime::{
-	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber, Perquintill,
-	SaturatedConversion, traits::BlockNumberProvider
+	traits::{BlockNumberProvider, Convert},
+	transaction_validity::TransactionPriority,
+	FixedPointNumber, Perquintill, SaturatedConversion,
 };
 use sp_staking::SessionIndex;
 use system_parachains_common::apis::InflationInfo;
@@ -293,143 +292,6 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
 
-// Wittled copy of the code from https://github.com/paritytech/polkadot-sdk/pull/9556
-// To be replaced after that is merged and available.
-pub mod temp_curve {
-	use super::*;
-	use scale_info::TypeInfo;
-	use sp_arithmetic::traits::Saturating;
-	use sp_runtime::traits::One;
-
-	/// The step type for the stepped curve.
-	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub enum Step {
-		/// Move towards a desired value by a percentage of the remaining difference at each step.
-		///
-		/// Step size will be (target_total - current_value) * pct.
-		RemainingPct {
-			/// The asymptote the curve will move towards.
-			target: FixedU128,
-			/// The percentage closer to the `target` at each step.
-			pct: Perbill,
-		},
-	}
-
-	/// A stepped curve.
-	///
-	/// Steps every `period` from the `initial_value` as defined by `step`.
-	/// First step from `initial_value` takes place at `start` + `period`.
-	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub struct SteppedCurve {
-		/// The starting point for the curve.
-		pub start: FixedU128,
-		/// The initial value of the curve at the `start` point.
-		pub initial_value: FixedU128,
-		/// The change to apply at the end of each `period`.
-		pub step: Step,
-		/// The duration of each step.
-		pub period: FixedU128,
-	}
-
-	impl SteppedCurve {
-		/// Creates a new `SteppedCurve`.
-		pub fn new(
-			start: FixedU128,
-			initial_value: FixedU128,
-			step: Step,
-			period: FixedU128,
-		) -> Self {
-			Self { start, initial_value, step, period }
-		}
-
-		/// Returns the magnitude of the step size occuring at the start of this point's period.
-		/// If no step has occured, will return 0.
-		///
-		/// Ex. In period 4, the last step taken was 10 -> 7, it would return 3.
-		pub fn last_step_size(&self, point: FixedU128) -> FixedU128 {
-			// No step taken yet.
-			if point <= self.start {
-				return Zero::zero();
-			}
-
-			// If the period is zero, the value never changes.
-			if self.period.is_zero() {
-				return Zero::zero();
-			}
-
-			// Calculate how many full periods have passed, saturate.
-			let num_periods =
-				(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
-
-			// No periods have passed.
-			if num_periods < One::one() {
-				return Zero::zero();
-			}
-
-			// Points for calculating step difference.
-			let prev_period_point = self
-				.start
-				.saturating_add((num_periods - One::one()).saturating_mul(self.period));
-			let curr_period_point =
-				self.start.saturating_add(num_periods.saturating_mul(self.period));
-
-			// Evaluate the curve at those two points.
-			let val_prev = self.evaluate(prev_period_point);
-			let val_curr = self.evaluate(curr_period_point);
-
-			if val_curr >= val_prev {
-				val_curr.saturating_sub(val_prev)
-			} else {
-				val_prev.saturating_sub(val_curr)
-			}
-		}
-
-		/// Evaluate the curve at a given point.
-		///
-		/// Max number of steps is `u32::MAX`.
-		pub fn evaluate(&self, point: FixedU128) -> FixedU128 {
-			let initial = self.initial_value;
-
-			// If the point is before the curve starts, return the initial value.
-			if point <= self.start {
-				return initial;
-			}
-
-			// If the period is zero, the value never changes.
-			if self.period.is_zero() {
-				return initial;
-			}
-
-			// Calculate how many full periods have passed, downsampled to usize.
-			let num_periods =
-				(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
-			let num_periods_u32 =
-				(num_periods.into_inner() / FixedU128::DIV).saturated_into::<u32>();
-
-			// No periods have passed.
-			if num_periods_u32.is_zero() {
-				return initial;
-			}
-
-			match self.step {
-				Step::RemainingPct { target: asymptote, pct: percent } => {
-					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
-					let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
-					let scale = ratio.saturating_pow(num_periods_u32 as usize);
-
-					if initial >= asymptote {
-						let diff = initial.saturating_sub(asymptote);
-						asymptote.saturating_add(diff.saturating_mul(scale))
-					} else {
-						let diff = asymptote.saturating_sub(initial);
-						asymptote.saturating_sub(diff.saturating_mul(scale))
-					}
-				},
-			}
-		}
-	}
-}
-
 // Holds the TI from March 14, 2026
 #[storage_alias(verbatim)]
 pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
@@ -437,79 +299,70 @@ pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
 // We cannot re-use the one from the relay since that is for pallet-staking and will be removed soon
 // anyway.
 pub struct EraPayout;
-impl pallet_staking_async::EraPayout<Balance> for EraPayout {
-	fn era_payout(
-		_total_staked: Balance,
-		_total_issuance: Balance,
-		era_duration_millis: u64,
-	) -> (Balance, Balance) {
-		const MILLISECONDS_PER_YEAR: u64 = (1000 * 3600 * 24 * 36525) / 100;
-		// A normal-sized era will have 1 / 365.25 here, though the value wobbles a bit:
-		let relative_era_len =
-			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
-
-		// Branch based off the 12AM 14th March 2026 initial stepping date -[Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
-		let relay_block_num =
-			<RelaychainDataProvider<Runtime> as BlockNumberProvider>::current_block_number();
-		// Calculated assuming a 11.7 minute per day time drift (A block time of 6.04875 seconds).
-		let march_14_2026: BlockNumber = 30_349_908; // https://polkadot.subscan.io/block/30362493
-
-		let yearly_emission = if relay_block_num < march_14_2026 {
-			// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
-			let fixed_total_issuance: u128 = 15_011_657_390_566_252_333;
-			let fixed_inflation_rate = FixedU128::from_rational(8, 100);
-			fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
-		} else {
-			// Get TI from March 14, 2026.
-			let starting_ti = March2026TI::get().unwrap_or_else(|| {
-				// If first time, store it.
-				let current_ti = pallet_balances::Pallet::<Runtime>::total_issuance();
-				March2026TI::put(current_ti);
-				current_ti
-			});
-
-			// The calculated TI used in [Ref 1710's](https://polkadot.subsquare.io/referenda/1710).
-			let march_14_2026_ti = FixedU128::saturating_from_integer(starting_ti);
-			let target_ti = FixedU128::saturating_from_integer(2_100_000_000u128 * UNITS);
-
-			// Start date of the curve is set two years prior, thus ensuring first step in March,
-			// 2026.
-			let two_years_before_march =
-				FixedU128::saturating_from_integer(march_14_2026 - (2 * RC_YEARS));
-			let relay_block_fp = FixedU128::saturating_from_integer(relay_block_num);
-			let step_duration = FixedU128::saturating_from_integer(2 * RC_YEARS);
-
-			// Pct change towards target TI at each step.
-			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
-
-			let ti_curve = temp_curve::SteppedCurve::new(
-				// The start date of the curve.
-				two_years_before_march,
-				// The initial value of the curve.
-				march_14_2026_ti,
-				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
-				temp_curve::Step::RemainingPct { target: target_ti, pct: two_year_rate },
-				// Step every two years.
-				step_duration,
-			);
-			// The last step size tells us the expected TI increase over the current two year
-			// period.
-			let two_year_emission_fp = ti_curve.last_step_size(relay_block_fp);
-			let two_year_emission: u128 = two_year_emission_fp.into_inner() / FixedU128::DIV;
-			FixedU128::from_rational(1, 2).saturating_mul_int(two_year_emission)
-		};
-
-		let era_emission = relative_era_len.saturating_mul_int(yearly_emission);
-		// 15% to treasury, as per Polkadot ref 1139.
-		let to_treasury = FixedU128::from_rational(15, 100).saturating_mul_int(era_emission);
-		let to_stakers = era_emission.saturating_sub(to_treasury);
-
-		(to_stakers.saturated_into(), to_treasury.saturated_into())
-	}
-}
 
 impl EraPayout {
+	const MILLISECONDS_PER_YEAR: u64 = (1000 * 3600 * 24 * 36525) / 100;
+
+	// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139)
+	// block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
+	const FIXED_PRE_HARD_CAP_TI: Balance = 15_011_657_390_566_252_333;
+
+	// Calculated assuming a 11.7 minute per day time drift (A block time of 6.04875 seconds).
+	// https://polkadot.subscan.io/block/30362493
+	const HARD_CAP_START: BlockNumber = 30_349_908;
+
+	// The hard issuance cap ratified in Referendum 1710.
+	const HARD_CAP_TARGET: Balance = 2_100_000_000u128 * UNITS;
+
+	// 26.28% over two years, 13.14% per year as per ref 1710
+	pub const BI_ANNUAL_RATE: Perbill = Perbill::from_parts(262_800_000);
+	pub const ANNUAL_RATE: Perbill = Perbill::from_parts(131_400_000);
+
+	fn yearly_before_hard_cap() -> Balance {
+		let fixed_total_issuance = Self::FIXED_PRE_HARD_CAP_TI;
+		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
+		fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
+	}
+	fn yearly_after_hard_cap(relay_block_num: BlockNumber) -> Balance {
+		// Get TI from March 14, 2026.
+		let starting_ti = March2026TI::get().unwrap_or_else(|| {
+			// If first time, store it.
+			let current_ti = pallet_balances::Pallet::<Runtime>::total_issuance();
+			March2026TI::put(current_ti);
+			current_ti
+		});
+
+		let march_14_2026_ti = FixedU128::saturating_from_integer(starting_ti);
+		let target_ti = FixedU128::saturating_from_integer(Self::HARD_CAP_TARGET);
+
+		// Start date of the curve is set two years prior, thus ensuring first step in March,
+		// 2026.
+		let two_years_before_march =
+			FixedU128::saturating_from_integer(Self::HARD_CAP_START - (2 * RC_YEARS));
+		let relay_block_fp = FixedU128::saturating_from_integer(relay_block_num);
+		let step_duration = FixedU128::saturating_from_integer(2 * RC_YEARS);
+
+		let two_year_rate = Self::BI_ANNUAL_RATE;
+
+		let ti_curve = stepped_curve::SteppedCurve::new(
+			// The start date of the curve.
+			two_years_before_march,
+			// The initial value of the curve.
+			march_14_2026_ti,
+			// Target TI.
+			stepped_curve::Step::RemainingPct { target: target_ti, pct: two_year_rate },
+			// Step every two years.
+			step_duration,
+		);
+		// The last step size tells us the expected TI increase over the current two year
+		// period.
+		let two_year_emission_fp = ti_curve.last_step_size(relay_block_fp);
+		let two_year_emission: u128 = two_year_emission_fp.into_inner() / FixedU128::DIV;
+		FixedU128::from_rational(1, 2).saturating_mul_int(two_year_emission)
+	}
+
 	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
+		// TODO: update this.
 		// We assume un-delayed 24h eras.
 		let era_duration = 24 * 60 * 60 * 1000;
 		let next_mint =
@@ -522,6 +375,35 @@ impl EraPayout {
 		let issuance = Perquintill::from_rational(annual_issuance, ti);
 
 		InflationInfo { issuance, next_mint }
+	}
+}
+
+impl pallet_staking_async::EraPayout<Balance> for EraPayout {
+	fn era_payout(
+		_total_staked: Balance,
+		_total_issuance: Balance,
+		era_duration_millis: u64,
+	) -> (Balance, Balance) {
+		let relative_era_len = FixedU128::from_rational(
+			era_duration_millis.into(),
+			Self::MILLISECONDS_PER_YEAR.into(),
+		);
+
+		let relay_block_num =
+			<RelaychainDataProvider<Runtime> as BlockNumberProvider>::current_block_number();
+
+		let yearly_emission = if relay_block_num < Self::HARD_CAP_START {
+			Self::yearly_before_hard_cap()
+		} else {
+			Self::yearly_after_hard_cap(relay_block_num)
+		};
+
+		let era_emission = relative_era_len.saturating_mul_int(yearly_emission);
+		// 15% to treasury, as per Polkadot ref 1139.
+		let to_treasury = FixedU128::from_rational(15, 100).saturating_mul_int(era_emission);
+		let to_stakers = era_emission.saturating_sub(to_treasury);
+
+		(to_stakers.saturated_into(), to_treasury.saturated_into())
 	}
 }
 
