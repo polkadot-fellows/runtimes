@@ -299,7 +299,7 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	/// Move towards a desired value by a percentage of the remaining difference at each step.
 	///
 	/// Step size will be (target_total - current_value) * pct.
-	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
+	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone, Default)]
 	pub struct RemainingPct {
 		/// The asymptote the curve will move towards.
 		target: FixedU128,
@@ -311,7 +311,7 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	///
 	/// Steps every `period` from the `initial_value` as defined by `step`.
 	/// First step from `initial_value` takes place at `start` + `period`.
-	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
+	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone, Default)]
 	pub struct SteppedCurve {
 		/// The starting point for the curve.
 		pub start: FixedU128,
@@ -325,13 +325,16 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 
 	impl SteppedCurve {
 		/// Creates a new `SteppedCurve`.
-		pub fn new(
+		pub fn try_new(
 			start: FixedU128,
 			initial_value: FixedU128,
 			step: RemainingPct,
 			period: FixedU128,
-		) -> Self {
-			Self { start, initial_value, step, period }
+		) -> Result<Self, &'static str> {
+			if step.target < initial_value {
+	            return Err("step.target must be >= initial_value");
+        	}
+			Ok(Self { start, initial_value, step, period })
 		}
 
 		/// Returns the magnitude of the step size occuring at the start of this point's period.
@@ -369,11 +372,8 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 			let val_prev = self.evaluate(prev_period_point);
 			let val_curr = self.evaluate(curr_period_point);
 
-			if val_curr >= val_prev {
-				val_curr.saturating_sub(val_prev)
-			} else {
-				val_prev.saturating_sub(val_curr)
-			}
+			// Current can only be greater than or equal to previous, enforced in `try_new`.
+			val_curr.saturating_sub(val_prev)
 		}
 
 		/// Evaluate the curve at a given point.
@@ -409,13 +409,9 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 			let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
 			let scale = ratio.saturating_pow(num_periods_u32 as usize);
 
-			if initial >= asymptote {
-				let diff = initial.saturating_sub(asymptote);
-				asymptote.saturating_add(diff.saturating_mul(scale))
-			} else {
-				let diff = asymptote.saturating_sub(initial);
-				asymptote.saturating_sub(diff.saturating_mul(scale))
-			}
+			// Asymptote can only be greater than or equal to previous, enforced in `try_new`.
+			let diff = asymptote.saturating_sub(initial);
+			asymptote.saturating_sub(diff.saturating_mul(scale))
 		}
 	}
 
@@ -469,7 +465,8 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			// Pct change towards target TI at each step.
 			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
 
-			let ti_curve = SteppedCurve::new(
+			// Defaults to a zero curve in case of unexpected parameters.
+			let ti_curve = SteppedCurve::try_new(
 				// The start date of the curve.
 				two_years_before_march,
 				// The initial value of the curve.
@@ -478,7 +475,8 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 				RemainingPct { target: target_ti, pct: two_year_rate },
 				// Step every two years.
 				step_duration,
-			);
+			).unwrap_or_default();
+
 			// The last step size tells us the expected TI increase over the current two year
 			// period.
 			let two_year_emission_fp = ti_curve.last_step_size(relay_block_fp);
@@ -1105,6 +1103,27 @@ mod tests {
 			assert!(current_ti > TARGET_TI - UNITS);
 			assert!(current_ti < TARGET_TI);
 		});
+	}
+
+	#[test]
+	fn default_curve_is_zero_curve() {
+		let curve = SteppedCurve::default();
+		let zero = FixedU128::zero();
+
+		let points_to_test = vec![
+			FixedU128::zero(),
+			FixedU128::saturating_from_integer(100),
+			FixedU128::saturating_from_integer(1_000_000_000),
+			FixedU128::max_value(),
+		];
+
+		for point in points_to_test {
+			// `evaluate` should always be 0.
+			assert_eq!(curve.evaluate(point), zero, "evaluate failed at point {:?}", point);
+
+			// `last_step_size` should always be 0.
+			assert_eq!(curve.last_step_size(point), zero, "last_step_size failed at point {:?}", point);
+		}
 	}
 
 	fn analyze_weight(
