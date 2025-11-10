@@ -41,6 +41,9 @@ use sp_runtime::{
 use sp_staking::SessionIndex;
 use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
+use scale_info::TypeInfo;
+use sp_arithmetic::traits::Saturating;
+use sp_runtime::traits::One;
 
 // stuff aliased to `parameters` pallet.
 use dynamic_params::staking_election::{
@@ -293,14 +296,6 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
 
-// Wittled copy of the code from https://github.com/paritytech/polkadot-sdk/pull/9556
-// To be replaced after that is merged and available.
-pub mod temp_curve {
-	use super::*;
-	use scale_info::TypeInfo;
-	use sp_arithmetic::traits::Saturating;
-	use sp_runtime::traits::One;
-
 	/// The step type for the stepped curve.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
 	pub enum Step {
@@ -428,7 +423,6 @@ pub mod temp_curve {
 			}
 		}
 	}
-}
 
 // Holds the TI from March 14, 2026
 #[storage_alias(verbatim)]
@@ -482,13 +476,13 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			// Pct change towards target TI at each step.
 			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
 
-			let ti_curve = temp_curve::SteppedCurve::new(
+			let ti_curve = SteppedCurve::new(
 				// The start date of the curve.
 				two_years_before_march,
 				// The initial value of the curve.
 				march_14_2026_ti,
 				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
-				temp_curve::Step::RemainingPct { target: target_ti, pct: two_year_rate },
+				Step::RemainingPct { target: target_ti, pct: two_year_rate },
 				// Step every two years.
 				step_duration,
 			);
