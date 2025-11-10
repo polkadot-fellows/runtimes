@@ -888,13 +888,13 @@ mod tests {
 			// Post-march.
 			set_relay_number(MARCH_14_2026);
 			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert!(March2026TI::get() == Some(MARCH_TI));
+			assert_eq!(March2026TI::get(), Some(MARCH_TI));
 
 			// No change on subsequent call.
 			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
 			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert!(March2026TI::get() == Some(MARCH_TI));
+			assert_eq!(March2026TI::get(), Some(MARCH_TI));
 		});
 	}
 
