@@ -428,8 +428,6 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 #[storage_alias(verbatim)]
 pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
 
-// We cannot re-use the one from the relay since that is for pallet-staking and will be removed soon
-// anyway.
 pub struct EraPayout;
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
