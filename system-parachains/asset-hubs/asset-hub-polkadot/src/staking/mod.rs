@@ -296,18 +296,15 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
 
-	/// The step type for the stepped curve.
+	/// Move towards a desired value by a percentage of the remaining difference at each step.
+	///
+	/// Step size will be (target_total - current_value) * pct.
 	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone)]
-	pub enum Step {
-		/// Move towards a desired value by a percentage of the remaining difference at each step.
-		///
-		/// Step size will be (target_total - current_value) * pct.
-		RemainingPct {
-			/// The asymptote the curve will move towards.
-			target: FixedU128,
-			/// The percentage closer to the `target` at each step.
-			pct: Perbill,
-		},
+	pub struct RemainingPct {
+		/// The asymptote the curve will move towards.
+		target: FixedU128,
+		/// The percentage closer to the `target` at each step.
+		pct: Perbill,
 	}
 
 	/// A stepped curve.
@@ -321,7 +318,7 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 		/// The initial value of the curve at the `start` point.
 		pub initial_value: FixedU128,
 		/// The change to apply at the end of each `period`.
-		pub step: Step,
+		pub step: RemainingPct,
 		/// The duration of each step.
 		pub period: FixedU128,
 	}
@@ -331,7 +328,7 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 		pub fn new(
 			start: FixedU128,
 			initial_value: FixedU128,
-			step: Step,
+			step: RemainingPct,
 			period: FixedU128,
 		) -> Self {
 			Self { start, initial_value, step, period }
@@ -406,20 +403,18 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 				return initial;
 			}
 
-			match self.step {
-				Step::RemainingPct { target: asymptote, pct: percent } => {
-					// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
-					let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
-					let scale = ratio.saturating_pow(num_periods_u32 as usize);
+			let asymptote = self.step.target;
+			let percent = self.step.pct;
+			// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
+			let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
+			let scale = ratio.saturating_pow(num_periods_u32 as usize);
 
-					if initial >= asymptote {
-						let diff = initial.saturating_sub(asymptote);
-						asymptote.saturating_add(diff.saturating_mul(scale))
-					} else {
-						let diff = asymptote.saturating_sub(initial);
-						asymptote.saturating_sub(diff.saturating_mul(scale))
-					}
-				},
+			if initial >= asymptote {
+				let diff = initial.saturating_sub(asymptote);
+				asymptote.saturating_add(diff.saturating_mul(scale))
+			} else {
+				let diff = asymptote.saturating_sub(initial);
+				asymptote.saturating_sub(diff.saturating_mul(scale))
 			}
 		}
 	}
@@ -480,7 +475,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 				// The initial value of the curve.
 				march_14_2026_ti,
 				// Move asymptotically towards the target total issuance at a rate defined by [Ref 1710](https://polkadot.subsquare.io/referenda/1710?tab=votes_bubble).
-				Step::RemainingPct { target: target_ti, pct: two_year_rate },
+				RemainingPct { target: target_ti, pct: two_year_rate },
 				// Step every two years.
 				step_duration,
 			);
