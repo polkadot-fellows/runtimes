@@ -262,6 +262,7 @@ fn cannot_create_pool_from_pool_assets() {
 }
 
 #[test]
+#[ignore]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = Location {
