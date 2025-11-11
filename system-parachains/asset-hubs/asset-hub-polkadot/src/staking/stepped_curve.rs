@@ -356,14 +356,13 @@ mod stepped_curve_tests {
 
 		for point in points_to_test {
 			// `evaluate` should always be 0.
-			assert_eq!(curve.evaluate(point), zero, "evaluate failed at point {:?}", point);
+			assert_eq!(curve.evaluate(point), zero, "evaluate failed at point {point:?}");
 
 			// `last_step_size` should always be 0.
 			assert_eq!(
 				curve.last_step_size(point),
 				zero,
-				"last_step_size failed at point {:?}",
-				point
+				"last_step_size failed at point {point:?}"
 			);
 		}
 	}
