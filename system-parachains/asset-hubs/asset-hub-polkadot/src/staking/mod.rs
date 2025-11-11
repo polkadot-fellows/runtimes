@@ -20,12 +20,13 @@
 
 pub mod bags_thresholds;
 pub mod nom_pools;
+pub mod stepped_curve;
 
 use crate::{governance::StakingAdmin, *};
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::{
-	pallet_prelude::{CheckedDiv, OptionQuery, Zero},
+	pallet_prelude::OptionQuery,
 	storage_alias,
 	traits::tokens::imbalance::ResolveTo,
 	BoundedVec,
@@ -33,7 +34,7 @@ use frame_support::{
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
-use sp_arithmetic::{traits::Bounded, FixedU128};
+use sp_arithmetic::FixedU128;
 use sp_runtime::{
 	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber, Perquintill,
 	SaturatedConversion, traits::BlockNumberProvider
@@ -41,9 +42,7 @@ use sp_runtime::{
 use sp_staking::SessionIndex;
 use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
-use scale_info::TypeInfo;
-use sp_arithmetic::traits::Saturating;
-use sp_runtime::traits::One;
+use stepped_curve::*;
 
 // stuff aliased to `parameters` pallet.
 use dynamic_params::staking_election::{
@@ -295,125 +294,6 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type VoterSnapshotPerBlock = <Runtime as multi_block::Config>::VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = <Runtime as multi_block::Config>::TargetSnapshotPerBlock;
 }
-
-	/// Move towards a desired value by a percentage of the remaining difference at each step.
-	///
-	/// Step size will be (target_total - current_value) * pct.
-	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone, Default)]
-	pub struct RemainingPct {
-		/// The asymptote the curve will move towards.
-		target: FixedU128,
-		/// The percentage closer to the `target` at each step.
-		pct: Perbill,
-	}
-
-	/// A stepped curve.
-	///
-	/// Steps every `period` from the `initial_value` as defined by `step`.
-	/// First step from `initial_value` takes place at `start` + `period`.
-	#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone, Default)]
-	pub struct SteppedCurve {
-		/// The starting point for the curve.
-		pub start: FixedU128,
-		/// The initial value of the curve at the `start` point.
-		pub initial_value: FixedU128,
-		/// The change to apply at the end of each `period`.
-		pub step: RemainingPct,
-		/// The duration of each step.
-		pub period: FixedU128,
-	}
-
-	impl SteppedCurve {
-		/// Creates a new `SteppedCurve`.
-		pub fn try_new(
-			start: FixedU128,
-			initial_value: FixedU128,
-			step: RemainingPct,
-			period: FixedU128,
-		) -> Result<Self, &'static str> {
-			if step.target < initial_value {
-	            return Err("step.target must be >= initial_value");
-        	}
-			Ok(Self { start, initial_value, step, period })
-		}
-
-		/// Returns the magnitude of the step size occuring at the start of this point's period.
-		/// If no step has occured, will return 0.
-		///
-		/// Ex. In period 4, the last step taken was 10 -> 7, it would return 3.
-		pub fn last_step_size(&self, point: FixedU128) -> FixedU128 {
-			// No step taken yet.
-			if point <= self.start {
-				return Zero::zero();
-			}
-
-			// If the period is zero, the value never changes.
-			if self.period.is_zero() {
-				return Zero::zero();
-			}
-
-			// Calculate how many full periods have passed, saturate.
-			let num_periods =
-				(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
-
-			// No periods have passed.
-			if num_periods < One::one() {
-				return Zero::zero();
-			}
-
-			// Points for calculating step difference.
-			let prev_period_point = self
-				.start
-				.saturating_add((num_periods - One::one()).saturating_mul(self.period));
-			let curr_period_point =
-				self.start.saturating_add(num_periods.saturating_mul(self.period));
-
-			// Evaluate the curve at those two points.
-			let val_prev = self.evaluate(prev_period_point);
-			let val_curr = self.evaluate(curr_period_point);
-
-			// Current can only be greater than or equal to previous, enforced in `try_new`.
-			val_curr.saturating_sub(val_prev)
-		}
-
-		/// Evaluate the curve at a given point.
-		///
-		/// Max number of steps is `u32::MAX`.
-		pub fn evaluate(&self, point: FixedU128) -> FixedU128 {
-			let initial = self.initial_value;
-
-			// If the point is before the curve starts, return the initial value.
-			if point <= self.start {
-				return initial;
-			}
-
-			// If the period is zero, the value never changes.
-			if self.period.is_zero() {
-				return initial;
-			}
-
-			// Calculate how many full periods have passed, downsampled to usize.
-			let num_periods =
-				(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
-			let num_periods_u32 =
-				(num_periods.into_inner() / FixedU128::DIV).saturated_into::<u32>();
-
-			// No periods have passed.
-			if num_periods_u32.is_zero() {
-				return initial;
-			}
-
-			let asymptote = self.step.target;
-			let percent = self.step.pct;
-			// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
-			let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
-			let scale = ratio.saturating_pow(num_periods_u32 as usize);
-
-			// Asymptote can only be greater than or equal to previous, enforced in `try_new`.
-			let diff = asymptote.saturating_sub(initial);
-			asymptote.saturating_sub(diff.saturating_mul(scale))
-		}
-	}
 
 // Holds the TI from March 14, 2026
 #[storage_alias(verbatim)]
@@ -1103,27 +983,6 @@ mod tests {
 			assert!(current_ti > TARGET_TI - UNITS);
 			assert!(current_ti < TARGET_TI);
 		});
-	}
-
-	#[test]
-	fn default_curve_is_zero_curve() {
-		let curve = SteppedCurve::default();
-		let zero = FixedU128::zero();
-
-		let points_to_test = vec![
-			FixedU128::zero(),
-			FixedU128::saturating_from_integer(100),
-			FixedU128::saturating_from_integer(1_000_000_000),
-			FixedU128::max_value(),
-		];
-
-		for point in points_to_test {
-			// `evaluate` should always be 0.
-			assert_eq!(curve.evaluate(point), zero, "evaluate failed at point {:?}", point);
-
-			// `last_step_size` should always be 0.
-			assert_eq!(curve.last_step_size(point), zero, "last_step_size failed at point {:?}", point);
-		}
 	}
 
 	fn analyze_weight(
