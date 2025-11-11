@@ -953,10 +953,3 @@ fn governance_authorize_upgrade_works() {
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(RelayChainLocation::get())));
 }
-
-#[cfg(test)]
-mod inflation_tests {
-	
-
-	
-}
