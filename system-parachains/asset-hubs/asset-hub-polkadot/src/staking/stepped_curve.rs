@@ -151,6 +151,7 @@ impl SteppedCurve {
 
 		let asymptote = self.step.target;
 		let percent = self.step.pct;
+		
 		// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
 		let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
 		let scale = ratio.saturating_pow(num_periods_u32 as usize);

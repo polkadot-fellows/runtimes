@@ -351,7 +351,7 @@ impl EraPayout {
 			RemainingPct { target: target_ti, pct: two_year_rate },
 			// Step every two years.
 			step_duration,
-		).unwrap_or_default(); // Default curve is zero curve.
+		).unwrap_or_default(); // Default curve is zero curve, in case target < start.
 
 		// The last step size tells us the expected TI increase over the current two year
 		// period.
