@@ -73,7 +73,7 @@ use frame_system::{
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
-use pallet_assets::precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
@@ -842,7 +842,6 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
-	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 	type RelayParentOffset = ConstU32<0>;
 }
 
@@ -1206,6 +1205,7 @@ impl pallet_revive::Config for Runtime {
 	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
 	type EthGasEncoder = ();
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+	type AllowEVMBytecode = ConstBool<true>; // TODO check
 }
 
 parameter_types! {

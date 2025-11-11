@@ -43,6 +43,7 @@ pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-conversion = { workspace = true }
+pallet-assets-precompiles = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
@@ -170,6 +171,7 @@ runtime-benchmarks = [
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
+	"pallet-assets-precompiles/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -196,6 +198,7 @@ runtime-benchmarks = [
 	"pallet-remote-proxy/runtime-benchmarks",
 	"pallet-revive/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
@@ -240,6 +243,7 @@ try-runtime = [
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
+	"pallet-assets-precompiles/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -319,6 +323,7 @@ std = [
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-rate/std",
+	"pallet-assets-precompiles/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
