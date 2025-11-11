@@ -130,7 +130,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 2_000_001,
+	spec_version: 2_000_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
