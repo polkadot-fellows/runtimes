@@ -26,23 +26,21 @@ use crate::{governance::StakingAdmin, *};
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::{
-	pallet_prelude::OptionQuery,
-	storage_alias,
-	traits::tokens::imbalance::ResolveTo,
-	BoundedVec,
+	pallet_prelude::OptionQuery, storage_alias, traits::tokens::imbalance::ResolveTo, BoundedVec,
 };
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
-	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber, Perquintill,
-	SaturatedConversion, traits::BlockNumberProvider
+	traits::{BlockNumberProvider, Convert},
+	transaction_validity::TransactionPriority,
+	FixedPointNumber, Perquintill, SaturatedConversion,
 };
 use sp_staking::SessionIndex;
+use stepped_curve::*;
 use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
-use stepped_curve::*;
 
 // stuff aliased to `parameters` pallet.
 use dynamic_params::staking_election::{
@@ -357,7 +355,8 @@ impl EraPayout {
 			RemainingPct { target: target_ti, pct: two_year_rate },
 			// Step every two years.
 			step_duration,
-		).unwrap_or_default(); // Default curve is zero curve, in case target < start.
+		)
+		.unwrap_or_default(); // Default curve is zero curve, in case target < start.
 
 		// The last step size tells us the expected TI increase over the current two year
 		// period.
@@ -393,8 +392,10 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		// A normal-sized era will have 1 / 365.25 here, though the value wobbles a bit:
-		let relative_era_len =
-			FixedU128::from_rational(era_duration_millis.into(), Self::MILLISECONDS_PER_YEAR.into());
+		let relative_era_len = FixedU128::from_rational(
+			era_duration_millis.into(),
+			Self::MILLISECONDS_PER_YEAR.into(),
+		);
 
 		// Branch based off the 12AM 14th March 2026 initial stepping date -[Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 		let relay_block_num =
@@ -608,8 +609,6 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::Percent;
-	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
 	use crate::{Balance, Runtime, UNITS};
 	use approx::assert_relative_eq;
 	use asset_test_utils::ExtBuilder;
@@ -619,7 +618,8 @@ mod tests {
 	};
 	use pallet_staking_async::EraPayout;
 	use polkadot_runtime_constants::time::YEARS as RC_YEARS;
-	use sp_runtime::Perbill;
+	use sp_runtime::{Perbill, Percent};
+	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
 
@@ -1054,8 +1054,6 @@ mod tests {
 		}
 	}
 
-
-
 	mod incoming_xcm_weights {
 		use crate::staking::tests::analyze_weight;
 		use sp_runtime::{traits::Get, Perbill, Percent};
@@ -1136,7 +1134,6 @@ mod tests {
 				);
 			})
 		}
-
 	}
 
 	/// The staking/election weights to check.

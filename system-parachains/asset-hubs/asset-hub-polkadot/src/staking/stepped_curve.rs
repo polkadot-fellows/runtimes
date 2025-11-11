@@ -78,8 +78,8 @@ impl SteppedCurve {
 		period: FixedU128,
 	) -> Result<Self, &'static str> {
 		if step.target < initial_value {
-            return Err("step.target must be >= initial_value");
-    	}
+			return Err("step.target must be >= initial_value");
+		}
 		Ok(Self { start, initial_value, step, period })
 	}
 
@@ -111,8 +111,7 @@ impl SteppedCurve {
 		let prev_period_point = self
 			.start
 			.saturating_add((num_periods - One::one()).saturating_mul(self.period));
-		let curr_period_point =
-			self.start.saturating_add(num_periods.saturating_mul(self.period));
+		let curr_period_point = self.start.saturating_add(num_periods.saturating_mul(self.period));
 
 		// Evaluate the curve at those two points.
 		let val_prev = self.evaluate(prev_period_point);
@@ -141,8 +140,7 @@ impl SteppedCurve {
 		// Calculate how many full periods have passed, downsampled to usize.
 		let num_periods =
 			(point - self.start).checked_div(&self.period).unwrap_or(FixedU128::max_value());
-		let num_periods_u32 =
-			(num_periods.into_inner() / FixedU128::DIV).saturated_into::<u32>();
+		let num_periods_u32 = (num_periods.into_inner() / FixedU128::DIV).saturated_into::<u32>();
 
 		// No periods have passed.
 		if num_periods_u32.is_zero() {
@@ -151,7 +149,7 @@ impl SteppedCurve {
 
 		let asymptote = self.step.target;
 		let percent = self.step.pct;
-		
+
 		// asymptote +/- diff(asymptote, initial_value) * (1-percent)^num_periods.
 		let ratio = FixedU128::one().saturating_sub(FixedU128::from_perbill(percent));
 		let scale = ratio.saturating_pow(num_periods_u32 as usize);
@@ -177,7 +175,8 @@ mod stepped_curve_tests {
 				pct: Perbill::from_percent(10),
 			},
 			FixedU128::from_u32(10), // period of 10
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// Before start
 		assert_eq!(curve.evaluate(FixedU128::from_u32(50)), FixedU128::from_u32(50));
@@ -193,7 +192,8 @@ mod stepped_curve_tests {
 			FixedU128::from_u32(100),
 			RemainingPct { target: FixedU128::from_u32(200), pct: Perbill::from_percent(50) },
 			FixedU128::zero(), // zero period
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// Any point should return initial value
 		assert_eq!(curve.evaluate(FixedU128::from_u32(0)), FixedU128::from_u32(100));
@@ -211,7 +211,8 @@ mod stepped_curve_tests {
 				pct: Perbill::from_percent(20), // 20% closer each step
 			},
 			FixedU128::from_u32(10), // period
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// Just before first step (still in period 0)
 		assert_eq!(curve.evaluate(FixedU128::from_u32(109)), FixedU128::from_u32(80));
@@ -233,7 +234,8 @@ mod stepped_curve_tests {
 				pct: Perbill::from_percent(50), // 50% of remaining distance
 			},
 			FixedU128::from_u32(1), // period of 1
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// Period 0: before first step
 		assert_eq!(curve.evaluate(FixedU128::from_rational(5, 10)), FixedU128::from_u32(100));
@@ -258,7 +260,8 @@ mod stepped_curve_tests {
 			FixedU128::from_u32(0),
 			RemainingPct { target: FixedU128::from_u32(100), pct: Perbill::from_percent(50) },
 			FixedU128::from_u32(1),
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// After 10 periods: 100 - 100 * 0.5^10 = 100 - 0.09765625 ≈ 99.9
 		let value_10 = curve.evaluate(FixedU128::from_u32(10));
@@ -278,7 +281,8 @@ mod stepped_curve_tests {
 			FixedU128::from_u32(50),
 			RemainingPct { target: FixedU128::from_u32(100), pct: Perbill::from_percent(10) },
 			FixedU128::from_u32(10),
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// Before start
 		assert_eq!(curve.last_step_size(FixedU128::from_u32(50)), FixedU128::zero());
@@ -299,7 +303,8 @@ mod stepped_curve_tests {
 				pct: Perbill::from_percent(20), // 20% closer
 			},
 			FixedU128::from_u32(10),
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// At first step (110): 100 - (100 - 50) * 0.8 = 100 - 40 = 60
 		// Step size: 60 - 50 = 10
@@ -321,7 +326,8 @@ mod stepped_curve_tests {
 			FixedU128::from_u32(0),
 			RemainingPct { target: FixedU128::from_u32(100), pct: Perbill::from_percent(50) },
 			FixedU128::from_u32(1),
-		).unwrap_or_default();
+		)
+		.unwrap_or_default();
 
 		// Step 1: 0 -> 50, size = 50
 		let step1 = curve.last_step_size(FixedU128::from_u32(1));
@@ -353,7 +359,12 @@ mod stepped_curve_tests {
 			assert_eq!(curve.evaluate(point), zero, "evaluate failed at point {:?}", point);
 
 			// `last_step_size` should always be 0.
-			assert_eq!(curve.last_step_size(point), zero, "last_step_size failed at point {:?}", point);
+			assert_eq!(
+				curve.last_step_size(point),
+				zero,
+				"last_step_size failed at point {:?}",
+				point
+			);
 		}
 	}
 }
