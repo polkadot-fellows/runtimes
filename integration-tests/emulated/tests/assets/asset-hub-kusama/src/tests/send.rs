@@ -18,27 +18,36 @@ use crate::*;
 /// Relay Chain should be able to execute `Transact` instructions in System Parachain
 /// when `OriginKind::Superuser`.
 #[test]
-#[ignore]
 fn send_transact_as_superuser_from_relay_to_asset_hub_works() {
-	AssetHubKusama::force_create_asset_from_relay_as_root(
-		ASSET_ID,
-		ASSET_MIN_BALANCE,
-		true,
-		AssetHubKusamaSender::get(),
-		None,
-	)
+	Kusama::execute_with(|| {
+		// send xcm transact to AssetHubKusama from root account on Relay
+		let call = <AssetHubKusama as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubKusama as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
+		let root = <Kusama as Chain>::RuntimeOrigin::root();
+		let asset_hub_location = Kusama::child_location_of(AssetHubKusama::para_id()).into();
+		let xcm = xcm_transact_unpaid_execution(call, OriginKind::Superuser);
+		Dmp::make_parachain_reachable(AssetHubKusama::para_id());
+		assert_ok!(<Kusama as KusamaPallet>::XcmPallet::send(
+			root,
+			bx!(asset_hub_location),
+			bx!(xcm),
+		));
+		Kusama::assert_xcm_pallet_sent();
+	});
+	AssetHubKusama::execute_with(|| {
+		AssetHubKusama::assert_xcmp_queue_success(None);
+	});
 }
 
-/// We tests two things here:
-/// - Parachain should be able to send XCM paying its fee at Asset Hub using KSM
-/// - Parachain should be able to create a new Foreign Asset at Asset Hub
-#[test]
-fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
+pub fn penpal_register_foreign_asset_on_asset_hub(asset_location_on_penpal: Location) {
 	let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
 	);
-	let asset_location_on_penpal =
-		Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())]);
 	let foreign_asset_at_asset_hub = Location::new(1, [Parachain(PenpalA::para_id().into())])
 		.appended_with(asset_location_on_penpal)
 		.unwrap();
@@ -105,10 +114,19 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 }
 
 /// We tests two things here:
+/// - Parachain should be able to send XCM paying its fee at Asset Hub using KSM
+/// - Parachain should be able to create a new Foreign Asset at Asset Hub
+#[test]
+fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
+	let asset_location_on_penpal =
+		Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())]);
+	penpal_register_foreign_asset_on_asset_hub(asset_location_on_penpal);
+}
+
+/// We tests two things here:
 /// - Parachain should be able to send XCM paying its fee at Asset Hub using a pool
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
-#[ignore]
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = Location {
@@ -118,7 +136,6 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let penpal = AssetHubKusama::sovereign_account_id_of(AssetHubKusama::sibling_location_of(
 		PenpalA::para_id(),
 	));
-
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
@@ -189,14 +206,23 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 		));
 	});
 
+	let penpal_para_id = PenpalA::para_id();
 	PenpalA::execute_with(|| {
-		// send xcm transact from `penpal` account which has only `ASSET_ID` tokens on
-		// `AssetHubKusama`
-		let call = AssetHubKusama::force_create_asset_call(
-			ASSET_ID + 1000,
-			penpal.clone(),
-			true,
+		let foreign_asset_at_asset_hub = Location::new(
+			1,
+			[
+				Parachain(penpal_para_id.into()),
+				PalletInstance(ASSETS_PALLET_ID),
+				GeneralIndex(ASSET_ID.into()),
+			],
+		);
+		let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
+			AssetHubKusama::sibling_location_of(penpal_para_id),
+		);
+		let call = AssetHubKusama::create_foreign_asset_call(
+			foreign_asset_at_asset_hub.clone(),
 			ASSET_MIN_BALANCE,
+			para_sovereign_account,
 		);
 
 		let penpal_root = <PenpalA as Chain>::RuntimeOrigin::root();

@@ -50,7 +50,7 @@ pub use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 pub use parachains_common::{AccountId, Balance};
-pub use polkadot_runtime::xcm_config::UniversalLocation as PolkadotUniversalLocation;
+pub use polkadot_runtime::{xcm_config::UniversalLocation as PolkadotUniversalLocation, Dmp};
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
