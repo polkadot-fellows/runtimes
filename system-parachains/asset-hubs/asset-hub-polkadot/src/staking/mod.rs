@@ -620,7 +620,12 @@ mod tests {
 	use polkadot_runtime_constants::time::YEARS as RC_YEARS;
 	use sp_runtime::{Perbill, Percent};
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
+	const APPROX_PRE_CAP_STAKING: Balance = 279_477 * UNITS;
+	const APPROX_PRE_CAP_TREASURY: Balance = 49_320 * UNITS;
+	const APPROX_PRE_CAP_TOTAL: Balance = APPROX_PRE_CAP_STAKING + APPROX_PRE_CAP_TREASURY;
+
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
 
 	#[test]
@@ -667,12 +672,20 @@ mod tests {
 			);
 
 			// Values are within 0.1%
-			assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
-			assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
+			assert_relative_eq!(
+				to_stakers as f64,
+				APPROX_PRE_CAP_STAKING as f64,
+				max_relative = 0.001
+			);
+			assert_relative_eq!(
+				to_treasury as f64,
+				APPROX_PRE_CAP_TREASURY as f64,
+				max_relative = 0.001
+			);
 			// Total per day is ~328,797 DOT
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
-				(328_797 * UNITS) as f64,
+				APPROX_PRE_CAP_TOTAL as f64,
 				max_relative = 0.001
 			);
 		});
@@ -690,12 +703,12 @@ mod tests {
 
 			assert_relative_eq!(
 				to_stakers as f64,
-				(279_477 * UNITS) as f64 * 2.0,
+				APPROX_PRE_CAP_STAKING as f64 * 2.0,
 				max_relative = 0.001
 			);
 			assert_relative_eq!(
 				to_treasury as f64,
-				(49_320 * UNITS) as f64 * 2.0,
+				APPROX_PRE_CAP_TREASURY as f64 * 2.0,
 				max_relative = 0.001
 			);
 		});
@@ -711,7 +724,7 @@ mod tests {
 			);
 
 			// Our yearly emissions is about 120M DOT:
-			let yearly_emission = 120_093_259 * UNITS;
+			let yearly_emission = APPROX_PRE_CAP_TOTAL * 36525 / 100;
 			assert_relative_eq!(
 				to_stakers as f64 + to_treasury as f64,
 				yearly_emission as f64,
@@ -820,11 +833,19 @@ mod tests {
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
-			assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
+			assert_relative_eq!(
+				to_stakers as f64,
+				APPROX_PRE_CAP_STAKING as f64,
+				max_relative = 0.001
+			);
+			assert_relative_eq!(
+				to_treasury as f64,
+				APPROX_PRE_CAP_TREASURY as f64,
+				max_relative = 0.001
+			);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64),
-				(328_797 * UNITS) as f64,
+				APPROX_PRE_CAP_TOTAL as f64,
 				max_relative = 0.001
 			);
 
@@ -837,7 +858,7 @@ mod tests {
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
+			let two_year_rate = EraPayout::BI_ANNUAL_RATE;
 			let era_rate = two_year_rate *
 				Perbill::from_rational(1u32, 2u32) *
 				Perbill::from_rational(100u32, 36525u32);
@@ -866,7 +887,7 @@ mod tests {
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			let two_year_rate = Perbill::from_rational(2_628u32, 10_000u32);
+			let two_year_rate = EraPayout::BI_ANNUAL_RATE;
 			let first_period_emission = two_year_rate * (TARGET_TI - MARCH_TI);
 			assert_relative_eq!(
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
@@ -950,22 +971,20 @@ mod tests {
 
 			// Get payout at the beginning of the first stepped period.
 			set_relay_number(MARCH_14_2026);
-			let (to_stakers_start, to_treasury_start) =
-				EraPayout::era_payout(
-					123, // ignored
-					456, // ignored
-					MILLISECONDS_PER_DAY,
-				);
+			let (to_stakers_start, to_treasury_start) = EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				MILLISECONDS_PER_DAY,
+			);
 
 			// Get payout just before the end of the first stepped period.
 			let almost_two_years_later: RC_BlockNumber = MARCH_14_2026 + two_years - 1;
 			set_relay_number(almost_two_years_later);
-			let (to_stakers_end, to_treasury_end) =
-				EraPayout::era_payout(
-					123, // ignored
-					456, // ignored
-					MILLISECONDS_PER_DAY,
-				);
+			let (to_stakers_end, to_treasury_end) = EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				MILLISECONDS_PER_DAY,
+			);
 
 			// Payout identical.
 			assert_eq!(to_stakers_start + to_treasury_start, to_stakers_end + to_treasury_end);
@@ -1015,12 +1034,11 @@ mod tests {
 			// We know from `emission_eventually_zero` that at this point era emissions are 0.
 			set_relay_number(current_bn);
 			for _ in 0..250 {
-				let (to_stakers, to_treasury) =
-					EraPayout::era_payout(
-						123,                                      // ignored
-						456,                                      // ignored
-						(MILLISECONDS_PER_DAY * 36525 * 2) / 100, // two year era
-					);
+				let (to_stakers, to_treasury) = EraPayout::era_payout(
+					123,                                      // ignored
+					456,                                      // ignored
+					(MILLISECONDS_PER_DAY * 36525 * 2) / 100, // two year era
+				);
 				current_ti += to_stakers + to_treasury;
 				current_bn += RC_YEARS * 2;
 				set_relay_number(current_bn);
