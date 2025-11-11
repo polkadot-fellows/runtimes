@@ -302,7 +302,7 @@ impl EraPayout {
 
 	// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139)
 	// block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
-	const FIXED_PRE_HARD_CAP_TI: Balance = 15_011_657_390_566_252_333;
+	pub const FIXED_PRE_HARD_CAP_TI: Balance = 15_011_657_390_566_252_333;
 
 	// Calculated assuming a 11.7 minute per day time drift (A block time of 6.04875 seconds).
 	// https://polkadot.subscan.io/block/30349908
@@ -327,8 +327,14 @@ impl EraPayout {
 		let starting_ti = March2026TI::get().unwrap_or_else(|| {
 			// If first time, store it.
 			let current_ti = pallet_balances::Pallet::<Runtime>::total_issuance();
-			March2026TI::put(current_ti);
-			current_ti
+			// Sanity check to prevent blow-up. Make sure TI is reasonable number.
+			if current_ti < Self::FIXED_PRE_HARD_CAP_TI {
+				March2026TI::put(Self::FIXED_PRE_HARD_CAP_TI);
+				Self::FIXED_PRE_HARD_CAP_TI
+			} else {
+				March2026TI::put(current_ti);
+				current_ti
+			}
 		});
 		let march_14_2026_ti = FixedU128::saturating_from_integer(starting_ti);
 		let target_ti = FixedU128::saturating_from_integer(Self::HARD_CAP_TARGET);
@@ -779,6 +785,28 @@ mod tests {
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
 			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
 			assert_eq!(March2026TI::get(), Some(MARCH_TI));
+		});
+	}
+
+	#[test]
+	fn storing_ti_fallback_works() {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			// Pre-march.
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
+			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			assert!(March2026TI::get().is_none());
+
+			// Post-march, TI got messed up somehow.
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(0);
+			set_relay_number(MARCH_14_2026);
+			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			assert_eq!(March2026TI::get(), Some(super::EraPayout::FIXED_PRE_HARD_CAP_TI));
+
+			// No change on subsequent call.
+			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
+			<staking::EraPayout as EraPayout<Balance>>::era_payout(0, 0, MILLISECONDS_PER_DAY);
+			assert_eq!(March2026TI::get(), Some(super::EraPayout::FIXED_PRE_HARD_CAP_TI));
 		});
 	}
 
