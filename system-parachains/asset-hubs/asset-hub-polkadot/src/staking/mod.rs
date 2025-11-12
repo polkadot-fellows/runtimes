@@ -366,6 +366,8 @@ impl EraPayout {
 	}
 
 	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
+		//TODO: Update post March 14th, 2026
+
 		// We assume un-delayed 24h eras.
 		let era_duration = 24 * 60 * 60 * 1000;
 		let next_mint =
