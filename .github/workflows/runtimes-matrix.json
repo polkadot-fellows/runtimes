@@ -20,7 +20,6 @@
     "uri": "wss://try-runtime-kusama.polkadot.io:443",
     "is_relay": true,
     "blocktime": 6000,
-    "benchmarks_exclude_extrinsics": "pallet_nomination_pools::apply_slash_fail",
     "extra_args": "--disable-mbm-checks",
     "build_extra_features": "kusama-ahm",
     "benchmarks_templates": {

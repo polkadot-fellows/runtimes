@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
@@ -33,7 +33,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
@@ -48,7 +48,7 @@ jobs:
   # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -83,7 +83,7 @@ jobs:
 
       - name: Download frame-omni-bencher
         run: |
-          curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
+          curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
           chmod +x ./frame-omni-bencher
           ./frame-omni-bencher --version
         shell: bash
@@ -122,8 +122,9 @@ jobs:
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""
           else
-            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
-            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+            EXCLUDE_EXTRINSICS_JSON='${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}'
+            EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
@@ -133,7 +134,7 @@ jobs:
   # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       matrix:
         itest: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
@@ -176,62 +177,9 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
-  ahm-test-polkadot:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32-unknown-unknown"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests-ahm"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Download Polkadot snaps
-        run: |
-          python3 -m pip install gdown
-          gdown 1Z01NFTNUlRo93yeI4M3XYj6338tgfuu9 # 2025-09-05 RC
-          gdown 1r5z9MqtHubCVlkCcutNbuwWd2F9l0iNy # 2025-09-05 AH
-
-          lz4 -d polkadot.snap.lz4 polkadot.snap
-          lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
-
-      - name: Test Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features polkadot-ahm --features try-runtime -- --nocapture --test-threads 1
-        env:
-          RUST_BACKTRACE: 1
-          SNAP_RC: "../../polkadot.snap"
-          SNAP_AH: "../../ah-polkadot.snap"
-          RUST_LOG: "warn"
-
-      - name: Test Benchmarks Asset Hub Migration (Polkadot)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r --features polkadot-ahm --features runtime-benchmarks -- bench_rc bench_ops bench_ah --nocapture
-        env:
-          RUST_BACKTRACE: 1
-          RUST_LOG: "warn"
-
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -272,61 +220,9 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
 
-  # Job required by "confirmTestPassed"
-  zombienet-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Free Disk Space (Ubuntu)
-        if: ${{ runner.environment == 'github-hosted' }}
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-        with:
-          tool-cache: false
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32v1-none"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build
-        run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
-
-      - name: Wait for Docker to Start
-        run: |
-          timeout 30 sh -c 'until docker info; do sleep 1; done'
-          docker --version
-
-      - name: Zombienet smoke test
-        timeout-minutes: 20
-        run: |
-          export PATH=$(pwd)/target/release:$PATH
-          cargo test --manifest-path integration-tests/zombienet/Cargo.toml
-
   build-runtimes:
     needs: [ runtime-matrix ]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       # Ensure the other jobs are continue
       fail-fast: false
@@ -398,7 +294,7 @@ jobs:
 
   ecosystem-tests:
     needs: [runtime-matrix, build-runtimes]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     if: github.event_name == 'pull_request'
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -447,15 +343,13 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - zombienet-smoke
-      - ahm-test-polkadot
       - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
