@@ -366,4 +366,56 @@ mod stepped_curve_tests {
 			);
 		}
 	}
+
+	#[test]
+	fn try_new_rejects_target_less_than_initial() {
+		let result = SteppedCurve::try_new(
+			FixedU128::zero(),
+			FixedU128::from_u32(100), // initial
+			RemainingPct {
+				target: FixedU128::from_u32(50), // target < initial
+				pct: Perbill::from_percent(10),
+			},
+			FixedU128::from_u32(10),
+		);
+		assert!(result.is_err());
+		assert_eq!(result.unwrap_err(), "step.target must be >= initial_value");
+	}
+
+	#[test]
+	fn zero_change_when_target_equals_initial() {
+		let result = SteppedCurve::try_new(
+			FixedU128::zero(),
+			FixedU128::from_u32(100), // initial
+			RemainingPct {
+				target: FixedU128::from_u32(100), // target = initial
+				pct: Perbill::from_percent(10),
+			},
+			FixedU128::from_u32(10),
+		);
+		assert!(result.is_ok());
+		let curve = result.unwrap_or_default();
+
+		let zero = FixedU128::zero();
+		let eval = FixedU128::from_u32(100);
+
+		let points_to_test = vec![
+			FixedU128::zero(),
+			FixedU128::saturating_from_integer(100),
+			FixedU128::saturating_from_integer(1_000_000_000),
+			FixedU128::max_value(),
+		];
+
+		for point in points_to_test {
+			// `evaluate` should always be 100.
+			assert_eq!(curve.evaluate(point), eval, "evaluate failed at point {point:?}");
+
+			// `last_step_size` should always be 0.
+			assert_eq!(
+				curve.last_step_size(point),
+				zero,
+				"last_step_size failed at point {point:?}"
+			);
+		}
+	}
 }
