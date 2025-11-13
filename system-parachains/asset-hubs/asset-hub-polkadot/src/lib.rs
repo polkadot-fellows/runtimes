@@ -100,7 +100,7 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
-use system_parachains_constants::MINUTES;
+use system_parachains_constants::async_backing::MINUTES;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -192,7 +192,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 1_009_003,
+	spec_version: 2_000_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -1115,11 +1115,16 @@ parameter_types! {
 		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
+ord_parameter_types! {
+	pub const ManagerMultisig: AccountId = pallet_rc_migrator::Pallet::<Runtime>::manager_multisig_id();
+}
+
 impl pallet_preimage::Config for Runtime {
 	type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<ManagerMultisig, AccountId>>;
 	type Consideration = HoldConsideration<
 		AccountId,
 		Balances,
@@ -1225,7 +1230,7 @@ pub mod dynamic_params {
 		pub static MaxSignedSubmissions: u32 = 16;
 		/// Unsigned phase duration for election-provider-multi-block.
 		#[codec(index = 2)]
-		pub static UnsignedPhase: BlockNumber = 30 * MINUTES;
+		pub static UnsignedPhase: BlockNumber = 15 * MINUTES;
 		/// Miner pages for unsigned phase.
 		#[codec(index = 3)]
 		pub static MinerPages: u32 = 4;
@@ -1418,7 +1423,6 @@ construct_runtime!(
 		StateTrieMigration: pallet_state_trie_migration = 70,
 
 		// Staking in the 80s
-		Staking: pallet_staking_async = 89,
 		NominationPools: pallet_nomination_pools = 80,
 		VoterList: pallet_bags_list::<Instance1> = 82,
 		DelegatedStaking: pallet_delegated_staking = 83,
@@ -1427,6 +1431,7 @@ construct_runtime!(
 		MultiBlockElectionVerifier: pallet_election_provider_multi_block::verifier = 86,
 		MultiBlockElectionUnsigned: pallet_election_provider_multi_block::unsigned = 87,
 		MultiBlockElectionSigned: pallet_election_provider_multi_block::signed = 88,
+		Staking: pallet_staking_async = 89,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
@@ -2433,6 +2438,12 @@ impl_runtime_apis! {
 
 		fn pending_rewards(era: sp_staking::EraIndex, account: AccountId) -> bool {
 			Staking::api_pending_rewards(era, account)
+		}
+	}
+
+	impl system_parachains_common::apis::Inflation<Block> for Runtime {
+		fn experimental_issuance_prediction_info() -> system_parachains_common::apis::InflationInfo {
+			crate::staking::EraPayout::impl_experimental_inflation_info()
 		}
 	}
 

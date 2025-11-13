@@ -45,6 +45,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
+		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
@@ -93,7 +94,6 @@ use sp_runtime::traits::Convert;
 
 use pallet_staking_async_ah_client as ah_client;
 use pallet_staking_async_rc_client as rc_client;
-use relay_common::apis::InflationInfo;
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
 	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
@@ -177,7 +177,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_009_003,
+	spec_version: 2_000_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1545,15 +1545,16 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
-impl pallet_staking_async_ah_client::Config for Runtime {
+impl ah_client::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Self;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	// Polkadot RC currently has 600 validators. 500 minimum for now.
-	type MinimumValidatorSetSize = ConstU32<500>;
+	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
+	// count increasing.
+	type MinimumValidatorSetSize = ConstU32<600>;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
@@ -1585,7 +1586,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAssetHub {
 
 #[derive(Encode, Decode)]
 enum AssetHubRuntimePallets<AccountId> {
-	// Audit: `StakingRcClient` in asset-hub-westend
+	// Audit: `StakingRcClient` in asset-hub-polkadot
 	#[codec(index = 84)]
 	RcClient(RcClientCalls<AccountId>),
 }
@@ -1777,8 +1778,9 @@ impl pallet_rc_migrator::Config for Runtime {
 	type XcmResponseTimeout = XcmResponseTimeout;
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type MultisigMembers = ();
-	type MultisigThreshold = ConstU32<{ u32::MAX }>;
+	type MultisigMembers = (); // disabled post AHM
+	type MultisigThreshold = ConstU32<{ u32::MAX }>; // disabled
+	type MultisigMaxVotesPerRound = (); // disabled
 }
 
 construct_runtime! {
@@ -1931,15 +1933,51 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (KickOffAhm<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
+
+	/// Kick off the Asset Hub Migration.
+	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
+	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
+		fn on_runtime_upgrade() -> Weight {
+			if MigrationStartBlock::<T>::exists() ||
+				RcMigrationStage::<T>::get() != MigrationStage::Pending
+			{
+				// Already started or scheduled
+				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
+				return T::DbWeight::get().reads(2)
+			}
+
+			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
+				// Migration start block, Tuesday 4th Nov 8 AM UTC
+				// https://polkadot.subscan.io/block/28490502
+				DispatchTime::At(28490502u32.into()),
+				// Warm up to wait for Messaging queues to empty
+				DispatchTime::After((60 * MINUTES).into()),
+				// Cool off to verify the success of the migration
+				DispatchTime::After((60 * MINUTES).into()),
+				// Respect the session scheduling check:
+				Default::default(),
+			);
+
+			if let Err(e) = result {
+				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
+			} else {
+				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
+			}
+
+			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2210,8 +2248,10 @@ mod benches {
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 			let origin = Location::new(0, [Parachain(1000)]);
-			let target =
-				Location::new(0, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
+			let target = Location::new(
+				0,
+				[Parachain(1000), Junction::AccountId32 { id: [128u8; 32], network: None }],
+			);
 			Ok((origin, target))
 		}
 	}
@@ -2220,39 +2260,7 @@ mod benches {
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
-impl Runtime {
-	fn impl_experimental_inflation_info() -> InflationInfo {
-		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
-		let (staked, _start) = ActiveEra::<Runtime>::get()
-			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
-			.unwrap_or((0, 0));
-		let stake_able_issuance = Balances::total_issuance();
-
-		// We assume un-delayed 24h eras.
-		let era_duration = 24 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
-		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
-			staked,
-			stake_able_issuance,
-			era_duration,
-		);
-		// reverse-engineer the current inflation by looking at the total minted against the total
-		// issuance.
-		let inflation = Perquintill::from_rational(
-			(next_mint.0 + next_mint.1) * 36525 / 100,
-			stake_able_issuance,
-		);
-
-		InflationInfo { inflation, next_mint }
-	}
-}
-
 sp_api::impl_runtime_apis! {
-	impl relay_common::apis::Inflation<Block> for Runtime {
-		fn experimental_inflation_prediction_info() -> InflationInfo {
-			Runtime::impl_experimental_inflation_info()
-		}
-	}
-
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
@@ -3577,7 +3585,6 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
-			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
 		});
 	}
 }

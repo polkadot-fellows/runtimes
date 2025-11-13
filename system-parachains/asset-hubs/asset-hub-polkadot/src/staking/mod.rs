@@ -29,10 +29,11 @@ use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
-	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber,
+	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber, Perquintill,
 	SaturatedConversion,
 };
 use sp_staking::SessionIndex;
+use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
 
 // stuff aliased to `parameters` pallet.
@@ -237,7 +238,7 @@ impl multi_block::signed::Config for Runtime {
 	type EjectGraceRatio = EjectGraceRatio;
 	type DepositBase = GeometricDeposit;
 	type DepositPerPage = SignedDepositPerPage;
-	type InvulnerableDeposit = ();
+	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
@@ -252,7 +253,7 @@ parameter_types! {
 impl multi_block::unsigned::Config for Runtime {
 	type MinerPages = MinerPages;
 	type OffchainStorage = ConstBool<true>;
-	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>>;
+	type OffchainSolver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Runtime>, ()>;
 	type MinerTxPriority = MinerTxPriority;
 	type OffchainRepeat = OffchainRepeat;
 	type WeightInfo = weights::pallet_election_provider_multi_block_unsigned::WeightInfo<Runtime>;
@@ -276,6 +277,9 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type MaxVotesPerVoter =
 		<<Self as multi_block::Config>::DataProvider as ElectionDataProvider>::MaxVotesPerVoter;
 	type MaxLength = MinerMaxLength;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Solver = frame_election_provider_support::QuickDirtySolver<AccountId, Perbill>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Solver = <Runtime as multi_block::unsigned::Config>::OffchainSolver;
 	type Pages = Pages;
 	type Solution = NposCompactSolution16;
@@ -298,7 +302,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
 
 		// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
-		let fixed_total_issuance: i128 = 5_216_342_402_773_185_773;
+		let fixed_total_issuance: i128 = 15_011_657_390_566_252_333;
 		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
 		let yearly_emission = fixed_inflation_rate.saturating_mul_int(fixed_total_issuance);
 
@@ -308,6 +312,23 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 		let to_stakers = era_emission.saturating_sub(to_treasury);
 
 		(to_stakers.saturated_into(), to_treasury.saturated_into())
+	}
+}
+
+impl EraPayout {
+	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
+		// We assume un-delayed 24h eras.
+		let era_duration = 24 * 60 * 60 * 1000;
+		let next_mint =
+			<Self as pallet_staking_async::EraPayout<Balance>>::era_payout(0, 0, era_duration);
+
+		// What is our effective issuance rate now?
+		let total = next_mint.0 + next_mint.1;
+		let annual_issuance = total * 36525 / 100;
+		let ti = pallet_balances::TotalIssuance::<Runtime>::get();
+		let issuance = Perquintill::from_rational(annual_issuance, ti);
+
+		InflationInfo { issuance, next_mint }
 	}
 }
 
@@ -471,20 +492,29 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 
 		// Set the minimum score for the election, as per the Polkadot RC state.
 		//
-		// This value is set from block 27,730,872 of Polkadot RC.
+		// These values are created using script:
+		//
+		// https://github.com/paritytech/polkadot-scripts/blob/master/src/services/election_score_stats.ts
+		//
+		// At https://polkadot.subscan.io/block/28207264.
+		//
+		// Note: the script looks at the last 30 elections, gets their average, and calculates 70%
+		// threshold thereof.
+		//
 		// Recent election scores in Polkadot can be found on:
 		// https://polkadot.subscan.io/event?page=1&time_dimension=date&module=electionprovidermultiphase&event_id=electionfinalized
 		//
-		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0) being:
+		// The last example, at block [27721215](https://polkadot.subscan.io/event/27721215-0)
+		// being:
 		//
-		// * minimal_stake: 10907549130714057 (1.28x the minimum)
-		// * sum_stake: 8028519336725652293 (2.44x the minimum)
-		// * sum_stake_squared: 108358993218278434700023844467997545 (0.4 the minimum, the lower the
-		//   better)
+		// * minimal_stake: 10907549130714057 (1.38x the minimum)
+		// * sum_stake: 8028519336725652293 (1.49x the minimum)
+		// * sum_stake_squared: 108358993218278434700023844467997545 (0.57 the minimum, the lower
+		//   the better)
 		let minimum_score = sp_npos_elections::ElectionScore {
-			minimal_stake: 8474057820699941,
-			sum_stake: 3276970719352749444,
-			sum_stake_squared: 244059208045236715654727835467163294,
+			minimal_stake: 7895552765679931,
+			sum_stake: 5655838551978860651,
+			sum_stake_squared: 187148285683372481445131595645808873,
 		};
 		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 
@@ -498,6 +528,40 @@ mod tests {
 	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
+
+	#[test]
+	fn inflation_sanity_check() {
+		use pallet_staking_async::EraPayout as _;
+		// values taken from the last Polkadot staking payout while it was in RC.
+		// https://polkadot.subscan.io/block/28481296
+		// Payout: 279k DOT to validators / 49k DOT to treasury
+		// active era: 1980
+		// Note: Amount don't exactly match due to timestamp being an estimate. Same ballpark is
+		// good.
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let average_era_duration_millis = 24 * 60 * 60 * 1000; // 24h
+			let (staking, treasury) = super::EraPayout::era_payout(
+				0, // not used
+				0, // not used
+				average_era_duration_millis,
+			);
+			assert_eq!(staking, 279477_8104198508);
+			assert_eq!(treasury, 49319_6136035030);
+
+			// a recent TI of Polkadot
+			pallet_balances::TotalIssuance::<Runtime>::put(16_336_817_797_558_128_793);
+			let expected_issuance_parts = 73510802784664934;
+			assert_eq!(
+				super::EraPayout::impl_experimental_inflation_info(),
+				InflationInfo {
+					issuance: Perquintill::from_parts(expected_issuance_parts),
+					next_mint: (2794778104198508, 493196136035030)
+				}
+			);
+			// around 7% for now.
+			assert_eq!(expected_issuance_parts * 100 / 10u64.pow(18), 7);
+		});
+	}
 
 	fn analyze_weight(
 		op_name: &str,
@@ -685,7 +749,7 @@ mod tests {
 				"export terminal",
 				<Runtime as multi_block::Config>::WeightInfo::export_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
-				Some(Percent::from_percent(95)), // TODO: reduce to 75 once re-benchmarked.
+				Some(Percent::from_percent(75)),
 			);
 		}
 

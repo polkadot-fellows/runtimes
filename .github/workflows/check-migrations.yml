@@ -5,7 +5,7 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["release-*"]
   pull_request:
   workflow_dispatch:
 
@@ -21,7 +21,7 @@ permissions: {}
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract tasks from matrix
@@ -44,7 +44,7 @@ jobs:
   # if they all pass, that job will pass too.
   check-migrations:
     needs: [runtime-matrix]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       # Ensure the other jobs continue
       fail-fast: false
@@ -77,7 +77,7 @@ jobs:
             CHECKS="pre-and-post"
           else
             echo "Enabling weight checks since we are not on a relay"
-            
+
             echo "Enabling try-state checks on the non-relay"
             CHECKS="all"
           fi
@@ -153,7 +153,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmMigrationsPassed:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: All migrations passed
     # If any new job gets added, be sure to add it to this array
     needs: [check-migrations]

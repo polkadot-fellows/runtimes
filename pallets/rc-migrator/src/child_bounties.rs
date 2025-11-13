@@ -140,11 +140,11 @@ impl<T: Config> PalletMigration for ChildBountiesMigrator<T> {
 				}
 			}
 
-			if messages.len() > MAX_ITEMS_PER_BLOCK {
+			if messages.len() > max_items_per_block::<T>() {
 				log::info!(
 					target: LOG_TARGET,
 					"Maximum number of items ({:?}) to migrate per block reached, current batch size: {}",
-					MAX_ITEMS_PER_BLOCK,
+					max_items_per_block::<T>(),
 					messages.len()
 				);
 				break;
