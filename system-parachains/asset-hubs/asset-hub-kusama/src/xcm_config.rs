@@ -198,26 +198,8 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 pub type PoolAssetsConvertedConcreteId =
 	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
 
-/// Means for transacting asset conversion pool assets on this chain.
-pub type PoolFungiblesTransactor = FungiblesAdapter<
-	// Use this fungibles implementation:
-	PoolAssets,
-	// Use this currency when it is a fungible asset matching the given location or name:
-	PoolAssetsConvertedConcreteId,
-	// Convert an XCM `Location` into a local account ID:
-	LocationToAccountId,
-	// Our chain's account ID type (we can't get away without mentioning it explicitly):
-	AccountId,
-	// We only want to allow teleports of known assets. We use non-zero issuance as an indication
-	// that this asset is known.
-	LocalMint<parachains_common::impls::NonZeroIssuance<AccountId, PoolAssets>>,
-	// The account to use for tracking teleports.
-	CheckingAccount,
->;
-
 /// Means for transacting assets on this chain.
-pub type AssetTransactors =
-	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
+pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor);
 
 /// Asset converter for pool assets.
 /// Used to convert one asset to another, when there is a pool available between the two.
