@@ -2,7 +2,7 @@ name: AI Review PR
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   review:
-    # if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
 
       - name: Process PR
-        uses: polka-codes/action@master
+        uses: polka-codes/action@v2
         with:
           pr_number: ${{ github.event.inputs.pr_number || github.event.number }}
           review: true
