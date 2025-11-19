@@ -144,12 +144,6 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveChildBountiesMessages { messages: Vec<child_bounties::PortableChildBountiesMessage> },
 	#[codec(index = 25)]
 	ReceiveStakingMessages { messages: Vec<staking::PortableStakingMessage> },
-	#[cfg(feature = "kusama-ahm")]
-	#[codec(index = 26)]
-	ReceiveRecoveryMessages { messages: Vec<recovery::PortableRecoveryMessage> },
-	#[cfg(feature = "kusama-ahm")]
-	#[codec(index = 27)]
-	ReceiveSocietyMessages { messages: Vec<society::PortableSocietyMessage> },
 	#[codec(index = 101)]
 	StartMigration,
 	#[codec(index = 110)]
