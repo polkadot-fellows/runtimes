@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   review:
-    if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    # if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +34,6 @@ jobs:
         with:
           pr_number: ${{ github.event.inputs.pr_number || github.event.number }}
           review: true
-          verbose: 2
         env:
           POLKA_API_PROVIDER: openrouter
           POLKA_MODEL: google/gemini-3-pro-preview
