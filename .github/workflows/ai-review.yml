@@ -36,7 +36,7 @@ jobs:
           review: true
         env:
           POLKA_API_PROVIDER: openrouter
-          POLKA_MODEL: google/gemini-3-pro-preview
+          POLKA_MODEL: ggoogle/gemini-2.5-pro
           GITHUB_TOKEN: ${{ github.token }}
           POLKA_API_KEY: ${{ secrets.POLKA_API_KEY }}
           POLKA_BUDGET: 5
