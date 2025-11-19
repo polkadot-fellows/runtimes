@@ -46,12 +46,8 @@ pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
-#[cfg(feature = "kusama-ahm")]
-pub mod recovery;
 pub mod referenda;
 pub mod scheduler;
-#[cfg(feature = "kusama-ahm")]
-pub mod society;
 pub mod sovereign_account_translation;
 pub mod staking;
 pub mod treasury;
@@ -84,10 +80,6 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-#[cfg(feature = "kusama-ahm")]
-use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
-#[cfg(feature = "kusama-ahm")]
-use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
 use pallet_rc_migrator::{
 	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
 	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, referenda::ReferendaMessage,
@@ -314,25 +306,6 @@ pub mod pallet {
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
-
-		/// Config for pallets that are only on Kusama.
-		#[cfg(feature = "kusama-ahm")]
-		type KusamaConfig: pallet_recovery::Config<
-				Currency = pallet_balances::Pallet<Self>,
-				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
-				MaxFriends = ConstU32<{ MAX_FRIENDS }>,
-			> + frame_system::Config<
-				AccountData = AccountData<u128>,
-				AccountId = AccountId32,
-				Hash = sp_core::H256,
-			> + pallet_society::Config<
-				Currency = pallet_balances::Pallet<Self>,
-				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
-				MaxPayouts = ConstU32<{ MAX_PAYOUTS }>,
-			>;
-
-		#[cfg(feature = "kusama-ahm")]
-		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// All supported assets registry.
 		type Assets: FungiblesMutate<Self::AccountId>;
@@ -993,33 +966,6 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_staking_messages(messages).map_err(Into::into)
-		}
-
-		#[cfg(feature = "kusama-ahm")]
-		#[pallet::call_index(26)]
-		#[pallet::weight(pallet_rc_migrator::recovery::ah_receive_recovery_msg_weight(messages.len() as u32))]
-		pub fn receive_recovery_messages(
-			origin: OriginFor<T>,
-			messages: Vec<PortableRecoveryMessage>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_recovery_messages(messages).map_err(Into::into)
-		}
-
-		#[cfg(feature = "kusama-ahm")]
-		#[pallet::call_index(27)]
-		#[pallet::weight({
-			Weight::from_parts(10_000_000, 1000)
-				.saturating_add(T::DbWeight::get().writes(1_u64).saturating_mul(messages.len() as u64))
-		})]
-		pub fn receive_society_messages(
-			origin: OriginFor<T>,
-			messages: Vec<PortableSocietyMessage>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_society_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.

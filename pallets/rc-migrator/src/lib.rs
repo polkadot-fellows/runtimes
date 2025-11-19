@@ -51,11 +51,7 @@ pub mod benchmarking;
 pub mod bounties;
 pub mod child_bounties;
 pub mod conviction_voting;
-#[cfg(feature = "kusama-ahm")]
-pub mod recovery;
 pub mod scheduler;
-#[cfg(feature = "kusama-ahm")]
-pub mod society;
 pub mod treasury;
 pub mod xcm_config;
 
@@ -354,24 +350,6 @@ pub enum MigrationStage<
 	},
 	TreasuryMigrationDone,
 
-	#[cfg(feature = "kusama-ahm")]
-	RecoveryMigrationInit,
-	#[cfg(feature = "kusama-ahm")]
-	RecoveryMigrationOngoing {
-		last_key: Option<recovery::RecoveryStage>,
-	},
-	#[cfg(feature = "kusama-ahm")]
-	RecoveryMigrationDone,
-
-	#[cfg(feature = "kusama-ahm")]
-	SocietyMigrationInit,
-	#[cfg(feature = "kusama-ahm")]
-	SocietyMigrationOngoing {
-		last_key: Option<society::SocietyStage>,
-	},
-	#[cfg(feature = "kusama-ahm")]
-	SocietyMigrationDone,
-
 	StakingMigrationInit,
 	StakingMigrationOngoing {
 		next_key: Option<staking::StakingStage<AccountId>>,
@@ -439,8 +417,6 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
 			"scheduler" => MigrationStage::SchedulerMigrationInit,
 			"staking" => MigrationStage::StakingMigrationInit,
-			#[cfg(feature = "kusama-ahm")]
-			"society" => MigrationStage::SocietyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {other}")),
 		})
 	}
@@ -542,26 +518,6 @@ pub mod pallet {
 		type RuntimeHoldReason: Parameter
 			+ VariantCount
 			+ IntoPortable<Portable = types::PortableHoldReason>;
-
-		/// Config for pallets that are only on Kusama.
-		#[cfg(feature = "kusama-ahm")]
-		type KusamaConfig: pallet_recovery::Config<
-				Currency = pallet_balances::Pallet<Self>,
-				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
-				MaxFriends = ConstU32<{ recovery::MAX_FRIENDS }>,
-			> + frame_system::Config<
-				AccountData = AccountData<u128>,
-				AccountId = AccountId32,
-				Hash = sp_core::H256,
-			> + pallet_society::Config<
-				Currency = pallet_balances::Pallet<Self>,
-				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
-				MaxPayouts = ConstU32<{ society::MAX_PAYOUTS }>,
-			>;
-
-		/// Block number provider of the recovery pallet.
-		#[cfg(feature = "kusama-ahm")]
-		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
 
 		/// The proxy types of pure accounts that are kept for free.
 		type PureProxyFreeVariants: Contains<<Self as pallet_proxy::Config>::ProxyType>;
@@ -2328,77 +2284,6 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::TreasuryMigrationDone => {
-					#[cfg(feature = "kusama-ahm")]
-					Self::transition(MigrationStage::RecoveryMigrationInit);
-					#[cfg(not(feature = "kusama-ahm"))]
-					Self::transition(MigrationStage::StakingMigrationInit);
-				},
-				#[cfg(feature = "kusama-ahm")]
-				MigrationStage::RecoveryMigrationInit => {
-					Self::transition(MigrationStage::RecoveryMigrationOngoing { last_key: None });
-				},
-				#[cfg(feature = "kusama-ahm")]
-				MigrationStage::RecoveryMigrationOngoing { last_key } => {
-					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match recovery::RecoveryMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						) {
-							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
-							Err(e) => TransactionOutcome::Rollback(Err(e)),
-						}
-					});
-
-					match res {
-						Ok(Ok(None)) => {
-							Self::transition(MigrationStage::RecoveryMigrationDone);
-						},
-						Ok(Ok(Some(last_key))) => {
-							Self::transition(MigrationStage::RecoveryMigrationOngoing {
-								last_key: Some(last_key),
-							});
-						},
-						e => {
-							defensive!("Error while migrating recovery: {:?}", e);
-						},
-					}
-				},
-				#[cfg(feature = "kusama-ahm")]
-				MigrationStage::RecoveryMigrationDone => {
-					Self::transition(MigrationStage::SocietyMigrationInit);
-				},
-				#[cfg(feature = "kusama-ahm")]
-				MigrationStage::SocietyMigrationInit => {
-					Self::transition(MigrationStage::SocietyMigrationOngoing { last_key: None });
-				},
-				#[cfg(feature = "kusama-ahm")]
-				MigrationStage::SocietyMigrationOngoing { last_key } => {
-					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match society::SocietyMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						) {
-							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
-							Err(e) => TransactionOutcome::Rollback(Err(e)),
-						}
-					});
-
-					match res {
-						Ok(Ok(None)) => {
-							Self::transition(MigrationStage::SocietyMigrationDone);
-						},
-						Ok(Ok(Some(last_key))) => {
-							Self::transition(MigrationStage::SocietyMigrationOngoing {
-								last_key: Some(last_key),
-							});
-						},
-						err => {
-							defensive!("Error while migrating society: {:?}", err);
-						},
-					}
-				},
-				#[cfg(feature = "kusama-ahm")]
-				MigrationStage::SocietyMigrationDone => {
 					Self::transition(MigrationStage::StakingMigrationInit);
 				},
 				MigrationStage::StakingMigrationInit => {
