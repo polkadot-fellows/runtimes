@@ -262,7 +262,6 @@ fn cannot_create_pool_from_pool_assets() {
 }
 
 #[test]
-#[ignore]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = Location {
@@ -344,14 +343,15 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	});
 
 	PenpalA::execute_with(|| {
-		// send xcm transact from `penpal` account which has only `ASSET_ID` tokens on
+		// send xcm transact from `penpal` account while paying with `ASSET_ID` tokens on
 		// `AssetHubKusama`
-		let call = AssetHubKusama::force_create_asset_call(
-			ASSET_ID + 1000,
-			penpal.clone(),
-			true,
-			ASSET_MIN_BALANCE,
-		);
+		let call = <AssetHubKusama as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubKusama as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
 
 		let penpal_root = <PenpalA as Chain>::RuntimeOrigin::root();
 		let fee_amount = 4_000_000_000_000u128;
