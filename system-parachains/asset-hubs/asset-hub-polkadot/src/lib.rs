@@ -1625,9 +1625,9 @@ mod benches {
 		[pallet_bags_list, VoterList]
 		// DelegatedStaking has no calls
 		[pallet_election_provider_multi_block, MultiBlockElection]
-		[pallet_election_provider_multi_block_verifier, MultiBlockElectionVerifier]
-		[pallet_election_provider_multi_block_unsigned, MultiBlockElectionUnsigned]
-		[pallet_election_provider_multi_block_signed, MultiBlockElectionSigned]
+		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
+		[pallet_election_provider_multi_block::unsigned, MultiBlockElectionUnsigned]
+		[pallet_election_provider_multi_block::signed, MultiBlockElectionSigned]
 	);
 
 	use frame_benchmarking::BenchmarkError;

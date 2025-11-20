@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality
-  
+- Set Ethereum Fulu fork epoch ([#1005](https://github.com/polkadot-fellows/runtimes/pull/1005)).
+
 ## [2.0.2] 07.11.2025
 
 ### Fixed
