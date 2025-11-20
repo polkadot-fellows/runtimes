@@ -207,6 +207,10 @@ parameter_types! {
 			version: hex!("05000000"),
 			epoch: 364032,
 		},
+		fulu: Fork {
+			version: hex!("06000000"), // https://notes.ethereum.org/@bbusa/fusaka-bpo-timeline
+			epoch: 411392,
+		},
 	};
 }
 
@@ -236,7 +240,11 @@ parameter_types! {
 		electra: Fork {
 			version: hex!("05000000"),
 			epoch: 0,
-		}
+		},
+		fulu: Fork {
+			version: hex!("06000000"),
+			epoch: 50000000,
+		},
 	};
 }
 

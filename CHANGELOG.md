@@ -6,8 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Changed
+### Added
 
+- Set Ethereum Fulu fork epoch ([#1005](https://github.com/polkadot-fellows/runtimes/pull/1005)).
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 
 ## [2.0.2] 07.11.2025
