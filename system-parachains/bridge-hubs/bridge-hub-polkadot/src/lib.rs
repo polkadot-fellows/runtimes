@@ -154,27 +154,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		bridge_to_kusama_config::migration::MigrateToXcm5<
-			Runtime,
-			bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
-		>,
-		frame_support::migrations::RemoveStorage<
-			EthereumSystemPalletName,
-			NativeToForeignIdKey,
-			RocksDbWeight,
-		>,
-		pallet_session::migrations::v1::MigrateV0ToV1<
-			Runtime,
-			pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-		>,
-		cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-		pallet_bridge_relayers::migration::v2::MigrationToV2<
-			Runtime,
-			bridge_common_config::BridgeRelayersInstance,
-			bp_messages::LegacyLaneId,
-		>,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;

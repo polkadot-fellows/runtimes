@@ -1469,14 +1469,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		pallet_session::migrations::v1::MigrateV0ToV1<
-			Runtime,
-			pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
-		>,
-		cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
-		staking::InitiateStakingAsync,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
