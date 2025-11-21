@@ -330,7 +330,7 @@ jobs:
       - name: Setup Node.js (20) with Yarn cache
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 'latest'
           cache: 'yarn'
 
       - name: Install Yarn
