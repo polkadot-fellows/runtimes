@@ -302,6 +302,10 @@ impl EraPayout {
 	// block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
 	pub const FIXED_PRE_HARD_CAP_TI: Balance = 15_011_657_390_566_252_333;
 
+	// The amount emitted daily pre hard cap.
+	// Taken from [AH Block 10469901](https://assethub-polkadot.subscan.io/event/10469901-6).
+	const PRE_HARD_CAP_DAILY_EMISSION: Balance = 328797u128 * UNITS;
+
 	// Calculated assuming a 11.7 minute per day time drift (A block time of 6.04875 seconds).
 	// https://polkadot.subscan.io/block/30349908
 	const HARD_CAP_START: BlockNumber = 30_349_908;
@@ -311,6 +315,9 @@ impl EraPayout {
 
 	// 26.28% over two years, 13.14% per year as per ref 1710.
 	pub const BI_ANNUAL_RATE: Perbill = Perbill::from_parts(262_800_000);
+
+	// The maximum amount an era can emit. Used as a final safeguard.
+	pub const MAX_ERA_EMISSION: Balance = Self::PRE_HARD_CAP_DAILY_EMISSION * 7;
 
 	// The yearly emission prior to hard pressure enactment.
 	fn yearly_before_hard_cap() -> Balance {
@@ -346,7 +353,7 @@ impl EraPayout {
 
 		let two_year_rate = Self::BI_ANNUAL_RATE;
 
-		let ti_curve = SteppedCurve::try_new(
+		let Ok(ti_curve) = SteppedCurve::try_new(
 			// The start date of the curve.
 			two_years_before_march,
 			// The initial value of the curve.
@@ -355,8 +362,9 @@ impl EraPayout {
 			RemainingPct { target: target_ti, pct: two_year_rate },
 			// Step every two years.
 			step_duration,
-		)
-		.unwrap_or_default(); // Default curve is zero curve, in case target < start.
+		) else {
+			return 0
+		};
 
 		// The last step size tells us the expected TI increase over the current two year
 		// period.
@@ -409,7 +417,8 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			Self::yearly_after_hard_cap(relay_block_num)
 		};
 
-		let era_emission = relative_era_len.saturating_mul_int(yearly_emission);
+		let era_emission =
+			relative_era_len.saturating_mul_int(yearly_emission).min(Self::MAX_ERA_EMISSION);
 		// 15% to treasury, as per Polkadot ref 1139.
 		let to_treasury = FixedU128::from_rational(15, 100).saturating_mul_int(era_emission);
 		let to_stakers = era_emission.saturating_sub(to_treasury);
@@ -716,52 +725,27 @@ mod tests {
 		});
 	}
 
-	#[test]
-	fn pre_march_2026_formula_staking_inflation_correct_whole_year() {
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let (to_stakers, to_treasury) = EraPayout::era_payout(
-				123,                                  // ignored
-				456,                                  // ignored
-				(36525 * MILLISECONDS_PER_DAY) / 100, // 1 year
-			);
-
-			// Our yearly emissions is about 120M DOT:
-			let yearly_emission = APPROX_PRE_CAP_TOTAL * 36525 / 100;
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				yearly_emission as f64,
-				max_relative = 0.001
-			);
-
-			assert_relative_eq!(
-				to_stakers as f64,
-				yearly_emission as f64 * 0.85,
-				max_relative = 0.001
-			);
-			assert_relative_eq!(
-				to_treasury as f64,
-				yearly_emission as f64 * 0.15,
-				max_relative = 0.001
-			);
-		});
-	}
-
-	// 10 years into the future, our values do not overflow.
+	// 100 years into the future, our values do not overflow.
 	#[test]
 	fn pre_march_2026_formula_staking_inflation_correct_not_overflow() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let (to_stakers, to_treasury) = EraPayout::era_payout(
-				123,                                 // ignored
-				456,                                 // ignored
-				(36525 * MILLISECONDS_PER_DAY) / 10, // 10 years
-			);
-			let initial_ti: i128 = 15_011_657_390_566_252_333;
-			let projected_total_issuance = (to_stakers as i128 + to_treasury as i128) + initial_ti;
+			let mut emission_total = 0;
+			for _ in 0..36525 {
+				let (to_stakers, to_treasury) = EraPayout::era_payout(
+					123, // ignored
+					456, // ignored
+					MILLISECONDS_PER_DAY,
+				);
+				emission_total += to_stakers + to_treasury;
+			}
 
-			// In 2034, there will be about 2.7 billion DOT in existence.
+			let initial_ti: i128 = 15_011_657_390_566_252_333;
+			let projected_total_issuance = (emission_total as i128) + initial_ti;
+
+			// In 2124, there will be about 13.5 billion DOT in existence.
 			assert_relative_eq!(
 				projected_total_issuance as f64,
-				(2_700_000_000 * UNITS) as f64,
+				(13_500_000_000 * UNITS) as f64,
 				max_relative = 0.001
 			);
 		});
@@ -1033,22 +1017,45 @@ mod tests {
 			let mut current_bn = MARCH_14_2026;
 
 			// Run for 250 periods (500 years) and check TI and emissions.
-			// We know from `emission_eventually_zero` that at this point era emissions are 0.
-			set_relay_number(current_bn);
+			// We know from `emission_eventually_zero` that at this point era emissions are 0
+			// and from `emission_value_static_throughout_period` that the emission
+			// throughout a period is static.
 			for _ in 0..250 {
-				let (to_stakers, to_treasury) = EraPayout::era_payout(
-					123,                                      // ignored
-					456,                                      // ignored
-					(MILLISECONDS_PER_DAY * 36525 * 2) / 100, // two year era
-				);
-				current_ti += to_stakers + to_treasury;
-				current_bn += RC_YEARS * 2;
 				set_relay_number(current_bn);
+
+				let (to_stakers, to_treasury) =
+					EraPayout::era_payout(123, 456, MILLISECONDS_PER_DAY);
+
+				let daily_emission = to_stakers + to_treasury;
+				let period_emission = (daily_emission * 7305) / 10;
+				current_ti += period_emission;
+
+				// Step forward a period.
+				current_bn += 2 * RC_YEARS;
 			}
 
 			// TI has hit asymptote.
 			assert!(current_ti > TARGET_TI - UNITS);
 			assert!(current_ti < TARGET_TI);
+		});
+	}
+
+	// Emission is capped under anamolous era duration.
+	#[test]
+	fn emission_capped_with_anomalous_era_duration() {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			set_relay_number(MARCH_14_2026);
+
+			// Simulate an era that lasted 100 years (anomalous).
+			let anomalous_duration = 36525 * MILLISECONDS_PER_DAY;
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				anomalous_duration,
+			);
+
+			// Capped at MAX_ERA_EMISSION (2 * UNITS)
+			assert_eq!(to_stakers + to_treasury, EraPayout::MAX_ERA_EMISSION);
 		});
 	}
 
