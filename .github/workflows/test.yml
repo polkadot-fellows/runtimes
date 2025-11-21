@@ -326,12 +326,6 @@ jobs:
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
-                  
-      - name: Setup Node.js (20) with Yarn cache
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'latest'
-          cache: 'yarn'
 
       - name: Install Yarn
         run: npm install -g yarn
