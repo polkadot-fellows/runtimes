@@ -326,16 +326,16 @@ jobs:
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
+                  
+      - name: Setup Node.js (20) with Yarn cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
 
-      - name: Install NPM & Yarn for ecosystem tests
-        working-directory: ecosystem-tests
-        run: |
-          if ! command -v npm >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y npm
-          fi
-          sudo npm install --global yarn
-
+      - name: Install Yarn
+        run: npm install -g yarn
+        
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
         run: yarn install
