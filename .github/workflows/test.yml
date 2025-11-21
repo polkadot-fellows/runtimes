@@ -312,9 +312,6 @@ jobs:
           repository: open-web3-stack/polkadot-ecosystem-tests
           path: ecosystem-tests
 
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
       - name: Download WASM artifacts
         uses: actions/download-artifact@v4
         with:
@@ -329,6 +326,15 @@ jobs:
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
+
+      - name: Install NPM & Yarn for ecosystem tests
+        working-directory: ecosystem-tests
+        run: |
+          if ! command -v npm >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y npm
+          fi
+          sudo npm install --global yarn
 
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
