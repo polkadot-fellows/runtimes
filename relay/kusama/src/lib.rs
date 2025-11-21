@@ -53,7 +53,7 @@ use frame_support::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
-		EnsureOriginWithArg, Equals, FromContains, InstanceFilter, KeyOwnerProofSystem,
+		EnsureOriginWithArg, FromContains, InstanceFilter, KeyOwnerProofSystem,
 		LinearStoragePrice, OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError,
 		WithdrawReasons,
 	},
@@ -188,7 +188,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 2_000_002,
+	spec_version: 2_000_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -215,7 +215,7 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type BaseCallFilter = RcMigrator;
+	type BaseCallFilter = ahm_phase1::CallsEnabledAfterMigration;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -276,8 +276,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight =
-		pallet_rc_migrator::types::LeftOrRight<RcMigrator, ZeroWeight, MaximumSchedulerWeight>;
+	type MaximumWeight = MaximumSchedulerWeight;
 	// The goal of having ScheduleOrigin include AuctionAdmin is to allow the auctions track of
 	// OpenGov to schedule periodic auctions.
 	// Also allow Treasurer to schedule recurring payments.
@@ -909,10 +908,7 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = pallet_rc_migrator::types::MaxOnIdleOrInner<
-		RcMigrator,
-		weights::pallet_fast_unstake::WeightInfo<Runtime>,
-	>;
+	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -983,8 +979,7 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod =
-		pallet_rc_migrator::types::LeftOrRight<RcMigrator, DisableSpends, SpendPeriod>;
+	type SpendPeriod = SpendPeriod;
 	type Burn = TreasuryBurnHandler;
 	type BurnDestination = TreasuryBurnHandler;
 	type MaxApprovals = MaxApprovals;
@@ -1213,23 +1208,11 @@ impl pallet_society::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = pallet_rc_migrator::types::LeftIfPending<
-		RcMigrator,
-		ConstU32<{ 5 * DAYS }>,
-		// disable rotation `on_initialize` during and after migration
-		// { - 10 * DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
-		ConstU32<{ u32::MAX - 10 * DAYS }>,
-	>;
+	type VotingPeriod = ConstU32<{ 5 * DAYS }>;
 	type ClaimPeriod = ConstU32<{ 2 * DAYS }>;
 	type MaxLockDuration = ConstU32<{ 36 * 30 * DAYS }>;
 	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = pallet_rc_migrator::types::LeftIfPending<
-		RcMigrator,
-		ConstU32<{ 7 * DAYS }>,
-		// disable challenge rotation `on_initialize` during and after migration
-		// { - 10 * DAYS } to make sure we don't overflow
-		ConstU32<{ u32::MAX - 10 * DAYS }>,
-	>;
+	type ChallengePeriod = ConstU32<{ 7 * DAYS }>;
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;
@@ -1931,41 +1914,7 @@ impl frame_support::traits::Contains<TransparentProxyType> for ProxyTypeAny {
 
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EitherOfDiverse<Fellows, EnsureXcm<Equals<AssetHubLocation>, Location>>,
-	>;
 	type Currency = Balances;
-	type CheckingAccount = xcm_config::CheckAccount;
-	type TreasuryBlockNumberProvider = System;
-	type TreasuryPaymaster = TreasuryPaymaster;
-	type PureProxyFreeVariants = ProxyTypeAny;
-	type SendXcm = xcm_config::XcmRouterWithoutException;
-	type MaxRcWeight = RcMigratorMaxWeight;
-	type MaxAhWeight = AhMigratorMaxWeight;
-	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = weights::pallet_rc_migrator::WeightInfo<Runtime>;
-	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
-	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
-	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
-	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
-	type OnDemandPalletId = OnDemandPalletId;
-	type UnprocessedMsgBuffer = ConstU32<50>;
-	type XcmResponseTimeout = XcmResponseTimeout;
-	type MessageQueue = MessageQueue;
-	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type SessionDuration = EpochDuration; // Session == Epoch
-	#[cfg(feature = "kusama-ahm")]
-	type KusamaConfig = Runtime;
-	#[cfg(feature = "kusama-ahm")]
-	type RecoveryBlockNumberProvider = System;
-	type MultisigMembers = ();
-	type MultisigThreshold = ConstU32<{ u32::MAX }>;
-	type MultisigMaxVotesPerRound = (); // defunct
 }
 
 construct_runtime! {
@@ -2227,7 +2176,6 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		[pallet_parameters, Parameters]
-		[pallet_rc_migrator, RcMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]

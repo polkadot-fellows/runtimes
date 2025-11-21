@@ -144,7 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 2_000_002,
+	spec_version: 2_000_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -1256,11 +1256,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight = pallet_ah_migrator::LeftOrRight<
-		AhMigrator,
-		ZeroWeight,
-		dynamic_params::scheduler::MaximumWeight,
-	>;
+	type MaximumWeight = dynamic_params::scheduler::MaximumWeight;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = dynamic_params::scheduler::MaxScheduledPerBlock;
@@ -1289,51 +1285,9 @@ impl pallet_ah_ops::Config for Runtime {
 	type Fungibles = NativeAndAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
-	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
+	type MigrationCompletion = ConstBool<true>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
 	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
-}
-
-parameter_types! {
-	pub const DmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-}
-
-impl pallet_ah_migrator::Config for Runtime {
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type PortableHoldReason = pallet_rc_migrator::types::PortableHoldReason;
-	type PortableFreezeReason = pallet_rc_migrator::types::PortableFreezeReason;
-	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-	>;
-	type Currency = Balances;
-	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type TreasuryPaymaster = treasury::TreasuryPaymaster;
-	type Assets = NativeAndAssets;
-	type CheckingAccount = xcm_config::CheckingAccount;
-	type StakingPotAccount = xcm_config::StakingPot;
-	type RcProxyType = ah_migration::RcProxyType;
-	type RcToProxyType = ah_migration::RcToProxyType;
-	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type RcToAhCall = ah_migration::RcToAhCall;
-	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
-	type RcToAhPalletsOrigin = ah_migration::RcToAhPalletsOrigin;
-	type Preimage = Preimage;
-	type SendXcm = xcm_builder::WithUniqueTopic<xcm_config::LocalXcmRouterWithoutException>;
-	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
-	type TreasuryAccounts = ah_migration::TreasuryAccounts;
-	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
-	type AhPreMigrationCalls = ah_migration::call_filter::CallsEnabledBeforeMigration;
-	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
-	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
-	type MessageQueue = MessageQueue;
-	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
-	#[cfg(feature = "kusama-ahm")]
-	type KusamaConfig = Runtime;
-	#[cfg(feature = "kusama-ahm")]
-	type RecoveryBlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {
@@ -1533,23 +1487,11 @@ impl pallet_society::Config for Runtime {
 	>;
 	type GraceStrikes = ConstU32<10>;
 	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = pallet_ah_migrator::LeftIfFinished<
-		AhMigrator,
-		ConstU32<{ 5 * RC_DAYS }>,
-		// disable rotation `on_initialize` before and during migration
-		// { - 10 * RC_DAYS } to avoid the overflow (`VotingPeriod` is summed with `ClaimPeriod`)
-		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
-	>;
+	type VotingPeriod = ConstU32<{ 5 * RC_DAYS }>;
 	type ClaimPeriod = ConstU32<{ 2 * RC_DAYS }>;
 	type MaxLockDuration = ConstU32<{ 36 * 30 * RC_DAYS }>;
 	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = pallet_ah_migrator::LeftIfFinished<
-		AhMigrator,
-		ConstU32<{ 7 * RC_DAYS }>,
-		// disable challenge rotation `on_initialize` before and during migration
-		// { - 10 * RC_DAYS } to make sure we don't overflow
-		ConstU32<{ u32::MAX - 10 * RC_DAYS }>,
-	>;
+	type ChallengePeriod = ConstU32<{ 7 * RC_DAYS }>;
 	type MaxPayouts = ConstU32<8>;
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;
@@ -1641,7 +1583,6 @@ construct_runtime!(
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
-		AhMigrator: pallet_ah_migrator = 255,
 	}
 );
 
@@ -1699,7 +1640,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (staking::InitiateStakingAsync,);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -1836,7 +1777,6 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
-		[pallet_ah_migrator, AhMigrator]
 		[pallet_indices, Indices]
 		[pallet_recovery, Recovery]
 		[polkadot_runtime_common::claims, Claims]

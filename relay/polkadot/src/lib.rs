@@ -45,9 +45,8 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
-		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
+		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
@@ -130,7 +129,7 @@ use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
 use xcm_config::{
-	AssetHubLocation, CollectivesLocation, FellowsBodyId, GeneralAdminBodyId, StakingAdminBodyId,
+	AssetHubLocation, GeneralAdminBodyId, StakingAdminBodyId,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -177,7 +176,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 2_000_002,
+	spec_version: 2_000_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -203,7 +202,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = RcMigrator;
+	type BaseCallFilter = ahm_phase1::CallsEnabledAfterMigration;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -266,8 +265,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight =
-		pallet_rc_migrator::types::LeftOrRight<RcMigrator, ZeroWeight, MaximumSchedulerWeight>;
+	type MaximumWeight = MaximumSchedulerWeight;
 	// The goal of having ScheduleOrigin include AuctionAdmin is to allow the auctions track of
 	// OpenGov to schedule periodic auctions.
 	// Also allow Treasurer to schedule recurring payments.
@@ -770,10 +768,7 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = pallet_rc_migrator::types::MaxOnIdleOrInner<
-		RcMigrator,
-		weights::pallet_fast_unstake::WeightInfo<Runtime>,
-	>;
+	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -817,8 +812,7 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod =
-		pallet_rc_migrator::types::LeftOrRight<RcMigrator, DisableSpends, SpendPeriod>;
+	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
@@ -1747,40 +1741,7 @@ impl frame_support::traits::Contains<TransparentProxyType<ProxyType>> for ProxyT
 
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EitherOfDiverse<
-			EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
-			EnsureXcm<Equals<AssetHubLocation>, Location>,
-		>,
-	>;
 	type Currency = Balances;
-	type CheckingAccount = xcm_config::CheckAccount;
-	type TreasuryBlockNumberProvider = System;
-	type TreasuryPaymaster = TreasuryPaymaster;
-	type PureProxyFreeVariants = ProxyTypeAny;
-	type SessionDuration = EpochDuration; // Session == Epoch
-	type SendXcm = xcm_config::XcmRouterWithoutException;
-	type MaxRcWeight = RcMigratorMaxWeight;
-	type MaxAhWeight = AhMigratorMaxWeight;
-	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = weights::pallet_rc_migrator::WeightInfo<Runtime>;
-	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
-	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
-	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
-	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
-	type OnDemandPalletId = OnDemandPalletId;
-	type UnprocessedMsgBuffer = ConstU32<50>;
-	type XcmResponseTimeout = XcmResponseTimeout;
-	type MessageQueue = MessageQueue;
-	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type MultisigMembers = (); // disabled post AHM
-	type MultisigThreshold = ConstU32<{ u32::MAX }>; // disabled
-	type MultisigMaxVotesPerRound = (); // disabled
 }
 
 construct_runtime! {
@@ -1933,51 +1894,15 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (KickOffAhm<Runtime>,);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// Kick off the Asset Hub Migration.
-	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
-	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
-		fn on_runtime_upgrade() -> Weight {
-			if MigrationStartBlock::<T>::exists() ||
-				RcMigrationStage::<T>::get() != MigrationStage::Pending
-			{
-				// Already started or scheduled
-				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
-				return T::DbWeight::get().reads(2)
-			}
-
-			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
-				// Migration start block, Tuesday 4th Nov 8 AM UTC
-				// https://polkadot.subscan.io/block/28490502
-				DispatchTime::At(28490502u32.into()),
-				// Warm up to wait for Messaging queues to empty
-				DispatchTime::After((60 * MINUTES).into()),
-				// Cool off to verify the success of the migration
-				DispatchTime::After((60 * MINUTES).into()),
-				// Respect the session scheduling check:
-				Default::default(),
-			);
-
-			if let Err(e) = result {
-				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
-			} else {
-				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
-			}
-
-			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
-		}
-	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2047,7 +1972,6 @@ mod benches {
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
-		[pallet_rc_migrator, RcMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]

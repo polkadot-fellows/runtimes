@@ -94,29 +94,13 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bags_thresholds::THRESHOLDS;
 }
 
-/// We don't want to do any auto-rebags in pallet-bags while the migration is not started or
-/// ongoing.
-pub struct RebagIffMigrationDone;
-impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
-	fn get() -> u32 {
-		if cfg!(feature = "runtime-benchmarks") ||
-			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
-				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
-		{
-			5
-		} else {
-			0
-		}
-	}
-}
-
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ScoreProvider = Staking;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	type MaxAutoRebagPerBlock = RebagIffMigrationDone;
+	type MaxAutoRebagPerBlock = ConstU32<5>;
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 }
 
