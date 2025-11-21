@@ -302,10 +302,7 @@ jobs:
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
           tool-cache: false
-      
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-        
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
@@ -314,6 +311,9 @@ jobs:
         with:
           repository: open-web3-stack/polkadot-ecosystem-tests
           path: ecosystem-tests
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Download WASM artifacts
         uses: actions/download-artifact@v4
