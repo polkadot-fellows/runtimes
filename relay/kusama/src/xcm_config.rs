@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
@@ -59,7 +59,7 @@ parameter_types! {
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The check account that is allowed to mint assets locally.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
@@ -133,11 +133,7 @@ pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
 /// individual routers.
 ///
 /// This router does not route to the Asset Hub if the migration is ongoing.
-pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
-	XcmRouterWithoutException,
-	FromContains<Equals<AssetHubLocation>, Everything>,
-	crate::RcMigrator,
->;
+pub type XcmRouter = XcmRouterWithoutException; // @muharem please check
 
 parameter_types! {
 	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
@@ -216,8 +212,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
-	type IsTeleporter =
-		pallet_rc_migrator::xcm_config::FalseIfMigrating<crate::RcMigrator, TrustedTeleporters>;
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<

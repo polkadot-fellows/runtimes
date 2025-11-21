@@ -9,7 +9,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-pallet-ah-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -149,7 +148,6 @@ substrate-wasm-builder = { optional = true, workspace = true }
 default = ["std"]
 
 polkadot-ahm = [
-	"pallet-ah-migrator/polkadot-ahm",
 	"pallet-rc-migrator/polkadot-ahm",
 ]
 runtime-benchmarks = [
@@ -169,7 +167,6 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
-	"pallet-ah-migrator/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
@@ -236,7 +233,6 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-ah-migrator/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
@@ -286,7 +282,6 @@ try-runtime = [
 	"system-parachains-common/try-runtime",
 ]
 std = [
-	"pallet-ah-migrator/std",
 
 	"assets-common/std",
 	"bp-asset-hub-kusama/std",
