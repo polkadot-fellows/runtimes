@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Set Ethereum Fulu fork epoch ([#1005](https://github.com/polkadot-fellows/runtimes/pull/1005))
 
+### Changed
+
+- Remove XCM Transact filters and Pool asset transactors ([#1014](https://github.com/polkadot-fellows/runtimes/pull/1014))
+
 ## [2.0.2] 07.11.2025
 
 ### Fixed
