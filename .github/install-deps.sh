@@ -2,7 +2,7 @@
 
 sudo apt update
 sudo apt install --assume-yes openssl pkg-config g++ make cmake protobuf-compiler libssl-dev libclang-dev libudev-dev git lz4 npm
-npm install -g yarn
+sudo npm install -g yarn
 
 # Free space on the runner
 df -h
