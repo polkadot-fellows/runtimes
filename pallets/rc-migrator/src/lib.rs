@@ -36,14 +36,12 @@ pub use pallet::*;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold}, LockableCurrency,
-		ReservableCurrency,
+		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
+		LockableCurrency, ReservableCurrency,
 	},
 };
 use pallet_balances::AccountData;
-use sp_runtime::{
-	AccountId32
-};
+use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 
 /// The log target of this pallet.
@@ -119,7 +117,8 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Nonce = u32> {
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Nonce = u32>
+	{
 		/// The overall runtime origin type.
 		type RuntimeOrigin: Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>
 			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>
@@ -135,18 +134,13 @@ pub mod pallet {
 	}
 
 	#[pallet::error]
-	pub enum Error<T> { }
+	pub enum Error<T> {}
 
 	/// Helper storage item to obtain and store the known accounts that should be kept partially or
 	/// fully on Relay Chain.
 	#[pallet::storage]
-	pub type RcAccounts<T: Config> = CountedStorageMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		AccountState<u128>,
-		OptionQuery,
-	>;
+	pub type RcAccounts<T: Config> =
+		CountedStorageMap<_, Twox64Concat, T::AccountId, AccountState<u128>, OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);

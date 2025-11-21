@@ -53,9 +53,8 @@ use frame_support::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
-		EnsureOriginWithArg, FromContains, InstanceFilter, KeyOwnerProofSystem,
-		LinearStoragePrice, OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError,
-		WithdrawReasons,
+		EnsureOriginWithArg, FromContains, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice,
+		OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},

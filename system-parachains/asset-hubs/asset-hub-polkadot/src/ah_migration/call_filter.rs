@@ -88,7 +88,7 @@ pub fn call_allowed_status(
 	let before_migration = call_allowed_before_migration(call);
 
 	let during_migration = match call {
-		AhOps(..) => OFF,     // Not needed during the migration
+		AhOps(..) => OFF,          // Not needed during the migration
 		AssetConversion(..) => ON, // no reason to disable it, just convenience
 		AssetRate(..) => OFF,
 		Assets(..) => ON,   // no reason to disable it, just convenience
