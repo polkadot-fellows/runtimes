@@ -137,6 +137,7 @@ snowbridge-pallet-system-frontend = { workspace = true }
 snowbridge-runtime-common = { workspace = true }
 
 [dev-dependencies]
+approx = { workspace = true }
 asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
