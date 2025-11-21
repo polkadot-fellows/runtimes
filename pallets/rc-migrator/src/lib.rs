@@ -42,26 +42,6 @@ use frame_support::{
 };
 use pallet_balances::AccountData;
 use sp_runtime::AccountId32;
-use sp_std::prelude::*;
-
-/// The log target of this pallet.
-pub const LOG_TARGET: &str = "runtime::rc-migrator";
-
-/// Soft limit on the DMP message size.
-///
-/// The hard limit should be about 64KiB which means that we stay well below
-/// that to avoid any trouble. We can raise this as final preparation for the migration once
-/// everything is confirmed to work.
-pub const MAX_XCM_SIZE: u32 = 50_000;
-
-/// The maximum number of items that can be migrated in a single block.
-///
-/// This serves as an additional safety limit beyond the weight accounting of both the Relay Chain
-/// and Asset Hub.
-pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
-
-/// The maximum number of XCM messages that can be sent in a single block.
-pub const MAX_XCM_MSG_PER_BLOCK: u32 = 10;
 
 /// The state for the Relay Chain accounts.
 #[derive(
