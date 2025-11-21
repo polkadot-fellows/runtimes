@@ -1639,8 +1639,17 @@ pub type UncheckedExtrinsic =
 pub mod migrations {
 	use super::*;
 
+	parameter_types! {
+		pub const AhMigratorPalletName: &'static str = "AhMigrator";
+	}
+
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (
+		frame_support::migrations::RemovePallet<
+			AhMigratorPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
