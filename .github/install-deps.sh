@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 
 sudo apt update
-sudo apt install --assume-yes openssl pkg-config g++ make cmake protobuf-compiler libssl-dev libclang-dev libudev-dev git lz4
-
-if ! command -v npm >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y npm
-fi
-sudo npm install --global yarn
+sudo apt install --assume-yes openssl pkg-config g++ make cmake protobuf-compiler libssl-dev libclang-dev libudev-dev git lz4 npm
+npm install -g yarn
 
 # Free space on the runner
 df -h
