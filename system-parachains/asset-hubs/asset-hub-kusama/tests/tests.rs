@@ -43,7 +43,7 @@ use asset_test_utils::{
 use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
-	traits::{fungibles::InspectEnumerable, ContainsPair, Get},
+	traits::{fungibles::InspectEnumerable, ContainsPair},
 };
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
