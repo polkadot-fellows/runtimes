@@ -331,7 +331,7 @@ jobs:
           done
 
       - name: Installing dependencies of ecosystem tests
-        working-directory: ./ecosystem-tests
+        working-directory: ecosystem-tests
         run: yarn install
 
       - name: Running ecosystem tests
