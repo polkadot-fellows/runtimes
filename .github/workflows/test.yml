@@ -327,11 +327,10 @@ jobs:
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
           
-      - name: Update system
-        run: sudo apt update --assume-yes
-
-      - name: Install node and npm
-        run: sudo apt install --assume-yes npm nodejs
+      - name: Use latest Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
 
       - name: Install yarn
         run: sudo npm install -g yarn
