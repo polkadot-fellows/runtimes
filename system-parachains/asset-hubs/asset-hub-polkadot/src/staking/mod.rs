@@ -1054,7 +1054,7 @@ mod tests {
 				anomalous_duration,
 			);
 
-			// Capped at MAX_ERA_EMISSION (2 * UNITS)
+			// Capped at MAX_ERA_EMISSION.
 			assert_eq!(to_stakers + to_treasury, EraPayout::MAX_ERA_EMISSION);
 		});
 	}
