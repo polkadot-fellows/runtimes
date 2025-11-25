@@ -337,14 +337,14 @@ jobs:
 
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
-        run: /usr/local/bin/yarn install
+        run: yarn install
 
       - name: Running ecosystem tests
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 90
           max_attempts: 3
-          command: cd ecosystem-tests && /usr/local/bin/yarn test
+          command: cd ecosystem-tests && yarn test
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
