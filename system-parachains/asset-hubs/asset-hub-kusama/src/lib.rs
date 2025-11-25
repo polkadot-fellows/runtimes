@@ -1499,6 +1499,10 @@ impl pallet_society::Config for Runtime {
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
+impl cumulus_pallet_weight_reclaim::Config for Runtime {
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1513,6 +1517,7 @@ construct_runtime!(
 		Preimage: pallet_preimage = 6,
 		Scheduler: pallet_scheduler = 7,
 		Parameters: pallet_parameters = 8,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 9,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1595,17 +1600,20 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 /// The TransactionExtension to the basic transaction logic.
-pub type TxExtension = (
-	frame_system::CheckNonZeroSender<Runtime>,
-	frame_system::CheckSpecVersion<Runtime>,
-	frame_system::CheckTxVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
-	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-);
+pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
 
 /// Default extensions applied to Ethereum transactions.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -1627,6 +1635,7 @@ impl EthExtra for EthExtraImpl {
 			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		)
+			.into()
 	}
 }
 
@@ -1779,6 +1788,7 @@ mod benches {
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
+		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_referenda, Referenda]
