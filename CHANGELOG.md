@@ -4,11 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality ([#941](https://github.com/polkadot-fellows/runtimes/pull/941))
+
 ## [2.0.3] 21.11.2025
 
 ### Added
 
-- Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality
 - Set Ethereum Fulu fork epoch ([#1005](https://github.com/polkadot-fellows/runtimes/pull/1005))
 
 ### Changed
