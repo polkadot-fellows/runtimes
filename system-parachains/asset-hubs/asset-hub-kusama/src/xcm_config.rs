@@ -198,26 +198,8 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 pub type PoolAssetsConvertedConcreteId =
 	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
 
-/// Means for transacting asset conversion pool assets on this chain.
-pub type PoolFungiblesTransactor = FungiblesAdapter<
-	// Use this fungibles implementation:
-	PoolAssets,
-	// Use this currency when it is a fungible asset matching the given location or name:
-	PoolAssetsConvertedConcreteId,
-	// Convert an XCM `Location` into a local account ID:
-	LocationToAccountId,
-	// Our chain's account ID type (we can't get away without mentioning it explicitly):
-	AccountId,
-	// We only want to allow teleports of known assets. We use non-zero issuance as an indication
-	// that this asset is known.
-	LocalMint<parachains_common::impls::NonZeroIssuance<AccountId, PoolAssets>>,
-	// The account to use for tracking teleports.
-	CheckingAccount,
->;
-
 /// Means for transacting assets on this chain.
-pub type AssetTransactors =
-	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
+pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor);
 
 /// Asset converter for pool assets.
 /// Used to convert one asset to another, when there is a pool available between the two.
@@ -438,9 +420,6 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter = ();
 	type UniversalAliases = (bridging::to_polkadot::UniversalAliases,);
 	type CallDispatcher = RuntimeCall;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type SafeCallFilter = SafeCallFilter;
-	#[cfg(feature = "runtime-benchmarks")]
 	type SafeCallFilter = Everything;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
@@ -448,81 +427,6 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
 	type XcmEventEmitter = PolkadotXcm;
-}
-
-pub struct SafeCallFilter;
-impl Contains<RuntimeCall> for SafeCallFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		match call {
-			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { .. }) => true,
-			// Foreign assets instance
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::create {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::force_set_metadata {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::set_metadata {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::set_team {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::touch {
-				..
-			}) => true,
-			RuntimeCall::Nfts(pallet_nfts::Call::create { .. }) => true,
-			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify {
-				..
-			}) => true,
-			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) => true,
-			// Allow staking stuff through XCM
-			RuntimeCall::Staking(pallet_staking_async::Call::bond_extra { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::bond { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::rebond { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::unbond { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::withdraw_unbonded { .. }) => true,
-			RuntimeCall::StakingRcClient(
-				pallet_staking_async_rc_client::Call::relay_session_report { .. },
-			) => true,
-			RuntimeCall::StakingRcClient(
-				pallet_staking_async_rc_client::Call::relay_new_offence_paged { .. },
-			) => true,
-			RuntimeCall::System(frame_system::Call::authorize_upgrade { .. }) => true,
-			RuntimeCall::System(frame_system::Call::set_storage { .. }) => true,
-			RuntimeCall::System(frame_system::Call::remark { .. }) => true,
-			RuntimeCall::System(frame_system::Call::remark_with_event { .. }) => true,
-			RuntimeCall::ToPolkadotXcmRouter(pallet_xcm_bridge_hub_router::Call::<
-				Runtime,
-				crate::ToPolkadotXcmRouterInstance,
-			>::report_bridge_status {
-				..
-			}) => true,
-			RuntimeCall::Utility(pallet_utility::Call::as_derivative { call, .. }) =>
-				Self::contains(call),
-			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) =>
-				calls.iter().all(Self::contains),
-			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) =>
-				calls.iter().all(Self::contains),
-			RuntimeCall::Whitelist(pallet_whitelist::Call::whitelist_call { .. }) => true,
-			_ => false,
-		}
-	}
 }
 
 parameter_types! {
