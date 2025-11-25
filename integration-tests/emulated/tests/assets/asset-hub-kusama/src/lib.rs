@@ -47,7 +47,7 @@ pub use emulated_integration_tests_common::{
 pub use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
-pub use kusama_runtime::xcm_config::UniversalLocation as KusamaUniversalLocation;
+pub use kusama_runtime::{xcm_config::UniversalLocation as KusamaUniversalLocation, Dmp};
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::{AssetHubKusamaAssetOwner, ED as ASSET_HUB_KUSAMA_ED},
