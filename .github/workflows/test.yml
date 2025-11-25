@@ -333,7 +333,7 @@ jobs:
           node-version: 'node'
 
       - name: Install yarn
-        run: sudo npm install -g yarn
+        run: npm install -g yarn
 
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
