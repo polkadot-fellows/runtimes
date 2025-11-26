@@ -96,7 +96,7 @@ where
 		match asset {
 			VersionedLocatableAsset::V3 { location, asset_id } if location.is_here() => {
 				// Convert V3 asset_id to V5 Location (must go through V4)
-				let v4_asset_id: xcm::v4::AssetId = asset_id.clone().try_into().map_err(|_| ())?;
+				let v4_asset_id: xcm::v4::AssetId = (*asset_id).try_into().map_err(|_| ())?;
 				let v5_asset_id: xcm::v5::AssetId = v4_asset_id.try_into().map_err(|_| ())?;
 				Ok(v5_asset_id.0)
 			},
@@ -146,4 +146,3 @@ pub mod benchmarks {
 		}
 	}
 }
-

@@ -29,11 +29,8 @@ parameter_types! {
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
-pub type TreasuryPaymaster = crate::pay::LocalPay<
-	NativeAndAssets,
-	TreasuryAccount,
-	xcm_config::LocationToAccountId,
->;
+pub type TreasuryPaymaster =
+	crate::pay::LocalPay<NativeAndAssets, TreasuryAccount, xcm_config::LocationToAccountId>;
 
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
@@ -54,9 +51,8 @@ impl pallet_treasury::Config for Runtime {
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = crate::pay::benchmarks::LocalPayArguments<
-		xcm_config::TrustBackedAssetsPalletIndex,
-	>;
+	type BenchmarkHelper =
+		crate::pay::benchmarks::LocalPayArguments<xcm_config::TrustBackedAssetsPalletIndex>;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
