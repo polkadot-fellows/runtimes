@@ -70,6 +70,7 @@ pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
+mod pay;
 pub mod staking;
 pub mod treasury;
 mod weights;
