@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 
 # Asset Hub Migration concerning deps
+pallet-asset-hub-migration-api = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
@@ -229,6 +230,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-asset-hub-migration-api/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

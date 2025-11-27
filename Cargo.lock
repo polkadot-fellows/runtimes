@@ -895,6 +895,7 @@ dependencies = [
  "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-assets",
  "pallet-aura",
@@ -1068,6 +1069,7 @@ dependencies = [
  "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-assets",
  "pallet-aura",
@@ -8552,6 +8554,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-asset-hub-migration-api"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-asset-rate"
 version = "21.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11107,6 +11119,7 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -15570,6 +15583,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",

@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 pallet-rc-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
+pallet-asset-hub-migration-api = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 hex-literal = { workspace = true }
@@ -399,6 +400,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-asset-hub-migration-api/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

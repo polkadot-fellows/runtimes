@@ -2553,6 +2553,16 @@ pallet_revive::impl_runtime_apis_plus_revive!(
 		}
 	}
 
+	impl pallet_asset_hub_migration_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+		fn migration_start_block() -> BlockNumber {
+			<Runtime as pallet_ah_ops::Config>::MigrationStartBlock::get()
+		}
+
+		fn migration_end_block() -> BlockNumber {
+			<Runtime as pallet_ah_ops::Config>::MigrationEndBlock::get()
+		}
+	}
+
 	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
 		fn parachain_id() -> ParaId {
 			ParachainInfo::parachain_id()

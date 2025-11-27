@@ -3019,6 +3019,16 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
+	impl pallet_asset_hub_migration_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+		fn migration_start_block() -> BlockNumber {
+			pallet_rc_migrator::MigrationStartBlock::<Runtime>::get().unwrap_or(0)
+		}
+
+		fn migration_end_block() -> BlockNumber {
+			pallet_rc_migrator::MigrationEndBlock::<Runtime>::get().unwrap_or(0)
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {

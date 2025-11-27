@@ -2299,6 +2299,16 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl pallet_asset_hub_migration_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+		fn migration_start_block() -> BlockNumber {
+			<Runtime as pallet_ah_ops::Config>::MigrationStartBlock::get()
+		}
+
+		fn migration_end_block() -> BlockNumber {
+			<Runtime as pallet_ah_ops::Config>::MigrationEndBlock::get()
+		}
+	}
+
 	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, Location> for Runtime {
 		fn quote_price_exact_tokens_for_tokens(
 			asset1: Location,
