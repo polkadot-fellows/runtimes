@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Runtime API for the Asset Hub migration process.
+//! Runtime API for fetching info about the Asset Hub migration.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
