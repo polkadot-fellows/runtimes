@@ -150,6 +150,7 @@ std = [
 	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
+	"pallet-asset-hub-migration-api/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
@@ -230,7 +231,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-asset-hub-migration-api/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

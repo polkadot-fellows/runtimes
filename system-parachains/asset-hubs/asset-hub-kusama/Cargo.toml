@@ -319,6 +319,7 @@ std = [
 	"pallet-ah-ops/std",
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
+	"pallet-asset-hub-migration-api/std",
 	"pallet-asset-rate/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
@@ -400,7 +401,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-asset-hub-migration-api/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

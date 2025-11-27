@@ -20,5 +20,5 @@ std = [
 	"codec/std",
 	"scale-info/std",
 	"sp-api/std",
-	"sp-runtime/std"
+	"sp-runtime/std",
 ]
