@@ -468,8 +468,6 @@ pub(crate) type LocalXcmRouter = (
 	XcmpQueue,
 );
 
-/// For routing XCM messages which do not cross local consensus boundary.
-
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
 pub type XcmRouter = WithUniqueTopic<(

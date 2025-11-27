@@ -131,6 +131,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
+	pallet_prelude::BlockNumberFor,
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use pallet_nfts::PalletFeatures;
@@ -1301,6 +1302,11 @@ impl pallet_claims::Config for Runtime {
 	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub MigrationStartBlock: BlockNumberFor<Runtime> = 10_254_470u32;
+	pub MigrationEndBlock: BlockNumberFor<Runtime> = 10_259_208u32;
+}
+
 impl pallet_ah_ops::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1310,6 +1316,8 @@ impl pallet_ah_ops::Config for Runtime {
 	type MigrationCompletion = ConstBool<true>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
 	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
+	type MigrationStartBlock = MigrationStartBlock;
+	type MigrationEndBlock = MigrationEndBlock;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

@@ -40,6 +40,7 @@ use frame_support::{
 		LockableCurrency, ReservableCurrency,
 	},
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_balances::AccountData;
 use sp_runtime::AccountId32;
 
@@ -121,6 +122,14 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type RcAccounts<T: Config> =
 		CountedStorageMap<_, Twox64Concat, T::AccountId, AccountState<u128>, OptionQuery>;
+
+	/// The block number when the migration started.
+	#[pallet::storage]
+	pub type MigrationStartBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
+	/// The block number when the migration ended.
+	#[pallet::storage]
+	pub type MigrationEndBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
