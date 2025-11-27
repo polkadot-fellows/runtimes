@@ -460,8 +460,8 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
 );
 
-/// Use [`LocalXcmRouter`] instead.
-pub(crate) type LocalXcmRouterWithoutException = (
+/// For routing XCM messages which do not cross local consensus boundary.
+pub(crate) type LocalXcmRouter = (
 	// Two routers - use UMP to communicate with the relay chain:
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, PriceForParentDelivery>,
 	// ..and XCMP to communicate with the sibling chains.

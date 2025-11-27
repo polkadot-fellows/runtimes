@@ -131,17 +131,14 @@ parameter_types! {
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. Use [`XcmRouter`] instead.
-pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
-	// Only one router so far - use DMP to communicate with child parachains.
-	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
-)>;
-
 /// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
 /// individual routers.
 ///
 /// This router does not route to the Asset Hub if the migration is ongoing.
-pub type XcmRouter = XcmRouterWithoutException; // @muharem please check
+pub(crate) type XcmRouter = WithUniqueTopic<(
+	// Only one router so far - use DMP to communicate with child parachains.
+	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
+)>;
 
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
