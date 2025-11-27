@@ -469,7 +469,6 @@ pub(crate) type LocalXcmRouterWithoutException = (
 );
 
 /// For routing XCM messages which do not cross local consensus boundary.
-type LocalXcmRouter = LocalXcmRouterWithoutException; // @muharem please check
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
