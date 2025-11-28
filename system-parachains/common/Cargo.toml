@@ -36,6 +36,7 @@ std = [
 	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"log/std",
+	"pallet-treasury/std",
 	"parachains-common/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
@@ -58,10 +59,15 @@ runtime-benchmarks = [
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
 ]
 
 try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"frame-support/try-runtime",
+	"pallet-treasury/try-runtime",
+	"parachains-common/try-runtime",
+	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 ]
