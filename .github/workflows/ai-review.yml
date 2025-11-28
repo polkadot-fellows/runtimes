@@ -2,7 +2,7 @@ name: AI Review PR
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   review:
-    if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    # if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
