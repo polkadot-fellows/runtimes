@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality ([#941](https://github.com/polkadot-fellows/runtimes/pull/941))
+- Runtime API view function for accessing the Asset Hub Migration start and end blocks ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
 
 ### Removed
 
