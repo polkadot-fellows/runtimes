@@ -1,0 +1,7 @@
+rules:
+  - repo: polka-codes/prompts
+    path: review/preamble.md
+  - repo: polka-codes/prompts
+    path: review/rust.md
+  - repo: polka-codes/prompts
+    path: review/polkadot-sdk.md
