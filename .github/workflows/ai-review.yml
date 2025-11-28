@@ -2,7 +2,7 @@ name: AI Review PR
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, ready_for_review]
   workflow_dispatch:
     inputs:
       pr_number:
