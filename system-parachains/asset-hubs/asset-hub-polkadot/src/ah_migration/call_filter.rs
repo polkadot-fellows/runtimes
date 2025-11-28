@@ -88,8 +88,7 @@ pub fn call_allowed_status(
 	let before_migration = call_allowed_before_migration(call);
 
 	let during_migration = match call {
-		AhMigrator(..) => ON, // required for the migration, only permissioned calls
-		AhOps(..) => OFF,     // Not needed during the migration
+		AhOps(..) => OFF,          // Not needed during the migration
 		AssetConversion(..) => ON, // no reason to disable it, just convenience
 		AssetRate(..) => OFF,
 		Assets(..) => ON,   // no reason to disable it, just convenience
@@ -175,7 +174,6 @@ pub fn call_allowed_before_migration(
 		Treasury(..) => OFF,
 		// Everything else is enabled before the migration.
 		// Exhaustive match in case a pallet is added:
-		AhMigrator(..) |
 		AhOps(..) |
 		AssetConversion(..) |
 		AssetRate(..) |

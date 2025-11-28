@@ -108,6 +108,12 @@ pub mod pallet {
 		/// The post-migration treasury account address.
 		type TreasuryPostMigrationAccount: Get<Self::AccountId>;
 
+		/// The block number when the migration started.
+		type MigrationStartBlock: Get<BlockNumberFor<Self>>;
+
+		/// The block number when the migration ended.
+		type MigrationEndBlock: Get<BlockNumberFor<Self>>;
+
 		/// The Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 	}

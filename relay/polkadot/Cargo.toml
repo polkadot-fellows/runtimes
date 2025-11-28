@@ -10,6 +10,7 @@ license.workspace = true
 [dependencies]
 
 # Asset Hub Migration concerning deps
+pallet-asset-hub-migration-api = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
@@ -137,6 +138,7 @@ polkadot-ahm = [
 	"pallet-rc-migrator/polkadot-ahm",
 ]
 std = [
+	"pallet-asset-hub-migration-api/std",
 	"pallet-rc-migrator/std",
 
 	"authority-discovery-primitives/std",

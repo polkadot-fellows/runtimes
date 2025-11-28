@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 
 # Asset Hub Migration concerning deps
+pallet-asset-hub-migration-api = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
@@ -149,6 +150,7 @@ std = [
 	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
+	"pallet-asset-hub-migration-api/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
