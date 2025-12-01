@@ -34,11 +34,11 @@ jobs:
         with:
           pr_number: ${{ github.event.inputs.pr_number || github.event.number }}
           review: true
+          config: .config/review.polkacodes.yml
         env:
           POLKA_API_PROVIDER: openrouter
           POLKA_MODEL: google/gemini-2.5-pro
           GITHUB_TOKEN: ${{ github.token }}
           POLKA_API_KEY: ${{ secrets.POLKA_API_KEY }}
           POLKA_BUDGET: 5
-          config: .config/review.polkacodes.yml
 
