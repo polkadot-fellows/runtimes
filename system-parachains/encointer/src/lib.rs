@@ -586,15 +586,25 @@ impl pallet_encointer_faucet::Config for Runtime {
 	type WeightInfo = weights::pallet_encointer_faucet::WeightInfo<Runtime>;
 }
 
-// parameter_types! {
-// 	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
-// 	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
-// }
+mod democracy_consts {
+	use super::Moment;
+	// Can immediately be confirmed
+	#[cfg(feature = "fast-runtime")]
+	pub const CONFIRMATION_PERIOD: Moment = 0;
+
+	#[cfg(not(feature = "fast-runtime"))]
+	pub const CONFIRMATION_PERIOD: Moment = 2 * 24 * 3600 * 1000; // [ms]
+
+	#[cfg(feature = "fast-runtime")]
+	pub const PROPOSAL_LIFETIME: Moment = 100 * 60 * 1000; // [ms]
+
+	#[cfg(not(feature = "fast-runtime"))]
+	pub const PROPOSAL_LIFETIME: Moment = 9 * 24 * 3600 * 1000; // [ms]
+}
 
 parameter_types! {
-	// Can immediately be confirmed
-	pub const ConfirmationPeriod: Moment = 0; // [ms]
-	pub const ProposalLifetime: Moment = 100 * 60 * 1000; // [ms]
+	pub const ConfirmationPeriod: Moment = democracy_consts::CONFIRMATION_PERIOD;
+	pub const ProposalLifetime: Moment = democracy_consts::PROPOSAL_LIFETIME; // [ms]
 }
 
 impl pallet_encointer_democracy::Config for Runtime {
