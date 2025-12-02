@@ -6,9 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
+
 ### Added
 
+- Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality ([#941](https://github.com/polkadot-fellows/runtimes/pull/941))
+- asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+
+## [2.0.3] 21.11.2025
+
+### Added
+
+- Set Ethereum Fulu fork epoch ([#1005](https://github.com/polkadot-fellows/runtimes/pull/1005))
+
+### Changed
+
+- Remove XCM Transact filters and Pool asset transactors ([#1014](https://github.com/polkadot-fellows/runtimes/pull/1014))
+
+## [2.0.2] 07.11.2025
+
+### Fixed
+
+- Fix AH staking inflation calculation to use correct total issuance (https://github.com/polkadot-fellows/runtimes/pull/998).
+- Set invulnerable deposit for Polkadot AssetHub staking election ([#993](https://github.com/polkadot-fellows/runtimes/pull/993))
+- Fix staking on Asset Hub via XCM ([#1006](https://github.com/polkadot-fellows/runtimes/pull/1006))
+- Fix flaky `curl` download command in CI ([#1006](https://github.com/polkadot-fellows/runtimes/pull/1006))
+
+## [2.0.1] 04.11.2025
+
+### Removed
+
+ - Remove AHM Test code to speed up CI ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Relinquish AHM multisig functionality post AHM ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+
+### Changed
+
+- Bump deps ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
 
 ## [2.0.0] 27.10.2025
 
