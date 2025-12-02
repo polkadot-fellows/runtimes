@@ -112,13 +112,13 @@ impl pallet_asset_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = Assets;
 	type OnChargeAssetTransaction = OnChargeStableTransaction;
-	type WeightInfo = (); // TODO: weight
+	type WeightInfo = weights::pallet_asset_tx_payment::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = AssetTxPaymentBenchmarkHelper;
 }
 
 impl pallet_asset_rate::Config for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type CreateOrigin = EnsureRoot<AccountId>;
 	type RemoveOrigin = EnsureRoot<AccountId>;
