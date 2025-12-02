@@ -94,7 +94,7 @@ pub use parachains_common::{
 };
 use polkadot_runtime_common::{
 	impls::{LocatableAssetConverter, VersionedLocatableAsset},
-	BlockHashCount, SlowAdjustingFeeUpdate,
+	prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
@@ -586,25 +586,9 @@ impl pallet_encointer_faucet::Config for Runtime {
 	type WeightInfo = weights::pallet_encointer_faucet::WeightInfo<Runtime>;
 }
 
-mod democracy_consts {
-	use super::Moment;
-	// Can immediately be confirmed
-	#[cfg(feature = "fast-runtime")]
-	pub const CONFIRMATION_PERIOD: Moment = 0;
-
-	#[cfg(not(feature = "fast-runtime"))]
-	pub const CONFIRMATION_PERIOD: Moment = 2 * 24 * 3600 * 1000; // [ms]
-
-	#[cfg(feature = "fast-runtime")]
-	pub const PROPOSAL_LIFETIME: Moment = 100 * 60 * 1000; // [ms]
-
-	#[cfg(not(feature = "fast-runtime"))]
-	pub const PROPOSAL_LIFETIME: Moment = 9 * 24 * 3600 * 1000; // [ms]
-}
-
 parameter_types! {
-	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0);
-	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000);
+	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0); // [ms]
+	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000); // [ms]
 }
 
 impl pallet_encointer_democracy::Config for Runtime {
