@@ -603,8 +603,8 @@ mod democracy_consts {
 }
 
 parameter_types! {
-	pub const ConfirmationPeriod: Moment = democracy_consts::CONFIRMATION_PERIOD;
-	pub const ProposalLifetime: Moment = democracy_consts::PROPOSAL_LIFETIME; // [ms]
+	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0);
+	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000);
 }
 
 impl pallet_encointer_democracy::Config for Runtime {
