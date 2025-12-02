@@ -106,7 +106,14 @@ use system_parachains_constants::{
 	async_backing::{
 		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	},
-	kusama::{currency::*, fee::WeightToFee},
+	kusama::{
+		consensus::{
+			elastic_scaling::{BLOCK_PROCESSING_VELOCITY, UNINCLUDED_SEGMENT_CAPACITY},
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
 use xcm::{
@@ -122,22 +129,6 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
-
-/// Build with an offset of 1 behind the relay chain.
-const RELAY_PARENT_OFFSET: u32 = 1;
-
-/// The upper limit of how many parachain blocks are processed by the relay chain per
-/// parent. Limits the number of blocks authored per slot. This determines the minimum
-/// block time of the parachain:
-/// `RELAY_CHAIN_SLOT_DURATION_MILLIS/BLOCK_PROCESSING_VELOCITY`
-const BLOCK_PROCESSING_VELOCITY: u32 = 3;
-
-/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
-/// into the relay chain.
-const UNINCLUDED_SEGMENT_CAPACITY: u32 = (2 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY + 1;
-
-/// Relay chain slot duration, in milliseconds.
-const RELAY_CHAIN_SLOT_DURATION_MILLIS: u32 = 6000;
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
