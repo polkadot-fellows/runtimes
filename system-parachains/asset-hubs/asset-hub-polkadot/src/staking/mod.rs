@@ -198,9 +198,9 @@ impl multi_block::verifier::Config for Runtime {
 /// use polkadot_runtime_constants::currency::UNITS;
 ///
 /// // Base deposit
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), 4 * UNITS);
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 8 * UNITS );
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS);
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), 100 * UNITS);
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 200 * UNITS);
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 400 * UNITS);
 /// // and so on
 ///
 /// // Full 16 page deposit, to be paid on top of the above base
