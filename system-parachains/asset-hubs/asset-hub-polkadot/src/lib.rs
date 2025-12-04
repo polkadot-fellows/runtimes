@@ -176,7 +176,7 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{
 	claims as pallet_claims, prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
-use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -246,7 +246,7 @@ impl frame_system::Config for Runtime {
 	type RuntimeTask = RuntimeTask;
 	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
-	type DbWeight = RocksDbWeight;
+	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
 	type OnNewAccount = ();
