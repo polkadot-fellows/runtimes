@@ -212,7 +212,7 @@ impl multi_block::verifier::Config for Runtime {
 pub struct GeometricDeposit;
 impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	fn calculate_base_deposit(existing_submitters: usize) -> Balance {
-		let start: Balance = UNITS * 4;
+		let start: Balance = UNITS * 100;
 		let common: Balance = 2;
 		start.saturating_mul(common.saturating_pow(existing_submitters as u32))
 	}
