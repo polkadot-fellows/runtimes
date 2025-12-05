@@ -221,51 +221,53 @@ fn test_assets_balances_api_works() {
 		});
 }
 
-asset_test_utils::include_teleports_for_native_asset_works!(
-	Runtime,
-	AllPalletsWithoutSystem,
-	XcmConfig,
-	// TODO: after AHM change this from `()` to `CheckingAccount`
-	(),
-	WeightToFee,
-	ParachainSystem,
-	collator_session_keys(),
-	slot_durations(),
-	ExistentialDeposit::get(),
-	Box::new(|runtime_event_encoded: Vec<u8>| {
-		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
-			Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
-			_ => None,
-		}
-	}),
-	1000
-);
+// Enable once the fix https://github.com/paritytech/polkadot-sdk/pull/10541 is released.
+// asset_test_utils::include_teleports_for_native_asset_works!(
+// 	Runtime,
+// 	AllPalletsWithoutSystem,
+// 	XcmConfig,
+// 	// TODO: after AHM change this from `()` to `CheckingAccount`
+// 	(),
+// 	WeightToFee,
+// 	ParachainSystem,
+// 	collator_session_keys(),
+// 	slot_durations(),
+// 	ExistentialDeposit::get(),
+// 	Box::new(|runtime_event_encoded: Vec<u8>| {
+// 		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+// 			Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
+// 			_ => None,
+// 		}
+// 	}),
+// 	1000
+// );
 
-include_teleports_for_foreign_assets_works!(
-	Runtime,
-	AllPalletsWithoutSystem,
-	XcmConfig,
-	CheckingAccount,
-	WeightToFee,
-	ParachainSystem,
-	LocationToAccountId,
-	ForeignAssetsInstance,
-	collator_session_keys(),
-	slot_durations(),
-	ExistentialDeposit::get(),
-	Box::new(|runtime_event_encoded: Vec<u8>| {
-		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
-			Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
-			_ => None,
-		}
-	}),
-	Box::new(|runtime_event_encoded: Vec<u8>| {
-		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
-			Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
-			_ => None,
-		}
-	})
-);
+// Enable once the fix https://github.com/paritytech/polkadot-sdk/pull/10541 is released.
+// include_teleports_for_foreign_assets_works!(
+// 	Runtime,
+// 	AllPalletsWithoutSystem,
+// 	XcmConfig,
+// 	CheckingAccount,
+// 	WeightToFee,
+// 	ParachainSystem,
+// 	LocationToAccountId,
+// 	ForeignAssetsInstance,
+// 	collator_session_keys(),
+// 	slot_durations(),
+// 	ExistentialDeposit::get(),
+// 	Box::new(|runtime_event_encoded: Vec<u8>| {
+// 		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+// 			Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
+// 			_ => None,
+// 		}
+// 	}),
+// 	Box::new(|runtime_event_encoded: Vec<u8>| {
+// 		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+// 			Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
+// 			_ => None,
+// 		}
+// 	})
+// );
 
 asset_test_utils::include_asset_transactor_transfer_with_local_consensus_currency_works!(
 	Runtime,
@@ -363,6 +365,8 @@ fn bridging_to_asset_hub_polkadot() -> TestBridgingConfig {
 	}
 }
 
+// Enable once the fix https://github.com/paritytech/polkadot-sdk/pull/10541 is released.
+#[ignore]
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works() {
 	ExtBuilder::<Runtime>::default()
@@ -464,6 +468,8 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 	)
 }
 
+// Enable once the fix https://github.com/paritytech/polkadot-sdk/pull/10541 is released.
+#[ignore]
 #[test]
 fn reserve_transfer_native_asset_to_non_teleport_para_works() {
 	asset_test_utils::test_cases::reserve_transfer_native_asset_to_non_teleport_para_works::<
