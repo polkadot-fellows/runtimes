@@ -8663,6 +8663,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-assets-holder"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c549038f0699df1d8370cea5e78de5e652a1bab42f06a7a07c860c5b97baf1c8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-assets",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-aura"
 version = "41.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10857,6 +10873,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "integration-tests-helpers",
+ "pallet-assets",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
@@ -10868,6 +10885,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "polkadot-system-emulated-network",
+ "sp-io",
  "sp-runtime",
  "staging-xcm",
  "staging-xcm-executor",
@@ -10878,6 +10896,7 @@ dependencies = [
 name = "people-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "assets-common",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -10897,6 +10916,10 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
+ "pallet-asset-rate",
+ "pallet-asset-tx-payment",
+ "pallet-assets",
+ "pallet-assets-holder",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
