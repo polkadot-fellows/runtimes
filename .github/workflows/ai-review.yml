@@ -2,7 +2,7 @@ name: AI Review PR
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, ready_for_review]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -34,6 +34,7 @@ jobs:
         with:
           pr_number: ${{ github.event.inputs.pr_number || github.event.number }}
           review: true
+          config: .config/review.polkacodes.yml
         env:
           POLKA_API_PROVIDER: openrouter
           POLKA_MODEL: google/gemini-2.5-pro
