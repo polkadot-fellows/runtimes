@@ -326,9 +326,17 @@ jobs:
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
+          
+      - name: Use latest Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Install yarn
+        run: npm install -g yarn
 
       - name: Installing dependencies of ecosystem tests
-        working-directory: ./ecosystem-tests
+        working-directory: ecosystem-tests
         run: yarn install
 
       - name: Running ecosystem tests
