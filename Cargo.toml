@@ -9,7 +9,7 @@ license = "GPL-3.0-only"                                        # TODO <https://
 pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
-pallet-election-provider-multi-block = { version = "0.3.2", default-features = false }
+pallet-election-provider-multi-block = { version = "0.3.4", default-features = false }
 pallet-staking-async = { version = "0.6.2", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
@@ -60,6 +60,7 @@ cumulus-pallet-parachain-system = { version = "0.22.0", default-features = false
 cumulus-pallet-session-benchmarking = { version = "23.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.21.0", default-features = false }
 cumulus-pallet-xcmp-queue = { version = "0.22.1", default-features = false }
+cumulus-pallet-weight-reclaim = { version = "0.4.0", default-features = false }
 cumulus-primitives-aura = { version = "0.19.0", default-features = false }
 cumulus-primitives-core = { version = "0.20.0", default-features = false }
 cumulus-primitives-utility = { version = "0.22.0", default-features = false }
@@ -211,14 +212,14 @@ separator = { version = "0.4.1" }
 serde = { version = "1.0.214" }
 serde_json = { version = "1.0.132", default-features = false }
 smallvec = { version = "1.13.1" }
-snowbridge-beacon-primitives = { version = "0.15.0", default-features = false }
+snowbridge-beacon-primitives = { version = "0.15.2", default-features = false }
 snowbridge-core = { version = "0.15.0", default-features = false }
 snowbridge-merkle-tree = { version = "0.4.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.15.0", default-features = false }
 snowbridge-outbound-queue-v2-runtime-api = { version = "0.4.0", default-features = false }
 snowbridge-outbound-queue-primitives = { version = "0.4.0", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.15.0", default-features = false }
-snowbridge-pallet-inbound-queue = { version = "0.15.0", default-features = false }
+snowbridge-pallet-ethereum-client = { version = "0.15.2", default-features = false }
+snowbridge-pallet-inbound-queue = { version = "0.15.2", default-features = false }
 snowbridge-pallet-inbound-queue-v2 = { version = "0.4.0", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.23.0" }
 snowbridge-pallet-ethereum-client-fixtures = { version = "0.23.0" }
@@ -278,7 +279,6 @@ resolver = "2"
 
 members = [
 	"chain-spec-generator",
-	"integration-tests/ahm",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",

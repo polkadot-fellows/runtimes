@@ -5,7 +5,7 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["release-*"]
   pull_request:
   workflow_dispatch:
 
@@ -77,7 +77,7 @@ jobs:
             CHECKS="pre-and-post"
           else
             echo "Enabling weight checks since we are not on a relay"
-            
+
             echo "Enabling try-state checks on the non-relay"
             CHECKS="all"
           fi

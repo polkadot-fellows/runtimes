@@ -29,10 +29,11 @@ use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
-	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber,
+	traits::Convert, transaction_validity::TransactionPriority, FixedPointNumber, Perquintill,
 	SaturatedConversion,
 };
 use sp_staking::SessionIndex;
+use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
 
 // stuff aliased to `parameters` pallet.
@@ -190,16 +191,21 @@ impl multi_block::verifier::Config for Runtime {
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	/// Initial base deposit for signed NPoS solution submissions
+	pub InitialBaseDeposit: Balance = 100 * UNITS;
+}
+
 /// ## Example
 /// ```
-/// use asset_hub_polkadot_runtime::staking::GeometricDeposit;
+/// use asset_hub_polkadot_runtime::staking::{GeometricDeposit, InitialBaseDeposit};
 /// use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
 /// use polkadot_runtime_constants::currency::UNITS;
 ///
 /// // Base deposit
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), 4 * UNITS);
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 8 * UNITS );
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS);
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), InitialBaseDeposit::get());
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 2 * InitialBaseDeposit::get());
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 4 * InitialBaseDeposit::get());
 /// // and so on
 ///
 /// // Full 16 page deposit, to be paid on top of the above base
@@ -211,7 +217,7 @@ impl multi_block::verifier::Config for Runtime {
 pub struct GeometricDeposit;
 impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	fn calculate_base_deposit(existing_submitters: usize) -> Balance {
-		let start: Balance = UNITS * 4;
+		let start: Balance = InitialBaseDeposit::get();
 		let common: Balance = 2;
 		start.saturating_mul(common.saturating_pow(existing_submitters as u32))
 	}
@@ -237,7 +243,7 @@ impl multi_block::signed::Config for Runtime {
 	type EjectGraceRatio = EjectGraceRatio;
 	type DepositBase = GeometricDeposit;
 	type DepositPerPage = SignedDepositPerPage;
-	type InvulnerableDeposit = ();
+	type InvulnerableDeposit = InvulnerableFixedDeposit;
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
@@ -301,7 +307,7 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
 
 		// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
-		let fixed_total_issuance: i128 = 5_216_342_402_773_185_773;
+		let fixed_total_issuance: i128 = 15_011_657_390_566_252_333;
 		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
 		let yearly_emission = fixed_inflation_rate.saturating_mul_int(fixed_total_issuance);
 
@@ -311,6 +317,23 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 		let to_stakers = era_emission.saturating_sub(to_treasury);
 
 		(to_stakers.saturated_into(), to_treasury.saturated_into())
+	}
+}
+
+impl EraPayout {
+	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
+		// We assume un-delayed 24h eras.
+		let era_duration = 24 * 60 * 60 * 1000;
+		let next_mint =
+			<Self as pallet_staking_async::EraPayout<Balance>>::era_payout(0, 0, era_duration);
+
+		// What is our effective issuance rate now?
+		let total = next_mint.0 + next_mint.1;
+		let annual_issuance = total * 36525 / 100;
+		let ti = pallet_balances::TotalIssuance::<Runtime>::get();
+		let issuance = Perquintill::from_rational(annual_issuance, ti);
+
+		InflationInfo { issuance, next_mint }
 	}
 }
 
@@ -510,6 +533,40 @@ mod tests {
 	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
+
+	#[test]
+	fn inflation_sanity_check() {
+		use pallet_staking_async::EraPayout as _;
+		// values taken from the last Polkadot staking payout while it was in RC.
+		// https://polkadot.subscan.io/block/28481296
+		// Payout: 279k DOT to validators / 49k DOT to treasury
+		// active era: 1980
+		// Note: Amount don't exactly match due to timestamp being an estimate. Same ballpark is
+		// good.
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			let average_era_duration_millis = 24 * 60 * 60 * 1000; // 24h
+			let (staking, treasury) = super::EraPayout::era_payout(
+				0, // not used
+				0, // not used
+				average_era_duration_millis,
+			);
+			assert_eq!(staking, 279477_8104198508);
+			assert_eq!(treasury, 49319_6136035030);
+
+			// a recent TI of Polkadot
+			pallet_balances::TotalIssuance::<Runtime>::put(16_336_817_797_558_128_793);
+			let expected_issuance_parts = 73510802784664934;
+			assert_eq!(
+				super::EraPayout::impl_experimental_inflation_info(),
+				InflationInfo {
+					issuance: Perquintill::from_parts(expected_issuance_parts),
+					next_mint: (2794778104198508, 493196136035030)
+				}
+			);
+			// around 7% for now.
+			assert_eq!(expected_issuance_parts * 100 / 10u64.pow(18), 7);
+		});
+	}
 
 	fn analyze_weight(
 		op_name: &str,
