@@ -48,7 +48,7 @@ pub mod consensus {
 		/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
 		/// into the relay chain.
 		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 =
-			(2 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY + 1;
+			(3 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY;
 	}
 }
 
