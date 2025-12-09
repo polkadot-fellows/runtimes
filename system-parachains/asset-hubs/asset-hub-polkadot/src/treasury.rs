@@ -21,7 +21,7 @@ use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 parameter_types! {
 	pub const SpendPeriod: BlockNumber = 24 * RC_DAYS;
 	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
-	pub const Burn: Permill = Permill::from_percent(1);
+	pub const Burn: Permill = Permill::from_percent(0);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 90 * RC_DAYS;
 	pub const MaxApprovals: u32 = 100;
