@@ -17,6 +17,8 @@
 //! Local implementation of the pay module with V3 to V5 conversion support.
 //! This is a temporary fix until the changes are merged into polkadot-sdk.
 
+// TODO (issue #1027): remove this module and import it from polkadot-sdk instead
+
 use frame_support::traits::{
 	fungibles,
 	tokens::{PaymentStatus, Preservation},
