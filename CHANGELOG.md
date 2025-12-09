@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
-- ahk: Prepare ElasticScaling with 3 cores on asset hub kusama ([#1018](https://github.com/polkadot-fellows/runtimes/pull/1018))
+- AH Kusama: Prepare ElasticScaling with 3 cores on asset hub kusama ([#1018](https://github.com/polkadot-fellows/runtimes/pull/1018))
 
 ### Added
 
