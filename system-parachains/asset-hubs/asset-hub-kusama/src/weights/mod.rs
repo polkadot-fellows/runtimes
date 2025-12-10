@@ -55,7 +55,6 @@ pub mod pallet_election_provider_multi_block_unsigned;
 pub mod pallet_election_provider_multi_block_verifier;
 pub mod pallet_indices;
 pub mod pallet_referenda;
-pub mod pallet_revive;
 pub mod pallet_scheduler;
 pub mod pallet_session;
 pub mod pallet_staking_async;
