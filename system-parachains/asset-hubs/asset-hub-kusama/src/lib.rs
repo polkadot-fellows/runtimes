@@ -73,12 +73,13 @@ use frame_system::{
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
-use pallet_assets::precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
 use pallet_revive::evm::runtime::EthExtra;
-use pallet_xcm::{precompiles::XcmPrecompile, EnsureXcm, IsVoiceOfBody};
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
+use pallet_xcm_precompiles::XcmPrecompile;
 use parachains_common::{
 	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
 	Header, Nonce, Signature,
@@ -96,7 +97,7 @@ use sp_runtime::{
 		Get, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill, Perquintill, RuntimeDebug,
+	ApplyExtrinsicResult, FixedU128, Perbill, Permill, Perquintill, RuntimeDebug,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -302,7 +303,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<333333333, 10_815_700_000_000, Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
@@ -1173,20 +1174,24 @@ impl pallet_remote_proxy::Config for Runtime {
 
 parameter_types! {
 	pub const DepositPerItem: Balance = system_para_deposit(1, 0);
+	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 100;
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
+	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(9, 10);
 }
 
 impl pallet_revive::Config for Runtime {
 	type Time = Timestamp;
+	type Balance = Balance;
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
+	type RuntimeOrigin = RuntimeOrigin;
 	type DepositPerItem = DepositPerItem;
+	type DepositPerChildTrieItem = DepositPerChildTrieItem;
 	type DepositPerByte = DepositPerByte;
-	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	// TODO(#840): use `weights::pallet_revive::WeightInfo` here
-	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type WeightInfo = weights::pallet_revive::WeightInfo<Runtime>;
 	type Precompiles = (
 		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
 		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
@@ -1204,8 +1209,12 @@ impl pallet_revive::Config for Runtime {
 	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
 	type ChainId = ConstU64<420_420_418>;
 	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
-	type EthGasEncoder = ();
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+	type AllowEVMBytecode = ConstBool<true>;
+	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
+	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
+	type DebugEnabled = ConstBool<false>;
+	type GasScale = ConstU32<10000>;
 }
 
 parameter_types! {
@@ -1671,6 +1680,7 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckWeight<Runtime>,
 		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+		pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
 	),
 >;
 
@@ -1693,6 +1703,7 @@ impl EthExtra for EthExtraImpl {
 			frame_system::CheckWeight::<Runtime>::new(),
 			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
 		)
 			.into()
 	}
@@ -2278,8 +2289,9 @@ mod benches {
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
-pallet_revive::impl_runtime_apis_plus_revive!(
+pallet_revive::impl_runtime_apis_plus_revive_traits!(
 	Runtime,
+	Revive,
 	Executive,
 	EthExtraImpl,
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
