@@ -35,8 +35,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Defensive, Equals, Everything, FromContains,
-		LinearStoragePrice, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Defensive, Equals, Everything, LinearStoragePrice,
+		PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -94,17 +94,13 @@ parameter_types! {
 			.defensive_unwrap_or(crate::treasury::TreasuryAccount::get());
 	pub PostMigrationTreasuryAccount: AccountId = crate::treasury::TreasuryAccount::get();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = Some((CheckingAccount::get(), MintLocation::Local));
 	pub const Here: Location = Location::here();
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
 
 /// Treasury account that changes once migration ends.
-pub type TreasuryAccount = pallet_ah_migrator::xcm_config::TreasuryAccount<
-	crate::AhMigrator,
-	PreMigrationRelayTreasuryPalletAccount,
-	PostMigrationTreasuryAccount,
->;
+pub type TreasuryAccount = PostMigrationTreasuryAccount;
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
 ///
@@ -370,11 +366,7 @@ impl xcm_executor::Config for XcmConfig {
 	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset
 	// native to the Polkadot or Ethereum ecosystems.
 	type IsReserve = (bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,);
-	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
-		crate::AhMigrator,
-		TrustedTeleportersWhileMigrating,
-		TrustedTeleporters,
-	>;
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -468,26 +460,13 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
 );
 
-/// Use [`LocalXcmRouter`] instead.
-pub(crate) type LocalXcmRouterWithoutException = (
+/// For routing XCM messages which do not cross local consensus boundary.
+pub(crate) type LocalXcmRouter = (
 	// Two routers - use UMP to communicate with the relay chain:
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, PriceForParentDelivery>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 );
-
-/// For routing XCM messages which do not cross local consensus boundary.
-type LocalXcmRouter = pallet_ah_migrator::RouteInnerWithException<
-	LocalXcmRouterWithoutException,
-	// Exception: query responses to Relay Chain (`ParentLocation`) which initiated (`Querier`) by
-	// the Relay Chain (`Here`, since from the perspective of the receiver).
-	// See: https://github.com/paritytech/polkadot-sdk/blob/28b7c7770e9e7abf5b561fc42cfe565baf076cb7/polkadot/xcm/xcm-executor/src/lib.rs#L728
-	//
-	// This exception is required for the migration flow-control system to send query responses
-	// to the Relay Chain, confirming that data messages have been received.
-	FromContains<Equals<ParentLocation>, pallet_ah_migrator::ExceptResponseFor<Equals<Here>>>,
-	crate::AhMigrator,
->;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.

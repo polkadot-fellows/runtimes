@@ -87,6 +87,8 @@ parameter_types! {
 	pub const MigrationCompletion: bool = true;
 	pub TreasuryPreMigrationAccount: AccountId32 = AccountId32::from([1; 32]);
 	pub TreasuryPostMigrationAccount: AccountId32 = AccountId32::from([2; 32]);
+	pub MigrationStartBlock: BlockNumberFor<Runtime> = 123u64;
+	pub MigrationEndBlock: BlockNumberFor<Runtime> = 456u64;
 }
 
 impl Config for Runtime {
@@ -98,6 +100,8 @@ impl Config for Runtime {
 	type MigrationCompletion = MigrationCompletion;
 	type TreasuryPreMigrationAccount = TreasuryPreMigrationAccount;
 	type TreasuryPostMigrationAccount = TreasuryPostMigrationAccount;
+	type MigrationStartBlock = MigrationStartBlock;
+	type MigrationEndBlock = MigrationEndBlock;
 }
 
 #[cfg(feature = "runtime-benchmarks")]

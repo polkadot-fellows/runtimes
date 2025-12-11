@@ -6,7 +6,7 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
-pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
+pallet-asset-hub-migration-api = { path = "pallets/asset-hub-migration-api", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.3.4", default-features = false }
@@ -309,8 +309,8 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
-	"pallets/ah-migrator",
 	"pallets/ah-ops",
+	"pallets/asset-hub-migration-api",
 	"pallets/rc-migrator",
 	"pallets/remote-proxy",
 	"relay/common",

@@ -46,7 +46,6 @@ pub mod pallet_society;
 // TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
 // pub mod pallet_revive;
 pub mod inmemorydb_weights;
-pub mod pallet_ah_migrator;
 pub mod pallet_ah_ops;
 pub mod pallet_bags_list;
 pub mod pallet_election_provider_multi_block;

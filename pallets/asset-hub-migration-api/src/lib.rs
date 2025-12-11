@@ -1,5 +1,3 @@
-// This file is part of Substrate.
-
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -15,14 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![doc = include_str!("preimage.md")]
+//! Runtime API for fetching info about the Asset Hub migration.
 
-pub mod chunks;
-pub mod legacy_request_status;
-pub mod request_status;
+#![cfg_attr(not(feature = "std"), no_std)]
 
-pub use chunks::{PreimageChunkMigrator, RcPreimageChunk, CHUNK_SIZE};
-pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageLegacyStatusOf};
-pub use request_status::{
-	PortableRequestStatus, PortableRequestStatusInner, PreimageRequestStatusMigrator,
-};
+sp_api::decl_runtime_apis! {
+	/// API to query information about the Asset Hub migration process.
+	pub trait AssetHubMigrationApi<BlockNumber> where BlockNumber: sp_runtime::traits::BlockNumber {
+		/// Returns the block number when the migration started.
+		fn migration_start_block() -> BlockNumber;
+
+		/// Returns the block number when the migration ended.
+		fn migration_end_block() -> BlockNumber;
+	}
+}
