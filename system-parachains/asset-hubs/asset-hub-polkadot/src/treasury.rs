@@ -21,7 +21,6 @@ use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 parameter_types! {
 	pub const SpendPeriod: BlockNumber = 24 * RC_DAYS;
 	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
-	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 90 * RC_DAYS;
 	pub const MaxApprovals: u32 = 100;
@@ -41,7 +40,7 @@ impl pallet_treasury::Config for Runtime {
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = pallet_ah_migrator::LeftOrRight<AhMigrator, DisableSpends, SpendPeriod>;
-	type Burn = Burn;
+	type Burn = ();
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
