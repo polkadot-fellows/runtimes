@@ -1174,7 +1174,7 @@ impl pallet_remote_proxy::Config for Runtime {
 
 parameter_types! {
 	pub const DepositPerItem: Balance = system_para_deposit(1, 0);
-	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0);
+	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 10;
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(9, 10);
@@ -1215,7 +1215,7 @@ impl pallet_revive::Config for Runtime {
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
-	type GasScale = ConstU32<1_000_000>;
+	type GasScale = ConstU32<100_000>;
 }
 
 parameter_types! {
