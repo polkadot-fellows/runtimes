@@ -47,3 +47,4 @@ jobs:
         env:
           RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1
+          SKIP_PALLET_REVIVE_FIXTURES: 1
