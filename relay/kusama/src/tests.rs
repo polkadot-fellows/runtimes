@@ -240,3 +240,104 @@ fn staking_operator_proxy_filter_works() {
 		delay: 0,
 	})));
 }
+
+/// A Staking proxy can add/remove a StakingOperator proxy for the account it is proxying.
+#[test]
+fn staking_proxy_can_manage_staking_operator() {
+	use frame_support::assert_ok;
+	use sp_runtime::traits::StaticLookup;
+
+	// Given: Build storage with balances for test accounts
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+
+	let alice: AccountId = [1u8; 32].into();
+	let bob: AccountId = [2u8; 32].into();
+	let carol: AccountId = [3u8; 32].into();
+
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![
+			(alice.clone(), 100 * UNITS),
+			(bob.clone(), 100 * UNITS),
+			(carol.clone(), 100 * UNITS),
+		],
+		dev_accounts: None,
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(|| {
+		// Given: Alice has Bob as her Staking proxy
+		assert_ok!(Proxy::add_proxy(
+			RuntimeOrigin::signed(alice.clone()),
+			<Runtime as frame_system::Config>::Lookup::unlookup(bob.clone()),
+			TransparentProxyType(ProxyType::Staking),
+			0
+		));
+
+		// When: Bob (via proxy) adds Carol as StakingOperator for Alice
+		let add_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+			proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+			delay: 0,
+		});
+		assert_ok!(Proxy::proxy(
+			RuntimeOrigin::signed(bob.clone()),
+			<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+			None,
+			Box::new(add_call)
+		));
+
+		// Then: Carol is Alice's StakingOperator proxy
+		let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+		assert!(
+			alice_proxies.0.iter().any(|p| p.delegate == carol &&
+				p.proxy_type == TransparentProxyType(ProxyType::StakingOperator)),
+			"Carol should be Alice's StakingOperator proxy"
+		);
+
+		// When: Bob tries to add an Any proxy for Alice
+		let add_any_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+			proxy_type: TransparentProxyType(ProxyType::Any),
+			delay: 0,
+		});
+		// Note: proxy() returns Ok(()) even when inner call fails (result is in event)
+		let _ = Proxy::proxy(
+			RuntimeOrigin::signed(bob.clone()),
+			<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+			None,
+			Box::new(add_any_call),
+		);
+
+		// Then: Carol was NOT added as Any proxy (filter rejected it)
+		let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+		assert!(
+			!alice_proxies.0.iter().any(
+				|p| p.delegate == carol && p.proxy_type == TransparentProxyType(ProxyType::Any)
+			),
+			"Carol should NOT be Alice's Any proxy - Staking proxy cannot add Any"
+		);
+
+		// When: Bob (via proxy) removes Carol as StakingOperator for Alice
+		let remove_call = RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+			delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+			proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+			delay: 0,
+		});
+		assert_ok!(Proxy::proxy(
+			RuntimeOrigin::signed(bob.clone()),
+			<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+			None,
+			Box::new(remove_call)
+		));
+
+		// Then: Carol is no longer Alice's StakingOperator proxy
+		let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+		assert!(
+			!alice_proxies.0.iter().any(|p| p.delegate == carol &&
+				p.proxy_type == TransparentProxyType(ProxyType::StakingOperator)),
+			"Carol should no longer be Alice's StakingOperator proxy"
+		);
+	});
+}
