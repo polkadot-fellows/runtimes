@@ -10477,9 +10477,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "163316fdf72b1bc1683ec426a94f8f91ae4a4362e19137625dd3d2be1a8819ac"
+checksum = "e075a86fb995955dd5a2426ae283147bd87c805dcc55fe35f97f8a24f6c5a621"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10523,9 +10523,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async-rc-client"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "273b006de13412fd8e4f5d689316edb39d1313871994a573b4e0da774a5f0b6b"
+checksum = "c864cf98b8ffcb7aa6dbebf1501ee082fa7ab11845ab69dd91d6acb08343720b"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -15086,9 +15086,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cb0daef9bb6dc6e800c0ac68280bf52f70c57ab81a992a0e522cfd186bd4cda"
+checksum = "6f9883aca96a69ffe4a29c18a85e00969a053ac31ddc571f1fdd20963d675b73"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -16986,7 +16986,7 @@ dependencies = [
  "polkadot-runtime-common",
  "scale-info",
  "sp-api",
- "sp-core 38.0.0",
+ "sp-core 38.1.0",
  "sp-runtime",
  "sp-state-machine",
  "staging-xcm",
