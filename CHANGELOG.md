@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add pay module implementation to system_parachains_common for use in Asset Hub Polkadot/Kusama treasury with XCM V3 to V5 conversion support for asset transactions ([#1019](https://github.com/polkadot-fellows/runtimes/pull/1019))
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
+- asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
 
 ## [2.0.3] 21.11.2025
 
