@@ -691,6 +691,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						// Not on AH RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
+				) || matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+						proxy_type: ProxyType::StakingOperator,
+						..
+					}) | RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+						proxy_type: ProxyType::StakingOperator,
+						..
+					})
 				)
 			},
 			ProxyType::StakingOperator => matches!(
@@ -2963,5 +2972,25 @@ mod tests {
 		assert!(
 			ProxyType::Staking.filter(&RuntimeCall::Staking(pallet_staking_async::Call::chill {}))
 		);
+
+		// Staking proxy can add/remove StakingOperator proxies
+		let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate: delegate.clone(),
+			proxy_type: ProxyType::StakingOperator,
+			delay: 0,
+		})));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+			delegate: delegate.clone(),
+			proxy_type: ProxyType::StakingOperator,
+			delay: 0,
+		})));
+
+		// But Staking proxy cannot add/remove other proxy types
+		assert!(!ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate,
+			proxy_type: ProxyType::Any,
+			delay: 0,
+		})));
 	}
 }

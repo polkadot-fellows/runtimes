@@ -219,4 +219,24 @@ fn staking_operator_proxy_filter_works() {
 	let staking_proxy = TransparentProxyType(ProxyType::Staking);
 	assert!(staking_proxy.is_superset(&proxy));
 	assert!(TransparentProxyType(ProxyType::NonTransfer).is_superset(&proxy));
+
+	// Staking proxy can add/remove StakingOperator proxies
+	let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
+	assert!(staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+		delegate: delegate.clone(),
+		proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+		delay: 0,
+	})));
+	assert!(staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+		delegate: delegate.clone(),
+		proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+		delay: 0,
+	})));
+
+	// But Staking proxy cannot add/remove other proxy types
+	assert!(!staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+		delegate,
+		proxy_type: TransparentProxyType(ProxyType::Any),
+		delay: 0,
+	})));
 }
