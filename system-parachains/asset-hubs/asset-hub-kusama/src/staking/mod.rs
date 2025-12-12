@@ -412,8 +412,8 @@ impl pallet_staking_async::Config for Runtime {
 	type EventListeners = (NominationPools, DelegatedStaking);
 	// Note used; don't care.
 	type MaxInvulnerables = frame_support::traits::ConstU32<20>;
-	type PlanningEraOffset =
-		pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;
+	// This will start election for the next era as soon as an era starts.
+	type PlanningEraOffset = ConstU32<6>;
 	type RcClientInterface = StakingRcClient;
 	type MaxEraDuration = MaxEraDuration;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
@@ -425,6 +425,8 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
 	type MaxValidatorSetRetries = ConstU32<64>;
+	// Export elected validator set at end of session 4.
+	type ValidatorSetExportSession = ConstU32<4>;
 }
 
 #[derive(Encode, Decode)]

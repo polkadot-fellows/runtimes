@@ -1715,9 +1715,9 @@ checksum = "55248b47b0caf0546f7988906588779981c43bb1bc9d0c44087278f80cdb44ba"
 
 [[package]]
 name = "binary-merkle-tree"
-version = "16.1.0"
+version = "16.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95c9f6900c9fd344d53fbdfb36e1343429079d73f4168c8ef48884bf15616dbd"
+checksum = "181f5380e435b8ba6d901f8b16fc8908c6f0f8bea8973113d1c8718d89bb1809"
 dependencies = [
  "hash-db",
  "log",
@@ -17140,9 +17140,9 @@ dependencies = [
 
 [[package]]
 name = "sp-keystore"
-version = "0.44.1"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a5c0b829014afc22e992be2c198f2677592db43267fc218e9f3207dbbfb6fbb"
+checksum = "f63da3f73c67601452dde155804233f76e993802d4b106e33ae7d88577f46b6a"
 dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.4",
@@ -17464,9 +17464,9 @@ dependencies = [
 
 [[package]]
 name = "sp-trie"
-version = "41.1.0"
+version = "41.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd2a05942903900c23aaa5fded094fa8186523e646ae8874bff3fce74985d0e5"
+checksum = "c17205dd7df84be66e55a136b5d80dfb6c23806376c0ef5e847ea9344c0478cf"
 dependencies = [
  "ahash",
  "foldhash 0.1.5",
@@ -17546,9 +17546,9 @@ dependencies = [
 
 [[package]]
 name = "sp-weights"
-version = "33.1.0"
+version = "33.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beb3f1b1373a0926b44ddabfa55a608ea78c20ee356f35575c031db2f0202545"
+checksum = "cae0642af5f2dd0b1cddcd06f91c36f7abe0528713e97b6e3c36faf0b8229114"
 dependencies = [
  "bounded-collections 0.3.2",
  "parity-scale-codec",
@@ -18016,9 +18016,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-prometheus-endpoint"
-version = "0.17.7"
+version = "0.17.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d23e4bc8e910a312820d589047ab683928b761242dbe31dee081fbdb37cbe0be"
+checksum = "41a20e2daeebc8c3c6f646d9a867df9fc2f879c6955c4a61860873a041c88ea4"
 dependencies = [
  "http-body-util",
  "hyper 1.6.0",
