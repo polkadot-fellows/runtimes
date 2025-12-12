@@ -261,11 +261,11 @@ substrate-wasm-builder = { version = "28.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 system-parachains-common = { path = "system-parachains/common", default-features = false }
 tokio = { version = "1.45.0" }
-xcm = { version = "18.0.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "22.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.22.0" }
-xcm-executor = { version = "21.0.0", default-features = false, package = "staging-xcm-executor" }
-xcm-runtime-apis = { version = "0.9.0", default-features = false }
+xcm = { version = "20.0.0", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "24.0.0", default-features = false, package = "staging-xcm-builder" }
+xcm-emulator = { version = "0.24.1" }
+xcm-executor = { version = "23.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-runtime-apis = { version = "0.11.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
 tracing-subscriber = { version = "0.3.18" }
