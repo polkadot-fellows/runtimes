@@ -3178,7 +3178,23 @@ mod test {
 		let proxy = TransparentProxyType(ProxyType::StakingOperator);
 
 		// StakingOperator ALLOWS these calls on relay chain:
-		// - Session::purge_keys (set_keys also allowed by the filter pattern)
+		// - Session::set_keys
+		let keys = SessionKeys {
+			grandpa: GrandpaId::from(sp_core::ed25519::Public::from_raw([0u8; 32])),
+			babe: pallet_babe::AuthorityId::from(sp_core::sr25519::Public::from_raw([0u8; 32])),
+			para_validator: ValidatorId::from(sp_core::sr25519::Public::from_raw([0u8; 32])),
+			para_assignment: polkadot_primitives::AssignmentId::from(
+				sp_core::sr25519::Public::from_raw([0u8; 32]),
+			),
+			authority_discovery: AuthorityDiscoveryId::from(sp_core::sr25519::Public::from_raw(
+				[0u8; 32],
+			)),
+			beefy: BeefyId::from(sp_core::ecdsa::Public::from_raw([0u8; 33])),
+		};
+		assert!(proxy
+			.filter(&RuntimeCall::Session(pallet_session::Call::set_keys { keys, proof: vec![] })));
+
+		// - Session::purge_keys
 		assert!(proxy.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
 
 		// - Utility calls (for batching)
