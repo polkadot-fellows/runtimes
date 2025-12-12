@@ -105,6 +105,7 @@ jobs:
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uri }}
           RUST_LOG: "remote-ext=info"
+          SKIP_PALLET_REVIVE_FIXTURES: 1
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
