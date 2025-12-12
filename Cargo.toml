@@ -222,7 +222,7 @@ snowbridge-outbound-queue-v2-runtime-api = { version = "0.6.0", default-features
 snowbridge-outbound-queue-primitives = { version = "0.6.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.17.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.17.0", default-features = false }
-snowbridge-pallet-inbound-queue-v2 = { version = "0.6.0", default-features = false }
+snowbridge-pallet-inbound-queue-v2 = { version = "0.6.1", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.25.0" }
 snowbridge-pallet-ethereum-client-fixtures = { version = "0.25.0" }
 snowbridge-pallet-outbound-queue = { version = "0.17.0", default-features = false }

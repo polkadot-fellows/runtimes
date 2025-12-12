@@ -15086,9 +15086,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cb0daef9bb6dc6e800c0ac68280bf52f70c57ab81a992a0e522cfd186bd4cda"
+checksum = "6f9883aca96a69ffe4a29c18a85e00969a053ac31ddc571f1fdd20963d675b73"
 dependencies = [
  "alloy-core",
  "bp-relayers",
