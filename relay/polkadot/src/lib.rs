@@ -1156,6 +1156,12 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 						RuntimeCall::NominationPools(..)
 				)
 			},
+			ProxyType::StakingOperator => matches!(
+				c,
+				RuntimeCall::Session(pallet_session::Call::set_keys { .. }) |
+					RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
+					RuntimeCall::Utility { .. }
+			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
@@ -1191,6 +1197,7 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			(ProxyType::Staking, ProxyType::StakingOperator) => true,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -3154,6 +3161,48 @@ mod test {
 		let path = xcm::VersionedXcm::<()>::type_info().path;
 		// Ensure that the name doesn't include `staging` (from the pallet name)
 		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
+	}
+
+	#[test]
+	fn staking_operator_proxy_filter_works() {
+		use frame_support::traits::InstanceFilter;
+
+		let proxy = TransparentProxyType(ProxyType::StakingOperator);
+
+		// StakingOperator ALLOWS these calls on relay chain:
+		// - Session::purge_keys (set_keys also allowed by the filter pattern)
+		assert!(proxy.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
+
+		// - Utility calls (for batching)
+		assert!(proxy.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+
+		// StakingOperator DISALLOWS staking operations (those are on Asset Hub after AHM):
+		// - Staking calls
+		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::bond {
+			value: 1000,
+			payee: pallet_staking::RewardDestination::Stash
+		})));
+		assert!(!proxy
+			.filter(&RuntimeCall::Staking(pallet_staking::Call::nominate { targets: vec![] })));
+		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::validate {
+			prefs: pallet_staking::ValidatorPrefs::default()
+		})));
+		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::chill {})));
+
+		// - NominationPools calls
+		assert!(!proxy.filter(&RuntimeCall::NominationPools(
+			pallet_nomination_pools::Call::join { amount: 1000, pool_id: 1 }
+		)));
+
+		// - VoterList calls
+		assert!(!proxy.filter(&RuntimeCall::VoterList(pallet_bags_list::Call::rebag {
+			dislocated: sp_runtime::MultiAddress::Id(AccountId::from([0u8; 32])),
+		})));
+
+		// Verify is_superset relationship
+		let staking_proxy = TransparentProxyType(ProxyType::Staking);
+		assert!(staking_proxy.is_superset(&proxy));
+		assert!(TransparentProxyType(ProxyType::NonTransfer).is_superset(&proxy));
 	}
 }
 

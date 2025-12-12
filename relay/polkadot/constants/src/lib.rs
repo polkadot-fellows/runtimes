@@ -193,6 +193,9 @@ pub mod proxy {
 		Auction = 7,
 		NominationPools = 8,
 		ParaRegistration = 9,
+		/// Operator proxy for validators. Can only manage session keys.
+		/// Cannot do staking operations (those are on Asset Hub after AHM).
+		StakingOperator = 10,
 	}
 
 	/// Remote proxy interface that uses the relay chain as remote location.
