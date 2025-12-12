@@ -3749,9 +3749,9 @@ dependencies = [
 
 [[package]]
 name = "cumulus-pallet-parachain-system"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d5b26ee5416df1e6e13b1fd0a1780a682e26ad5789dbed5c8ed54a0436f496b"
+checksum = "ffb02cf667494e2987f88dc904b80bf27e132222cf924b7e0c50e5bfbb893d04"
 dependencies = [
  "bytes",
  "cumulus-pallet-parachain-system-proc-macro",
@@ -3966,13 +3966,15 @@ dependencies = [
 
 [[package]]
 name = "cumulus-test-relay-sproof-builder"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04c89420792d10c9628ad8adb5eac4b7ae5e479b150da450a1420dbef83cb7ac"
+checksum = "8f4dfff163c88093b298b83ff63453be5eb56854fc9ea9dff65f4c309de609b4"
 dependencies = [
  "cumulus-primitives-core",
  "parity-scale-codec",
  "polkadot-primitives",
+ "sp-consensus-babe",
+ "sp-core 38.1.0",
  "sp-runtime",
  "sp-state-machine",
  "sp-trie",
@@ -18981,9 +18983,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-emulator"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a04959e80d5626a25f61950f92bf12739b741c4cb6e28a1f172880db175782d2"
+checksum = "51dc3044122d10846d15aabc7b381a7591dd1a7a9841ad243f5c4256fe0e9386"
 dependencies = [
  "array-bytes 6.2.3",
  "cumulus-pallet-parachain-system",
