@@ -16986,7 +16986,7 @@ dependencies = [
  "polkadot-runtime-common",
  "scale-info",
  "sp-api",
- "sp-core 38.0.0",
+ "sp-core 38.1.0",
  "sp-runtime",
  "sp-state-machine",
  "staging-xcm",
