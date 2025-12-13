@@ -69,7 +69,6 @@ pub mod ah_migration;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
-mod impls;
 pub mod staking;
 pub mod treasury;
 mod weights;
@@ -121,7 +120,7 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::imbalance::ResolveAssetTo,
+		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
 		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
 		PrivilegeCmp, TransformOrigin, WithdrawReasons,
@@ -329,11 +328,8 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
-		NativeAndAssets,
-		DotLocation,
-		ResolveAssetTo<StakingPot, NativeAndAssets>,
-	>;
+	type OnChargeTransaction =
+		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
