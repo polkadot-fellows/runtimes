@@ -532,12 +532,6 @@ pub enum ProxyType {
 	/// Contains the `Staking`, `Session`, `Utility`, `FastUnstake`, `VoterList`, `NominationPools`
 	/// pallets.
 	Staking,
-	/// Operator proxy for validators. Can only perform operational tasks like validating,
-	/// chilling, and kicking. Cannot bond/unbond funds, change reward destinations, or nominate.
-	/// Session key management (set_keys, purge_keys) is done on the relay chain.
-	///
-	/// Contains the `Staking` (validate, chill, kick) and `Utility` pallets.
-	StakingOperator,
 	/// Allows access to nomination pools related calls.
 	///
 	/// Contains the `NominationPools` and `Utility` pallets.
@@ -550,6 +544,12 @@ pub enum ProxyType {
 	///
 	/// This variant cannot do anything on Asset Hub itself.
 	ParaRegistration,
+	/// Operator proxy for validators. Can only perform operational tasks like validating,
+	/// chilling, and kicking. Cannot bond/unbond funds, change reward destinations, or nominate.
+	/// Session key management (set_keys, purge_keys) is done on the relay chain.
+	///
+	/// Contains the `Staking` (validate, chill, kick) and `Utility` pallets.
+	StakingOperator,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
