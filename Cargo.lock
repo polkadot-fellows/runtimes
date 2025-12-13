@@ -16997,6 +16997,7 @@ dependencies = [
 name = "system-parachains-constants"
 version = "1.0.0"
 dependencies = [
+ "array-bytes 9.3.0",
  "frame-support",
  "kusama-runtime-constants",
  "parachains-common",
