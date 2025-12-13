@@ -1016,15 +1016,32 @@ fn staking_proxy_can_manage_staking_operator() {
 				proxy_type: ProxyType::Any,
 				delay: 0,
 			});
-			// Note: proxy() returns Ok(()) even when inner call fails (result is in event)
-			let _ = Proxy::proxy(
+			// proxy() returns Ok(()) but inner call result is in ProxyExecuted event
+			assert_ok!(Proxy::proxy(
 				RuntimeOrigin::signed(bob.clone()),
 				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
 				None,
 				Box::new(add_any_call),
+			));
+
+			// Then: The ProxyExecuted event should contain CallFiltered error
+			let events = System::events();
+			let proxy_executed = events.iter().rev().find_map(|record| {
+				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
+					&record.event
+				{
+					Some(result.clone())
+				} else {
+					None
+				}
+			});
+			assert_eq!(
+				proxy_executed,
+				Some(Err(frame_system::Error::<Runtime>::CallFiltered.into())),
+				"Inner call should fail with CallFiltered"
 			);
 
-			// Then: Carol was NOT added as Any proxy (filter rejected it)
+			// And: Carol was NOT added as Any proxy
 			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
 			assert!(
 				!alice_proxies
