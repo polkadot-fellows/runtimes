@@ -131,6 +131,7 @@ jobs:
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          SKIP_PALLET_REVIVE_FIXTURES: 1
 
   # Job required by "confirmTestPassed"
   integration-test:
