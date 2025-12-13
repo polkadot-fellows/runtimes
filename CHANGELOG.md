@@ -6,13 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-
 ### Changed
 
 - asset-hub-polkadot: remove treasury burns ([#1028](https://github.com/polkadot-fellows/runtimes/pull/1028))
 - asset-hub-polkadot: fix the regression in doc-test for staking after changing the base deposit for NPoS solution from 4 to 100 DOT ([#1023](https://github.com/polkadot-fellows/runtimes/pull/1023))
 - asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
 - Adjust OpenGov parameters based on WFC 1701 ([polkadot-fellows/runtimes/pull/873](https://github.com/polkadot-fellows/runtimes/pull/873))
+- asset-hub-kusama: Prepare ElasticScaling with 3 cores on asset hub kusama ([#1018](https://github.com/polkadot-fellows/runtimes/pull/1018))
+- asset-hub-kusama: update to latest version of pallet-revive with EVM backend ([polkadot-fellows/runtimes/pull/1029](https://github.com/polkadot-fellows/runtimes/pull/1029))
 
 ### Added
 
@@ -21,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
 - asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
+- asset-hub-kusama: Enables buffered elected validator set export to RC to have more deterministic era length even with multiple cores ([polkadot-fellows/runtimes/pull/1034](https://github.com/polkadot-fellows/runtimes/pull/1034).
 
 ## [2.0.3] 21.11.2025
 
