@@ -284,6 +284,8 @@ fn staking_proxy_can_manage_staking_operator() {
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
+		System::set_block_number(1);
+
 		// Given: Alice has Bob as her Staking proxy
 		assert_ok!(Proxy::add_proxy(
 			RuntimeOrigin::signed(alice.clone()),

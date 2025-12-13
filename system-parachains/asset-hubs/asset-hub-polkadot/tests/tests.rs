@@ -1025,7 +1025,7 @@ fn staking_proxy_can_manage_staking_operator() {
 			));
 
 			// Then: The ProxyExecuted event should contain CallFiltered error
-			let events = System::events();
+			let events = frame_system::Pallet::<Runtime>::events();
 			let proxy_executed = events.iter().rev().find_map(|record| {
 				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
 					&record.event
