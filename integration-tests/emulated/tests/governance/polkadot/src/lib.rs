@@ -36,6 +36,9 @@ mod imports {
 		CollectivesPolkadotPara as CollectivesPolkadot, CoretimePolkadotPara as CoretimePolkadot,
 		PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
 	};
+
+	pub(crate) use integration_tests_helpers::*;
+	pub(crate) use sp_keyring::Sr25519Keyring::Charlie;
 }
 
 #[cfg(test)]
@@ -46,3 +49,6 @@ mod open_gov_on_asset_hub;
 
 #[cfg(test)]
 mod open_gov_on_relay;
+
+#[cfg(test)]
+mod open_gov_on_asset_hub_via_relay;

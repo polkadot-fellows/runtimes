@@ -44,7 +44,6 @@ runtime-benchmarks = [
 	"coretime-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"kusama-system-emulated-network/runtime-benchmarks",
