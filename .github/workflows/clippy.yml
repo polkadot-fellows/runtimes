@@ -36,6 +36,9 @@ jobs:
         with:
           shared-key: "fellowship-cache-clippy"
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      
+      - name: Install Solc
+        uses: ./.github/actions/get-solc
 
       - name: Clippy
         run: |
@@ -47,4 +50,3 @@ jobs:
         env:
           RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1
-          SKIP_PALLET_REVIVE_FIXTURES: 1
