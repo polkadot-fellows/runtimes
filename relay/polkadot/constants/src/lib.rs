@@ -194,7 +194,7 @@ pub mod proxy {
 		NominationPools = 8,
 		ParaRegistration = 9,
 		/// Operator proxy for validators. Can only manage session keys.
-		/// Cannot do staking operations (those are on Asset Hub after AH).
+		/// Cannot do staking operations (those are on Asset Hub).
 		StakingOperator = 10,
 	}
 
