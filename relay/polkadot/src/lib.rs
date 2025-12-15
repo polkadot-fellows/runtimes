@@ -3764,7 +3764,7 @@ mod proxy_tests {
 				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
 					&record.event
 				{
-					Some(result.clone())
+					Some(*result)
 				} else {
 					None
 				}
