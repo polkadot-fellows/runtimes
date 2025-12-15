@@ -36,6 +36,7 @@ runs:
         chmod +x solc/solc
 
     - name: Installing the Latest Resolc
+      shell: bash
       run: |
         VERSION="0.5.0"
         ASSET_URL="https://github.com/paritytech/revive/releases/download/v$VERSION/resolc-x86_64-unknown-linux-musl"
