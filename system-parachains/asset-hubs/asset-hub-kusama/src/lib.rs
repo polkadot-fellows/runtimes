@@ -682,17 +682,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					// Not on AH RuntimeCall::FellowshipReferenda(..) |
 					RuntimeCall::Whitelist(..)
 			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						// Not on AH RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
-				) || matches!(
-					c,
+			ProxyType::Staking => matches!(
+				c,
+				RuntimeCall::Staking(..) |
+					RuntimeCall::Session(..) |
+					RuntimeCall::Utility(..) |
+					// Not on AH RuntimeCall::FastUnstake(..) |
+					RuntimeCall::VoterList(..) |
+					RuntimeCall::NominationPools(..) |
 					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
 						proxy_type: ProxyType::StakingOperator,
 						..
@@ -700,8 +697,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						proxy_type: ProxyType::StakingOperator,
 						..
 					})
-				)
-			},
+			),
 			ProxyType::StakingOperator => matches!(
 				c,
 				RuntimeCall::Staking(pallet_staking_async::Call::validate { .. }) |

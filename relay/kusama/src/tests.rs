@@ -335,7 +335,7 @@ fn staking_proxy_can_manage_staking_operator() {
 			if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
 				&record.event
 			{
-				Some(result.clone())
+				Some(*result)
 			} else {
 				None
 			}
