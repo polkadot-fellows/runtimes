@@ -14,10 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::{
+	mock::{assert_last_event, new_test_ext, Runtime as AssetHub},
+	Error, Event,
+};
+use frame_support::assert_noop;
 use sp_runtime::AccountId32;
 use std::str::FromStr;
-
-use crate::mock::Runtime as AssetHub;
 
 #[test]
 fn sovereign_account_translation() {
@@ -130,4 +133,97 @@ fn sovereign_account_translation() {
 			assert_eq!(got_to, to);
 		}
 	}
+}
+
+#[test]
+fn translate_derived_account() {
+	let child = AccountId32::from_str("13YMK2eZbf9AyGhewRs6W6QTJvBSM5bxpnTD8WgeDofbg8Q1").unwrap();
+	let sibl = AccountId32::from_str("13cKp89NgPL56sRoVRpBcjkGZPrk4Vf4tS6ePUD96XhAXozG").unwrap();
+	let derivation = vec![5, 2];
+
+	new_test_ext().execute_with(|| {
+		// wrong para id
+		assert_noop!(
+			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+				2005,
+				derivation.clone(),
+				child.clone(),
+				sibl.clone(),
+			),
+			Error::<AssetHub>::WrongDerivedTranslation
+		);
+
+		// wrong derivation path
+		assert_noop!(
+			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+				2004,
+				vec![5, 3],
+				child.clone(),
+				sibl.clone(),
+			),
+			Error::<AssetHub>::WrongDerivedTranslation
+		);
+
+		// wrong acc
+		assert_noop!(
+			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+				2004,
+				derivation.clone(),
+				child.clone(),
+				child.clone(),
+			),
+			Error::<AssetHub>::WrongDerivedTranslation
+		);
+
+		// wrong acc
+		assert_noop!(
+			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+				2004,
+				derivation.clone(),
+				sibl.clone(),
+				sibl.clone(),
+			),
+			Error::<AssetHub>::WrongDerivedTranslation
+		);
+
+		// wrong acc
+		assert_noop!(
+			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+				2004,
+				derivation.clone(),
+				sibl.clone(),
+				child.clone(),
+			),
+			Error::<AssetHub>::WrongDerivedTranslation
+		);
+	});
+}
+
+/*
+- Child 2004 (need to translate this)
+	- 13YMK2eZbf9AyGhewRs6W6QTJvBSM5bxpnTD8WgeDofbg8Q1
+	- Index 5: 14vDXpWfcSRPn8eWPKt2Xc8KN57tGNnAo7Z8M2C8kpkJav5q
+	- Index 5/2: 14KQD8dRoT3q2fCbCC49bFjU1diFu1d516tYuGmSUMmEoGNa
+- Sibling 2004 (to this)
+	- 13cKp89NgPL56sRoVRpBcjkGZPrk4Vf4tS6ePUD96XhAXozG
+	- Index 5: 12gb2DBw5HfpmUyBKCHxJWwGxMyXbUgf6a7bagNduHZC5S9z
+	- Index 5/2: 123oqim7B24XzwB1hC4Fh7LGwbTas3QmxL6v6sVd95eTD5ee
+*/
+#[test]
+fn moonbeam_stellaswap_double_derived_translation() {
+	new_test_ext().execute_with(|| {
+		let child_5_2 =
+			AccountId32::from_str("14KQD8dRoT3q2fCbCC49bFjU1diFu1d516tYuGmSUMmEoGNa").unwrap();
+		let sibl_5_2 =
+			AccountId32::from_str("123oqim7B24XzwB1hC4Fh7LGwbTas3QmxL6v6sVd95eTD5ee").unwrap();
+		let derivation_path = vec![5, 2];
+
+		crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+			2004,
+			derivation_path.clone(),
+			child_5_2.clone(),
+			sibl_5_2.clone(),
+		)
+		.unwrap();
+	});
 }

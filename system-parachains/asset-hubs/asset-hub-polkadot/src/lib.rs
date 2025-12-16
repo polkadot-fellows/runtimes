@@ -70,6 +70,8 @@ pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
+#[cfg(all(test, feature = "try-runtime"))]
+mod remote_tests;
 pub mod staking;
 pub mod treasury;
 mod weights;

@@ -45,14 +45,18 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{
+			Inspect as FungibleInspect, InspectFreeze, Mutate as FungibleMutate, MutateFreeze,
+			MutateHold, Unbalanced,
+		},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
-		tokens::Preservation,
-		Defensive, LockableCurrency, ReservableCurrency,
+		tokens::{Fortitude, IdAmount, Precision, Preservation},
+		Currency, Defensive, LockableCurrency, ReservableCurrency,
+		WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
-use pallet_balances::AccountData;
+use pallet_balances::{AccountData, BalanceLock, Reasons as LockReasons};
 use sp_application_crypto::ByteArray;
 use sp_core::blake2_256;
 use sp_runtime::{
@@ -75,16 +79,19 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
-		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
+		+ pallet_timestamp::Config<Moment = u64>
+		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Native asset type.
-		type Currency: Mutate<Self::AccountId, Balance = u128>
-			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
-			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+		type Currency: FungibleMutate<Self::AccountId, Balance = u128>
+			+ MutateHold<
+				Self::AccountId,
+				Reason = <Self as pallet_balances::Config>::RuntimeHoldReason,
+			> + InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
@@ -184,7 +191,10 @@ pub mod pallet {
 	>;
 
 	#[pallet::error]
+	#[derive(PartialEq, Eq)]
 	pub enum Error<T> {
+		/// Failed to force unstake.
+		FailedToForceUnstake,
 		/// Either no lease deposit or already unreserved.
 		NoLeaseReserve,
 		/// Either no crowdloan contribution or already withdrawn.
@@ -207,12 +217,39 @@ pub mod pallet {
 		MigrationNotCompleted,
 		/// The balance is zero.
 		ZeroBalance,
+		/// Failed to transfer balance.
+		FailedToTransfer,
+		/// Failed to put hold.
+		FailedToPutHold,
+		/// Failed to reserve.
+		FailedToReserve,
+		/// Failed to release hold.
+		FailedToReleaseHold,
+		/// Failed to set freeze.
+		FailedToSetFreeze,
+		/// Failed to thaw.
+		FailedToThaw,
+		/// Would reap old account.
+		WouldReap,
+		/// Failed to reactivate.
+		FailedToReactivate,
+		AccountIdentical,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Some lease reserve could not be unreserved and needs manual cleanup.
+		/// A hold was released.
+		HoldReleased {
+			account: T::AccountId,
+			amount: BalanceOf<T>,
+			reason: <T as pallet_balances::Config>::RuntimeHoldReason,
+		},
+		HoldPlaced {
+			account: T::AccountId,
+			amount: BalanceOf<T>,
+			reason: <T as pallet_balances::Config>::RuntimeHoldReason,
+		},
 		LeaseUnreserveRemaining {
 			depositor: T::AccountId,
 			para_id: ParaId,
@@ -230,13 +267,13 @@ pub mod pallet {
 		/// representation.
 		SovereignMigrated {
 			/// The parachain ID that had its account migrated.
-			para_id: ParaId,
+			para_id: u16,
 			/// The old account that was migrated out of.
 			from: T::AccountId,
 			/// The new account that was migrated into.
 			to: T::AccountId,
-			/// Set if this account was derived from a para sovereign account.
-			derivation_index: Option<DerivationIndex>,
+			/// The derivation path that was used to translate the account.
+			derivation_path: Vec<u16>,
 		},
 	}
 
@@ -344,6 +381,31 @@ pub mod pallet {
 
 			Ok(Pays::No.into())
 		}
+
+		/// Translate recursively derived parachain sovereign child account to its sibling.
+		///
+		/// Uses the same derivation path on the sibling. The old and new account arguments are only
+		/// witness data to ensure correct usage.
+		#[pallet::call_index(4)]
+		#[pallet::weight(Weight::from_parts(100_000_000, 9000)
+				.saturating_add(T::DbWeight::get().reads_writes(2, 2)))]
+		pub fn translate_para_sovereign_child_to_sibling_derived(
+			origin: OriginFor<T>,
+			para_id: u16,
+			derivation_path: Vec<u16>,
+			old_account: T::AccountId,
+			new_account: T::AccountId,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_translate_para_sovereign_child_to_sibling_derived(
+				para_id,
+				derivation_path,
+				old_account,
+				new_account,
+			)
+			.map_err(Into::into)
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -387,7 +449,7 @@ pub mod pallet {
 			}
 
 			// Ideally this does not fail. But if it does, then we keep it for manual inspection.
-			let transferred = <T as Config>::Currency::transfer(
+			let transferred = <<T as Config>::Currency as FungibleMutate<_>>::transfer(
 				&pot,
 				&depositor,
 				contribution,
@@ -397,7 +459,7 @@ pub mod pallet {
 			.map_err(|_| Error::<T>::FailedToWithdrawCrowdloanContribution)?;
 			defensive_assert!(transferred == contribution);
 			// Need to reactivate since we deactivated it here https://github.com/paritytech/polkadot-sdk/blob/04847d515ef56da4d0801c9b89a4241dfa827b33/polkadot/runtime/common/src/crowdloan/mod.rs#L793
-			<T as Config>::Currency::reactivate(transferred);
+			<<T as Config>::Currency as Currency<_>>::reactivate(transferred);
 
 			Ok(())
 		}
@@ -494,6 +556,169 @@ pub mod pallet {
 			let parent_translated_derived = derivative_account_id(parent_translated, index);
 			Ok((parent_translated_derived, para_id))
 		}
+
+		pub fn do_translate_para_sovereign_child_to_sibling_derived(
+			para_id: u16,
+			derivation_path: Vec<u16>,
+			from: T::AccountId,
+			to: T::AccountId,
+		) -> Result<(), Error<T>> {
+			let para_child = Self::para_sov_child(para_id);
+			let para_sibling = Self::para_sov_sibling(para_id);
+			let para_child_derived = derivative_account_id_recursive(para_child, &derivation_path);
+			let para_sibling_derived =
+				derivative_account_id_recursive(para_sibling, &derivation_path);
+
+			ensure!(para_child_derived == from, Error::<T>::WrongDerivedTranslation);
+			ensure!(para_sibling_derived == to, Error::<T>::WrongDerivedTranslation);
+
+			if frame_system::Account::<T>::get(&from) == Default::default() {
+				// Nothing to do if the account does not exist
+				return Ok(());
+			}
+			pallet_balances::Pallet::<T>::ensure_upgraded(&from); // prevent future headache
+
+			// Force unstake. The actual function is private, so we have to use a dispatchable...
+			pallet_staking_async::Pallet::<T>::force_unstake(
+				frame_system::Origin::<T>::Root.into(),
+				from.clone(),
+				0,
+			)
+			.map_err(|_| Error::<T>::FailedToForceUnstake)?;
+
+			// Release all locks
+			let locks: Vec<BalanceLock<T::Balance>> =
+				pallet_balances::Locks::<T>::get(&from).into_inner();
+			for lock in &locks {
+				let () = <T as Config>::Currency::remove_lock(lock.id, &from);
+			}
+
+			// Thaw all the freezes
+			let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
+				pallet_balances::Freezes::<T>::get(&from).into();
+
+			for freeze in &freezes {
+				let () = <T as Config>::Currency::thaw(&freeze.id, &from)
+					.map_err(|_| Error::<T>::FailedToThaw)?;
+			}
+
+			// Release all holds
+			let holds: Vec<
+				IdAmount<<T as pallet_balances::Config>::RuntimeHoldReason, T::Balance>,
+			> = pallet_balances::Holds::<T>::get(&from).into();
+
+			for IdAmount { id, amount } in &holds {
+				let _ = <T as Config>::Currency::release(id, &from, *amount, Precision::Exact)
+					.map_err(|_| Error::<T>::FailedToReleaseHold)?;
+				Self::deposit_event(Event::HoldReleased {
+					account: from.clone(),
+					amount: *amount,
+					reason: *id,
+				});
+			}
+
+			// Unreserve unnamed reserves
+			let unnamed_reserve = <T as Config>::Currency::reserved_balance(&from);
+			let missing = <T as Config>::Currency::unreserve(&from, unnamed_reserve);
+			defensive_assert!(missing == 0, "Should have unreserved the full amount");
+
+			// Set consumer refs to zero
+			let consumers = frame_system::Pallet::<T>::consumers(&from);
+			frame_system::Account::<T>::mutate(&from, |acc| {
+				acc.consumers = 0;
+			});
+			// We dont handle sufficients and there should be none
+			ensure!(frame_system::Pallet::<T>::sufficients(&from) == 0, Error::<T>::InternalError);
+
+			// Sanity check
+			let total = <<T as Config>::Currency as FungibleInspect<_>>::total_balance(&from);
+			let reducible = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
+				&from,
+				Preservation::Expendable,
+				Fortitude::Polite,
+			);
+			defensive_assert!(
+				total >= <<T as Config>::Currency as FungibleInspect<_>>::minimum_balance(),
+				"Must have at least ED"
+			);
+			defensive_assert!(total == reducible, "Total balance should be reducible");
+
+			// Now the actual balance transfer to the new account
+			<<T as Config>::Currency as FungibleMutate<_>>::transfer(
+				&from,
+				&to,
+				total,
+				Preservation::Expendable,
+			)
+			.defensive()
+			.map_err(|_| Error::<T>::FailedToTransfer)?;
+
+			// Apply consumer refs
+			frame_system::Account::<T>::mutate(&to, |acc| {
+				acc.consumers += consumers;
+			});
+
+			// Reapply the holds
+			for hold in &holds {
+				<T as Config>::Currency::hold(&hold.id, &to, hold.amount)
+					.map_err(|_| Error::<T>::FailedToPutHold)?;
+				// Somehow there are no events for this being emitted... so we emit our own.
+				Self::deposit_event(Event::HoldPlaced {
+					account: to.clone(),
+					amount: hold.amount,
+					reason: hold.id,
+				});
+			}
+
+			// Reapply the reserve
+			<T as Config>::Currency::reserve(&to, unnamed_reserve)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToReserve)?;
+
+			// Reapply the locks
+			for lock in &locks {
+				let reasons = map_lock_reason(lock.reasons);
+				<T as Config>::Currency::set_lock(lock.id, &to, lock.amount, reasons);
+			}
+			// Reapply the freezes
+			for freeze in &freezes {
+				<T as Config>::Currency::set_freeze(&freeze.id, &to, freeze.amount)
+					.map_err(|_| Error::<T>::FailedToSetFreeze)?;
+			}
+
+			defensive_assert!(
+				frame_system::Account::<T>::get(&from) == Default::default(),
+				"Must reap old account"
+			);
+			// If new account would die from this, then lets rather not do it and check it manually.
+			ensure!(
+				frame_system::Account::<T>::get(&to) != Default::default(),
+				Error::<T>::WouldReap
+			);
+
+			Self::deposit_event(Event::SovereignMigrated {
+				para_id,
+				from: from.clone(),
+				to: to.clone(),
+				derivation_path,
+			});
+
+			Ok(())
+		}
+
+		pub fn para_sov_child(id: u16) -> AccountId32 {
+			let mut raw = [0u8; 32];
+			raw[0..4].copy_from_slice(b"para");
+			raw[4..6].copy_from_slice(&id.encode());
+			raw.into()
+		}
+
+		pub fn para_sov_sibling(id: u16) -> AccountId32 {
+			let mut raw = [0u8; 32];
+			raw[0..4].copy_from_slice(b"sibl");
+			raw[4..6].copy_from_slice(&id.encode());
+			raw.into()
+		}
 	}
 }
 
@@ -510,4 +735,24 @@ pub fn derivative_account_id<AccountId: Encode + Decode>(who: AccountId, index: 
 	let entropy = (b"modlpy/utilisuba", who, index).using_encoded(blake2_256);
 	Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
 		.expect("infinite length input; no invalid inputs for type; qed")
+}
+
+pub fn derivative_account_id_recursive<AccountId: Encode + Decode>(
+	who: AccountId,
+	indices: &[u16],
+) -> AccountId {
+	let mut account = who;
+	for index in indices {
+		account = derivative_account_id(account, *index);
+	}
+	account
+}
+
+/// Backward mapping from https://github.com/paritytech/polkadot-sdk/blob/74a5e1a242274ddaadac1feb3990fc95c8612079/substrate/frame/balances/src/types.rs#L38
+pub fn map_lock_reason(reasons: LockReasons) -> LockWithdrawReasons {
+	match reasons {
+		LockReasons::All => LockWithdrawReasons::TRANSACTION_PAYMENT | LockWithdrawReasons::RESERVE,
+		LockReasons::Fee => LockWithdrawReasons::TRANSACTION_PAYMENT,
+		LockReasons::Misc => LockWithdrawReasons::TIP,
+	}
 }

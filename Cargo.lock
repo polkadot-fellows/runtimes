@@ -1057,6 +1057,7 @@ dependencies = [
  "frame-election-provider-support",
  "frame-executive",
  "frame-metadata-hash-extension",
+ "frame-remote-externalities",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -1152,6 +1153,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "tokio",
  "xcm-runtime-apis",
 ]
 
@@ -8545,6 +8547,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-balances",
+ "pallet-staking-async",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
