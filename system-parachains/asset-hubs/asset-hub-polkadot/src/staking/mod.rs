@@ -197,16 +197,21 @@ impl multi_block::verifier::Config for Runtime {
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	/// Initial base deposit for signed NPoS solution submissions
+	pub InitialBaseDeposit: Balance = 100 * UNITS;
+}
+
 /// ## Example
 /// ```
-/// use asset_hub_polkadot_runtime::staking::GeometricDeposit;
+/// use asset_hub_polkadot_runtime::staking::{GeometricDeposit, InitialBaseDeposit};
 /// use pallet_election_provider_multi_block::signed::CalculateBaseDeposit;
 /// use polkadot_runtime_constants::currency::UNITS;
 ///
 /// // Base deposit
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), 4 * UNITS);
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 8 * UNITS );
-/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 16 * UNITS);
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(0), InitialBaseDeposit::get());
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(1), 2 * InitialBaseDeposit::get());
+/// assert_eq!(GeometricDeposit::calculate_base_deposit(2), 4 * InitialBaseDeposit::get());
 /// // and so on
 ///
 /// // Full 16 page deposit, to be paid on top of the above base
@@ -218,7 +223,7 @@ impl multi_block::verifier::Config for Runtime {
 pub struct GeometricDeposit;
 impl multi_block::signed::CalculateBaseDeposit<Balance> for GeometricDeposit {
 	fn calculate_base_deposit(existing_submitters: usize) -> Balance {
-		let start: Balance = UNITS * 4;
+		let start: Balance = InitialBaseDeposit::get();
 		let common: Balance = 2;
 		start.saturating_mul(common.saturating_pow(existing_submitters as u32))
 	}
