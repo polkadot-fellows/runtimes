@@ -1735,7 +1735,7 @@ pub mod migrations {
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = pallet_revive::migrations::v1::Migration<Runtime>;
+	pub type MbmMigrations = pallet_revive::migrations::v2::Migration<Runtime>;
 }
 
 /// Executive: handles dispatch to the various modules.
