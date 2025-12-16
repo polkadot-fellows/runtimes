@@ -73,12 +73,13 @@ use frame_system::{
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
-use pallet_assets::precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
 use pallet_revive::evm::runtime::EthExtra;
-use pallet_xcm::{precompiles::XcmPrecompile, EnsureXcm, IsVoiceOfBody};
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
+use pallet_xcm_precompiles::XcmPrecompile;
 use parachains_common::{
 	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
 	Header, Nonce, Signature,
