@@ -4,45 +4,54 @@ description: "Installs the Ethereum solc Solidity compiler frontend executable"
 runs:
   using: "composite"
   steps:
-    - name: Figure out Solc Download URL
+    - name: Define versions
       shell: bash
       run: |
-        if [[ "${{ runner.os }}" == "Linux" ]]; then
-          echo "SOLC_NAME=solc-static-linux" >> $GITHUB_ENV
-        elif [[ "${{ runner.os }}" == "Windows" ]]; then
-          echo "SOLC_NAME=solc-windows.exe" >> $GITHUB_ENV
-        else
-          echo "SOLC_NAME=solc-macos" >> $GITHUB_ENV
-        fi
+        echo "SOLC_NAME=solc-static-linux" >> $GITHUB_ENV
+        echo "SOLC_VERSION=0.8.30" >> "$GITHUB_ENV"
+        echo "RESOLC_VERSION=0.5.0" >> "$GITHUB_ENV"
 
-    - name: Download Solc
+    # Cache both folders. Keyed by OS and versions.
+    - name: Cache solc + resolc
+      uses: actions/cache@v4
+      with:
+        path: |
+          solc
+          resolc
+        key: solc-${{ runner.os }}-${{ env.SOLC_VERSION }}-${{ env.SOLC_NAME }}__resolc-${{ runner.os }}-${{ env.RESOLC_VERSION }}
+
+    - name: Download Solc (if missing)
       shell: bash
       run: |
         mkdir -p solc
-        curl -sSL --output solc/solc https://github.com/ethereum/solidity/releases/download/v0.8.30/${SOLC_NAME}
-
-    - name: Make Solc Executable
-      if: ${{ runner.os == 'Windows' }}
-      shell: bash
-      run: |
-        echo "$(pwd -W)\\solc" >> $GITHUB_PATH
-        mv solc/solc solc/solc.exe
-
-    - name: Make Solc Executable
-      if: ${{ runner.os != 'Windows' }}
-      shell: bash
-      run: |
-        echo "$PWD/solc" >> $GITHUB_PATH
+        if [[ -x solc/solc ]]; then
+          echo "solc already present, skipping download"
+          exit 0
+        fi
+        curl -Lsf --show-error --retry 5 --retry-all-errors --connect-timeout 10 --max-time 300 \
+          --output solc/solc \
+          "https://github.com/ethereum/solidity/releases/download/v${SOLC_VERSION}/${SOLC_NAME}"
         chmod +x solc/solc
 
-    - name: Installing the Latest Resolc
+    - name: Install resolc (if missing)
       shell: bash
       run: |
-        VERSION="0.5.0"
-        ASSET_URL="https://github.com/paritytech/revive/releases/download/v$VERSION/resolc-x86_64-unknown-linux-musl"
-        echo "Downloading resolc v$VERSION from $ASSET_URL"
         mkdir -p resolc
-        curl -Lsf --show-error --output resolc/resolc "$ASSET_URL"
+
+        if [[ -x resolc/resolc ]]; then
+          echo "resolc already present, skipping download"
+          exit 0
+        fi
+
+        ASSET_URL="https://github.com/paritytech/revive/releases/download/v${RESOLC_VERSION}/resolc-x86_64-unknown-linux-musl"
+        curl -Lsf --show-error --retry 5 --retry-all-errors --connect-timeout 10 --max-time 300 \
+          --output resolc/resolc \
+          "$ASSET_URL"
         chmod +x resolc/resolc
         ./resolc/resolc --version
+
+    - name: Add to PATH
+      shell: bash
+      run: |
+        echo "$PWD/solc" >> "$GITHUB_PATH"
         echo "$PWD/resolc" >> "$GITHUB_PATH"
