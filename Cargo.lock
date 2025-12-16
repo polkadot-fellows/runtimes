@@ -1111,7 +1111,7 @@ dependencies = [
  "pallet-recovery",
  "pallet-referenda",
  "pallet-remote-proxy",
- "pallet-revive 0.9.0",
+ "pallet-revive 0.11.1",
  "pallet-scheduler",
  "pallet-session 44.0.0",
  "pallet-society",
