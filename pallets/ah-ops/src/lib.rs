@@ -578,7 +578,7 @@ pub mod pallet {
 			}
 			pallet_balances::Pallet::<T>::ensure_upgraded(&from); // prevent future headache
 
-			// Force unstake. The actual function is private, so we have to use a dispatchable...
+			// Force unstake. The actual function is private, so we use the call:
 			pallet_staking_async::Pallet::<T>::force_unstake(
 				frame_system::Origin::<T>::Root.into(),
 				from.clone(),
