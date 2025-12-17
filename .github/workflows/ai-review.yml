@@ -20,9 +20,10 @@ concurrency:
 
 jobs:
   review:
-    if: > 
+    if: >
       github.event_name == 'workflow_dispatch' ||
       (
+        github.event_name == 'pull_request' &&
         github.event.pull_request.head.repo.full_name == github.repository &&
         contains(fromJson('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.pull_request.author_association)
       )
