@@ -94,7 +94,7 @@ pub use parachains_common::{
 };
 use polkadot_runtime_common::{
 	impls::{LocatableAssetConverter, VersionedLocatableAsset},
-	BlockHashCount, SlowAdjustingFeeUpdate,
+	prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 2_000_002,
+	spec_version: 2_000_003,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -438,6 +438,10 @@ impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
+impl cumulus_pallet_weight_reclaim::Config for Runtime {
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
+}
+
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
@@ -583,8 +587,8 @@ impl pallet_encointer_faucet::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
-	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
+	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0); // [ms]
+	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000); // [ms]
 }
 
 impl pallet_encointer_democracy::Config for Runtime {
@@ -805,6 +809,7 @@ construct_runtime! {
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 2,
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 5,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -891,17 +896,20 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 /// The SignedExtension to the basic transaction logic.
-pub type TxExtension = (
-	frame_system::CheckNonZeroSender<Runtime>,
-	frame_system::CheckSpecVersion<Runtime>,
-	frame_system::CheckTxVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
-	pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-);
+pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
@@ -961,6 +969,7 @@ mod benches {
 		[pallet_encointer_scheduler, EncointerScheduler]
 		[pallet_encointer_treasuries, EncointerTreasuries]
 		[cumulus_pallet_parachain_system, ParachainSystem]
+		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
