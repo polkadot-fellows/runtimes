@@ -83,7 +83,7 @@ jobs:
 
       - name: Download frame-omni-bencher
         run: |
-          curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
+          curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
           chmod +x ./frame-omni-bencher
           ./frame-omni-bencher --version
         shell: bash
@@ -326,9 +326,17 @@ jobs:
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
+          
+      - name: Use latest Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Install yarn
+        run: npm install -g yarn
 
       - name: Installing dependencies of ecosystem tests
-        working-directory: ./ecosystem-tests
+        working-directory: ecosystem-tests
         run: yarn install
 
       - name: Running ecosystem tests
