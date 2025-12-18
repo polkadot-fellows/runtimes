@@ -186,7 +186,7 @@ pallet-xcm-bridge-hub = { version = "0.20.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.22.0", default-features = false }
 parachain-info = { version = "0.24.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "26.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "27.0.0" }
+parachains-runtimes-test-utils = { version = "27.0.1" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.34.0" }
