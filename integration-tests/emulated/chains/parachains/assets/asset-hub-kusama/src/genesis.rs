@@ -14,35 +14,42 @@
 // limitations under the License.
 
 // Substrate
-use sp_core::{sr25519, storage::Storage};
+use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, get_account_id_from_seed, RESERVABLE_ASSET_ID,
+	accounts, build_genesis_storage, collators, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::prelude::*;
+use xcm_builder::GlobalConsensusParachainConvertsFor;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
-	pub AssetHubKusamaAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
+	pub AssetHubKusamaAssetOwner: AccountId = Keyring::Alice.to_account_id();
 	pub PenpalATeleportableAssetLocation: Location
 		= Location::new(1, [
-				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+				Parachain(penpal_emulated_chain::PARA_ID_A),
+				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID)].into();
+	pub AssetHubPolkadotLocation: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+	pub AssetHubPolkadotSovereignAccount: AccountId = GlobalConsensusParachainConvertsFor::<UniversalLocation, AccountId>::convert_location(
+		&AssetHubPolkadotLocation::get(),
+	).unwrap();
 }
 
-pub fn genesis() -> Storage {
+pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: asset_hub_kusama_runtime::SystemConfig::default(),
 		balances: asset_hub_kusama_runtime::BalancesConfig {
@@ -51,6 +58,7 @@ pub fn genesis() -> Storage {
 				.cloned()
 				.map(|k| (k, ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		parachain_info: asset_hub_kusama_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),
@@ -93,6 +101,20 @@ pub fn genesis() -> Storage {
 					PenpalASiblingSovereignAccount::get(),
 					false,
 					ED,
+				),
+				// Ether
+				(
+					EthLocation::get(),
+					AssetHubPolkadotSovereignAccount::get(),
+					true,
+					MIN_ETHER_BALANCE,
+				),
+				// Weth
+				(
+					WethLocation::get(),
+					AssetHubPolkadotSovereignAccount::get(),
+					true,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()

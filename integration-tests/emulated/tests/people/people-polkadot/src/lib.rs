@@ -42,12 +42,23 @@ pub use emulated_integration_tests_common::{
 pub use parachains_common::{AccountId, Balance};
 pub use people_polkadot_runtime::ExistentialDeposit as PeoplePolkadotExistentialDeposit;
 pub use polkadot_system_emulated_network::{
+	asset_hub_polkadot_emulated_chain::{
+		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+	},
+	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
+	collectives_polkadot_emulated_chain::CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
+	coretime_polkadot_emulated_chain::CoretimePolkadotParaPallet as CoretimePolkadotPallet,
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
 	people_polkadot_emulated_chain::{
-		genesis::ED as PEOPLE_KUSAMA_ED, PeoplePolkadotParaPallet as PeoplePolkadotPallet,
+		genesis::ED as PEOPLE_POLKADOT_ED, PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
-	PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot,
-	PeoplePolkadotParaReceiver as PeoplePolkadotReceiver,
+	AssetHubPolkadotPara as AssetHubPolkadot,
+	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
+	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
+	BridgeHubPolkadotPara as BridgeHubPolkadot, CollectivesPolkadotPara as CollectivesPolkadot,
+	CoretimePolkadotPara as CoretimePolkadot, PenpalAPara as PenpalA,
+	PeoplePolkadotPara as PeoplePolkadot, PeoplePolkadotParaReceiver as PeoplePolkadotReceiver,
 	PeoplePolkadotParaSender as PeoplePolkadotSender, PolkadotRelay as Polkadot,
 	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };

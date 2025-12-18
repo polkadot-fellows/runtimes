@@ -23,9 +23,9 @@ use crate::{
 	impls::ToParentTreasury,
 	weights,
 	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
-	AccountId, AssetRateWithNative, Balance, Balances, FellowshipReferenda, GovernanceLocation,
-	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
+	AccountId, AssetHubLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
+	PolkadotTreasuryAccount, Preimage, RelayChainLocation, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
 use frame_support::{
 	parameter_types,
@@ -109,6 +109,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type AlarmInterval = ConstU32<1>;
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = crate::System;
 }
 
 pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
@@ -133,9 +134,15 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// pass.
 	type DemoteOrigin = EitherOf<
 		EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::DAN_9 }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::DAN_9 }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::DAN_9 }>>,
+			>,
 		>,
 	>;
 	// Exchange is by any of:
@@ -166,7 +173,10 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote among all Fellows.
 	type ParamsOrigin = EitherOfDiverse<
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		EitherOf<
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+		>,
 		Fellows,
 	>;
 	// Induction (creating a candidate) is by any of:
@@ -175,7 +185,10 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	// - a single Fellow;
 	// - a vote among all Members.
 	type InductOrigin = EitherOfDiverse<
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		EitherOf<
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+		>,
 		EitherOfDiverse<
 			pallet_ranked_collective::EnsureMember<
 				Runtime,
@@ -190,9 +203,15 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote by the rank two above the current rank for all retention up to the Master rank.
 	type ApproveOrigin = EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::DAN_9 }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::DAN_9 }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::DAN_9 }>>,
+			>,
 		>,
 		EnsureCanRetainAt,
 	>;
@@ -201,15 +220,21 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote by the rank two above the new rank for all promotions up to the Master rank.
 	type PromoteOrigin = EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::DAN_9 }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::DAN_9 }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::DAN_9 }>>,
+			>,
 		>,
 		EnsureCanPromoteTo,
 	>;
 	type FastPromoteOrigin = EnsureCanFastPromoteTo;
 	type EvidenceSize = ConstU32<65536>;
-	type MaxRank = ConstU32<9>;
+	type MaxRank = ConstU16<9>;
 }
 
 pub type FellowshipSalaryInstance = pallet_salary::Instance1;
@@ -297,7 +322,13 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
-		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
+		EitherOfDiverse<
+			EitherOf<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
+			>,
+			Fellows,
+		>,
 	>;
 	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
@@ -307,9 +338,15 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type SpendOrigin = EitherOf<
 		EitherOf<
 			EnsureRootWithSuccess<AccountId, MaxBalance>,
-			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
-				Replace<ConstU128<{ 10_000 * GRAND }>>,
+			EitherOf<
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+					Replace<ConstU128<{ 10_000 * GRAND }>>,
+				>,
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
+					Replace<ConstU128<{ 10_000 * GRAND }>>,
+				>,
 			>,
 		>,
 		EitherOf<
@@ -325,12 +362,13 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
 	type BalanceConverter = AssetRateWithNative;
-	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ 90 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = crate::System;
 }
 
 #[cfg(test)]

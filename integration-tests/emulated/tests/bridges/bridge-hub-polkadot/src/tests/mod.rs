@@ -15,11 +15,20 @@
 
 use crate::*;
 
+mod aliases;
 mod asset_transfers;
 mod claim_assets;
 mod register_bridged_assets;
 mod send_xcm;
 mod snowbridge;
+mod snowbridge_common;
+mod snowbridge_v2_config;
+mod snowbridge_v2_inbound;
+mod snowbridge_v2_inbound_to_kusama;
+mod snowbridge_v2_outbound;
+mod snowbridge_v2_outbound_edge_case;
+mod snowbridge_v2_outbound_from_kusama;
+mod snowbridge_v2_rewards;
 mod teleport;
 
 pub(crate) fn asset_hub_kusama_location() -> Location {
@@ -35,12 +44,12 @@ pub(crate) fn dot_at_ah_polkadot() -> Location {
 	Parent.into()
 }
 pub(crate) fn bridged_dot_at_ah_kusama() -> Location {
-	Location::new(2, [GlobalConsensus(Polkadot)])
+	Location::new(2, [GlobalConsensus(NetworkId::Polkadot)])
 }
 
 // wKSM
 pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
-	Location::new(2, [GlobalConsensus(Kusama)])
+	Location::new(2, [GlobalConsensus(NetworkId::Kusama)])
 }
 
 // USDT and wUSDT
@@ -51,7 +60,7 @@ pub(crate) fn bridged_usdt_at_ah_kusama() -> Location {
 	Location::new(
 		2,
 		[
-			GlobalConsensus(Polkadot),
+			GlobalConsensus(NetworkId::Polkadot),
 			Parachain(AssetHubPolkadot::para_id().into()),
 			PalletInstance(ASSETS_PALLET_ID),
 			GeneralIndex(USDT_ID.into()),
@@ -64,19 +73,19 @@ pub(crate) fn weth_at_asset_hubs() -> Location {
 	Location::new(
 		2,
 		[
-			GlobalConsensus(Ethereum { chain_id: snowbridge::CHAIN_ID }),
-			AccountKey20 { network: None, key: snowbridge::WETH },
+			GlobalConsensus(NetworkId::Ethereum { chain_id: snowbridge::CHAIN_ID }),
+			AccountKey20 { network: None, key: WETH },
 		],
 	)
 }
 
-pub(crate) fn create_foreign_on_ah_kusama(id: v4::Location, sufficient: bool) {
+pub(crate) fn create_foreign_on_ah_kusama(id: Location, sufficient: bool) {
 	let owner = AssetHubKusama::account_id_of(ALICE);
 	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
 pub(crate) fn create_foreign_on_ah_polkadot(
-	id: v4::Location,
+	id: Location,
 	sufficient: bool,
 	prefund_accounts: Vec<(AccountId, u128)>,
 ) {
@@ -85,93 +94,53 @@ pub(crate) fn create_foreign_on_ah_polkadot(
 	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
 }
 
-pub(crate) fn foreign_balance_on_ah_kusama(id: v4::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_kusama(id: Location, who: &AccountId) -> u128 {
 	AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
 	})
 }
-pub(crate) fn foreign_balance_on_ah_polkadot(id: v4::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_polkadot(id: Location, who: &AccountId) -> u128 {
 	AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
 	})
 }
 
-// set up pool
-pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v4::Location, is_foreign: bool) {
-	let ksm: v4::Location = v4::Parent.into();
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-		let owner = AssetHubKusamaSender::get();
-		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
-
-		if is_foreign {
-			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
-				signed_owner.clone(),
-				asset.clone(),
-				owner.clone().into(),
-				3_000_000_000_000,
-			));
-		} else {
-			let asset_id = match asset.interior.last() {
-				Some(v4::Junction::GeneralIndex(id)) => *id as u32,
-				_ => unreachable!(),
-			};
-			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::mint(
-				signed_owner.clone(),
-				asset_id.into(),
-				owner.clone().into(),
-				3_000_000_000_000,
-			));
-		}
-		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
-			signed_owner.clone(),
-			Box::new(ksm.clone()),
-			Box::new(asset.clone()),
-		));
-		assert_expected_events!(
-			AssetHubKusama,
-			vec![
-				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
-			]
-		);
-		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
-			signed_owner.clone(),
-			Box::new(ksm),
-			Box::new(asset),
-			1_000_000_000_000,
-			2_000_000_000_000,
-			1,
-			1,
-			owner,
-		));
-		assert_expected_events!(
-			AssetHubKusama,
-			vec![
-				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {..}) => {},
-			]
-		);
-	});
-}
-
 pub(crate) fn send_assets_from_asset_hub_polkadot(
 	destination: Location,
 	assets: Assets,
 	fee_idx: u32,
+	// For knowing what reserve to pick.
+	// We only allow using the same transfer type for assets and fees right now.
+	// And only `LocalReserve` or `DestinationReserve`.
+	transfer_type: TransferType,
 ) -> DispatchResult {
 	let signed_origin =
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get());
 	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubKusamaReceiver::get().into() }.into();
 
+	type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+	let remote_fee_id: AssetId = assets
+		.clone()
+		.into_inner()
+		.get(fee_idx as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+
 	AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 			signed_origin,
 			bx!(destination.into()),
-			bx!(beneficiary.into()),
 			bx!(assets.into()),
-			fee_idx,
+			bx!(transfer_type.clone()),
+			bx!(remote_fee_id.into()),
+			bx!(transfer_type),
+			bx!(VersionedXcm::from(
+				Xcm::<()>::builder_unsafe().deposit_asset(AllCounted(1), beneficiary).build()
+			)),
 			WeightLimit::Unlimited,
 		)
 	})

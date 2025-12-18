@@ -17,6 +17,7 @@ use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::traits::fungibles::Mutate;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 use xcm_executor::traits::ConvertLocation;
 
 #[test]
@@ -32,13 +33,13 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		)
 		.unwrap();
 	let asset_hub_location =
-		v4::Location::new(0, v4::Junction::Parachain(AssetHubPolkadot::para_id().into()));
+		v5::Location::new(0, v5::Junction::Parachain(AssetHubPolkadot::para_id().into()));
 	let root = <Polkadot as Chain>::RuntimeOrigin::root();
 	// asset kind to be spend from the treasury.
-	let asset_kind = VersionedLocatableAsset::V4 {
+	let asset_kind = VersionedLocatableAsset::V5 {
 		location: asset_hub_location,
-		asset_id: v4::AssetId(
-			(v4::Junction::PalletInstance(50), v4::Junction::GeneralIndex(USDT_ID.into())).into(),
+		asset_id: v5::AssetId(
+			(v5::Junction::PalletInstance(50), v5::Junction::GeneralIndex(USDT_ID.into())).into(),
 		),
 	};
 	// treasury spend beneficiary.
@@ -63,6 +64,7 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		// create a conversion rate from `asset_kind` to the native currency.
 		assert_ok!(AssetRate::create(root.clone(), Box::new(asset_kind.clone()), 2.into()));
 
+		Dmp::make_parachain_reachable(1000);
 		// create and approve a treasury spend.
 		assert_ok!(Treasury::spend(
 			root,

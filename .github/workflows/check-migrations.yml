@@ -5,7 +5,7 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["release-*"]
   pull_request:
   workflow_dispatch:
 
@@ -21,7 +21,7 @@ permissions: {}
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract tasks from matrix
@@ -44,7 +44,7 @@ jobs:
   # if they all pass, that job will pass too.
   check-migrations:
     needs: [runtime-matrix]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       # Ensure the other jobs continue
       fail-fast: false
@@ -53,6 +53,12 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      # We need to fetch the upstream tags, as they are used to determine the latest release
+      - name: “Fetch upstream tags”
+        run: |
+          git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
+          git fetch upstream --tags
 
       - name: Install updates and dependencies
         run: .github/install-deps.sh
@@ -71,7 +77,7 @@ jobs:
             CHECKS="pre-and-post"
           else
             echo "Enabling weight checks since we are not on a relay"
-            
+
             echo "Enabling try-state checks on the non-relay"
             CHECKS="all"
           fi
@@ -103,7 +109,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -114,8 +120,13 @@ jobs:
           CHECKS: ${{ env.CHECKS }}
         run: |
           cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.8.0 --locked && try-runtime --version
-
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            FEATURES="--features try-runtime,${{ matrix.runtime.build_extra_features }}"
+          else
+            FEATURES="--features try-runtime"
+          fi
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
@@ -142,7 +153,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmMigrationsPassed:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: All migrations passed
     # If any new job gets added, be sure to add it to this array
     needs: [check-migrations]

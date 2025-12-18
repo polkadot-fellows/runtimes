@@ -15,8 +15,12 @@
 
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::{DotLocation, XcmConfig as AssetHubPolkadotXcmConfig};
-use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
-use frame_support::traits::fungible::Mutate;
+use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
+use frame_support::{
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
+};
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
@@ -24,20 +28,13 @@ use xcm_runtime_apis::{
 };
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Polkadot::assert_ump_queue_processed(
-		false,
-		Some(AssetHubPolkadot::para_id()),
-		Some(Weight::from_parts(148_705_000, 3_593)),
-	);
+	Polkadot::assert_ump_queue_processed(false, Some(AssetHubPolkadot::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
-	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		533_910_000,
-		7167,
-	)));
+	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
 
 	AssetHubPolkadot::assert_parachain_system_ump_sent();
 
@@ -81,27 +78,17 @@ fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 
 fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(
-		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
-	);
-	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
+	let (_, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
 	AssetHubPolkadot::assert_xcmp_queue_success(None);
+	println!("t.args.amount {:?}", t.args.amount);
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
-			// native asset reserve transfer for paying fees, withdrawn from Penpal's sov account
-			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
-			) => {
-				who: *who == sov_penpal_on_ahk.clone(),
-				amount: *amount == t.args.amount,
-			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
 				who: *who == t.receiver.account_id,
 			},
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { owner, amount, .. }) => {
 				owner: *owner == t.receiver.account_id,
 				amount: *amount == expected_foreign_asset_amount,
 			},
@@ -113,24 +100,22 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
-	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
+	let (_, expected_native_amount) =
+		fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let (_, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
 			// native asset used for fees is transferred to Parachain's Sovereign account as reserve
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Transfer { from, to, amount }
+				pallet_balances::Event::Transfer { from, amount, .. }
 			) => {
 				from: *from == t.sender.account_id,
-				to: *to == AssetHubPolkadot::sovereign_account_id_of(
-					t.args.dest.clone()
-				),
-				amount: *amount == t.args.amount,
+				amount: *amount == expected_native_amount,
 			},
 			// foreign asset is burned locally as part of teleportation
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { owner, balance, .. }) => {
 				owner: *owner == t.sender.account_id,
 				balance: *balance == expected_foreign_asset_amount,
 			},
@@ -144,8 +129,6 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 	let (_, expected_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
 	let checking_account = <PenpalB as PenpalBPallet>::PolkadotXcm::check_account();
-	let system_para_native_asset_location = DotLocation::get();
-
 	PenpalB::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		PenpalB,
@@ -163,10 +146,9 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 				amount: *amount == expected_asset_amount,
 			},
 			// native asset for fee is deposited to receiver
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == system_para_native_asset_location,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				asset_id: *asset_id == Location::parent(),
 				owner: *owner == t.receiver.account_id,
-				amount: *amount == expected_asset_amount,
 			},
 		]
 	);
@@ -184,57 +166,100 @@ fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResu
 }
 
 fn system_para_to_para_transfer_assets(t: SystemParaToParaTest) -> DispatchResult {
-	<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets(
+	type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+	let remote_fee_id: AssetId = t
+		.args
+		.assets
+		.clone()
+		.into_inner()
+		.get(t.args.fee_asset_item as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+	<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
 		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
+		bx!(TransferType::Teleport),
+		bx!(remote_fee_id.into()),
+		bx!(TransferType::LocalReserve),
+		bx!(VersionedXcm::from(
+			Xcm::<()>::builder_unsafe()
+				.deposit_asset(AllCounted(2), t.args.beneficiary)
+				.build()
+		)),
 		t.args.weight_limit,
 	)
 }
 
 fn para_to_system_para_transfer_assets(t: ParaToSystemParaTest) -> DispatchResult {
-	<PenpalB as PenpalBPallet>::PolkadotXcm::transfer_assets(
+	type Runtime = <PenpalB as Chain>::Runtime;
+	let remote_fee_id: AssetId = t
+		.args
+		.assets
+		.clone()
+		.into_inner()
+		.get(t.args.fee_asset_item as usize)
+		.ok_or(pallet_xcm::Error::<Runtime>::Empty)?
+		.clone()
+		.id;
+	<PenpalB as PenpalBPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
 		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
+		bx!(TransferType::Teleport),
+		bx!(remote_fee_id.into()),
+		bx!(TransferType::DestinationReserve),
+		bx!(VersionedXcm::from(
+			Xcm::<()>::builder_unsafe()
+				.deposit_asset(AllCounted(2), t.args.beneficiary)
+				.build()
+		)),
 		t.args.weight_limit,
 	)
 }
 
 #[test]
-fn teleport_to_other_system_parachains_works() {
-	let amount = ASSET_HUB_POLKADOT_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
-
-	test_parachain_is_trusted_teleporter!(
-		AssetHubPolkadot,          // Origin
-		AssetHubPolkadotXcmConfig, // XCM Configuration
-		vec![BridgeHubPolkadot],   // Destinations
-		(native_asset, amount)
-	);
-}
-
-#[test]
-fn teleport_from_and_to_relay() {
-	let amount = POLKADOT_ED * 100;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
 		Polkadot,
-		PolkadotXcmConfig,
 		vec![AssetHubPolkadot],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = POLKADOT_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		AssetHubPolkadot,
-		AssetHubPolkadotXcmConfig,
 		Polkadot,
-		amount
+		amount,
+		transfer_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = POLKADOT_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		AssetHubPolkadot,
+		Polkadot,
+		amount,
+		limited_teleport_assets
 	);
 }
 
@@ -291,7 +316,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let fee_amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 10000;
 	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
-		Some(Junction::GeneralIndex(id)) => *id as u32,
+		Some(GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),
 	};
 	let asset_amount_to_send = ASSET_HUB_POLKADOT_ED * 1000;
@@ -337,9 +362,10 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	)]);
 
 	// Init values for System Parachain
+	let asset_location_on_penpal_v4: Location = asset_location_on_penpal.clone();
 	let foreign_asset_at_asset_hub_polkadot =
-		Location::new(1, [Junction::Parachain(PenpalB::para_id().into())])
-			.appended_with(asset_location_on_penpal)
+		Location::new(1, [Parachain(PenpalB::para_id().into())])
+			.appended_with(asset_location_on_penpal_v4)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubPolkadotReceiver::get();
 
@@ -437,9 +463,11 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 
 	let ah_to_penpal_beneficiary_id = PenpalBReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
+	let foreign_asset_at_asset_hub_polkadot_latest: Location =
+		foreign_asset_at_asset_hub_polkadot.clone();
 	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
-		(foreign_asset_at_asset_hub_polkadot.clone(), asset_amount_to_send).into(),
+		(foreign_asset_at_asset_hub_polkadot_latest.clone(), asset_amount_to_send).into(),
 	]
 	.into();
 	let fee_asset_index = ah_assets

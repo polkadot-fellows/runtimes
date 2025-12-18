@@ -20,6 +20,7 @@
 
 extern crate alloc;
 
+use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
@@ -50,6 +51,8 @@ frame_support::parameter_types! {
 
 	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
 	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
+	/// The pallet index of the Ethereum system frontend pallet in the AssetHub Hub runtime.
+	pub const SystemFrontendPalletInstance: u8 = 36;
 }
 
 /// Builds an (un)congestion XCM program with the `report_bridge_status` call for
@@ -57,12 +60,12 @@ frame_support::parameter_types! {
 pub fn build_congestion_message<RuntimeCall>(
 	bridge_id: sp_core::H256,
 	is_congested: bool,
-) -> alloc::vec::Vec<Instruction<RuntimeCall>> {
+) -> Vec<Instruction<RuntimeCall>> {
 	alloc::vec![
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		Transact {
 			origin_kind: OriginKind::Xcm,
-			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
+			fallback_max_weight: Some(XcmBridgeHubRouterTransactCallMaxWeight::get()),
 			call: Call::ToKusamaXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
 				bridge_id,
 				is_congested,

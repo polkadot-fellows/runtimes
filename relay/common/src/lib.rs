@@ -20,35 +20,6 @@
 use polkadot_primitives::Balance;
 use sp_runtime::{Perquintill, Saturating};
 
-/// Extra runtime APIs for kusama runtime.
-pub mod apis {
-	/// Information about the current inflation rate of the system.
-	///
-	/// Both fields should be treated as best-effort, given that the inflation rate might not be
-	/// fully predict-able.
-	#[derive(scale_info::TypeInfo, codec::Encode, codec::Decode)]
-	#[cfg_attr(feature = "std", derive(Debug))]
-	pub struct InflationInfo {
-		/// The rate of inflation estimated per annum.
-		pub inflation: sp_runtime::Perquintill,
-		/// Next amount that we anticipate to mint.
-		///
-		/// First item is the amount that goes to stakers, second is the leftover that is usually
-		/// forwarded to the treasury.
-		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
-	}
-
-	sp_api::decl_runtime_apis! {
-		pub trait Inflation {
-			/// Return the current estimates of the inflation amount.
-			///
-			/// This is marked as experimental in light of RFC#89. Nonetheless, its usage is highly
-			/// recommended over trying to read-storage, or re-create the onchain logic.
-			fn experimental_inflation_prediction_info() -> InflationInfo;
-		}
-	}
-}
-
 // ---- TODO: Below is copy pasted from sdk, remove once we pull the version containing
 // https://github.com/paritytech/polkadot-sdk/pull/4938
 

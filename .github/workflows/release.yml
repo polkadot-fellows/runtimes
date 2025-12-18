@@ -8,7 +8,7 @@ on:
 
 jobs:
   collect-release-information:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       should-release: ${{ steps.run.outputs.should-release }}
       version: ${{ steps.run.outputs.version }}
@@ -23,7 +23,7 @@ jobs:
   runtime-matrix:
     needs: [ collect-release-information ]
     if: needs.collect-release-information.outputs.should-release == '1'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     steps:
@@ -37,10 +37,13 @@ jobs:
   build-runtimes:
     needs: [ runtime-matrix ]
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    env:
+      PROD_FEATURES: "--features on-chain-release-build"
+      TRY_RUNTIME_LOGGING_FEATURES: "--features try-runtime,metadata-hash"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -56,9 +59,9 @@ jobs:
 
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.8.0
+        uses: paritytech/srtool-actions@v0.9.4
         env:
-          BUILD_OPTS: "--features on-chain-release-build"
+          BUILD_OPTS: ${{ env.PROD_FEATURES }}
         with:
           chain: ${{ matrix.runtime.name }}
           package: ${{ matrix.runtime.package }}
@@ -81,9 +84,26 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
+            
+      - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
+        id: srtool_compact
+        uses: paritytech/srtool-actions@v0.9.4
+        env:
+          BUILD_OPTS: ${{ env.TRY_RUNTIME_LOGGING_FEATURES }}
+        with:
+          chain:   ${{ matrix.runtime.name }}
+          package: ${{ matrix.runtime.package }}
+          runtime_dir: ${{ matrix.runtime.path }}
+          profile: "release"
+
+      - name: Upload ${{ matrix.runtime.name }} Wasm (try-runtime & logging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}-compact
+          path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
 
   publish-release:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [ build-runtimes, collect-release-information ]
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
@@ -120,7 +140,7 @@ jobs:
           srtool build
                  --root --profile production
                  --package CRATE_NAME --runtime-dir PATH_TO_CRATE
-                 --build-opts="--features=on-chain-release-build"
+                 --build-opts="$PROD_FEATURES"
           \`\`\`
           EOF
 
@@ -165,7 +185,7 @@ jobs:
   publish-runtimes:
     needs: [ runtime-matrix, publish-release ]
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       RUNTIME_DIR: runtime
     strategy:
@@ -195,3 +215,26 @@ jobs:
           asset_path: ${{ env.ASSET }}
           asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm
+
+  package-try-runtime-and-logging-enabled-wasms:
+    needs: [ build-runtimes, publish-release ]
+    runs-on: self-hosted
+    steps:
+      - name: Download compact artfacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-compact'
+
+      - name: Create try-runtime and logging enabled runtimes
+        run: |
+          zip -j runtimes-with-try-runtime-and-logging.zip */*.compact.compressed.wasm
+
+      - name: Upload archive to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
+          asset_path: runtimes-with-try-runtime-and-logging.zip
+          asset_name: runtimes-with-try-runtime-and-logging.zip
+          asset_content_type: application/zip

@@ -8,6 +8,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+array-bytes = { workspace = true }
 smallvec = { workspace = true }
 
 frame-support = { workspace = true }
@@ -18,7 +19,6 @@ polkadot-primitives = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 xcm = { workspace = true }
 
 [features]
@@ -32,7 +32,6 @@ std = [
 	"polkadot-runtime-constants/std",
 	"sp-core/std",
 	"sp-runtime/std",
-	"sp-std/std",
 	"xcm/std",
 ]
 runtime-benchmarks = [
@@ -42,4 +41,5 @@ runtime-benchmarks = [
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]

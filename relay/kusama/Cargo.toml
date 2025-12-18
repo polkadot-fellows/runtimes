@@ -9,6 +9,11 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+
+# Asset Hub Migration concerning deps
+pallet-rc-migrator = { workspace = true }
+# End: Asset Hub Migration concerning deps
+
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 serde_json = { features = ["alloc"], workspace = true }
@@ -22,7 +27,6 @@ kusama-runtime-constants = { workspace = true }
 sp-api = { workspace = true }
 sp-inherents = { workspace = true }
 sp-offchain = { workspace = true }
-sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -52,6 +56,8 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-delegated-staking = { workspace = true }
+pallet-staking-async-ah-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true }
 pallet-election-provider-multi-phase = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 frame-executive = { workspace = true }
@@ -116,6 +122,7 @@ remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
 ss58-registry = { workspace = true }
+hex = { workspace = true, default-features = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
@@ -123,7 +130,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [features]
 default = ["std"]
 no_std = []
-only-staking = []
+kusama-ahm = ["pallet-rc-migrator/kusama-ahm"]
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -139,6 +146,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime/std",
+	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-asset-rate/std",
@@ -171,12 +179,15 @@ std = [
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
+	"pallet-rc-migrator/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-session-benchmarking?/std",
 	"pallet-session/std",
 	"pallet-society/std",
+	"pallet-staking-async-ah-client/std",
+	"pallet-staking-async-rc-client/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-timestamp/std",
@@ -208,7 +219,6 @@ std = [
 	"sp-runtime/std",
 	"sp-session/std",
 	"sp-staking/std",
-	"sp-std/std",
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
@@ -253,13 +263,17 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
+	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-recovery/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
+	"pallet-staking-async-ah-client/runtime-benchmarks",
+	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
@@ -268,12 +282,14 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -308,11 +324,14 @@ try-runtime = [
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-ranked-collective/try-runtime",
+	"pallet-rc-migrator/try-runtime",
 	"pallet-recovery/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-society/try-runtime",
+	"pallet-staking-async-ah-client/try-runtime",
+	"pallet-staking-async-rc-client/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
@@ -332,7 +351,7 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
+on-chain-release-build = ["kusama-ahm", "metadata-hash", "sp-api/disable-logging"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = ["kusama-runtime-constants/fast-runtime"]

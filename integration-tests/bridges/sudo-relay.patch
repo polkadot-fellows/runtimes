@@ -1,37 +1,16 @@
-diff --git a/Cargo.lock b/Cargo.lock
-index 0ccf9de0a..e33f5da78 100644
---- a/Cargo.lock
-+++ b/Cargo.lock
-@@ -10024,6 +10024,7 @@ dependencies = [
-  "pallet-staking-reward-fn",
-  "pallet-staking-runtime-api",
-  "pallet-state-trie-migration",
-+ "pallet-sudo",
-  "pallet-timestamp",
-  "pallet-transaction-payment",
-  "pallet-transaction-payment-rpc-runtime-api",
-@@ -14334,6 +14335,7 @@ dependencies = [
-  "pallet-society",
-  "pallet-staking",
-  "pallet-staking-runtime-api",
-+ "pallet-sudo",
-  "pallet-timestamp",
-  "pallet-transaction-payment",
-  "pallet-transaction-payment-rpc-runtime-api",
 diff --git a/relay/kusama/Cargo.toml b/relay/kusama/Cargo.toml
-index 5a600a1d3..4db7ea092 100644
+index 4b5dd7e7f..ab10fd408 100644
 --- a/relay/kusama/Cargo.toml
 +++ b/relay/kusama/Cargo.toml
-@@ -106,6 +106,8 @@ xcm-runtime-apis = { workspace = true }
+@@ -106,6 +106,7 @@ xcm-runtime-apis = { workspace = true }
  
  sp-debug-derive = { workspace = true }
- 
+ relay-common = { workspace = true }
 +pallet-sudo = { workspace = true }
-+
+ 
  [dev-dependencies]
  sp-keyring = { workspace = true }
- sp-trie = { workspace = true }
-@@ -175,6 +177,7 @@ std = [
+@@ -178,6 +179,7 @@ std = [
  	"pallet-society/std",
  	"pallet-staking-runtime-api/std",
  	"pallet-staking/std",
@@ -40,10 +19,10 @@ index 5a600a1d3..4db7ea092 100644
  	"pallet-transaction-payment-rpc-runtime-api/std",
  	"pallet-transaction-payment/std",
 diff --git a/relay/kusama/src/genesis_config_presets.rs b/relay/kusama/src/genesis_config_presets.rs
-index dda349608..4714ecd51 100644
+index 889575460..0c52f79fd 100644
 --- a/relay/kusama/src/genesis_config_presets.rs
 +++ b/relay/kusama/src/genesis_config_presets.rs
-@@ -188,6 +188,9 @@ fn kusama_testnet_genesis(
+@@ -193,6 +193,9 @@ fn kusama_testnet_genesis(
  			"forceEra": Forcing::NotForcing,
  			"slashRewardFraction": Perbill::from_percent(10),
  		},
@@ -54,10 +33,10 @@ index dda349608..4714ecd51 100644
  			"epochConfig": Some(BABE_GENESIS_EPOCH_CONFIG),
  		},
 diff --git a/relay/kusama/src/lib.rs b/relay/kusama/src/lib.rs
-index bb31116d0..0075f394a 100644
+index d158600ad..8e7126b14 100644
 --- a/relay/kusama/src/lib.rs
 +++ b/relay/kusama/src/lib.rs
-@@ -1657,9 +1657,18 @@ construct_runtime! {
+@@ -1892,9 +1892,17 @@ construct_runtime! {
  		// refer to block<N>. See issue #160 for details.
  		Mmr: pallet_mmr = 201,
  		BeefyMmrLeaf: pallet_beefy_mmr = 202,
@@ -72,24 +51,23 @@ index bb31116d0..0075f394a 100644
 +	type RuntimeCall = RuntimeCall;
 +	type WeightInfo = ();
 +}
-+
  /// The address format for describing accounts.
  pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
  /// Block header type as expected by this runtime.
 diff --git a/relay/polkadot/Cargo.toml b/relay/polkadot/Cargo.toml
-index c8a5404fa..8c3c3404b 100644
+index 9b3d1dc46..5fed90096 100644
 --- a/relay/polkadot/Cargo.toml
 +++ b/relay/polkadot/Cargo.toml
-@@ -103,6 +103,8 @@ xcm-runtime-apis = { workspace = true }
- 
- sp-debug-derive = { workspace = true }
+@@ -108,6 +108,8 @@ sp-debug-derive = { workspace = true }
+ # just for the coretime migration
+ polkadot-parachain-primitives = { workspace = true }
  
 +pallet-sudo = { workspace = true }
 +
  [dev-dependencies]
+ approx = { workspace = true }
  sp-keyring = { workspace = true }
- sp-trie = { workspace = true }
-@@ -169,6 +171,7 @@ std = [
+@@ -178,6 +180,7 @@ std = [
  	"pallet-staking-runtime-api/std",
  	"pallet-staking/std",
  	"pallet-state-trie-migration/std",
@@ -98,10 +76,10 @@ index c8a5404fa..8c3c3404b 100644
  	"pallet-transaction-payment-rpc-runtime-api/std",
  	"pallet-transaction-payment/std",
 diff --git a/relay/polkadot/src/genesis_config_presets.rs b/relay/polkadot/src/genesis_config_presets.rs
-index 38abd8e48..127813f1c 100644
+index b8f828d7a..77487f0eb 100644
 --- a/relay/polkadot/src/genesis_config_presets.rs
 +++ b/relay/polkadot/src/genesis_config_presets.rs
-@@ -188,6 +188,9 @@ fn polkadot_testnet_genesis(
+@@ -193,6 +193,9 @@ fn polkadot_testnet_genesis(
  			"forceEra": Forcing::NotForcing,
  			"slashRewardFraction": Perbill::from_percent(10),
  		},
@@ -112,10 +90,10 @@ index 38abd8e48..127813f1c 100644
  			"epochConfig": Some(BABE_GENESIS_EPOCH_CONFIG),
  		},
 diff --git a/relay/polkadot/src/lib.rs b/relay/polkadot/src/lib.rs
-index 1e44c81fc..f0cf68788 100644
+index 3b2275e68..a26ec7157 100644
 --- a/relay/polkadot/src/lib.rs
 +++ b/relay/polkadot/src/lib.rs
-@@ -1680,9 +1680,18 @@ construct_runtime! {
+@@ -1651,9 +1651,18 @@ construct_runtime! {
  		// refer to block<N>. See issue #160 for details.
  		Mmr: pallet_mmr = 201,
  		BeefyMmrLeaf: pallet_beefy_mmr = 202,

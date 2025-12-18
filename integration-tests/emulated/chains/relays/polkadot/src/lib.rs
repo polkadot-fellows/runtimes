@@ -14,6 +14,7 @@
 // limitations under the License.
 
 pub mod genesis;
+pub use polkadot_runtime;
 
 // Cumulus
 use emulated_integration_tests_common::{
@@ -24,7 +25,7 @@ use emulated_integration_tests_common::{
 
 // Polkadot declaration
 decl_test_relay_chains! {
-	#[api_version(11)]
+	#[api_version(13)]
 	pub struct Polkadot {
 		genesis = genesis::genesis(),
 		on_init = (),
@@ -37,6 +38,7 @@ decl_test_relay_chains! {
 			Balances: polkadot_runtime::Balances,
 			Treasury: polkadot_runtime::Treasury,
 			AssetRate: polkadot_runtime::AssetRate,
+			Preimage: polkadot_runtime::Preimage,
 			Hrmp: polkadot_runtime::Hrmp,
 		}
 	},

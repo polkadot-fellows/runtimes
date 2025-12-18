@@ -16,12 +16,14 @@
 
 use crate::{
 	coretime::{BrokerPalletId, CoretimeBurnAccount},
-	xcm_config::LocationToAccountId,
+	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
 use coretime::CoretimeAllocator;
+use cumulus_pallet_parachain_system::ValidationData;
+use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
-	assert_ok,
+	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
 		Get, OnInitialize,
@@ -29,17 +31,34 @@ use frame_support::{
 };
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
-use parachains_runtimes_test_utils::ExtBuilder;
+use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{traits::AccountIdConversion, Either};
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
+
+// We track the relay chain block number via the RelayChainDataProvider, but `set_block_number` is
+// not currently available in tests (only runtime-benchmarks).
+// See https://github.com/paritytech/polkadot-sdk/pull/8537
+fn set_relay_block_number(b: BlockNumber) {
+	let mut validation_data = ValidationData::<Runtime>::get().unwrap_or_else(||
+			// PersistedValidationData does not impl default in non-std
+			PersistedValidationData {
+				parent_head: vec![].into(),
+				relay_parent_number: Default::default(),
+				max_pov_size: Default::default(),
+				relay_parent_storage_root: Default::default(),
+			});
+	validation_data.relay_parent_number = b;
+	ValidationData::<Runtime>::put(validation_data)
+}
 
 fn advance_to(b: BlockNumber) {
 	while System::block_number() < b {
 		let block_number = System::block_number() + 1;
 		System::set_block_number(block_number);
+		set_relay_block_number(block_number);
 		Broker::on_initialize(block_number);
 	}
 }
@@ -66,9 +85,8 @@ fn bulk_revenue_is_burnt() {
 				renewal_bump: Perbill::from_percent(3),
 				contribution_timeout: 1,
 			};
-			let ed = ExistentialDeposit::get();
 			assert_ok!(Broker::configure(RuntimeOrigin::root(), config.clone()));
-			assert_ok!(Broker::start_sales(RuntimeOrigin::root(), ed, 1));
+			assert_ok!(Broker::start_sales(RuntimeOrigin::root(), UNITS, 1));
 
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
@@ -77,14 +95,17 @@ fn bulk_revenue_is_burnt() {
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let coretime_burn_account = CoretimeBurnAccount::get();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
-			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * ed));
+			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
 			let burn_balance_before = Balances::balance(&coretime_burn_account);
 
 			// Purchase coretime.
-			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 100 * ed));
+			assert_ok!(Broker::purchase(
+				RuntimeOrigin::signed(AccountId::from(ALICE)),
+				100 * UNITS
+			));
 
 			// Alice decreases.
 			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
@@ -222,5 +243,38 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
+}
+
+#[test]
+fn governance_authorize_upgrade_works() {
+	// no - random non-system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+	// no - random system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+
+	// ok - AssetHub
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }

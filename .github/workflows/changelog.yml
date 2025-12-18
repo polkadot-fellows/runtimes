@@ -19,28 +19,35 @@ jobs:
   # Job required by "confirmChangelogChecksPassed"
   verify-changelog-updated:
     name: Verify that Changelog is Updated
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Get Changed Files
         id: changed
-        uses: foodee/pr-includes-file-change@master
+        uses: tj-actions/changed-files@v44
         with:
-          paths: ^CHANGELOG.md
+          files: |
+            CHANGELOG.md
       - name: Set error
-        if: steps.changed.outputs.matched != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
+        if: steps.changed.outputs.any_changed != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
         run: echo "::error::CHANGELOG.md has not been modified. Either modify the file or check the checkbox in the body" && exit 1
 
   # Job required by "confirmChangelogChecksPassed"
   verify-changelog-valid:
     name: Verify that Changelog is valid
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      # We need to fetch the upstream tags, as they are used to determine the latest release
+      - name: “Fetch upstream tags”
+        run: |
+          git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
+          git fetch upstream --tags
 
       - name: Verify
         run: |
@@ -52,7 +59,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmChangelogChecksPassed:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: All changelog checks passed
     # If any new job gets added, be sure to add it to this list
     needs:

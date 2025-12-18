@@ -18,30 +18,33 @@ use bp_messages::LegacyLaneId;
 use bp_polkadot_core::Signature;
 use bridge_hub_kusama_runtime::{
 	bridge_to_polkadot_config::{
-		AssetHubPolkadotParaId, BridgeGrandpaPolkadotInstance, BridgeHubPolkadotLocation,
-		BridgeParachainPolkadotInstance, DeliveryRewardInBalance,
-		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, PolkadotGlobalConsensusNetwork,
-		RelayersForLegacyLaneIdsMessagesInstance, RequiredStakeForStakeAndSlash,
-		WithBridgeHubPolkadotMessagesInstance, XcmOverBridgeHubPolkadotInstance,
+		BridgeGrandpaPolkadotInstance, BridgeHubPolkadotLocation, BridgeParachainPolkadotInstance,
+		DeliveryRewardInBalance, OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
+		PolkadotGlobalConsensusNetwork, RelayersForLegacyLaneIdsMessagesInstance,
+		RequiredStakeForStakeAndSlash, WithBridgeHubPolkadotMessagesInstance,
+		XcmOverBridgeHubPolkadotInstance,
 	},
 	xcm_config::{
-		KsmRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
-		RelayTreasuryPalletAccount, XcmConfig,
+		AssetHubLocation, LocationToAccountId, RelayChainLocation, RelayNetwork,
+		RelayTreasuryLocation, RelayTreasuryPalletAccount, XcmConfig,
 	},
 	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
 	ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, SignedExtra, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
+	RuntimeOrigin, SessionKeys, TransactionPayment, TxExtension, UncheckedExtrinsic, SLOT_DURATION,
 };
-use bridge_hub_test_utils::{test_cases::from_parachain, SlotDurations};
+use bridge_hub_test_utils::{test_cases::from_parachain, GovernanceOrigin, SlotDurations};
 use codec::{Decode, Encode};
-use frame_support::{dispatch::GetDispatchInfo, parameter_types, traits::ConstU8};
+use cumulus_primitives_core::UpwardMessageSender;
+use frame_support::{
+	assert_err, assert_ok, dispatch::GetDispatchInfo, parameter_types, traits::ConstU8,
+};
 use parachains_common::{AccountId, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
-use sp_keyring::AccountKeyring::Alice;
+use sp_keyring::Sr25519Keyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
-	AccountId32, Perbill,
+	AccountId32, Either, Perbill,
 };
 use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
@@ -78,11 +81,11 @@ parameter_types! {
 }
 
 fn construct_extrinsic(
-	sender: sp_keyring::AccountKeyring,
+	sender: sp_keyring::Sr25519Keyring,
 	call: RuntimeCall,
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
-	let extra: SignedExtra = (
+	let extra: TxExtension = (
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),
@@ -96,14 +99,15 @@ fn construct_extrinsic(
 		BridgeRejectObsoleteHeadersAndMessages,
 		(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages::default()),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-	);
+	)
+		.into();
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
 	let signature = payload.using_encoded(|e| sender.sign(e));
 	UncheckedExtrinsic::new_signed(call, account_id.into(), Signature::Sr25519(signature), extra)
 }
 
 fn construct_and_apply_extrinsic(
-	relayer_at_target: sp_keyring::AccountKeyring,
+	relayer_at_target: sp_keyring::Sr25519Keyring,
 	call: RuntimeCall,
 ) -> sp_runtime::DispatchOutcome {
 	let xt = construct_extrinsic(relayer_at_target, call);
@@ -136,7 +140,7 @@ bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
 	Runtime,
 	AllPalletsWithoutSystem,
 	XcmConfig,
-	CheckingAccount,
+	(),
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
@@ -159,11 +163,27 @@ fn test_ed_is_one_tenth_of_relay() {
 }
 
 #[test]
-fn initialize_bridge_by_governance_works() {
+fn initialize_bridge_by_relay_governance_works() {
 	bridge_hub_test_utils::test_cases::initialize_bridge_by_governance_works::<
 		Runtime,
 		BridgeGrandpaPolkadotInstance,
-	>(collator_session_keys(), bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		GovernanceOrigin::Location(RelayChainLocation::get()),
+	)
+}
+
+#[test]
+fn initialize_bridge_by_assethub_governance_works() {
+	bridge_hub_test_utils::test_cases::initialize_bridge_by_governance_works::<
+		Runtime,
+		BridgeGrandpaPolkadotInstance,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		GovernanceOrigin::Location(AssetHubLocation::get()),
+	)
 }
 
 #[test]
@@ -172,7 +192,11 @@ fn change_bridge_grandpa_pallet_mode_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_bridge_grandpa_pallet_mode_by_governance_works::<
 		Runtime,
 		BridgeGrandpaPolkadotInstance,
-	>(collator_session_keys(), bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		GovernanceOrigin::Location(RelayChainLocation::get()),
+	)
 }
 
 #[test]
@@ -181,7 +205,11 @@ fn change_bridge_parachains_pallet_mode_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_bridge_parachains_pallet_mode_by_governance_works::<
 		Runtime,
 		BridgeParachainPolkadotInstance,
-	>(collator_session_keys(), bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		GovernanceOrigin::Location(RelayChainLocation::get()),
+	)
 }
 
 #[test]
@@ -190,7 +218,11 @@ fn change_bridge_messages_pallet_mode_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_bridge_messages_pallet_mode_by_governance_works::<
 		Runtime,
 		WithBridgeHubPolkadotMessagesInstance,
-	>(collator_session_keys(), bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		GovernanceOrigin::Location(RelayChainLocation::get()),
+	)
 }
 
 #[test]
@@ -202,7 +234,7 @@ fn change_delivery_reward_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(RelayChainLocation::get()),
 		|| (DeliveryRewardInBalance::key().to_vec(), DeliveryRewardInBalance::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
@@ -217,7 +249,7 @@ fn change_required_stake_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(RelayChainLocation::get()),
 		|| (RequiredStakeForStakeAndSlash::key().to_vec(), RequiredStakeForStakeAndSlash::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
@@ -239,10 +271,10 @@ fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
 					_ => None,
 				}
 			}),
-			|| ExportMessage { network: Polkadot, destination: Parachain(AssetHubPolkadotParaId::get().into()).into(), xcm: Xcm(vec![]) },
-			Some((KsmRelayLocation::get(), ExistentialDeposit::get()).into()),
+			|| ExportMessage { network: Polkadot, destination: Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID).into(), xcm: Xcm(vec![]) },
+			Some((RelayChainLocation::get(), ExistentialDeposit::get()).into()),
 			// value should be >= than value generated by `can_calculate_weight_for_paid_export_message_with_reserve_transfer`
-			Some((KsmRelayLocation::get(), bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms::get()).into()),
+			Some((RelayChainLocation::get(), bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms::get()).into()),
 			|| {
 				PolkadotXcm::force_xcm_version(RuntimeOrigin::root(), Box::new(BridgeHubPolkadotLocation::get()), XCM_VERSION).expect("version saved!");
 
@@ -251,7 +283,7 @@ fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
 					Runtime,
 					XcmOverBridgeHubPolkadotInstance,
 					LocationToAccountId,
-					KsmRelayLocation,
+					RelayChainLocation,
 				>(
 					SiblingParachainLocation::get(),
 					BridgedUniversalLocation::get(),
@@ -295,7 +327,7 @@ fn message_dispatch_routing_works() {
 				_ => None,
 			}
 		}),
-		|| (),
+		<ParachainSystem as UpwardMessageSender>::ensure_successful_delivery,
 	)
 }
 
@@ -314,7 +346,7 @@ fn relayed_incoming_message_works() {
 				Runtime,
 				XcmOverBridgeHubPolkadotInstance,
 				LocationToAccountId,
-				KsmRelayLocation,
+				RelayChainLocation,
 			>(
 				SiblingParachainLocation::get(),
 				BridgedUniversalLocation::get(),
@@ -349,7 +381,7 @@ fn free_relay_extrinsic_works() {
 				Runtime,
 				XcmOverBridgeHubPolkadotInstance,
 				LocationToAccountId,
-				KsmRelayLocation,
+				RelayChainLocation,
 			>(
 				SiblingParachainLocation::get(),
 				BridgedUniversalLocation::get(),
@@ -545,5 +577,38 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
+}
+
+#[test]
+fn governance_authorize_upgrade_works() {
+	// no - random non-system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+	// no - random system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+
+	// ok - AssetHub
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }

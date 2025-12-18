@@ -27,11 +27,6 @@ use sp_keyring::Sr25519Keyring::Charlie;
 use std::collections::HashSet;
 
 #[test]
-fn nis_hold_reason_encoding_is_correct() {
-	assert_eq!(RuntimeHoldReason::Nis(pallet_nis::HoldReason::NftReceipt).encode(), [38, 0]);
-}
-
-#[test]
 fn remove_keys_weight_is_sensible() {
 	use polkadot_runtime_common::crowdloan::WeightInfo;
 	let max_weight = <Runtime as crowdloan::Config>::WeightInfo::refund(RemoveKeysLimit::get());
@@ -102,8 +97,9 @@ fn transfer_cost_min_multiplier() {
 			pallet_transaction_payment::NextFeeMultiplier::<Runtime>::put(m);
 			let fee = TransactionPayment::compute_fee(len, &info, 0);
 			println!(
-				"weight = {:?} // multiplier = {:?} // full transfer fee = {:?}",
-				info.weight.ref_time().separated_string(),
+				"extension_weight = {:?} // call_weight = {:?} // multiplier = {:?} // full transfer fee = {:?}",
+				info.extension_weight.ref_time().separated_string(),
+				info.call_weight.ref_time().separated_string(),
 				pallet_transaction_payment::NextFeeMultiplier::<Runtime>::get(),
 				fee.separated_string(),
 			);

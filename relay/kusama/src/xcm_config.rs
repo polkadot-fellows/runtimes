@@ -23,10 +23,11 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals, Everything, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
+use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
@@ -34,17 +35,17 @@ use polkadot_runtime_common::{
 use sp_core::ConstU32;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
-	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
-	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
-	OriginToPluralityVoice, SendXcmFeeToAccount, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
+	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	ChildParachainAsNative, ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily,
+	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsChildSystemParachain,
+	IsConcrete, LocationAsSuperuser, MintLocation, OriginToPluralityVoice, SendXcmFeeToAccount,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	XcmFeeManagerFromComponents,
 };
 
 parameter_types! {
-	pub const RootLocation: Location = Here.into_location();
 	/// The location of the KSM token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
@@ -58,7 +59,7 @@ parameter_types! {
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The check account that is allowed to mint assets locally.
-	pub LocalCheckAccount: (AccountId, MintLocation) = (CheckAccount::get(), MintLocation::Local);
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
@@ -78,6 +79,8 @@ pub type SovereignAccountOf = (
 /// point of view of XCM-only concepts like `Location` and `Asset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
+///
+/// Teleports tracking is managed by `RcMigrator`
 pub type LocalAssetTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
@@ -87,8 +90,8 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// We track our teleports in/out to keep total issuance correct.
-	LocalCheckAccount,
+	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
+	TeleportTracking,
 >;
 
 /// The means that we convert the XCM message origin location into a local dispatch origin.
@@ -99,6 +102,10 @@ type LocalOriginConverter = (
 	ChildParachainAsNative<parachains_origin::Origin, RuntimeOrigin>,
 	// The AccountId32 location type can be expressed natively as a `Signed` origin.
 	SignedAccountId32AsNative<ThisNetwork, RuntimeOrigin>,
+	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
+	XcmPassthrough<RuntimeOrigin>,
+	// AssetHub can execute as root (based on: https://github.com/polkadot-fellows/runtimes/issues/651).
+	LocationAsSuperuser<Equals<AssetHubLocation>, RuntimeOrigin>,
 );
 
 parameter_types! {
@@ -116,12 +123,21 @@ parameter_types! {
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
-/// individual routers.
-pub type XcmRouter = WithUniqueTopic<(
+/// The XCM router. Use [`XcmRouter`] instead.
+pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
 	// Only one router so far - use DMP to communicate with child parachains.
 	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
 )>;
+
+/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
+/// individual routers.
+///
+/// This router does not route to the Asset Hub if the migration is ongoing.
+pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
+	XcmRouterWithoutException,
+	FromContains<Equals<AssetHubLocation>, Everything>,
+	crate::RcMigrator,
+>;
 
 parameter_types! {
 	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
@@ -161,6 +177,13 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
+pub struct AssetHubPlurality;
+impl Contains<Location> for AssetHubPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Parachain(ASSET_HUB_ID), Plurality { .. }]))
+	}
+}
+
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = TrailingSetTopicAsId<(
 	// Weight that is paid for may be consumed.
@@ -172,7 +195,7 @@ pub type Barrier = TrailingSetTopicAsId<(
 			// If the message is one that immediately attempts to pay for execution, then allow it.
 			AllowTopLevelPaidExecutionFrom<Everything>,
 			// Messages coming from system parachains need not pay for execution.
-			AllowExplicitUnpaidExecutionFrom<IsChildSystemParachain<ParaId>>,
+			AllowExplicitUnpaidExecutionFrom<(IsChildSystemParachain<ParaId>, AssetHubPlurality)>,
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<OnlyParachains>,
 		),
@@ -183,7 +206,7 @@ pub type Barrier = TrailingSetTopicAsId<(
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+pub type WaivedLocations = (SystemParachains, Equals<TokenLocation>, LocalPlurality);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -193,7 +216,8 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
-	type IsTeleporter = TrustedTeleporters;
+	type IsTeleporter =
+		pallet_rc_migrator::xcm_config::FalseIfMigrating<crate::RcMigrator, TrustedTeleporters>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -214,6 +238,8 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
+		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
+		// of the new AH Treasury.
 		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
 	>;
 	// No bridges on the Relay Chain
@@ -221,11 +247,14 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Nothing;
+	// We let locations alias into child locations of their own.
+	// This is a simple aliasing rule, mimicking the behaviour of the `DescendOrigin` instruction.
+	type Aliasers = AliasChildLocation;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
+	type XcmEventEmitter = XcmPallet;
 }
 
 parameter_types! {
@@ -304,46 +333,6 @@ impl pallet_xcm::Config for Runtime {
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
 	type AdminOrigin = EnsureRoot<AccountId>;
-}
-
-#[test]
-fn karura_liquid_staking_xcm_has_sane_weight_upper_limit() {
-	use codec::Decode;
-	use frame_support::dispatch::GetDispatchInfo;
-	use xcm::VersionedXcm;
-	use xcm_executor::traits::WeightBounds;
-
-	// should be [WithdrawAsset, BuyExecution, Transact, RefundSurplus, DepositAsset]
-	let blob = hex_literal::hex!("02140004000000000700e40b540213000000000700e40b54020006010700c817a804341801000006010b00c490bf4302140d010003ffffffff000100411f");
-	#[allow(deprecated)] // `xcm::v2` is deprecated
-	let Ok(VersionedXcm::V2(old_xcm_v2)) = VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..]) else {
-		panic!("can't decode XCM blob")
-	};
-	let old_xcm_v3: xcm::v3::Xcm<super::RuntimeCall> =
-		old_xcm_v2.try_into().expect("conversion from v2 to v3 works");
-	let mut xcm: Xcm<super::RuntimeCall> =
-		old_xcm_v3.try_into().expect("conversion from v3 to latest works");
-	let weight = <XcmConfig as xcm_executor::Config>::Weigher::weight(&mut xcm)
-		.expect("weighing XCM failed");
-
-	// Test that the weigher gives us a sensible weight but don't exactly hard-code it, otherwise it
-	// will be out of date after each re-run.
-	assert!(weight.all_lte(Weight::from_parts(30_313_281_000, 72_722)));
-
-	let Some(Transact { require_weight_at_most, call, .. }) =
-		xcm.inner_mut().iter_mut().find(|inst| matches!(inst, Transact { .. }))
-	else {
-		panic!("no Transact instruction found")
-	};
-	// should be pallet_utility.as_derivative { index: 0, call: pallet_staking::bond_extra {
-	// max_additional: 2490000000000 } }
-	let message_call = call.take_decoded().expect("can't decode Transact call");
-	let call_weight = message_call.get_dispatch_info().weight;
-	// Ensure that the Transact instruction is giving a sensible `require_weight_at_most` value
-	assert!(
-		call_weight.all_lte(*require_weight_at_most),
-		"call weight ({:?}) was not less than or equal to require_weight_at_most ({:?})",
-		call_weight,
-		require_weight_at_most
-	);
+	// Custom aliasing is disabled: xcm_executor::Config::Aliasers allows only `AliasChildLocation`.
+	type AuthorizedAliasConsideration = Disabled;
 }

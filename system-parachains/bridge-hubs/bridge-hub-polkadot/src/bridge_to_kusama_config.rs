@@ -17,10 +17,11 @@
 //! Bridge definitions used for bridging with Kusama Bridge Hub.
 
 use crate::{
+	bridge_common_config::BridgeRelayersInstance,
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
-	AccountId, Balance, Balances, BlockNumber, BridgeKusamaMessages, PolkadotXcm, Runtime,
-	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
+	AccountId, Balance, Balances, BridgeKusamaMessages, PolkadotXcm, Runtime, RuntimeEvent,
+	RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
 };
 
 pub use bp_bridge_hub_kusama::bp_kusama;
@@ -38,7 +39,7 @@ use frame_support::{
 use frame_system::{EnsureNever, EnsureRoot};
 use pallet_bridge_messages::LaneIdOf;
 use pallet_bridge_relayers::extension::{
-	BridgeRelayersSignedExtension, WithMessagesExtensionConfig,
+	BridgeRelayersTransactionExtension, WithMessagesExtensionConfig,
 };
 use pallet_xcm_bridge_hub::{BridgeId, XcmAsPlainPayload};
 use parachains_common::xcm_config::{AllSiblingSystemParachains, RelayOrOtherSystemParachains};
@@ -56,14 +57,6 @@ parameter_types! {
 	/// This payment is tracked by the `pallet_bridge_relayers` pallet at the Polkadot
 	/// Bridge Hub.
 	pub storage DeliveryRewardInBalance: Balance = constants::currency::UNITS / 2_000;
-
-	/// Registered relayer stake.
-	///
-	/// Any relayer may reserve this amount on his account and get a priority boost for his
-	/// message delivery transactions. In exchange, he risks losing his stake if he would
-	/// submit an invalid transaction. The set of such (registered) relayers is tracked
-	/// by the `pallet_bridge_relayers` pallet at the Polkadot Bridge Hub.
-	pub storage RequiredStakeForStakeAndSlash: Balance = 500 * constants::currency::UNITS;
 }
 
 // Parameters, used by both XCM and bridge code.
@@ -78,10 +71,6 @@ parameter_types! {
 	/// Interior location (relative to this runtime) of the with-Kusama messages pallet.
 	pub BridgePolkadotToKusamaMessagesPalletInstance: InteriorLocation = PalletInstance(<BridgeKusamaMessages as PalletInfoAccess>::index() as u8).into();
 
-	/// Identifier of the sibling Polkadot Asset Hub parachain.
-	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
-	/// Identifier of the sibling Kusama Asset Hub parachain.
-	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Location of the bridged Kusama Bridge Hub parachain.
 	pub BridgeHubKusamaLocation: Location = Location {
 		parents: 2,
@@ -90,28 +79,6 @@ parameter_types! {
 			Parachain(<bp_bridge_hub_kusama::BridgeHubKusama as bp_runtime::Parachain>::PARACHAIN_ID)
 		].into()
 	};
-}
-
-pub type RelayersForLegacyLaneIdsMessagesInstance = ();
-/// Allows collect and claim rewards for relayers.
-impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Reward = Balance;
-	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
-		pallet_balances::Pallet<Runtime>,
-		AccountId,
-		Self::LaneId,
-	>;
-	type StakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
-		AccountId,
-		BlockNumber,
-		Balances,
-		RelayerStakeReserveId,
-		RequiredStakeForStakeAndSlash,
-		RelayerStakeLease,
-	>;
-	type LaneId = LegacyLaneId;
-	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
 // Parameters, used by bridge transport code.
@@ -134,13 +101,8 @@ parameter_types! {
 	/// Name of the `paras` pallet at Kusama that tracks all parachain heads.
 	pub const ParachainPalletNameAtKusama: &'static str = bp_kusama::PARAS_PALLET_NAME;
 
-	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
-	pub const RelayerStakeReserveId: [u8; 8] = *b"brdgrlrs";
-	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
-	pub const RelayerStakeLease: u32 = 300;
-
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
-	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
+	pub PriorityBoostPerMessage: u64 = 3_641_799_307_958;
 }
 
 /// Proof of messages, coming from Kusama.
@@ -158,16 +120,15 @@ pub type FromKusamaMessageBlobDispatcher = BridgeBlobDispatcher<
 >;
 
 /// Signed extension that refunds relayers that are delivering messages from the Kusama parachain.
-pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersSignedExtension<
+pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersTransactionExtension<
 	Runtime,
 	WithMessagesExtensionConfig<
 		StrOnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
-		RelayersForLegacyLaneIdsMessagesInstance,
+		BridgeRelayersInstance,
 		PriorityBoostPerMessage,
 	>,
-	LaneIdOf<Runtime, WithBridgeHubKusamaMessagesInstance>,
 >;
 bp_runtime::generate_static_str_provider!(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages);
 
@@ -193,6 +154,7 @@ impl pallet_bridge_parachains::Config<BridgeParachainKusamaInstance> for Runtime
 		SingleParaStoredHeaderDataBuilder<bp_bridge_hub_kusama::BridgeHubKusama>;
 	type HeadsToKeep = ParachainHeadsToKeep;
 	type MaxParaHeadDataSize = MaxParaHeadDataSize;
+	type OnNewHead = ();
 }
 
 /// Add XCM messages support for exchanging messages with BridgeHubKusama.
@@ -217,7 +179,7 @@ impl pallet_bridge_messages::Config<WithBridgeHubKusamaMessagesInstance> for Run
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
-		RelayersForLegacyLaneIdsMessagesInstance,
+		BridgeRelayersInstance,
 		DeliveryRewardInBalance,
 	>;
 
@@ -306,6 +268,7 @@ where
 		bp_runtime::AccountIdOf<pallet_xcm_bridge_hub::ThisChainOf<R, XBHI>>,
 	>,
 {
+	use alloc::boxed::Box;
 	use pallet_xcm_bridge_hub::{Bridge, BridgeId, BridgeState};
 	use sp_runtime::traits::Zero;
 	use xcm::VersionedInteriorLocation;
@@ -321,15 +284,13 @@ where
 	pallet_xcm_bridge_hub::Bridges::<R, XBHI>::insert(
 		bridge_id,
 		Bridge {
-			bridge_origin_relative_location: sp_std::boxed::Box::new(
-				sibling_parachain.clone().into(),
-			),
-			bridge_origin_universal_location: sp_std::boxed::Box::new(
-				VersionedInteriorLocation::from(universal_source.clone()),
-			),
-			bridge_destination_universal_location: sp_std::boxed::Box::new(
-				VersionedInteriorLocation::from(universal_destination),
-			),
+			bridge_origin_relative_location: Box::new(sibling_parachain.clone().into()),
+			bridge_origin_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_source.clone(),
+			)),
+			bridge_destination_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_destination,
+			)),
 			state: BridgeState::Opened,
 			bridge_owner_account: C::convert_location(&sibling_parachain).expect("valid AccountId"),
 			deposit: Zero::zero(),
@@ -417,26 +378,41 @@ mod tests {
 	}
 }
 
-/// Contains the migration for the AssetHubPolkadot<>AssetHubKusama bridge.
+/// Contains the migrations for a P/K bridge.
 pub mod migration {
 	use super::*;
-	use frame_support::traits::ConstBool;
 
-	parameter_types! {
-		pub AssetHubPolkadotToAssetHubKusamaMessagesLane: LegacyLaneId = LegacyLaneId([0, 0, 0, 1]);
-		pub AssetHubPolkadotLocation: Location = Location::new(1, [Parachain(bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID)]);
-		pub AssetHubKusamaUniversalLocation: InteriorLocation = [GlobalConsensus(KusamaGlobalConsensusNetwork::get()), Parachain(bp_asset_hub_kusama::ASSET_HUB_KUSAMA_PARACHAIN_ID)].into();
+	/// Fix data from XCMv4 to XCMv5 because of buggy of XCM `try_as` implementation.
+	pub struct MigrateToXcm5<T, I>(core::marker::PhantomData<(T, I)>);
+
+	impl<T: pallet_xcm_bridge_hub::Config<I>, I: 'static> frame_support::traits::OnRuntimeUpgrade
+		for MigrateToXcm5<T, I>
+	{
+		fn on_runtime_upgrade() -> Weight {
+			use sp_core::Get;
+			use xcm::IntoVersion;
+			let mut weight = T::DbWeight::get().reads(1);
+
+			// `Migrate to latest XCM`.
+			let translate =
+				|mut pre: pallet_xcm_bridge_hub::BridgeOf<T, I>| -> Option<pallet_xcm_bridge_hub::BridgeOf<T, I>> {
+					weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
+
+					if let Ok(latest) = pre.bridge_origin_relative_location.clone().into_latest() {
+						pre.bridge_origin_relative_location = alloc::boxed::Box::new(latest);
+					}
+					if let Ok(latest) = pre.bridge_origin_universal_location.clone().into_latest() {
+						pre.bridge_origin_universal_location = alloc::boxed::Box::new(latest);
+					}
+					if let Ok(latest) = pre.bridge_destination_universal_location.clone().into_latest() {
+						pre.bridge_destination_universal_location = alloc::boxed::Box::new(latest);
+					}
+
+					Some(pre)
+				};
+			pallet_xcm_bridge_hub::Bridges::<T, I>::translate_values(translate);
+
+			weight
+		}
 	}
-
-	/// Ensure that the existing lanes for the AHR<>AHW bridge are correctly configured.
-	pub type StaticToDynamicLanes = pallet_xcm_bridge_hub::migration::OpenBridgeForLane<
-		Runtime,
-		XcmOverBridgeHubKusamaInstance,
-		AssetHubPolkadotToAssetHubKusamaMessagesLane,
-		// the lanes are already created for AHP<>AHK, but we need to link them to the bridge
-		// structs
-		ConstBool<false>,
-		AssetHubPolkadotLocation,
-		AssetHubKusamaUniversalLocation,
-	>;
 }

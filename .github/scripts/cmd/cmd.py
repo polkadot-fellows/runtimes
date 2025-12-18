@@ -89,7 +89,13 @@ if args.command == 'bench':
 
     # loop over remaining runtimes to collect available pallets
     for runtime in runtimesMatrix.values():
-        os.system(f"cargo build -p {runtime['package']} --profile {profile} --features runtime-benchmarks")
+        print(f'-- compiling the runtime {runtime["name"]}')
+        features = "runtime-benchmarks"
+        features_extra = runtime.get("build_extra_features")
+        if features_extra:
+            features += "," + features_extra
+        print(f'-- with features {features}')
+        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
         output = os.popen(
@@ -138,7 +144,13 @@ if args.command == 'bench':
             default_path = f"./{config['path']}/src/weights"
             xcm_path = f"./{config['path']}/src/weights/xcm"
             output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
-            print(f'-- benchmarking {pallet} in {runtime} into {output_path}')
+            templates = config.get("benchmarks_templates", {}) or {}
+            template = templates.get(pallet)
+            excluded_extrinsics = config.get("benchmarks_exclude_extrinsics", {}) or {}
+            excluded = excluded_extrinsics.get(pallet, [])
+            excluded_string = ",".join(f"{pallet}::{e}" for e in excluded)
+
+            print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template} and excluded {excluded_string}')
 
             status = os.system(f"frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
@@ -150,6 +162,8 @@ if args.command == 'bench':
                                f"--steps=50 "
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
+                               f"{f'--template={template} ' if template else ''}"
+                               f"{f'--exclude-extrinsics={excluded_string} ' if excluded_string else ''}"
                                )
             if status != 0 and not args.continue_on_fail:
                 print(f'Failed to benchmark {pallet} in {runtime}')

@@ -26,7 +26,7 @@ use frame_system::EnsureRootWithSuccess;
 mod origins;
 pub use origins::{
 	pallet_custom_origins, AuctionAdmin, Fellows, FellowshipAdmin, FellowshipExperts,
-	FellowshipInitiates, FellowshipMasters, GeneralAdmin, LeaseAdmin, ReferendumCanceller,
+	FellowshipInitiates, FellowshipMasters, GeneralAdmin, LeaseAdmin, Origin, ReferendumCanceller,
 	ReferendumKiller, Spender, StakingAdmin, Treasurer, WhitelistedCaller,
 };
 mod tracks;
@@ -47,6 +47,8 @@ impl pallet_conviction_voting::Config for Runtime {
 	type MaxTurnout =
 		frame_support::traits::tokens::currency::ActiveIssuanceOf<Balances, Self::AccountId>;
 	type Polls = Referenda;
+	type BlockNumberProvider = System;
+	type VotingHooks = ();
 }
 
 parameter_types! {
@@ -90,4 +92,5 @@ impl pallet_referenda::Config for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }

@@ -122,8 +122,14 @@ pub mod xcm {
 
 /// System Parachains.
 pub mod system_parachain {
-	use polkadot_primitives::Id;
+	use frame_support::parameter_types;
+	use polkadot_primitives::Id as ParaId;
 	use xcm_builder::IsChildSystemParachain;
+
+	parameter_types! {
+		pub AssetHubParaId: ParaId = ASSET_HUB_ID.into();
+		pub PeopleParaId: ParaId = PEOPLE_ID.into();
+	}
 
 	/// Asset Hub parachain ID.
 	pub const ASSET_HUB_ID: u32 = 1000;
@@ -137,7 +143,7 @@ pub mod system_parachain {
 	pub const BROKER_ID: u32 = 1005;
 
 	// System parachains from Polkadot point of view.
-	pub type SystemParachains = IsChildSystemParachain<Id>;
+	pub type SystemParachains = IsChildSystemParachain<ParaId>;
 
 	/// Coretime constants
 	pub mod coretime {
@@ -169,6 +175,7 @@ pub mod proxy {
 		PartialOrd,
 		codec::Encode,
 		codec::Decode,
+		codec::DecodeWithMemTracking,
 		core::fmt::Debug,
 		codec::MaxEncodedLen,
 		scale_info::TypeInfo,
@@ -275,7 +282,7 @@ mod tests {
 		proxy::ProxyType,
 	};
 	use crate::weights::ExtrinsicBaseWeight;
-	use codec::{Decode, Encode};
+	use codec::{Decode, DecodeWithMemTracking, Encode};
 	use frame_support::weights::WeightToFee as WeightToFeeT;
 	use polkadot_runtime_common::MAXIMUM_BLOCK_WEIGHT;
 
@@ -299,7 +306,16 @@ mod tests {
 	}
 
 	#[derive(
-		Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, sp_runtime::RuntimeDebug,
+		Copy,
+		Clone,
+		Eq,
+		PartialEq,
+		Ord,
+		PartialOrd,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		sp_runtime::RuntimeDebug,
 	)]
 	pub enum OldProxyType {
 		Any,

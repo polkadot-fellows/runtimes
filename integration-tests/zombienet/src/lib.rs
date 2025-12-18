@@ -22,6 +22,7 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 				.with_default_command("polkadot")
 				.with_default_image(images.polkadot.as_str())
 				.with_chain_spec_command(CMD_TPL)
+				.with_default_args(vec!["-lparachain=debug,runtime=debug".into()])
 				.chain_spec_command_is_local(true)
 				.with_node(|node| node.with_name(ALICE))
 				.with_node(|node| node.with_name(BOB))

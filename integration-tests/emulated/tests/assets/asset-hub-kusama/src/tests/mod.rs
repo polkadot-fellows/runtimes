@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod aliases;
 mod claim_assets;
 mod hybrid_transfers;
 mod reserve_transfer;
@@ -20,6 +21,7 @@ mod send;
 mod set_xcm_versions;
 mod swap;
 mod teleport;
+mod transfer_assets_validation;
 mod treasury;
 mod xcm_fee_estimation;
 
@@ -29,7 +31,7 @@ macro_rules! foreign_balance_on {
 		emulated_integration_tests_common::impls::paste::paste! {
 			<$chain>::execute_with(|| {
 				type ForeignAssets = <$chain as [<$chain Pallet>]>::ForeignAssets;
-				<ForeignAssets as Inspect<_>>::balance($id, $who)
+				<ForeignAssets as Inspect<_>>::balance($id.try_into().unwrap(), $who)
 			})
 		}
 	};
@@ -43,17 +45,17 @@ macro_rules! create_pool_with_ksm_on {
 				type RuntimeEvent = <$chain as Chain>::RuntimeEvent;
 				let owner = $asset_owner;
 				let signed_owner = <$chain as Chain>::RuntimeOrigin::signed(owner.clone());
-				let ksm_location: Location = Parent.into();
+				let ksm_location: xcm::latest::Location = Parent.into();
 				if $is_foreign {
 					assert_ok!(<$chain as [<$chain Pallet>]>::ForeignAssets::mint(
 						signed_owner.clone(),
-						$asset_id.clone().into(),
+						$asset_id.clone().try_into().unwrap(),
 						owner.clone().into(),
 						10_000_000_000_000, // For it to have more than enough.
 					));
 				} else {
 					let asset_id = match $asset_id.interior.last() {
-						Some(GeneralIndex(id)) => *id as u32,
+						Some(Junction::GeneralIndex(id)) => *id as u32,
 						_ => unreachable!(),
 					};
 					assert_ok!(<$chain as [<$chain Pallet>]>::Assets::mint(
@@ -67,7 +69,7 @@ macro_rules! create_pool_with_ksm_on {
 				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::create_pool(
 					signed_owner.clone(),
 					Box::new(ksm_location.clone()),
-					Box::new($asset_id.clone()),
+					Box::new($asset_id.clone().try_into().unwrap()),
 				));
 
 				assert_expected_events!(
@@ -79,8 +81,8 @@ macro_rules! create_pool_with_ksm_on {
 
 				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::add_liquidity(
 					signed_owner,
-					Box::new(ksm_location),
-					Box::new($asset_id),
+					Box::new(ksm_location.try_into().unwrap()),
+					Box::new($asset_id.try_into().unwrap()),
 					1_000_000_000_000,
 					2_000_000_000_000, // $asset_id is worth half of ksm
 					0,

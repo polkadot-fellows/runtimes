@@ -77,9 +77,15 @@ impl pallet_ambassador_origins::Config for Runtime {}
 pub type DemoteOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+		EitherOf<
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+			>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+				Replace<ConstU16<{ ranks::HEAD_AMBASSADOR }>>,
+			>,
 		>,
 		TryMapSuccess<
 			EnsureAmbassadorsFrom<ConstU16<{ ranks::SENIOR_AMBASSADOR }>>,
@@ -100,7 +106,10 @@ pub type OpenGovOrHeadAmbassadors = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<
 		HeadAmbassadors,
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		EitherOf<
+			EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+		>,
 	>,
 >;
 
@@ -195,6 +204,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
@@ -216,7 +226,10 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type InductOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+			EitherOf<
+				EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+			>,
 			pallet_ranked_collective::EnsureMember<
 				Runtime,
 				AmbassadorCollectiveInstance,
@@ -229,7 +242,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type FastPromoteOrigin = frame_support::traits::NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
-	type MaxRank = ConstU32<9>;
+	type MaxRank = ConstU16<9>;
 }
 
 parameter_types! {
@@ -327,9 +340,15 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	type SpendOrigin = EitherOf<
 		EitherOf<
 			EnsureRootWithSuccess<AccountId, MaxBalance>,
-			MapSuccess<
-				EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
-				Replace<ConstU128<{ 10_000 * GRAND }>>,
+			EitherOf<
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<RelayChainLocation, TreasurerBodyId>>,
+					Replace<ConstU128<{ 10_000 * GRAND }>>,
+				>,
+				MapSuccess<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, TreasurerBodyId>>,
+					Replace<ConstU128<{ 10_000 * GRAND }>>,
+				>,
 			>,
 		>,
 		EitherOf<
@@ -348,12 +367,13 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
 	type BalanceConverter = AssetRateWithNative;
-	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ 90 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = System;
 }
 
 #[cfg(all(test, not(feature = "runtime-benchmarks")))]

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod aliases;
 mod claim_assets;
 mod fellowship_treasury;
 mod hybrid_transfers;
@@ -21,6 +22,7 @@ mod send;
 mod set_xcm_versions;
 mod swap;
 mod teleport;
+mod transfer_assets_validation;
 mod treasury;
 mod xcm_fee_estimation;
 
@@ -44,11 +46,12 @@ macro_rules! create_pool_with_dot_on {
 				type RuntimeEvent = <$chain as Chain>::RuntimeEvent;
 				let owner = $asset_owner;
 				let signed_owner = <$chain as Chain>::RuntimeOrigin::signed(owner.clone());
-				let dot_location: Location = Parent.into();
+				// AssetHubPolkadot has v4 asset ids, Penpal has v5 asset ids.
+				let dot_location: xcm::v4::Location = xcm::v4::Parent.into();
 				if $is_foreign {
 					assert_ok!(<$chain as [<$chain Pallet>]>::ForeignAssets::mint(
 						signed_owner.clone(),
-						$asset_id.clone().into(),
+						$asset_id.clone().try_into().unwrap(),
 						owner.clone().into(),
 						10_000_000_000_000, // For it to have more than enough.
 					));
@@ -67,8 +70,8 @@ macro_rules! create_pool_with_dot_on {
 
 				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::create_pool(
 					signed_owner.clone(),
-					Box::new(dot_location.clone()),
-					Box::new($asset_id.clone()),
+					Box::new(dot_location.clone().try_into().unwrap()),
+					Box::new($asset_id.clone().try_into().unwrap()),
 				));
 
 				assert_expected_events!(
@@ -80,8 +83,8 @@ macro_rules! create_pool_with_dot_on {
 
 				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::add_liquidity(
 					signed_owner,
-					Box::new(dot_location),
-					Box::new($asset_id),
+					Box::new(dot_location.try_into().unwrap()),
+					Box::new($asset_id.try_into().unwrap()),
 					1_000_000_000_000,
 					2_000_000_000_000, // $asset_id is worth half of dot
 					0,
