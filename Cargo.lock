@@ -10269,9 +10269,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08350fe6fe8adde57404cc67f371288fe556927e9864d510176e8c31668ce04e"
+checksum = "c9a7d488c4408a01f7eda04fb7b67c156e4529b01bcadcdc11e42afa64cfd0e4"
 dependencies = [
  "alloy-consensus",
  "alloy-core",
@@ -16999,6 +16999,7 @@ dependencies = [
 name = "system-parachains-constants"
 version = "1.0.0"
 dependencies = [
+ "array-bytes 9.3.0",
  "frame-support",
  "kusama-runtime-constants",
  "parachains-common",

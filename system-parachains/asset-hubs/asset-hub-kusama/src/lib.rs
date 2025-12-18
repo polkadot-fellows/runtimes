@@ -305,6 +305,12 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
+	// The two generic parameters of `BlockRatioFee` define a rational number that defines the
+	// ref_time to fee mapping. The numbers chosen here are exactly the same as the one from the
+	// `WeightToFeePolynomial` that was used before:
+	// - The numerator is `currency::CENTS` = 1_000_000_000_000 / 30 / 100 = 333_333_333
+	// - The denominator is `100 * Balance::from(ExtrinsicBaseWeight::get().ref_time())`
+	//   - which is 100 * 1_000 * 108_157 = 10_815_700_000
 	type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<333333333, 10_815_700_000, Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -1731,7 +1737,7 @@ pub mod migrations {
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = pallet_revive::migrations::v1::Migration<Runtime>;
+	pub type MbmMigrations = pallet_revive::migrations::v2::Migration<Runtime>;
 }
 
 /// Executive: handles dispatch to the various modules.
