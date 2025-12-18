@@ -267,7 +267,7 @@ jobs:
           FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
           # Exclude glutton runtimes as they don't support metadata-hash
-          if [[ "${{ matrix.runtime.package }}" != "glutton-kusama-runtime" ]] && cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep -q metadata-hash; then
+          if [[ "${{ matrix.runtime.package }}" != *"glutton"* ]] && cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep -q metadata-hash; then
             FEATURES="metadata-hash"
           fi
 
