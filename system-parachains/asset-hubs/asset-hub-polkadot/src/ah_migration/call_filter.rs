@@ -126,7 +126,6 @@ pub fn call_allowed_status(
 		SnowbridgeSystemFrontend(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
-		StateTrieMigration(..) => OFF, // Deprecated
 		System(..) => ON,              // remark plus root calls
 		Timestamp(..) => ON,           // only `set` inherit
 		ToKusamaXcmRouter(..) => ON,   // Allow to report bridge congestion
@@ -198,7 +197,6 @@ pub fn call_allowed_before_migration(
 		Session(..) |
 		SnowbridgeSystemFrontend(..) |
 		StakingRcClient(..) |
-		StateTrieMigration(..) |
 		System(..) |
 		Timestamp(..) |
 		ToKusamaXcmRouter(..) |
