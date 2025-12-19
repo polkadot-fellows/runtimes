@@ -10,7 +10,7 @@ pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.5.0", default-features = false }
-pallet-staking-async = { version = "0.7.0", default-features = false }
+pallet-staking-async = { version = "0.7.1", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
 impl-trait-for-tuples = { version = "0.2.3", default-features = false }
@@ -188,7 +188,7 @@ pallet-xcm-bridge-hub = { version = "0.20.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.22.0", default-features = false }
 parachain-info = { version = "0.24.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "26.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "27.0.0" }
+parachains-runtimes-test-utils = { version = "27.0.1" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.34.0" }
@@ -266,7 +266,7 @@ system-parachains-common = { path = "system-parachains/common", default-features
 tokio = { version = "1.45.0" }
 xcm = { version = "20.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "24.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.24.0" }
+xcm-emulator = { version = "0.24.1" }
 xcm-executor = { version = "23.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.11.0", default-features = false }
 anyhow = { version = "1.0.82" }
