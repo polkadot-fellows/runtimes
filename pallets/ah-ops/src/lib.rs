@@ -190,11 +190,17 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+	#[pallet::storage]
+	pub type ParaSovereignTranslations<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+
 	#[pallet::error]
 	#[derive(PartialEq, Eq)]
 	pub enum Error<T> {
 		/// Failed to force unstake.
 		FailedToForceUnstake,
+		/// Failed to bond.
+		FailedToBond,
 		/// Either no lease deposit or already unreserved.
 		NoLeaseReserve,
 		/// Either no crowdloan contribution or already withdrawn.
@@ -234,6 +240,8 @@ pub mod pallet {
 		/// Failed to reactivate.
 		FailedToReactivate,
 		AccountIdentical,
+		/// The account has already been translated.
+		AlreadyTranslated,
 	}
 
 	#[pallet::event]
@@ -388,7 +396,7 @@ pub mod pallet {
 		/// witness data to ensure correct usage.
 		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_parts(100_000_000, 9000)
-				.saturating_add(T::DbWeight::get().reads_writes(2, 2)))]
+				.saturating_add(T::DbWeight::get().reads_writes(20, 20)))]
 		pub fn translate_para_sovereign_child_to_sibling_derived(
 			origin: OriginFor<T>,
 			para_id: u16,
@@ -563,6 +571,11 @@ pub mod pallet {
 			from: T::AccountId,
 			to: T::AccountId,
 		) -> Result<(), Error<T>> {
+			if ParaSovereignTranslations::<T>::contains_key(&from) {
+				return Err(Error::<T>::AlreadyTranslated);
+			}
+			ParaSovereignTranslations::<T>::insert(&from, &to);
+
 			let para_child = Self::para_sov_child(para_id);
 			let para_sibling = Self::para_sov_sibling(para_id);
 			let para_child_derived = derivative_account_id_recursive(para_child, &derivation_path);
@@ -578,13 +591,17 @@ pub mod pallet {
 			}
 			pallet_balances::Pallet::<T>::ensure_upgraded(&from); // prevent future headache
 
-			// Force unstake. The actual function is private, so we use the call:
-			pallet_staking_async::Pallet::<T>::force_unstake(
-				frame_system::Origin::<T>::Root.into(),
-				from.clone(),
-				0,
-			)
-			.map_err(|_| Error::<T>::FailedToForceUnstake)?;
+			// Get the bonded amount that we will force-unstake. // TODO include slashable amounts?
+			let bonded = pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.active);
+			if let Some(bonded) = bonded {
+				// Force unstake. The actual function is private, so we use the call:
+				pallet_staking_async::Pallet::<T>::force_unstake(
+					frame_system::Origin::<T>::Root.into(),
+					from.clone(),
+					0,
+				)
+				.map_err(|_| Error::<T>::FailedToForceUnstake)?;
+			}
 
 			// Release all locks
 			let locks: Vec<BalanceLock<T::Balance>> =
@@ -652,6 +669,16 @@ pub mod pallet {
 			)
 			.defensive()
 			.map_err(|_| Error::<T>::FailedToTransfer)?;
+
+			// Re-stake the new account:
+			if let Some(bonded) = bonded {
+				pallet_staking_async::Pallet::<T>::bond(
+					frame_system::Origin::<T>::Signed(to.clone()).into(),
+					bonded,
+					pallet_staking_async::RewardDestination::Staked,
+				)
+				.map_err(|_| Error::<T>::FailedToBond)?;
+			}
 
 			// Apply consumer refs
 			frame_system::Account::<T>::mutate(&to, |acc| {

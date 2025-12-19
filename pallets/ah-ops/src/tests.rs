@@ -208,6 +208,31 @@ fn translate_derived_account() {
 	- 13cKp89NgPL56sRoVRpBcjkGZPrk4Vf4tS6ePUD96XhAXozG
 	- Index 5: 12gb2DBw5HfpmUyBKCHxJWwGxMyXbUgf6a7bagNduHZC5S9z
 	- Index 5/2: 123oqim7B24XzwB1hC4Fh7LGwbTas3QmxL6v6sVd95eTD5ee
+
+Produces this output:
+
+5FP74oNMwfnMb8C5EZ19T6uKA1icCi4vvcA4jyn5vGjicw7e
+	Info: AccountInfo { nonce: 0, consumers: 3, providers: 1, sufficients: 0, data: AccountData { free: 100717000000, reserved: 5148160913549619, frozen: 0, flags: ExtraFlags(170141183460469231731687303715884105728) } }
+	Ledger: Some(StakingLedger { stash: 92bd3f2458616fa5b5fd5ff200c095f1c19bf8a0acba0284bc87895be40da62b (5FP74oNM...), total: 5148160913549619, active: 3956658596678572, unlocking: BoundedVec([UnlockChunk { value: 155291379466697, era: 1967 }, UnlockChunk { value: 117832905688130, era: 1968 }, UnlockChunk { value: 214505811290115, era: 1969 }, UnlockChunk { value: 75033107810864, era: 1970 }, UnlockChunk { value: 627033020239963, era: 1971 }, UnlockChunk { value: 1806092375278, era: 1972 }], 32), controller: None })
+5D7WhPW3KEo4ZQAVjZ1FYxW85yTwAjrdsqNRwaWGazcw2g7R
+	Info: AccountInfo { nonce: 0, consumers: 0, providers: 0, sufficients: 0, data: AccountData { free: 0, reserved: 0, frozen: 0, flags: ExtraFlags(170141183460469231731687303715884105728) } }
+	Ledger: None
+
+EventRecord { phase: Phase::Initialization, event: Staking(Event::StakerRemoved { stash: 92bd3f2458616fa5b5fd5ff200c095f1c19bf8a0acba0284bc87895be40da62b (5FP74oNM...) }), topics: [] }
+EventRecord { phase: Phase::Initialization, event: System(Event::KilledAccount { account: 92bd3f2458616fa5b5fd5ff200c095f1c19bf8a0acba0284bc87895be40da62b (5FP74oNM...) }), topics: [] }
+EventRecord { phase: Phase::Initialization, event: System(Event::NewAccount { account: 2e6066d99766402e55498a92019a1be865caf195b7f2c9f1e5258a331f131ae0 (5D7WhPW3...) }), topics: [] }
+EventRecord { phase: Phase::Initialization, event: Balances(Event::Endowed { account: 2e6066d99766402e55498a92019a1be865caf195b7f2c9f1e5258a331f131ae0 (5D7WhPW3...), free_balance: 5148261630549619 }), topics: [] }
+EventRecord { phase: Phase::Initialization, event: Balances(Event::Transfer { from: 92bd3f2458616fa5b5fd5ff200c095f1c19bf8a0acba0284bc87895be40da62b (5FP74oNM...), to: 2e6066d99766402e55498a92019a1be865caf195b7f2c9f1e5258a331f131ae0 (5D7WhPW3...), amount: 5148261630549619 }), topics: [] }
+EventRecord { phase: Phase::Initialization, event: Staking(Event::Bonded { stash: 2e6066d99766402e55498a92019a1be865caf195b7f2c9f1e5258a331f131ae0 (5D7WhPW3...), amount: 3956658596678572 }), topics: [] }
+EventRecord { phase: Phase::Initialization, event: AhOps(Event::SovereignMigrated { para_id: 2004, from: 92bd3f2458616fa5b5fd5ff200c095f1c19bf8a0acba0284bc87895be40da62b (5FP74oNM...), to: 2e6066d99766402e55498a92019a1be865caf195b7f2c9f1e5258a331f131ae0 (5D7WhPW3...), derivation_path: [5, 2] }), topics: [] }
+
+5FP74oNMwfnMb8C5EZ19T6uKA1icCi4vvcA4jyn5vGjicw7e
+	Info: AccountInfo { nonce: 0, consumers: 0, providers: 0, sufficients: 0, data: AccountData { free: 0, reserved: 0, frozen: 0, flags: ExtraFlags(170141183460469231731687303715884105728) } }
+	Ledger: None
+5D7WhPW3KEo4ZQAVjZ1FYxW85yTwAjrdsqNRwaWGazcw2g7R
+	Info: AccountInfo { nonce: 0, consumers: 3, providers: 1, sufficients: 0, data: AccountData { free: 1191603033871047, reserved: 3956658596678572, frozen: 0, flags: ExtraFlags(170141183460469231731687303715884105728) } }
+	Ledger: Some(StakingLedger { stash: 2e6066d99766402e55498a92019a1be865caf195b7f2c9f1e5258a331f131ae0 (5D7WhPW3...), total: 3956658596678572, active: 3956658596678572, unlocking: BoundedVec([], 32), controller: None })
+
 */
 #[test]
 fn moonbeam_stellaswap_double_derived_translation() {
