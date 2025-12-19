@@ -190,6 +190,7 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+	/// All accounts that were processed with `translate_para_sovereign_child_to_sibling_derived`.
 	#[pallet::storage]
 	pub type ParaSovereignTranslations<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
@@ -237,9 +238,6 @@ pub mod pallet {
 		FailedToThaw,
 		/// Would reap old account.
 		WouldReap,
-		/// Failed to reactivate.
-		FailedToReactivate,
-		AccountIdentical,
 		/// The account has already been translated.
 		AlreadyTranslated,
 	}
@@ -283,6 +281,8 @@ pub mod pallet {
 			/// The derivation path that was used to translate the account.
 			derivation_path: Vec<u16>,
 		},
+		/// Failed to re-bond some migrated funds.
+		FailedToBond { account: T::AccountId, amount: BalanceOf<T> },
 	}
 
 	#[pallet::pallet]
@@ -393,7 +393,7 @@ pub mod pallet {
 		/// Translate recursively derived parachain sovereign child account to its sibling.
 		///
 		/// Uses the same derivation path on the sibling. The old and new account arguments are only
-		/// witness data to ensure correct usage.
+		/// witness data to ensure correct usage. Can only be called once per account.
 		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_parts(100_000_000, 9000)
 				.saturating_add(T::DbWeight::get().reads_writes(20, 20)))]
@@ -404,7 +404,7 @@ pub mod pallet {
 			old_account: T::AccountId,
 			new_account: T::AccountId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			ensure_signed(origin)?;
 
 			Self::do_translate_para_sovereign_child_to_sibling_derived(
 				para_id,
@@ -591,14 +591,15 @@ pub mod pallet {
 			}
 			pallet_balances::Pallet::<T>::ensure_upgraded(&from); // prevent future headache
 
-			// Get the bonded amount that we will force-unstake. // TODO include slashable amounts?
-			let bonded = pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.active);
-			if let Some(bonded) = bonded {
+			// Get the bonded amount that we will force-unstake.
+			let active_bonded =
+				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.active).unwrap_or(0);
+			if active_bonded > 0 {
 				// Force unstake. The actual function is private, so we use the call:
 				pallet_staking_async::Pallet::<T>::force_unstake(
 					frame_system::Origin::<T>::Root.into(),
 					from.clone(),
-					0,
+					0, // does not matter
 				)
 				.map_err(|_| Error::<T>::FailedToForceUnstake)?;
 			}
@@ -671,13 +672,22 @@ pub mod pallet {
 			.map_err(|_| Error::<T>::FailedToTransfer)?;
 
 			// Re-stake the new account:
-			if let Some(bonded) = bonded {
-				pallet_staking_async::Pallet::<T>::bond(
+			if active_bonded > 0 {
+				let res = pallet_staking_async::Pallet::<T>::bond(
 					frame_system::Origin::<T>::Signed(to.clone()).into(),
-					bonded,
+					active_bonded,
 					pallet_staking_async::RewardDestination::Staked,
 				)
-				.map_err(|_| Error::<T>::FailedToBond)?;
+				.defensive();
+
+				// We do not return an error here since the account can re-bond themselves and it
+				// should not fail anyway.
+				if res.is_err() {
+					Self::deposit_event(Event::FailedToBond {
+						account: to.clone(),
+						amount: active_bonded,
+					});
+				}
 			}
 
 			// Apply consumer refs

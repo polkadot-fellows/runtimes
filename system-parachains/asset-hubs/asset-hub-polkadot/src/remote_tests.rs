@@ -68,32 +68,44 @@ async fn moonbeam_stellaswap_translation() {
 	ext.execute_with(|| {
 		frame_system::Pallet::<Runtime>::reset_events();
 
-		// 5FP74oNMwfnMb8C5EZ19T6uKA1icCi4vvcA4jyn5vGjicw7e
+		let child_5_1 =
+			AccountId32::from_str("1zAWXSCmRTR9ZkRXZXeHZftj1J6rnDe8BLXV8UJ2S2exCvL").unwrap();
+		let sibl_5_1 =
+			AccountId32::from_str("13GWAfgWAKLGm8AsKLn5pDbDyMHfShFgtMFEqM4TRNhXbSea").unwrap();
+		let derivation_path_5_1 = vec![5, 1];
+
+		test_translate(child_5_1, sibl_5_1, derivation_path_5_1);
+		println!("Second account:");
+
 		let child_5_2 =
 			AccountId32::from_str("14KQD8dRoT3q2fCbCC49bFjU1diFu1d516tYuGmSUMmEoGNa").unwrap();
-		// 5D7WhPW3KEo4ZQAVjZ1FYxW85yTwAjrdsqNRwaWGazcw2g7R
 		let sibl_5_2 =
 			AccountId32::from_str("123oqim7B24XzwB1hC4Fh7LGwbTas3QmxL6v6sVd95eTD5ee").unwrap();
 		let derivation_path = vec![5, 2];
 
-		let child_before = summary(&child_5_2);
-		assert_eq!(summary(&sibl_5_2), 0, "Sibl acc should be empty");
-
-		pallet_ah_ops::Pallet::<Runtime>::do_translate_para_sovereign_child_to_sibling_derived(
-			2004,
-			derivation_path.clone(),
-			child_5_2.clone(),
-			sibl_5_2.clone(),
-		)
-		.unwrap();
-
-		for event in frame_system::Pallet::<Runtime>::events() {
-			println!("{:?}", event);
-		}
-
-		assert_eq!(summary(&child_5_2), 0, "Child acc should be empty");
-		assert_eq!(summary(&sibl_5_2), child_before, "Sibl should have child balance");
+		test_translate(child_5_2, sibl_5_2, derivation_path);
 	});
+}
+
+/// Run the actual translation and do total balance checks.
+fn test_translate(child_5_2: AccountId32, sibl_5_2: AccountId32, derivation_path: Vec<u16>) {
+	let child_before = summary(&child_5_2);
+	assert_eq!(summary(&sibl_5_2), 0, "Sibl acc should be empty");
+
+	pallet_ah_ops::Pallet::<Runtime>::do_translate_para_sovereign_child_to_sibling_derived(
+		2004,
+		derivation_path.clone(),
+		child_5_2.clone(),
+		sibl_5_2.clone(),
+	)
+	.unwrap();
+
+	for event in frame_system::Pallet::<Runtime>::events() {
+		println!("{:?}", event);
+	}
+
+	assert_eq!(summary(&child_5_2), 0, "Child acc should be empty");
+	assert_eq!(summary(&sibl_5_2), child_before, "Sibl should have child balance");
 }
 
 /// Account summary and return the total balance.
