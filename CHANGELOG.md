@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+### Changed
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+## [2.0.4] 18.12.2025
 
 ### Changed
 
@@ -13,12 +20,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - asset-hub-polkadot: fix the regression in doc-test for staking after changing the base deposit for NPoS solution from 4 to 100 DOT ([#1023](https://github.com/polkadot-fellows/runtimes/pull/1023))
 - asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
 - Adjust OpenGov parameters based on WFC 1701 ([polkadot-fellows/runtimes/pull/873](https://github.com/polkadot-fellows/runtimes/pull/873))
+- asset-hub-kusama: update to latest version of pallet-revive with EVM backend ([polkadot-fellows/runtimes/pull/1029](https://github.com/polkadot-fellows/runtimes/pull/1029))
+- Enable Elastic Scaling on Assethub Kusama ([polkadot-fellows/runtimes/pull/1037](https://github.com/polkadot-fellows/runtimes/pull/1037))
+- Enable buffered validator selection on Assethub Kusama ([polkadot-fellows/runtimes/pull/1037](https://github.com/polkadot-fellows/runtimes/pull/1037))
 
 ### Added
 
 - Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality ([#941](https://github.com/polkadot-fellows/runtimes/pull/941))
+- Add pay module implementation to system_parachains_common for use in Asset Hub Polkadot/Kusama treasury with XCM V3 to V5 conversion support for asset transactions ([#1019](https://github.com/polkadot-fellows/runtimes/pull/1019))
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
+- asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
 
 ## [2.0.3] 21.11.2025
 

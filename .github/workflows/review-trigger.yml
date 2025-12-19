@@ -28,7 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Get the GitHub handle of the fellows
-        uses: paritytech/get-fellows-action@v1.3.1
+        uses: paritytech/get-fellows-action@v1.3.2
         timeout-minutes: 5
         id: fellows
         # Require new reviews when the author is pushing and he is not a fellow
