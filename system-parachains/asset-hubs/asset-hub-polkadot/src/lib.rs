@@ -90,7 +90,9 @@ use governance::{
 	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer, TreasurySpender,
 };
 use polkadot_core_primitives::AccountIndex;
-use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
+use polkadot_runtime_constants::time::{
+	DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES, YEARS as RC_YEARS,
+};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, Get, OpaqueMetadata};
 use sp_runtime::{
