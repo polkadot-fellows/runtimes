@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-- AH Polkadot - Regenerate weights for staking pallets (TODO)
+- AH Polkadot - Regenerate weights for staking pallets ([#1042](https://github.com/polkadot-fellows/runtimes/pull/1042))
 - AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
 
 ### Changed
