@@ -87,6 +87,7 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			ParaRegistration => Ok(ProxyType::ParaRegistration),
 			Society => Ok(ProxyType::Society),
 			Spokesperson => Ok(ProxyType::Spokesperson),
+			StakingOperator => Ok(ProxyType::StakingOperator),
 		}
 	}
 }
