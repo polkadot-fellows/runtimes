@@ -15,7 +15,7 @@ sudo apt -y autoclean
 sudo rm -rf /usr/share/dotnet
 sudo rm -rf /opt/ghc
 sudo rm -rf "/usr/local/share/boost"
-sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+if [[ -n "${AGENT_TOOLSDIRECTORY:-}" ]]; then sudo rm -rf "$AGENT_TOOLSDIRECTORY"; fi
 df -h
 
 # Install solc

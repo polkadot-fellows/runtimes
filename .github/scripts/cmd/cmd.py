@@ -96,15 +96,16 @@ if args.command == 'bench':
         if features_extra:
             features += "," + features_extra
         print(f'-- with features {features}')
-        status = os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
-        if status != 0:
+        result = subprocess.run(
+            ["cargo", "build", "-p", runtime['package'], "--profile", profile, "-q", "--features", features])
+        if result.returncode != 0:
             print(f"Failed to build {runtime['name']}")
             sys.exit(1)
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
         result = subprocess.run(
-            f"frame-omni-bencher v1 benchmark pallet --no-csv-header --all --list --runtime={wasm_file}",
-            shell=True, capture_output=True, text=True)
+            ["frame-omni-bencher", "v1", "benchmark", "pallet", "--no-csv-header", "--all", "--list", f"--runtime={wasm_file}"],
+            capture_output=True, text=True)
         if result.returncode != 0:
             print(f"Failed to list pallets for {runtime['name']}: {result.stderr}")
             sys.exit(1)
@@ -203,7 +204,7 @@ elif args.command == 'fmt':
     nightly_status = os.system(f'{command}')
 
     command = "taplo format --config .config/taplo.toml"
-    print(f'Formatting toml files with with `{command}`')
+    print(f'Formatting toml files with `{command}`')
     taplo_status = os.system(command)
 
     if nightly_status != 0 or taplo_status != 0:
