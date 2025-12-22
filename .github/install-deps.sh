@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -eu
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env"
 
@@ -15,7 +13,7 @@ sudo apt -y autoclean
 sudo rm -rf /usr/share/dotnet
 sudo rm -rf /opt/ghc
 sudo rm -rf "/usr/local/share/boost"
-if [[ -n "${AGENT_TOOLSDIRECTORY:-}" ]]; then sudo rm -rf "$AGENT_TOOLSDIRECTORY"; fi
+sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 df -h
 
 # Install solc
