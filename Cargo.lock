@@ -4155,9 +4155,9 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "sp-consensus-babe",
- "sp-core 38.1.0",
- "sp-runtime",
- "sp-state-machine",
+ "sp-core",
+ "sp-runtime 43.0.0",
+ "sp-state-machine 0.47.0",
  "sp-trie",
 ]
 
