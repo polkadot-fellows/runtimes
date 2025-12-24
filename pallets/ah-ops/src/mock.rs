@@ -100,9 +100,12 @@ impl Config for Runtime {
 	type TreasuryPostMigrationAccount = TreasuryPostMigrationAccount;
 }
 
-#[cfg(feature = "runtime-benchmarks")]
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	use sp_runtime::BuildStorage;
 	let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
 	sp_io::TestExternalities::new(t)
+}
+
+pub fn assert_last_event<T: Config>(generic_event: impl Into<<T as Config>::RuntimeEvent>) {
+	frame_system::Pallet::<T>::assert_last_event(generic_event.into().into());
 }
