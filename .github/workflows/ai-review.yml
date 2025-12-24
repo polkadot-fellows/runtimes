@@ -20,7 +20,13 @@ concurrency:
 
 jobs:
   review:
-    if: github.event_name == 'workflow_dispatch' || contains(fromJson('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.pull_request.author_association)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJson('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.pull_request.author_association)
+      )
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
