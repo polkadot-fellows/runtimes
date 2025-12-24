@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import argparse
+import subprocess
 import tempfile
 import _help
 
@@ -95,12 +96,20 @@ if args.command == 'bench':
         if features_extra:
             features += "," + features_extra
         print(f'-- with features {features}')
-        os.system(f"cargo build -p {runtime['package']} --profile {profile} -q --features {features}")
+        result = subprocess.run(
+            ["cargo", "build", "-p", runtime['package'], "--profile", profile, "-q", "--features", features])
+        if result.returncode != 0:
+            print(f"Failed to build {runtime['name']}")
+            sys.exit(1)
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
-        output = os.popen(
-            f"frame-omni-bencher v1 benchmark pallet --no-csv-header --all --list --runtime={wasm_file}").read()
-        raw_pallets = output.split('\n')
+        result = subprocess.run(
+            ["frame-omni-bencher", "v1", "benchmark", "pallet", "--no-csv-header", "--all", "--list", f"--runtime={wasm_file}"],
+            capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Failed to list pallets for {runtime['name']}: {result.stderr}")
+            sys.exit(1)
+        raw_pallets = result.stdout.split('\n')
 
         all_pallets = set()
         for pallet in raw_pallets:
@@ -191,12 +200,14 @@ if args.command == 'bench':
 elif args.command == 'fmt':
     nightly_version = os.getenv('RUST_NIGHTLY_VERSION')
     command = f"cargo +nightly-{nightly_version} fmt"
-    print('Formatting with `{command}`')
+    print(f'Formatting with `{command}`')
     nightly_status = os.system(f'{command}')
-    taplo_status = os.system('taplo format --config .config/taplo.toml')
 
-    if (nightly_status != 0 or taplo_status != 0) and not args.continue_on_fail:
+    command = "taplo format --config .config/taplo.toml"
+    print(f'Formatting toml files with `{command}`')
+    taplo_status = os.system(command)
+
+    if nightly_status != 0 or taplo_status != 0:
         print('❌ Failed to format code')
-        sys.exit(1)
-
-print('🚀 Done')
+        if not args.continue_on_fail:
+            sys.exit(1)
