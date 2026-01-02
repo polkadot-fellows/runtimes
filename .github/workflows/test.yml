@@ -97,8 +97,6 @@ jobs:
           fi
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
-      - name: Install Solc
-        uses: ./.github/actions/get-solc
 
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
