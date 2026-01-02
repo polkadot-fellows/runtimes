@@ -15,8 +15,8 @@
 // limitations under the License.
 
 use crate::{
-	mock::{assert_last_event, new_test_ext, Runtime as AssetHub},
-	Error, Event,
+	mock::{new_test_ext, Runtime as AssetHub, RuntimeOrigin},
+	Error,
 };
 use frame_support::assert_noop;
 use sp_runtime::AccountId32;
@@ -144,7 +144,8 @@ fn translate_derived_account() {
 	new_test_ext().execute_with(|| {
 		// wrong para id
 		assert_noop!(
-			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+			crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+				RuntimeOrigin::root(),
 				2005,
 				derivation.clone(),
 				child.clone(),
@@ -155,7 +156,8 @@ fn translate_derived_account() {
 
 		// wrong derivation path
 		assert_noop!(
-			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+			crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+				RuntimeOrigin::root(),
 				2004,
 				vec![5, 3],
 				child.clone(),
@@ -166,7 +168,8 @@ fn translate_derived_account() {
 
 		// wrong acc
 		assert_noop!(
-			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+			crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+				RuntimeOrigin::root(),
 				2004,
 				derivation.clone(),
 				child.clone(),
@@ -177,7 +180,8 @@ fn translate_derived_account() {
 
 		// wrong acc
 		assert_noop!(
-			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+			crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+				RuntimeOrigin::root(),
 				2004,
 				derivation.clone(),
 				sibl.clone(),
@@ -188,7 +192,8 @@ fn translate_derived_account() {
 
 		// wrong acc
 		assert_noop!(
-			crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+			crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+				RuntimeOrigin::root(),
 				2004,
 				derivation.clone(),
 				sibl.clone(),
@@ -208,7 +213,8 @@ fn moonbeam_stellaswap_double_derived_translation() {
 			AccountId32::from_str("123oqim7B24XzwB1hC4Fh7LGwbTas3QmxL6v6sVd95eTD5ee").unwrap();
 		let derivation_path = vec![5, 2];
 
-		crate::Pallet::<AssetHub>::do_translate_para_sovereign_child_to_sibling_derived(
+		crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+			RuntimeOrigin::root(),
 			2004,
 			derivation_path.clone(),
 			child_5_2.clone(),

@@ -16,8 +16,10 @@
 
 use crate as pallet_ah_ops;
 use crate::*;
+use frame_election_provider_support::BoundedSupportsOf;
 use frame_support::derive_impl;
 use frame_system::EnsureSigned;
+use pallet_election_provider_multi_block::PageIndex;
 use sp_core::H256;
 use sp_runtime::traits::{parameter_types, BlakeTwo256, IdentityLookup};
 
@@ -31,6 +33,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances,
 		AhOps: pallet_ah_ops,
 		Timestamp: pallet_timestamp,
+		Staking: pallet_staking_async,
 	}
 );
 
@@ -81,6 +84,147 @@ impl pallet_timestamp::Config for Runtime {
 	type OnTimestampSet = ();
 	type MinimumPeriod = ();
 	type WeightInfo = ();
+}
+
+impl pallet_staking_async::Config for Runtime {
+	type Filter = ();
+	type OldCurrency = Balances;
+	type Currency = Balances;
+	type CurrencyBalance = u128;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
+	type RewardRemainder = ();
+	type Slash = ();
+	type Reward = ();
+	type SessionsPerEra = ();
+	type BondingDuration = ();
+	type SlashDeferDuration = ();
+	type AdminOrigin = frame_system::EnsureNone<Self::AccountId>;
+	type EraPayout = ();
+	type MaxExposurePageSize = ();
+	type ElectionProvider = Self;
+	type VoterList = pallet_staking_async::UseNominatorsAndValidatorsMap<Self>;
+	type TargetList = Self;
+	type MaxValidatorSet = ();
+	type NominationsQuota = pallet_staking_async::FixedNominationsQuota<100>;
+	type MaxUnlockingChunks = ();
+	type HistoryDepth = ();
+	type MaxControllersInDeprecationBatch = ();
+	type EventListeners = ();
+	type MaxInvulnerables = ();
+	type PlanningEraOffset = ();
+	//pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;
+	type RcClientInterface = Self;
+	type MaxEraDuration = ();
+	type MaxPruningItems = ConstU32<100>;
+	type WeightInfo = ();
+}
+
+impl pallet_staking_async_rc_client::RcClientInterface for Runtime {
+	type AccountId = AccountId32;
+
+	fn validator_set(new_validator_set: Vec<Self::AccountId>, id: u32, _prune_up_tp: Option<u32>) {
+		unimplemented!()
+	}
+}
+
+impl frame_election_provider_support::SortedListProvider<AccountId32> for Runtime {
+	type Error = &'static str;
+	type Score = u128;
+
+	fn iter() -> Box<dyn Iterator<Item = AccountId32>> {
+		unimplemented!()
+	}
+
+	fn lock() {
+		unimplemented!()
+	}
+
+	fn unlock() {
+		unimplemented!()
+	}
+
+	fn iter_from(
+		_start: &AccountId32,
+	) -> Result<Box<dyn Iterator<Item = AccountId32>>, Self::Error> {
+		unimplemented!()
+	}
+
+	fn count() -> u32 {
+		unimplemented!()
+	}
+
+	fn contains(_id: &AccountId32) -> bool {
+		unimplemented!()
+	}
+
+	fn on_insert(_id: AccountId32, _score: u128) -> Result<(), Self::Error> {
+		unimplemented!()
+	}
+
+	fn on_update(_id: &AccountId32, _score: u128) -> Result<(), Self::Error> {
+		unimplemented!()
+	}
+
+	fn get_score(_id: &AccountId32) -> Result<u128, Self::Error> {
+		unimplemented!()
+	}
+
+	fn on_increase(_id: &AccountId32, _additional: u128) -> Result<(), Self::Error> {
+		unimplemented!()
+	}
+
+	fn on_remove(_id: &AccountId32) -> Result<(), Self::Error> {
+		unimplemented!()
+	}
+
+	fn unsafe_regenerate(
+		_all: impl IntoIterator<Item = AccountId32>,
+		_score_of: Box<dyn Fn(&AccountId32) -> Option<u128>>,
+	) -> u32 {
+		unimplemented!()
+	}
+
+	fn unsafe_clear() {
+		unimplemented!()
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn try_state() -> Result<(), sp_runtime::TryRuntimeError> {
+		unimplemented!()
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn score_update_worst_case(_who: &AccountId32, _is_increase: bool) -> Self::Score {
+		unimplemented!()
+	}
+}
+
+impl frame_election_provider_support::ElectionProvider for Runtime {
+	type AccountId = AccountId32;
+	type BlockNumber = u64;
+	type Error = &'static str;
+	type MaxWinnersPerPage = ();
+	type MaxBackersPerWinner = ();
+	type MaxBackersPerWinnerFinal = ();
+	type Pages = ConstU32<1>;
+	type DataProvider = Staking;
+
+	fn elect(_remaining: PageIndex) -> Result<BoundedSupportsOf<Self>, Self::Error> {
+		unimplemented!()
+	}
+
+	fn duration() -> Self::BlockNumber {
+		0
+	}
+
+	fn start() -> Result<(), Self::Error> {
+		Ok(())
+	}
+
+	fn status() -> Result<bool, ()> {
+		Ok(true)
+	}
 }
 
 parameter_types! {

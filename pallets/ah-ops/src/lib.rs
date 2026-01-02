@@ -404,7 +404,7 @@ pub mod pallet {
 			old_account: T::AccountId,
 			new_account: T::AccountId,
 		) -> DispatchResult {
-			ensure_signed(origin)?;
+			ensure_signed_or_root(origin)?;
 
 			Self::do_translate_para_sovereign_child_to_sibling_derived(
 				para_id,
@@ -596,7 +596,7 @@ pub mod pallet {
 				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.active).unwrap_or(0);
 			let total_bonded =
 				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.total).unwrap_or(0);
-			
+
 			if total_bonded > 0 {
 				// Force unstake. The actual function is private, so we use the call:
 				pallet_staking_async::Pallet::<T>::force_unstake(
