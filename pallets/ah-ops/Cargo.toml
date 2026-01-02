@@ -36,6 +36,7 @@ std = [
 	"log/std",
 	"pallet-assets/std",
 	"pallet-balances/std",
+	"pallet-staking-async/std",
 	"pallet-timestamp/std",
 	"scale-info/std",
 	"sp-application-crypto/std",
@@ -43,7 +44,6 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"pallet-staking-async/std"
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
@@ -52,16 +52,16 @@ runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"pallet-staking-async/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-staking-async/try-runtime"
 ]
