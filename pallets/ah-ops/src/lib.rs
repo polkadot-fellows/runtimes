@@ -594,7 +594,10 @@ pub mod pallet {
 			// Get the bonded amount that we will force-unstake.
 			let active_bonded =
 				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.active).unwrap_or(0);
-			if active_bonded > 0 {
+			let total_bonded =
+				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.total).unwrap_or(0);
+			
+			if total_bonded > 0 {
 				// Force unstake. The actual function is private, so we use the call:
 				pallet_staking_async::Pallet::<T>::force_unstake(
 					frame_system::Origin::<T>::Root.into(),
