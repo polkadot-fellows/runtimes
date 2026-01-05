@@ -1310,10 +1310,50 @@ impl pallet_claims::Config for Runtime {
 	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub PalletAssetsIndex: usize = <crate::Assets as frame_support::pallet_prelude::PalletInfoAccess>::index();
+	pub RelevantAssets: Vec<Location> = vec![
+		// USDT
+		Location::new(
+			0,
+			[
+				Junction::PalletInstance(PalletAssetsIndex::get() as u8),
+				Junction::GeneralIndex(1984),
+			],
+		),
+		// USDC
+		Location::new(
+			0,
+			[
+				Junction::PalletInstance(PalletAssetsIndex::get() as u8),
+				Junction::GeneralIndex(1337),
+			],
+		),
+		// DED
+		Location::new(
+			0,
+			[
+				Junction::PalletInstance(PalletAssetsIndex::get() as u8),
+				Junction::GeneralIndex(30),
+			],
+		),
+		// TSN
+		Location::new(
+			0,
+			[
+				Junction::PalletInstance(PalletAssetsIndex::get() as u8),
+				Junction::GeneralIndex(1107),
+			],
+		),
+	];
+}
+
 impl pallet_ah_ops::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Fungibles = NativeAndAssets;
+	type AssetId = Location;
+	type RelevantAssets = RelevantAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;

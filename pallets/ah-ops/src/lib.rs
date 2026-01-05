@@ -98,8 +98,14 @@ pub mod pallet {
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 
 		/// Fungibles registry type.
-		type Fungibles: FungiblesInspect<Self::AccountId, Balance = u128>
-			+ FungiblesMutate<Self::AccountId, Balance = u128>;
+		type Fungibles: FungiblesInspect<Self::AccountId, Balance = u128, AssetId = Self::AssetId>
+			+ FungiblesMutate<Self::AccountId, Balance = u128, AssetId = Self::AssetId>;
+
+		/// Asset ID type of the `Fungibles` adapter.
+		type AssetId: Parameter + MaxEncodedLen + TypeInfo;
+
+		/// Assets to be migrated with `translate_para_sovereign_child_to_sibling_derived`.
+		type RelevantAssets: Get<Vec<Self::AssetId>>;
 
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
@@ -247,6 +253,17 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
+		LeaseUnreserveRemaining {
+			depositor: T::AccountId,
+			para_id: ParaId,
+			remaining: BalanceOf<T>,
+		},
+		/// Some amount for a crowdloan reserve could not be unreserved and needs manual cleanup.
+		CrowdloanUnreserveRemaining {
+			depositor: T::AccountId,
+			para_id: ParaId,
+			remaining: BalanceOf<T>,
+		},
 		/// A hold was released.
 		HoldReleased {
 			account: T::AccountId,
@@ -258,19 +275,6 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			reason: <T as pallet_balances::Config>::RuntimeHoldReason,
 		},
-		LeaseUnreserveRemaining {
-			depositor: T::AccountId,
-			para_id: ParaId,
-			remaining: BalanceOf<T>,
-		},
-
-		/// Some amount for a crowdloan reserve could not be unreserved and needs manual cleanup.
-		CrowdloanUnreserveRemaining {
-			depositor: T::AccountId,
-			para_id: ParaId,
-			remaining: BalanceOf<T>,
-		},
-
 		/// A sovereign parachain account has been migrated from its child to sibling
 		/// representation.
 		SovereignMigrated {
@@ -612,72 +616,73 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::FailedToForceUnstake)?;
 			}
 
-			// Release all locks
-			let locks: Vec<BalanceLock<T::Balance>> =
-				pallet_balances::Locks::<T>::get(&from).into_inner();
-			for lock in &locks {
-				let () = <T as Config>::Currency::remove_lock(lock.id, &from);
-			}
-
-			// Thaw all the freezes
-			let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
-				pallet_balances::Freezes::<T>::get(&from).into();
-
-			for freeze in &freezes {
-				let () = <T as Config>::Currency::thaw(&freeze.id, &from)
-					.map_err(|_| Error::<T>::FailedToThaw)?;
-			}
-
-			// Release all holds
-			let holds: Vec<
-				IdAmount<<T as pallet_balances::Config>::RuntimeHoldReason, T::Balance>,
-			> = pallet_balances::Holds::<T>::get(&from).into();
-
-			for IdAmount { id, amount } in &holds {
-				let _ = <T as Config>::Currency::release(id, &from, *amount, Precision::Exact)
-					.map_err(|_| Error::<T>::FailedToReleaseHold)?;
-				Self::deposit_event(Event::HoldReleased {
-					account: from.clone(),
-					amount: *amount,
-					reason: *id,
-				});
-			}
-
-			// Unreserve unnamed reserves
-			let unnamed_reserve = <T as Config>::Currency::reserved_balance(&from);
-			let missing = <T as Config>::Currency::unreserve(&from, unnamed_reserve);
-			defensive_assert!(missing == 0, "Should have unreserved the full amount");
-
-			// Set consumer refs to zero
-			let consumers = frame_system::Pallet::<T>::consumers(&from);
-			frame_system::Account::<T>::mutate(&from, |acc| {
-				acc.consumers = 0;
-			});
-			// We dont handle sufficients and there should be none
-			ensure!(frame_system::Pallet::<T>::sufficients(&from) == 0, Error::<T>::InternalError);
-
-			// Sanity check
-			let total = <<T as Config>::Currency as FungibleInspect<_>>::total_balance(&from);
-			let reducible = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
+			let reducible_dot = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
 				&from,
-				Preservation::Expendable,
+				Preservation::Preserve,
 				Fortitude::Polite,
 			);
-			defensive_assert!(
-				total >= <<T as Config>::Currency as FungibleInspect<_>>::minimum_balance(),
-				"Must have at least ED"
-			);
-			defensive_assert!(total == reducible, "Total balance should be reducible");
 
-			// Now the actual balance transfer to the new account
-			<<T as Config>::Currency as FungibleMutate<_>>::transfer(
+			// First, create the new account by transferring ED.
+			let ed = <<T as Config>::Currency as FungibleInspect<_>>::minimum_balance();
+			if reducible_dot >= ed {
+				<<T as Config>::Currency as FungibleMutate<_>>::transfer(
+					&from,
+					&to,
+					ed,
+					Preservation::Expendable,
+				)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToTransfer)?;
+			}
+
+			let reducible_assets = T::RelevantAssets::get()
+				.into_iter()
+				.filter_map(|id| {
+					let amount = <T as Config>::Fungibles::reducible_balance(
+						id.clone(),
+						&from,
+						Preservation::Expendable,
+						Fortitude::Force,
+					);
+
+					if amount.is_zero() {
+						None
+					} else {
+						Some((id, amount))
+					}
+				})
+				.collect::<Vec<_>>();
+
+			// Transfer all assets to the new account. This must not create or reap an account since
+			// that could fail, depending on whether all assets are sufficient.
+			for (id, amount) in reducible_assets {
+				<<T as Config>::Fungibles as FungiblesMutate<_>>::transfer(
+					id.clone(),
+					&from,
+					&to,
+					amount,
+					Preservation::Expendable,
+				)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToTransfer)?;
+			}
+
+			// Now transfer the remaining DOT to the new account.
+			let remaining_dot = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
 				&from,
-				&to,
-				total,
 				Preservation::Expendable,
-			)
-			.defensive()
-			.map_err(|_| Error::<T>::FailedToTransfer)?;
+				Fortitude::Force,
+			);
+			if remaining_dot > 0 {
+				<<T as Config>::Currency as FungibleMutate<_>>::transfer(
+					&from,
+					&to,
+					remaining_dot,
+					Preservation::Expendable,
+				)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToTransfer)?;
+			}
 
 			// Re-stake the new account:
 			if active_bonded > 0 {
@@ -697,49 +702,6 @@ pub mod pallet {
 					});
 				}
 			}
-
-			// Apply consumer refs
-			frame_system::Account::<T>::mutate(&to, |acc| {
-				acc.consumers += consumers;
-			});
-
-			// Reapply the holds
-			for hold in &holds {
-				<T as Config>::Currency::hold(&hold.id, &to, hold.amount)
-					.map_err(|_| Error::<T>::FailedToPutHold)?;
-				// Somehow there are no events for this being emitted... so we emit our own.
-				Self::deposit_event(Event::HoldPlaced {
-					account: to.clone(),
-					amount: hold.amount,
-					reason: hold.id,
-				});
-			}
-
-			// Reapply the reserve
-			<T as Config>::Currency::reserve(&to, unnamed_reserve)
-				.defensive()
-				.map_err(|_| Error::<T>::FailedToReserve)?;
-
-			// Reapply the locks
-			for lock in &locks {
-				let reasons = map_lock_reason(lock.reasons);
-				<T as Config>::Currency::set_lock(lock.id, &to, lock.amount, reasons);
-			}
-			// Reapply the freezes
-			for freeze in &freezes {
-				<T as Config>::Currency::set_freeze(&freeze.id, &to, freeze.amount)
-					.map_err(|_| Error::<T>::FailedToSetFreeze)?;
-			}
-
-			defensive_assert!(
-				frame_system::Account::<T>::get(&from) == Default::default(),
-				"Must reap old account"
-			);
-			// If new account would die from this, then lets rather not do it and check it manually.
-			ensure!(
-				frame_system::Account::<T>::get(&to) != Default::default(),
-				Error::<T>::WouldReap
-			);
 
 			Self::deposit_event(Event::SovereignMigrated {
 				para_id,

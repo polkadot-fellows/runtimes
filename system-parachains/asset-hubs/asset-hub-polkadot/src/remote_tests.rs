@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use super::*;
+use frame_support::traits::fungible::Inspect as FungibleInspect;
 use remote_externalities::{Builder, Mode, OfflineConfig};
 use sp_runtime::AccountId32;
 use std::{env::var, str::FromStr};
@@ -104,8 +105,15 @@ fn test_translate(child_5_2: AccountId32, sibl_5_2: AccountId32, derivation_path
 		println!("{:?}", event);
 	}
 
-	assert_eq!(summary(&child_5_2), 0, "Child acc should be empty");
-	assert_eq!(summary(&sibl_5_2), child_before, "Sibl should have child balance");
+	let child_remaining = summary(&child_5_2);
+	let ed = <crate::Balances as FungibleInspect<_>>::minimum_balance();
+	// It can still have ED in case that we did not migrate all assets.
+	assert!(child_remaining <= ed, "Child remaining should have at most ED");
+	assert_eq!(
+		summary(&sibl_5_2),
+		child_before - child_remaining,
+		"Sibl should have child balance"
+	);
 }
 
 /// Account summary and return the total balance.
