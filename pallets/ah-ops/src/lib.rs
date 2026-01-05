@@ -206,8 +206,6 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Failed to force unstake.
 		FailedToForceUnstake,
-		/// Failed to bond.
-		FailedToBond,
 		/// Either no lease deposit or already unreserved.
 		NoLeaseReserve,
 		/// Either no crowdloan contribution or already withdrawn.
@@ -232,18 +230,6 @@ pub mod pallet {
 		ZeroBalance,
 		/// Failed to transfer balance.
 		FailedToTransfer,
-		/// Failed to put hold.
-		FailedToPutHold,
-		/// Failed to reserve.
-		FailedToReserve,
-		/// Failed to release hold.
-		FailedToReleaseHold,
-		/// Failed to set freeze.
-		FailedToSetFreeze,
-		/// Failed to thaw.
-		FailedToThaw,
-		/// Would reap old account.
-		WouldReap,
 		/// The account has already been translated.
 		AlreadyTranslated,
 		/// The derivation path is too long.
@@ -266,7 +252,7 @@ pub mod pallet {
 			para_id: ParaId,
 			remaining: BalanceOf<T>,
 		},
-		
+
 		/// A sovereign parachain account has been migrated from its child to sibling
 		/// representation.
 		SovereignMigrated {
@@ -392,6 +378,13 @@ pub mod pallet {
 		///
 		/// Uses the same derivation path on the sibling. The old and new account arguments are only
 		/// witness data to ensure correct usage. Can only be called once per account.
+		///
+		/// This migrates:
+		/// - Native DOT balance
+		/// - All assets listed in `T::RelevantAssets`
+		/// - Staked balances
+		///
+		/// Things like non-relevant assets or vested transfers may remain on the old account.
 		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_parts(100_000_000, 9000)
 				.saturating_add(T::DbWeight::get().reads_writes(20, 20)))]
