@@ -18,7 +18,7 @@ use crate as pallet_ah_ops;
 use crate::*;
 use frame_election_provider_support::BoundedSupportsOf;
 use frame_support::derive_impl;
-use frame_system::EnsureSigned;
+use frame_system::{EnsureRoot, EnsureSigned};
 use pallet_election_provider_multi_block::PageIndex;
 use sp_core::H256;
 use sp_runtime::traits::{parameter_types, BlakeTwo256, IdentityLookup};
@@ -238,6 +238,9 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type Fungibles = Assets;
 	type RcBlockNumberProvider = System; // Wrong but unused
+	type MigrateOrigin = EnsureRoot<AccountId32>;
+	type RelevantAssets = ();
+	type AssetId = u32;
 	type WeightInfo = ();
 	type MigrationCompletion = MigrationCompletion;
 	type TreasuryPreMigrationAccount = TreasuryPreMigrationAccount;
