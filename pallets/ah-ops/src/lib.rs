@@ -50,13 +50,13 @@ use frame_support::{
 			MutateHold, Unbalanced,
 		},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
-		tokens::{Fortitude, IdAmount, Precision, Preservation},
+		tokens::{Fortitude, Preservation},
 		Currency, Defensive, LockableCurrency, ReservableCurrency,
 		WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
-use pallet_balances::{AccountData, BalanceLock, Reasons as LockReasons};
+use pallet_balances::{AccountData, Reasons as LockReasons};
 use sp_application_crypto::ByteArray;
 use sp_core::blake2_256;
 use sp_runtime::{
@@ -614,27 +614,20 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::FailedToTransfer)?;
 			}
 
-			let reducible_assets = T::RelevantAssets::get()
-				.into_iter()
-				.filter_map(|id| {
-					let amount = <T as Config>::Fungibles::reducible_balance(
-						id.clone(),
-						&from,
-						Preservation::Expendable,
-						Fortitude::Force,
-					);
-
-					if amount.is_zero() {
-						None
-					} else {
-						Some((id, amount))
-					}
-				})
-				.collect::<Vec<_>>();
-
 			// Transfer all assets to the new account. This must not create or reap an account since
 			// that could fail, depending on whether all assets are sufficient.
-			for (id, amount) in reducible_assets {
+			for id in T::RelevantAssets::get() {
+				let amount = <T as Config>::Fungibles::reducible_balance(
+					id.clone(),
+					&from,
+					Preservation::Expendable,
+					Fortitude::Force,
+				);
+
+				if amount.is_zero() {
+					continue;
+				}
+
 				<<T as Config>::Fungibles as FungiblesMutate<_>>::transfer(
 					id.clone(),
 					&from,

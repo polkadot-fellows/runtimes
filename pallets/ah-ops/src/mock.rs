@@ -113,7 +113,6 @@ impl pallet_staking_async::Config for Runtime {
 	type EventListeners = ();
 	type MaxInvulnerables = ();
 	type PlanningEraOffset = ();
-	//pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;
 	type RcClientInterface = Self;
 	type MaxEraDuration = ();
 	type MaxPruningItems = ConstU32<100>;
