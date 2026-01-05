@@ -253,28 +253,20 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Some lease reserve could not be unreserved and needs manual cleanup.
 		LeaseUnreserveRemaining {
 			depositor: T::AccountId,
 			para_id: ParaId,
 			remaining: BalanceOf<T>,
 		},
+
 		/// Some amount for a crowdloan reserve could not be unreserved and needs manual cleanup.
 		CrowdloanUnreserveRemaining {
 			depositor: T::AccountId,
 			para_id: ParaId,
 			remaining: BalanceOf<T>,
 		},
-		/// A hold was released.
-		HoldReleased {
-			account: T::AccountId,
-			amount: BalanceOf<T>,
-			reason: <T as pallet_balances::Config>::RuntimeHoldReason,
-		},
-		HoldPlaced {
-			account: T::AccountId,
-			amount: BalanceOf<T>,
-			reason: <T as pallet_balances::Config>::RuntimeHoldReason,
-		},
+		
 		/// A sovereign parachain account has been migrated from its child to sibling
 		/// representation.
 		SovereignMigrated {
