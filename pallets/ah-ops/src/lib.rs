@@ -554,6 +554,7 @@ pub mod pallet {
 			Ok((parent_translated_derived, para_id))
 		}
 
+		/// Actual logic of `translate_para_sovereign_child_to_sibling_derived`.
 		pub fn do_translate_para_sovereign_child_to_sibling_derived(
 			para_id: u16,
 			derivation_path: Vec<u16>,
@@ -691,6 +692,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Sovereign child account of a parachain (normally on the relay chain).
 		pub fn para_sov_child(id: u16) -> AccountId32 {
 			let mut raw = [0u8; 32];
 			raw[0..4].copy_from_slice(b"para");
@@ -698,6 +700,7 @@ pub mod pallet {
 			raw.into()
 		}
 
+		/// Sovereign sibling account of a parachain (normally on a parachain).
 		pub fn para_sov_sibling(id: u16) -> AccountId32 {
 			let mut raw = [0u8; 32];
 			raw[0..4].copy_from_slice(b"sibl");
@@ -722,6 +725,7 @@ pub fn derivative_account_id<AccountId: Encode + Decode>(who: AccountId, index: 
 		.expect("infinite length input; no invalid inputs for type; qed")
 }
 
+/// Recursively derive an account from `who` with the given indices.
 pub fn derivative_account_id_recursive<AccountId: Encode + Decode>(
 	who: AccountId,
 	indices: &[u16],

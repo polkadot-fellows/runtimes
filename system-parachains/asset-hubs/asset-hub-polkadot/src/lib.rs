@@ -1312,6 +1312,7 @@ impl pallet_claims::Config for Runtime {
 
 parameter_types! {
 	pub PalletAssetsIndex: usize = <crate::Assets as frame_support::pallet_prelude::PalletInfoAccess>::index();
+	// Assets of the Stellaswap account that will be migrated.
 	pub RelevantAssets: Vec<Location> = vec![
 		// USDT
 		Location::new(
