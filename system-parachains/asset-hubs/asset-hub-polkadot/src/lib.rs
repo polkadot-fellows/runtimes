@@ -1355,6 +1355,10 @@ impl pallet_ah_ops::Config for Runtime {
 	type AssetId = Location;
 	type RelevantAssets = RelevantAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type MigrateOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+	>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;

@@ -110,6 +110,9 @@ pub mod pallet {
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
+		/// Origin that can call `translate_para_sovereign_child_to_sibling_derived`.
+		type MigrateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
 		/// Whether the Asset Hub migration is completed.
 		///
 		/// Returns `true` if the Asset Hub migration is completed.
@@ -196,16 +199,9 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
-	/// All accounts that were processed with `translate_para_sovereign_child_to_sibling_derived`.
-	#[pallet::storage]
-	pub type ParaSovereignTranslations<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
-
 	#[pallet::error]
 	#[derive(PartialEq, Eq)]
 	pub enum Error<T> {
-		/// Failed to force unstake.
-		FailedToForceUnstake,
 		/// Either no lease deposit or already unreserved.
 		NoLeaseReserve,
 		/// Either no crowdloan contribution or already withdrawn.
@@ -234,6 +230,8 @@ pub mod pallet {
 		AlreadyTranslated,
 		/// The derivation path is too long.
 		TooLongDerivationPath,
+		/// Failed to force unstake.
+		FailedToForceUnstake,
 	}
 
 	#[pallet::event]
@@ -377,7 +375,7 @@ pub mod pallet {
 		/// Translate recursively derived parachain sovereign child account to its sibling.
 		///
 		/// Uses the same derivation path on the sibling. The old and new account arguments are only
-		/// witness data to ensure correct usage. Can only be called once per account.
+		/// witness data to ensure correct usage. Can only be called by the `MigrateOrigin`.
 		///
 		/// This migrates:
 		/// - Native DOT balance
@@ -395,7 +393,7 @@ pub mod pallet {
 			old_account: T::AccountId,
 			new_account: T::AccountId,
 		) -> DispatchResult {
-			ensure_signed_or_root(origin)?;
+			T::MigrateOrigin::ensure_origin(origin)?;
 
 			Self::do_translate_para_sovereign_child_to_sibling_derived(
 				para_id,
@@ -565,10 +563,6 @@ pub mod pallet {
 			if derivation_path.len() > 10 {
 				return Err(Error::<T>::TooLongDerivationPath);
 			}
-			if ParaSovereignTranslations::<T>::contains_key(&from) {
-				return Err(Error::<T>::AlreadyTranslated);
-			}
-			ParaSovereignTranslations::<T>::insert(&from, &to);
 
 			let para_child = Self::para_sov_child(para_id);
 			let para_sibling = Self::para_sov_sibling(para_id);
