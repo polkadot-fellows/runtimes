@@ -616,13 +616,12 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::FailedToForceUnstake)?;
 			}
 
+			// First, create the new account by transferring ED.
 			let reducible_dot = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
 				&from,
 				Preservation::Preserve,
 				Fortitude::Polite,
 			);
-
-			// First, create the new account by transferring ED.
 			let ed = <<T as Config>::Currency as FungibleInspect<_>>::minimum_balance();
 			if reducible_dot >= ed {
 				<<T as Config>::Currency as FungibleMutate<_>>::transfer(
