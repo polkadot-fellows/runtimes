@@ -240,6 +240,8 @@ pub mod pallet {
 		WouldReap,
 		/// The account has already been translated.
 		AlreadyTranslated,
+		/// The derivation path is too long.
+		TooLongDerivationPath,
 	}
 
 	#[pallet::event]
@@ -571,6 +573,9 @@ pub mod pallet {
 			from: T::AccountId,
 			to: T::AccountId,
 		) -> Result<(), Error<T>> {
+			if derivation_path.len() > 10 {
+				return Err(Error::<T>::TooLongDerivationPath);
+			}
 			if ParaSovereignTranslations::<T>::contains_key(&from) {
 				return Err(Error::<T>::AlreadyTranslated);
 			}
