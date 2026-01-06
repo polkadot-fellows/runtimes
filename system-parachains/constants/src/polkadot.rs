@@ -84,15 +84,8 @@ pub mod currency {
 
 /// Constants related to Polkadot fee payment.
 pub mod fee {
-	use frame_support::{
-		pallet_prelude::Weight,
-		weights::{
-			constants::ExtrinsicBaseWeight, FeePolynomial, WeightToFeeCoefficient,
-			WeightToFeeCoefficients, WeightToFeePolynomial,
-		},
-	};
+	use frame_support::weights::constants::ExtrinsicBaseWeight;
 	use polkadot_core_primitives::Balance;
-	use smallvec::smallvec;
 	pub use sp_runtime::Perbill;
 
 	/// The block saturation level. Fees will be updates based on this value.
@@ -103,65 +96,14 @@ pub mod fee {
 	/// It is the Relay Chain (Polkadot) `TransactionByteFee` / 20.
 	pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS / 2;
 
-	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
-	/// node's balance type.
-	///
-	/// This should typically create a mapping between the following ranges:
-	///   - [0, MAXIMUM_BLOCK_WEIGHT]
-	///   - [Balance::min, Balance::max]
-	///
-	/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
-	///   - Setting it to `0` will essentially disable the weight fee.
-	///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
-	pub struct WeightToFee;
-	impl frame_support::weights::WeightToFee for WeightToFee {
-		type Balance = Balance;
-
-		fn weight_to_fee(weight: &Weight) -> Self::Balance {
-			let time_poly: FeePolynomial<Balance> = RefTimeToFee::polynomial().into();
-			let proof_poly: FeePolynomial<Balance> = ProofSizeToFee::polynomial().into();
-
-			// Take the maximum instead of the sum to charge by the more scarce resource.
-			time_poly.eval(weight.ref_time()).max(proof_poly.eval(weight.proof_size()))
-		}
-	}
-
-	/// Maps the reference time component of `Weight` to a fee.
-	pub struct RefTimeToFee;
-	impl WeightToFeePolynomial for RefTimeToFee {
-		type Balance = Balance;
-		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// In Polkadot, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-			// The standard system parachain configuration is 1/20 of that, as in 1/200 CENT.
-			let p = super::currency::CENTS;
-			let q = 200 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
-
-			smallvec![WeightToFeeCoefficient {
-				degree: 1,
-				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
-				coeff_integer: p / q,
-			}]
-		}
-	}
-
-	/// Maps the proof size component of `Weight` to a fee.
-	pub struct ProofSizeToFee;
-	impl WeightToFeePolynomial for ProofSizeToFee {
-		type Balance = Balance;
-		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// Map 20kb proof to 1 CENT.
-			let p = super::currency::CENTS;
-			let q = 20_000;
-
-			smallvec![WeightToFeeCoefficient {
-				degree: 1,
-				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
-				coeff_integer: p / q,
-			}]
-		}
-	}
+	/// The two generic parameters of `BlockRatioFee` define a rational number that defines the
+	/// ref_time to fee mapping. The numbers chosen here are exactly the same as the one from the
+	/// `WeightToFeePolynomial` that was used before.
+	pub type WeightToFee<Runtime> = pallet_revive::evm::fees::BlockRatioFee<
+		{ super::currency::CENTS },
+		{ (200 * ExtrinsicBaseWeight::get().ref_time()) as u128 },
+		Runtime,
+	>;
 }
 
 pub mod locations {

@@ -77,6 +77,7 @@ pub mod currency {
 
 /// Constants related to Kusama fee payment.
 pub mod fee {
+	use frame_support::weights::constants::ExtrinsicBaseWeight;
 	use polkadot_core_primitives::Balance;
 	pub use sp_runtime::Perbill;
 
@@ -90,12 +91,12 @@ pub mod fee {
 
 	/// The two generic parameters of `BlockRatioFee` define a rational number that defines the
 	/// ref_time to fee mapping. The numbers chosen here are exactly the same as the one from the
-	/// `WeightToFeePolynomial` that was used before:
-	/// - The numerator is `currency::CENTS` = 1_000_000_000_000 / 30 / 100 = 333_333_333
-	/// - The denominator is `100 * Balance::from(ExtrinsicBaseWeight::get().ref_time())`
-	///   - which is 100 * 1_000 * 108_157 = 10_815_700_000
-	pub type WeightToFee<Runtime> =
-		pallet_revive::evm::fees::BlockRatioFee<333333333, 10_815_700_000, Runtime>;
+	/// `WeightToFeePolynomial` that was used before.
+	pub type WeightToFee<Runtime> = pallet_revive::evm::fees::BlockRatioFee<
+		{ super::currency::CENTS },
+		{ (100 * ExtrinsicBaseWeight::get().ref_time()) as u128 },
+		Runtime,
+	>;
 }
 
 pub mod locations {
