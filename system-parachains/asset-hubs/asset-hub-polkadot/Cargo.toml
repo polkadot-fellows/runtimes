@@ -353,6 +353,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
+	"pallet-revive/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-staking-async-rc-client/std",
