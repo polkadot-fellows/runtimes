@@ -17877,6 +17877,7 @@ dependencies = [
  "array-bytes 9.3.0",
  "frame-support",
  "kusama-runtime-constants",
+ "pallet-revive",
  "parachains-common",
  "polkadot-core-primitives",
  "polkadot-primitives",
