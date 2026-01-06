@@ -1374,7 +1374,7 @@ construct_runtime!(
 		Preimage: pallet_preimage = 5,
 		Scheduler: pallet_scheduler = 6,
 		Parameters: pallet_parameters = 7,
-		WeightReclaim: cumulus_pallet_weight_reclaim = 9,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 8,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,

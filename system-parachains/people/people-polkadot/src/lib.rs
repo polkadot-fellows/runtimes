@@ -619,7 +619,7 @@ construct_runtime!(
 		Timestamp: pallet_timestamp = 2,
 		ParachainInfo: parachain_info = 3,
 		MultiBlockMigrations: pallet_migrations = 4,
-		WeightReclaim: cumulus_pallet_weight_reclaim = 9,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 5,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
