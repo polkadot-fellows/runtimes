@@ -17,28 +17,28 @@ sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 df -h
 
 # Install solc
-mkdir -p "$RUNNER_TEMP/solc"
-if [[ -x "$RUNNER_TEMP/solc/solc" ]]; then
+mkdir -p solc
+if [[ -x solc/solc ]]; then
   echo "solc already present, skipping download"
 else
   curl -Lsf --show-error --retry 5 --retry-all-errors --connect-timeout 10 --max-time 300 \
-    --output "$RUNNER_TEMP/solc/solc" \
+    --output solc/solc \
     "https://github.com/ethereum/solidity/releases/download/v${SOLC_VERSION}/${SOLC_NAME}"
-  chmod +x "$RUNNER_TEMP/solc/solc"
+  chmod +x solc/solc
 fi
 
 # Install resolc
-mkdir -p "$RUNNER_TEMP/resolc"
-if [[ -x "$RUNNER_TEMP/resolc/resolc" ]]; then
+mkdir -p resolc
+if [[ -x resolc/resolc ]]; then
   echo "resolc already present, skipping download"
 else
   curl -Lsf --show-error --retry 5 --retry-all-errors --connect-timeout 10 --max-time 300 \
-    --output "$RUNNER_TEMP/resolc/resolc" \
+    --output resolc/resolc \
     "https://github.com/paritytech/revive/releases/download/v${RESOLC_VERSION}/resolc-x86_64-unknown-linux-musl"
-  chmod +x "$RUNNER_TEMP/resolc/resolc"
-  "$RUNNER_TEMP/resolc/resolc" --version
+  chmod +x resolc/resolc
+  ./resolc/resolc --version
 fi
 
-echo "$RUNNER_TEMP/solc" >> "$GITHUB_PATH"
-echo "$RUNNER_TEMP/resolc" >> "$GITHUB_PATH"
+echo "$PWD/solc" >> "$GITHUB_PATH"
+echo "$PWD/resolc" >> "$GITHUB_PATH"
 
