@@ -484,7 +484,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
 	type MaxValidatorSetRetries = ConstU32<64>;
-	// Export elected validator set at end of session 4.
+	// Export elected validator set at the end of the 4th session of the era.
 	type ValidatorSetExportSession = ConstU32<4>;
 }
 
