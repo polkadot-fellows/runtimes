@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
 
 ### Changed
+- AH Polkadot - Enable Elastic Scaling for Polkadot Hub ([polkadot-fellows/runtimes/pull/1048](https://github.com/polkadot-fellows/runtimes/pull/1048))
 - AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
 
 ## [2.0.4] 18.12.2025
