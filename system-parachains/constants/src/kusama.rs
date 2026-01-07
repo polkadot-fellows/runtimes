@@ -96,6 +96,7 @@ pub mod fee {
 		{ super::currency::CENTS },
 		{ (100 * ExtrinsicBaseWeight::get().ref_time()) as u128 },
 		Runtime,
+		Balance,
 	>;
 }
 
