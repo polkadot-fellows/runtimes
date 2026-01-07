@@ -74,7 +74,7 @@ fn test_translate(child_5_2: AccountId32, sibl_5_2: AccountId32, derivation_path
 	);
 
 	for event in frame_system::Pallet::<Runtime>::events() {
-		println!("{:?}", event);
+		println!("{event:?}");
 	}
 
 	let child_remaining = summary(&child_5_2);
@@ -90,9 +90,9 @@ fn test_translate(child_5_2: AccountId32, sibl_5_2: AccountId32, derivation_path
 
 /// Account summary and return the total balance.
 fn summary(acc: &AccountId32) -> u128 {
-	let info = frame_system::Account::<Runtime>::get(&acc);
-	let ledger = pallet_staking_async::Ledger::<Runtime>::get(&acc);
-	println!("{}\n\tInfo: {:?}\n\tLedger: {:?}", acc, info, ledger);
+	let info = frame_system::Account::<Runtime>::get(acc);
+	let ledger = pallet_staking_async::Ledger::<Runtime>::get(acc);
+	println!("{acc}\n\tInfo: {info:?}\n\tLedger: {ledger:?}");
 
 	info.data.free + info.data.reserved
 }
