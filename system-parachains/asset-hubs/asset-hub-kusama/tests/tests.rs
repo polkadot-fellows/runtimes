@@ -71,9 +71,7 @@ frame_support::parameter_types! {
 
 type AssetIdForTrustBackedAssetsConvertLatest =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
-
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
-
 type WeightToFee = KsmWeightToFee<Runtime>;
 
 fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
