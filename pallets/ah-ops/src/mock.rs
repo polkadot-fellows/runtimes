@@ -122,7 +122,11 @@ impl pallet_staking_async::Config for Runtime {
 impl pallet_staking_async_rc_client::RcClientInterface for Runtime {
 	type AccountId = AccountId32;
 
-	fn validator_set(new_validator_set: Vec<Self::AccountId>, id: u32, _prune_up_tp: Option<u32>) {
+	fn validator_set(
+		_new_validator_set: Vec<Self::AccountId>,
+		_id: u32,
+		_prune_up_tp: Option<u32>,
+	) {
 		unimplemented!()
 	}
 }

@@ -18,7 +18,7 @@ use crate::{
 	mock::{new_test_ext, Runtime as AssetHub, RuntimeOrigin},
 	Error,
 };
-use frame_support::assert_noop;
+use frame_support::{assert_noop, assert_ok};
 use sp_runtime::AccountId32;
 use std::str::FromStr;
 
