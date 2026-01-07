@@ -1531,7 +1531,6 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
 		)
-			.into()
 	}
 }
 
