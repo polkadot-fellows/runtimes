@@ -69,7 +69,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned, EnsureSignedBy,
+	EnsureNone, EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
@@ -1310,6 +1310,9 @@ impl pallet_ah_ops::Config for Runtime {
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
 	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
+	type AssetId = Location;
+	type RelevantAssets = ();
+	type MigrateOrigin = EnsureNone<AccountId>;
 }
 
 parameter_types! {
