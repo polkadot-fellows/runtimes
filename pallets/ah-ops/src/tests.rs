@@ -213,13 +213,12 @@ fn moonbeam_stellaswap_double_derived_translation() {
 			AccountId32::from_str("123oqim7B24XzwB1hC4Fh7LGwbTas3QmxL6v6sVd95eTD5ee").unwrap();
 		let derivation_path = vec![5, 2];
 
-		crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
+		assert_ok!(crate::Pallet::<AssetHub>::translate_para_sovereign_child_to_sibling_derived(
 			RuntimeOrigin::root(),
 			2004,
 			derivation_path.clone(),
 			child_5_2.clone(),
 			sibl_5_2.clone(),
-		)
-		.unwrap();
+		));
 	});
 }

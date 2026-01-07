@@ -13,12 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Tests that run against a state snapshot.
+
 use super::*;
-use frame_support::traits::fungible::Inspect as FungibleInspect;
+use frame_support::{assert_ok, traits::fungible::Inspect as FungibleInspect};
 use remote_externalities::{Builder, Mode, OfflineConfig};
 use sp_runtime::AccountId32;
 use std::{env::var, str::FromStr};
 
+/// Ensure that the Stellaswap account is correctly migrated.
+///
+/// This test can be removed after the relevant code was deployed on-chain.
+/// See: https://github.com/polkadot-fellows/runtimes/pull/1036
 #[tokio::test]
 async fn moonbeam_stellaswap_translation() {
 	sp_tracing::try_init_simple();
@@ -58,13 +64,14 @@ fn test_translate(child_5_2: AccountId32, sibl_5_2: AccountId32, derivation_path
 	let child_before = summary(&child_5_2);
 	assert_eq!(summary(&sibl_5_2), 0, "Sibl acc should be empty");
 
-	pallet_ah_ops::Pallet::<Runtime>::do_translate_para_sovereign_child_to_sibling_derived(
-		2004,
-		derivation_path.clone(),
-		child_5_2.clone(),
-		sibl_5_2.clone(),
-	)
-	.unwrap();
+	assert_ok!(
+		pallet_ah_ops::Pallet::<Runtime>::do_translate_para_sovereign_child_to_sibling_derived(
+			2004,
+			derivation_path.clone(),
+			child_5_2.clone(),
+			sibl_5_2.clone(),
+		)
+	);
 
 	for event in frame_system::Pallet::<Runtime>::events() {
 		println!("{:?}", event);
