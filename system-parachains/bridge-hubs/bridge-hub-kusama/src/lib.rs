@@ -582,7 +582,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Proxy(_) |
 					RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::register { .. }) |
 					RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::deregister { .. }) |
-					RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::claim_rewards { .. })
+					RuntimeCall::BridgeRelayers(
+						pallet_bridge_relayers::Call::claim_rewards { .. }
+					)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
@@ -605,6 +607,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
 			(ProxyType::NonTransfer, ProxyType::Collator) => true,
+			(ProxyType::NonTransfer, ProxyType::CancelProxy) => true,
 			_ => false,
 		}
 	}
