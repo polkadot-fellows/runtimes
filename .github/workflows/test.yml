@@ -97,8 +97,6 @@ jobs:
           fi
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
-      - name: Install Solc
-        uses: ./.github/actions/get-solc
 
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
@@ -221,6 +219,62 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
+
+  # Job required by "confirmTestPassed"
+  zombienet-smoke:
+    runs-on: self-hosted
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build
+        run: |
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
+
+      - name: Zombienet smoke test
+        timeout-minutes: 20
+        run: |
+          # Since we are running the runner in a dind environment we need to find the ip
+          # of the proxy where the ports will be exposed.
+          # In the current infra there are 2 containes, the `dind` and the runner.
+          export ZOMBIE_LOCAL_IP=$(hostname -i | awk -F"." '{printf "%d.%d.%d.%d", $1, $2, $3, $4 - 1}')
+          export PATH=$(pwd)/target/release:$PATH
+          cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
     needs: [ runtime-matrix ]
@@ -360,6 +414,7 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
+      - zombienet-smoke
       - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
