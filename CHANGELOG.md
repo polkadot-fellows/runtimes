@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add `cumulus-pallet-weight-reclaim` to all Polkadot system parachains (Asset Hub, Bridge Hub, Coretime, People, Collectives) for storage weight reclaim functionality.
 
 ### Changed
+- AH Polkadot - Enable Elastic Scaling for Polkadot Hub ([polkadot-fellows/runtimes/pull/1048](https://github.com/polkadot-fellows/runtimes/pull/1048))
 - AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
 
 ## [2.0.4] 18.12.2025
