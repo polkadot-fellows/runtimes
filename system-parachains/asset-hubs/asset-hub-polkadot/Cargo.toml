@@ -294,6 +294,7 @@ try-runtime = [
 	"snowbridge-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 std = [
 	"pallet-ah-migrator/std",
