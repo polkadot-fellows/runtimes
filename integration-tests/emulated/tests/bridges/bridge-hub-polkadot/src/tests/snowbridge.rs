@@ -648,7 +648,7 @@ fn make_register_token_message() -> EventFixture {
 	}
 }
 
-fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u128) {
+fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], amount: u128, fee: u128) {
 	// Fund asset hub sovereign on bridge hub
 	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
@@ -668,7 +668,7 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 			command: Command::SendToken {
 				token: WETH.into(),
 				destination: Destination::AccountId32 { id: account_id },
-				amount: MIN_ETHER_BALANCE,
+				amount,
 				fee,
 			},
 		});
@@ -687,7 +687,11 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 
 #[test]
 fn send_token_from_ethereum_to_existent_account_on_asset_hub() {
-	send_token_from_ethereum_to_asset_hub_with_fee(AssetHubPolkadotSender::get().into(), XCM_FEE);
+	send_token_from_ethereum_to_asset_hub_with_fee(
+		AssetHubPolkadotSender::get().into(),
+		MIN_ETHER_BALANCE,
+		XCM_FEE,
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -704,7 +708,7 @@ fn send_token_from_ethereum_to_existent_account_on_asset_hub() {
 
 #[test]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub() {
-	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], XCM_FEE);
+	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], MIN_ETHER_BALANCE, XCM_FEE);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -721,7 +725,11 @@ fn send_token_from_ethereum_to_non_existent_account_on_asset_hub() {
 
 #[test]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_insufficient_fee() {
-	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], INSUFFICIENT_XCM_FEE);
+	send_token_from_ethereum_to_asset_hub_with_fee(
+		[1; 32],
+		MIN_ETHER_BALANCE,
+		INSUFFICIENT_XCM_FEE,
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -740,18 +748,41 @@ fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_insufficie
 #[test]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_sufficient_fee_but_do_not_satisfy_ed(
 ) {
-	// On AH the xcm fee is 26_789_690 and the ED is 3_300_000
-	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], 30_000_000);
+	// On AH, ED is 0.1 DOT. Make both the transfer amount (in WETH) and the XCM fee below the ED.
+	let insufficient_token_amount_in_weth_below_ed = MIN_ETHER_BALANCE - 1;
+	let sufficient_fee_in_dot_below_ed = ASSET_HUB_POLKADOT_ED - 1;
+	// let sufficient_fee_above_ed = XCM_FEE;
+	send_token_from_ethereum_to_asset_hub_with_fee(
+		[1; 32],
+		insufficient_token_amount_in_weth_below_ed,
+		sufficient_fee_in_dot_below_ed,
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-
-		// Check that the message was not processed successfully due to insufficient ED
+		// Since the XCM fee is sufficient, the message is processed successfully.
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:false, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:true, .. }) => {},
 			]
+		);
+		let events = AssetHubPolkadot::events();
+		//Check that no foreign assets were issued
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. })
+			)),
+			"Assets issued, should not happen."
+		);
+		//Check that no new account created
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::System(frame_system::Event::NewAccount { .. })
+			)),
+			"Account created, should not happen."
 		);
 	});
 }
