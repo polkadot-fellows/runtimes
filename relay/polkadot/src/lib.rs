@@ -1666,27 +1666,6 @@ impl ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	}
 }
 
-parameter_types! {
-	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
-	pub const MigrationSignedDepositPerItem: Balance = CENTS;
-	pub const MigrationSignedDepositBase: Balance = 20 * CENTS * 100;
-	pub const MigrationMaxKeyLen: u32 = 512;
-}
-
-impl pallet_state_trie_migration::Config for Runtime {
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type SignedDepositPerItem = MigrationSignedDepositPerItem;
-	type SignedDepositBase = MigrationSignedDepositBase;
-	type ControlOrigin = EnsureRoot<AccountId>;
-	type SignedFilter = frame_support::traits::NeverEnsureOrigin<AccountId>;
-
-	// Use same weights as substrate ones.
-	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
-	type MaxKeyLen = MigrationMaxKeyLen;
-}
-
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
 /// `AssetRate` pallet instance.
 ///
@@ -1870,9 +1849,6 @@ construct_runtime! {
 		Crowdloan: crowdloan = 73,
 		Coretime: coretime = 74,
 
-		// State trie migration pallet, only temporary.
-		StateTrieMigration: pallet_state_trie_migration = 98,
-
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm = 99,
 
@@ -1936,8 +1912,18 @@ pub mod migrations {
 	use frame_support::traits::OnRuntimeUpgrade;
 	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
+	parameter_types! {
+		pub const StateTrieMigrationPalletName: &'static str = "StateTrieMigration";
+	}
+
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (KickOffAhm<Runtime>,);
+	pub type Unreleased = (
+		frame_support::migrations::RemovePallet<
+			StateTrieMigrationPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		KickOffAhm<Runtime>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
