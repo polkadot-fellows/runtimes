@@ -141,7 +141,7 @@ bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
 	AllPalletsWithoutSystem,
 	XcmConfig,
 	(),
-	WeightToFee,
+	WeightToFee<Runtime>,
 	ParachainSystem,
 	collator_session_keys(),
 	slot_durations(),
@@ -409,7 +409,7 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 			bridge_hub_test_utils::test_cases::can_calculate_weight_for_paid_export_message_with_reserve_transfer::<
 				Runtime,
 				XcmConfig,
-				WeightToFee,
+				WeightToFee<Runtime>,
 			>()
 		},
 		Perbill::from_percent(33),
@@ -577,7 +577,7 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
-		WeightToFee,
+		WeightToFee<Runtime>,
 	>();
 }
 

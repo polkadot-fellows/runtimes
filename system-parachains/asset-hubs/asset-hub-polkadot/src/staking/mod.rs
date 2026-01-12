@@ -33,6 +33,7 @@ use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
+	generic,
 	traits::{BlockNumberProvider, Convert},
 	transaction_validity::TransactionPriority,
 	FixedPointNumber, Perquintill, SaturatedConversion,
@@ -555,7 +556,7 @@ where
 	type Extension = TxExtension;
 
 	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
-		UncheckedExtrinsic::new_transaction(call, extension)
+		generic::UncheckedExtrinsic::new_transaction(call, extension).into()
 	}
 }
 
@@ -564,7 +565,7 @@ where
 	RuntimeCall: From<LocalCall>,
 {
 	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
-		UncheckedExtrinsic::new_bare(call)
+		generic::UncheckedExtrinsic::new_bare(call).into()
 	}
 }
 

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Bridge-Hubs - Add proxy pallet ([#1045](https://github.com/polkadot-fellows/runtimes/pull/1045)).
 - AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+- AH Polkadot - Added `pallet_revive` and changed proof size fee formula ([polkadot-fellows/runtimes/pull/1050](https://github.com/polkadot-fellows/runtimes/pull/1050))
 
 ### Changed
 
