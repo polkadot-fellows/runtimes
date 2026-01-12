@@ -1263,6 +1263,7 @@ dependencies = [
  "frame-election-provider-support",
  "frame-executive",
  "frame-metadata-hash-extension",
+ "frame-remote-externalities",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -1358,6 +1359,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "tokio",
  "xcm-runtime-apis",
 ]
 
@@ -9174,11 +9176,15 @@ version = "0.1.0"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
+ "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "log",
  "pallet-assets",
  "pallet-balances",
+ "pallet-election-provider-multi-block",
+ "pallet-staking-async",
+ "pallet-staking-async-rc-client",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
@@ -9186,6 +9192,7 @@ dependencies = [
  "sp-core",
  "sp-io 42.0.0",
  "sp-runtime 43.0.0",
+ "sp-staking",
  "sp-std",
 ]
 
