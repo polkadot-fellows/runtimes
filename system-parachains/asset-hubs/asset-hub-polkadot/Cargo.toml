@@ -145,6 +145,9 @@ asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 sp-tracing = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
+frame-try-runtime = { workspace = true }
+tokio = { features = ["macros"], workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
