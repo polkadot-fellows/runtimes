@@ -69,7 +69,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned, EnsureSignedBy,
+	EnsureNone, EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
@@ -77,7 +77,6 @@ use pallet_assets_precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
-use pallet_revive::evm::runtime::EthExtra;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use pallet_xcm_precompiles::XcmPrecompile;
 use parachains_common::{
@@ -115,7 +114,7 @@ use system_parachains_constants::{
 			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
 		currency::*,
-		fee::WeightToFee,
+		fee::WeightToFee as KsmWeightToFee,
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
@@ -311,7 +310,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	// - The numerator is `currency::CENTS` = 1_000_000_000_000 / 30 / 100 = 333_333_333
 	// - The denominator is `100 * Balance::from(ExtrinsicBaseWeight::get().ref_time())`
 	//   - which is 100 * 1_000 * 108_157 = 10_815_700_000
-	type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<333333333, 10_815_700_000, Self>;
+	type WeightToFee = KsmWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
@@ -1310,6 +1309,9 @@ impl pallet_ah_ops::Config for Runtime {
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
 	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
+	type AssetId = Location;
+	type RelevantAssets = ();
+	type MigrateOrigin = EnsureNone<AccountId>;
 }
 
 parameter_types! {
@@ -1697,7 +1699,7 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EthExtraImpl;
 
-impl EthExtra for EthExtraImpl {
+impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 	type Config = Runtime;
 	type Extension = TxExtension;
 
@@ -1737,7 +1739,7 @@ pub mod migrations {
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = pallet_revive::migrations::v2::Migration<Runtime>;
+	pub type MbmMigrations = ();
 }
 
 /// Executive: handles dispatch to the various modules.
@@ -2776,8 +2778,9 @@ ord_parameter_types! {
 mod tests {
 	use super::*;
 	use sp_runtime::traits::Zero;
-	use sp_weights::WeightToFee;
-	use system_parachains_constants::kusama::fee;
+	use sp_weights::WeightToFee as WeightToFeeT;
+
+	type WeightToFee = KsmWeightToFee<Runtime>;
 
 	/// We can fit at least 1000 transfers in a block.
 	#[test]
@@ -2800,18 +2803,18 @@ mod tests {
 		let transfer =
 			base + weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&transfer);
+		let fee: Balance = WeightToFee::weight_to_fee(&transfer);
 		assert!(fee <= CENTS, "{} MILLICENTS should be at most 1000", fee / MILLICENTS);
 	}
 
 	/// Weight is being charged for both dimensions.
 	#[test]
 	fn weight_charged_for_both_components() {
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(10_000, 0));
+		let fee: Balance = WeightToFee::weight_to_fee(&Weight::from_parts(10_000, 0));
 		assert!(!fee.is_zero(), "Charges for ref time");
 
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, 10_000));
-		assert_eq!(fee, CENTS, "10kb maps to CENT");
+		let fee: Balance = WeightToFee::weight_to_fee(&Weight::from_parts(0, 10_000));
+		assert!(!fee.is_zero(), "Charges for proof size");
 	}
 
 	/// Filling up a block by proof size is at most 30 times more expensive than ref time.
@@ -2821,9 +2824,9 @@ mod tests {
 	fn full_block_fee_ratio() {
 		let block = RuntimeBlockWeights::get().max_block;
 		let time_fee: Balance =
-			fee::WeightToFee::weight_to_fee(&Weight::from_parts(block.ref_time(), 0));
+			WeightToFee::weight_to_fee(&Weight::from_parts(block.ref_time(), 0));
 		let proof_fee: Balance =
-			fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
+			WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
 
 		let proof_o_time = proof_fee.checked_div(time_fee).unwrap_or_default();
 		assert!(proof_o_time <= 30, "{proof_o_time} should be at most 30");

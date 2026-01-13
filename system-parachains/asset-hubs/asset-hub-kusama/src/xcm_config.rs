@@ -18,9 +18,9 @@ pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
 	AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances, CollatorSelection,
-	FellowshipAdmin, GeneralAdmin, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm,
-	PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
-	RuntimeOrigin, StakingAdmin, ToPolkadotXcmRouter, WeightToFee, XcmpQueue,
+	FellowshipAdmin, GeneralAdmin, KsmWeightToFee as WeightToFee, NativeAndAssets, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, StakingAdmin, ToPolkadotXcmRouter, XcmpQueue,
 };
 use crate::ForeignAssets;
 use alloc::{vec, vec::Vec};
@@ -384,7 +384,7 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type Trader = (
 		UsingComponents<
-			WeightToFee,
+			WeightToFee<Runtime>,
 			KsmLocation,
 			AccountId,
 			Balances,
@@ -395,7 +395,7 @@ impl xcm_executor::Config for XcmConfig {
 		cumulus_primitives_utility::SwapFirstAssetTrader<
 			KsmLocation,
 			AssetConversion,
-			WeightToFee,
+			WeightToFee<Runtime>,
 			NativeAndAssets,
 			(
 				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
