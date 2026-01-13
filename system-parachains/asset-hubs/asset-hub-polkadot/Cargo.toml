@@ -44,6 +44,7 @@ pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-conversion = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-assets = { workspace = true }
+pallet-assets-precompiles = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
@@ -61,6 +62,7 @@ pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
+pallet-revive = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
@@ -106,6 +108,7 @@ pallet-delegated-staking = { workspace = true }
 # Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
+pallet-xcm-precompiles = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -178,6 +181,7 @@ runtime-benchmarks = [
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
+	"pallet-assets-precompiles/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -198,6 +202,7 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
+	"pallet-revive/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
@@ -212,6 +217,7 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
+	"pallet-xcm-precompiles/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
@@ -245,6 +251,7 @@ try-runtime = [
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
+	"pallet-assets-precompiles/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -266,6 +273,7 @@ try-runtime = [
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
+	"pallet-revive/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-staking-async-rc-client/try-runtime",
@@ -280,6 +288,7 @@ try-runtime = [
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm-bridge-hub-router/try-runtime",
+	"pallet-xcm-precompiles/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
@@ -288,6 +297,7 @@ try-runtime = [
 	"snowbridge-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -322,6 +332,7 @@ std = [
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-rate/std",
+	"pallet-assets-precompiles/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -346,6 +357,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
+	"pallet-revive/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-staking-async-rc-client/std",
@@ -363,6 +375,7 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm-bridge-hub-router/std",
+	"pallet-xcm-precompiles/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",

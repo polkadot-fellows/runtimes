@@ -1279,6 +1279,7 @@ dependencies = [
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
  "pallet-assets",
+ "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
  "pallet-bags-list",
@@ -1302,6 +1303,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-rc-migrator",
  "pallet-referenda",
+ "pallet-revive",
  "pallet-scheduler",
  "pallet-session",
  "pallet-staking",
@@ -1320,6 +1322,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
+ "pallet-xcm-precompiles",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -2422,6 +2425,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
  "hex-literal",
  "integration-tests-helpers",
  "kusama-polkadot-system-emulated-network",
@@ -10530,9 +10534,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive"
-version = "0.11.2"
+version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9a7d488c4408a01f7eda04fb7b67c156e4529b01bcadcdc11e42afa64cfd0e4"
+checksum = "995f1338e2254b7fe1b8b90ca2e14d40d069619e72a72cee3e8cd6faf67d821a"
 dependencies = [
  "alloy-consensus",
  "alloy-core",
@@ -11339,9 +11343,9 @@ dependencies = [
 
 [[package]]
 name = "penpal-runtime"
-version = "0.34.0"
+version = "0.34.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68051e376ae22c88f556bc6497d3674f5d8779fe1973df1f7057fed651cfaf1e"
+checksum = "496e0c016eb01e64f6ffc5390b2248c38cecdb79d49a75acca8cebf51b8dede5"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext",
@@ -17886,6 +17890,7 @@ dependencies = [
  "array-bytes 9.3.0",
  "frame-support",
  "kusama-runtime-constants",
+ "pallet-revive",
  "parachains-common",
  "polkadot-core-primitives",
  "polkadot-primitives",
