@@ -656,7 +656,7 @@ impl pallet_proxy::Config for Runtime {
 }
 
 impl cumulus_pallet_weight_reclaim::Config for Runtime {
-    type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
