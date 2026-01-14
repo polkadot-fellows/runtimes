@@ -300,3 +300,54 @@ fn governance_authorize_upgrade_works() {
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }
+
+/*
+Run with `-- --nocapture`:
+
+KEY_1:   0x4dcb50595177a3177648411a42aca0f5b20f0cdcf1dc08a3b45e596567ea076a66cf12d4330e4e67feb105006200
+VALUE_1: 0x04ffffffffffffffffffff02e8030000
+KEY_2:   0x4dcb50595177a3177648411a42aca0f5b20f0cdcf1dc08a3b45e596567ea076adff434d3b0b61279feb105006300
+VALUE_2: 0x04ffffffffffffffffffff02e8030000
+SET_STORAGE_CALL: 0x000408b84dcb50595177a3177648411a42aca0f5b20f0cdcf1dc08a3b45e596567ea076a66cf12d4330e4e67feb1050062004004ffffffffffffffffffff02e8030000b84dcb50595177a3177648411a42aca0f5b20f0cdcf1dc08a3b45e596567ea076adff434d3b0b61279feb1050063004004ffffffffffffffffffff02e8030000
+
+*/
+#[test]
+fn insert_schedule_pah() {
+	use Runtime as T;
+	use pallet_broker::{CoreMask, CoreAssignment, ScheduleItem, Schedule};
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		let schedule_item = ScheduleItem { mask: CoreMask::complete(), assignment: CoreAssignment::Task(1000) };
+	    let schedule = Schedule::try_from(vec![schedule_item]).unwrap();
+		let core_1_location = (373246, 98);
+		let core_2_location = (373246, 99);
+
+		let core_1_key = pallet_broker::Workplan::<T>::hashed_key_for(&core_1_location).to_vec();
+		let core_2_key = pallet_broker::Workplan::<T>::hashed_key_for(&core_2_location).to_vec();
+		
+		// Insert the values
+		pallet_broker::Workplan::<T>::insert(core_1_location, &schedule);
+		pallet_broker::Workplan::<T>::insert(core_2_location, &schedule);
+
+		// Check raw values match
+		let raw_value_1 = sp_io::storage::get(&core_1_key).unwrap_or_default();
+		let raw_value_2 = sp_io::storage::get(&core_2_key).unwrap_or_default();
+		let expected_value_1 = schedule.encode();
+		let expected_value_2 = schedule.encode();
+
+		assert_eq!(raw_value_1, expected_value_1);
+		assert_eq!(raw_value_2, expected_value_2);
+
+		println!("KEY_1:   0x{}", hex::encode(&core_1_key));
+		println!("VALUE_1: 0x{}", hex::encode(&raw_value_1));
+		println!("KEY_2:   0x{}", hex::encode(&core_2_key));
+		println!("VALUE_2: 0x{}", hex::encode(&raw_value_2));
+
+		let set_storage_call = RuntimeCall::System(frame_system::Call::<T>::set_storage { items: vec![
+			(core_1_key, expected_value_1),
+			(core_2_key, expected_value_2),
+		] });
+
+		println!("SET_STORAGE_CALL: 0x{}", hex::encode(set_storage_call.encode()));
+	});
+}
