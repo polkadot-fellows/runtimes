@@ -16,8 +16,8 @@
 use super::{
 	assets::hollar::{HollarFromHydration, HollarLocation},
 	AccountId, AllPalletsWithSystem, AssetRate, Assets as AssetsPallet, Balance, Balances,
-	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	CollatorSelection, DotWeightToFee as WeightToFee, ParachainInfo, ParachainSystem, PolkadotXcm,
+	Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
 use frame_support::{
@@ -262,12 +262,12 @@ pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor);
 // uses the ratio of minimum balances and requires asset sufficiency.
 pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentialDepositMultiplier<
 	Runtime,
-	WeightToFee,
+	WeightToFee<Runtime>,
 	pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto, ()>,
 	(),
 >;
 
-pub type WeightToNativeFee = WeightToFee;
+pub type WeightToNativeFee = WeightToFee<Runtime>;
 pub struct WeightToStableFee;
 impl frame_support::weights::WeightToFee for WeightToStableFee {
 	type Balance = Balance;
