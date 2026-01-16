@@ -16,7 +16,7 @@
 
 use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
+	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
 };
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
