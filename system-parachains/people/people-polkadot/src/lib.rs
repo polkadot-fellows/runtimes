@@ -20,6 +20,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
+pub mod assets;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod people;
@@ -70,7 +71,9 @@ pub use sp_runtime::{MultiAddress, Perbill, Permill};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use system_parachains_constants::polkadot::{consensus::*, currency::*, fee::WeightToFee};
+use system_parachains_constants::polkadot::{
+	consensus::*, currency::*, fee::WeightToFee as DotWeightToFee,
+};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
@@ -109,7 +112,7 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckEra<Runtime>,
 		frame_system::CheckNonce<Runtime>,
 		frame_system::CheckWeight<Runtime>,
-		pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 	),
 >;
@@ -259,7 +262,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
-	type WeightToFee = WeightToFee<Self>;
+	type WeightToFee = DotWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
@@ -624,6 +627,10 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		Assets: pallet_assets = 12,
+		AssetRate: pallet_asset_rate = 13,
+		AssetTxPayment: pallet_asset_tx_payment = 14,
+		AssetsHolder: pallet_assets_holder = 15,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -650,8 +657,12 @@ construct_runtime!(
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
-	use super::*;
-	use alloc::boxed::Box;
+	use super::{
+		assets::hollar::{Hollar, HydrationLocation},
+		parameter_types, vec, xcm_config, AccountId, Balances, ExistentialDeposit, ParachainSystem,
+		PriceForSiblingParachainDelivery, Runtime, RuntimeCall, System, XcmConfig, UNITS,
+	};
+	use alloc::{boxed::Box, vec::Vec};
 	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use system_parachains_constants::polkadot::locations::AssetHubLocation;
 
@@ -659,6 +670,9 @@ mod benches {
 		// Substrate
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
+		[pallet_asset_tx_payment, AssetTxPayment]
+		[pallet_asset_rate, AssetRate]
+		[pallet_assets, Assets]
 		[pallet_balances, Balances]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]
@@ -772,7 +786,10 @@ mod benches {
 			Asset { fun: Fungible(UNITS), id: AssetId(RelayLocation::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
-		pub const TrustedReserve: Option<(Location, Asset)> = None;
+		pub TrustedReserve: Option<(Location, Asset)> = Some((
+			HydrationLocation::get(),
+			Hollar::get(),
+		));
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
