@@ -119,7 +119,7 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.8.0 --locked && try-runtime --version
+          cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.9.0 --locked && try-runtime --version
           if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
             FEATURES="--features try-runtime,${{ matrix.runtime.build_extra_features }}"
           else
