@@ -94,7 +94,7 @@ pub use parachains_common::{
 };
 use polkadot_runtime_common::{
 	impls::{LocatableAssetConverter, VersionedLocatableAsset},
-	BlockHashCount, SlowAdjustingFeeUpdate,
+	prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 2_000_003,
+	spec_version: 2_000_005,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -369,7 +369,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -587,8 +587,8 @@ impl pallet_encointer_faucet::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
-	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
+	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0); // [ms]
+	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000); // [ms]
 }
 
 impl pallet_encointer_democracy::Config for Runtime {

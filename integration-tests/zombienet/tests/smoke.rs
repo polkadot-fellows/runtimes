@@ -1,5 +1,5 @@
 use std::time::Instant;
-use subxt::{ext::futures::StreamExt, OnlineClient, PolkadotConfig};
+use zombienet_sdk::subxt::{ext::futures::StreamExt, OnlineClient, PolkadotConfig};
 use zombienet_sdk_tests::{
 	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
 	small_network,

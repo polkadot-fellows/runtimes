@@ -119,6 +119,7 @@ sp-tracing = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
+fast-runtime = []
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
@@ -296,6 +297,7 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
