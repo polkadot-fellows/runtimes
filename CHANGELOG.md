@@ -7,11 +7,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+
+- Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+
+## [2.0.5] 13.01.2026
+
+### Added
+- Bridge-Hubs - Add proxy pallet ([#1045](https://github.com/polkadot-fellows/runtimes/pull/1045)).
 - AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+- AH Polkadot - Added `pallet_revive` and changed proof size fee formula ([polkadot-fellows/runtimes/pull/1050](https://github.com/polkadot-fellows/runtimes/pull/1050))
+- Add `cumulus-pallet-weight-reclaim` to all Polkadot system parachains (Asset Hub, Bridge Hub, Coretime, People, Collectives) for storage weight reclaim functionality ([#1047](https://github.com/polkadot-fellows/runtimes/pull/1047)).
 
 ### Changed
+
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898))
 - AH Polkadot - Enable Elastic Scaling for Polkadot Hub ([polkadot-fellows/runtimes/pull/1048](https://github.com/polkadot-fellows/runtimes/pull/1048))
 - AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+### Fixed
+
+- [PAH] Migrate missing Stellaswap sovereign accounts ([1036](https://github.com/polkadot-fellows/runtimes/pull/1036))
 
 ## [2.0.4] 18.12.2025
 
