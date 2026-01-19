@@ -548,6 +548,12 @@ pub enum ProxyType {
 	///
 	/// This variant cannot do anything on Asset Hub itself.
 	ParaRegistration,
+	/// Operator proxy for validators. Can only perform operational tasks like validating,
+	/// chilling, and kicking. Cannot bond/unbond funds, change reward destinations, or nominate.
+	/// Session key management (set_keys, purge_keys) is done on the relay chain.
+	///
+	/// Contains the `Staking` (validate, chill, kick) and `Utility` pallets.
+	StakingOperator,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -606,17 +612,29 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Referenda(..) |
 					RuntimeCall::Whitelist(..)
 			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						// Not on AH RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
-				)
-			},
+			ProxyType::Staking => matches!(
+				c,
+				RuntimeCall::Staking(..) |
+					RuntimeCall::Session(..) |
+					RuntimeCall::Utility(..) |
+					// Not on AH RuntimeCall::FastUnstake(..) |
+					RuntimeCall::VoterList(..) |
+					RuntimeCall::NominationPools(..) |
+					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+						proxy_type: ProxyType::StakingOperator,
+						..
+					}) | RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+						proxy_type: ProxyType::StakingOperator,
+						..
+					})
+			),
+			ProxyType::StakingOperator => matches!(
+				c,
+				RuntimeCall::Staking(pallet_staking_async::Call::validate { .. }) |
+					RuntimeCall::Staking(pallet_staking_async::Call::chill { .. }) |
+					RuntimeCall::Staking(pallet_staking_async::Call::kick { .. }) |
+					RuntimeCall::Utility { .. }
+			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
@@ -720,6 +738,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(_, ProxyType::Any) => false,
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
+			(ProxyType::Staking, ProxyType::StakingOperator) => true,
 			(
 				ProxyType::NonTransfer,
 				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
@@ -2762,8 +2781,123 @@ mod tests {
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::StakingOperator));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::NominationPools));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Auction));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
+		// Staking IS supertype of StakingOperator
+		assert!(ProxyType::Staking.is_superset(&ProxyType::StakingOperator));
+	}
+
+	#[test]
+	fn staking_operator_proxy_filter_works() {
+		use frame_support::traits::InstanceFilter;
+
+		// StakingOperator ALLOWS these calls:
+		// - Staking::validate
+		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::validate {
+				prefs: pallet_staking_async::ValidatorPrefs::default()
+			}
+		)));
+
+		// - Staking::chill
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::chill {})));
+
+		// - Staking::kick
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::kick { who: vec![] })));
+
+		// - Utility calls (for batching)
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+
+		// StakingOperator DISALLOWS these calls:
+		// - Staking::bond_extra (cannot add more stake)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::bond_extra { max_additional: 1000 }
+		)));
+
+		// - Staking::unbond (cannot remove stake)
+		assert!(!ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::unbond { value: 1000 })));
+
+		// - Staking::rebond (cannot rebond)
+		assert!(!ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::rebond { value: 1000 })));
+
+		// - Staking::withdraw_unbonded (cannot withdraw)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::withdraw_unbonded { num_slashing_spans: 0 }
+		)));
+
+		// - Staking::set_payee (cannot redirect rewards)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::update_payee { controller: [0u8; 32].into() }
+		)));
+
+		// - Staking::nominate (cannot nominate)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::nominate { targets: vec![] }
+		)));
+
+		// - NominationPools calls
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::NominationPools(
+			pallet_nomination_pools::Call::join { amount: 1000, pool_id: 1 }
+		)));
+
+		// - VoterList calls
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::VoterList(
+			pallet_bags_list::Call::rebag {
+				dislocated: sp_runtime::MultiAddress::Id(AccountId::from([0u8; 32])),
+			}
+		)));
+
+		// - Session calls (session key management is on relay chain, not Asset Hub)
+		// Note: Asset Hub's Session pallet is for collators, not validators
+		assert!(!ProxyType::StakingOperator
+			.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
+
+		// Verify Staking proxy allows everything that StakingOperator allows, plus more
+		// Staking should allow bond_extra which StakingOperator doesn't
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::bond_extra { max_additional: 1000 }
+		)));
+
+		// Staking should allow nominate which StakingOperator doesn't
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::nominate { targets: vec![] }
+		)));
+
+		// Staking should also allow what StakingOperator allows
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::validate {
+				prefs: pallet_staking_async::ValidatorPrefs::default()
+			}
+		)));
+		assert!(
+			ProxyType::Staking.filter(&RuntimeCall::Staking(pallet_staking_async::Call::chill {}))
+		);
+
+		// Staking proxy can add/remove StakingOperator proxies
+		let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate: delegate.clone(),
+			proxy_type: ProxyType::StakingOperator,
+			delay: 0,
+		})));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+			delegate: delegate.clone(),
+			proxy_type: ProxyType::StakingOperator,
+			delay: 0,
+		})));
+
+		// But Staking proxy cannot add/remove other proxy types
+		assert!(!ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate,
+			proxy_type: ProxyType::Any,
+			delay: 0,
+		})));
 	}
 }
