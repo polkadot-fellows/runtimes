@@ -59,7 +59,7 @@ jobs:
 
           for i in {1..10}; do
             echo "Snapshot creation attempt $i/10"
-            if try-runtime create-snapshot $URI_ARGS snapshot.raw; then
+            if try-runtime create-snapshot $URI_ARGS -- snapshot.raw; then
               if [ -f "snapshot.raw" ] && [ -s "snapshot.raw" ]; then
                 echo "Snapshot created successfully"
                 break
