@@ -21,21 +21,31 @@ concurrency:
 permissions: {}
 
 jobs:
-  # Job to generate snapshots nightly
-  generate-snapshots:
-    needs: [runtime-matrix]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    strategy:
-      fail-fast: false
-      matrix:
-        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+  runtime-matrix:
+    runs-on: self-hosted
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
+    name: Extract tasks from matrix
+    steps:
+      - uses: actions/checkout@v4
+      - id: runtime
+        run: |
+          # Filter out runtimes that don't have URIs
+          TASKS=$(jq '[.[] | select(.uris != null and (.uris | length) > 0)]' .github/workflows/runtimes-matrix.json)
+          SKIPPED_TASKS=$(jq '[.[] | select(.uris == null or (.uris | length) == 0)]' .github/workflows/runtimes-matrix.json)
+          echo --- Running the following tasks ---
+          echo $TASKS
+          echo --- Skipping the following tasks due to not having a uris field ---
+          echo $SKIPPED_TASKS
+          # Strip whitespace from Tasks now that we've logged it
+          TASKS=$(echo $TASKS | jq -c .)
+          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
+
+  build-try-runtime:
+    runs-on: self-hosted
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -50,7 +60,49 @@ jobs:
       - name: Install try-runtime-cli
         run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
 
+      - name: Upload try-runtime-cli as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: try-runtime-cli
+          path: ~/.cargo/bin/try-runtime
+
+  prepare-snapshots:
+    needs: [runtime-matrix, build-try-runtime]
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Try to restore snapshot from cache
+        id: cache-restore
+        if: github.event_name != 'schedule'
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}
+          fail-on-cache-miss: false
+
+      - name: Install updates and dependencies
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: .github/install-deps.sh
+
+      - name: Download try-runtime-cli
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: try-runtime-cli
+          path: ~/.cargo/bin
+
+      - name: Make try-runtime executable
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: chmod +x ~/.cargo/bin/try-runtime
+
       - name: Generate snapshot for ${{ matrix.runtime.name }}
+        if: steps.cache-restore.outputs.cache-hit != 'true'
         run: |
           echo "Generating snapshot for ${{ matrix.runtime.name }}..."
 
@@ -74,42 +126,25 @@ jobs:
             sleep 10
           done
 
-      - name: Cache snapshot
-        uses: actions/cache@v4
+      - name: Save snapshot to cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
         with:
           path: snapshot.raw
           key: try-runtime-snapshot-${{ matrix.runtime.name }}
-          save-always: true
 
-  # This generates a matrix with all the required jobs which will be run in the next step
-  runtime-matrix:
-    runs-on: self-hosted
-    outputs:
-      runtime: ${{ steps.runtime.outputs.runtime }}
-    name: Extract tasks from matrix
-    steps:
-      - uses: actions/checkout@v4
-      - id: runtime
-        run: |
-          # Filter out runtimes that don't have URIs
-          TASKS=$(jq '[.[] | select(.uris != null and (.uris | length) > 0)]' .github/workflows/runtimes-matrix.json)
-          SKIPPED_TASKS=$(jq '[.[] | select(.uris == null or (.uris | length) == 0)]' .github/workflows/runtimes-matrix.json)
-          echo --- Running the following tasks ---
-          echo $TASKS
-          echo --- Skipping the following tasks due to not having a uris field ---
-          echo $SKIPPED_TASKS
-          # Strip whitespace from Tasks now that we've logged it
-          TASKS=$(echo $TASKS | jq -c .)
-          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
+      - name: Upload snapshot as artifact
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-${{ matrix.runtime.name }}
+          path: snapshot.raw
 
-  # This runs all the jobs in the matrix. It is required by the "confirmMigrationsPassed" job, so
-  # if they all pass, that job will pass too.
   check-migrations:
-    needs: [runtime-matrix]
+    needs: [runtime-matrix, prepare-snapshots, build-try-runtime]
     runs-on: self-hosted
     if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
     strategy:
-      # Ensure the other jobs continue
       fail-fast: false
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -117,8 +152,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      # We need to fetch the upstream tags, as they are used to determine the latest release
-      - name: “Fetch upstream tags”
+      - name: "Fetch upstream tags"
         run: |
           git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
           git fetch upstream --tags
@@ -176,24 +210,20 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Install try-runtime-cli
-        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
-
-      - name: Download Snapshot
-        uses: actions/cache@v4
+      - name: Download try-runtime-cli
+        uses: actions/download-artifact@v4
         with:
-          path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}
+          name: try-runtime-cli
+          path: ~/.cargo/bin
 
-      - name: Verify snapshot exists
-        run: |
-          if [ ! -f "snapshot.raw" ] || [ ! -s "snapshot.raw" ]; then
-            echo "No valid snapshot found. This job requires pre-generated snapshots from the nightly job."
-            echo "Please wait for the nightly snapshot generation or run it manually via workflow_dispatch."
-            exit 1
-          else
-            echo "Using snapshot from $(date -r snapshot.raw)"
-          fi
+      - name: Make try-runtime executable
+        run: chmod +x ~/.cargo/bin/try-runtime
+
+      - name: Download snapshot artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: snapshot-${{ matrix.runtime.name }}
+          path: .
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         env:
@@ -209,7 +239,6 @@ jobs:
 
           echo "Extra args: $EXTRA_FLAGS"
           
-          # Store the command in a variable so we can log it
           COMMAND="try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             $TRY_RUNTIME_EXTRA_ARGS \
@@ -217,7 +246,6 @@ jobs:
             $EXTRA_FLAGS \
             snap --path snapshot.raw"
           
-          # Echo the command before running it, for debugging purposes
           echo "Running command:"
           echo "$COMMAND"
           eval "$COMMAND"
@@ -229,7 +257,7 @@ jobs:
   confirmMigrationsPassed:
     runs-on: self-hosted
     name: All migrations passed
-    # If any new job gets added, be sure to add it to this array
+    if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
     needs: [check-migrations]
     steps:
       - run: echo '### Good job! All the migrations passed 🚀' >> $GITHUB_STEP_SUMMARY
