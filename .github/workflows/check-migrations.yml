@@ -203,7 +203,15 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          ~/.cargo/bin/try-runtime --version
+          try-runtime --version
+
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            FEATURES="--features try-runtime,${{ matrix.runtime.build_extra_features }}"
+          else
+            FEATURES="--features try-runtime"
+          fi
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
