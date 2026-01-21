@@ -50,6 +50,9 @@ jobs:
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -156,9 +159,6 @@ jobs:
         run: |
           git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
           git fetch upstream --tags
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
 
       - name: Build EXTRA_FLAGS
         run: |
