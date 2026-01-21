@@ -48,19 +48,18 @@ jobs:
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install try-runtime-cli
-        run: |
-          wget -q https://github.com/paritytech/try-runtime-cli/releases/download/v0.8.0/try-runtime-x86_64-unknown-linux-musl
-          chmod +x try-runtime-x86_64-unknown-linux-musl
-          mv try-runtime-x86_64-unknown-linux-musl try-runtime
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
 
       - name: Generate snapshot for ${{ matrix.runtime.name }}
         run: |
           echo "Generating snapshot for ${{ matrix.runtime.name }}..."
-          
-          # Retry snapshot creation up to 10 times
+
+          URI_ARGS=$(echo '${{ toJSON(matrix.runtime.uris) }}' | jq -r '.[] | "--uri " + .' | tr '\n' ' ')
+          echo "Using URIs: $URI_ARGS"
+
           for i in {1..10}; do
             echo "Snapshot creation attempt $i/10"
-            if ./try-runtime create-snapshot --uri ${{ matrix.runtime.uri }} snapshot.raw || true; then
+            if try-runtime create-snapshot $URI_ARGS snapshot.raw; then
               if [ -f "snapshot.raw" ] && [ -s "snapshot.raw" ]; then
                 echo "Snapshot created successfully"
                 break
@@ -92,12 +91,12 @@ jobs:
       - uses: actions/checkout@v4
       - id: runtime
         run: |
-          # Filter out runtimes that don't have a URI
-          TASKS=$(jq '[.[] | select(.uri != null)]' .github/workflows/runtimes-matrix.json)
-          SKIPPED_TASKS=$(jq '[.[] | select(.uri == null)]' .github/workflows/runtimes-matrix.json)
+          # Filter out runtimes that don't have URIs
+          TASKS=$(jq '[.[] | select(.uris != null and (.uris | length) > 0)]' .github/workflows/runtimes-matrix.json)
+          SKIPPED_TASKS=$(jq '[.[] | select(.uris == null or (.uris | length) == 0)]' .github/workflows/runtimes-matrix.json)
           echo --- Running the following tasks ---
           echo $TASKS
-          echo --- Skipping the following tasks due to not having a uri field ---
+          echo --- Skipping the following tasks due to not having a uris field ---
           echo $SKIPPED_TASKS
           # Strip whitespace from Tasks now that we've logged it
           TASKS=$(echo $TASKS | jq -c .)
@@ -178,10 +177,7 @@ jobs:
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install try-runtime-cli
-        run: |
-          wget -q https://github.com/paritytech/try-runtime-cli/releases/download/v0.8.0/try-runtime-x86_64-unknown-linux-musl
-          chmod +x try-runtime-x86_64-unknown-linux-musl
-          mv try-runtime-x86_64-unknown-linux-musl try-runtime
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
 
       - name: Download Snapshot
         uses: actions/cache@v4
@@ -204,7 +200,7 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          ./try-runtime --version
+          try-runtime --version
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
@@ -214,7 +210,7 @@ jobs:
           echo "Extra args: $EXTRA_FLAGS"
           
           # Store the command in a variable so we can log it
-          COMMAND="./try-runtime \
+          COMMAND="try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             $TRY_RUNTIME_EXTRA_ARGS \
             on-runtime-upgrade --checks=$CHECKS \
