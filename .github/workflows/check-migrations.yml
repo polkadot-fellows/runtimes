@@ -41,36 +41,8 @@ jobs:
           TASKS=$(echo $TASKS | jq -c .)
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
-  build-try-runtime:
-    runs-on: self-hosted
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "x86_64-unknown-linux-musl"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Install try-runtime-cli
-        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked --target x86_64-unknown-linux-musl
-
-      - name: Upload try-runtime-cli as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: try-runtime-cli
-          path: ~/.cargo/bin/try-runtime
-
   prepare-snapshots:
-    needs: [runtime-matrix, build-try-runtime]
+    needs: [runtime-matrix]
     runs-on: self-hosted
     strategy:
       fail-fast: false
@@ -93,16 +65,20 @@ jobs:
         if: steps.cache-restore.outputs.cache-hit != 'true'
         run: .github/install-deps.sh
 
-      - name: Download try-runtime-cli
+      - name: Set rust version via common env file
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: try-runtime-cli
-          path: ~/.cargo/bin
+        run: cat .github/env >> $GITHUB_ENV
 
-      - name: Make try-runtime executable
+      - name: Install stable toolchain
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        run: chmod +x ~/.cargo/bin/try-runtime
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Install try-runtime-cli
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
 
       - name: Generate snapshot for ${{ matrix.runtime.name }}
         if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -144,7 +120,7 @@ jobs:
           path: snapshot.raw
 
   check-migrations:
-    needs: [runtime-matrix, prepare-snapshots, build-try-runtime]
+    needs: [runtime-matrix, prepare-snapshots]
     runs-on: self-hosted
     if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
     strategy:
@@ -159,6 +135,9 @@ jobs:
         run: |
           git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
           git fetch upstream --tags
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Build EXTRA_FLAGS
         run: |
@@ -210,14 +189,8 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Download try-runtime-cli
-        uses: actions/download-artifact@v4
-        with:
-          name: try-runtime-cli
-          path: ~/.cargo/bin
-
-      - name: Make try-runtime executable
-        run: chmod +x ~/.cargo/bin/try-runtime
+      - name: Install try-runtime-cli
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
 
       - name: Download snapshot artifact
         uses: actions/download-artifact@v4
