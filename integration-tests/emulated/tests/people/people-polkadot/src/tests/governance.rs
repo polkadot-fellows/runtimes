@@ -14,17 +14,18 @@
 // limitations under the License.
 
 use crate::*;
+use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOriginFromAssetHub;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::sp_runtime::traits::Dispatchable;
 use pallet_identity::Data;
 use people_polkadot_runtime::people::IdentityInfo;
-use polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
+use polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOriginFromRelay;
 use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 
 #[test]
 fn relay_commands_add_registrar() {
 	let origins = vec![
-		(OriginKind::Xcm, GeneralAdminOrigin.into()),
+		(OriginKind::Xcm, GeneralAdminOriginFromRelay.into()),
 		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root()),
 	];
 	for (origin_kind, origin) in origins {
@@ -48,7 +49,7 @@ fn relay_commands_add_registrar() {
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,
-						fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
+						fallback_max_weight: None,
 						call: add_registrar_call.encode().into(),
 					}
 				]))),
@@ -60,6 +61,64 @@ fn relay_commands_add_registrar() {
 				Polkadot,
 				vec![
 					RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		PeoplePolkadot::execute_with(|| {
+			type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeoplePolkadot,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::RegistrarAdded { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+	}
+}
+
+#[test]
+fn asset_hub_commands_add_registrar() {
+	let origins = vec![
+		(OriginKind::Xcm, GeneralAdminOriginFromAssetHub.into()),
+		(OriginKind::Superuser, <AssetHubPolkadot as Chain>::RuntimeOrigin::root()),
+	];
+	for (origin_kind, origin) in origins {
+		let registrar: AccountId = [1; 32].into();
+		AssetHubPolkadot::execute_with(|| {
+			type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+			type RuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+			type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
+
+			let add_registrar_call =
+				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
+					account: registrar.into(),
+				});
+
+			let xcm_message = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+				dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(
+					PeoplePolkadot::para_id()
+				))),
+				message: bx!(VersionedXcm::from(Xcm(vec![
+					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+					Transact {
+						origin_kind,
+						fallback_max_weight: None,
+						call: add_registrar_call.encode().into(),
+					}
+				]))),
+			});
+
+			assert_ok!(xcm_message.dispatch(origin));
+
+			assert_expected_events!(
+				AssetHubPolkadot,
+				vec![
+					RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
 				]
 			);
 		});
@@ -107,7 +166,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
+					fallback_max_weight: None,
 					call: add_registrar_call.encode().into(),
 				}
 			]))),
@@ -284,7 +343,7 @@ fn relay_commands_add_remove_username_authority() {
 	let people_polkadot_bob = PeoplePolkadot::account_id_of(BOB);
 
 	let origins = vec![
-		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin.suffix1"),
+		(OriginKind::Xcm, GeneralAdminOriginFromRelay.into(), "generaladmin.suffix1"),
 		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root(), "rootusername.suffix1"),
 	];
 	for (origin_kind, origin, usr) in origins {

@@ -15,8 +15,8 @@
 // limitations under the License.
 
 use crate::{
-	xcm_config::{GovernanceLocation, LocationToAccountId},
-	Block, Runtime, RuntimeCall, RuntimeOrigin,
+	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
+	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
 };
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
@@ -136,36 +136,38 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee<Runtime>,
 	>();
 }
 
 #[test]
 fn governance_authorize_upgrade_works() {
-	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
+	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;
 
-	// no - random para
+	// no - random non-system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
-	// no - AssetHub
+	// no - random system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
-		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(XcmError::Barrier)
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
+
 	// no - Collectives
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
 	);
 	// no - Collectives Voice of Fellows plurality
 	assert_err!(
@@ -176,16 +178,18 @@ fn governance_authorize_upgrade_works() {
 			Location::new(1, Parachain(COLLECTIVES_ID)),
 			Plurality { id: BodyId::Technical, part: BodyPart::Voice }.into()
 		)),
-		Either::Right(XcmError::BadOrigin)
+		Either::Right(InstructionError { index: 2, error: XcmError::BadOrigin })
 	);
 
 	// ok - relaychain
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(Location::parent())));
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+
+	// ok - AssetHub
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }

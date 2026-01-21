@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2503-5
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2506
 
 # cancel previous runs
 concurrency:
@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
@@ -33,7 +33,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
@@ -48,11 +48,17 @@ jobs:
   # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -65,7 +71,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -77,20 +83,25 @@ jobs:
 
       - name: Download frame-omni-bencher
         run: |
-          curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
+          curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
           chmod +x ./frame-omni-bencher
           ./frame-omni-bencher --version
         shell: bash
 
       - name: Test ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+        run: |
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features ${{ matrix.runtime.build_extra_features }}
+          else
+            cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+          fi
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uri }}
           RUST_LOG: "remote-ext=info"
@@ -102,23 +113,28 @@ jobs:
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks,${{ matrix.runtime.build_extra_features }} -q --locked
+          else
+            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          fi
           # run benchmarking
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""
           else
-            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
-            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+            EXCLUDE_EXTRINSICS_JSON='${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}'
+            EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
   # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       matrix:
         itest: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
@@ -127,6 +143,12 @@ jobs:
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
         with:
           access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -140,7 +162,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -153,16 +175,22 @@ jobs:
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
         with:
           access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -176,7 +204,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -189,17 +217,23 @@ jobs:
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
         with:
           access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -213,7 +247,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -235,18 +269,28 @@ jobs:
       - name: Zombienet smoke test
         timeout-minutes: 20
         run: |
+          # Since we are running the runner in a dind environment we need to find the ip
+          # of the proxy where the ports will be exposed.
+          # In the current infra there are 2 containes, the `dind` and the runner.
+          export ZOMBIE_LOCAL_IP=$(hostname -i | awk -F"." '{printf "%d.%d.%d.%d", $1, $2, $3, $4 - 1}')
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
     needs: [ runtime-matrix ]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       # Ensure the other jobs are continue
       fail-fast: false
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
@@ -256,7 +300,7 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
@@ -274,9 +318,23 @@ jobs:
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
+          FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
-            FEATURES="--features=metadata-hash"
+            FEATURES="metadata-hash"
+          fi
+
+          # Add extra features
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            if [ -z "$FEATURES" ]; then
+              FEATURES="${{ matrix.runtime.build_extra_features }}"
+            else
+              FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+            fi
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            FEATURES="--features=$FEATURES"
           fi
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
@@ -292,9 +350,15 @@ jobs:
 
   ecosystem-tests:
     needs: [runtime-matrix, build-runtimes]
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     if: github.event_name == 'pull_request'
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
@@ -318,9 +382,17 @@ jobs:
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done
+          
+      - name: Use latest Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Install yarn
+        run: npm install -g yarn
 
       - name: Installing dependencies of ecosystem tests
-        working-directory: ./ecosystem-tests
+        working-directory: ecosystem-tests
         run: yarn install
 
       - name: Running ecosystem tests
@@ -335,7 +407,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
     needs:

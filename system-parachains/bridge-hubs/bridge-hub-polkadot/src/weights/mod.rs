@@ -26,6 +26,7 @@ use frame_support::weights::Weight;
 
 pub mod block_weights;
 pub mod cumulus_pallet_parachain_system;
+pub mod cumulus_pallet_weight_reclaim;
 pub mod cumulus_pallet_xcmp_queue;
 pub mod extrinsic_weights;
 pub mod frame_system;
@@ -38,6 +39,7 @@ pub mod pallet_bridge_relayers;
 pub mod pallet_collator_selection;
 pub mod pallet_message_queue;
 pub mod pallet_multisig;
+pub mod pallet_proxy;
 pub mod pallet_session;
 pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
@@ -47,8 +49,11 @@ pub mod paritydb_weights;
 pub mod rocksdb_weights;
 pub mod snowbridge_pallet_ethereum_client;
 pub mod snowbridge_pallet_inbound_queue;
+pub mod snowbridge_pallet_inbound_queue_v2;
 pub mod snowbridge_pallet_outbound_queue;
+pub mod snowbridge_pallet_outbound_queue_v2;
 pub mod snowbridge_pallet_system;
+pub mod snowbridge_pallet_system_v2;
 pub mod xcm;
 
 pub use block_weights::constants::BlockExecutionWeight;

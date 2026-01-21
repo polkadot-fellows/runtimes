@@ -14,44 +14,51 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balances, CollatorSelection, ParachainInfo, ParachainSystem,
-	PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
+	assets::hollar::{HollarFromHydration, HollarLocation},
+	AccountId, AllPalletsWithSystem, AssetRate, Assets as AssetsPallet, Balance, Balances,
+	CollatorSelection, DotWeightToFee as WeightToFee, ParachainInfo, ParachainSystem, PolkadotXcm,
+	Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
 use frame_support::{
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstU32, Contains, Disabled, Equals, Everything, Nothing,
+		fungible::{HoldConsideration, ItemOf},
+		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
+		ConstU32, Contains, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
-use pallet_xcm::XcmPassthrough;
+use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::{
 	xcm_config::{
-		AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
-		RelayOrOtherSystemParachains,
+		AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
+		AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
+		ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 	},
 	TREASURY_PALLET_ID,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
-use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::polkadot::locations::AssetHubLocation;
+use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
 	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
-	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser,
-	ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
+	LocationAsSuperuser, NoChecking, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
-pub use system_parachains_constants::polkadot::locations::GovernanceLocation;
+pub use system_parachains_constants::polkadot::locations::{
+	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
+};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -68,6 +75,7 @@ parameter_types! {
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location =
 		(Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -109,7 +117,7 @@ pub type LocationToAccountId = (
 
 /// Means for transacting the native currency on this chain.
 pub type FungibleTransactor = FungibleAdapter<
-	// Use this currency:
+	// Use this implementation of `fungible::*`.
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	IsConcrete<RelayLocation>,
@@ -119,6 +127,22 @@ pub type FungibleTransactor = FungibleAdapter<
 	AccountId,
 	// We don't track any teleports of `Balances`.
 	(),
+>;
+
+/// Means for transacting other fungible tokens on this chain.
+pub type FungiblesTransactor = FungiblesAdapter<
+	// Use this implementation of `fungibles::*`.
+	AssetsPallet,
+	// Match everything that comes from outside.
+	assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>,
+	// Convert an XCM `Location` into a local account ID.
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId,
+	// No checking.
+	NoChecking,
+	// We still need to specify the checking account.
+	CheckingAccount,
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -136,9 +160,9 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	// Native converter for sibling Parachains; will convert to a `SiblingPara` origin when
 	// recognized.
 	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, RuntimeOrigin>,
-	// Superuser converter for the Relay-chain (Parent) location. This will allow it to issue a
-	// transaction from the Root origin.
-	ParentAsSuperuser<RuntimeOrigin>,
+	// AssetHub or Relay can execute as root (based on: https://github.com/polkadot-fellows/runtimes/issues/651).
+	// This will allow them to issue a transaction from the Root origin.
+	LocationAsSuperuser<(Equals<RelayChainLocation>, Equals<AssetHubLocation>), RuntimeOrigin>,
 	// Native signed account converter; this just converts an `AccountId32` origin into a normal
 	// `RuntimeOrigin::Signed` origin of the same 32-byte value.
 	SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
@@ -195,6 +219,8 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						FellowsPlurality,
 						Equals<RelayTreasuryLocation>,
+						Equals<AssetHubLocation>,
+						AssetHubPlurality,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
@@ -216,19 +242,74 @@ pub type WaivedLocations = (
 	LocalPlurality,
 );
 
-/// We allow locations to alias into their own child locations, as well as
-/// AssetHub to alias into anything.
-pub type Aliasers = (AliasChildLocation, AliasOriginRootUsingFilter<AssetHubLocation, Everything>);
+/// Defines origin aliasing rules for this chain.
+///
+/// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
+/// - Allow same accounts to alias into each other across system chains,
+/// - Allow AssetHub root to alias into anything,
+/// - Allow origins explicitly authorized to alias into target location.
+pub type TrustedAliasers = (
+	AliasChildLocation,
+	AliasAccountId32FromSiblingSystemChain,
+	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
+	AuthorizedAliasers<Runtime>,
+);
+
+/// The asset transactors responsible for handling assets in XCM.
+pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor);
+
+// This calls into the Assets pallet's default `BalanceToAssetBalance` implementation, which
+// uses the ratio of minimum balances and requires asset sufficiency.
+pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentialDepositMultiplier<
+	Runtime,
+	WeightToFee<Runtime>,
+	pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto, ()>,
+	(),
+>;
+
+pub type WeightToNativeFee = WeightToFee<Runtime>;
+pub struct WeightToStableFee;
+impl frame_support::weights::WeightToFee for WeightToStableFee {
+	type Balance = Balance;
+
+	fn weight_to_fee(weight: &Weight) -> Self::Balance {
+		let native_fee = WeightToNativeFee::weight_to_fee(weight);
+
+		AssetRate::to_asset_balance(native_fee, HollarLocation::get())
+			// Using max value will make the payment fail and go to the next trader component.
+			.unwrap_or(Balance::MAX)
+	}
+}
+
+/// A fungible adapter for the stable asset
+pub type FungibleHollar = ItemOf<AssetsPallet, HollarLocation, AccountId>;
+
+/// All ways of paying for execution fees via XCM.
+pub type Traders = (
+	UsingComponents<
+		WeightToNativeFee,
+		RelayLocation,
+		AccountId,
+		Balances,
+		ResolveTo<StakingPot, Balances>,
+	>,
+	UsingComponents<
+		WeightToStableFee,
+		HollarLocation,
+		AccountId,
+		FungibleHollar,
+		ResolveTo<StakingPot, FungibleHollar>,
+	>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
-	type AssetTransactor = FungibleTransactor;
+	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	// People chain does not recognize a reserve location for any asset. Users must teleport DOT
-	// where allowed (e.g. with the Relay Chain).
-	type IsReserve = ();
+	/// We only accept HOLLAR from Hydration.
+	type IsReserve = HollarFromHydration;
 	/// Only allow teleportation of DOT.
 	type IsTeleporter = ConcreteAssetFromSystem<RelayLocation>;
 	type UniversalLocation = UniversalLocation;
@@ -238,13 +319,7 @@ impl xcm_executor::Config for XcmConfig {
 		RuntimeCall,
 		MaxInstructions,
 	>;
-	type Trader = UsingComponents<
-		WeightToFee,
-		RelayLocation,
-		AccountId,
-		Balances,
-		ResolveTo<StakingPot, Balances>,
-	>;
+	type Trader = Traders;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
@@ -252,16 +327,17 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type AssetLocker = ();
+	// TODO: Will need for delivery fees.
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<FungibleTransactor, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Aliasers;
+	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();
@@ -282,6 +358,13 @@ pub type XcmRouter = WithUniqueTopic<(
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 )>;
+
+parameter_types! {
+	pub const DepositPerItem: Balance = crate::system_para_deposit(1, 0);
+	pub const DepositPerByte: Balance = crate::system_para_deposit(0, 1);
+	pub const AuthorizeAliasHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::PolkadotXcm(pallet_xcm::HoldReason::AuthorizeAlias);
+}
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -313,12 +396,27 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
-	type AuthorizedAliasConsideration = Disabled;
+	// xcm_executor::Config::Aliasers uses pallet_xcm::AuthorizedAliasers.
+	type AuthorizedAliasConsideration = HoldConsideration<
+		AccountId,
+		Balances,
+		AuthorizeAliasHoldReason,
+		LinearStoragePrice<DepositPerItem, DepositPerByte, Balance>,
+	>;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
+}
+
+/// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
+pub struct XcmBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> Location {
+		Location::new(1, Parachain(id))
+	}
 }
 
 #[test]

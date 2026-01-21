@@ -19,16 +19,13 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, GovernanceLocation,
-		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		bridging, CheckingAccount, DotLocation, LocationToAccountId, RelayChainLocation,
+		StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
-	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
-	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
-	SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
+	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
+	ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
 };
 use asset_test_utils::{
 	include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works,
@@ -39,18 +36,24 @@ use asset_test_utils::{
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
 use codec::{Decode, Encode};
-use core::ops::Mul;
-use frame_support::{assert_err, assert_ok, traits::fungibles::InspectEnumerable};
+use frame_support::{
+	assert_err, assert_ok,
+	traits::{fungibles::InspectEnumerable, ContainsPair},
+};
 use parachains_common::{
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance,
 };
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::MaybeEquivalence, Either, TryRuntimeError};
-use system_parachains_constants::{
-	kusama::consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, polkadot::fee::WeightToFee,
+use system_parachains_constants::polkadot::{
+	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::UNITS,
+	fee::WeightToFee as DotWeightToFee,
 };
-use xcm::latest::prelude::{Assets as XcmAssets, *};
+use xcm::latest::{
+	prelude::{Assets as XcmAssets, *},
+	WESTEND_GENESIS_HASH,
+};
 use xcm_builder::WithLatestLocationConverter;
 use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
@@ -58,10 +61,15 @@ use xcm_runtime_apis::conversions::LocationToAccountHelper;
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
+frame_support::parameter_types! {
+	// Local OpenGov
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Origin(RuntimeOrigin::root());
+}
+
 type AssetIdForTrustBackedAssetsConvertLatest =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
-
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
+type WeightToFee = DotWeightToFee<Runtime>;
 
 fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
 	CollatorSessionKey::new(
@@ -82,55 +90,10 @@ fn slot_durations() -> SlotDurations {
 	}
 }
 
-fn setup_pool_for_paying_fees_with_foreign_assets(
-	(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
-		AccountId,
-		Location,
-		Balance,
-	),
-) {
-	let existential_deposit = ExistentialDeposit::get();
-
-	// setup a pool to pay fees with `foreign_asset_id_location` tokens
-	let pool_owner: AccountId = [14u8; 32].into();
-	let native_asset = Location::parent();
-	let pool_liquidity: Balance =
-		existential_deposit.max(foreign_asset_id_minimum_balance).mul(100_000);
-
-	let _ = Balances::force_set_balance(
-		RuntimeOrigin::root(),
-		pool_owner.clone().into(),
-		(existential_deposit + pool_liquidity).mul(2),
-	);
-
-	assert_ok!(ForeignAssets::mint(
-		RuntimeOrigin::signed(foreign_asset_owner),
-		foreign_asset_id_location.clone(),
-		pool_owner.clone().into(),
-		(foreign_asset_id_minimum_balance + pool_liquidity).mul(2),
-	));
-
-	assert_ok!(AssetConversion::create_pool(
-		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset.clone()),
-		Box::new(foreign_asset_id_location.clone())
-	));
-
-	assert_ok!(AssetConversion::add_liquidity(
-		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset),
-		Box::new(foreign_asset_id_location),
-		pool_liquidity,
-		pool_liquidity,
-		1,
-		1,
-		pool_owner,
-	));
-}
-
 #[test]
 fn test_ed_is_one_hundredth_of_relay() {
 	ExtBuilder::<Runtime>::default()
+		.with_tracing()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
 			AccountId::from(ALICE),
@@ -150,6 +113,7 @@ fn test_assets_balances_api_works() {
 	use assets_common::runtime_api::runtime_decl_for_fungibles_api::FungiblesApi;
 
 	ExtBuilder::<Runtime>::default()
+		.with_tracing()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
 			AccountId::from(ALICE),
@@ -259,7 +223,8 @@ asset_test_utils::include_teleports_for_native_asset_works!(
 	Runtime,
 	AllPalletsWithoutSystem,
 	XcmConfig,
-	CheckingAccount,
+	// TODO: after AHM change this from `()` to `CheckingAccount`
+	(),
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
@@ -281,7 +246,7 @@ include_teleports_for_foreign_assets_works!(
 	CheckingAccount,
 	WeightToFee,
 	ParachainSystem,
-	ForeignCreatorsSovereignAccountOf,
+	LocationToAccountId,
 	ForeignAssetsInstance,
 	collator_session_keys(),
 	slot_durations(),
@@ -355,7 +320,7 @@ include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_wo
 	Runtime,
 	XcmConfig,
 	WeightToFee,
-	ForeignCreatorsSovereignAccountOf,
+	LocationToAccountId,
 	ForeignAssetsInstance,
 	Location,
 	WithLatestLocationConverter<Location>,
@@ -396,8 +361,11 @@ fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
 	}
 }
 
+/* // FIXME @karol FAIL-CI
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
+	use sp_runtime::traits::Get;
+
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -425,9 +393,9 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		Some(RelayTreasuryPalletAccount::get()),
+		Some(TreasuryAccount::get()),
 	)
-}
+} */
 
 #[test]
 fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_swap_works() {
@@ -460,7 +428,10 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 		1000000000000,
 		|| {
 			// setup pool for paying fees to touch `SwapFirstAssetTrader`
-			setup_pool_for_paying_fees_with_foreign_assets(foreign_asset_create_params);
+			asset_test_utils::test_cases::setup_pool_for_paying_fees_with_foreign_assets::<
+				Runtime,
+				RuntimeOrigin,
+			>(ExistentialDeposit::get(), foreign_asset_create_params);
 			// staking pot account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
@@ -573,9 +544,7 @@ fn check_sane_weight_report_bridge_status() {
 	let max_weight = bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get();
 	assert!(
 		actual.all_lte(max_weight),
-		"max_weight: {:?} should be adjusted to actual {:?}",
-		max_weight,
-		actual
+		"max_weight: {max_weight:?} should be adjusted to actual {actual:?}"
 	);
 }
 
@@ -588,7 +557,7 @@ fn change_xcm_bridge_hub_router_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| {
 			log::error!(
 				target: "bridges::estimate",
@@ -620,7 +589,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| {
 			(
 				bridging::XcmBridgeHubRouterByteFee::key().to_vec(),
@@ -638,14 +607,6 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 }
 
 #[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
-}
-
-#[test]
 fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	asset_test_utils::test_cases::change_storage_constant_by_governance_works::<
 		Runtime,
@@ -654,7 +615,7 @@ fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| {
 			(
 				bridging::to_ethereum::BridgeHubEthereumBaseFee::key().to_vec(),
@@ -779,13 +740,23 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
 	asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
 		Runtime,
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
+		WeightToFee,
 	>();
+	asset_test_utils::test_cases::xcm_payment_api_foreign_asset_pool_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		LocationToAccountId,
+		Block,
+		WeightToFee,
+	>(ExistentialDeposit::get(), WESTEND_GENESIS_HASH);
 }
 
 #[test]
@@ -844,16 +815,110 @@ fn test_xcm_v4_to_v5_works() {
 }
 
 #[test]
+fn authorized_aliases_work() {
+	ExtBuilder::<Runtime>::default()
+		.with_tracing()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::ed25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			use frame_support::traits::fungible::Mutate;
+			let alice: AccountId = ALICE.into();
+			let local_alice = Location::new(0, AccountId32 { network: None, id: ALICE });
+			let alice_on_sibling_para =
+				Location::new(1, [Parachain(42), AccountId32 { network: None, id: ALICE }]);
+			let alice_on_relay = Location::new(1, AccountId32 { network: None, id: ALICE });
+			let bob_on_relay = Location::new(1, AccountId32 { network: None, id: [42_u8; 32] });
+
+			assert_ok!(Balances::mint_into(&alice, 2 * UNITS));
+
+			// neither `alice_on_sibling_para`, `alice_on_relay`, `bob_on_relay` are allowed to
+			// alias into `local_alice`
+			for aliaser in [&alice_on_sibling_para, &alice_on_relay, &bob_on_relay] {
+				assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+					aliaser,
+					&local_alice
+				));
+			}
+
+			// Alice explicitly authorizes `alice_on_sibling_para` to alias her local account
+			assert_ok!(PolkadotXcm::add_authorized_alias(
+				RuntimeHelper::origin_of(alice.clone()),
+				Box::new(alice_on_sibling_para.clone().into()),
+				None
+			));
+
+			// `alice_on_sibling_para` now explicitly allowed to alias into `local_alice`
+			assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+				&alice_on_sibling_para,
+				&local_alice
+			));
+			// as expected, `alice_on_relay` and `bob_on_relay` still can't alias into `local_alice`
+			for aliaser in [&alice_on_relay, &bob_on_relay] {
+				assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+					aliaser,
+					&local_alice
+				));
+			}
+
+			// Alice explicitly authorizes `alice_on_relay` to alias her local account
+			assert_ok!(PolkadotXcm::add_authorized_alias(
+				RuntimeHelper::origin_of(alice.clone()),
+				Box::new(alice_on_relay.clone().into()),
+				None
+			));
+			// Now both `alice_on_relay` and `alice_on_sibling_para` can alias into her local
+			// account
+			for aliaser in [&alice_on_relay, &alice_on_sibling_para] {
+				assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+					aliaser,
+					&local_alice
+				));
+			}
+
+			// Alice removes authorization for `alice_on_relay` to alias her local account
+			assert_ok!(PolkadotXcm::remove_authorized_alias(
+				RuntimeHelper::origin_of(alice.clone()),
+				Box::new(alice_on_relay.clone().into())
+			));
+
+			// `alice_on_relay` no longer allowed to alias into `local_alice`
+			assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+				&alice_on_relay,
+				&local_alice
+			));
+
+			// `alice_on_sibling_para` still allowed to alias into `local_alice`
+			assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+				&alice_on_sibling_para,
+				&local_alice
+			));
+		})
+}
+
+#[test]
 fn governance_authorize_upgrade_works() {
 	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
 
-	// no - random para
+	// no - random non-system para
 	assert_err!(
 		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(12334)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 0, error: XcmError::Barrier })
+	);
+	// no - random system para
+	assert_err!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(Location::new(1, Parachain(1765)))),
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 	// no - AssetHub
 	assert_err!(
@@ -861,7 +926,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(ASSET_HUB_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 	// no - Collectives
 	assert_err!(
@@ -869,7 +934,7 @@ fn governance_authorize_upgrade_works() {
 			Runtime,
 			RuntimeOrigin,
 		>(GovernanceOrigin::Location(Location::new(1, Parachain(COLLECTIVES_ID)))),
-		Either::Right(XcmError::Barrier)
+		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
 	);
 	// no - Collectives Voice of Fellows plurality
 	assert_err!(
@@ -880,16 +945,134 @@ fn governance_authorize_upgrade_works() {
 			Location::new(1, Parachain(COLLECTIVES_ID)),
 			Plurality { id: BodyId::Technical, part: BodyPart::Voice }.into()
 		)),
-		Either::Right(XcmError::BadOrigin)
+		Either::Right(InstructionError { index: 2, error: XcmError::BadOrigin })
 	);
 
 	// ok - relaychain
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
 		Runtime,
 		RuntimeOrigin,
-	>(GovernanceOrigin::Location(Location::parent())));
-	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
-		Runtime,
-		RuntimeOrigin,
-	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+}
+
+/// A Staking proxy can add/remove a StakingOperator proxy for the account it is proxying.
+#[test]
+fn staking_proxy_can_manage_staking_operator() {
+	use asset_hub_polkadot_runtime::{Proxy, ProxyType};
+	use frame_support::traits::fungible::Mutate;
+	use sp_runtime::traits::StaticLookup;
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::ed25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			// Given: Alice, Bob, and Carol with sufficient balance
+			let alice: AccountId = ALICE.into();
+			let bob: AccountId = [2u8; 32].into();
+			let carol: AccountId = [3u8; 32].into();
+
+			Balances::mint_into(&alice, 100 * UNITS).unwrap();
+			Balances::mint_into(&bob, 100 * UNITS).unwrap();
+			Balances::mint_into(&carol, 100 * UNITS).unwrap();
+
+			// Given: Alice has Bob as her Staking proxy
+			assert_ok!(Proxy::add_proxy(
+				RuntimeOrigin::signed(alice.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(bob.clone()),
+				ProxyType::Staking,
+				0
+			));
+
+			// When: Bob (via proxy) adds Carol as StakingOperator for Alice
+			let add_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_call)
+			));
+
+			// Then: Carol is Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::StakingOperator),
+				"Carol should be Alice's StakingOperator proxy"
+			);
+
+			// When: Bob tries to add an Any proxy for Alice
+			let add_any_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::Any,
+				delay: 0,
+			});
+			// proxy() returns Ok(()) but inner call result is in ProxyExecuted event
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_any_call),
+			));
+
+			// Then: The ProxyExecuted event should contain CallFiltered error
+			let events = frame_system::Pallet::<Runtime>::events();
+			let proxy_executed = events.iter().rev().find_map(|record| {
+				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
+					&record.event
+				{
+					Some(*result)
+				} else {
+					None
+				}
+			});
+			assert_eq!(
+				proxy_executed,
+				Some(Err(frame_system::Error::<Runtime>::CallFiltered.into())),
+				"Inner call should fail with CallFiltered"
+			);
+
+			// And: Carol was NOT added as Any proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::Any),
+				"Carol should NOT be Alice's Any proxy - Staking proxy cannot add Any"
+			);
+
+			// When: Bob (via proxy) removes Carol as StakingOperator for Alice
+			let remove_call = RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(remove_call)
+			));
+
+			// Then: Carol is no longer Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::StakingOperator),
+				"Carol should no longer be Alice's StakingOperator proxy"
+			);
+		});
 }

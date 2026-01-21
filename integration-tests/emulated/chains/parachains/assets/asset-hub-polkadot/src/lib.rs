@@ -48,6 +48,8 @@ decl_test_parachains! {
 			ForeignAssets: asset_hub_polkadot_runtime::ForeignAssets,
 			PoolAssets: asset_hub_polkadot_runtime::PoolAssets,
 			AssetConversion: asset_hub_polkadot_runtime::AssetConversion,
+			SnowbridgeSystemFrontend: asset_hub_polkadot_runtime::SnowbridgeSystemFrontend,
+			Preimage: asset_hub_polkadot_runtime::Preimage,
 		}
 	},
 }

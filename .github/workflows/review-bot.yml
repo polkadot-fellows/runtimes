@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   review-approvals:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    timeout-minutes: 5
     steps:
       - name: Extract content of artifact
         id: number
@@ -26,7 +27,7 @@ jobs:
           app-id: ${{ secrets.REVIEW_APP_ID }}
           private-key: ${{ secrets.REVIEW_APP_KEY }}
       - name: "Evaluates PR reviews and assigns reviewers"
-        uses: paritytech/review-bot@v2.7.1
+        uses: paritytech/review-bot@v2.7.2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           team-token: ${{ steps.team_token.outputs.token }}

@@ -21,19 +21,14 @@ use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-	xcm_config::{
-		GovernanceLocation, UniversalLocation, XcmConfig, XcmFeeManagerFromComponentsBridgeHub,
-	},
-	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, TxExtension,
-	UncheckedExtrinsic,
+	xcm_config::{UniversalLocation, XcmConfig},
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, EthereumBeaconClient,
+	Executive, MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	SessionKeys, TxExtension, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::GovernanceOrigin;
 use codec::{Decode, Encode};
-use cumulus_primitives_core::{
-	ParaId,
-	XcmError::{FailedToTransactAsset, TooExpensive},
-};
+use cumulus_primitives_core::{ParaId, XcmError::FailedToTransactAsset};
 use frame_support::{
 	assert_err, assert_ok, parameter_types,
 	traits::{fungible::Mutate, Contains},
@@ -54,11 +49,13 @@ use sp_runtime::{
 	AccountId32, SaturatedConversion,
 };
 use xcm::latest::prelude::*;
-use xcm_builder::HandleFee;
+use xcm_builder::{HandleFee, XcmFeeManagerFromComponents};
 use xcm_executor::traits::{ConvertLocation, FeeManager, FeeReason};
 
 parameter_types! {
 	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
+	// Local OpenGov
+	pub Governance: GovernanceOrigin<RuntimeOrigin> = GovernanceOrigin::Origin(RuntimeOrigin::root());
 }
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
@@ -91,30 +88,14 @@ pub fn transfer_token_to_ethereum_works() {
 }
 
 #[test]
-pub fn unpaid_transfer_token_to_ethereum_fails_with_barrier() {
+pub fn unpaid_transfer_token_to_ethereum_should_work() {
 	snowbridge_runtime_test_common::send_unpaid_transfer_token_message::<Runtime, XcmConfig>(
-		11155111,
-		collator_session_keys(),
-		1013,
-		1000,
-		H160::random(),
-		H160::random(),
-	)
-}
-
-#[test]
-pub fn transfer_token_to_ethereum_fee_not_enough() {
-	snowbridge_runtime_test_common::send_transfer_token_message_failure::<Runtime, XcmConfig>(
 		1,
 		collator_session_keys(),
 		1013,
 		1000,
-		DefaultBridgeHubEthereumBaseFee::get() + 1_000_000_000,
 		H160::random(),
 		H160::random(),
-		// fee not enough
-		1_000_000,
-		TooExpensive,
 	)
 }
 
@@ -138,7 +119,7 @@ fn change_ethereum_gateway_by_governance_works() {
 	change_storage_constant_by_governance_works::<Runtime, EthereumGatewayAddress, H160>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		GovernanceOrigin::Location(GovernanceLocation::get()),
+		Governance::get(),
 		|| (EthereumGatewayAddress::key().to_vec(), EthereumGatewayAddress::get()),
 		|_| [1; 20].into(),
 	)
@@ -201,7 +182,7 @@ impl HandleFee for MockFeeHandler {
 	}
 }
 
-type TestXcmFeeManager = XcmFeeManagerFromComponentsBridgeHub<MockWaivedLocations, MockFeeHandler>;
+type TestXcmFeeManager = XcmFeeManagerFromComponents<MockWaivedLocations, MockFeeHandler>;
 
 #[test]
 fn max_message_queue_service_weight_is_more_than_beacon_extrinsic_weights() {
@@ -214,7 +195,6 @@ fn max_message_queue_service_weight_is_more_than_beacon_extrinsic_weights() {
 	max_message_queue_weight.all_gt(submit_checkpoint);
 }
 
-// FAIL-CI @bkontur can you help me to check why it's exceeding the weight limits?
 #[test]
 fn ethereum_client_consensus_extrinsics_work() {
 	ethereum_extrinsic(collator_session_keys(), 1013, construct_and_apply_extrinsic);
@@ -304,8 +284,8 @@ pub fn ethereum_extrinsic<Runtime>(
 			let alice_account: <Runtime as frame_system::Config>::AccountId = alice_account.into();
 			let balance_before = <pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
-			assert_ok!(<snowbridge_pallet_ethereum_client::Pallet<Runtime>>::force_checkpoint(
-				RuntimeHelper::<Runtime>::root_origin(),
+			assert_ok!(EthereumBeaconClient::force_checkpoint(
+				RuntimeOrigin::root(),
 				initial_checkpoint.clone(),
 			));
 			let balance_after_checkpoint =
@@ -361,6 +341,8 @@ pub fn ethereum_extrinsic<Runtime>(
 			let balance_after_sync_com_update =
 				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
+			let _ = RuntimeHelper::<Runtime>::run_to_block(3, AccountId::from(alice).into());
+
 			// Invalid sync committee update
 			let invalid_sync_committee_outcome =
 				construct_and_apply_extrinsic(alice, invalid_update_sync_committee_call.into());
@@ -411,7 +393,8 @@ fn construct_extrinsic(
 		BridgeRejectObsoleteHeadersAndMessages,
 		(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages::default()),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-	);
+	)
+		.into();
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
 	let signature = payload.using_encoded(|e| sender.sign(e));
 	UncheckedExtrinsic::new_signed(call, account_id.into(), Signature::Sr25519(signature), extra)

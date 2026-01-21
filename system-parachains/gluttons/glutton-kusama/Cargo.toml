@@ -117,7 +117,9 @@ try-runtime = [
 	"pallet-message-queue/try-runtime",
 	"pallet-sudo/try-runtime",
 	"parachain-info/try-runtime",
+	"parachains-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be built for on-chain
