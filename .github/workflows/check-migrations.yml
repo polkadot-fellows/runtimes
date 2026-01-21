@@ -56,12 +56,12 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          targets: "wasm32-unknown-unknown"
+          targets: "x86_64-unknown-linux-musl"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install try-runtime-cli
-        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked --target x86_64-unknown-linux-musl
 
       - name: Upload try-runtime-cli as artifact
         uses: actions/upload-artifact@v4
