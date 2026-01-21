@@ -111,7 +111,7 @@ jobs:
 
           for i in {1..10}; do
             echo "Snapshot creation attempt $i/10"
-            if try-runtime create-snapshot $URI_ARGS -- snapshot.raw; then
+            if ~/.cargo/bin/try-runtime create-snapshot $URI_ARGS -- snapshot.raw; then
               if [ -f "snapshot.raw" ] && [ -s "snapshot.raw" ]; then
                 echo "Snapshot created successfully"
                 break
@@ -230,7 +230,7 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          try-runtime --version
+          ~/.cargo/bin/try-runtime --version
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
@@ -239,7 +239,7 @@ jobs:
 
           echo "Extra args: $EXTRA_FLAGS"
           
-          COMMAND="try-runtime \
+          COMMAND="~/.cargo/bin/try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             $TRY_RUNTIME_EXTRA_ARGS \
             on-runtime-upgrade --checks=$CHECKS \
