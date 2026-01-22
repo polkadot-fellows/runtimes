@@ -58,7 +58,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-
           fail-on-cache-miss: false
 
       - name: Install updates and dependencies
@@ -105,12 +105,18 @@ jobs:
             sleep 10
           done
 
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "today=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Save snapshot to cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.get-date.outputs.today }}
 
       - name: Upload snapshot as artifact
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
