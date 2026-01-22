@@ -90,7 +90,7 @@ jobs:
 
           for i in {1..10}; do
             echo "Snapshot creation attempt $i/10"
-            if ~/.cargo/bin/try-runtime create-snapshot $URI_ARGS -- snapshot.raw; then
+            if try-runtime create-snapshot $URI_ARGS -- snapshot.raw; then
               if [ -f "snapshot.raw" ] && [ -s "snapshot.raw" ]; then
                 echo "Snapshot created successfully"
                 break
@@ -209,7 +209,15 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          ~/.cargo/bin/try-runtime --version
+          try-runtime --version
+
+          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+            FEATURES="--features try-runtime,${{ matrix.runtime.build_extra_features }}"
+          else
+            FEATURES="--features try-runtime"
+          fi
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
@@ -218,7 +226,7 @@ jobs:
 
           echo "Extra args: $EXTRA_FLAGS"
           
-          COMMAND="~/.cargo/bin/try-runtime \
+          COMMAND="try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             $TRY_RUNTIME_EXTRA_ARGS \
             on-runtime-upgrade --checks=$CHECKS \
