@@ -52,13 +52,19 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +%F)" >> $GITHUB_OUTPUT
+
       - name: Try to restore snapshot from cache
         id: cache-restore
         if: github.event_name != 'schedule'
         uses: actions/cache/restore@v4
         with:
           path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.date.outputs.date }}
+          restore-keys: |
+            try-runtime-snapshot-${{ matrix.runtime.name }}-
           fail-on-cache-miss: false
 
       - name: Install updates and dependencies
@@ -110,7 +116,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.date.outputs.date }}
 
       - name: Upload snapshot as artifact
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
