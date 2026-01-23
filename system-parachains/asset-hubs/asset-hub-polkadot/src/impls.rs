@@ -47,7 +47,7 @@ pub mod tx_payment {
 	impl<T, F, A, OU> OnChargeTransaction<T> for FungiblesAdapter<F, A, OU>
 	where
 		T: pallet_transaction_payment::Config,
-		F: fungibles::Balanced<T::AccountId>,
+		F: fungibles::Balanced<T::AccountId> + 'static,
 		A: Get<F::AssetId>,
 		OU: OnUnbalanced<fungibles::Credit<T::AccountId, F>>,
 	{
@@ -147,5 +147,15 @@ pub mod tx_payment {
 		fn minimum_balance() -> Self::Balance {
 			F::minimum_balance(A::get())
 		}
+	}
+
+	impl<T, F, A, OU> pallet_transaction_payment::TxCreditHold<T> for FungiblesAdapter<F, A, OU>
+	where
+		T: pallet_transaction_payment::Config,
+		F: fungibles::Balanced<T::AccountId> + 'static,
+		A: Get<F::AssetId>,
+		OU: OnUnbalanced<fungibles::Credit<T::AccountId, F>>,
+	{
+		type Credit = ();
 	}
 }

@@ -292,12 +292,16 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::WeightInfo f
 			.saturating_add(T::DbWeight::get().reads(2973))
 			.saturating_add(T::DbWeight::get().writes(2974))
 	}
-	fn manage() -> Weight {
+	fn manage_fallback() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 219_000 picoseconds.
 		Weight::from_parts(270_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
+	}
+	// TODO: regenerate weights via /cmd bench --runtime asset-hub-kusama --pallet pallet_election_provider_multi_block
+	fn admin_set() -> Weight {
+		Weight::default()
 	}
 }

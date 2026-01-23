@@ -57,6 +57,7 @@ coretime-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/p
 coretime-polkadot-runtime = { path = "system-parachains/coretime/coretime-polkadot" }
 cumulus-pallet-aura-ext = { version = "0.25.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.25.0", default-features = false }
+cumulus-pallet-weight-reclaim = { version = "0.7.0", default-features = false }
 cumulus-pallet-session-benchmarking = { version = "26.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.24.0", default-features = false }
 cumulus-pallet-xcmp-queue = { version = "0.25.0", default-features = false }
@@ -181,6 +182,7 @@ pallet-vesting = { version = "45.0.0", default-features = false }
 pallet-whitelist = { version = "44.0.0", default-features = false }
 pallet-xcm = { version = "25.0.0", default-features = false }
 pallet-xcm-benchmarks = { version = "25.0.0", default-features = false }
+pallet-xcm-precompiles = { version = "0.3.1", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.21.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.23.0", default-features = false }
 parachain-info = { version = "0.25.0", default-features = false, package = "staging-parachain-info" }

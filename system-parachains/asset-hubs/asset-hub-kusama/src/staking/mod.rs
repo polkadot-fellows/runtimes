@@ -179,6 +179,7 @@ impl multi_block::Config for Runtime {
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
 	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
+	type ManagerOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
 	type Verifier = MultiBlockElectionVerifier;
@@ -375,8 +376,15 @@ parameter_types! {
 		frame_election_provider_support::NposSolution
 	>::LIMIT as u32;
 
-	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
+	/// Maximum numbers that we prune from previous eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;
+
+	/// Unlike Polkadot, Kusama nominators are expected to be slashable and do not
+	/// support fast unbonding. Consequently, AreNominatorSlashable is intended to
+	/// remain set to true and should not be modified via governance.
+	/// NominatorFastUnbondDuration value below is therefore ignored.
+	pub const NominatorFastUnbondDuration: sp_staking::EraIndex = 2;
+	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
 impl pallet_staking_async::Config for Runtime {
@@ -418,6 +426,7 @@ impl pallet_staking_async::Config for Runtime {
 	type MaxEraDuration = MaxEraDuration;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
 	type MaxPruningItems = MaxPruningItems;
+	type NominatorFastUnbondDuration = NominatorFastUnbondDuration;
 }
 
 impl pallet_staking_async_rc_client::Config for Runtime {
@@ -425,6 +434,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
 	type MaxValidatorSetRetries = ConstU32<64>;
+	type ValidatorSetExportSession = ValidatorSetExportSession;
 }
 
 #[derive(Encode, Decode)]

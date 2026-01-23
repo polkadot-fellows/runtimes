@@ -35,6 +35,7 @@ use asset_test_utils::{
 	},
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
+use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
 use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
@@ -403,10 +404,19 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 	let staking_pot = StakingPot::get();
 
 	let foreign_asset_id_location_v5 = Location::new(2, [GlobalConsensus(NetworkId::Kusama)]);
+	let reserve_location = Location::new(2, [GlobalConsensus(NetworkId::Kusama), Parachain(1000)]);
+	let foreign_asset_reserve_data =
+		ForeignAssetReserveData { reserve: reserve_location, teleportable: false };
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
 	let foreign_asset_create_params = (
+		foreign_asset_owner.clone(),
+		foreign_asset_id_location_v5.clone(),
+		foreign_asset_reserve_data,
+		foreign_asset_id_minimum_balance,
+	);
+	let pool_params = (
 		foreign_asset_owner,
 		foreign_asset_id_location_v5.clone(),
 		foreign_asset_id_minimum_balance,
@@ -423,14 +433,14 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 		AccountId::from([73; 32]),
 		block_author_account.clone(),
 		// receiving KSMs
-		foreign_asset_create_params.clone(),
+		foreign_asset_create_params,
 		1000000000000,
 		|| {
 			// setup pool for paying fees to touch `SwapFirstAssetTrader`
 			asset_test_utils::test_cases::setup_pool_for_paying_fees_with_foreign_assets::<
 				Runtime,
 				RuntimeOrigin,
-			>(ExistentialDeposit::get(), foreign_asset_create_params);
+			>(ExistentialDeposit::get(), pool_params);
 			// staking pot account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
