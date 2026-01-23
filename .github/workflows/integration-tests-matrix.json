@@ -34,5 +34,17 @@
   {
     "name": "coretime-polkadot",
     "package": "coretime-polkadot-integration-tests"
+  },
+  {
+    "name": "governance-polkadot",
+    "package": "governance-polkadot-integration-tests"
+  },
+  {
+    "name": "governance-kusama",
+    "package": "governance-kusama-integration-tests"
+  },
+  {
+    "name": "encointer-kusama",
+    "package": "encointer-kusama-integration-tests"
   }
 ]

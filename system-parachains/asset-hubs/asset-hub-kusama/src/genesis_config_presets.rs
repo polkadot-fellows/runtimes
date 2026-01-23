@@ -67,6 +67,10 @@ fn asset_hub_kusama_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"staking": {
+			"validatorCount": 1000,
+			"devStakers": Some((4_000, 15_000)),
+		},
 		"foreignAssets": ForeignAssetsConfig {
 			assets: foreign_assets
 				.into_iter()
@@ -77,6 +81,11 @@ fn asset_hub_kusama_genesis(
 				.map(|asset| (asset.0, asset.1, asset.2))
 				.collect(),
 			..Default::default()
+		},
+		"revive": ReviveConfig {
+			mapped_accounts: endowed_accounts.iter().filter(|x| ! pallet_revive::is_eth_derived(x)).cloned().collect(),
+			accounts: Vec::new(),
+			debug_settings: None,
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`

@@ -6,9 +6,163 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+
 ### Changed
 
-- Update Kusama submission deposit to 3.333KSM as per ref#558
+- Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
+
+## [2.0.5] 13.01.2026
+
+### Added
+- Bridge-Hubs - Add proxy pallet ([#1045](https://github.com/polkadot-fellows/runtimes/pull/1045)).
+- AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+- AH Polkadot - Added `pallet_revive` and changed proof size fee formula ([polkadot-fellows/runtimes/pull/1050](https://github.com/polkadot-fellows/runtimes/pull/1050))
+- Add `cumulus-pallet-weight-reclaim` to all Polkadot system parachains (Asset Hub, Bridge Hub, Coretime, People, Collectives) for storage weight reclaim functionality ([#1047](https://github.com/polkadot-fellows/runtimes/pull/1047)).
+
+### Changed
+
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898))
+- AH Polkadot - Enable Elastic Scaling for Polkadot Hub ([polkadot-fellows/runtimes/pull/1048](https://github.com/polkadot-fellows/runtimes/pull/1048))
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+### Fixed
+
+- [PAH] Migrate missing Stellaswap sovereign accounts ([1036](https://github.com/polkadot-fellows/runtimes/pull/1036))
+
+## [2.0.4] 18.12.2025
+
+### Changed
+
+- Add StakingOperator proxy type and the ability for Staking proxy to manage StakingOperator proxies ([#1033](https://github.com/polkadot-fellows/runtimes/pull/1033))
+- asset-hub-polkadot: remove treasury burns ([#1028](https://github.com/polkadot-fellows/runtimes/pull/1028))
+- asset-hub-polkadot: fix the regression in doc-test for staking after changing the base deposit for NPoS solution from 4 to 100 DOT ([#1023](https://github.com/polkadot-fellows/runtimes/pull/1023))
+- asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
+- Adjust OpenGov parameters based on WFC 1701 ([polkadot-fellows/runtimes/pull/873](https://github.com/polkadot-fellows/runtimes/pull/873))
+- asset-hub-kusama: update to latest version of pallet-revive with EVM backend ([polkadot-fellows/runtimes/pull/1029](https://github.com/polkadot-fellows/runtimes/pull/1029))
+- Enable Elastic Scaling on Assethub Kusama ([polkadot-fellows/runtimes/pull/1037](https://github.com/polkadot-fellows/runtimes/pull/1037))
+- Enable buffered validator selection on Assethub Kusama ([polkadot-fellows/runtimes/pull/1037](https://github.com/polkadot-fellows/runtimes/pull/1037))
+
+### Added
+
+- Add `cumulus-pallet-weight-reclaim` to all Kusama system parachains for storage weight reclaim functionality ([#941](https://github.com/polkadot-fellows/runtimes/pull/941))
+- Add pay module implementation to system_parachains_common for use in Asset Hub Polkadot/Kusama treasury with XCM V3 to V5 conversion support for asset transactions ([#1019](https://github.com/polkadot-fellows/runtimes/pull/1019))
+- asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
+- Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
+- asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
+
+## [2.0.3] 21.11.2025
+
+### Added
+
+- Set Ethereum Fulu fork epoch ([#1005](https://github.com/polkadot-fellows/runtimes/pull/1005))
+
+### Changed
+
+- Remove XCM Transact filters and Pool asset transactors ([#1014](https://github.com/polkadot-fellows/runtimes/pull/1014))
+
+## [2.0.2] 07.11.2025
+
+### Fixed
+
+- Fix AH staking inflation calculation to use correct total issuance (https://github.com/polkadot-fellows/runtimes/pull/998).
+- Set invulnerable deposit for Polkadot AssetHub staking election ([#993](https://github.com/polkadot-fellows/runtimes/pull/993))
+- Fix staking on Asset Hub via XCM ([#1006](https://github.com/polkadot-fellows/runtimes/pull/1006))
+- Fix flaky `curl` download command in CI ([#1006](https://github.com/polkadot-fellows/runtimes/pull/1006))
+
+## [2.0.1] 04.11.2025
+
+### Removed
+
+ - Remove AHM Test code to speed up CI ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Relinquish AHM multisig functionality post AHM ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+
+### Changed
+
+- Bump deps ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+
+## [2.0.0] 27.10.2025
+
+### Added
+
+- Scheduled the Polkadot Asset Hub Migration for block [28490502](https://polkadot.subscan.io/block/28490502), circa Tuesday 4th Nov 8 AM UTC ([polkadot-fellows/runtimes/pull/984](https://github.com/polkadot-fellows/runtimes/pull/984)).
+
+### Changed
+
+- Enable preimages pallet on Kusama Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Allow the AHM multisig to act as preimage manager ([polkadot-fellows/runtimes/pull/976](https://github.com/polkadot-fellows/runtimes/pull/976))
+- `RcToAhCall` supports mapping some basic XCMs ([polkadot-fellows/runtimes/pull/983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: map more Referenda XCM instructions ([#983](https://github.com/polkadot-fellows/runtimes/pull/983))
+- AHM: Schedule polkadot migration for block [28490502](https://polkadot.subscan.io/block/28490502) ([#984](https://github.com/polkadot-fellows/runtimes/pull/984))
+
+### Fixed
+
+- Let multisig round start from 100 for Polkadot Relay ([polkadot-fellows/runtimes/pull/957](https://github.com/polkadot-fellows/runtimes/pull/957))
+- Fix staking-async [sdk #9926](https://github.com/paritytech/polkadot-sdk/pull/9926): chill stakers should not have a score ([#960](https://github.com/polkadot-fellows/runtimes/pull/960))
+- Fix resending of duplicate AHM messages ([#970](https://github.com/polkadot-fellows/runtimes/pull/970))
+
+## [1.9.3] 21.10.2025
+
+### Added
+
+- Enable view functions on System Chains([polkadot-fellows/runtimes/pull/981](https://github.com/polkadot-fellows/runtimes/pull/981))
+
+### Fixed
+
+- [BHP](https://github.com/polkadot-fellows/runtimes/pull/978) Add missing snowbridge runtime API to the BridgeHub
+  runtime.
+- Bump `pallet-staking-async` to `0.6.2` to fix incorrect self stake accounting (https://github.com/polkadot-fellows/runtimes/pull/980)
+
+## [1.9.2] 08.10.2025
+
+### Added
+
+- Kusama Asset Hub: add missing staking Runtime APIs and  re-enable vested transfers ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- Polkadot Asset Hub: add missing staking Runtime APIs ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/949))
+
+### Fixed
+
+- [AHM] Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
+- [AHM] Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
+- [AHM] Fix crowdloan withdrawing and weight limit ([polkadot-fellows/runtimes/pull/943](https://github.com/polkadot-fellows/runtimes/pull/943))
+- [Encointer] Fix remote treasury payout on asset hub ([polkadot-fellows/runtimes/pull/944](https://github.com/polkadot-fellows/runtimes/pull/944))
+- [AHM] Post Kusama Migration cleanup ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- [AHM] Improve StakingAsync's VMP Messaging (https://github.com/polkadot-fellows/runtimes/pull/950)
+
+## [1.9.1] 30.09.2025
+
+### Fixed
+
+- Reduce runtime blob size by 800KB to fit the limits ([polkadot-fellows/runtimes/pull/938](https://github.com/polkadot-fellows/runtimes/pull/938))
+
+## [1.9.0] 26.09.2025
+
+### Added
+
+- Enable the Asset Hub Migration for Kusama at block `30423691`, projected to be Tuesday 7th Oct 8 AM UTC ([polkadot-fellows/runtimes/pull/935](https://github.com/polkadot-fellows/runtimes/pull/935))
+- Code for the Asset Hub Migration ([polkadot-fellows/runtimes/pull/856](https://github.com/polkadot-fellows/runtimes/pull/856))
+
+### Changed
+
+-  Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
+  🚨 Pallet XCM's `limited_reserve_transfer_assets` and `reserve_transfer_assets` extrinsics now returns an error when it determines that a reserve transfer of DOT|KSM has to be done.
+  This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
+  After the migration, another patch will remove this error case and use the correct reserve.
+  🚨 For DOT|KSM cross-chain transfers please use `transfer_assets_using_type_and_then` or `execute`.
+  Please see this [Polkadot forum post](https://forum.polkadot.network/t/mandatory-action-guide-for-ahm-broken-native-crosschain-transfers/) for more details.
+
+## [1.7.1] 28.08.2025
+
+### Fixed
+
+- [#9564](https://github.com/paritytech/polkadot-sdk/pull/9564) Correctly map group indices to vote indices when filtering backing statements.
+
+### Changed
+
+- [#861](https://github.com/polkadot-fellows/runtimes/pull/861) Removed the custom fungible adapter used by Kusama AssetHub
+- Support Snowbridge bridge reward payouts on AssetHub ([polkadot-fellows/runtimes/pull/865](https://github.com/polkadot-fellows/runtimes/pull/865))
 
 ## [1.7.0] 22.08.2025
 
@@ -122,6 +276,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#9202](https://github.com/paritytech/polkadot-sdk/pull/9202): `apply_authorized_force_set_current_code` does not need to consume the whole block
 - Proxy type `NonTranfer`: Use a whitelist of calls and remove some not useful calls from the whitelist ([polkadot-fellows/runtimes/pull/646](https://github.com/polkadot-fellows/runtimes/pull/646))
 - Add Snowbridge V2 pallets, to enable Snowbridge V2 bridging: [polkadot-fellows/runtimes/pull/796](https://github.com/polkadot-fellows/runtimes/pull/796))
+- Moves single block migrations from frame_executive::Executive to frame_system::Config. [polkadot-fellows/runtimes/pull/844](https://github.com/polkadot-fellows/runtimes/pull/844)
 
 ## [1.6.1] 24.06.2025
 

@@ -33,6 +33,23 @@ pub mod consensus {
 		/// the relay chain.
 		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 3;
 	}
+
+	/// Parameters enabling elastic scaling functionality.
+	pub mod elastic_scaling {
+		/// Build with an offset of 1 behind the relay chain.
+		pub const RELAY_PARENT_OFFSET: u32 = 1;
+
+		/// The upper limit of how many parachain blocks are processed by the relay chain per
+		/// parent. Limits the number of blocks authored per slot. This determines the minimum
+		/// block time of the parachain:
+		/// `RELAY_CHAIN_SLOT_DURATION_MILLIS/BLOCK_PROCESSING_VELOCITY`
+		pub const BLOCK_PROCESSING_VELOCITY: u32 = 3;
+
+		/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
+		/// into the relay chain.
+		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 =
+			(3 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY;
+	}
 }
 
 /// Constants relating to KSM.
@@ -60,15 +77,8 @@ pub mod currency {
 
 /// Constants related to Kusama fee payment.
 pub mod fee {
-	use frame_support::{
-		pallet_prelude::Weight,
-		weights::{
-			constants::ExtrinsicBaseWeight, FeePolynomial, WeightToFeeCoefficient,
-			WeightToFeeCoefficients, WeightToFeePolynomial,
-		},
-	};
+	use frame_support::weights::constants::ExtrinsicBaseWeight;
 	use polkadot_core_primitives::Balance;
-	use smallvec::smallvec;
 	pub use sp_runtime::Perbill;
 
 	/// The block saturation level. Fees will be updates based on this value.
@@ -79,82 +89,44 @@ pub mod fee {
 	/// It is the Relay Chain (Kusama) `TransactionByteFee` / 10.
 	pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS;
 
-	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
-	/// node's balance type.
-	///
-	/// This should typically create a mapping between the following ranges:
-	///   - [0, MAXIMUM_BLOCK_WEIGHT]
-	///   - [Balance::min, Balance::max]
-	///
-	/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
-	///   - Setting it to `0` will essentially disable the weight fee.
-	///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
-	pub struct WeightToFee;
-	impl frame_support::weights::WeightToFee for WeightToFee {
-		type Balance = Balance;
-
-		fn weight_to_fee(weight: &Weight) -> Self::Balance {
-			let time_poly: FeePolynomial<Balance> = RefTimeToFee::polynomial().into();
-			let proof_poly: FeePolynomial<Balance> = ProofSizeToFee::polynomial().into();
-
-			// Take the maximum instead of the sum to charge by the more scarce resource.
-			time_poly.eval(weight.ref_time()).max(proof_poly.eval(weight.proof_size()))
-		}
-	}
-
-	/// Maps the reference time component of `Weight` to a fee.
-	pub struct RefTimeToFee;
-	impl WeightToFeePolynomial for RefTimeToFee {
-		type Balance = Balance;
-		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// In Kusama, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-			// The standard system parachain configuration is 1/10 of that, as in 1/100 CENT.
-			let p = super::currency::CENTS;
-			let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
-
-			smallvec![WeightToFeeCoefficient {
-				degree: 1,
-				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
-				coeff_integer: p / q,
-			}]
-		}
-	}
-
-	/// Maps the proof size component of `Weight` to a fee.
-	pub struct ProofSizeToFee;
-	impl WeightToFeePolynomial for ProofSizeToFee {
-		type Balance = Balance;
-		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// Map 10kb proof to 1 CENT.
-			let p = super::currency::CENTS;
-			let q = 10_000;
-
-			smallvec![WeightToFeeCoefficient {
-				degree: 1,
-				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
-				coeff_integer: p / q,
-			}]
-		}
-	}
-
-	pub fn calculate_weight_to_fee(weight: &Weight) -> Balance {
-		<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
-	}
+	/// The two generic parameters of `BlockRatioFee` define a rational number that defines the
+	/// ref_time to fee mapping. The numbers chosen here are exactly the same as the one from the
+	/// `WeightToFeePolynomial` that was used before.
+	pub type WeightToFee<Runtime> = pallet_revive::evm::fees::BlockRatioFee<
+		{ super::currency::CENTS },
+		{ (100 * ExtrinsicBaseWeight::get().ref_time()) as u128 },
+		Runtime,
+		Balance,
+	>;
 }
 
 pub mod locations {
-	use frame_support::parameter_types;
+	use frame_support::{parameter_types, traits::Contains};
 	pub use kusama_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
 	use xcm::latest::prelude::{Junction::*, Location};
 
 	parameter_types! {
+		pub RelayChainLocation: Location = Location::parent();
 		pub AssetHubLocation: Location =
 			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID));
 		pub PeopleLocation: Location =
 			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::PEOPLE_ID));
+	}
 
-		pub GovernanceLocation: Location = Location::parent();
+	/// `Contains` implementation for the asset hub location pluralities.
+	pub struct AssetHubPlurality;
+	impl Contains<Location> for AssetHubPlurality {
+		fn contains(loc: &Location) -> bool {
+			matches!(
+				loc.unpack(),
+				(
+					1,
+					[
+						Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID),
+						Plurality { .. }
+					]
+				)
+			)
+		}
 	}
 }

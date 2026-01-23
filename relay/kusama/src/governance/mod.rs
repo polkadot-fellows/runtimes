@@ -26,7 +26,7 @@ use frame_system::EnsureRootWithSuccess;
 mod origins;
 pub use origins::{
 	pallet_custom_origins, AuctionAdmin, Fellows, FellowshipAdmin, FellowshipExperts,
-	FellowshipInitiates, FellowshipMasters, GeneralAdmin, LeaseAdmin, ReferendumCanceller,
+	FellowshipInitiates, FellowshipMasters, GeneralAdmin, LeaseAdmin, Origin, ReferendumCanceller,
 	ReferendumKiller, Spender, StakingAdmin, Treasurer, WhitelistedCaller,
 };
 mod tracks;

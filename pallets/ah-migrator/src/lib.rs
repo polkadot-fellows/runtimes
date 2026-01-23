@@ -1,0 +1,1408 @@
+// This file is part of Substrate.
+
+// Copyright (C) Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//! The operational pallet for the Asset Hub, designed to manage and facilitate the migration of
+//! subsystems such as Governance, Staking, Balances from the Relay Chain to the Asset Hub. This
+//! pallet works alongside its counterpart, `pallet_rc_migrator`, which handles migration
+//! processes on the Relay Chain side.
+//!
+//! This pallet is responsible for controlling the initiation, progression, and completion of the
+//! migration process, including managing its various stages and transferring the necessary data.
+//! The pallet directly accesses the storage of other pallets for read/write operations while
+//! maintaining compatibility with their existing APIs.
+//!
+//! To simplify development and avoid the need to edit the original pallets, this pallet may
+//! duplicate private items such as storage entries from the original pallets. This ensures that the
+//! migration logic can be implemented without altering the original implementations.
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
+pub mod account;
+pub mod account_translation;
+pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+pub mod bounties;
+pub mod call;
+pub mod child_bounties;
+pub mod claims;
+pub mod conviction_voting;
+pub mod crowdloan;
+pub mod indices;
+pub mod multisig;
+pub mod preimage;
+pub mod proxy;
+#[cfg(feature = "kusama-ahm")]
+pub mod recovery;
+pub mod referenda;
+pub mod scheduler;
+#[cfg(feature = "kusama-ahm")]
+pub mod society;
+pub mod sovereign_account_translation;
+pub mod staking;
+pub mod treasury;
+pub mod types;
+pub mod vesting;
+pub mod xcm_config;
+pub mod xcm_translation;
+
+pub use pallet::*;
+pub use pallet_rc_migrator::{
+	types::{
+		BenchmarkingDefault, ExceptResponseFor, LeftIfFinished, LeftIfPending, LeftOrRight,
+		MaxOnIdleOrInner, QueuePriority as DmpQueuePriority, RouteInnerWithException,
+	},
+	weights_ah,
+};
+pub use weights_ah::WeightInfo;
+
+use frame_support::{
+	pallet_prelude::*,
+	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
+	traits::{
+		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
+		tokens::{Fortitude, Pay, Preservation},
+		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
+	},
+	weights::WeightMeter,
+};
+use frame_system::pallet_prelude::*;
+use pallet_balances::{AccountData, Reasons as LockReasons};
+#[cfg(feature = "kusama-ahm")]
+use pallet_rc_migrator::recovery::{PortableRecoveryMessage, MAX_FRIENDS};
+#[cfg(feature = "kusama-ahm")]
+use pallet_rc_migrator::society::{PortableSocietyMessage, MAX_PAYOUTS};
+use pallet_rc_migrator::{
+	bounties::RcBountiesMessageOf, child_bounties::PortableChildBountiesMessage,
+	claims::RcClaimsMessageOf, crowdloan::RcCrowdloanMessageOf, referenda::ReferendaMessage,
+	scheduler::SchedulerAgendaMessage, staking::PortableStakingMessage,
+	treasury::PortableTreasuryMessage, types::MigrationStatus,
+};
+use parachains_common::pay::VersionedLocatableAccount;
+
+use cumulus_primitives_core::AggregateMessageOrigin;
+use frame_support::traits::EnqueueMessage;
+use pallet_message_queue::ForceSetHead;
+use pallet_rc_migrator::{
+	accounts::Account as RcAccount,
+	conviction_voting::RcConvictionVotingMessageOf,
+	indices::RcIndicesIndexOf,
+	multisig::{MultisigMigrationChecker, RcMultisigOf},
+	preimage::*,
+	proxy::*,
+	staking::{
+		bags_list::PortableBagsListMessage, delegated_staking::PortableDelegatedStakingMessage,
+		nom_pools::*,
+	},
+	types::MigrationFinishedData,
+	vesting::RcVestingSchedule,
+};
+use pallet_referenda::TrackIdOf;
+use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
+use referenda::RcReferendumInfoOf;
+use scheduler::RcSchedulerMessageOf;
+use sp_application_crypto::Ss58Codec;
+use sp_core::H256;
+use sp_runtime::{
+	traits::{BlockNumberProvider, Convert, One, TryConvert, Zero},
+	AccountId32, FixedU128,
+};
+use sp_std::prelude::*;
+use xcm::prelude::*;
+use xcm_builder::MintLocation;
+
+/// The log target of this pallet.
+pub const LOG_TARGET: &str = "runtime::ah-migrator";
+
+type RcAccountFor<T> = RcAccount<
+	<T as frame_system::Config>::AccountId,
+	<T as pallet_balances::Config>::Balance,
+	<T as Config>::PortableHoldReason,
+	<T as Config>::PortableFreezeReason,
+>;
+
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum PalletEventName {
+	AssetRates,
+	BagsList,
+	Balances,
+	Bounties,
+	ChildBounties,
+	Claims,
+	ConvictionVoting,
+	Crowdloan,
+	DelegatedStaking,
+	Indices,
+	Multisig,
+	NomPools,
+	PreimageChunk,
+	PreimageLegacyStatus,
+	PreimageRequestStatus,
+	ProxyAnnouncements,
+	ProxyProxies,
+	Recovery,
+	ReferendaMetadata,
+	ReferendaReferendums,
+	ReferendaValues,
+	Scheduler,
+	SchedulerAgenda,
+	Staking,
+	Treasury,
+	Vesting,
+	Society,
+}
+
+/// The migration stage on the Asset Hub.
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Clone,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialEq,
+	Eq,
+)]
+pub enum MigrationStage {
+	/// The migration has not started but will start in the future.
+	#[default]
+	Pending,
+	/// Migrating data from the Relay Chain.
+	DataMigrationOngoing,
+	/// The migration is done.
+	MigrationDone,
+	/// Cool off-stage for manual verification. Calls are still locked.
+	CoolOff {
+		/// The RC block number at which the post migration cool-off period will end.
+		end_at: u32,
+	},
+}
+
+impl MigrationStage {
+	/// Whether the migration is pending and not yet started.
+	pub fn is_pending(&self) -> bool {
+		matches!(self, MigrationStage::Pending)
+	}
+
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
+	pub fn is_finished(&self) -> bool {
+		matches!(self, MigrationStage::MigrationDone)
+	}
+
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
+	pub fn is_ongoing(&self) -> bool {
+		matches!(self, MigrationStage::DataMigrationOngoing | MigrationStage::CoolOff { .. })
+	}
+}
+
+/// Helper struct storing certain balances before the migration.
+#[derive(
+	Encode,
+	DecodeWithMemTracking,
+	Decode,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct BalancesBefore<Balance> {
+	pub checking_account: Balance,
+	pub total_issuance: Balance,
+}
+
+pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
+
+#[frame_support::pallet]
+pub mod pallet {
+	use super::*;
+
+	/// Super config trait for all pallets that the migration depends on, providing convenient
+	/// access to their items.
+	#[pallet::config]
+	pub trait Config:
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
+		+ pallet_balances::Config<
+			Balance = u128,
+			RuntimeHoldReason = <Self as Config>::RuntimeHoldReason,
+			RuntimeFreezeReason = <Self as Config>::RuntimeFreezeReason,
+		> + pallet_multisig::Config
+		+ pallet_proxy::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
+		+ pallet_preimage::Config<Hash = H256>
+		+ pallet_referenda::Config<
+			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
+			Votes = u128,
+		> + pallet_nomination_pools::Config<
+			BlockNumberProvider = <Self as Config>::RcBlockNumberProvider,
+		> + pallet_bags_list::Config<pallet_bags_list::Instance1, Score = u64>
+		+ pallet_scheduler::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>
+		+ pallet_vesting::Config
+		+ pallet_indices::Config
+		+ pallet_conviction_voting::Config
+		+ pallet_asset_rate::Config
+		+ pallet_timestamp::Config<Moment = u64>
+		+ pallet_ah_ops::Config
+		+ pallet_claims::Config
+		+ pallet_bounties::Config
+		+ pallet_child_bounties::Config
+		+ pallet_treasury::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			BlockNumberProvider = Self::TreasuryBlockNumberProvider,
+			Paymaster = Self::TreasuryPaymaster,
+			AssetKind = VersionedLocatableAsset,
+			Beneficiary = VersionedLocatableAccount,
+		> + pallet_delegated_staking::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_staking_async::Config<CurrencyBalance = u128>
+		+ pallet_xcm::Config
+	{
+		type RuntimeHoldReason: Parameter
+			+ VariantCount
+			+ MaxEncodedLen
+			+ From<<Self as Config>::PortableHoldReason>;
+		type RuntimeFreezeReason: Parameter
+			+ VariantCount
+			+ MaxEncodedLen
+			+ From<<Self as Config>::PortableFreezeReason>;
+		type PortableHoldReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+		type PortableFreezeReason: Parameter + MaxEncodedLen + BenchmarkingDefault;
+		/// The overarching event type.
+		#[allow(deprecated)]
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// The origin that can perform permissioned operations like setting the migration stage.
+		///
+		/// This is generally root and Fellows origins.
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+		/// Native asset registry type.
+		type Currency: Mutate<Self::AccountId, Balance = u128>
+			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
+			+ InspectFreeze<Self::AccountId, Id = <Self as Config>::RuntimeFreezeReason>
+			+ MutateFreeze<Self::AccountId>
+			+ Unbalanced<Self::AccountId>
+			+ ReservableCurrency<Self::AccountId, Balance = u128>
+			+ LockableCurrency<Self::AccountId, Balance = u128>;
+
+		/// Config for pallets that are only on Kusama.
+		#[cfg(feature = "kusama-ahm")]
+		type KusamaConfig: pallet_recovery::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxFriends = ConstU32<{ MAX_FRIENDS }>,
+			> + frame_system::Config<
+				AccountData = AccountData<u128>,
+				AccountId = AccountId32,
+				Hash = sp_core::H256,
+			> + pallet_society::Config<
+				Currency = pallet_balances::Pallet<Self>,
+				BlockNumberProvider = Self::RecoveryBlockNumberProvider,
+				MaxPayouts = ConstU32<{ MAX_PAYOUTS }>,
+			>;
+
+		#[cfg(feature = "kusama-ahm")]
+		type RecoveryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+
+		/// All supported assets registry.
+		type Assets: FungiblesMutate<Self::AccountId>;
+		/// XCM check account.
+		///
+		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
+		type CheckingAccount: Get<Self::AccountId>;
+		/// Staking pot account (CollatorSelection account).
+		///
+		/// This account holds the collator selection staking pot and should be excluded from
+		/// balance migration checks as it may be modified during migration.
+		type StakingPotAccount: Get<Self::AccountId>;
+		/// The abridged Relay Chain Proxy Type.
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcProxyType: Parameter + Default;
+		/// Convert a Relay Chain Proxy Type to a local AH one.
+		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
+		/// Access the block number of the Relay Chain.
+		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+		/// Block number provider of the treasury pallet.
+		///
+		/// This is here to simplify the code of the treasury, bounties and child-bounties migration
+		/// code since they all depend on the treasury provided block number. The compiler checks
+		/// that this is configured correctly.
+		type TreasuryBlockNumberProvider: BlockNumberProvider<BlockNumber = u32>;
+		type TreasuryPaymaster: Pay<
+			Id = u64,
+			Balance = u128,
+			Beneficiary = VersionedLocatableAccount,
+			AssetKind = VersionedLocatableAsset,
+		>;
+		/// Some part of the Relay Chain origins used in Governance.
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcPalletsOrigin: Parameter + Default + DecodeWithMemTracking;
+		/// Convert a Relay Chain origin to an Asset Hub one.
+		type RcToAhPalletsOrigin: TryConvert<
+			Self::RcPalletsOrigin,
+			<<Self as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
+		>;
+
+		/// Preimage registry.
+		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
+		/// Convert a Relay Chain Call to a local AH one.
+		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
+		/// Send UMP message.
+		type SendXcm: SendXcm;
+		/// Weight information for extrinsics in this pallet.
+		type AhWeightInfo: WeightInfo;
+		/// Asset Hub Treasury accounts migrating to the new treasury account address (same account
+		/// address that was used on the Relay Chain).
+		///
+		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
+		/// list should not include the native asset.
+		type TreasuryAccounts: Get<(
+			Self::AccountId,
+			Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>,
+		)>;
+		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
+		/// Asset Hub (AssetKind, Beneficiary) parameters.
+		type RcToAhTreasurySpend: Convert<
+			(VersionedLocatableAsset, VersionedLocation),
+			Result<
+				(
+					<Self as pallet_treasury::Config>::AssetKind,
+					<Self as pallet_treasury::Config>::Beneficiary,
+				),
+				(),
+			>,
+		>;
+
+		/// Calls that are allowed before the migration starts.
+		type AhPreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed during the migration.
+		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed after the migration finished.
+		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Means to force a next queue within the message queue processing DMP and HRMP queues.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>
+			+ EnqueueMessage<AggregateMessageOrigin>;
+
+		/// The priority pattern for DMP queue processing during migration [Config::MessageQueue].
+		///
+		/// This configures how frequently the DMP queue gets priority over other queues
+		/// (like HRMP). The tuple (dmp_priority_blocks, round_robin_blocks) defines a repeating
+		/// cycle where:
+		/// - `dmp_priority_blocks` consecutive blocks: DMP queue gets priority
+		/// - `round_robin_blocks` consecutive blocks: round-robin processing of all queues
+		/// - Then the cycle repeats
+		///
+		/// For example, (18, 2) means a cycle of 20 blocks that repeats.
+		///
+		/// This configuration can be overridden by a storage item [`DmpQueuePriorityConfig`].
+		type DmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
+	}
+
+	/// RC accounts that failed to migrate when were received on the Asset Hub.
+	///
+	/// This is unlikely to happen, since we dry run the migration, but we keep it for completeness.
+	#[pallet::storage]
+	pub type RcAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, RcAccountFor<T>, OptionQuery>;
+
+	/// The Asset Hub migration state.
+	#[pallet::storage]
+	pub type AhMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
+
+	/// Helper storage item to store the total balance / total issuance of native token at the start
+	/// of the migration. Since teleports are disabled during migration, the total issuance will not
+	/// change for other reason than the migration itself.
+	#[pallet::storage]
+	pub type AhBalancesBefore<T: Config> = StorageValue<_, BalancesBefore<T::Balance>, ValueQuery>;
+
+	/// The priority of the DMP queue during migration.
+	///
+	/// Controls how the DMP (Downward Message Passing) queue is processed relative to other queues
+	/// during the migration process. This helps ensure timely processing of migration messages.
+	/// The default priority pattern is defined in the pallet configuration, but can be overridden
+	/// by a storage value of this type.
+	#[pallet::storage]
+	pub type DmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, DmpQueuePriority<BlockNumberFor<T>>, ValueQuery>;
+
+	/// An optional account id of a manager.
+	///
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
+	/// can not set the manager account id via `set_manager` call.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// The block number at which the migration began and the pallet's extrinsics were locked.
+	///
+	/// This value is set when entering the `WaitingForAh` stage, i.e., when
+	/// `RcMigrationStage::is_ongoing()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationStartBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
+	/// Block number when migration finished and extrinsics were unlocked.
+	///
+	/// This is set when entering the `MigrationDone` stage hence when
+	/// `RcMigrationStage::is_finished()` becomes `true`.
+	#[pallet::storage]
+	pub type MigrationEndBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, OptionQuery>;
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Failed to unreserve deposit.
+		FailedToUnreserveDeposit,
+		/// Failed to process an account data from RC.
+		FailedToProcessAccount,
+		/// Some item could not be inserted because it already exists.
+		InsertConflict,
+		/// Failed to convert RC type to AH type.
+		FailedToConvertType,
+		/// Failed to fetch preimage.
+		PreimageNotFound,
+		/// Failed to convert RC call to AH call.
+		FailedToConvertCall,
+		/// Failed to bound a call.
+		FailedToBoundCall,
+		/// Failed to send XCM message.
+		XcmError,
+		/// Failed to integrate a vesting schedule.
+		FailedToIntegrateVestingSchedule,
+		/// Checking account overflow or underflow.
+		FailedToCalculateCheckingAccount,
+		/// Vector did not fit into its compile-time bound.
+		FailedToBoundVector,
+		/// The DMP queue priority is already set to the same value.
+		DmpQueuePriorityAlreadySet,
+		/// Invalid parameter.
+		InvalidParameter,
+		/// Preimage missing.
+		PreimageMissing,
+		/// Preimage too big.
+		PreimageTooBig,
+		/// Preimage chunk missing.
+		PreimageChunkMissing,
+		/// Preimage status invalid.
+		PreimageStatusInvalid,
+		/// The XCM version is invalid.
+		BadXcmVersion,
+		/// The origin is invalid.
+		InvalidOrigin,
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// A stage transition has occurred.
+		StageTransition {
+			/// The old stage before the transition.
+			old: MigrationStage,
+			/// The new stage after the transition.
+			new: MigrationStage,
+		},
+		/// We received a batch of messages that will be integrated into a pallet.
+		BatchReceived {
+			pallet: PalletEventName,
+			count: u32,
+		},
+		/// We processed a batch of messages for this pallet.
+		BatchProcessed {
+			pallet: PalletEventName,
+			count_good: u32,
+			count_bad: u32,
+		},
+		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is
+		/// emitted.
+		///
+		/// This event is equivalent to `StageTransition { new: DataMigrationOngoing, .. }` but is
+		/// easier to understand. The activation is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationStarted,
+		/// The Asset Hub Migration finished.
+		///
+		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier
+		/// to understand. The finishing is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationFinished,
+		/// Whether the DMP queue was prioritized for the next block.
+		DmpQueuePrioritySet {
+			/// Indicates if DMP queue was successfully set as priority.
+			/// If `false`, it means we're in the round-robin phase of our priority pattern
+			/// (see [`Config::DmpQueuePriorityPattern`]), where no queue gets priority.
+			prioritized: bool,
+			/// Current block number within the pattern cycle (1 to period).
+			cycle_block: BlockNumberFor<T>,
+			/// Total number of blocks in the pattern cycle
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The DMP queue priority config was set.
+		DmpQueuePriorityConfigSet {
+			/// The old priority pattern.
+			old: DmpQueuePriority<BlockNumberFor<T>>,
+			/// The new priority pattern.
+			new: DmpQueuePriority<BlockNumberFor<T>>,
+		},
+		/// The balances before the migration were recorded.
+		BalancesBeforeRecordSet {
+			checking_account: T::Balance,
+			total_issuance: T::Balance,
+		},
+		/// The balances before the migration were consumed.
+		BalancesBeforeRecordConsumed {
+			checking_account: T::Balance,
+			total_issuance: T::Balance,
+		},
+		/// A referendum was cancelled because it could not be mapped.
+		ReferendumCanceled {
+			id: u32,
+		},
+		/// The manager account id was set.
+		ManagerSet {
+			/// The old manager account id.
+			old: Option<T::AccountId>,
+			/// The new manager account id.
+			new: Option<T::AccountId>,
+		},
+		AccountTranslatedParachainSovereign {
+			from: T::AccountId,
+			to: T::AccountId,
+		},
+		AccountTranslatedParachainSovereignDerived {
+			from: T::AccountId,
+			to: T::AccountId,
+			derivation_index: u16,
+		},
+		/// An XCM message was sent.
+		XcmSent {
+			origin: Location,
+			destination: Location,
+			message: Xcm<()>,
+			message_id: XcmHash,
+		},
+		/// Failed to unreserve a multisig deposit.
+		FailedToUnreserveMultisigDeposit {
+			/// The expected amount of the deposit that was expected to be unreserved.
+			expected_amount: pallet_rc_migrator::multisig::BalanceOf<T>,
+			/// The missing amount of the deposit.
+			missing_amount: pallet_rc_migrator::multisig::BalanceOf<T>,
+			/// The account that the deposit was unreserved from.
+			account: T::AccountId,
+		},
+		/// Failed to unreserve a legacy status preimage deposit.
+		FailedToUnreservePreimageDeposit {
+			/// The expected amount of the deposit that was expected to be unreserved.
+			expected_amount: pallet_preimage::BalanceOf<T>,
+			/// The missing amount of the deposit.
+			missing_amount: pallet_preimage::BalanceOf<T>,
+			/// The account that the deposit was unreserved from.
+			account: T::AccountId,
+		},
+	}
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(_);
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		/// Receive accounts from the Relay Chain.
+		///
+		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
+		#[pallet::call_index(0)]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
+				T::AhWeightInfo::receive_liquid_accounts
+			} else {
+				T::AhWeightInfo::receive_accounts
+			};
+			for account in accounts.iter() {
+				let weight = if total.is_zero() {
+					weight_of(account)(1)
+				} else {
+					weight_of(account)(1).saturating_sub(weight_of(account)(0))
+				};
+				total = total.saturating_add(weight);
+			}
+			total
+		})]
+		pub fn receive_accounts(
+			origin: OriginFor<T>,
+			accounts: Vec<RcAccountFor<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_accounts(accounts).map_err(Into::into)
+		}
+
+		/// Receive multisigs from the Relay Chain.
+		///
+		/// This will be called from an XCM `Transact` inside a DMP from the relay chain. The
+		/// multisigs were prepared by
+		/// `pallet_rc_migrator::multisig::MultisigMigrator::migrate_many`.
+		#[pallet::call_index(1)]
+		#[pallet::weight(T::AhWeightInfo::receive_multisigs(accounts.len() as u32))]
+		pub fn receive_multisigs(
+			origin: OriginFor<T>,
+			accounts: Vec<RcMultisigOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_multisigs(accounts).map_err(Into::into)
+		}
+
+		/// Receive proxies from the Relay Chain.
+		#[pallet::call_index(2)]
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
+		pub fn receive_proxy_proxies(
+			origin: OriginFor<T>,
+			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_proxies(proxies).map_err(Into::into)
+		}
+
+		/// Receive proxy announcements from the Relay Chain.
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_announcements(announcements.len() as u32))]
+		pub fn receive_proxy_announcements(
+			origin: OriginFor<T>,
+			announcements: Vec<RcProxyAnnouncementOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for chunk in chunks.iter() {
+				total = total.saturating_add(
+					T::AhWeightInfo::receive_preimage_chunk(
+						chunk.chunk_byte_offset / chunks::CHUNK_SIZE,
+					),
+				);
+			}
+			total
+		})]
+		pub fn receive_preimage_chunks(
+			origin: OriginFor<T>,
+			chunks: Vec<RcPreimageChunk>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
+		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::AhWeightInfo::receive_preimage_request_status(request_status.len() as u32))]
+		pub fn receive_preimage_request_status(
+			origin: OriginFor<T>,
+			request_status: Vec<PortableRequestStatus>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
+		}
+
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::AhWeightInfo::receive_preimage_legacy_status(legacy_status.len() as u32))]
+		pub fn receive_preimage_legacy_status(
+			origin: OriginFor<T>,
+			legacy_status: Vec<RcPreimageLegacyStatusOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(T::AhWeightInfo::receive_nom_pools_messages(messages.len() as u32))]
+		pub fn receive_nom_pools_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcNomPoolsMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(8)]
+		#[pallet::weight(T::AhWeightInfo::receive_vesting_schedules(schedules.len() as u32))]
+		pub fn receive_vesting_schedules(
+			origin: OriginFor<T>,
+			schedules: Vec<RcVestingSchedule<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_vesting_schedules(schedules).map_err(Into::into)
+		}
+
+		/// Receive referendum counts, deciding counts, votes for the track queue.
+		#[pallet::call_index(10)]
+		#[pallet::weight(T::AhWeightInfo::receive_referenda_values())]
+		pub fn receive_referenda_values(
+			origin: OriginFor<T>,
+			// we accept a vector here only to satisfy the signature of the
+			// `pallet_rc_migrator::Pallet::send_chunked_xcm_and_track` function and avoid
+			// introducing a send function for non-vector data or rewriting the referenda pallet
+			// migration.
+			mut values: Vec<ReferendaMessage<TrackIdOf<T, ()>>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			ensure!(values.len() == 1, Error::<T>::InvalidParameter);
+
+			let ReferendaMessage { referendum_count, deciding_count, track_queue } =
+				values.pop().ok_or(Error::<T>::InvalidParameter)?;
+
+			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
+				.map_err(Into::into)
+		}
+
+		/// Receive referendums from the Relay Chain.
+		#[pallet::call_index(11)]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for (_, info) in referendums.iter() {
+				let weight = match info {
+					pallet_referenda::ReferendumInfo::Ongoing(status) => {
+						let len = status.proposal.len().defensive_unwrap_or(
+							// should not happen, but we pick some sane call length.
+							512,
+						);
+						T::AhWeightInfo::receive_single_active_referendums(len)
+					},
+					_ =>
+						if total.is_zero() {
+							T::AhWeightInfo::receive_complete_referendums(1)
+						} else {
+							T::AhWeightInfo::receive_complete_referendums(1)
+								.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
+						},
+				};
+				total = total.saturating_add(weight);
+			}
+			total
+		})]
+		pub fn receive_referendums(
+			origin: OriginFor<T>,
+			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_referendums(referendums).map_err(Into::into)
+		}
+		#[pallet::call_index(12)]
+		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
+		pub fn receive_claims(
+			origin: OriginFor<T>,
+			messages: Vec<RcClaimsMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_claims(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(13)]
+		#[pallet::weight(T::AhWeightInfo::receive_bags_list_messages(messages.len() as u32))]
+		pub fn receive_bags_list_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableBagsListMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(14)]
+		#[pallet::weight(T::AhWeightInfo::receive_scheduler_lookup(messages.len() as u32))]
+		pub fn receive_scheduler_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcSchedulerMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(15)]
+		#[pallet::weight(T::AhWeightInfo::receive_indices(indices.len() as u32))]
+		pub fn receive_indices(
+			origin: OriginFor<T>,
+			indices: Vec<RcIndicesIndexOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_indices(indices).map_err(Into::into)
+		}
+
+		#[pallet::call_index(16)]
+		#[pallet::weight(T::AhWeightInfo::receive_conviction_voting_messages(messages.len() as u32))]
+		pub fn receive_conviction_voting_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcConvictionVotingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
+		}
+		#[pallet::call_index(17)]
+		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
+		pub fn receive_bounties_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcBountiesMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bounties_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(18)]
+		#[pallet::weight(T::AhWeightInfo::receive_asset_rates(rates.len() as u32))]
+		pub fn receive_asset_rates(
+			origin: OriginFor<T>,
+			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_asset_rates(rates).map_err(Into::into)
+		}
+		#[pallet::call_index(19)]
+		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
+		pub fn receive_crowdloan_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcCrowdloanMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(20)]
+		#[pallet::weight(T::AhWeightInfo::receive_referenda_metadata(metadata.len() as u32))]
+		pub fn receive_referenda_metadata(
+			origin: OriginFor<T>,
+			metadata: Vec<(u32, <T as frame_system::Config>::Hash)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_referenda_metadata(metadata).map_err(Into::into)
+		}
+		#[pallet::call_index(21)]
+		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
+		pub fn receive_treasury_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableTreasuryMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_treasury_messages(messages)
+		}
+
+		#[pallet::call_index(22)]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for SchedulerAgendaMessage { agenda, .. } in messages.iter() {
+				for maybe_task in agenda {
+					let Some(task) = maybe_task else {
+						continue;
+					};
+					let preimage_len = task.call.len().defensive_unwrap_or(
+						// should not happen, but we assume some sane call length.
+						512,
+					);
+					total = total.saturating_add(
+						T::AhWeightInfo::receive_single_scheduler_agenda(preimage_len),
+					);
+				}
+			}
+			total
+		})]
+		pub fn receive_scheduler_agenda_messages(
+			origin: OriginFor<T>,
+			messages: Vec<SchedulerAgendaMessage<BlockNumberFor<T>, scheduler::RcScheduledOf<T>>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_scheduler_agenda_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(23)]
+		#[pallet::weight(T::AhWeightInfo::receive_delegated_staking_messages(messages.len() as u32))]
+		pub fn receive_delegated_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableDelegatedStakingMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_delegated_staking_messages(messages)
+		}
+
+		#[pallet::call_index(24)]
+		#[pallet::weight(T::AhWeightInfo::receive_child_bounties_messages(messages.len() as u32))]
+		pub fn receive_child_bounties_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableChildBountiesMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_child_bounties_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(25)]
+		#[pallet::weight(T::AhWeightInfo::receive_staking_messages(messages.len() as u32))]
+		pub fn receive_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableStakingMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_staking_messages(messages).map_err(Into::into)
+		}
+
+		#[cfg(feature = "kusama-ahm")]
+		#[pallet::call_index(26)]
+		#[pallet::weight(pallet_rc_migrator::recovery::ah_receive_recovery_msg_weight(messages.len() as u32))]
+		pub fn receive_recovery_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableRecoveryMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_recovery_messages(messages).map_err(Into::into)
+		}
+
+		#[cfg(feature = "kusama-ahm")]
+		#[pallet::call_index(27)]
+		#[pallet::weight({
+			Weight::from_parts(10_000_000, 1000)
+				.saturating_add(T::DbWeight::get().writes(1_u64).saturating_mul(messages.len() as u64))
+		})]
+		pub fn receive_society_messages(
+			origin: OriginFor<T>,
+			messages: Vec<PortableSocietyMessage>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_society_messages(messages).map_err(Into::into)
+		}
+
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::AdminOrigin`].
+		#[pallet::call_index(100)]
+		#[pallet::weight(T::AhWeightInfo::force_set_stage())]
+		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+
+			Self::transition(stage);
+			Ok(())
+		}
+
+		/// Start the data migration.
+		///
+		/// This is typically called by the Relay Chain to start the migration on the Asset Hub and
+		/// receive a handshake message indicating the Asset Hub's readiness.
+		#[pallet::call_index(101)]
+		#[pallet::weight(T::AhWeightInfo::start_migration())]
+		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+
+			Self::migration_start_hook().map_err(Into::into)
+		}
+
+		/// Set the DMP queue priority configuration.
+		///
+		/// Can only be called by the `AdminOrigin`.
+		#[pallet::call_index(102)]
+		#[pallet::weight(T::AhWeightInfo::set_dmp_queue_priority())]
+		pub fn set_dmp_queue_priority(
+			origin: OriginFor<T>,
+			new: DmpQueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+
+			let old = DmpQueuePriorityConfig::<T>::get();
+			if old == new {
+				return Err(Error::<T>::DmpQueuePriorityAlreadySet.into());
+			}
+			ensure!(
+				new.get_priority_blocks().is_none_or(|blocks| !blocks.is_zero()),
+				Error::<T>::InvalidParameter
+			);
+			DmpQueuePriorityConfig::<T>::put(new.clone());
+			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
+
+		/// Set the manager account id.
+		///
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call.
+		#[pallet::call_index(103)]
+		#[pallet::weight(T::AhWeightInfo::set_manager())]
+		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			let old = Manager::<T>::get();
+			Manager::<T>::set(new.clone());
+			Self::deposit_event(Event::ManagerSet { old, new });
+			Ok(())
+		}
+
+		/// Finish the migration.
+		///
+		/// This is typically called by the Relay Chain to signal the migration has finished.
+		///
+		/// The `data` parameter might be `None` if we are running the migration for a second time
+		/// for some pallets and have already performed the checking account balance correction,
+		/// so we do not need to do it this time.
+		#[pallet::call_index(110)]
+		#[pallet::weight(T::AhWeightInfo::finish_migration())]
+		pub fn finish_migration(
+			origin: OriginFor<T>,
+			data: Option<MigrationFinishedData<T::Balance>>,
+			cool_off_end_at: u32,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+
+			Self::migration_finish_hook(data, cool_off_end_at).map_err(Into::into)
+		}
+
+		/// XCM send call identical to the [`pallet_xcm::Pallet::send`] call but with the
+		/// [Config::SendXcm] router which will be able to send messages to the Relay Chain during
+		/// the migration.
+		#[pallet::call_index(111)]
+		#[pallet::weight({ Weight::from_parts(10_000_000, 1000) })]
+		pub fn send_xcm_message(
+			origin: OriginFor<T>,
+			dest: Box<VersionedLocation>,
+			message: Box<VersionedXcm<()>>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin.clone())?;
+
+			let origin_location = <T as pallet_xcm::Config>::SendXcmOrigin::ensure_origin(origin)?;
+			let interior: Junctions =
+				origin_location.clone().try_into().map_err(|_| Error::<T>::InvalidOrigin)?;
+			let dest = Location::try_from(*dest).map_err(|()| Error::<T>::BadXcmVersion)?;
+			let mut message: Xcm<()> =
+				(*message).try_into().map_err(|()| Error::<T>::BadXcmVersion)?;
+
+			if interior != Junctions::Here {
+				message.0.insert(0, DescendOrigin(interior.clone()));
+			}
+
+			// validate
+			let (ticket, _price) =
+				validate_send::<<T as Config>::SendXcm>(dest.clone(), message.clone()).map_err(
+					|error| {
+						log::error!(
+							target: LOG_TARGET,
+							"XCM validation failed with error: {error:?}; destination: {dest:?}; message: {message:?}",
+						);
+						Error::<T>::XcmError
+					},
+				)?;
+			// send
+			let message_id = <T as Config>::SendXcm::deliver(ticket).map_err(|error| {
+				log::error!(
+					target: LOG_TARGET,
+					"XCM send failed with error: {error:?}; destination: {dest:?}; message: {message:?}",
+				);
+				Error::<T>::XcmError
+			})?;
+
+			Self::deposit_event(Event::XcmSent {
+				origin: origin_location,
+				destination: dest,
+				message,
+				message_id,
+			});
+			Ok(())
+		}
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+			let mut weight = Weight::from_parts(0, 0);
+
+			if Self::is_ongoing() {
+				weight = weight.saturating_add(T::AhWeightInfo::force_dmp_queue_priority());
+			}
+
+			if let MigrationStage::CoolOff { end_at } = AhMigrationStage::<T>::get() {
+				// `TreasuryBlockNumberProvider` is the RC block number provider.
+				let rc_block = T::TreasuryBlockNumberProvider::current_block_number();
+				if rc_block >= end_at {
+					Self::transition(MigrationStage::MigrationDone);
+				}
+			}
+
+			weight
+		}
+
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if Self::is_ongoing() {
+				Self::force_dmp_queue_priority(now);
+			}
+		}
+
+		fn integrity_test() {
+			let (dmp_priority_blocks, _) = T::DmpQueuePriorityPattern::get();
+			assert!(!dmp_priority_blocks.is_zero(), "the `dmp_priority_blocks` should be non-zero");
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(account_id) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().is_some_and(|manager_id| manager_id == account_id) {
+					return Ok(());
+				}
+			}
+			<T as Config>::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
+		/// Helper function for migration post-check validation.
+		///
+		/// Should be used to apply account translation to RC pre-check data for consistent
+		/// comparison with AH post-state.
+		pub fn translate_encoded_account_rc_to_ah(who_encoded: Vec<u8>) -> Vec<u8> {
+			use codec::Decode;
+			let original_account = T::AccountId::decode(&mut &who_encoded[..])
+				.expect("Account decoding should never fail");
+			Self::translate_account_rc_to_ah(original_account).encode()
+		}
+
+		/// Auxiliary logic to be done before the migration starts.
+		pub fn migration_start_hook() -> Result<(), Error<T>> {
+			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+
+			// Lock bags-list for migration
+			log::info!(target: LOG_TARGET, "Locking bags-list for migration");
+			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::lock();
+
+			// Accounts
+			let checking_account = T::CheckingAccount::get();
+			let balances_before = BalancesBefore {
+				checking_account: <T as Config>::Currency::total_balance(&checking_account),
+				total_issuance: <T as Config>::Currency::total_issuance(),
+			};
+			log::info!(
+				target: LOG_TARGET,
+				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
+				balances_before.checking_account, balances_before.total_issuance
+			);
+			AhBalancesBefore::<T>::put(&balances_before);
+
+			Self::deposit_event(Event::BalancesBeforeRecordSet {
+				checking_account: balances_before.checking_account,
+				total_issuance: balances_before.total_issuance,
+			});
+
+			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
+
+		/// Auxiliary logic to be done after the migration finishes.
+		pub fn migration_finish_hook(
+			data: Option<MigrationFinishedData<T::Balance>>,
+			cool_off_end_at: u32,
+		) -> Result<(), Error<T>> {
+			// Accounts
+			if let Some(data) = data {
+				if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+					defensive!("Account migration failed: {:?}", err);
+				}
+			}
+
+			// Unlock bags-list now that migration is complete
+			log::info!(target: LOG_TARGET, "Unlocking bags-list after migration completion");
+			<pallet_bags_list::Pallet::<T, pallet_bags_list::Instance1> as frame_election_provider_support::SortedListProvider<T::AccountId>>::unlock();
+
+			// We have to go into the Done state, otherwise the chain will be blocked
+			Self::transition(MigrationStage::CoolOff { end_at: cool_off_end_at });
+			Ok(())
+		}
+
+		/// Execute a stage transition and log it.
+		fn transition(new: MigrationStage) {
+			let old = AhMigrationStage::<T>::get();
+
+			if new == MigrationStage::DataMigrationOngoing {
+				defensive_assert!(
+					old == MigrationStage::Pending,
+					"Data migration can only enter from Pending"
+				);
+				MigrationStartBlock::<T>::put(frame_system::Pallet::<T>::block_number());
+				Self::deposit_event(Event::AssetHubMigrationStarted);
+			}
+			if new == MigrationStage::MigrationDone {
+				defensive_assert!(
+					matches!(old, MigrationStage::CoolOff { .. }),
+					"MigrationDone can only enter from CoolOff"
+				);
+				MigrationEndBlock::<T>::put(frame_system::Pallet::<T>::block_number());
+
+				Self::deposit_event(Event::AssetHubMigrationFinished);
+			}
+
+			AhMigrationStage::<T>::put(&new);
+			log::info!(
+				target: LOG_TARGET,
+				"[Block {:?}] AH stage transition: {:?} -> {:?}",
+				frame_system::Pallet::<T>::block_number(),
+				&old,
+				&new
+			);
+			Self::deposit_event(Event::StageTransition { old, new });
+		}
+
+		/// Send a single XCM message.
+		pub fn send_xcm(call: types::RcMigratorCall) -> Result<(), Error<T>> {
+			let call = types::RcPalletConfig::RcmController(call);
+
+			let message = Xcm(vec![
+				Instruction::UnpaidExecution {
+					weight_limit: WeightLimit::Unlimited,
+					check_origin: None,
+				},
+				Instruction::Transact {
+					origin_kind: OriginKind::Xcm,
+					fallback_max_weight: None,
+					call: call.encode().into(),
+				},
+			]);
+
+			if let Err(err) = send_xcm::<T::SendXcm>(Location::parent(), message.clone()) {
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {err:?}");
+				return Err(Error::XcmError);
+			};
+
+			Ok(())
+		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_finished() {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			} else {
+				None
+			}
+		}
+
+		/// Force the DMP queue priority for the next block.
+		pub fn force_dmp_queue_priority(now: BlockNumberFor<T>) {
+			let (dmp_priority_blocks, round_robin_blocks) = match DmpQueuePriorityConfig::<T>::get()
+			{
+				DmpQueuePriority::Config => T::DmpQueuePriorityPattern::get(),
+				DmpQueuePriority::OverrideConfig(dmp_priority_blocks, round_robin_blocks) =>
+					(dmp_priority_blocks, round_robin_blocks),
+				DmpQueuePriority::Disabled => return,
+			};
+
+			let period = dmp_priority_blocks + round_robin_blocks;
+			if period.is_zero() {
+				return;
+			}
+			let current_block = now % period;
+
+			let is_set = if current_block < dmp_priority_blocks {
+				// it is safe to force set the queue without checking if the DMP queue is empty, as
+				// the implementation handles these checks internally.
+				let dmp = AggregateMessageOrigin::Parent;
+				match T::MessageQueue::force_set_head(&mut WeightMeter::new(), &dmp) {
+					Ok(is_set) => is_set,
+					Err(_) => {
+						defensive!("Failed to force set DMP queue priority");
+						false
+					},
+				}
+			} else {
+				false
+			};
+
+			Self::deposit_event(Event::DmpQueuePrioritySet {
+				prioritized: is_set,
+				cycle_block: current_block + BlockNumberFor::<T>::one(),
+				cycle_period: period,
+			});
+		}
+	}
+
+	impl<T: Config> MigrationStatus for Pallet<T> {
+		fn is_ongoing() -> bool {
+			AhMigrationStage::<T>::get().is_ongoing()
+		}
+		fn is_finished() -> bool {
+			AhMigrationStage::<T>::get().is_finished()
+		}
+	}
+}
+
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = AhMigrationStage::<T>::get();
+
+		// We have to return whether the call is allowed:
+		const ALLOWED: bool = true;
+		const FORBIDDEN: bool = false;
+
+		// Check if the call is allowed before the migration started.
+		if stage.is_pending() && !T::AhPreMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
+		if stage.is_finished() && !T::AhPostMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// If the migration is ongoing, forbid calls not in the `RcIntraMigrationCalls` set.
+		if stage.is_ongoing() && !T::AhIntraMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// Otherwise, allow the call.
+		// This also implicitly allows _any_ call if the migration has not yet started.
+		ALLOWED
+	}
+}

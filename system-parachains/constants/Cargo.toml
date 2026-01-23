@@ -8,10 +8,12 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+array-bytes = { workspace = true }
 smallvec = { workspace = true }
 
 frame-support = { workspace = true }
 kusama-runtime-constants = { workspace = true }
+pallet-revive = { workspace = true }
 parachains-common = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
@@ -25,6 +27,7 @@ default = ["std"]
 std = [
 	"frame-support/std",
 	"kusama-runtime-constants/std",
+	"pallet-revive/std",
 	"parachains-common/std",
 	"polkadot-core-primitives/std",
 	"polkadot-primitives/std",
@@ -36,9 +39,16 @@ std = [
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
+	"pallet-revive/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"pallet-revive/try-runtime",
+	"parachains-common/try-runtime",
+	"sp-runtime/try-runtime",
 ]

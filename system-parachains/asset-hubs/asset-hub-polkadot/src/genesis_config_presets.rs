@@ -83,6 +83,10 @@ fn asset_hub_polkadot_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"staking": {
+			"validatorCount": 600,
+			"devStakers": Some((2_000, 25_000)),
+		},
 		"foreignAssets": ForeignAssetsConfig {
 			assets: foreign_assets
 				.into_iter()
@@ -93,6 +97,11 @@ fn asset_hub_polkadot_genesis(
 				.map(|asset| (asset.0, asset.1, asset.2))
 				.collect(),
 			..Default::default()
+		},
+		"revive": ReviveConfig {
+			mapped_accounts: endowed_accounts.iter().filter(|x| ! pallet_revive::is_eth_derived(x)).cloned().collect(),
+			accounts: Vec::new(),
+			debug_settings: None,
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`

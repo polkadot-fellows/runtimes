@@ -94,7 +94,7 @@ pub use parachains_common::{
 };
 use polkadot_runtime_common::{
 	impls::{LocatableAssetConverter, VersionedLocatableAsset},
-	BlockHashCount, SlowAdjustingFeeUpdate,
+	prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_007_000,
+	spec_version: 2_000_005,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -319,7 +319,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = ();
+	type SingleBlockMigrations = migrations::SingleBlockMigrations;
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();
@@ -369,7 +369,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -437,6 +437,10 @@ impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
+
+impl cumulus_pallet_weight_reclaim::Config for Runtime {
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
+}
 
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
@@ -583,8 +587,8 @@ impl pallet_encointer_faucet::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
-	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
+	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0); // [ms]
+	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000); // [ms]
 }
 
 impl pallet_encointer_democracy::Config for Runtime {
@@ -629,41 +633,7 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper =
-		benchmarks_helper::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarks_helper {
-	use super::VersionedLocatableAsset;
-	use core::marker::PhantomData;
-	use frame_support::traits::Get;
-	use pallet_encointer_treasuries::benchmarking::ArgumentsFactory as TreasuryArgumentsFactory;
-	use sp_core::{ConstU32, ConstU8};
-	use xcm::prelude::*;
-
-	// The below implementation is basically the same as for:
-	// polkadot_runtime_common::impls::benchmarks::TreasuryArguments
-
-	/// Provide factory methods for the [`VersionedLocatableAsset`].
-	/// The location of the asset is determined as a Parachain with an
-	/// ID equal to the passed seed.
-	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
-		PhantomData<(Parents, ParaId)>,
-	);
-	impl<Parents: Get<u8>, ParaId: Get<u32>> TreasuryArgumentsFactory<VersionedLocatableAsset>
-		for TreasuryArguments<Parents, ParaId>
-	{
-		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
-			(
-				Location::new(Parents::get(), [Junction::Parachain(ParaId::get())]),
-				AssetId(Location::new(
-					0,
-					[PalletInstance(seed.try_into().unwrap()), GeneralIndex(seed.into())],
-				)),
-			)
-				.into()
-		}
-	}
+		impls::benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -839,6 +809,7 @@ construct_runtime! {
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 2,
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 5,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -925,26 +896,23 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 /// The SignedExtension to the basic transaction logic.
-pub type TxExtension = (
-	frame_system::CheckNonZeroSender<Runtime>,
-	frame_system::CheckSpecVersion<Runtime>,
-	frame_system::CheckTxVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
-	pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-);
+pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
-
-/// All migrations that will run on the next runtime upgrade.
-///
-/// This contains the combined migrations of the last 10 releases. It allows to skip runtime
-/// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
@@ -953,6 +921,9 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = ();
+
+	/// All migrations that will run on the next runtime upgrade.
+	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -965,7 +936,6 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	Migrations,
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -999,6 +969,7 @@ mod benches {
 		[pallet_encointer_scheduler, EncointerScheduler]
 		[pallet_encointer_treasuries, EncointerTreasuries]
 		[cumulus_pallet_parachain_system, ParachainSystem]
+		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
@@ -1286,6 +1257,15 @@ impl_runtime_apis! {
 			encoded: Vec<u8>,
 		) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
 			SessionKeys::decode_into_raw_public_keys(&encoded)
+		}
+	}
+
+	impl frame_support::view_functions::runtime_api::RuntimeViewFunction<Block> for Runtime {
+		fn execute_view_function(
+			id: frame_support::view_functions::ViewFunctionId,
+			input: Vec<u8>
+		) -> Result<Vec<u8>, frame_support::view_functions::ViewFunctionDispatchError> {
+			Runtime::execute_view_function(id, input)
 		}
 	}
 

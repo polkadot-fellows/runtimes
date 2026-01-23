@@ -97,7 +97,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 		EthereumUniversalLocation,
 		AssetHubFromEthereum,
 	>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type MaxMessageSize = ConstU32<2048>;
 	type WeightInfo = crate::weights::snowbridge_pallet_inbound_queue::WeightInfo<Runtime>;
@@ -148,7 +148,7 @@ impl snowbridge_pallet_outbound_queue::Config for Runtime {
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeter;
 	type Balance = Balance;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;
 	type PricingParameters = EthereumSystem;
 	type Channels = EthereumSystem;
@@ -168,7 +168,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeterV2;
 	type Balance = Balance;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type Verifier = EthereumBeaconClient;
 	type GatewayAddress = EthereumGatewayAddress;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
@@ -207,6 +207,10 @@ parameter_types! {
 			version: hex!("05000000"),
 			epoch: 364032,
 		},
+		fulu: Fork {
+			version: hex!("06000000"), // https://notes.ethereum.org/@bbusa/fusaka-bpo-timeline
+			epoch: 411392,
+		},
 	};
 }
 
@@ -236,7 +240,11 @@ parameter_types! {
 		electra: Fork {
 			version: hex!("05000000"),
 			epoch: 0,
-		}
+		},
+		fulu: Fork {
+			version: hex!("06000000"),
+			epoch: 50000000,
+		},
 	};
 }
 

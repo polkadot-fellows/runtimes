@@ -186,6 +186,10 @@ pub mod proxy {
 		Spokesperson,
 		#[codec(index = 10)]
 		ParaRegistration,
+		/// Operator proxy for validators. Can only manage session keys.
+		/// Cannot do staking operations (those are on Asset Hub).
+		#[codec(index = 11)]
+		StakingOperator,
 	}
 
 	/// Remote proxy interface that uses the relay chain as remote location.
@@ -264,6 +268,15 @@ pub mod proxy {
 				root,
 			)
 		}
+	}
+}
+
+/// XCM protocol related constants.
+pub mod xcm {
+	/// Pluralistic bodies existing within the consensus.
+	pub mod body {
+		// The body corresponding to the Kusama OpenGov FellowshipAdmin Origin.
+		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
 	}
 }
 
