@@ -384,7 +384,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			(100, TreasuryAccountId::get(), INITIAL_BALANCE),
 		],
 		next_asset_id: None,
-		reserves: vec![]
+		reserves: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
