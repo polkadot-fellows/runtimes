@@ -337,7 +337,7 @@ parameter_types! {
 	pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
 	pub const RelaySessionDuration: BlockNumber = prod_or_fast!(4 * RC_HOURS, RC_MINUTES);
 	pub const BondingDuration: sp_staking::EraIndex = 28;
-  /// Nominators are expected to be slashable and support fast unbonding
+	/// Nominators are expected to be slashable and support fast unbonding
 	/// depending on AreNominatorSlashable storage value, as set by governance.
 	/// NominatorFastUnbondDuration value below is ignored if nominators are slashable.
 	pub const NominatorFastUnbondDuration: sp_staking::EraIndex = 2;
