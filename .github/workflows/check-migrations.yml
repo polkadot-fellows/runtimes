@@ -22,7 +22,7 @@ permissions: {}
 
 jobs:
   runtime-matrix:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract tasks from matrix
