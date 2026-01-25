@@ -62,14 +62,14 @@ jobs:
           fail-on-cache-miss: false
 
       - name: Install try-runtime-cli
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-matched-key == ''
         run: |
           curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
           chmod +x try-runtime
           sudo mv try-runtime /usr/local/bin/
 
       - name: Generate snapshot for ${{ matrix.runtime.name }}
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-matched-key == ''
         run: |
           echo "Generating snapshot for ${{ matrix.runtime.name }}..."
 
@@ -100,7 +100,7 @@ jobs:
         shell: bash
 
       - name: Save snapshot to cache
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-matched-key == ''
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
