@@ -27,8 +27,7 @@ use frame_support::traits::tokens::imbalance::ResolveTo;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
-use scale_info::TypeInfo;
-use sp_runtime::{transaction_validity::TransactionPriority, Perquintill};
+use sp_runtime::{generic, transaction_validity::TransactionPriority, Perquintill};
 use sp_staking::SessionIndex;
 use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
@@ -179,6 +178,7 @@ impl multi_block::Config for Runtime {
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
 	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
+	type ManagerOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
 	type Verifier = MultiBlockElectionVerifier;
@@ -375,8 +375,15 @@ parameter_types! {
 		frame_election_provider_support::NposSolution
 	>::LIMIT as u32;
 
-	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
+	/// Maximum numbers that we prune from previous eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;
+
+	/// Unlike Polkadot, Kusama nominators are expected to be slashable and do not
+	/// support fast unbonding. Consequently, AreNominatorSlashable is intended to
+	/// remain set to true and should not be modified via governance.
+	/// NominatorFastUnbondDuration value below is therefore ignored.
+	pub const NominatorFastUnbondDuration: sp_staking::EraIndex = 2;
+	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
 impl pallet_staking_async::Config for Runtime {
@@ -412,12 +419,13 @@ impl pallet_staking_async::Config for Runtime {
 	type EventListeners = (NominationPools, DelegatedStaking);
 	// Note used; don't care.
 	type MaxInvulnerables = frame_support::traits::ConstU32<20>;
-	type PlanningEraOffset =
-		pallet_staking_async::PlanningEraOffsetOf<Self, RelaySessionDuration, ConstU32<10>>;
+	// This will start election for the next era as soon as an era starts.
+	type PlanningEraOffset = ConstU32<6>;
 	type RcClientInterface = StakingRcClient;
 	type MaxEraDuration = MaxEraDuration;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
 	type MaxPruningItems = MaxPruningItems;
+	type NominatorFastUnbondDuration = NominatorFastUnbondDuration;
 }
 
 impl pallet_staking_async_rc_client::Config for Runtime {
@@ -425,6 +433,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
 	type MaxValidatorSetRetries = ConstU32<64>;
+	type ValidatorSetExportSession = ValidatorSetExportSession;
 }
 
 #[derive(Encode, Decode)]
@@ -496,7 +505,7 @@ where
 	type Extension = TxExtension;
 
 	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
-		<UncheckedExtrinsic as TypeInfo>::Identity::new_transaction(call, extension).into()
+		generic::UncheckedExtrinsic::new_transaction(call, extension).into()
 	}
 }
 
@@ -505,7 +514,7 @@ where
 	RuntimeCall: From<LocalCall>,
 {
 	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
-		<UncheckedExtrinsic as TypeInfo>::Identity::new_bare(call).into()
+		generic::UncheckedExtrinsic::new_bare(call).into()
 	}
 }
 

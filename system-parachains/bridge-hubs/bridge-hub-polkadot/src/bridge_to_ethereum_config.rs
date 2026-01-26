@@ -17,13 +17,14 @@
 use crate::{
 	bridge_common_config::BridgeReward,
 	xcm_config::{self, RelayNetwork, RelayTreasuryPalletAccount, RootLocation, UniversalLocation},
-	Balances, BridgeRelayers, EthereumBeaconClient, EthereumInboundQueue, EthereumInboundQueueV2,
-	EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem, EthereumSystemV2, MessageQueue,
-	Runtime, RuntimeEvent, TransactionByteFee,
+	AggregateMessageOrigin, Balances, BridgeRelayers, EthereumBeaconClient, EthereumInboundQueue,
+	EthereumInboundQueueV2, EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem,
+	EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
 };
 use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
 use bp_bridge_hub_polkadot::snowbridge::{
-	CreateAssetCall, InboundQueuePalletInstance, InboundQueueV2PalletInstance, Parameters,
+	CreateAssetCall as CreateAssetCallIndex, InboundQueuePalletInstance,
+	InboundQueueV2PalletInstance, Parameters,
 };
 pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
 use frame_support::{parameter_types, traits::Contains, weights::ConstantMultiplier};
@@ -34,7 +35,7 @@ use parachains_common::{AccountId, Balance};
 use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::AllowSiblingsOnly;
-use snowbridge_inbound_queue_primitives::v1::MessageToXcm;
+use snowbridge_inbound_queue_primitives::{v1::MessageToXcm, v2::CreateAssetCallInfo};
 use snowbridge_outbound_queue_primitives::{
 	v1::{ConstantGasMeter, EthereumBlobExporter},
 	v2::{ConstantGasMeter as ConstantGasMeterV2, EthereumBlobExporter as EthereumBlobExporterV2},
@@ -73,6 +74,13 @@ parameter_types! {
 	pub InboundQueueV2Location: InteriorLocation = [PalletInstance(InboundQueueV2PalletInstance::get())].into();
 	pub const SnowbridgeReward: BridgeReward = BridgeReward::Snowbridge;
 	pub SnowbridgeFrontendLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID), PalletInstance(SystemFrontendPalletInstance::get())]);
+	pub const SetReservesCallIndex: [u8; 2] = [53, 33];
+	pub CreateAssetCall: CreateAssetCallInfo = CreateAssetCallInfo {
+		create_call: CreateAssetCallIndex::get(),
+		deposit: bp_asset_hub_polkadot::CreateForeignAssetDeposit::get(),
+		min_balance: 1,
+		set_reserves_call: SetReservesCallIndex::get(),
+	};
 }
 
 impl snowbridge_pallet_inbound_queue::Config for Runtime {
@@ -88,7 +96,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = Runtime;
 	type MessageConverter = MessageToXcm<
-		CreateAssetCall,
+		CreateAssetCallIndex,
 		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
 		InboundQueuePalletInstance,
 		AccountId,
@@ -97,7 +105,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 		EthereumUniversalLocation,
 		AssetHubFromEthereum,
 	>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type MaxMessageSize = ConstU32<2048>;
 	type WeightInfo = crate::weights::snowbridge_pallet_inbound_queue::WeightInfo<Runtime>;
@@ -120,14 +128,12 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 	type XcmExecutor = XcmExecutor<xcm_config::XcmConfig>;
 	type MessageConverter = snowbridge_inbound_queue_primitives::v2::MessageToXcm<
 		CreateAssetCall,
-		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
 		EthereumNetwork,
-		InboundQueueV2Location,
-		EthereumSystem,
+		RelayNetwork,
 		EthereumGatewayAddress,
-		EthereumUniversalLocation,
-		AssetHubFromEthereum,
-		AssetHubUniversalLocation,
+		InboundQueueV2Location,
+		AssetHubParaId,
+		EthereumSystem,
 		AccountId,
 	>;
 	type AccountToLocation = xcm_builder::AliasesIntoAccountId32<
@@ -148,7 +154,7 @@ impl snowbridge_pallet_outbound_queue::Config for Runtime {
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeter;
 	type Balance = Balance;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;
 	type PricingParameters = EthereumSystem;
 	type Channels = EthereumSystem;
@@ -168,7 +174,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeterV2;
 	type Balance = Balance;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type Verifier = EthereumBeaconClient;
 	type GatewayAddress = EthereumGatewayAddress;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
@@ -176,6 +182,8 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type RewardKind = BridgeReward;
 	type DefaultRewardKind = SnowbridgeReward;
 	type RewardPayment = BridgeRelayers;
+	type AggregateMessageOrigin = AggregateMessageOrigin;
+	type OnNewCommitment = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = Runtime;
 }

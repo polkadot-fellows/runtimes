@@ -635,7 +635,7 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 		for i in 31u32..=40u32 {
 			RemoteProxy::on_validation_data(&PersistedValidationData {
 				parent_head: vec![].into(),
-				relay_parent_number: dbg!(i),
+				relay_parent_number: i,
 				relay_parent_storage_root: root,
 				max_pov_size: 5000000,
 			});

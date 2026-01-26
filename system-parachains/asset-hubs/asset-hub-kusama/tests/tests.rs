@@ -40,6 +40,7 @@ use asset_test_utils::{
 	},
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
+use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
 use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
@@ -50,7 +51,8 @@ use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::MaybeEquivalence, Either, TryRuntimeError};
 use system_parachains_constants::kusama::{
-	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::UNITS, fee::WeightToFee,
+	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::UNITS,
+	fee::WeightToFee as KsmWeightToFee,
 };
 use xcm::latest::{
 	prelude::{Assets as XcmAssets, *},
@@ -70,8 +72,8 @@ frame_support::parameter_types! {
 
 type AssetIdForTrustBackedAssetsConvertLatest =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
-
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
+type WeightToFee = KsmWeightToFee<Runtime>;
 
 fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
 	CollatorSessionKey::new(
@@ -407,10 +409,19 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 	let staking_pot = StakingPot::get();
 
 	let foreign_asset_id_location = Location::new(2, [GlobalConsensus(Polkadot)]);
+	let reserve_location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
+	let foreign_asset_reserve_data =
+		ForeignAssetReserveData { reserve: reserve_location, teleportable: false };
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
-	let foreign_asset_create_params =
+	let foreign_asset_create_params = (
+		foreign_asset_owner.clone(),
+		foreign_asset_id_location.clone(),
+		foreign_asset_reserve_data,
+		foreign_asset_id_minimum_balance,
+	);
+	let pool_params =
 		(foreign_asset_owner, foreign_asset_id_location.clone(), foreign_asset_id_minimum_balance);
 
 	receive_reserve_asset_deposited_from_different_consensus_works::<
@@ -424,14 +435,14 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 		AccountId::from([73; 32]),
 		block_author_account,
 		// receiving DOTs
-		foreign_asset_create_params.clone(),
+		foreign_asset_create_params,
 		1000000000000,
 		|| {
 			// setup pool for paying fees to touch `SwapFirstAssetTrader`
 			asset_test_utils::test_cases::setup_pool_for_paying_fees_with_foreign_assets::<
 				Runtime,
 				RuntimeOrigin,
-			>(ExistentialDeposit::get(), foreign_asset_create_params);
+			>(ExistentialDeposit::get(), pool_params);
 			// staking pot account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
@@ -905,4 +916,126 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+}
+
+/// A Staking proxy can add/remove a StakingOperator proxy for the account it is proxying.
+#[test]
+fn staking_proxy_can_manage_staking_operator() {
+	use asset_hub_kusama_runtime::{Proxy, ProxyType};
+	use frame_support::traits::fungible::Mutate;
+	use sp_runtime::traits::StaticLookup;
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::sr25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			// Given: Alice, Bob, and Carol with sufficient balance
+			let alice: AccountId = ALICE.into();
+			let bob: AccountId = [2u8; 32].into();
+			let carol: AccountId = [3u8; 32].into();
+
+			Balances::mint_into(&alice, 100 * UNITS).unwrap();
+			Balances::mint_into(&bob, 100 * UNITS).unwrap();
+			Balances::mint_into(&carol, 100 * UNITS).unwrap();
+
+			// Given: Alice has Bob as her Staking proxy
+			assert_ok!(Proxy::add_proxy(
+				RuntimeOrigin::signed(alice.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(bob.clone()),
+				ProxyType::Staking,
+				0
+			));
+
+			// When: Bob (via proxy) adds Carol as StakingOperator for Alice
+			let add_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_call)
+			));
+
+			// Then: Carol is Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::StakingOperator),
+				"Carol should be Alice's StakingOperator proxy"
+			);
+
+			// When: Bob tries to add an Any proxy for Alice
+			let add_any_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::Any,
+				delay: 0,
+			});
+			// proxy() returns Ok(()) but inner call result is in ProxyExecuted event
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_any_call),
+			));
+
+			// Then: The ProxyExecuted event should contain CallFiltered error
+			let events = frame_system::Pallet::<Runtime>::events();
+			let proxy_executed = events.iter().rev().find_map(|record| {
+				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
+					&record.event
+				{
+					Some(*result)
+				} else {
+					None
+				}
+			});
+			assert_eq!(
+				proxy_executed,
+				Some(Err(frame_system::Error::<Runtime>::CallFiltered.into())),
+				"Inner call should fail with CallFiltered"
+			);
+
+			// And: Carol was NOT added as Any proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::Any),
+				"Carol should NOT be Alice's Any proxy - Staking proxy cannot add Any"
+			);
+
+			// When: Bob (via proxy) removes Carol as StakingOperator for Alice
+			let remove_call = RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(remove_call)
+			));
+
+			// Then: Carol is no longer Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::StakingOperator),
+				"Carol should no longer be Alice's StakingOperator proxy"
+			);
+		});
 }
