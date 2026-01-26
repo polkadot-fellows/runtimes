@@ -69,7 +69,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned, EnsureSignedBy,
+	EnsureNone, EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
@@ -77,7 +77,6 @@ use pallet_assets_precompiles::{InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
-use pallet_revive::evm::runtime::EthExtra;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use pallet_xcm_precompiles::XcmPrecompile;
 use parachains_common::{
@@ -109,14 +108,16 @@ use system_parachains_constants::{
 	},
 	kusama::{
 		consensus::{
-			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			elastic_scaling::{
+				BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
+			},
 			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
 		currency::*,
-		fee::WeightToFee,
+		fee::WeightToFee as KsmWeightToFee,
 	},
 };
-use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
 use xcm::{
 	latest::prelude::*, Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets,
 	VersionedLocation, VersionedXcm,
@@ -145,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 2_000_002,
+	spec_version: 2_000_005,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -199,7 +200,7 @@ impl frame_system::Config for Runtime {
 	type RuntimeTask = RuntimeTask;
 	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
-	type DbWeight = RocksDbWeight;
+	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
 	type OnNewAccount = ();
@@ -307,7 +308,13 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
-	type WeightToFee = WeightToFee;
+	// The two generic parameters of `BlockRatioFee` define a rational number that defines the
+	// ref_time to fee mapping. The numbers chosen here are exactly the same as the one from the
+	// `WeightToFeePolynomial` that was used before:
+	// - The numerator is `currency::CENTS` = 1_000_000_000_000 / 30 / 100 = 333_333_333
+	// - The denominator is `100 * Balance::from(ExtrinsicBaseWeight::get().ref_time())`
+	//   - which is 100 * 1_000 * 108_157 = 10_815_700_000
+	type WeightToFee = KsmWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
@@ -619,6 +626,12 @@ pub enum ProxyType {
 	Society,
 	/// System remarks.
 	Spokesperson,
+	/// Operator proxy for validators. Can only perform operational tasks like validating,
+	/// chilling, and kicking. Cannot bond/unbond funds, change reward destinations, or nominate.
+	/// Session key management (set_keys, purge_keys) is done on the relay chain.
+	///
+	/// Contains the `Staking` (validate, chill, kick) and `Utility` pallets.
+	StakingOperator,
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -684,17 +697,29 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					// Not on AH RuntimeCall::FellowshipReferenda(..) |
 					RuntimeCall::Whitelist(..)
 			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						// Not on AH RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
-				)
-			},
+			ProxyType::Staking => matches!(
+				c,
+				RuntimeCall::Staking(..) |
+					RuntimeCall::Session(..) |
+					RuntimeCall::Utility(..) |
+					// Not on AH RuntimeCall::FastUnstake(..) |
+					RuntimeCall::VoterList(..) |
+					RuntimeCall::NominationPools(..) |
+					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+						proxy_type: ProxyType::StakingOperator,
+						..
+					}) | RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+						proxy_type: ProxyType::StakingOperator,
+						..
+					})
+			),
+			ProxyType::StakingOperator => matches!(
+				c,
+				RuntimeCall::Staking(pallet_staking_async::Call::validate { .. }) |
+					RuntimeCall::Staking(pallet_staking_async::Call::chill { .. }) |
+					RuntimeCall::Staking(pallet_staking_async::Call::kick { .. }) |
+					RuntimeCall::Utility { .. }
+			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
@@ -806,6 +831,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(_, ProxyType::Any) => false,
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
+			(ProxyType::Staking, ProxyType::StakingOperator) => true,
 			(
 				ProxyType::NonTransfer,
 				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
@@ -1148,6 +1174,8 @@ impl
 			kusama_runtime_constants::proxy::ProxyType::Any => ProxyType::Any,
 			kusama_runtime_constants::proxy::ProxyType::NonTransfer => ProxyType::NonTransfer,
 			kusama_runtime_constants::proxy::ProxyType::CancelProxy => ProxyType::CancelProxy,
+			kusama_runtime_constants::proxy::ProxyType::StakingOperator =>
+				ProxyType::StakingOperator,
 			// Proxy types that are not supported on AH.
 			kusama_runtime_constants::proxy::ProxyType::Governance |
 			kusama_runtime_constants::proxy::ProxyType::Staking |
@@ -1183,9 +1211,7 @@ parameter_types! {
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 100;
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
-	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(1, 2);
-	pub const DebugEnabled: bool = false;
-	pub const GasScale: u32 = 10;
+	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(9, 10);
 }
 
 impl pallet_revive::Config for Runtime {
@@ -1196,8 +1222,8 @@ impl pallet_revive::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeOrigin = RuntimeOrigin;
 	type DepositPerItem = DepositPerItem;
-	type DepositPerByte = DepositPerByte;
 	type DepositPerChildTrieItem = DepositPerChildTrieItem;
+	type DepositPerByte = DepositPerByte;
 	// TODO(#840): use `weights::pallet_revive::WeightInfo` here
 	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
 	type Precompiles = (
@@ -1218,11 +1244,12 @@ impl pallet_revive::Config for Runtime {
 	type ChainId = ConstU64<420_420_418>;
 	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
-	type AllowEVMBytecode = ConstBool<true>; // TODO check
-	type FeeInfo = ();
+	type AllowEVMBytecode = ConstBool<true>;
+	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
-	type DebugEnabled = DebugEnabled;
-	type GasScale = GasScale;
+	// Must be set to `false` in a live chain
+	type DebugEnabled = ConstBool<false>;
+	type GasScale = ConstU32<100_000>;
 }
 
 parameter_types! {
@@ -1309,6 +1336,9 @@ impl pallet_ah_ops::Config for Runtime {
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
 	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
+	type AssetId = Location;
+	type RelevantAssets = ();
+	type MigrateOrigin = EnsureNone<AccountId>;
 }
 
 parameter_types! {
@@ -1689,7 +1719,7 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EthExtraImpl;
 
-impl EthExtra for EthExtraImpl {
+impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 	type Config = Runtime;
 	type Extension = TxExtension;
 
@@ -1721,7 +1751,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (staking::InitiateStakingAsync,);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -1730,7 +1760,7 @@ pub mod migrations {
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = pallet_revive::migrations::v1::Migration<Runtime>;
+	pub type MbmMigrations = ();
 }
 
 /// Executive: handles dispatch to the various modules.
@@ -1851,6 +1881,7 @@ mod benches {
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
+		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_referenda, Referenda]
@@ -1877,9 +1908,9 @@ mod benches {
 		[pallet_bags_list, VoterList]
 		// DelegatedStaking has no calls
 		[pallet_election_provider_multi_block, MultiBlockElection]
-		[pallet_election_provider_multi_block_verifier, MultiBlockElectionVerifier]
-		[pallet_election_provider_multi_block_unsigned, MultiBlockElectionUnsigned]
-		[pallet_election_provider_multi_block_signed, MultiBlockElectionSigned]
+		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
+		[pallet_election_provider_multi_block::unsigned, MultiBlockElectionUnsigned]
+		[pallet_election_provider_multi_block::signed, MultiBlockElectionSigned]
 	);
 
 	use frame_benchmarking::BenchmarkError;
@@ -2307,7 +2338,7 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
-			0
+			RELAY_PARENT_OFFSET
 		}
 	}
 
@@ -2768,8 +2799,9 @@ ord_parameter_types! {
 mod tests {
 	use super::*;
 	use sp_runtime::traits::Zero;
-	use sp_weights::WeightToFee;
-	use system_parachains_constants::kusama::fee;
+	use sp_weights::WeightToFee as WeightToFeeT;
+
+	type WeightToFee = KsmWeightToFee<Runtime>;
 
 	/// We can fit at least 1000 transfers in a block.
 	#[test]
@@ -2792,18 +2824,18 @@ mod tests {
 		let transfer =
 			base + weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&transfer);
+		let fee: Balance = WeightToFee::weight_to_fee(&transfer);
 		assert!(fee <= CENTS, "{} MILLICENTS should be at most 1000", fee / MILLICENTS);
 	}
 
 	/// Weight is being charged for both dimensions.
 	#[test]
 	fn weight_charged_for_both_components() {
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(10_000, 0));
+		let fee: Balance = WeightToFee::weight_to_fee(&Weight::from_parts(10_000, 0));
 		assert!(!fee.is_zero(), "Charges for ref time");
 
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, 10_000));
-		assert_eq!(fee, CENTS, "10kb maps to CENT");
+		let fee: Balance = WeightToFee::weight_to_fee(&Weight::from_parts(0, 10_000));
+		assert!(!fee.is_zero(), "Charges for proof size");
 	}
 
 	/// Filling up a block by proof size is at most 30 times more expensive than ref time.
@@ -2813,9 +2845,9 @@ mod tests {
 	fn full_block_fee_ratio() {
 		let block = RuntimeBlockWeights::get().max_block;
 		let time_fee: Balance =
-			fee::WeightToFee::weight_to_fee(&Weight::from_parts(block.ref_time(), 0));
+			WeightToFee::weight_to_fee(&Weight::from_parts(block.ref_time(), 0));
 		let proof_fee: Balance =
-			fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
+			WeightToFee::weight_to_fee(&Weight::from_parts(0, block.proof_size()));
 
 		let proof_o_time = proof_fee.checked_div(time_fee).unwrap_or_default();
 		assert!(proof_o_time <= 30, "{proof_o_time} should be at most 30");
@@ -2862,8 +2894,123 @@ mod tests {
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::StakingOperator));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::NominationPools));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Auction));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
+		// Staking IS supertype of StakingOperator
+		assert!(ProxyType::Staking.is_superset(&ProxyType::StakingOperator));
+	}
+
+	#[test]
+	fn staking_operator_proxy_filter_works() {
+		use frame_support::traits::InstanceFilter;
+
+		// StakingOperator ALLOWS these calls:
+		// - Staking::validate
+		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::validate {
+				prefs: pallet_staking_async::ValidatorPrefs::default()
+			}
+		)));
+
+		// - Staking::chill
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::chill {})));
+
+		// - Staking::kick
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::kick { who: vec![] })));
+
+		// - Utility calls (for batching)
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+
+		// StakingOperator DISALLOWS these calls:
+		// - Staking::bond_extra (cannot add more stake)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::bond_extra { max_additional: 1000 }
+		)));
+
+		// - Staking::unbond (cannot remove stake)
+		assert!(!ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::unbond { value: 1000 })));
+
+		// - Staking::rebond (cannot rebond)
+		assert!(!ProxyType::StakingOperator
+			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::rebond { value: 1000 })));
+
+		// - Staking::withdraw_unbonded (cannot withdraw)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::withdraw_unbonded { num_slashing_spans: 0 }
+		)));
+
+		// - Staking::set_payee (cannot redirect rewards)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::update_payee { controller: [0u8; 32].into() }
+		)));
+
+		// - Staking::nominate (cannot nominate)
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::nominate { targets: vec![] }
+		)));
+
+		// - NominationPools calls
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::NominationPools(
+			pallet_nomination_pools::Call::join { amount: 1000, pool_id: 1 }
+		)));
+
+		// - VoterList calls
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::VoterList(
+			pallet_bags_list::Call::rebag {
+				dislocated: sp_runtime::MultiAddress::Id(AccountId::from([0u8; 32])),
+			}
+		)));
+
+		// - Session calls (session key management is on relay chain, not Asset Hub)
+		// Note: Asset Hub's Session pallet is for collators, not validators
+		assert!(!ProxyType::StakingOperator
+			.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
+
+		// Verify Staking proxy allows everything that StakingOperator allows, plus more
+		// Staking should allow bond_extra which StakingOperator doesn't
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::bond_extra { max_additional: 1000 }
+		)));
+
+		// Staking should allow nominate which StakingOperator doesn't
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::nominate { targets: vec![] }
+		)));
+
+		// Staking should also allow what StakingOperator allows
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Staking(
+			pallet_staking_async::Call::validate {
+				prefs: pallet_staking_async::ValidatorPrefs::default()
+			}
+		)));
+		assert!(
+			ProxyType::Staking.filter(&RuntimeCall::Staking(pallet_staking_async::Call::chill {}))
+		);
+
+		// Staking proxy can add/remove StakingOperator proxies
+		let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate: delegate.clone(),
+			proxy_type: ProxyType::StakingOperator,
+			delay: 0,
+		})));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+			delegate: delegate.clone(),
+			proxy_type: ProxyType::StakingOperator,
+			delay: 0,
+		})));
+
+		// But Staking proxy cannot add/remove other proxy types
+		assert!(!ProxyType::Staking.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate,
+			proxy_type: ProxyType::Any,
+			delay: 0,
+		})));
 	}
 }

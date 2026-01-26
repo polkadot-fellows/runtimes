@@ -45,14 +45,18 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{
+			Inspect as FungibleInspect, InspectFreeze, Mutate as FungibleMutate, MutateFreeze,
+			MutateHold, Unbalanced,
+		},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
-		tokens::Preservation,
-		Defensive, LockableCurrency, ReservableCurrency,
+		tokens::{Fortitude, Preservation},
+		Currency, Defensive, LockableCurrency, ReservableCurrency,
+		WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
-use pallet_balances::AccountData;
+use pallet_balances::{AccountData, Reasons as LockReasons};
 use sp_application_crypto::ByteArray;
 use sp_core::blake2_256;
 use sp_runtime::{
@@ -75,27 +79,39 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
-		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
+		+ pallet_timestamp::Config<Moment = u64>
+		+ pallet_staking_async::Config<CurrencyBalance = u128>
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Native asset type.
-		type Currency: Mutate<Self::AccountId, Balance = u128>
-			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
-			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+		type Currency: FungibleMutate<Self::AccountId, Balance = u128>
+			+ MutateHold<
+				Self::AccountId,
+				Reason = <Self as pallet_balances::Config>::RuntimeHoldReason,
+			> + InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 
 		/// Fungibles registry type.
-		type Fungibles: FungiblesInspect<Self::AccountId, Balance = u128>
-			+ FungiblesMutate<Self::AccountId, Balance = u128>;
+		type Fungibles: FungiblesInspect<Self::AccountId, Balance = u128, AssetId = Self::AssetId>
+			+ FungiblesMutate<Self::AccountId, Balance = u128, AssetId = Self::AssetId>;
+
+		/// Asset ID type of the `Fungibles` adapter.
+		type AssetId: Parameter + MaxEncodedLen + TypeInfo;
+
+		/// Assets to be migrated with `translate_para_sovereign_child_to_sibling_derived`.
+		type RelevantAssets: Get<Vec<Self::AssetId>>;
 
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
+		/// Origin that can call `translate_para_sovereign_child_to_sibling_derived`.
+		type MigrateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Whether the Asset Hub migration is completed.
 		///
@@ -184,6 +200,7 @@ pub mod pallet {
 	>;
 
 	#[pallet::error]
+	#[derive(PartialEq, Eq)]
 	pub enum Error<T> {
 		/// Either no lease deposit or already unreserved.
 		NoLeaseReserve,
@@ -207,6 +224,14 @@ pub mod pallet {
 		MigrationNotCompleted,
 		/// The balance is zero.
 		ZeroBalance,
+		/// Failed to transfer balance.
+		FailedToTransfer,
+		/// The account has already been translated.
+		AlreadyTranslated,
+		/// The derivation path is too long.
+		TooLongDerivationPath,
+		/// Failed to force unstake.
+		FailedToForceUnstake,
 	}
 
 	#[pallet::event]
@@ -230,14 +255,16 @@ pub mod pallet {
 		/// representation.
 		SovereignMigrated {
 			/// The parachain ID that had its account migrated.
-			para_id: ParaId,
+			para_id: u16,
 			/// The old account that was migrated out of.
 			from: T::AccountId,
 			/// The new account that was migrated into.
 			to: T::AccountId,
-			/// Set if this account was derived from a para sovereign account.
-			derivation_index: Option<DerivationIndex>,
+			/// The derivation path that was used to translate the account.
+			derivation_path: Vec<u16>,
 		},
+		/// Failed to re-bond some migrated funds.
+		FailedToBond { account: T::AccountId, amount: BalanceOf<T> },
 	}
 
 	#[pallet::pallet]
@@ -344,6 +371,38 @@ pub mod pallet {
 
 			Ok(Pays::No.into())
 		}
+
+		/// Translate recursively derived parachain sovereign child account to its sibling.
+		///
+		/// Uses the same derivation path on the sibling. The old and new account arguments are only
+		/// witness data to ensure correct usage. Can only be called by the `MigrateOrigin`.
+		///
+		/// This migrates:
+		/// - Native DOT balance
+		/// - All assets listed in `T::RelevantAssets`
+		/// - Staked balances
+		///
+		/// Things like non-relevant assets or vested transfers may remain on the old account.
+		#[pallet::call_index(4)]
+		#[pallet::weight(Weight::from_parts(100_000_000, 9000)
+				.saturating_add(T::DbWeight::get().reads_writes(20, 20)))]
+		pub fn translate_para_sovereign_child_to_sibling_derived(
+			origin: OriginFor<T>,
+			para_id: u16,
+			derivation_path: Vec<u16>,
+			old_account: T::AccountId,
+			new_account: T::AccountId,
+		) -> DispatchResult {
+			T::MigrateOrigin::ensure_origin(origin)?;
+
+			Self::do_translate_para_sovereign_child_to_sibling_derived(
+				para_id,
+				derivation_path,
+				old_account,
+				new_account,
+			)
+			.map_err(Into::into)
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -387,7 +446,7 @@ pub mod pallet {
 			}
 
 			// Ideally this does not fail. But if it does, then we keep it for manual inspection.
-			let transferred = <T as Config>::Currency::transfer(
+			let transferred = <<T as Config>::Currency as FungibleMutate<_>>::transfer(
 				&pot,
 				&depositor,
 				contribution,
@@ -397,7 +456,7 @@ pub mod pallet {
 			.map_err(|_| Error::<T>::FailedToWithdrawCrowdloanContribution)?;
 			defensive_assert!(transferred == contribution);
 			// Need to reactivate since we deactivated it here https://github.com/paritytech/polkadot-sdk/blob/04847d515ef56da4d0801c9b89a4241dfa827b33/polkadot/runtime/common/src/crowdloan/mod.rs#L793
-			<T as Config>::Currency::reactivate(transferred);
+			<<T as Config>::Currency as Currency<_>>::reactivate(transferred);
 
 			Ok(())
 		}
@@ -494,6 +553,153 @@ pub mod pallet {
 			let parent_translated_derived = derivative_account_id(parent_translated, index);
 			Ok((parent_translated_derived, para_id))
 		}
+
+		/// Actual logic of `translate_para_sovereign_child_to_sibling_derived`.
+		pub fn do_translate_para_sovereign_child_to_sibling_derived(
+			para_id: u16,
+			derivation_path: Vec<u16>,
+			from: T::AccountId,
+			to: T::AccountId,
+		) -> Result<(), Error<T>> {
+			if derivation_path.len() > 10 {
+				return Err(Error::<T>::TooLongDerivationPath);
+			}
+
+			let para_child = Self::para_sov_child(para_id);
+			let para_sibling = Self::para_sov_sibling(para_id);
+			let para_child_derived = derivative_account_id_recursive(para_child, &derivation_path);
+			let para_sibling_derived =
+				derivative_account_id_recursive(para_sibling, &derivation_path);
+
+			ensure!(para_child_derived == from, Error::<T>::WrongDerivedTranslation);
+			ensure!(para_sibling_derived == to, Error::<T>::WrongDerivedTranslation);
+
+			if frame_system::Account::<T>::get(&from) == Default::default() {
+				// Nothing to do if the account does not exist
+				return Ok(());
+			}
+			pallet_balances::Pallet::<T>::ensure_upgraded(&from); // prevent future headache
+
+			// Get the bonded amount that we will force-unstake.
+			let active_bonded =
+				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.active).unwrap_or(0);
+			let total_bonded =
+				pallet_staking_async::Ledger::<T>::get(&from).map(|l| l.total).unwrap_or(0);
+
+			if total_bonded > 0 {
+				// Force unstake. The actual function is private, so we use the call:
+				pallet_staking_async::Pallet::<T>::force_unstake(
+					frame_system::Origin::<T>::Root.into(),
+					from.clone(),
+					0, // does not matter
+				)
+				.map_err(|_| Error::<T>::FailedToForceUnstake)?;
+			}
+
+			// First, create the new account by transferring ED.
+			let reducible_dot = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
+				&from,
+				Preservation::Preserve,
+				Fortitude::Polite,
+			);
+			let ed = <<T as Config>::Currency as FungibleInspect<_>>::minimum_balance();
+			if reducible_dot >= ed {
+				<<T as Config>::Currency as FungibleMutate<_>>::transfer(
+					&from,
+					&to,
+					ed,
+					Preservation::Expendable,
+				)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToTransfer)?;
+			}
+
+			// Transfer all assets to the new account. This must not create or reap an account since
+			// that could fail, depending on whether all assets are sufficient.
+			for id in T::RelevantAssets::get() {
+				let amount = <T as Config>::Fungibles::reducible_balance(
+					id.clone(),
+					&from,
+					Preservation::Expendable,
+					Fortitude::Force,
+				);
+
+				if amount.is_zero() {
+					continue;
+				}
+
+				<<T as Config>::Fungibles as FungiblesMutate<_>>::transfer(
+					id.clone(),
+					&from,
+					&to,
+					amount,
+					Preservation::Expendable,
+				)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToTransfer)?;
+			}
+
+			// Now transfer the remaining DOT to the new account.
+			let remaining_dot = <<T as Config>::Currency as FungibleInspect<_>>::reducible_balance(
+				&from,
+				Preservation::Expendable,
+				Fortitude::Force,
+			);
+			if remaining_dot > 0 {
+				<<T as Config>::Currency as FungibleMutate<_>>::transfer(
+					&from,
+					&to,
+					remaining_dot,
+					Preservation::Expendable,
+				)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToTransfer)?;
+			}
+
+			// Re-stake the new account:
+			if active_bonded > 0 {
+				let res = pallet_staking_async::Pallet::<T>::bond(
+					frame_system::Origin::<T>::Signed(to.clone()).into(),
+					active_bonded,
+					pallet_staking_async::RewardDestination::Staked,
+				)
+				.defensive();
+
+				// We do not return an error here since the account can re-bond themselves and it
+				// should not fail anyway.
+				if res.is_err() {
+					Self::deposit_event(Event::FailedToBond {
+						account: to.clone(),
+						amount: active_bonded,
+					});
+				}
+			}
+
+			Self::deposit_event(Event::SovereignMigrated {
+				para_id,
+				from: from.clone(),
+				to: to.clone(),
+				derivation_path,
+			});
+
+			Ok(())
+		}
+
+		/// Sovereign child account of a parachain (normally on the relay chain).
+		pub fn para_sov_child(id: u16) -> AccountId32 {
+			let mut raw = [0u8; 32];
+			raw[0..4].copy_from_slice(b"para");
+			raw[4..6].copy_from_slice(&id.encode());
+			raw.into()
+		}
+
+		/// Sovereign sibling account of a parachain (normally on a parachain).
+		pub fn para_sov_sibling(id: u16) -> AccountId32 {
+			let mut raw = [0u8; 32];
+			raw[0..4].copy_from_slice(b"sibl");
+			raw[4..6].copy_from_slice(&id.encode());
+			raw.into()
+		}
 	}
 }
 
@@ -510,4 +716,25 @@ pub fn derivative_account_id<AccountId: Encode + Decode>(who: AccountId, index: 
 	let entropy = (b"modlpy/utilisuba", who, index).using_encoded(blake2_256);
 	Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
 		.expect("infinite length input; no invalid inputs for type; qed")
+}
+
+/// Recursively derive an account from `who` with the given indices.
+pub fn derivative_account_id_recursive<AccountId: Encode + Decode>(
+	who: AccountId,
+	indices: &[u16],
+) -> AccountId {
+	let mut account = who;
+	for index in indices {
+		account = derivative_account_id(account, *index);
+	}
+	account
+}
+
+/// Backward mapping from https://github.com/paritytech/polkadot-sdk/blob/74a5e1a242274ddaadac1feb3990fc95c8612079/substrate/frame/balances/src/types.rs#L38
+pub fn map_lock_reason(reasons: LockReasons) -> LockWithdrawReasons {
+	match reasons {
+		LockReasons::All => LockWithdrawReasons::TRANSACTION_PAYMENT | LockWithdrawReasons::RESERVE,
+		LockReasons::Fee => LockWithdrawReasons::TRANSACTION_PAYMENT,
+		LockReasons::Misc => LockWithdrawReasons::TIP,
+	}
 }

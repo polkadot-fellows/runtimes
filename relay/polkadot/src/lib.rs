@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 2_000_002,
+	spec_version: 2_000_005,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1140,17 +1140,28 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 					RuntimeCall::Referenda(..) |
 					RuntimeCall::Whitelist(..)
 			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
-				)
-			},
+			ProxyType::Staking => matches!(
+				c,
+				RuntimeCall::Staking(..) |
+					RuntimeCall::Session(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::FastUnstake(..) |
+					RuntimeCall::VoterList(..) |
+					RuntimeCall::NominationPools(..) |
+					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+						proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+						..
+					}) | RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+					proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+					..
+				})
+			),
+			ProxyType::StakingOperator => matches!(
+				c,
+				RuntimeCall::Session(pallet_session::Call::set_keys { .. }) |
+					RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
+					RuntimeCall::Utility { .. }
+			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
@@ -1186,6 +1197,7 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			(ProxyType::Staking, ProxyType::StakingOperator) => true,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -3148,6 +3160,84 @@ mod test {
 		// Ensure that the name doesn't include `staging` (from the pallet name)
 		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
 	}
+
+	#[test]
+	fn staking_operator_proxy_filter_works() {
+		use frame_support::traits::InstanceFilter;
+
+		let proxy = TransparentProxyType(ProxyType::StakingOperator);
+
+		// StakingOperator ALLOWS these calls on relay chain:
+		// - Session::set_keys
+		let keys = SessionKeys {
+			grandpa: GrandpaId::from(sp_core::ed25519::Public::from_raw([0u8; 32])),
+			babe: pallet_babe::AuthorityId::from(sp_core::sr25519::Public::from_raw([0u8; 32])),
+			para_validator: ValidatorId::from(sp_core::sr25519::Public::from_raw([0u8; 32])),
+			para_assignment: polkadot_primitives::AssignmentId::from(
+				sp_core::sr25519::Public::from_raw([0u8; 32]),
+			),
+			authority_discovery: AuthorityDiscoveryId::from(sp_core::sr25519::Public::from_raw(
+				[0u8; 32],
+			)),
+			beefy: BeefyId::from(sp_core::ecdsa::Public::from_raw([0u8; 33])),
+		};
+		assert!(proxy
+			.filter(&RuntimeCall::Session(pallet_session::Call::set_keys { keys, proof: vec![] })));
+
+		// - Session::purge_keys
+		assert!(proxy.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
+
+		// - Utility calls (for batching)
+		assert!(proxy.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+
+		// StakingOperator DISALLOWS staking operations (those are on Asset Hub after AHM):
+		// - Staking calls
+		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::bond {
+			value: 1000,
+			payee: pallet_staking::RewardDestination::Stash
+		})));
+		assert!(!proxy
+			.filter(&RuntimeCall::Staking(pallet_staking::Call::nominate { targets: vec![] })));
+		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::validate {
+			prefs: pallet_staking::ValidatorPrefs::default()
+		})));
+		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::chill {})));
+
+		// - NominationPools calls
+		assert!(!proxy.filter(&RuntimeCall::NominationPools(
+			pallet_nomination_pools::Call::join { amount: 1000, pool_id: 1 }
+		)));
+
+		// - VoterList calls
+		assert!(!proxy.filter(&RuntimeCall::VoterList(pallet_bags_list::Call::rebag {
+			dislocated: sp_runtime::MultiAddress::Id(AccountId::from([0u8; 32])),
+		})));
+
+		// Verify is_superset relationship
+		let staking_proxy = TransparentProxyType(ProxyType::Staking);
+		assert!(staking_proxy.is_superset(&proxy));
+		assert!(TransparentProxyType(ProxyType::NonTransfer).is_superset(&proxy));
+
+		// Staking proxy can add/remove StakingOperator proxies
+		let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
+		assert!(staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate: delegate.clone(),
+			proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+			delay: 0,
+		})));
+		assert!(staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+			delegate: delegate.clone(),
+			proxy_type: TransparentProxyType(ProxyType::StakingOperator),
+			delay: 0,
+		})));
+
+		// But Staking proxy cannot add/remove other proxy types
+		assert!(!staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+			delegate,
+			proxy_type: TransparentProxyType(ProxyType::Any),
+			delay: 0,
+		})));
+	}
 }
 
 #[cfg(test)]
@@ -3578,6 +3668,142 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+		});
+	}
+}
+
+#[cfg(test)]
+mod proxy_tests {
+	use super::*;
+	use frame_support::assert_ok;
+	use sp_runtime::traits::StaticLookup;
+
+	/// A Staking proxy can add/remove a StakingOperator proxy for the account it is proxying.
+	#[test]
+	fn staking_proxy_can_manage_staking_operator() {
+		// Given: Build storage with balances for test accounts
+		let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+
+		let alice: AccountId = [1u8; 32].into();
+		let bob: AccountId = [2u8; 32].into();
+		let carol: AccountId = [3u8; 32].into();
+
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: vec![
+				(alice.clone(), 100 * UNITS),
+				(bob.clone(), 100 * UNITS),
+				(carol.clone(), 100 * UNITS),
+			],
+			dev_accounts: None,
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| {
+			System::set_block_number(1);
+
+			// Given: Alice has Bob as her Staking proxy
+			assert_ok!(Proxy::add_proxy(
+				RuntimeOrigin::signed(alice.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(bob.clone()),
+				TransparentProxyType(polkadot_runtime_constants::proxy::ProxyType::Staking),
+				0
+			));
+
+			// When: Bob (via proxy) adds Carol as StakingOperator for Alice
+			let add_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: TransparentProxyType(
+					polkadot_runtime_constants::proxy::ProxyType::StakingOperator,
+				),
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_call)
+			));
+
+			// Then: Carol is Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				alice_proxies.0.iter().any(|p| p.delegate == carol &&
+					p.proxy_type ==
+						TransparentProxyType(
+							polkadot_runtime_constants::proxy::ProxyType::StakingOperator
+						)),
+				"Carol should be Alice's StakingOperator proxy"
+			);
+
+			// When: Bob tries to add an Any proxy for Alice
+			let add_any_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: TransparentProxyType(polkadot_runtime_constants::proxy::ProxyType::Any),
+				delay: 0,
+			});
+			// proxy() returns Ok(()) but inner call result is in ProxyExecuted event
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_any_call),
+			));
+
+			// Then: The ProxyExecuted event should contain CallFiltered error
+			let events = System::events();
+			let proxy_executed = events.iter().rev().find_map(|record| {
+				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
+					&record.event
+				{
+					Some(*result)
+				} else {
+					None
+				}
+			});
+			assert_eq!(
+				proxy_executed,
+				Some(Err(frame_system::Error::<Runtime>::CallFiltered.into())),
+				"Inner call should fail with CallFiltered"
+			);
+
+			// And: Carol was NOT added as Any proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies.0.iter().any(|p| p.delegate == carol &&
+					p.proxy_type ==
+						TransparentProxyType(
+							polkadot_runtime_constants::proxy::ProxyType::Any
+						)),
+				"Carol should NOT be Alice's Any proxy - Staking proxy cannot add Any"
+			);
+
+			// When: Bob (via proxy) removes Carol as StakingOperator for Alice
+			let remove_call = RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: TransparentProxyType(
+					polkadot_runtime_constants::proxy::ProxyType::StakingOperator,
+				),
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(remove_call)
+			));
+
+			// Then: Carol is no longer Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies.0.iter().any(|p| p.delegate == carol &&
+					p.proxy_type ==
+						TransparentProxyType(
+							polkadot_runtime_constants::proxy::ProxyType::StakingOperator
+						)),
+				"Carol should no longer be Alice's StakingOperator proxy"
+			);
 		});
 	}
 }

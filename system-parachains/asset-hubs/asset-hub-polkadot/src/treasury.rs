@@ -21,7 +21,6 @@ use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 parameter_types! {
 	pub const SpendPeriod: BlockNumber = 24 * RC_DAYS;
 	pub const DisableSpends: BlockNumber = BlockNumber::MAX;
-	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 90 * RC_DAYS;
 	pub const MaxApprovals: u32 = 100;
@@ -29,7 +28,7 @@ parameter_types! {
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
-pub type TreasuryPaymaster = parachains_common::pay::LocalPay<
+pub type TreasuryPaymaster = system_parachains_common::pay::LocalPay<
 	NativeAndAssets,
 	TreasuryAccount,
 	xcm_config::LocationToAccountId,
@@ -41,7 +40,7 @@ impl pallet_treasury::Config for Runtime {
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = pallet_ah_migrator::LeftOrRight<AhMigrator, DisableSpends, SpendPeriod>;
-	type Burn = Burn;
+	type Burn = ();
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
@@ -54,7 +53,7 @@ impl pallet_treasury::Config for Runtime {
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = parachains_common::pay::benchmarks::LocalPayArguments<
+	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayArguments<
 		xcm_config::TrustBackedAssetsPalletIndex,
 	>;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;

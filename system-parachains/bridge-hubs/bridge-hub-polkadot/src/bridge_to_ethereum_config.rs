@@ -105,7 +105,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 		EthereumUniversalLocation,
 		AssetHubFromEthereum,
 	>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type MaxMessageSize = ConstU32<2048>;
 	type WeightInfo = crate::weights::snowbridge_pallet_inbound_queue::WeightInfo<Runtime>;
@@ -154,7 +154,7 @@ impl snowbridge_pallet_outbound_queue::Config for Runtime {
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeter;
 	type Balance = Balance;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;
 	type PricingParameters = EthereumSystem;
 	type Channels = EthereumSystem;
@@ -174,7 +174,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 	type MaxMessagesPerBlock = ConstU32<32>;
 	type GasMeter = ConstantGasMeterV2;
 	type Balance = Balance;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type Verifier = EthereumBeaconClient;
 	type GatewayAddress = EthereumGatewayAddress;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
