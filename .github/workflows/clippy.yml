@@ -31,51 +31,6 @@ jobs:
           components: "clippy, rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Install LLVM 18 & configure builtins
-        shell: bash
-        run: |
-          set -eux
-          
-          sudo apt-get update
-          sudo apt-get install -y \
-          llvm-18 llvm-18-dev llvm-18-tools llvm-18-runtime \
-          clang-18 lld-18 \
-          libclang-18-dev \
-          compiler-rt-18 \
-          pkg-config
-          
-          echo "LLVM_SYS_181_PREFIX=/usr/lib/llvm-18" >> "$GITHUB_ENV"
-          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
-          echo "CC=/usr/bin/clang-18" >> "$GITHUB_ENV"
-          echo "CXX=/usr/bin/clang++-18" >> "$GITHUB_ENV"
-          
-          RES_DIR="$(/usr/bin/clang-18 -print-resource-dir)"
-          echo "CLANG_RESOURCE_DIR=$RES_DIR" >> "$GITHUB_ENV"
-
-      - name: Install solc (required for Solidity fixtures)
-        shell: bash
-        run: |
-          set -eux
-          sudo add-apt-repository -y ppa:ethereum/ethereum
-          sudo apt-get update
-          sudo apt-get install -y solc
-          solc --version
-
-      - name: Verify clang + builtins
-        shell: bash
-        run: |
-          set -eux
-          clang --version
-          echo "CLANG_RESOURCE_DIR=$CLANG_RESOURCE_DIR"
-          find "$CLANG_RESOURCE_DIR" -type f -name "libclang_rt.*builtins*.a" | head || true
-
-      - name: Install resolc
-        shell: bash
-        run: |
-          set -eux
-          cargo install resolc
-          resolc --version
-
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
@@ -86,7 +41,7 @@ jobs:
         run: |
           cargo clippy --version
           cargo clippy --all-targets --locked --workspace --quiet 
-          cargo clippy --all-targets --locked --workspace --features try-runtime,runtime-benchmarks,std --quiet
+          cargo clippy --all-targets  --locked --workspace --features try-runtime,runtime-benchmarks,std --quiet
           cargo clippy --all-targets --locked --quiet --features try-runtime,runtime-benchmarks,std,kusama-ahm -p staging-kusama-runtime -p asset-hub-kusama-runtime
           cargo clippy --all-targets --locked --quiet --features try-runtime,runtime-benchmarks,std,polkadot-ahm -p polkadot-runtime -p asset-hub-polkadot-runtime
         env:
