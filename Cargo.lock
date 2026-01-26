@@ -1013,6 +1013,7 @@ name = "asset-hub-kusama-emulated-chain"
 version = "1.0.0"
 dependencies = [
  "asset-hub-kusama-runtime",
+ "assets-common",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
@@ -1188,6 +1189,7 @@ name = "asset-hub-polkadot-emulated-chain"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
+ "assets-common",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
@@ -6859,6 +6861,7 @@ dependencies = [
  "paste",
  "staging-xcm",
  "xcm-emulator",
+ "xcm-runtime-apis",
 ]
 
 [[package]]

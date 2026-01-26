@@ -3023,14 +3023,12 @@ mod test_fees {
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		);
-		let uxt = UncheckedExtrinsic {
-			preamble: generic::Preamble::Signed(
-				MultiAddress::Id(Alice.to_account_id()),
-				MultiSignature::Sr25519(Alice.sign(b"foo")),
-				tx_ext,
-			),
-			function: call,
-		};
+		let uxt = UncheckedExtrinsic::new_signed(
+			call,
+			MultiAddress::Id(Alice.to_account_id()),
+			MultiSignature::Sr25519(Alice.sign(b"foo")),
+			tx_ext,
+		);
 		let len = uxt.encoded_size();
 
 		let mut ext = sp_io::TestExternalities::new_empty();
