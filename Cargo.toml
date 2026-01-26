@@ -21,7 +21,7 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "29.0.0" }
+asset-test-utils = { version = "29.0.1" }
 assets-common = { version = "0.27.1", default-features = false }
 authority-discovery-primitives = { version = "40.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.46.0", default-features = false, package = "sp-consensus-babe" }
@@ -97,7 +97,7 @@ pallet-asset-rate = { version = "24.0.0", default-features = false }
 pallet-asset-tx-payment = { version = "45.0.0", default-features = false }
 pallet-assets = { version = "48.1.0", default-features = false }
 pallet-assets-holder = { version = "0.8.0", default-features = false }
-pallet-assets-precompiles = { version = "0.4.0", default-features = false }
+pallet-assets-precompiles = { version = "0.4.1", default-features = false }
 pallet-aura = { version = "44.0.0", default-features = false }
 pallet-authority-discovery = { version = "45.0.0", default-features = false }
 pallet-authorship = { version = "45.0.0", default-features = false }
@@ -192,7 +192,7 @@ parachains-common = { version = "27.1.0", default-features = false }
 parachains-runtimes-test-utils = { version = "28.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
-penpal-runtime = { version = "0.35.0" }
+penpal-runtime = { version = "0.35.1" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
 people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
 people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
@@ -210,7 +210,7 @@ frame-metadata-hash-extension = { version = "0.13.0", default-features = false }
 remote-externalities = { version = "0.56.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "24.0.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "48.0.0" }
-sc-network = { version = "0.55.0" }
+sc-network = { version = "0.55.1" }
 scale-info = { version = "2.11.6", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.214" }
