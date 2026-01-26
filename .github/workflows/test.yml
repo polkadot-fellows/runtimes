@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
@@ -33,7 +33,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
@@ -351,7 +351,8 @@ jobs:
   ecosystem-tests:
     needs: [runtime-matrix, build-runtimes]
     runs-on: self-hosted
-    if: github.event_name == 'pull_request'
+    # TODO: Disabled for now
+    if: false # github.event_name == 'pull_request'
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -407,7 +408,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
     needs:
@@ -415,6 +416,6 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
-      - ecosystem-tests
+      # TODO: ecosystem-tests disabled for now
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

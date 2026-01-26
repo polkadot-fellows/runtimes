@@ -19,7 +19,7 @@ jobs:
   # Job required by "confirmChangelogChecksPassed"
   verify-changelog-updated:
     name: Verify that Changelog is Updated
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
@@ -36,7 +36,7 @@ jobs:
   # Job required by "confirmChangelogChecksPassed"
   verify-changelog-valid:
     name: Verify that Changelog is valid
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
@@ -59,7 +59,7 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmChangelogChecksPassed:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     name: All changelog checks passed
     # If any new job gets added, be sure to add it to this list
     needs:
