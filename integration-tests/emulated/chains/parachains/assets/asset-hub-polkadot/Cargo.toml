@@ -36,6 +36,7 @@ integration-tests-helpers = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"assets-common/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
