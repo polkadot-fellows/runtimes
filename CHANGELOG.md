@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
 
+### Changed
+
+- Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
+
 ## [2.0.5] 13.01.2026
 
 ### Added
