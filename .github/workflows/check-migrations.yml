@@ -22,7 +22,7 @@ permissions: {}
 
 jobs:
   runtime-matrix:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract tasks from matrix
@@ -52,36 +52,25 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Try to restore snapshot from cache
+      - name: Check if snapshot exists in cache
         id: cache-restore
         if: github.event_name != 'schedule'
         uses: actions/cache/restore@v4
         with:
+          lookup-only: true
           path: snapshot.raw
           key: try-runtime-snapshot-${{ matrix.runtime.name }}-
           fail-on-cache-miss: false
 
-      - name: Install updates and dependencies
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        run: .github/install-deps.sh
-
-      - name: Set rust version via common env file
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: dtolnay/rust-toolchain@master
-        with:
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
       - name: Install try-runtime-cli
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
+        if: steps.cache-restore.outputs.cache-matched-key == ''
+        run: |
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          chmod +x try-runtime
+          sudo mv try-runtime /usr/local/bin/
 
       - name: Generate snapshot for ${{ matrix.runtime.name }}
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-matched-key == ''
         run: |
           echo "Generating snapshot for ${{ matrix.runtime.name }}..."
 
@@ -112,18 +101,12 @@ jobs:
         shell: bash
 
       - name: Save snapshot to cache
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-matched-key == ''
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
           key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.get-date.outputs.today }}
 
-      - name: Upload snapshot as artifact
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: snapshot-${{ matrix.runtime.name }}
-          path: snapshot.raw
 
   check-migrations:
     needs: [runtime-matrix, prepare-snapshots]
@@ -196,13 +179,17 @@ jobs:
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install try-runtime-cli
-        run: cargo install --git https://github.com/paritytech/try-runtime-cli --tag v0.10.0 --locked
+        run: |
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          chmod +x try-runtime
+          sudo mv try-runtime /usr/local/bin/
 
-      - name: Download snapshot artifact
-        uses: actions/download-artifact@v4
+      - name: Restore snapshot from cache
+        uses: actions/cache/restore@v4
         with:
-          name: snapshot-${{ matrix.runtime.name }}
-          path: .
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-
+          fail-on-cache-miss: true
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         env:
