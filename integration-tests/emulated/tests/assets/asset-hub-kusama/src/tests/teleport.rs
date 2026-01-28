@@ -21,10 +21,7 @@ use frame_support::{
 	traits::fungible::Mutate,
 };
 use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
-use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
-};
+use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV2;
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(false, Some(AssetHubKusama::para_id()), None);

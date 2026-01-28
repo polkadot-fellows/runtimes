@@ -587,4 +587,8 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 4211))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
+	// TODO: regenerate weights via /cmd bench --runtime asset-hub-polkadot --pallet pallet_assets
+	fn set_reserves(_n: u32) -> Weight {
+		Weight::zero()
+	}
 }

@@ -57,5 +57,9 @@ impl_accounts_helpers_for_parachain!(AssetHubKusama);
 impl_assert_events_helpers_for_parachain!(AssetHubKusama);
 impl_assets_helpers_for_system_parachain!(AssetHubKusama, Kusama);
 impl_assets_helpers_for_parachain!(AssetHubKusama);
-impl_foreign_assets_helpers_for_parachain!(AssetHubKusama, xcm::latest::Location);
+impl_foreign_assets_helpers_for_parachain!(
+	AssetHubKusama,
+	xcm::latest::Location,
+	assets_common::local_and_foreign_assets::ForeignAssetReserveData
+);
 impl_xcm_helpers_for_parachain!(AssetHubKusama);

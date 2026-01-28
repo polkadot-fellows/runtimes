@@ -310,7 +310,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::WeightInfo f
 	/// Proof: `MultiBlockElectionVerifier::QueuedValidVariant` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
 	/// Storage: `MultiBlockElectionVerifier::QueuedSolutionY` (r:0 w:1)
 	/// Proof: `MultiBlockElectionVerifier::QueuedSolutionY` (`max_values`: None, `max_size`: Some(37586026), added: 37588501, mode: `Measured`)
-	fn manage() -> Weight {
+	fn manage_fallback() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `352685`
 		//  Estimated: `358625`
@@ -319,5 +319,9 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::WeightInfo f
 			.saturating_add(Weight::from_parts(0, 358625))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	// TODO: regenerate weights via /cmd bench --runtime asset-hub-kusama --pallet pallet_election_provider_multi_block
+	fn admin_set() -> Weight {
+		Weight::default()
 	}
 }

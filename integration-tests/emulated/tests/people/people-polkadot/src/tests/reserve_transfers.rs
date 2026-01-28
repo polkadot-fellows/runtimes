@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::*;
-use emulated_integration_tests_common::macros::{AssetTransferFilter, XcmPaymentApiV1};
+use emulated_integration_tests_common::macros::{AssetTransferFilter, XcmPaymentApiV2};
 use frame_support::traits::fungibles;
 use people_polkadot_runtime::xcm_config::XcmConfig;
 use polkadot_runtime_constants::currency::CENTS as DOT_CENTS;

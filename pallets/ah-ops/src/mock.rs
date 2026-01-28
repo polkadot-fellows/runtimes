@@ -98,6 +98,7 @@ impl pallet_staking_async::Config for Runtime {
 	type Reward = ();
 	type SessionsPerEra = ();
 	type BondingDuration = ();
+	type NominatorFastUnbondDuration = ();
 	type SlashDeferDuration = ();
 	type AdminOrigin = frame_system::EnsureNone<Self::AccountId>;
 	type EraPayout = ();
