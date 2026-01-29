@@ -134,7 +134,6 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Crowdloan(..) => (OFF, OFF),
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
 		Coretime(..) => (ON, ON),             // Only permissioned calls.
-		StateTrieMigration(..) => (OFF, OFF), // Deprecated
 		XcmPallet(..) => (ON, ON),            // during migration can only send XCMs to other
 		MessageQueue(..) => (ON, ON),         // contains non-permissioned service calls
 		AssetRate(..) => (OFF, OFF),
@@ -153,8 +152,6 @@ impl pallet_rc_migrator::types::IntoPortable for RuntimeHoldReason {
 
 		match self {
 			RuntimeHoldReason::Preimage(inner) => PortableHoldReason::Preimage(inner),
-			RuntimeHoldReason::StateTrieMigration(inner) =>
-				PortableHoldReason::StateTrieMigration(inner),
 			RuntimeHoldReason::DelegatedStaking(inner) =>
 				PortableHoldReason::DelegatedStaking(inner),
 			RuntimeHoldReason::Staking(inner) => PortableHoldReason::Staking(inner),
