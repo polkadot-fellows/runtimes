@@ -225,7 +225,8 @@ snowbridge-outbound-queue-primitives = { version = "0.7.0", default-features = f
 snowbridge-pallet-ethereum-client = { version = "0.18.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.18.0", default-features = false }
 snowbridge-pallet-inbound-queue-v2 = { version = "0.7.0", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.26.0" }
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.26.0", default-features = false }
+snowbridge-pallet-inbound-queue-v2-fixtures = { version = "0.7.0", default-features = false }
 snowbridge-pallet-ethereum-client-fixtures = { version = "0.26.0" }
 snowbridge-pallet-outbound-queue = { version = "0.18.0", default-features = false }
 snowbridge-pallet-outbound-queue-v2 = { version = "0.7.0", default-features = false }
