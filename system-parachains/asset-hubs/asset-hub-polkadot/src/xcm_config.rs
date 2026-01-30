@@ -311,6 +311,7 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
+/*
 /// Location type to determine the Secretary Collective related
 /// pallets for use in XCM.
 pub struct SecretaryEntities;
@@ -330,6 +331,7 @@ impl Contains<Location> for SecretaryEntities {
 		)
 	}
 }
+*/
 
 pub struct ParentOrParentsPlurality;
 impl Contains<Location> for ParentOrParentsPlurality {
@@ -367,7 +369,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						Equals<RelayTreasuryLocation>,
 						Equals<bridging::SiblingBridgeHub>,
 						AmbassadorEntities,
-						SecretaryEntities,
+						// SecretaryEntities,
 						IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
 					)>,
 					// Subscriptions for version tracking are OK.
@@ -389,7 +391,7 @@ pub type WaivedLocations = (
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,
 	AmbassadorEntities,
-	SecretaryEntities,
+	// SecretaryEntities,
 	LocalPlurality,
 );
 

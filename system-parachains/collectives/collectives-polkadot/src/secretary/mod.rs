@@ -18,7 +18,7 @@
 
 use core::marker::PhantomData;
 
-use crate::{fellowship::FellowshipAdminBodyId, *};
+use crate::{fellowship::{FellowshipAdminBodyId, USDT_UNITS, FellowshipSalaryPaymaster}, *};
 use frame_support::{
 	parameter_types,
 	traits::{tokens::GetSalary, EitherOf, MapSuccess, PalletInfoAccess, PollStatus, Polling},
@@ -141,6 +141,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 
 pub type SecretarySalaryInstance = pallet_salary::Instance3;
 
+/*
 parameter_types! {
 	// The interior location on AssetHub for the paying account. This is the Secretary Salary
 	// pallet instance. This sovereign account will need funding.
@@ -151,7 +152,7 @@ const USDT_UNITS: u128 = 1_000_000;
 
 /// [`PayOverXcm`] setup to pay the Secretary salary on the AssetHub in USDT.
 pub type SecretarySalaryPaymaster = PayOverXcm<
-	SecretarySalaryInteriorLocation,
+	crate::fellowship::FellowshipSalaryInteriorLocation,
 	crate::xcm_config::XcmRouter,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
@@ -160,6 +161,7 @@ pub type SecretarySalaryPaymaster = PayOverXcm<
 	ConvertToValue<AssetHubUsdt>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
+*/
 
 pub struct SalaryForRank;
 impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
@@ -177,10 +179,10 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Paymaster = SecretarySalaryPaymaster;
+	type Paymaster = FellowshipSalaryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = crate::impls::benchmarks::PayWithEnsure<
-		SecretarySalaryPaymaster,
+		FellowshipSalaryPaymaster,
 		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
 	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;

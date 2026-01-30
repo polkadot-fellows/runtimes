@@ -28,5 +28,7 @@ pub const AMBASSADOR_SALARY_PALLET_INDEX: u8 = 74;
 /// Polkadot Ambassador Treasury pallet instance.
 pub const AMBASSADOR_TREASURY_PALLET_INDEX: u8 = 75;
 
+/*
 /// Polkadot Secretary Salary pallet instance.
 pub const SECRETARY_SALARY_PALLET_INDEX: u8 = 81;
+*/

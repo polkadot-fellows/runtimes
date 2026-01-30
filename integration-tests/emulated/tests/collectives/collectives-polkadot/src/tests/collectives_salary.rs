@@ -16,7 +16,7 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::LocationToAccountId;
 use collectives_polkadot_runtime::{
-	fellowship::FellowshipSalaryPaymaster, secretary::SecretarySalaryPaymaster,
+	fellowship::FellowshipSalaryPaymaster, // secretary::SecretarySalaryPaymaster,
 };
 use frame_support::{
 	assert_ok,
@@ -26,9 +26,10 @@ use xcm_executor::traits::ConvertLocation;
 
 const FELLOWSHIP_SALARY_PALLET_ID: u8 =
 	collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX;
-
+/*
 const SECRETARY_SALARY_PALLET_ID: u8 =
 	collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX;
+*/
 
 #[test]
 fn pay_salary_technical_fellowship() {
@@ -78,7 +79,7 @@ fn pay_salary_secretary() {
 	let secretary_salary = (
 		Parent,
 		Parachain(CollectivesPolkadot::para_id().into()),
-		PalletInstance(SECRETARY_SALARY_PALLET_ID),
+		PalletInstance(FELLOWSHIP_SALARY_PALLET_ID),
 	);
 	let pay_from = LocationToAccountId::convert_location(&secretary_salary.into()).unwrap();
 	let pay_to = Polkadot::account_id_of(ALICE);
@@ -93,7 +94,7 @@ fn pay_salary_secretary() {
 	CollectivesPolkadot::execute_with(|| {
 		type RuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
 
-		assert_ok!(SecretarySalaryPaymaster::pay(&pay_to, (), pay_amount));
+		assert_ok!(FellowshipSalaryPaymaster::pay(&pay_to, (), pay_amount));
 		assert_expected_events!(
 			CollectivesPolkadot,
 			vec![
