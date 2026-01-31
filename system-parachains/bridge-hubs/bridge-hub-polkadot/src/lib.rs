@@ -1003,9 +1003,11 @@ mod benches {
 				bp_messages::LegacyLaneId,
 				Balance,
 			>::rewards_account(reward_kind);
-			Self::deposit_account(rewards_account, reward);
+			Self::deposit_account(rewards_account.clone(), reward);
 
-			None
+			Some(bridge_common_config::BridgeRewardBeneficiaries::LocalAccount(
+				rewards_account,
+			))
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
