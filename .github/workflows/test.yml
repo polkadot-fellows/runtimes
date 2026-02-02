@@ -414,8 +414,8 @@ jobs:
         with:
           node-version: 'node'
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Install yarn
+        run: npm install -g yarn
 
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
