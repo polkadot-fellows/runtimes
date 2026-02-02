@@ -370,8 +370,120 @@ jobs:
           cd ecosystem-tests
           echo tests=$(cd packages && ls */src/*.test.ts | jq -R -s -c 'split("\n")[:-1]') >> "$GITHUB_OUTPUT"
 
+  setup-chopsticks-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Install Chopsticks
+        run: npm install -g @acala-network/chopsticks@latest
+
+      - name: Install websocat
+        run: |
+          wget -qO- https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl > /usr/local/bin/websocat
+          chmod +x /usr/local/bin/websocat
+
+      - name: Query block numbers and initialize Chopsticks DBs
+        run: |
+          set -e
+
+          # Function to query latest block number
+          query_block_number() {
+            local endpoint=$1
+            local result=$(echo '{"id":1,"jsonrpc":"2.0","method":"chain_getHeader"}' | \
+              websocat -n1 -B 99999999 "$endpoint" 2>/dev/null | \
+              jq -r '.result.number' | \
+              xargs printf "%d\n")
+            echo "$result"
+          }
+
+          # Query Asset Hub Polkadot
+          echo "Querying Asset Hub Polkadot..."
+          PAH_BLOCK=$(query_block_number "wss://sys.ibp.network/asset-hub-polkadot")
+          echo "Asset Hub Polkadot block: $PAH_BLOCK"
+
+          # Query Asset Hub Kusama
+          echo "Querying Asset Hub Kusama..."
+          KAH_BLOCK=$(query_block_number "wss://sys.ibp.network/asset-hub-kusama")
+          echo "Asset Hub Kusama block: $KAH_BLOCK"
+
+          # Start PAH chopsticks with DB
+          echo "Initializing Asset Hub Polkadot DB..."
+          chopsticks \
+            --endpoint=wss://sys.ibp.network/asset-hub-polkadot \
+            --block=$PAH_BLOCK \
+            --db=/tmp/pah.db \
+            --port=8001 > /tmp/pah.log 2>&1 &
+          PAH_PID=$!
+
+          # Start KAH chopsticks with DB
+          echo "Initializing Asset Hub Kusama DB..."
+          chopsticks \
+            --endpoint=wss://sys.ibp.network/asset-hub-kusama \
+            --block=$KAH_BLOCK \
+            --db=/tmp/kah.db \
+            --port=8002 > /tmp/kah.log 2>&1 &
+          KAH_PID=$!
+
+          # Wait for both servers to be ready
+          timeout=180
+          for port in 8001 8002; do
+            elapsed=0
+            while [ $elapsed -lt $timeout ]; do
+              if nc -z localhost $port 2>/dev/null; then
+                echo "Chopsticks on port $port ready"
+                break
+              fi
+              sleep 2
+              elapsed=$((elapsed + 2))
+            done
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout waiting for chopsticks on port $port"
+              cat /tmp/*.log
+              exit 1
+            fi
+          done
+
+          # Kill servers after initialization
+          kill $PAH_PID $KAH_PID || true
+          sleep 2
+
+          # Verify DBs were created and are non-empty
+          for db in /tmp/pah.db /tmp/kah.db; do
+            if [ ! -f "$db" ]; then
+              echo "Error: $db not found"
+              exit 1
+            fi
+            size=$(stat -c%s "$db" 2>/dev/null)
+            if [ "$size" -eq 0 ]; then
+              echo "Error: $db is empty"
+              exit 1
+            fi
+            echo "✓ $db created successfully (${size} bytes)"
+          done
+
+          # Print block numbers at the end
+          echo ""
+          echo "=== Block Numbers Used ==="
+          echo "Asset Hub Polkadot: $PAH_BLOCK"
+          echo "Asset Hub Kusama: $KAH_BLOCK"
+          echo "=========================="
+
+      - name: Cache Chopsticks DBs
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /tmp/pah.db
+            /tmp/kah.db
+          key: chopsticks-db-${{ github.run_id }}
+
   ecosystem-tests:
-    needs: [ecosystem-test-matrix]
+    needs: [ecosystem-test-matrix, setup-chopsticks-cache]
     runs-on: self-hosted
     timeout-minutes: 30
     if: github.event_name == 'pull_request'
@@ -419,6 +531,62 @@ jobs:
       - name: Install yarn
         run: npm install -g yarn
 
+      - name: Install Chopsticks
+        run: npm install -g @acala-network/chopsticks@latest
+
+      - name: Restore Chopsticks DBs
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /tmp/pah.db
+            /tmp/kah.db
+          key: chopsticks-db-${{ github.run_id }}
+          fail-on-cache-miss: true
+
+      - name: Start Chopsticks if needed
+        run: |
+          if echo "${{ matrix.tests }}" | grep -qi "assetHubPolkadot"; then
+            echo "Starting Asset Hub Polkadot chopsticks"
+            chopsticks \
+              --endpoint=wss://sys.ibp.network/asset-hub-polkadot \
+              --db=/tmp/pah.db \
+              --port=8001 > /tmp/chopsticks.log 2>&1 &
+            echo $! > /tmp/chopsticks.pid
+            PORT=8001
+            ENDPOINT_VAR="ASSETHUBPOLKADOT_ENDPOINT"
+          elif echo "${{ matrix.tests }}" | grep -qi "assetHubKusama"; then
+            echo "Starting Asset Hub Kusama chopsticks"
+            chopsticks \
+              --endpoint=wss://sys.ibp.network/asset-hub-kusama \
+              --db=/tmp/kah.db \
+              --port=8002 > /tmp/chopsticks.log 2>&1 &
+            echo $! > /tmp/chopsticks.pid
+            PORT=8002
+            ENDPOINT_VAR="ASSETHUBKUSAMA_ENDPOINT"
+          else
+            echo "No chopsticks needed for this test"
+            exit 0
+          fi
+
+          # Wait for server
+          timeout=60
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if nc -z localhost $PORT 2>/dev/null; then
+              echo "Chopsticks ready on port $PORT"
+              echo "${ENDPOINT_VAR}=ws://localhost:${PORT}" >> $GITHUB_ENV
+              break
+            fi
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for chopsticks"
+            cat /tmp/chopsticks.log
+            exit 1
+          fi
+
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
         run: yarn install --immutable
@@ -426,6 +594,13 @@ jobs:
       - name: Running ecosystem test ${{ matrix.tests }}
         working-directory: ecosystem-tests
         run: yarn test packages/${{ matrix.tests }}
+
+      - name: Cleanup Chopsticks
+        if: always()
+        run: |
+          if [ -f /tmp/chopsticks.pid ]; then
+            kill $(cat /tmp/chopsticks.pid) || true
+          fi
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
