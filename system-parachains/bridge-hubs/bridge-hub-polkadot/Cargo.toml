@@ -301,6 +301,8 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"snowbridge-pallet-inbound-queue-fixtures?/runtime-benchmarks",
+	"snowbridge-pallet-inbound-queue-v2-fixtures?/runtime-benchmarks"
 ]
 
 try-runtime = [
