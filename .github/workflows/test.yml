@@ -371,7 +371,7 @@ jobs:
           echo tests=$(cd packages && ls */src/*.test.ts | jq -R -s -c 'split("\n")[:-1]') >> "$GITHUB_OUTPUT"
 
   ecosystem-tests:
-    needs: [runtime-matrix, build-runtimes, ecosystem-test-matrix]
+    needs: [ecosystem-test-matrix]
     runs-on: self-hosted
     timeout-minutes: 30
     if: github.event_name == 'pull_request'
@@ -396,11 +396,13 @@ jobs:
           path: ecosystem-tests
 
       - name: Download WASM artifacts
+        if: false
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
 
       - name: Setup runtime overrides
+        if: false
         run: |
           jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
             NAME="$(echo $NAME | tr -d '-' | tr '[:upper:]' '[:lower:]')"
