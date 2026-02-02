@@ -21,7 +21,7 @@ use core::marker::PhantomData;
 use crate::{fellowship::{FellowshipAdminBodyId, USDT_UNITS, FellowshipSalaryPaymaster}, *};
 use frame_support::{
 	parameter_types,
-	traits::{tokens::GetSalary, EitherOf, MapSuccess, PalletInfoAccess, PollStatus, Polling},
+	traits::{tokens::GetSalary, EitherOf, MapSuccess, PalletInfoAccess, PollStatus, Polling, NoOpPoll},
 };
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
 use pallet_ranked_collective::{MemberIndex, TallyOf, Votes};
@@ -130,7 +130,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type PromoteOrigin = ApproveOrigin;
 	type DemoteOrigin = ApproveOrigin;
 	type ExchangeOrigin = ApproveOrigin;
-	type Polls = SecretaryPolling<Runtime, SecretaryCollectiveInstance>;
+	type Polls = NoOpPoll<BlockNumberFor<Runtime>>;
 	type MinRankOfClass = Identity;
 	type MemberSwappedHandler = crate::SecretarySalary;
 	type VoteWeight = pallet_ranked_collective::Geometric;
@@ -140,28 +140,6 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 }
 
 pub type SecretarySalaryInstance = pallet_salary::Instance3;
-
-/*
-parameter_types! {
-	// The interior location on AssetHub for the paying account. This is the Secretary Salary
-	// pallet instance. This sovereign account will need funding.
-	pub SecretarySalaryInteriorLocation: InteriorLocation = PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
-}
-
-const USDT_UNITS: u128 = 1_000_000;
-
-/// [`PayOverXcm`] setup to pay the Secretary salary on the AssetHub in USDT.
-pub type SecretarySalaryPaymaster = PayOverXcm<
-	crate::fellowship::FellowshipSalaryInteriorLocation,
-	crate::xcm_config::XcmRouter,
-	crate::PolkadotXcm,
-	ConstU32<{ 6 * HOURS }>,
-	AccountId,
-	(),
-	ConvertToValue<AssetHubUsdt>,
-	AliasesIntoAccountId32<(), AccountId>,
->;
-*/
 
 pub struct SalaryForRank;
 impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
