@@ -370,8 +370,7 @@ jobs:
     needs: [runtime-matrix, build-runtimes, ecosystem-test-matrix]
     runs-on: self-hosted
     timeout-minutes: 30
-    # TODO: Disabled for now
-    if: false # github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
