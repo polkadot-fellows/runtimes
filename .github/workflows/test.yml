@@ -348,11 +348,34 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
+  ecosystem-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.tests.outputs.tests }}
+    name: Extract ecosystem tests from polkadot-ecosystem-tests
+    steps:
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          path: ecosystem-tests
+
+      - name: Define Tests
+        id: tests
+        run: |
+          cd ecosystem-tests
+          echo tests=$(cd packages && ls */src/*.test.ts | jq -R -s -c 'split("\n")[:-1]') >> "$GITHUB_OUTPUT"
+
   ecosystem-tests:
-    needs: [runtime-matrix, build-runtimes]
+    needs: [runtime-matrix, build-runtimes, ecosystem-test-matrix]
     runs-on: self-hosted
+    timeout-minutes: 30
     # TODO: Disabled for now
     if: false # github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        tests: ${{ fromJSON(needs.ecosystem-test-matrix.outputs.tests) }}
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -377,31 +400,29 @@ jobs:
       - name: Setup runtime overrides
         run: |
           jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
-            NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
+            NAME="$(echo $NAME | tr -d '-' | tr '[:upper:]' '[:lower:]')"
             RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-            # Set the path to the build runtimes
-            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            echo "${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}" >> $GITHUB_ENV
           done
-          
+
       - name: Use latest Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 'node'
+          cache: 'yarn'
+          cache-dependency-path: ecosystem-tests/yarn.lock
 
       - name: Install yarn
         run: npm install -g yarn
 
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
-        run: yarn install
+        run: yarn install --immutable
 
-      - name: Running ecosystem tests
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 90
-          max_attempts: 3
-          command: cd ecosystem-tests && yarn test
+      - name: Running ecosystem test ${{ matrix.tests }}
+        working-directory: ecosystem-tests
+        run: yarn test packages/${{ matrix.tests }}
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
