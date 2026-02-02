@@ -409,11 +409,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'node'
-          cache: 'yarn'
-          cache-dependency-path: ecosystem-tests/yarn.lock
 
-      - name: Install yarn
-        run: npm install -g yarn
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Installing dependencies of ecosystem tests
         working-directory: ecosystem-tests
