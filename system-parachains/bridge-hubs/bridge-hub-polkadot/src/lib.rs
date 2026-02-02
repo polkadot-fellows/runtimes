@@ -585,31 +585,31 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_)
-					| RuntimeCall::ParachainSystem(_)
-					| RuntimeCall::Timestamp(_)
-					| RuntimeCall::CollatorSelection(_)
-					| RuntimeCall::Session(_)
-					| RuntimeCall::Utility(_)
-					| RuntimeCall::Multisig(_)
-					| RuntimeCall::Proxy(_)
-					| RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::register { .. })
-					| RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::deregister { .. })
-					| RuntimeCall::BridgeRelayers(
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::register { .. }) |
+					RuntimeCall::BridgeRelayers(pallet_bridge_relayers::Call::deregister { .. }) |
+					RuntimeCall::BridgeRelayers(
 						pallet_bridge_relayers::Call::claim_rewards { .. }
 					)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
-				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. }
-					| RuntimeCall::Utility { .. }
-					| RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 		}
 	}
