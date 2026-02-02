@@ -330,7 +330,7 @@ pub mod benchmark_helpers {
 		fn initialize_storage() -> EventFixture {
 			let message = make_register_token_message();
 			EthereumBeaconClient::store_finalized_header(
-				message.finalized_header.clone(),
+				message.finalized_header,
 				message.block_roots_root,
 			)
 			.unwrap();
@@ -343,7 +343,7 @@ pub mod benchmark_helpers {
 		fn initialize_storage() -> EventFixture {
 			let message = make_register_token_message_v2();
 			EthereumBeaconClient::store_finalized_header(
-				message.finalized_header.clone(),
+				message.finalized_header,
 				message.block_roots_root,
 			)
 			.unwrap();

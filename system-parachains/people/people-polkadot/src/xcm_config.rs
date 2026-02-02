@@ -417,9 +417,7 @@ impl pallet_assets::BenchmarkHelper<Location, ()> for XcmBenchmarkHelper {
 	fn create_asset_id_parameter(id: u32) -> Location {
 		Location::new(1, Parachain(id))
 	}
-	fn create_reserve_id_parameter(_id: u32) -> () {
-		()
-	}
+	fn create_reserve_id_parameter(_id: u32) {}
 }
 
 #[test]
