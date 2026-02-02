@@ -1968,6 +1968,10 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MultisigMembers = ();
 	type MultisigThreshold = ConstU32<{ u32::MAX }>;
 	type MultisigMaxVotesPerRound = (); // defunct
+	#[cfg(feature = "kusama-ahm")]
+	type KusamaConfig = Runtime;
+	#[cfg(feature = "kusama-ahm")]
+	type RecoveryBlockNumberProvider = System;
 }
 
 construct_runtime! {
@@ -3082,7 +3086,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn execute_block(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			state_root_check: bool,
 			signature_check: bool,
 			select: frame_try_runtime::TryStateSelect,
