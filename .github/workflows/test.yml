@@ -281,6 +281,7 @@ jobs:
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
+    if: false # Temporarily disabled to test PET only
     needs: [ runtime-matrix ]
     runs-on: self-hosted
     strategy:
