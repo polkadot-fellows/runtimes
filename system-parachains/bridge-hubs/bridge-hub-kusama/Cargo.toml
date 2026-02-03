@@ -106,6 +106,8 @@ pallet-bridge-relayers = { workspace = true }
 pallet-xcm-bridge-hub = { workspace = true }
 
 [dev-dependencies]
+# TODO: Remove when https://github.com/paritytech/polkadot-sdk/issues/10962 is closed
+assets-common = { workspace = true, features = ["runtime-benchmarks"] }
 bridge-hub-test-utils = { workspace = true }
 bridge-runtime-common = { features = [
 	"integrity-test",

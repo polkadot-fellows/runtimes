@@ -127,6 +127,8 @@ snowbridge-pallet-inbound-queue-fixtures = { workspace = true, optional = true }
 snowbridge-pallet-inbound-queue-v2-fixtures = { workspace = true, optional = true }
 
 [dev-dependencies]
+# TODO: Remove when https://github.com/paritytech/polkadot-sdk/issues/10962 is closed
+assets-common = { workspace = true, features = ["runtime-benchmarks"] }
 bridge-hub-test-utils = { workspace = true }
 bridge-runtime-common = { features = [
 	"integrity-test",
