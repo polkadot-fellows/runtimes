@@ -99,6 +99,7 @@ Here is an overview of the recommended steps.
 |9 |Close the issue for the release once the referendum is **approved and executed**. |
 |10 |Open an issue for **the next release** in the runtimes repo, if applicable.|
 
+For detailed instructions on submitting runtime upgrades via OpenGov, see the [Runtime Upgrade Guide](docs/runtime-upgrade-guide.md).
 
 ## Communication channels
 

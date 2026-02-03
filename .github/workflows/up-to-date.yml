@@ -8,7 +8,7 @@ on:
 jobs:
   updatePullRequests:
     name: Keep PRs up to date
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     environment: master
     steps:
       - name: Generate token
