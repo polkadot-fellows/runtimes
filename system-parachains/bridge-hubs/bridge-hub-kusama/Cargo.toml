@@ -201,6 +201,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"assets-common/std"
 ]
 
 runtime-benchmarks = [
@@ -247,6 +248,7 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"assets-common/runtime-benchmarks"
 ]
 
 try-runtime = [
@@ -281,6 +283,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-constants/try-runtime",
+	"assets-common/try-runtime"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
