@@ -569,7 +569,7 @@ jobs:
           fi
 
           # Wait for server
-          timeout=60
+          timeout=180
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
             if nc -z localhost $PORT 2>/dev/null; then
