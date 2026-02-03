@@ -107,7 +107,7 @@ pallet-xcm-bridge-hub = { workspace = true }
 
 [dev-dependencies]
 # TODO: Remove when https://github.com/paritytech/polkadot-sdk/issues/10962 is closed
-assets-common = { workspace = true, features = ["runtime-benchmarks"] }
+assets-common = { workspace = true }
 bridge-hub-test-utils = { workspace = true }
 bridge-runtime-common = { features = [
 	"integrity-test",
@@ -119,6 +119,7 @@ parachains-runtimes-test-utils = { workspace = true }
 [features]
 default = ["std"]
 std = [
+	"assets-common/std",
 	"bp-asset-hub-kusama/std",
 	"bp-asset-hub-polkadot/std",
 	"bp-bridge-hub-kusama/std",
@@ -201,10 +202,10 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"assets-common/std"
 ]
 
 runtime-benchmarks = [
+	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
 	"bp-asset-hub-polkadot/runtime-benchmarks",
 	"bp-bridge-hub-kusama/runtime-benchmarks",
@@ -248,10 +249,10 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"assets-common/runtime-benchmarks"
 ]
 
 try-runtime = [
+	"assets-common/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-weight-reclaim/try-runtime",
@@ -283,7 +284,6 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-constants/try-runtime",
-	"assets-common/try-runtime"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
