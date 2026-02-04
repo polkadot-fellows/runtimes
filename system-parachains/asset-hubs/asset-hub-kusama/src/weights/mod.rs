@@ -30,6 +30,7 @@ pub mod pallet_assets_pool;
 pub mod pallet_balances;
 pub mod pallet_bounties;
 pub mod pallet_child_bounties;
+pub mod pallet_multi_asset_bounties;
 pub mod pallet_collator_selection;
 pub mod pallet_conviction_voting;
 pub mod pallet_message_queue;

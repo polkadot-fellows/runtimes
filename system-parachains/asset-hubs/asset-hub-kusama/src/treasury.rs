@@ -20,9 +20,11 @@ use super::*;
 
 use crate::governance::{Treasurer, TreasurySpender};
 use frame_support::traits::{
-	tokens::UnityOrOuterConversion, Currency, FromContains, Get, OnUnbalanced,
+	fungible::HoldConsideration,
+	tokens::{UnityOrOuterConversion, ConversionFromAssetBalance, ConversionToAssetBalance},
+	Currency, FromContains, Get, OnUnbalanced,
 };
-use parachains_common::pay::VersionedLocatableAccount;
+use parachains_common::pay::{AccountIdToLocalLocation, LocalPay, VersionedLocatableAccount};
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 use scale_info::TypeInfo;
 use sp_runtime::traits::IdentityLookup;
@@ -160,6 +162,64 @@ impl pallet_child_bounties::Config for Runtime {
 	type MaxActiveChildBountyCount = MaxActiveChildBountyCount;
 	type ChildBountyValueMinimum = ChildBountyValueMinimum;
 	type WeightInfo = weights::pallet_child_bounties::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	pub const MultiAssetBountyValueMinimum: Balance = 200 * CENTS;
+	pub const MultiAssetChildBountyValueMinimum: Balance = MultiAssetBountyValueMinimum::get() / 10;
+	pub const MultiAssetMaxActiveChildBountyCount: u32 = 100;
+	pub const MultiAssetCuratorHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::MultiAssetBounties(pallet_multi_asset_bounties::HoldReason::CuratorDeposit);
+	pub const MultiAssetCuratorDepositFromValueMultiplier: Permill = Permill::from_percent(50);
+	pub const MultiAssetCuratorDepositMin: Balance = 10 * CENTS;
+	pub const MultiAssetCuratorDepositMax: Balance = 500 * CENTS;
+}
+
+impl pallet_multi_asset_bounties::Config for Runtime {
+	type Balance = Balance;
+	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type SpendOrigin = TreasurySpender;
+	type AssetKind = VersionedLocatableAsset;
+	type Beneficiary = VersionedLocatableAccount;
+	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	type BountyValueMinimum = MultiAssetBountyValueMinimum;
+	type ChildBountyValueMinimum = MultiAssetChildBountyValueMinimum;
+	type MaxActiveChildBountyCount = MultiAssetMaxActiveChildBountyCount;
+	type WeightInfo = weights::pallet_multi_asset_bounties::WeightInfo<Runtime>; // todo @dhiraj
+	type FundingSource = pallet_multi_asset_bounties::PalletIdAsFundingSource<
+		TreasuryPalletId,
+		Runtime,
+		AccountIdToLocalLocation,
+	>;
+	type BountySource = pallet_multi_asset_bounties::BountySourceFromPalletId<
+		TreasuryPalletId,
+		Runtime,
+		AccountIdToLocalLocation,
+	>;
+	type ChildBountySource = pallet_multi_asset_bounties::ChildBountySourceFromPalletId<
+		TreasuryPalletId,
+		Runtime,
+		AccountIdToLocalLocation,
+	>;
+	type Paymaster = LocalPay<NativeAndAssets, AccountId, xcm_config::LocationToAccountId>;
+	type BalanceConverter = AssetRateWithNative;
+	type Preimages = Preimage;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		MultiAssetCuratorHoldReason,
+		pallet_multi_asset_bounties::CuratorDepositAmount<
+			MultiAssetCuratorDepositFromValueMultiplier,
+			MultiAssetCuratorDepositMin,
+			MultiAssetCuratorDepositMax,
+			Balance,
+		>,
+		Balance,
+	>;
+	#[cfg(feature = "runtime-benchmarks")] 
+	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayWithSourceArguments<
+		xcm_config::TrustBackedAssetsPalletIndex,
+	>;
 }
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
