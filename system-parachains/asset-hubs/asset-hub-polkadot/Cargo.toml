@@ -103,6 +103,7 @@ primitive-types = { features = [
 	"num-traits",
 	"scale-info",
 ], workspace = true }
+pallet-dap = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 
 # Polkadot
@@ -191,6 +192,7 @@ runtime-benchmarks = [
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-dap/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-block/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
@@ -266,6 +268,7 @@ try-runtime = [
 	"pallet-child-bounties/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-dap/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-block/try-runtime",
 	"pallet-indices/try-runtime",
@@ -349,6 +352,7 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-collator-selection/std",
 	"pallet-conviction-voting/std",
+	"pallet-dap/std",
 	"pallet-delegated-staking/std",
 	"pallet-election-provider-multi-block/std",
 	"pallet-indices/std",

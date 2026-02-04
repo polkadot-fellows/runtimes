@@ -1557,6 +1557,9 @@ construct_runtime!(
 		// Contracts
 		Revive: pallet_revive = 90,
 
+		// DAP (Delegated Account for Penalties)
+		Dap: pallet_dap = 100,
+
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
 		AhMigrator: pallet_ah_migrator = 255,
@@ -1623,7 +1626,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = pallet_dap::migrations::v1::InitBufferAccount<Runtime>;
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;

@@ -130,17 +130,22 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+	pub const DapPalletId: PalletId = PalletId(*b"dap/buff");
 }
 
 impl pallet_delegated_staking::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = DelegatedStakingPalletId;
 	type Currency = Balances;
-	// slashes are sent to the treasury.
-	type OnSlash = ResolveTo<xcm_config::TreasuryAccount, Balances>;
+	type OnSlash = Dap;
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
+}
+
+impl pallet_dap::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = DapPalletId;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -461,7 +466,7 @@ impl pallet_staking_async::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
 	type RewardRemainder = ResolveTo<xcm_config::TreasuryAccount, Balances>;
-	type Slash = ResolveTo<xcm_config::TreasuryAccount, Balances>;
+	type Slash = Dap;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;

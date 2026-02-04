@@ -22,7 +22,7 @@ use asset_hub_polkadot_runtime::{
 		bridging, CheckingAccount, DotLocation, LocationToAccountId, RelayChainLocation,
 		StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
+	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, Dap, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
 	ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
@@ -1085,4 +1085,50 @@ fn staking_proxy_can_manage_staking_operator() {
 				"Carol should no longer be Alice's StakingOperator proxy"
 			);
 		});
+}
+
+#[test]
+fn slash_goes_to_dap_buffer_account() {
+	use frame_support::traits::{
+		fungible::{Balanced, Inspect},
+		OnUnbalanced,
+	};
+	use sp_runtime::BuildStorage;
+
+	// Build genesis with DAP pallet initialized
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![(AccountId::from(ALICE), 1_000 * UNITS)],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+	pallet_dap::GenesisConfig::<Runtime>::default()
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		let buffer = Dap::buffer_account();
+		let ed = <Balances as Inspect<_>>::minimum_balance();
+
+		// Given: buffer account exists and has ED
+		assert!(frame_system::Pallet::<Runtime>::account_exists(&buffer));
+		assert_eq!(Balances::free_balance(&buffer), ed);
+
+		// When: a slash occurs (simulating staking slash via OnUnbalanced)
+		let slash_amount = 100 * UNITS;
+		let credit = <Balances as Balanced<AccountId>>::issue(slash_amount);
+		Dap::on_unbalanced(credit);
+
+		// Then: buffer has ED + slash amount
+		assert_eq!(Balances::free_balance(&buffer), ed + slash_amount);
+
+		// When: another slash occurs
+		let slash_amount_2 = 50 * UNITS;
+		let credit2 = <Balances as Balanced<AccountId>>::issue(slash_amount_2);
+		Dap::on_unbalanced(credit2);
+
+		// Then: buffer accumulates both slashes
+		assert_eq!(Balances::free_balance(&buffer), ed + slash_amount + slash_amount_2);
+	});
 }

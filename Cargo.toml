@@ -116,6 +116,7 @@ pallet-child-bounties = { version = "44.0.0", default-features = false }
 pallet-collator-selection = { version = "26.0.0", default-features = false }
 pallet-collective = { version = "45.0.0", default-features = false }
 pallet-conviction-voting = { version = "45.0.0", default-features = false }
+pallet-dap = { version = "0.1.1", default-features = false }
 pallet-core-fellowship = { version = "29.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "44.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "44.0.0", default-features = false }

@@ -1285,6 +1285,7 @@ dependencies = [
  "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-conviction-voting",
+ "pallet-dap",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-block",
  "pallet-indices",
