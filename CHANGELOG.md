@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.6] 04.02.2026
+
+### Changed
+
+- Updates to latest polkadot-sdk
+
 ## [2.0.5] 13.01.2026
 
 ### Added

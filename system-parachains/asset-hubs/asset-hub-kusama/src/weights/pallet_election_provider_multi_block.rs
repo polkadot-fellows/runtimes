@@ -310,7 +310,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::WeightInfo f
 	/// Proof: `MultiBlockElectionVerifier::QueuedValidVariant` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
 	/// Storage: `MultiBlockElectionVerifier::QueuedSolutionY` (r:0 w:1)
 	/// Proof: `MultiBlockElectionVerifier::QueuedSolutionY` (`max_values`: None, `max_size`: Some(37586026), added: 37588501, mode: `Measured`)
-	fn manage() -> Weight {
+	fn manage_fallback() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `352685`
 		//  Estimated: `358625`
@@ -319,5 +319,25 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::WeightInfo f
 			.saturating_add(Weight::from_parts(0, 358625))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	/// Storage: `MultiBlockElection::CurrentPhase` (r:1 w:0)
+	/// Proof: `MultiBlockElection::CurrentPhase` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `Measured`)
+	/// Storage: `MultiBlockElection::Round` (r:1 w:0)
+	/// Proof: `MultiBlockElection::Round` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::QueuedSolutionScore` (r:1 w:1)
+	/// Proof: `MultiBlockElectionVerifier::QueuedSolutionScore` (`max_values`: None, `max_size`: Some(60), added: 2535, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::QueuedValidVariant` (r:1 w:0)
+	/// Proof: `MultiBlockElectionVerifier::QueuedValidVariant` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `MultiBlockElectionVerifier::QueuedSolutionY` (r:0 w:1)
+	/// Proof: `MultiBlockElectionVerifier::QueuedSolutionY` (`max_values`: None, `max_size`: Some(33794026), added: 33796501, mode: `Measured`)
+	fn admin_set() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `308`
+		//  Estimated: `3773`
+		// Minimum execution time: 399_531_000 picoseconds.
+		Weight::from_parts(497_971_000, 0)
+			.saturating_add(Weight::from_parts(0, 3773))
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 }
