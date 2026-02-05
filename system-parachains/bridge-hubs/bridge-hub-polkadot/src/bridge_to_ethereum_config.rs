@@ -24,7 +24,7 @@ use crate::{
 use bp_asset_hub_polkadot::SystemFrontendPalletInstance;
 use bp_bridge_hub_polkadot::snowbridge::{
 	CreateAssetCall as CreateAssetCallIndex, InboundQueuePalletInstance,
-	InboundQueueV2PalletInstance, Parameters,
+	InboundQueueV2PalletInstance, Parameters, SetReservesCall,
 };
 pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
 use frame_support::{parameter_types, traits::Contains, weights::ConstantMultiplier};
@@ -74,12 +74,11 @@ parameter_types! {
 	pub InboundQueueV2Location: InteriorLocation = [PalletInstance(InboundQueueV2PalletInstance::get())].into();
 	pub const SnowbridgeReward: BridgeReward = BridgeReward::Snowbridge;
 	pub SnowbridgeFrontendLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID), PalletInstance(SystemFrontendPalletInstance::get())]);
-	pub const SetReservesCallIndex: [u8; 2] = [53, 33];
 	pub CreateAssetCall: CreateAssetCallInfo = CreateAssetCallInfo {
 		create_call: CreateAssetCallIndex::get(),
 		deposit: bp_asset_hub_polkadot::CreateForeignAssetDeposit::get(),
 		min_balance: 1,
-		set_reserves_call: SetReservesCallIndex::get(),
+		set_reserves_call: SetReservesCall::get(),
 	};
 }
 

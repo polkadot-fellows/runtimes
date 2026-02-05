@@ -1965,13 +1965,13 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MessageQueue = MessageQueue;
 	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
 	type SessionDuration = EpochDuration; // Session == Epoch
-	type MultisigMembers = ();
-	type MultisigThreshold = ConstU32<{ u32::MAX }>;
-	type MultisigMaxVotesPerRound = (); // defunct
 	#[cfg(feature = "kusama-ahm")]
 	type KusamaConfig = Runtime;
 	#[cfg(feature = "kusama-ahm")]
 	type RecoveryBlockNumberProvider = System;
+	type MultisigMembers = ();
+	type MultisigThreshold = ConstU32<{ u32::MAX }>;
+	type MultisigMaxVotesPerRound = (); // defunct
 }
 
 construct_runtime! {
