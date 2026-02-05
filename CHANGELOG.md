@@ -4,15 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
-
-### Added
-
-- Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+## [2.0.6] 04.02.2026
 
 ### Changed
 
-- Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
+- Updates to latest polkadot-sdk
 
 ## [2.0.5] 13.01.2026
 
@@ -36,7 +32,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Add StakingOperator proxy type and the ability for Staking proxy to manage StakingOperator proxies ([#1033](https://github.com/polkadot-fellows/runtimes/pull/1033))
 - asset-hub-polkadot: remove treasury burns ([#1028](https://github.com/polkadot-fellows/runtimes/pull/1028))
 - asset-hub-polkadot: fix the regression in doc-test for staking after changing the base deposit for NPoS solution from 4 to 100 DOT ([#1023](https://github.com/polkadot-fellows/runtimes/pull/1023))
 - asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
