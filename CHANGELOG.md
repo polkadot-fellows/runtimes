@@ -4,6 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.7] 13.02.2026
+
+### Changed
+
+- Update to polkadot-sdk stable2512 (tag 2512-2) and introduce DAP pallet  [#1065](https://github.com/polkadot-fellows/runtimes/pull/1065)
+- Fix check-migration(asset-hub-polkadot) CI job [#1057](https://github.com/polkadot-fellows/runtimes/pull/1057)
+- Add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)
+- Allow HOLLAR to be reserved transferred to People Chain from Hydration  [#962](https://github.com/polkadot-fellows/runtimes/pull/962)
+- Update Kusama submission deposit as per ref#558  [#863](https://github.com/polkadot-fellows/runtimes/pull/863)
+
 ## [2.0.6] 04.02.2026
 
 ### Changed
