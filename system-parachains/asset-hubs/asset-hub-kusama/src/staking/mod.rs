@@ -114,7 +114,7 @@ impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
 				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
 		{
-			5
+			10
 		} else {
 			0
 		}
