@@ -510,8 +510,8 @@ impl sp_runtime::traits::Convert<rc_client::KeysMessage<AccountId>, Xcm<()>> for
 parameter_types! {
 	pub RelayLocation: Location = Location::parent();
 	/// Conservative RC execution cost for set/purge keys operations.
-	/// Intentionally ~2-3x of benchmarked values to avoid undercharging if RC weights increase.
-	pub RemoteKeysExecutionWeight: Weight = Weight::from_parts(200_000_000, 20_000);
+	/// ~3x of Kusama relay benchmarked session set/purge_keys (~61-62M ref_time, ~16538 proof).
+	pub RemoteKeysExecutionWeight: Weight = Weight::from_parts(190_000_000, 50_000);
 }
 
 pub struct StakingXcmToRelayChain;
