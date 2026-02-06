@@ -399,6 +399,19 @@ jobs:
       - name: Install yarn
         run: npm install -g yarn
 
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
       - name: Build Subway
         run: |
           echo "Building subway..."
