@@ -397,7 +397,9 @@ jobs:
           node-version: 'node'
 
       - name: Install yarn
-        run: npm install -g yarn
+        run: |
+          npm install -g yarn
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
       - name: Install updates and dependencies
         run: .github/install-deps.sh
