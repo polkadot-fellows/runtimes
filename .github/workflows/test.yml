@@ -281,7 +281,6 @@ jobs:
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
-    if: false # Temporarily disabled to test PET only
     needs: [ runtime-matrix ]
     runs-on: self-hosted
     strategy:
@@ -372,6 +371,7 @@ jobs:
           echo tests=$(cd packages && ls */src/*.test.ts | jq -R -s -c 'split("\n")[:-1]') >> "$GITHUB_OUTPUT"
 
   ecosystem-tests-pah:
+    needs: [build-runtimes]
     runs-on: self-hosted
     timeout-minutes: 60
     if: github.event_name == 'pull_request'
@@ -433,6 +433,20 @@ jobs:
             exit 1
           fi
 
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Setup runtime overrides
+        run: |
+          jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
+            NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
+            RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
+            echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            echo "${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}" >> $GITHUB_ENV
+          done
+
       - name: Use latest Node.js
         uses: actions/setup-node@v4
         with:
@@ -450,6 +464,15 @@ jobs:
       - name: Install test dependencies
         working-directory: ecosystem-tests
         run: yarn install --immutable
+
+      - name: Print environment variables
+        run: |
+          echo "=== Injected Environment Variables ==="
+          echo "ASSETHUBPOLKADOT_ENDPOINT: $ASSETHUBPOLKADOT_ENDPOINT"
+          env | grep -E "_WASM=" | sort || true
+          echo "======================================"
+        env:
+          ASSETHUBPOLKADOT_ENDPOINT: ws://localhost:9000
 
       - name: Run Asset Hub Polkadot tests
         working-directory: ecosystem-tests
@@ -492,6 +515,6 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
-      # TODO: ecosystem-tests disabled for now
+      - ecosystem-tests-pah
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
