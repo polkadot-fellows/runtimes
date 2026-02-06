@@ -2,7 +2,7 @@ extensions:
   client:
     endpoints:
       - wss://sys.ibp.network/asset-hub-polkadot
-      - wss://statemint.public.curie.radiumblock.co/ws
+      - wss://asset-hub-polkadot.dotters.network
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180
