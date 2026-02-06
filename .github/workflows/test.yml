@@ -397,9 +397,7 @@ jobs:
           node-version: 'node'
 
       - name: Install yarn
-        run: |
-          npm install -g yarn
-          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+        run: npm install -g yarn
 
       - name: Install updates and dependencies
         run: .github/install-deps.sh
@@ -413,6 +411,9 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Add yarn to PATH
+        run: echo "$(npm bin -g)" >> $GITHUB_PATH
 
       - name: Build Subway
         run: |
