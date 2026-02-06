@@ -156,7 +156,11 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
-kusama-ahm = ["pallet-ah-migrator/kusama-ahm", "pallet-rc-migrator/kusama-ahm"]
+kusama-ahm = [
+	"kusama-runtime/kusama-ahm",
+	"pallet-ah-migrator/kusama-ahm",
+	"pallet-rc-migrator/kusama-ahm",
+]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
@@ -175,6 +179,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
 	"pallet-ah-migrator/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
@@ -251,6 +256,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"kusama-runtime/try-runtime",
 	"pallet-ah-migrator/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
