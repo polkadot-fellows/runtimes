@@ -56,7 +56,7 @@ pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
-pallet-multi-asset-bounties = { workspace = true } 
+pallet-multi-asset-bounties = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-nft-fractionalization = { workspace = true }
 pallet-nfts = { workspace = true }

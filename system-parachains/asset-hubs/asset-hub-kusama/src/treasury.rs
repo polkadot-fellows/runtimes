@@ -20,9 +20,8 @@ use super::*;
 
 use crate::governance::{Treasurer, TreasurySpender};
 use frame_support::traits::{
-	fungible::HoldConsideration,
-	tokens::{ConversionFromAssetBalance, ConversionToAssetBalance, UnityOrOuterConversion},
-	Currency, FromContains, Get, OnUnbalanced,
+	fungible::HoldConsideration, tokens::UnityOrOuterConversion, Currency, FromContains, Get,
+	OnUnbalanced,
 };
 use parachains_common::pay::{AccountIdToLocalLocation, LocalPay, VersionedLocatableAccount};
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
