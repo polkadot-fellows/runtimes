@@ -199,8 +199,8 @@ runtime-benchmarks = [
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-migrations/runtime-benchmarks",
-	"pallet-multisig/runtime-benchmarks",
 	"pallet-multi-asset-bounties/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks",
 	"pallet-nft-fractionalization/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
@@ -279,8 +279,8 @@ try-runtime = [
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-migrations/try-runtime",
-	"pallet-multisig/try-runtime",
 	"pallet-multi-asset-bounties/try-runtime",
+	"pallet-multisig/try-runtime",
 	"pallet-nft-fractionalization/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-nomination-pools/try-runtime",
@@ -368,8 +368,8 @@ std = [
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-migrations/std",
-	"pallet-multisig/std",
 	"pallet-multi-asset-bounties/std",
+	"pallet-multisig/std",
 	"pallet-nft-fractionalization/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
@@ -445,4 +445,8 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["kusama-ahm", "metadata-hash", "sp-api/disable-logging"]
+on-chain-release-build = [
+	"kusama-ahm",
+	"metadata-hash",
+	"sp-api/disable-logging",
+]
