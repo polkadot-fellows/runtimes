@@ -535,8 +535,8 @@ pub enum ProxyType {
 	Governance,
 	/// Allows access to staking related calls.
 	///
-	/// Contains the `Staking`, `Session`, `Utility`, `FastUnstake`, `VoterList`, `NominationPools`
-	/// pallets.
+	/// Contains the `Staking`, `StakingRcClient`, `Session`, `Utility`, `VoterList`,
+	/// `NominationPools` pallets.
 	Staking,
 	/// Allows access to nomination pools related calls.
 	///
@@ -550,11 +550,12 @@ pub enum ProxyType {
 	///
 	/// This variant cannot do anything on Asset Hub itself.
 	ParaRegistration,
-	/// Operator proxy for validators. Can only perform operational tasks like validating,
-	/// chilling, and kicking. Cannot bond/unbond funds, change reward destinations, or nominate.
-	/// Session key management (set_keys, purge_keys) is done on the relay chain.
+	/// Operator proxy for validators. Can perform operational tasks: validating, chilling,
+	/// kicking, and managing session keys. Cannot bond/unbond funds, change reward
+	/// destinations, or nominate.
 	///
-	/// Contains the `Staking` (validate, chill, kick) and `Utility` pallets.
+	/// Contains `Staking` (validate, chill, kick), `StakingRcClient` (set_keys, purge_keys),
+	/// and `Utility` pallets.
 	StakingOperator,
 }
 impl Default for ProxyType {
@@ -580,6 +581,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				// Specifically omitting Indices `transfer`, `force_transfer`
 				// Specifically omitting the entire Balances pallet
 				RuntimeCall::Staking(..) |
+				RuntimeCall::StakingRcClient(..) |
 				RuntimeCall::Session(..) |
 				// Not on AH RuntimeCall::Grandpa(..) |
 				RuntimeCall::Treasury(..) |
@@ -617,6 +619,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Staking => matches!(
 				c,
 				RuntimeCall::Staking(..) |
+					RuntimeCall::StakingRcClient(..) |
 					RuntimeCall::Session(..) |
 					RuntimeCall::Utility(..) |
 					// Not on AH RuntimeCall::FastUnstake(..) |
@@ -635,7 +638,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Staking(pallet_staking_async::Call::validate { .. }) |
 					RuntimeCall::Staking(pallet_staking_async::Call::chill { .. }) |
 					RuntimeCall::Staking(pallet_staking_async::Call::kick { .. }) |
-					RuntimeCall::Utility { .. }
+					RuntimeCall::StakingRcClient(
+						pallet_staking_async_rc_client::Call::set_keys { .. }
+					) | RuntimeCall::StakingRcClient(
+					pallet_staking_async_rc_client::Call::purge_keys { .. }
+				) | RuntimeCall::Utility { .. }
 			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
@@ -2814,6 +2821,21 @@ mod tests {
 		assert!(ProxyType::StakingOperator
 			.filter(&RuntimeCall::Staking(pallet_staking_async::Call::kick { who: vec![] })));
 
+		// - StakingRcClient::set_keys (session key management on Asset Hub)
+		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::StakingRcClient(
+			pallet_staking_async_rc_client::Call::set_keys {
+				keys: Default::default(),
+				max_delivery_and_remote_execution_fee: None,
+			}
+		)));
+
+		// - StakingRcClient::purge_keys
+		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::StakingRcClient(
+			pallet_staking_async_rc_client::Call::purge_keys {
+				max_delivery_and_remote_execution_fee: None,
+			}
+		)));
+
 		// - Utility calls (for batching)
 		assert!(ProxyType::StakingOperator
 			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
@@ -2859,8 +2881,17 @@ mod tests {
 			}
 		)));
 
-		// - Session calls (session key management is on relay chain, not Asset Hub)
-		// Note: Asset Hub's Session pallet is for collators, not validators
+		// - Session calls: set and purge keys
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Session(
+			pallet_session::Call::set_keys {
+				keys: SessionKeys {
+					aura: sp_consensus_aura::ed25519::AuthorityId::from(
+						sp_core::ed25519::Public::from_raw([0u8; 32]),
+					),
+				},
+				proof: vec![],
+			}
+		)));
 		assert!(!ProxyType::StakingOperator
 			.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
 
@@ -2884,6 +2915,19 @@ mod tests {
 		assert!(
 			ProxyType::Staking.filter(&RuntimeCall::Staking(pallet_staking_async::Call::chill {}))
 		);
+
+		// Staking proxy allows StakingRcClient calls
+		assert!(ProxyType::Staking.filter(&RuntimeCall::StakingRcClient(
+			pallet_staking_async_rc_client::Call::set_keys {
+				keys: Default::default(),
+				max_delivery_and_remote_execution_fee: None,
+			}
+		)));
+		assert!(ProxyType::Staking.filter(&RuntimeCall::StakingRcClient(
+			pallet_staking_async_rc_client::Call::purge_keys {
+				max_delivery_and_remote_execution_fee: None,
+			}
+		)));
 
 		// Staking proxy can add/remove StakingOperator proxies
 		let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
