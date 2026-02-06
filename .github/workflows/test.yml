@@ -399,6 +399,10 @@ jobs:
       - name: Install yarn
         run: npm install -g yarn
 
+      - name: Install test dependencies
+        working-directory: ecosystem-tests
+        run: yarn install --immutable
+
       - name: Install updates and dependencies
         run: .github/install-deps.sh
 
@@ -411,9 +415,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Add yarn to PATH
-        run: echo "$(npm bin -g)" >> $GITHUB_PATH
 
       - name: Build Subway
         run: |
@@ -449,10 +450,6 @@ jobs:
             cat /tmp/subway.log
             exit 1
           fi
-
-      - name: Install test dependencies
-        working-directory: ecosystem-tests
-        run: yarn install --immutable
 
       - name: Run Asset Hub Polkadot tests
         working-directory: ecosystem-tests
