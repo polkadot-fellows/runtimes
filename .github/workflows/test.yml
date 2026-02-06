@@ -396,8 +396,11 @@ jobs:
         with:
           node-version: 'node'
 
-      - name: Install yarn
-        run: npm install -g yarn
+      - name: Install yarn and add to PATH
+        run: |
+          npm install -g yarn
+          echo "$(npm bin -g)" >> $GITHUB_PATH
+          export PATH="$(npm bin -g):$PATH"
 
       - name: Install test dependencies
         working-directory: ecosystem-tests
