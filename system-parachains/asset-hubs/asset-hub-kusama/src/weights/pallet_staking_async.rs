@@ -999,13 +999,44 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	/// Storage: `Staking::ActiveEra` (r:1 w:0)
+	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `Measured`)
+	/// Storage: `Staking::EraPruningState` (r:1 w:1)
+	/// Proof: `Staking::EraPruningState` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `Staking::ErasNominatorsSlashable` (r:0 w:1)
+	/// Proof: `Staking::ErasNominatorsSlashable` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `Staking::ErasTotalStake` (r:0 w:1)
+	/// Proof: `Staking::ErasTotalStake` (`max_values`: None, `max_size`: Some(28), added: 2503, mode: `Measured`)
 	// TODO: regenerate weights via /cmd bench --runtime asset-hub-kusama --pallet pallet_staking_async
 	fn prune_era_single_entry_cleanups() -> Weight {
-		Weight::default()
+		// Proof Size summary in bytes:
+		//  Measured:  `809`
+		//  Estimated: `4274`
+		// Minimum execution time: 39_314_000 picoseconds.
+		Weight::from_parts(41_058_000, 0)
+			.saturating_add(Weight::from_parts(0, 4274))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
-
+	/// Storage: `Staking::ActiveEra` (r:1 w:0)
+	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `Measured`)
+	/// Storage: `Staking::EraPruningState` (r:1 w:0)
+	/// Proof: `Staking::EraPruningState` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `Staking::ValidatorSlashInEra` (r:101 w:100)
+	/// Proof: `Staking::ValidatorSlashInEra` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
+	/// The range of component `v` is `[1, 1000]`.
 	// TODO: regenerate weights via /cmd bench --runtime asset-hub-kusama --pallet pallet_staking_async
-	fn prune_era_validator_slash_in_era(_v: u32) -> Weight {
-		Weight::default()
+	fn prune_era_validator_slash_in_era(v: u32) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `5519 + v * (3 ±0)`
+		//  Estimated: `132098 + v * (177 ±0)`
+		// Minimum execution time: 58_306_000 picoseconds.
+		Weight::from_parts(180_775_367, 0)
+			.saturating_add(Weight::from_parts(0, 132098))
+			// Standard Error: 7_525
+			.saturating_add(Weight::from_parts(220_673, 0).saturating_mul(v.into()))
+			.saturating_add(T::DbWeight::get().reads(49))
+			.saturating_add(T::DbWeight::get().writes(48))
+			.saturating_add(Weight::from_parts(0, 177).saturating_mul(v.into()))
 	}
 }
