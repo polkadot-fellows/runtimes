@@ -385,27 +385,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Checkout polkadot-ecosystem-tests
-        uses: actions/checkout@v4
-        with:
-          repository: open-web3-stack/polkadot-ecosystem-tests
-          path: ecosystem-tests
-
-      - name: Use latest Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'node'
-
-      - name: Install yarn and add to PATH
-        run: |
-          npm install -g yarn
-          echo "$(npm bin -g)" >> $GITHUB_PATH
-          export PATH="$(npm bin -g):$PATH"
-
-      - name: Install test dependencies
-        working-directory: ecosystem-tests
-        run: yarn install --immutable
-
       - name: Install updates and dependencies
         run: .github/install-deps.sh
 
@@ -453,6 +432,24 @@ jobs:
             cat /tmp/subway.log
             exit 1
           fi
+
+      - name: Use latest Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Install yarn
+        run: npm install -g yarn
+
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          path: ecosystem-tests
+
+      - name: Install test dependencies
+        working-directory: ecosystem-tests
+        run: yarn install --immutable
 
       - name: Run Asset Hub Polkadot tests
         working-directory: ecosystem-tests
