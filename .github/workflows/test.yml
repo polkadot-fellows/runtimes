@@ -427,20 +427,22 @@ jobs:
           /tmp/subway/target/release/subway --config .github/subway-asset-hub-polkadot.yml > /tmp/subway.log 2>&1 &
           echo $! > /tmp/subway.pid
 
-          # Wait for subway to be ready
-          timeout=180
+          # Wait for subway to be ready by checking logs
+          echo "Waiting for subway to start..."
+          timeout=60
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
-            if nc -z localhost 9000 2>/dev/null; then
-              echo "Subway ready on port 9000"
+            if grep -q "Server running at" /tmp/subway.log 2>/dev/null; then
+              echo "Subway started successfully!"
+              cat /tmp/subway.log
               break
             fi
-            sleep 2
-            elapsed=$((elapsed + 2))
+            sleep 1
+            elapsed=$((elapsed + 1))
           done
 
           if [ $elapsed -ge $timeout ]; then
-            echo "Timeout waiting for subway"
+            echo "Timeout waiting for subway to start"
             cat /tmp/subway.log
             exit 1
           fi
