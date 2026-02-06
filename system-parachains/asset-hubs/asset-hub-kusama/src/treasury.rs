@@ -184,7 +184,7 @@ impl pallet_multi_asset_bounties::Config for Runtime {
 	type BountyValueMinimum = MultiAssetBountyValueMinimum;
 	type ChildBountyValueMinimum = MultiAssetChildBountyValueMinimum;
 	type MaxActiveChildBountyCount = MultiAssetMaxActiveChildBountyCount;
-	type WeightInfo = weights::pallet_multi_asset_bounties::WeightInfo<Runtime>; // todo @dhiraj
+	type WeightInfo = weights::pallet_multi_asset_bounties::WeightInfo<Runtime>;
 	type FundingSource = pallet_multi_asset_bounties::PalletIdAsFundingSource<
 		TreasuryPalletId,
 		Runtime,
