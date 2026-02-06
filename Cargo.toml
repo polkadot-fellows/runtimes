@@ -10,7 +10,7 @@ pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.6.0", default-features = false }
-pallet-staking-async = { version = "0.9.0", default-features = false }
+pallet-staking-async = { version = "0.10.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
 impl-trait-for-tuples = { version = "0.2.3", default-features = false }
@@ -72,7 +72,7 @@ encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
 encointer-primitives = { version = "~21.5.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
-frame-benchmarking = { version = "45.0.1", default-features = false }
+frame-benchmarking = { version = "45.0.2", default-features = false }
 frame-election-provider-support = { version = "45.0.0", default-features = false }
 frame-executive = { version = "45.0.1", default-features = false }
 frame-support = { version = "45.1.0", default-features = false }
@@ -82,6 +82,7 @@ frame-system-rpc-runtime-api = { version = "40.0.0", default-features = false }
 frame-try-runtime = { version = "0.51.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.40.0", package = "sc-consensus-grandpa" }
+grandpa-primitives = { version = "27.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
@@ -102,7 +103,7 @@ pallet-aura = { version = "44.0.0", default-features = false }
 pallet-authority-discovery = { version = "45.0.0", default-features = false }
 pallet-authorship = { version = "45.0.0", default-features = false }
 pallet-babe = { version = "45.0.0", default-features = false }
-pallet-bags-list = { version = "44.0.0", default-features = false }
+pallet-bags-list = { version = "44.0.1", default-features = false }
 pallet-balances = { version = "46.0.0", default-features = false }
 pallet-beefy = { version = "46.0.0", default-features = false }
 pallet-beefy-mmr = { version = "46.0.0", default-features = false }
@@ -116,7 +117,7 @@ pallet-child-bounties = { version = "44.0.0", default-features = false }
 pallet-collator-selection = { version = "26.0.0", default-features = false }
 pallet-collective = { version = "45.0.0", default-features = false }
 pallet-conviction-voting = { version = "45.0.0", default-features = false }
-pallet-dap = { version = "0.1.1", default-features = false }
+pallet-dap = { version = "0.2.0", default-features = false }
 pallet-core-fellowship = { version = "29.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "44.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "44.0.0", default-features = false }
@@ -148,7 +149,7 @@ pallet-nfts = { version = "39.0.0", default-features = false }
 pallet-nfts-runtime-api = { version = "30.0.0", default-features = false }
 pallet-nis = { version = "45.0.0", default-features = false }
 pallet-migrations = { version = "15.0.0", default-features = false }
-pallet-nomination-pools = { version = "43.0.1", default-features = false }
+pallet-nomination-pools = { version = "43.0.2", default-features = false }
 pallet-nomination-pools-benchmarking = { version = "43.0.0", default-features = false }
 pallet-nomination-pools-runtime-api = { version = "41.0.0", default-features = false }
 pallet-offences = { version = "44.0.0", default-features = false }
@@ -163,13 +164,13 @@ pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false 
 pallet-revive = { version = "0.12.2", default-features = false }
 pallet-salary = { version = "30.0.0", default-features = false }
 pallet-scheduler = { version = "46.0.0", default-features = false }
-pallet-session = { version = "45.0.0", default-features = false }
+pallet-session = { version = "45.1.0", default-features = false }
 pallet-session-benchmarking = { version = "45.0.0", default-features = false }
 pallet-society = { version = "45.0.0", default-features = false }
 pallet-staking = { version = "45.0.0", default-features = false }
 pallet-delegated-staking = { version = "12.0.0", default-features = false }
-pallet-staking-async-ah-client = { version = "0.7.0", default-features = false }
-pallet-staking-async-rc-client = { version = "0.7.0", default-features = false }
+pallet-staking-async-ah-client = { version = "0.7.1", default-features = false }
+pallet-staking-async-rc-client = { version = "0.7.1", default-features = false }
 pallet-staking-reward-curve = { version = "12.0.0" }
 pallet-staking-reward-fn = { version = "24.0.0", default-features = false }
 pallet-staking-runtime-api = { version = "30.0.0", default-features = false }
@@ -217,13 +218,13 @@ separator = { version = "0.4.1" }
 serde = { version = "1.0.214" }
 serde_json = { version = "1.0.132", default-features = false }
 smallvec = { version = "1.13.1" }
-snowbridge-beacon-primitives = { version = "0.18.0", default-features = false }
+snowbridge-beacon-primitives = { version = "0.18.1", default-features = false }
 snowbridge-core = { version = "0.18.0", default-features = false }
 snowbridge-merkle-tree = { version = "0.6.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.18.0", default-features = false }
 snowbridge-outbound-queue-v2-runtime-api = { version = "0.7.0", default-features = false }
 snowbridge-outbound-queue-primitives = { version = "0.7.0", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.18.0", default-features = false }
+snowbridge-pallet-ethereum-client = { version = "0.18.1", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.18.0", default-features = false }
 snowbridge-pallet-inbound-queue-v2 = { version = "0.7.0", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.26.0", default-features = false }

@@ -52,7 +52,7 @@ pallet-broker = { workspace = true }
 pallet-child-bounties = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-staking-async-ah-client = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-conviction-voting = { workspace = true }

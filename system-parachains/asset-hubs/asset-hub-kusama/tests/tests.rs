@@ -1039,3 +1039,18 @@ fn staking_proxy_can_manage_staking_operator() {
 			);
 		});
 }
+
+#[test]
+fn session_keys_are_compatible_between_ah_and_rc() {
+	use asset_hub_kusama_runtime::staking::RelayChainSessionKeys;
+	use sp_runtime::traits::OpaqueKeys;
+
+	// Verify the key type IDs match in order.
+	// This ensures that when keys are encoded on AssetHub and decoded on Kusama (or vice versa),
+	// they map to the correct key types.
+	assert_eq!(
+		RelayChainSessionKeys::key_ids(),
+		kusama_runtime::SessionKeys::key_ids(),
+		"Session key type IDs must match between AssetHub and Kusama"
+	);
+}

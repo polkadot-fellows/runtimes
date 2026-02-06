@@ -1089,26 +1089,31 @@ fn staking_proxy_can_manage_staking_operator() {
 
 #[test]
 fn slash_goes_to_dap_buffer_account() {
-	use frame_support::traits::{
-		fungible::{Balanced, Inspect},
-		OnUnbalanced,
+	use asset_hub_polkadot_runtime::staking::DapPalletId;
+	use frame_support::{
+		sp_runtime::traits::AccountIdConversion,
+		traits::{
+			fungible::{Balanced, Inspect},
+			OnUnbalanced,
+		},
 	};
 	use sp_runtime::BuildStorage;
 
-	// Build genesis with DAP pallet initialized
+	let dap_buffer: AccountId = DapPalletId::get().into_account_truncating();
+
 	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Runtime> {
-		balances: vec![(AccountId::from(ALICE), 1_000 * UNITS)],
+		balances: vec![
+			(AccountId::from(ALICE), 1_000 * UNITS),
+			(dap_buffer.clone(), ExistentialDeposit::get()),
+		],
 		..Default::default()
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	pallet_dap::GenesisConfig::<Runtime>::default()
-		.assimilate_storage(&mut t)
-		.unwrap();
 
 	sp_io::TestExternalities::from(t).execute_with(|| {
-		let buffer = Dap::buffer_account();
+		let buffer = dap_buffer.clone();
 		let ed = <Balances as Inspect<_>>::minimum_balance();
 
 		// Given: buffer account exists and has ED
@@ -1131,4 +1136,19 @@ fn slash_goes_to_dap_buffer_account() {
 		// Then: buffer accumulates both slashes
 		assert_eq!(Balances::free_balance(&buffer), ed + slash_amount + slash_amount_2);
 	});
+}
+
+#[test]
+fn session_keys_are_compatible_between_ah_and_rc() {
+	use asset_hub_polkadot_runtime::staking::RelayChainSessionKeys;
+	use sp_runtime::traits::OpaqueKeys;
+
+	// Verify the key type IDs match in order.
+	// This ensures that when keys are encoded on AssetHub and decoded on Polkadot (or vice versa),
+	// they map to the correct key types.
+	assert_eq!(
+		RelayChainSessionKeys::key_ids(),
+		polkadot_runtime::SessionKeys::key_ids(),
+		"Session key type IDs must match between AssetHub and Polkadot"
+	);
 }

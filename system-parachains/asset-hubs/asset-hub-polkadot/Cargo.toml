@@ -66,7 +66,7 @@ pallet-revive = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
@@ -84,6 +84,11 @@ pallet-whitelist = { workspace = true }
 sp-api = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
+authority-discovery-primitives = { workspace = true }
+babe-primitives = { workspace = true }
+beefy-primitives = { workspace = true }
+grandpa-primitives = { workspace = true }
+polkadot-primitives = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -146,6 +151,7 @@ approx = { workspace = true }
 asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
+polkadot-runtime = { workspace = true }
 sp-tracing = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
 frame-try-runtime = { workspace = true }
@@ -226,6 +232,7 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
@@ -404,6 +411,11 @@ std = [
 	"sp-api/std",
 	"sp-arithmetic/std",
 	"sp-block-builder/std",
+	"authority-discovery-primitives/std",
+	"babe-primitives/std",
+	"beefy-primitives/std",
+	"grandpa-primitives/std",
+	"polkadot-primitives/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
 	"sp-genesis-builder/std",
