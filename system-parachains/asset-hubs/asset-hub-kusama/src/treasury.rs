@@ -21,7 +21,7 @@ use super::*;
 use crate::governance::{Treasurer, TreasurySpender};
 use frame_support::traits::{
 	fungible::HoldConsideration,
-	tokens::{UnityOrOuterConversion, ConversionFromAssetBalance, ConversionToAssetBalance},
+	tokens::{ConversionFromAssetBalance, ConversionToAssetBalance, UnityOrOuterConversion},
 	Currency, FromContains, Get, OnUnbalanced,
 };
 use parachains_common::pay::{AccountIdToLocalLocation, LocalPay, VersionedLocatableAccount};
@@ -216,8 +216,8 @@ impl pallet_multi_asset_bounties::Config for Runtime {
 		>,
 		Balance,
 	>;
-	#[cfg(feature = "runtime-benchmarks")] 
-	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayWithSourceArguments<
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = parachains_common::pay::benchmarks::LocalPayWithSourceArguments<
 		xcm_config::TrustBackedAssetsPalletIndex,
 	>;
 }
