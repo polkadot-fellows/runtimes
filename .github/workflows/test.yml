@@ -384,6 +384,11 @@ jobs:
             port: 9000
             endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT"
             test_pattern: "assetHubPolkadot"
+          - name: "asset-hub-kusama"
+            config: "asset-hub-kusama.yml"
+            port: 9001
+            endpoint_var: "ASSETHUBKUSAMA_ENDPOINT"
+            test_pattern: "assetHubKusama"
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
