@@ -370,11 +370,20 @@ jobs:
           cd ecosystem-tests
           echo tests=$(cd packages && ls */src/*.test.ts | jq -R -s -c 'split("\n")[:-1]') >> "$GITHUB_OUTPUT"
 
-  ecosystem-tests-pah:
+  ecosystem-tests:
     needs: [build-runtimes]
     runs-on: self-hosted
     timeout-minutes: 60
     if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        chain:
+          - name: "asset-hub-polkadot"
+            config: "asset-hub-polkadot.yml"
+            port: 9000
+            endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT"
+            test_pattern: "assetHubPolkadot"
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -409,8 +418,9 @@ jobs:
 
       - name: Start Subway
         run: |
-          echo "Starting Subway for Asset Hub Polkadot..."
-          /tmp/subway/target/release/subway --config .github/subway-asset-hub-polkadot.yml > /tmp/subway.log 2>&1 &
+          echo "Starting Subway for ${{ matrix.chain.name }}..."
+          sed 's/{{PORT}}/${{ matrix.chain.port }}/g' .github/subway-configs/${{ matrix.chain.config }} > /tmp/subway-${{ matrix.chain.port }}.yml
+          /tmp/subway/target/release/subway --config /tmp/subway-${{ matrix.chain.port }}.yml > /tmp/subway.log 2>&1 &
           echo $! > /tmp/subway.pid
 
           # Wait for subway to be ready by checking logs
@@ -440,6 +450,7 @@ jobs:
 
       - name: Setup runtime overrides
         run: |
+          echo "${{ matrix.chain.endpoint_var }}=ws://localhost:${{ matrix.chain.port }}" >> $GITHUB_ENV
           jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
             NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
             RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
@@ -468,29 +479,25 @@ jobs:
       - name: Print environment variables
         run: |
           echo "=== Injected Environment Variables ==="
-          echo "ASSETHUBPOLKADOT_ENDPOINT: $ASSETHUBPOLKADOT_ENDPOINT"
+          echo "${{ matrix.chain.endpoint_var }}: $(printenv ${{ matrix.chain.endpoint_var }})"
           env | grep -E "_WASM=" | sort || true
           echo "======================================"
-        env:
-          ASSETHUBPOLKADOT_ENDPOINT: ws://localhost:9000
 
-      - name: Run Asset Hub Polkadot tests
+      - name: Run ${{ matrix.chain.name }} tests
         working-directory: ecosystem-tests
-        env:
-          ASSETHUBPOLKADOT_ENDPOINT: ws://localhost:9000
         run: |
-          echo "Finding Asset Hub Polkadot tests..."
-          TEST_FILES=$(find packages -name "*.test.ts" | grep -i "assetHubPolkadot" | tr '\n' ' ' || true)
+          echo "Finding ${{ matrix.chain.name }} tests..."
+          TEST_FILES=$(find packages -name "*.test.ts" | grep -i "${{ matrix.chain.test_pattern }}" | tr '\n' ' ' || true)
 
           if [ -z "$TEST_FILES" ]; then
-            echo "No Asset Hub Polkadot tests found"
+            echo "No ${{ matrix.chain.name }} tests found"
             exit 0
           fi
 
-          echo "Running the following tests."
+          echo "Running the following tests:"
           echo "$TEST_FILES"
 
-          yarn test $TEST_FILES
+          yarn test $TEST_FILES -u
 
       - name: Cleanup Subway
         if: always()
@@ -515,6 +522,6 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
-      - ecosystem-tests-pah
+      - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
