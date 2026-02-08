@@ -3,6 +3,8 @@ extensions:
     endpoints:
       - wss://sys.ibp.network/asset-hub-polkadot
       - wss://asset-hub-polkadot.dotters.network
+      - wss://polkadot-asset-hub-rpc.polkadot.io
+      - wss://asset-hub-polkadot-rpc.n.dwellir.com
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180
