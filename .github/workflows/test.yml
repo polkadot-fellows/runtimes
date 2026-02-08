@@ -390,6 +390,41 @@ jobs:
             port: 9001
             endpoint_var: "ASSETHUBKUSAMA_ENDPOINT"
             test_pattern: "assetHubKusama"
+          - name: "bridge-hub-polkadot"
+            config: "bridge-hub-polkadot.yml"
+            port: 9002
+            endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT"
+            test_pattern: "bridgeHubPolkadot"
+          - name: "bridge-hub-kusama"
+            config: "bridge-hub-kusama.yml"
+            port: 9003
+            endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT"
+            test_pattern: "bridgeHubKusama"
+          - name: "collectives-polkadot"
+            config: "collectives-polkadot.yml"
+            port: 9004
+            endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT"
+            test_pattern: "collectivesPolkadot"
+          - name: "coretime-polkadot"
+            config: "coretime-polkadot.yml"
+            port: 9005
+            endpoint_var: "CORETIMEPOLKADOT_ENDPOINT"
+            test_pattern: "coretimePolkadot"
+          - name: "coretime-kusama"
+            config: "coretime-kusama.yml"
+            port: 9006
+            endpoint_var: "CORETIMEKUSAMA_ENDPOINT"
+            test_pattern: "coretimeKusama"
+          - name: "people-polkadot"
+            config: "people-polkadot.yml"
+            port: 9007
+            endpoint_var: "PEOPLEPOLKADOT_ENDPOINT"
+            test_pattern: "peoplePolkadot"
+          - name: "people-kusama"
+            config: "people-kusama.yml"
+            port: 9008
+            endpoint_var: "PEOPLEKUSAMA_ENDPOINT"
+            test_pattern: "peopleKusama"
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
