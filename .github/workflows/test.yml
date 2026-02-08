@@ -352,26 +352,8 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
-  ecosystem-test-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      tests: ${{ steps.tests.outputs.tests }}
-    name: Extract ecosystem tests from polkadot-ecosystem-tests
-    steps:
-      - name: Checkout polkadot-ecosystem-tests
-        uses: actions/checkout@v4
-        with:
-          repository: open-web3-stack/polkadot-ecosystem-tests
-          path: ecosystem-tests
-
-      - name: Define Tests
-        id: tests
-        run: |
-          cd ecosystem-tests
-          echo tests=$(cd packages && ls */src/*.test.ts | jq -R -s -c 'split("\n")[:-1]') >> "$GITHUB_OUTPUT"
-
   ecosystem-tests:
-    name: ${{ matrix.chain.name }}
+    name: "PET (${{ matrix.chain.name }})"
     needs: [build-runtimes]
     runs-on: self-hosted
     timeout-minutes: 60
