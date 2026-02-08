@@ -2,6 +2,8 @@ extensions:
   client:
     endpoints:
       - wss://polkadot-people-rpc.polkadot.io
+      - wss://people-polkadot.dotters.network
+      - wss://polkadot-people-rpc.polkadot.io
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180
