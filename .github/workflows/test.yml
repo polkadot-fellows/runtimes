@@ -407,6 +407,18 @@ jobs:
             port: 9008
             endpoint_var: "PEOPLEKUSAMA_ENDPOINT"
             test_pattern: "peopleKusama"
+          - name: "polkadot"
+            config: "polkadot.yml"
+            port: 9009
+            endpoint_var: "POLKADOT_ENDPOINT"
+            test_pattern: "polkadot\\.|.polkadot.test.ts"
+            exclude_pattern: "assethub"
+          - name: "kusama"
+            config: "kusama.yml"
+            port: 9010
+            endpoint_var: "KUSAMA_ENDPOINT"
+            test_pattern: "kusama\\.|.kusama.test.ts"
+            exclude_pattern: "assethub"
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -511,6 +523,11 @@ jobs:
         run: |
           echo "Finding ${{ matrix.chain.name }} tests..."
           TEST_FILES=$(find packages -name "*.test.ts" | grep -i "${{ matrix.chain.test_pattern }}" | tr '\n' ' ' || true)
+
+          # Exclude Asset Hub cross-chain tests (already run in Hub jobs)
+          if [ -n "${{ matrix.chain.exclude_pattern }}" ]; then
+            TEST_FILES=$(echo "$TEST_FILES" | tr ' ' '\n' | grep -v -i "${{ matrix.chain.exclude_pattern }}" | tr '\n' ' ' || true)
+          fi
 
           if [ -z "$TEST_FILES" ]; then
             echo "No ${{ matrix.chain.name }} tests found"
