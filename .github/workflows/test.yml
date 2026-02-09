@@ -507,8 +507,8 @@ jobs:
             exit 0
           fi
 
-          echo "Running tests sequentially..."
-          yarn test $TEST_FILES --no-file-parallelism
+          echo "Running tests with limited parallelism..."
+          yarn test $TEST_FILES --pool=threads --maxWorkers=2
 
       - name: Cleanup all Subway instances
         if: always()
