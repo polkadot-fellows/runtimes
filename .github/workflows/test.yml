@@ -498,7 +498,7 @@ jobs:
 
       - name: Update known good block numbers
         working-directory: ecosystem-tests
-        run: yarn update-known-good:${{ matrix.network.name }}
+        run: yarn update-known-good ${{ matrix.network.name }}
 
       - name: Run ${{ matrix.network.name }} ecosystem tests
         working-directory: ecosystem-tests
