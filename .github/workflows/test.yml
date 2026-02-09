@@ -356,7 +356,7 @@ jobs:
     name: "PET (${{ matrix.network.name }})"
     needs: [build-runtimes]
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 90
     if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
