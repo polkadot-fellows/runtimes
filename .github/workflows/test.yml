@@ -496,6 +496,10 @@ jobs:
           env | grep -E "ENDPOINT=|_WASM=" | sort || true
           echo "======================================"
 
+      - name: Update known good block numbers
+        working-directory: ecosystem-tests
+        run: yarn update-known-good:${{ matrix.network.name }}
+
       - name: Run ${{ matrix.network.name }} ecosystem tests
         working-directory: ecosystem-tests
         run: |
@@ -508,7 +512,7 @@ jobs:
           fi
 
           echo "Running tests with limited parallelism..."
-          yarn test $TEST_FILES --pool=threads --maxWorkers=2
+          yarn test -u $TEST_FILES --pool=threads --maxWorkers=2
 
       - name: Cleanup all Subway instances
         if: always()
