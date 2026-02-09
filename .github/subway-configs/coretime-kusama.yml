@@ -1,7 +1,8 @@
 extensions:
   client:
     endpoints:
-      - wss://kusama-coretime-rpc.polkadot.io
+      - wss://sys.ibp.network/coretime-kusama
+      - wss://coretime-kusama.dotters.network
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180

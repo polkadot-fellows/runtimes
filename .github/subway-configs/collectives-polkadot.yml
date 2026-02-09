@@ -2,6 +2,7 @@ extensions:
   client:
     endpoints:
       - wss://sys.ibp.network/collectives-polkadot
+      - wss://collectives-polkadot.dotters.network
       - wss://collectives-polkadot-rpc.n.dwellir.com
   event_bus:
   substrate_api:

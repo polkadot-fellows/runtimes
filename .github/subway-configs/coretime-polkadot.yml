@@ -1,6 +1,8 @@
 extensions:
   client:
     endpoints:
+      - wss://sys.ibp.network/coretime-polkadot
+      - wss://coretime-polkadot.dotters.network
       - wss://polkadot-coretime-rpc.polkadot.io
   event_bus:
   substrate_api:

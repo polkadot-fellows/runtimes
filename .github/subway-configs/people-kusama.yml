@@ -2,6 +2,7 @@ extensions:
   client:
     endpoints:
       - wss://kusama-people-rpc.polkadot.io
+      - https://people-kusama.dotters.network
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180

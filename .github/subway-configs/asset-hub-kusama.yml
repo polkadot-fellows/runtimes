@@ -3,6 +3,8 @@ extensions:
     endpoints:
       - wss://sys.ibp.network/asset-hub-kusama
       - wss://asset-hub-kusama.dotters.network
+      - wss://bridge-hub-kusama-rpc.n.dwellir.com
+      - wss://kusama-bridge-hub-rpc.polkadot.io
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180

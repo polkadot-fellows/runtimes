@@ -2,6 +2,8 @@ extensions:
   client:
     endpoints:
       - wss://rpc.ibp.network/kusama
+      - wss://kusama.dotters.network
+      - wss://kusama-rpc.n.dwellir.com
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180

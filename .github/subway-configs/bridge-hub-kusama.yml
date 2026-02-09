@@ -1,6 +1,8 @@
 extensions:
   client:
     endpoints:
+      - wss://sys.ibp.network/bridgehub-kusama
+      - wss://bridge-hub-kusama.dotters.network
       - wss://kusama-bridge-hub-rpc.polkadot.io
   event_bus:
   substrate_api:
