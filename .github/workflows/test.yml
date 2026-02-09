@@ -499,8 +499,16 @@ jobs:
       - name: Run ${{ matrix.network.name }} ecosystem tests
         working-directory: ecosystem-tests
         run: |
-          echo "Running all tests in ${{ matrix.network.test_dir }}..."
-          yarn test ${{ matrix.network.test_dir }} -u
+          echo "Finding all test files in ${{ matrix.network.test_dir }}..."
+          TEST_FILES=$(find ${{ matrix.network.test_dir }} -name "*.test.ts" | tr '\n' ' ')
+
+          if [ -z "$TEST_FILES" ]; then
+            echo "No test files found in ${{ matrix.network.test_dir }}"
+            exit 0
+          fi
+
+          echo "Running tests sequentially..."
+          yarn test $TEST_FILES --no-file-parallelism
 
       - name: Cleanup all Subway instances
         if: always()
