@@ -1033,24 +1033,6 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 	/// Proof: `Staking::ErasNominatorsSlashable` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
 	/// Storage: `Staking::ErasTotalStake` (r:0 w:1)
 	/// Proof: `Staking::ErasTotalStake` (`max_values`: None, `max_size`: Some(28), added: 2503, mode: `Measured`)
-	fn prune_era_total_stake() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `677`
-		//  Estimated: `4142`
-		// Minimum execution time: 28_161_000 picoseconds.
-		Weight::from_parts(29_788_000, 0)
-			.saturating_add(Weight::from_parts(0, 4142))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	/// Storage: `Staking::ActiveEra` (r:1 w:0)
-	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `Measured`)
-	/// Storage: `Staking::EraPruningState` (r:1 w:1)
-	/// Proof: `Staking::EraPruningState` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
-	/// Storage: `Staking::ErasNominatorsSlashable` (r:0 w:1)
-	/// Proof: `Staking::ErasNominatorsSlashable` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
-	/// Storage: `Staking::ErasTotalStake` (r:0 w:1)
-	/// Proof: `Staking::ErasTotalStake` (`max_values`: None, `max_size`: Some(28), added: 2503, mode: `Measured`)
 	fn prune_era_single_entry_cleanups() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `677`
