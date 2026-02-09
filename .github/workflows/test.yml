@@ -498,7 +498,27 @@ jobs:
 
       - name: Update known good block numbers
         working-directory: ecosystem-tests
-        run: yarn update-known-good ${{ matrix.network.name }}
+        run: |
+          yarn update-known-good ${{ matrix.network.name }}
+
+          # Subtract 1000 from all block numbers to avoid data not yet settled on RPC endpoints
+          NETWORK_UPPER=$(echo "${{ matrix.network.name }}" | tr '[:lower:]' '[:upper:]')
+          ENV_FILE="KNOWN_GOOD_BLOCK_NUMBERS_${NETWORK_UPPER}.env"
+
+          if [ -f "$ENV_FILE" ]; then
+            echo "Adjusting block numbers in $ENV_FILE..."
+            while IFS='=' read -r key value; do
+              if [[ $key =~ _BLOCK$ ]] && [[ $value =~ ^[0-9]+$ ]]; then
+                new_value=$((value - 1000))
+                echo "${key}=${new_value}"
+              else
+                echo "${key}=${value}"
+              fi
+            done < "$ENV_FILE" > "${ENV_FILE}.tmp"
+            mv "${ENV_FILE}.tmp" "$ENV_FILE"
+            echo "Block numbers adjusted. Contents:"
+            cat "$ENV_FILE"
+          fi
 
       - name: Run ${{ matrix.network.name }} ecosystem tests
         working-directory: ecosystem-tests
