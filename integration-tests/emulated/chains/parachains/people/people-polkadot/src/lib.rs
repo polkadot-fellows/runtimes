@@ -21,7 +21,7 @@ use frame_support::traits::OnInitialize;
 // Cumulus
 use emulated_integration_tests_common::{
 	impl_accounts_helpers_for_parachain, impl_assert_events_helpers_for_parachain,
-	impls::Parachain, xcm_emulator::decl_test_parachains, AuraDigestProvider,
+	impls::Parachain, xcm_emulator::decl_test_parachains,
 };
 pub use people_polkadot_runtime;
 
@@ -38,7 +38,6 @@ decl_test_parachains! {
 			LocationToAccountId: people_polkadot_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: people_polkadot_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
-			DigestProvider: AuraDigestProvider,
 		},
 		pallets = {
 			Assets: people_polkadot_runtime::Assets,

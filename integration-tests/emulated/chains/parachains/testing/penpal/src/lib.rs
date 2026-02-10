@@ -35,7 +35,6 @@ use emulated_integration_tests_common::{
 	impl_xcm_helpers_for_parachain,
 	impls::{NetworkId, Parachain},
 	xcm_emulator::decl_test_parachains,
-	AuraDigestProvider,
 };
 
 // Penpal Parachain declaration
@@ -55,7 +54,6 @@ decl_test_parachains! {
 			LocationToAccountId: penpal_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: penpal_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
-			DigestProvider: AuraDigestProvider,
 		},
 		pallets = {
 			PolkadotXcm: penpal_runtime::PolkadotXcm,
@@ -80,7 +78,6 @@ decl_test_parachains! {
 			LocationToAccountId: penpal_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: penpal_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
-			DigestProvider: AuraDigestProvider,
 		},
 		pallets = {
 			PolkadotXcm: penpal_runtime::PolkadotXcm,
