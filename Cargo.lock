@@ -4669,9 +4669,9 @@ checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
 name = "emulated-integration-tests-common"
-version = "27.0.1"
+version = "28.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab5a304d7d4495eb77992dd5dc4a607fc7b702d99b9d2cafcfd15c151a6bc9b3"
+checksum = "aea312b5aad3da2049a43afe0952262cc19b45e0d34bdd9ef9b9bd2d409103b5"
 dependencies = [
  "asset-test-utils",
  "bp-messages",
@@ -4706,7 +4706,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
- "xcm-emulator 0.25.0",
+ "xcm-emulator",
  "xcm-runtime-apis",
  "xcm-simulator",
 ]
@@ -6875,7 +6875,7 @@ dependencies = [
  "pallet-xcm",
  "paste",
  "staging-xcm",
- "xcm-emulator 0.26.0",
+ "xcm-emulator",
  "xcm-runtime-apis",
 ]
 
@@ -19970,43 +19970,6 @@ checksum = "32e45ad4206f6d2479085147f02bc2ef834ac85886624a23575ae137c8aa8156"
 dependencies = [
  "libc",
  "rustix",
-]
-
-[[package]]
-name = "xcm-emulator"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "843049c8afe7cb1c8fce77038f22051fedaf2bb08da6adec56793c641dbe191f"
-dependencies = [
- "array-bytes 6.2.3",
- "cumulus-pallet-parachain-system",
- "cumulus-primitives-core",
- "cumulus-primitives-parachain-inherent",
- "cumulus-test-relay-sproof-builder",
- "frame-support",
- "frame-system",
- "impl-trait-for-tuples",
- "pallet-aura",
- "pallet-balances",
- "pallet-message-queue",
- "pallet-timestamp",
- "parachains-common",
- "parity-scale-codec",
- "paste",
- "polkadot-parachain-primitives",
- "polkadot-primitives",
- "polkadot-runtime-parachains",
- "sp-arithmetic",
- "sp-consensus-aura",
- "sp-core 39.0.0",
- "sp-crypto-hashing",
- "sp-io 44.0.0",
- "sp-runtime 45.0.0",
- "sp-tracing",
- "staging-xcm",
- "staging-xcm-executor",
- "tracing",
- "xcm-simulator",
 ]
 
 [[package]]

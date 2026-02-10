@@ -65,7 +65,7 @@ cumulus-pallet-xcmp-queue = { version = "0.25.0", default-features = false }
 cumulus-primitives-aura = { version = "0.21.0", default-features = false }
 cumulus-primitives-core = { version = "0.23.0", default-features = false }
 cumulus-primitives-utility = { version = "0.25.0", default-features = false }
-emulated-integration-tests-common = { version = "27.0.1" }
+emulated-integration-tests-common = { version = "28.0.0" }
 encointer-balances-tx-payment = { version = "~21.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~21.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
