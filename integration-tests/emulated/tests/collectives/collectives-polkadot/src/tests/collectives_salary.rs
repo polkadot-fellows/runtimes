@@ -15,9 +15,7 @@
 
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::LocationToAccountId;
-use collectives_polkadot_runtime::{
-	fellowship::FellowshipSalaryPaymaster, // secretary::SecretarySalaryPaymaster,
-};
+use collectives_polkadot_runtime::fellowship::FellowshipSalaryPaymaster;
 use frame_support::{
 	assert_ok,
 	traits::{fungibles::Mutate, tokens::Pay},

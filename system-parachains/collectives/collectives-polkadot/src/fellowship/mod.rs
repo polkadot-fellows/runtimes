@@ -50,6 +50,7 @@ use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{
 	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst,
 };
+use system_parachains_constants::MINUTES;
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -278,9 +279,9 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 		crate::impls::benchmarks::RankToSalary<Balances>,
 	>;
 	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
+	type RegistrationPeriod = ConstU32<{ 5 * MINUTES }>;
 	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ 5 * MINUTES }>;
 	// Total monthly salary budget.
 	type Budget = ConstU128<{ 250_000 * USDT_UNITS }>;
 }

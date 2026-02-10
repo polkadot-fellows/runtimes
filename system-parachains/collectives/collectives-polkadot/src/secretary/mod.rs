@@ -18,25 +18,22 @@
 
 use core::marker::PhantomData;
 
-use crate::{fellowship::{FellowshipAdminBodyId, USDT_UNITS, FellowshipSalaryPaymaster}, *};
-use frame_support::{
-	parameter_types,
-	traits::{tokens::GetSalary, EitherOf, MapSuccess, PalletInfoAccess, PollStatus, Polling, NoOpPoll},
+use crate::{
+	fellowship::{FellowshipAdminBodyId, FellowshipSalaryPaymaster, USDT_UNITS},
+	*,
+};
+use frame_support::traits::{
+	tokens::GetSalary, EitherOf, MapSuccess, NoOpPoll, PollStatus, Polling,
 };
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
 use pallet_ranked_collective::{MemberIndex, TallyOf, Votes};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_constants::time::HOURS;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::{
-	traits::{ConstU16, ConvertToValue, Identity, Replace},
+	traits::{ConstU16, Identity, Replace},
 	DispatchError,
 };
-
-use xcm::prelude::*;
-use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
-
-use self::xcm_config::AssetHubUsdt;
+use system_parachains_constants::MINUTES;
 
 /// The Secretary members' ranks.
 pub mod ranks {
@@ -67,58 +64,6 @@ type ApproveOrigin = EitherOf<
 		MapSuccess<Fellows, Replace<ConstU16<65535>>>,
 	>,
 >;
-
-pub struct SecretaryPolling<T: pallet_ranked_collective::Config<I>, I: 'static>(
-	PhantomData<(T, I)>,
-);
-
-impl<T: pallet_ranked_collective::Config<I>, I: 'static> Polling<TallyOf<T, I>>
-	for SecretaryPolling<T, I>
-{
-	type Index = MemberIndex;
-	type Votes = Votes;
-	type Class = u16;
-	type Moment = BlockNumberFor<T>;
-
-	fn classes() -> Vec<Self::Class> {
-		vec![]
-	}
-
-	fn as_ongoing(_index: Self::Index) -> Option<(TallyOf<T, I>, Self::Class)> {
-		None
-	}
-
-	fn access_poll<R>(
-		_index: Self::Index,
-		f: impl FnOnce(PollStatus<&mut TallyOf<T, I>, Self::Moment, Self::Class>) -> R,
-	) -> R {
-		f(PollStatus::None)
-	}
-
-	fn try_access_poll<R>(
-		_index: Self::Index,
-		f: impl FnOnce(
-			PollStatus<&mut TallyOf<T, I>, Self::Moment, Self::Class>,
-		) -> Result<R, DispatchError>,
-	) -> Result<R, DispatchError> {
-		f(PollStatus::None)
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn create_ongoing(_class: Self::Class) -> Result<Self::Index, ()> {
-		Err(())
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn end_ongoing(_index: Self::Index, _approved: bool) -> Result<(), ()> {
-		Err(())
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn max_ongoing() -> (Self::Class, u32) {
-		(0, 0)
-	}
-}
 
 pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
 
@@ -172,9 +117,9 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 		crate::impls::benchmarks::RankToSalary<Balances>,
 	>;
 	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
+	type RegistrationPeriod = ConstU32<{ MINUTES }>;
 	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ MINUTES }>;
 	// Total monthly salary budget.
 	type Budget = ConstU128<{ 6666 * USDT_UNITS }>;
 }
