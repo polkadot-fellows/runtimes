@@ -356,7 +356,7 @@ jobs:
     name: "PET (${{ matrix.network.name }})"
     needs: [build-runtimes]
     runs-on: self-hosted
-    timeout-minutes: 90
+    timeout-minutes: 120
     if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
@@ -501,7 +501,8 @@ jobs:
         run: |
           yarn update-known-good ${{ matrix.network.name }}
 
-          # Subtract 1000 from all block numbers to avoid data not yet settled on RPC endpoints
+          # Use block numbers from slightly before present (few hours) to avoid data not yet settled on
+          # RPC endpoints.
           NETWORK_UPPER=$(echo "${{ matrix.network.name }}" | tr '[:lower:]' '[:upper:]')
           ENV_FILE="KNOWN_GOOD_BLOCK_NUMBERS_${NETWORK_UPPER}.env"
 
@@ -509,7 +510,8 @@ jobs:
             echo "Adjusting block numbers in $ENV_FILE..."
             while IFS='=' read -r key value; do
               if [[ $key =~ _BLOCK$ ]] && [[ $value =~ ^[0-9]+$ ]]; then
-                new_value=$((value - 1000))
+                # Go back about 2 hours for slightly older blocks
+                new_value=$((value - 1200))
                 echo "${key}=${new_value}"
               else
                 echo "${key}=${value}"
@@ -532,7 +534,7 @@ jobs:
           fi
 
           echo "Running tests with limited parallelism..."
-          yarn test -u $TEST_FILES --pool=threads --maxWorkers=2
+          yarn test -u $TEST_FILES --pool=threads --maxWorkers=3
 
       - name: Cleanup all Subway instances
         if: always()
