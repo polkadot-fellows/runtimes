@@ -510,7 +510,7 @@ jobs:
             echo "Adjusting block numbers in $ENV_FILE..."
             while IFS='=' read -r key value; do
               if [[ $key =~ _BLOCK_NUMBER$ ]] && [[ $value =~ ^[0-9]+$ ]]; then
-                # Go back about 2 hours for slightly older blocks
+                # Don't use most recent blocks
                 new_value=$((value - 1200))
                 echo "${key}=${new_value}"
               else
