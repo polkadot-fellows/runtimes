@@ -662,7 +662,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 	#[cfg(feature = "runtime-benchmarks")]
-	type MaxAutoRebagPerBlock = ConstU32<5>;
+	type MaxAutoRebagPerBlock = ConstU32<10>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = ();
 }
