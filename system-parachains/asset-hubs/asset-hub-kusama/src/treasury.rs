@@ -184,16 +184,18 @@ impl pallet_multi_asset_bounties::Config for Runtime {
 		Runtime,
 		AccountIdToLocalLocation,
 	>;
-	type BountySource = pallet_multi_asset_bounties::BountySourceFromPalletId<
-		TreasuryPalletId,
-		Runtime,
-		AccountIdToLocalLocation,
-	>;
-	type ChildBountySource = pallet_multi_asset_bounties::ChildBountySourceFromPalletId<
-		TreasuryPalletId,
-		Runtime,
-		AccountIdToLocalLocation,
-	>;
+	type BountySource =
+		system_parachains_common::multi_asset_bounty_sources::MultiAssetBountySourceFromPalletId<
+			TreasuryPalletId,
+			Runtime,
+			AccountIdToLocalLocation,
+		>;
+	type ChildBountySource =
+		system_parachains_common::multi_asset_bounty_sources::MultiAssetChildBountySourceFromPalletId<
+			TreasuryPalletId,
+			Runtime,
+			AccountIdToLocalLocation,
+		>;
 	type Paymaster = LocalPay<NativeAndAssets, AccountId, xcm_config::LocationToAccountId>;
 	type BalanceConverter = AssetRateWithNative;
 	type Preimages = Preimage;

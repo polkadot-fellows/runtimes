@@ -19,6 +19,9 @@
 
 pub mod randomness;
 
+#[cfg(feature = "multi-asset-bounties")]
+pub mod multi_asset_bounty_sources;
+
 /// Extra runtime APIs.
 pub mod apis {
 	/// Information about the current issuance rate of the system.

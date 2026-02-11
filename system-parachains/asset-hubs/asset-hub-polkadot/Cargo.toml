@@ -27,7 +27,7 @@ collectives-polkadot-runtime-constants = { workspace = true }
 kusama-runtime-constants = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
-system-parachains-common = { workspace = true }
+system-parachains-common = { workspace = true, features = ["multi-asset-bounties"] }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
