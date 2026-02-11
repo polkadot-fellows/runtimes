@@ -164,14 +164,8 @@ impl pallet_child_bounties::Config for Runtime {
 }
 
 parameter_types! {
-	pub const MultiAssetBountyValueMinimum: Balance = 200 * CENTS;
-	pub const MultiAssetChildBountyValueMinimum: Balance = MultiAssetBountyValueMinimum::get() / 10;
-	pub const MultiAssetMaxActiveChildBountyCount: u32 = 100;
 	pub const MultiAssetCuratorHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::MultiAssetBounties(pallet_multi_asset_bounties::HoldReason::CuratorDeposit);
-	pub const MultiAssetCuratorDepositFromValueMultiplier: Permill = Permill::from_percent(50);
-	pub const MultiAssetCuratorDepositMin: Balance = 10 * CENTS;
-	pub const MultiAssetCuratorDepositMax: Balance = 500 * CENTS;
 }
 
 impl pallet_multi_asset_bounties::Config for Runtime {
@@ -181,9 +175,9 @@ impl pallet_multi_asset_bounties::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocatableAccount;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type BountyValueMinimum = MultiAssetBountyValueMinimum;
-	type ChildBountyValueMinimum = MultiAssetChildBountyValueMinimum;
-	type MaxActiveChildBountyCount = MultiAssetMaxActiveChildBountyCount;
+	type BountyValueMinimum = BountyValueMinimum;
+	type ChildBountyValueMinimum = ChildBountyValueMinimum;
+	type MaxActiveChildBountyCount = MaxActiveChildBountyCount;
 	type WeightInfo = weights::pallet_multi_asset_bounties::WeightInfo<Runtime>;
 	type FundingSource = pallet_multi_asset_bounties::PalletIdAsFundingSource<
 		TreasuryPalletId,
@@ -208,9 +202,9 @@ impl pallet_multi_asset_bounties::Config for Runtime {
 		Balances,
 		MultiAssetCuratorHoldReason,
 		pallet_multi_asset_bounties::CuratorDepositAmount<
-			MultiAssetCuratorDepositFromValueMultiplier,
-			MultiAssetCuratorDepositMin,
-			MultiAssetCuratorDepositMax,
+			CuratorDepositMultiplier,
+			CuratorDepositMin,
+			CuratorDepositMax,
 			Balance,
 		>,
 		Balance,
