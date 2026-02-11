@@ -43,6 +43,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"pallet-multi-asset-bounties?/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
@@ -50,5 +51,6 @@ runtime-benchmarks = [
 try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"frame-support/try-runtime",
+	"pallet-multi-asset-bounties?/try-runtime",
 	"sp-runtime/try-runtime",
 ]
