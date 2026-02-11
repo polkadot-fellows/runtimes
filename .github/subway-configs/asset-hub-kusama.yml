@@ -5,6 +5,7 @@ extensions:
       - wss://asset-hub-kusama.dotters.network
       - wss://bridge-hub-kusama-rpc.n.dwellir.com
       - wss://kusama-bridge-hub-rpc.polkadot.io
+    shuffle_endpoints: true
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180
@@ -20,24 +21,23 @@ extensions:
     listen_address: '127.0.0.1'
     max_connections: 2000
     max_batch_size: 10
+    request_timeout_seconds: 120
     http_methods:
       - path: /health
         method: system_health
       - path: /liveness
         method: chain_getBlockHash
-    cors: all
+    cors: null
   rate_limit:
     connection:
       burst: 100
       period_secs: 1
+      jitter_up_to_millis: 100
     ip:
       burst: 1000
       period_secs: 10
+      jitter_up_to_millis: 100
     use_xff: false
-  prometheus:
-    port: 9616
-    listen_address: "127.0.0.1"
-    label: "asset-hub-kusama"
 
 middlewares:
   methods:
