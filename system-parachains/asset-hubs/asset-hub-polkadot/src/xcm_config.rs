@@ -266,6 +266,12 @@ impl Contains<Location> for FellowshipEntities {
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Treasury, .. }
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
 					)
@@ -324,6 +330,46 @@ impl Contains<Location> for SecretaryEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX
+					)
+				]
+			)
+		)
+	}
+}
+
+/// Allows the Fellowship Treasurer plurality from Collectives to alias into
+/// the Fellowship Treasury or Fellowship Salary pallet locations.
+///
+/// This allows the Architects track on the Collectives chain to manage the fellowship
+/// treasury and salary here on Asset Hub.
+pub struct FellowshipTreasurerAlias;
+impl ContainsPair<Location, Location> for FellowshipTreasurerAlias {
+	fn contains(origin: &Location, target: &Location) -> bool {
+		matches!(
+			origin.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Treasury, part: BodyPart::Voice }
+				]
+			)
+		) && matches!(
+			target.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+					)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
 					)
 				]
 			)
@@ -426,6 +472,7 @@ pub type TrustedAliasers = (
 	AliasChildLocation,
 	AuthorizedAliasers<Runtime>,
 	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
+	FellowshipTreasurerAlias,
 );
 
 pub struct XcmConfig;
