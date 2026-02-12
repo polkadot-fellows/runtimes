@@ -511,7 +511,7 @@ jobs:
             while IFS='=' read -r key value; do
               if [[ $key =~ _BLOCK_NUMBER$ ]] && [[ $value =~ ^[0-9]+$ ]]; then
                 # Don't use most recent blocks
-                new_value=$((value - 1200))
+                new_value=$((value - 600))
                 echo "${key}=${new_value}"
               else
                 echo "${key}=${value}"
