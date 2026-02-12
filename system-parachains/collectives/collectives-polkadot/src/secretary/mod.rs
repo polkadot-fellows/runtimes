@@ -16,24 +16,15 @@
 
 //! The Polkadot Secretary Collective.
 
-use core::marker::PhantomData;
-
 use crate::{
 	fellowship::{FellowshipAdminBodyId, FellowshipSalaryPaymaster, USDT_UNITS},
 	*,
 };
-use frame_support::traits::{
-	tokens::GetSalary, EitherOf, MapSuccess, NoOpPoll, PollStatus, Polling,
-};
+use frame_support::traits::{tokens::GetSalary, EitherOf, MapSuccess, NoOpPoll};
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
-use pallet_ranked_collective::{MemberIndex, TallyOf, Votes};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::{
-	traits::{ConstU16, Identity, Replace},
-	DispatchError,
-};
-use system_parachains_constants::MINUTES;
+use sp_runtime::traits::{ConstU16, Identity, Replace};
 
 /// The Secretary members' ranks.
 pub mod ranks {
@@ -117,9 +108,9 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 		crate::impls::benchmarks::RankToSalary<Balances>,
 	>;
 	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ MINUTES }>;
+	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
 	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ MINUTES }>;
+	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
 	type Budget = ConstU128<{ 6666 * USDT_UNITS }>;
 }
