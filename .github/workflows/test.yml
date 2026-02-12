@@ -534,7 +534,15 @@ jobs:
           fi
 
           echo "Running tests with limited parallelism..."
-          yarn test -u $TEST_FILES --pool=threads --maxWorkers=3
+          # Notes on flags below:
+          # 1. `-u` updates snapshots so that they don't fail spuriously e.g. proof size/ref time changes
+          # 2. `--pool=threads` runs test files from `$TEST_FILES` in parallel using worker threads. Default
+          #    is `--pool=forks`, which uses child processes - heavier.
+          # 3. `--maxWorkers=3` combined with the above means at most 3 test files running concurrently, each in its
+          #    own thread
+          # 4. `--retry=3` attempts a failing test 3 times. This operates at the level of individual tests, not modules,
+          #    or the whole test suite; one failure will *not* require a full rerun.
+          yarn test -u $TEST_FILES --pool=threads --maxWorkers=3 --retry=3
 
       - name: Cleanup all Subway instances
         if: always()
