@@ -3,8 +3,8 @@ extensions:
     endpoints:
       - wss://sys.ibp.network/asset-hub-kusama
       - wss://asset-hub-kusama.dotters.network
-      - wss://bridge-hub-kusama-rpc.n.dwellir.com
-      - wss://kusama-bridge-hub-rpc.polkadot.io
+      - wss://asset-hub-kusama-rpc.n.dwellir.com
+      - wss://kusama-asset-hub-rpc.polkadot.io
     shuffle_endpoints: true
   event_bus:
   substrate_api:

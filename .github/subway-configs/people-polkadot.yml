@@ -1,7 +1,7 @@
 extensions:
   client:
     endpoints:
-      - wss://polkadot-people-rpc.polkadot.io
+      - wss://sys.ibp.network/people-polkadot
       - wss://people-polkadot.dotters.network
       - wss://polkadot-people-rpc.polkadot.io
     shuffle_endpoints: true
