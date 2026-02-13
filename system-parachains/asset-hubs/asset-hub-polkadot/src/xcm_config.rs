@@ -340,8 +340,10 @@ impl Contains<Location> for SecretaryEntities {
 /// Allows the Fellowship Treasurer plurality from Collectives to alias into
 /// the Fellowship Treasury or Fellowship Salary pallet locations.
 ///
-/// This allows the Architects track on the Collectives chain to manage the fellowship
-/// treasury and salary here on Asset Hub.
+/// This allows the Architects track (rank 4+ Fellowship members) on the Collectives chain to
+/// manage the fellowship treasury and salary here on Asset Hub. The Architects origin is converted
+/// to a `Plurality { id: BodyId::Treasury, part: BodyPart::Voice }` via
+/// `ArchitectsToTreasurerPlurality` before being sent over XCM.
 pub struct FellowshipTreasurerAlias;
 impl ContainsPair<Location, Location> for FellowshipTreasurerAlias {
 	fn contains(origin: &Location, target: &Location) -> bool {
