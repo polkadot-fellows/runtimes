@@ -47,7 +47,6 @@ jobs:
 
   # Job required by "confirmTestPassed"
   runtime-test:
-    if: false # Temporarily disabled to test PET only
     needs: [runtime-matrix]
     runs-on: self-hosted
     strategy:
@@ -134,7 +133,6 @@ jobs:
 
   # Job required by "confirmTestPassed"
   integration-test:
-    if: false # Temporarily disabled to test PET only
     needs: [integration-test-matrix]
     runs-on: self-hosted
     strategy:
@@ -181,7 +179,6 @@ jobs:
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
-    if: false # Temporarily disabled to test PET only
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -225,7 +222,6 @@ jobs:
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    if: false # Temporarily disabled to test PET only
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -565,7 +561,6 @@ jobs:
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    if: false # Temporarily disabled to test PET only
     runs-on: ubuntu-24.04
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
