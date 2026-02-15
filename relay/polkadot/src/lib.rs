@@ -429,7 +429,7 @@ impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	    // Manually add hyperbridge to parachains header root
 	    let hyperbridge: u32 = 3367;
 		let mut parachains = parachains_paras::Parachains::<Runtime>::get();
-		parachains.push(hyperbridge);
+		parachains.push(hyperbridge.into());
 		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains
 			.into_iter()
 			.filter_map(|id| {
