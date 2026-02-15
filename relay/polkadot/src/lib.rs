@@ -430,7 +430,7 @@ impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 		let hyperbridge: u32 = 3367;
 		let mut parachains = parachains_paras::Parachains::<Runtime>::get()
 			.into_iter()
-			.collect::<alloc::collections::BTreeSet>();
+			.collect::<alloc::collections::BTreeSet<_>>();
 		parachains.insert(hyperbridge.into());
 		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains
 			.into_iter()
