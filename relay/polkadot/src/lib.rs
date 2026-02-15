@@ -421,17 +421,22 @@ parameter_types! {
 	pub LeafVersion: MmrLeafVersion = MmrLeafVersion::new(0, 0);
 }
 
+/// Parathreads whitelisted to be added to the beefy mmr leaf parachains header root
+const BEEFY_WHITELISTED_PARATHREADS: [ParaId; 1] = [
+	// Hyperbridge
+	ParaId::new(3367),
+];
+
 /// A BEEFY data provider that merkelizes all the parachain heads at the current block
 /// (sorted by their parachain id).
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		// Manually add hyperbridge to parachains header root
-		let hyperbridge: u32 = 3367;
 		let mut parachains = parachains_paras::Parachains::<Runtime>::get()
 			.into_iter()
 			.collect::<alloc::collections::BTreeSet<_>>();
-		parachains.insert(hyperbridge.into());
+		// Manually add whitelisted parathreads to parachains header root
+		parachains.extend(BEEFY_WHITELISTED_PARATHREADS);
 		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains
 			.into_iter()
 			.filter_map(|id| {
