@@ -432,8 +432,7 @@ const BEEFY_WHITELISTED_PARATHREADS: &[ParaId] = &[
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		let parachains = parachains_paras::Parachains::<Runtime>::get();
-		let para_heads: BTreeMap<u32, Vec<u8>> = parachains
+		let para_heads: BTreeMap<u32, Vec<u8>> = parachains_paras::Parachains::<Runtime>::get()
 			.into_iter()
 			.chain(BEEFY_WHITELISTED_PARATHREADS.into_iter().cloned())
 			.filter_map(|id| {
