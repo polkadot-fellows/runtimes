@@ -23,17 +23,12 @@ use runtime_parachains::paras as parachains_paras;
 
 #[test]
 fn para_heads_root_provider_includes_whitelisted_parathreads() {
-	let t = frame_system::GenesisConfig::<Runtime>::default()
-		.build_storage()
-		.unwrap();
+	let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
 	sp_io::TestExternalities::new(t).execute_with(|| {
 		// Insert heads for paras 1, 2, 3367 (whitelisted parathread), 4000.
 		let head = |i: u32| HeadData(vec![i as u8; 32]);
 		for id in [1u32, 2, 3367, 4000] {
-			parachains_paras::Heads::<Runtime>::insert(
-				ParaId::from(id),
-				head(id),
-			);
+			parachains_paras::Heads::<Runtime>::insert(ParaId::from(id), head(id));
 		}
 
 		// Register 1, 2, 4000 as active parachains – 3367 is NOT in Parachains.
