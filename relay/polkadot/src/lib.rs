@@ -439,7 +439,7 @@ impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 			.filter_map(|id| {
 				parachains_paras::Heads::<Runtime>::get(id).map(|head| (id.into(), head.0))
 			})
-			.collect::<alloc::collections::BTreeMap<_, _>>();
+			.collect();
 
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
