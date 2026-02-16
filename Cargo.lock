@@ -8935,7 +8935,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -17179,9 +17179,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "23.0.0"
+version = "23.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faa449c89ca664a961a15219ac4bdd237142d23e0f22b3c45af7badec39be8dd"
+checksum = "e290e10ebdaf263570f198d1ac94829684bcfbe2a69fc6439d911bf81ebb3c7e"
 dependencies = [
  "environmental",
  "frame-benchmarking",

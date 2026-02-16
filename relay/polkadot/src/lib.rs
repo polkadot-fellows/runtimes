@@ -177,7 +177,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 2_000_006,
+	spec_version: 2_000_007,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -421,18 +421,25 @@ parameter_types! {
 	pub LeafVersion: MmrLeafVersion = MmrLeafVersion::new(0, 0);
 }
 
+/// Parathreads whitelisted to be added to the beefy mmr leaf parachains header root
+const BEEFY_WHITELISTED_PARATHREADS: &[ParaId] = &[
+	// Hyperbridge
+	ParaId::new(3367),
+];
+
 /// A BEEFY data provider that merkelizes all the parachain heads at the current block
 /// (sorted by their parachain id).
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter()
+		let para_heads: BTreeMap<u32, Vec<u8>> = parachains_paras::Parachains::<Runtime>::get()
+			.iter()
+			.chain(BEEFY_WHITELISTED_PARATHREADS.iter())
 			.filter_map(|id| {
-				parachains_paras::Heads::<Runtime>::get(id).map(|head| (id.into(), head.0))
+				parachains_paras::Heads::<Runtime>::get(id).map(|head| ((*id).into(), head.0))
 			})
 			.collect();
-		para_heads.sort_by_key(|k| k.0);
+
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
 		)

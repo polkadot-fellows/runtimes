@@ -267,7 +267,7 @@ tokio = { version = "1.45.0" }
 xcm = { version = "20.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "24.0.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.24.1" }
-xcm-executor = { version = "23.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-executor = { version = "23.0.1", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.11.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
