@@ -432,19 +432,15 @@ const BEEFY_WHITELISTED_PARATHREADS: &[ParaId] = &[
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		// Manually add whitelisted parathreads to parachains header root
-		let parachains = parachains_paras::Parachains::<Runtime>::get()
+		let parachains = parachains_paras::Parachains::<Runtime>::get();
+		let para_heads: BTreeMap<u32, Vec<u8>> = parachains
 			.into_iter()
 			.chain(BEEFY_WHITELISTED_PARATHREADS.into_iter().cloned())
-			.collect::<alloc::collections::BTreeSet<_>>();
-
-		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains
-			.into_iter()
 			.filter_map(|id| {
 				parachains_paras::Heads::<Runtime>::get(id).map(|head| (id.into(), head.0))
 			})
-			.collect();
-		para_heads.sort_by_key(|k| k.0);
+			.collect::<alloc::collections::BTreeMap<_, _>>();
+
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
 		)
