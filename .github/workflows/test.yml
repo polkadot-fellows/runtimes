@@ -429,7 +429,7 @@ jobs:
             timeout=60
             elapsed=0
             while [ $elapsed -lt $timeout ]; do
-              if grep -q "Server running at" /tmp/subway-$PORT.log 2>/dev/null; then
+              if curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
                 echo "Subway on port $PORT started successfully!"
                 break
               fi
