@@ -432,9 +432,10 @@ const BEEFY_WHITELISTED_PARATHREADS: &[ParaId] = &[
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-	    // Manually add whitelisted parathreads to parachains header root
+		// Manually add whitelisted parathreads to parachains header root
 		let parachains = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter().chain(BEEFY_WHITELISTED_PARATHREADS.into_iter().cloned())
+			.into_iter()
+			.chain(BEEFY_WHITELISTED_PARATHREADS.into_iter().cloned())
 			.collect::<alloc::collections::BTreeSet<_>>();
 
 		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains
