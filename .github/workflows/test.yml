@@ -473,8 +473,8 @@ jobs:
         with:
           node-version: 'node'
 
-      - name: Install yarn
-        run: npm install -g yarn
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Checkout polkadot-ecosystem-tests
         uses: actions/checkout@v4
