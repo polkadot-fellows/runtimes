@@ -398,14 +398,8 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Build Subway
-        run: |
-          echo "Building subway..."
-          if [ ! -d "/tmp/subway" ]; then
-            git clone https://github.com/AcalaNetwork/subway.git /tmp/subway
-          fi
-          cd /tmp/subway
-          cargo build --release
+      - name: Install Subway
+        run: cargo install --git https://github.com/AcalaNetwork/subway
 
       - name: Start all Subway instances
         run: |
@@ -418,7 +412,7 @@ jobs:
 
             echo "Starting Subway for $CONFIG on port $PORT..."
             sed "s/{{PORT}}/$PORT/g" .github/subway-configs/$CONFIG > /tmp/subway-$PORT.yml
-            /tmp/subway/target/release/subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
+            subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
             echo $! >> /tmp/subway.pids
           done
 
