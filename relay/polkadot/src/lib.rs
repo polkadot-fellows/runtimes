@@ -433,10 +433,10 @@ pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
 		let para_heads: BTreeMap<u32, Vec<u8>> = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter()
-			.chain(BEEFY_WHITELISTED_PARATHREADS.into_iter().cloned())
+			.iter()
+			.chain(BEEFY_WHITELISTED_PARATHREADS.iter())
 			.filter_map(|id| {
-				parachains_paras::Heads::<Runtime>::get(id).map(|head| (id.into(), head.0))
+				parachains_paras::Heads::<Runtime>::get(id).map(|head| ((*id).into(), head.0))
 			})
 			.collect();
 
