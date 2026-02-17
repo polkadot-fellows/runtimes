@@ -467,8 +467,10 @@ jobs:
         with:
           node-version: 'node'
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Enable Corepack for Yarn Berry
+        run: |
+          npm install --global corepack
+          corepack enable
 
       - name: Checkout polkadot-ecosystem-tests
         uses: actions/checkout@v4
