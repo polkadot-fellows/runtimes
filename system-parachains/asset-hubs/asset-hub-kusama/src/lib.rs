@@ -1914,6 +1914,7 @@ mod benches {
 
 		// Staking
 		[pallet_staking_async, Staking]
+		[pallet_staking_async_rc_client, StakingRcClient]
 		[pallet_bags_list, VoterList]
 		// DelegatedStaking has no calls
 		[pallet_election_provider_multi_block, MultiBlockElection]
