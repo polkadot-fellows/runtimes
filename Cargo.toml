@@ -10,7 +10,7 @@ pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.6.0", default-features = false }
-pallet-staking-async = { version = "0.10.0", default-features = false }
+pallet-staking-async = { version = "0.10.1", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
 impl-trait-for-tuples = { version = "0.2.3", default-features = false }
@@ -169,7 +169,7 @@ pallet-session-benchmarking = { version = "45.0.0", default-features = false }
 pallet-society = { version = "45.0.0", default-features = false }
 pallet-staking = { version = "45.0.0", default-features = false }
 pallet-delegated-staking = { version = "12.0.0", default-features = false }
-pallet-staking-async-ah-client = { version = "0.7.1", default-features = false }
+pallet-staking-async-ah-client = { version = "0.7.2", default-features = false }
 pallet-staking-async-rc-client = { version = "0.7.1", default-features = false }
 pallet-staking-reward-curve = { version = "12.0.0" }
 pallet-staking-reward-fn = { version = "24.0.0", default-features = false }
@@ -224,14 +224,14 @@ snowbridge-merkle-tree = { version = "0.6.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.18.0", default-features = false }
 snowbridge-outbound-queue-v2-runtime-api = { version = "0.7.0", default-features = false }
 snowbridge-outbound-queue-primitives = { version = "0.7.0", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.18.1", default-features = false }
+snowbridge-pallet-ethereum-client = { version = "0.18.2", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.18.0", default-features = false }
 snowbridge-pallet-inbound-queue-v2 = { version = "0.7.0", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.26.0", default-features = false }
-snowbridge-pallet-inbound-queue-v2-fixtures = { version = "0.7.0", default-features = false }
-snowbridge-pallet-ethereum-client-fixtures = { version = "0.26.0" }
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.26.1", default-features = false }
+snowbridge-pallet-inbound-queue-v2-fixtures = { version = "0.7.1", default-features = false }
+snowbridge-pallet-ethereum-client-fixtures = { version = "0.26.1" }
 snowbridge-pallet-outbound-queue = { version = "0.18.0", default-features = false }
-snowbridge-pallet-outbound-queue-v2 = { version = "0.7.0", default-features = false }
+snowbridge-pallet-outbound-queue-v2 = { version = "0.7.1", default-features = false }
 snowbridge-pallet-system = { version = "0.18.0", default-features = false }
 snowbridge-pallet-system-v2 = { version = "0.7.0", default-features = false }
 snowbridge-pallet-system-frontend = { version = "0.7.0", default-features = false }
