@@ -30,6 +30,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Updates to latest polkadot-sdk
 
+## [2.0.7] 16.02.2026
+
+### Added
+
+- Add hyperbridge to parachains header root ([#1073](https://github.com/polkadot-fellows/runtimes/pull/1073))
+
 ## [2.0.5] 13.01.2026
 
 ### Added
