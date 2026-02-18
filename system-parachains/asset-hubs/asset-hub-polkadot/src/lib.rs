@@ -1585,6 +1585,7 @@ pub type BlockId = generic::BlockId<Block>;
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
+		frame_system::AuthorizeCall<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -1608,6 +1609,7 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 
 	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
 		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
