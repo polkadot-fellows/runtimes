@@ -496,8 +496,9 @@ jobs:
       - name: Run ${{ matrix.network.name }} ecosystem tests
         working-directory: ecosystem-tests
         run: |
-          echo "Finding all test files in ${{ matrix.network.test_dir }}..."
-          TEST_FILES=$(find ${{ matrix.network.test_dir }} -name "*.test.ts" | tr '\n' ' ')
+          echo "Finding Fellowship runtime test files in ${{ matrix.network.test_dir }}..."
+          # Filter: must contain 'e2e' AND the network name ("polkadot/kusama", case insensitive)
+          TEST_FILES=$(find ${{ matrix.network.test_dir }} -name "*.test.ts" | grep -i "e2e" | grep -i "${{ matrix.network.name }}" | tr '\n' ' ')
 
           if [ -z "$TEST_FILES" ]; then
             echo "No test files found in ${{ matrix.network.test_dir }}"
