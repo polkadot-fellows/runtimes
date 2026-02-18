@@ -271,6 +271,10 @@ jobs:
           repository: ${{ needs.get-pr-branch.outputs.repo }}
           ref: ${{ needs.get-pr-branch.outputs.pr-branch }}
 
+      # Temp to rule out build cache issues
+      - name: Nuke Cargo
+        run: rm -rf ~/.cargo
+
       - name: Install updates and dependencies
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         run: .github/install-deps.sh
@@ -420,5 +424,3 @@ jobs:
               repo: context.repo.repo,
               content: '+1'
             })
-
-
