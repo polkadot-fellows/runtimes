@@ -383,6 +383,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -1069,6 +1070,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type Extra = ();
 	type CallbackHandle = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
+	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -1507,6 +1509,7 @@ construct_runtime!(
 		AssetTxPayment: pallet_asset_conversion_tx_payment = 13,
 		Vesting: pallet_vesting = 14,
 		Claims: pallet_claims = 15,
+		Dap: pallet_dap = 16,
 
 		// Collator support. the order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -1563,9 +1566,6 @@ construct_runtime!(
 
 		// Contracts
 		Revive: pallet_revive = 90,
-
-		// DAP (Delegated Account for Penalties)
-		Dap: pallet_dap = 100,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
