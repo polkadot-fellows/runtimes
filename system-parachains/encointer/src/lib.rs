@@ -220,7 +220,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::EncointerReputationCommitments(_) |
 					RuntimeCall::EncointerFaucet(_) |
 					RuntimeCall::EncointerDemocracy(_) |
-					RuntimeCall::EncointerTreasuries(_)
+					RuntimeCall::EncointerTreasuries(_) |
+					RuntimeCall::EncointerOfflinePayment(_) |
+					RuntimeCall::EncointerReputationRings(_)
 			),
 			ProxyType::BazaarEdit => matches!(
 				c,
@@ -529,7 +531,7 @@ impl pallet_encointer_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	// attention!: EncointerDemocracy must be first hook as it potentially changes the rules for
 	// following hooks
-	type OnCeremonyPhaseChange = (EncointerDemocracy, EncointerCeremonies);
+	type OnCeremonyPhaseChange = (EncointerDemocracy, EncointerCeremonies, EncointerReputationRings);
 	type MomentsPerDay = MomentsPerDay;
 	type CeremonyMaster = MoreThanHalfCouncil;
 	type WeightInfo = weights::pallet_encointer_scheduler::WeightInfo<Runtime>;
@@ -633,6 +635,32 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper =
 		impls::benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
+}
+
+parameter_types! {
+	pub const MaxProofSize: u32 = 256;
+	pub const MaxVkSize: u32 = 2048;
+}
+
+impl pallet_encointer_offline_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_encointer_offline_payment::WeightInfo<Runtime>;
+	type Currency = Balances;
+	type MaxProofSize = MaxProofSize;
+	type MaxVkSize = MaxVkSize;
+	type TrustedSetupOrigin = MoreThanHalfCouncil;
+}
+
+parameter_types! {
+	pub const MaxRingSize: u32 = 255;
+	pub const RingChunkSize: u32 = 100;
+}
+
+impl pallet_encointer_reputation_rings::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_encointer_reputation_rings::WeightInfo<Runtime>;
+	type MaxRingSize = MaxRingSize;
+	type ChunkSize = RingChunkSize;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -847,6 +875,8 @@ construct_runtime! {
 		EncointerFaucet: pallet_encointer_faucet = 66,
 		EncointerDemocracy: pallet_encointer_democracy = 67,
 		EncointerTreasuries: pallet_encointer_treasuries = 68,
+		EncointerOfflinePayment: pallet_encointer_offline_payment = 69,
+		EncointerReputationRings: pallet_encointer_reputation_rings = 70,
 	}
 }
 
@@ -964,7 +994,9 @@ mod benches {
 		[pallet_encointer_communities, EncointerCommunities]
 		[pallet_encointer_democracy, EncointerDemocracy]
 		[pallet_encointer_faucet, EncointerFaucet]
+		[pallet_encointer_offline_payment, EncointerOfflinePayment]
 		[pallet_encointer_reputation_commitments, EncointerReputationCommitments]
+		[pallet_encointer_reputation_rings, EncointerReputationRings]
 		[pallet_encointer_scheduler, EncointerScheduler]
 		[pallet_encointer_treasuries, EncointerTreasuries]
 		[cumulus_pallet_parachain_system, ParachainSystem]

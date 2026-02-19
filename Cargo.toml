@@ -130,7 +130,9 @@ pallet-encointer-communities = { version = "~21.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~21.1.0", default-features = false }
 pallet-encointer-democracy = { version = "~21.7.0", default-features = false }
 pallet-encointer-faucet = { version = "~21.2.0", default-features = false }
-pallet-encointer-reputation-commitments = { version = "~21.1.0", default-features = false }
+pallet-encointer-offline-payment = { version = "~21.0.0", default-features = false }
+pallet-encointer-reputation-commitments = { version = "~21.1.1", default-features = false }
+pallet-encointer-reputation-rings = { version = "~21.0.0", default-features = false }
 pallet-encointer-scheduler = { version = "~21.1.0", default-features = false }
 pallet-encointer-treasuries = { version = "~21.7.0", default-features = false }
 pallet-encointer-treasuries-rpc-runtime-api = { version = "~21.3.0", default-features = false }
