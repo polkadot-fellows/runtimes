@@ -219,11 +219,11 @@ serde = { version = "1.0.214" }
 serde_json = { version = "1.0.132", default-features = false }
 smallvec = { version = "1.13.1" }
 snowbridge-beacon-primitives = { version = "0.18.1", default-features = false }
-snowbridge-core = { version = "0.18.0", default-features = false }
+snowbridge-core = { version = "0.18.1", default-features = false }
 snowbridge-merkle-tree = { version = "0.6.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.18.0", default-features = false }
 snowbridge-outbound-queue-v2-runtime-api = { version = "0.7.0", default-features = false }
-snowbridge-outbound-queue-primitives = { version = "0.7.0", default-features = false }
+snowbridge-outbound-queue-primitives = { version = "0.7.1", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.18.2", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.18.0", default-features = false }
 snowbridge-pallet-inbound-queue-v2 = { version = "0.7.0", default-features = false }
@@ -271,7 +271,7 @@ tokio = { version = "1.45.0" }
 xcm = { version = "21.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "25.0.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.26.0" }
-xcm-executor = { version = "24.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-executor = { version = "24.0.1", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.12.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
