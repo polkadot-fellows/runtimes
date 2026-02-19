@@ -1,0 +1,127 @@
+name: Debug Jemalloc
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  debug-jemalloc:
+    runs-on: benchmark
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check existing frame-omni-bencher
+        run: |
+          echo "=== Checking for existing frame-omni-bencher ==="
+          which frame-omni-bencher && frame-omni-bencher --version || echo "Not found in PATH"
+          ls -la ~/.cargo/bin/frame-omni-bencher 2>/dev/null || echo "Not in ~/.cargo/bin"
+
+      - name: Check jemalloc in existing binary
+        run: |
+          echo "=== Checking jemalloc symbols in existing binary ==="
+          if which frame-omni-bencher >/dev/null 2>&1; then
+            echo "-- nm output (jemalloc symbols) --"
+            nm $(which frame-omni-bencher) 2>/dev/null | grep -i jemalloc | head -20 || echo "No jemalloc symbols found"
+            echo "-- ldd output --"
+            ldd $(which frame-omni-bencher) 2>/dev/null | grep -i jemalloc || echo "No jemalloc in ldd"
+          else
+            echo "No existing binary to check"
+          fi
+
+      - name: Install dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src, rustfmt"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Install frame-omni-bencher (normal)
+        run: |
+          echo "=== Installing frame-omni-bencher (without --force) ==="
+          cargo install frame-omni-bencher --locked 2>&1 | tee install-normal.log
+          echo "-- Install log summary --"
+          grep -E "(Compiling|Installing|Replacing|Ignored|jemalloc)" install-normal.log || true
+
+      - name: Check jemalloc after normal install
+        run: |
+          echo "=== Checking jemalloc after normal install ==="
+          echo "-- nm output (jemalloc symbols) --"
+          nm $(which frame-omni-bencher) 2>/dev/null | grep -i jemalloc | head -20 || echo "No jemalloc symbols found"
+          echo "-- ldd output --"
+          ldd $(which frame-omni-bencher) 2>/dev/null | grep -i jemalloc || echo "No jemalloc in ldd"
+          echo "-- strings check for jemalloc --"
+          strings $(which frame-omni-bencher) | grep -i jemalloc | head -10 || echo "No jemalloc strings found"
+
+      - name: Run quick benchmark test
+        run: |
+          echo "=== Building runtime for benchmark test ==="
+          cargo build --profile production -p asset-hub-polkadot-runtime --features runtime-benchmarks
+
+          echo "=== Running benchmark with normal install ==="
+          echo "This is the dummy extrinsic with huge storage deletion in setup and just 2r-1w in the extrinsic"
+          frame-omni-bencher v1 benchmark pallet \
+            --runtime ./target/production/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.compact.compressed.wasm \
+            --pallet pallet_staking_async \
+            --extrinsic "force_apply_min_commission" \
+            --steps 2 --repeat 1 2>&1 | tee benchmark-normal.log
+
+          echo "-- Benchmark timing results --"
+          grep -E "(Time|µs|ms|ns)" benchmark-normal.log || cat benchmark-normal.log
+
+      - name: Force reinstall frame-omni-bencher
+        run: |
+          echo "=== Force reinstalling frame-omni-bencher ==="
+          cargo install frame-omni-bencher --locked --force 2>&1 | tee install-force.log
+          echo "-- Install log summary --"
+          grep -E "(Compiling|Installing|Replacing|jemalloc)" install-force.log || true
+
+      - name: Check jemalloc after force install
+        run: |
+          echo "=== Checking jemalloc after force install ==="
+          echo "-- nm output (jemalloc symbols) --"
+          nm $(which frame-omni-bencher) 2>/dev/null | grep -i jemalloc | head -20 || echo "No jemalloc symbols found"
+          echo "-- ldd output --"
+          ldd $(which frame-omni-bencher) 2>/dev/null | grep -i jemalloc || echo "No jemalloc in ldd"
+
+      - name: Run quick benchmark test after force install
+        run: |
+          echo "=== Running benchmark after force install ==="
+          frame-omni-bencher v1 benchmark pallet \
+            --runtime ./target/production/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.compact.compressed.wasm \
+            --pallet pallet_staking_async \
+            --extrinsic "force_apply_min_commission" \
+            --steps 2 --repeat 1 2>&1 | tee benchmark-force.log
+
+          echo "-- Benchmark timing results --"
+          grep -E "(Time|µs|ms|ns)" benchmark-force.log || cat benchmark-force.log
+
+      - name: Compare results
+        run: |
+          echo "=== Comparison ==="
+          echo "-- Normal install benchmark --"
+          cat benchmark-normal.log
+          echo ""
+          echo "-- Force install benchmark --"
+          cat benchmark-force.log
+
+      - name: Environment info
+        run: |
+          echo "=== Environment Info ==="
+          uname -a
+          cat /etc/os-release
+          rustc --version
+          cargo --version
+          echo "-- Memory info --"
+          free -h
+          echo "-- CPU info --"
+          lscpu | head -20
