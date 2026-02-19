@@ -9665,9 +9665,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-balances"
-version = "21.2.0"
+version = "21.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d9df251c6df80a5f1af4e44ef5d2cb1205779ccc544c352906285b7092973eb"
+checksum = "a0ac9dc0d5c390043ec19bcd615a614a37e751ad2bdf6e315739cb33e89ec95b"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -9716,9 +9716,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-ceremonies"
-version = "21.1.0"
+version = "21.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22d83aeeac0167570d09c11a970d0fd7948b82428c23afee2a1b01eb428b8764"
+checksum = "2ced697539fa8c8df42fcfb11e6a57f370f72f523769a0873bb2da99ca95023f"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
@@ -9755,9 +9755,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-communities"
-version = "21.1.0"
+version = "21.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efe64ebd4dca549c81fefd51cf47e318b300f13147e9e3769446eda3617c1f5d"
+checksum = "f5ad1eefe27b646902f8ecdcd97bd4fac7537b7e34922ccde0490d3975f12e20"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -9787,9 +9787,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-democracy"
-version = "21.6.0"
+version = "21.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb5f25d8d7121f48301b9e38d0416ce9369528365b6638417315a80b18e3e141"
+checksum = "118b05b1ad0312cd3df56d91aae1f22bcfbf25d0aeb6e30c7b1762d70ab29065"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -9834,9 +9834,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-reputation-commitments"
-version = "21.1.0"
+version = "21.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ffa6dfeb59283b7482f50727632695b933cbcfcc8940d00689f6070d2f2e329"
+checksum = "0929a4b83daa774db1fa602d08e14cb0e9597410d337ac2d2ceadbd7da16567c"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -9876,9 +9876,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-treasuries"
-version = "21.7.0"
+version = "21.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32351c0c6717dbebc16cdea10139ee2879c1b9e5a502fb017703441cb2734e27"
+checksum = "3a2060ca7bd02bb1dabeb070062c35c6facfeeb9a1a696ae3edd8b6f980a7045"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -15366,9 +15366,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
-version = "0.18.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fb58cba2820e72d795e2d75e027e418e969002d085f363909a1934c8b7b4ea4"
+checksum = "a07a72f1a6f06255b86b4afeaf6c0e812f8b32a8c178532a49b1c1dd2127456f"
 dependencies = [
  "bp-relayers",
  "frame-support",
@@ -15469,9 +15469,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-primitives"
-version = "0.7.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20ba1371768bcf9d0e24a94bc64509226a1ea8d5d4cb413787eb6fd084a9ee3b"
+checksum = "ff2520e04b5559348198dac6a9a29d97eda26e3ca26fc9d2c32a400913790d09"
 dependencies = [
  "alloy-core",
  "ethabi-decode",
@@ -17214,9 +17214,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "24.0.1"
+version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e170ec1fc40070d7459aa3348a9e2dae9569aab99fd60986a61b76e3ff36470e"
+checksum = "51a120dd21a304e81e8efda8d6b114e74ce2a2a4a2ad0024868f1dce7ed9ef17"
 dependencies = [
  "environmental",
  "frame-benchmarking",
