@@ -1,6 +1,6 @@
 extensions:
   client:
-    endpoints: [{{ENDPOINTS}}]
+    endpoints: {{ENDPOINTS}}
     shuffle_endpoints: true
   event_bus:
   substrate_api:

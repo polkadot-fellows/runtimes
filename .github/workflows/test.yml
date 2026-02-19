@@ -406,12 +406,15 @@ jobs:
           echo "Starting all Subway instances for ${{ matrix.network.name }}..."
 
           # Start each subway instance
-          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while read chain; do
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
             CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
             PORT=$(echo "$chain" | jq -r '.port')
 
-            # Get endpoints from runtimes-matrix.json
-            ENDPOINTS=$(jq -r --arg chain "$CHAIN_NAME" '.[] | select(.name == $chain) | .uris | map("\"" + . + "\"") | join(", ")' .github/workflows/runtimes-matrix.json)
+            ENDPOINTS=$(jq -c --arg chain "$CHAIN_NAME" '.[] | select(.name == $chain) | .uris' .github/workflows/runtimes-matrix.json)
+            if [ -z "$ENDPOINTS" ] || [ "$ENDPOINTS" = "null" ]; then
+              echo "ERROR: No endpoints found for $CHAIN_NAME in runtimes-matrix.json"
+              exit 1
+            fi
 
             echo "Starting Subway for $CHAIN_NAME on port $PORT..."
             sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" .github/subway-configs/template.yml > /tmp/subway-$PORT.yml
@@ -421,8 +424,8 @@ jobs:
 
           # Wait for all subways to start
           echo "Waiting for all Subway instances to start..."
-          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while read chain; do
-            PORT=$(echo $chain | jq -r '.port')
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            PORT=$(echo "$chain" | jq -r '.port')
             timeout=60
             elapsed=0
             while [ $elapsed -lt $timeout ]; do
@@ -451,9 +454,9 @@ jobs:
       - name: Setup endpoint and runtime overrides
         run: |
           # Set all subway endpoint environment variables
-          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while read chain; do
-            ENDPOINT_VAR=$(echo $chain | jq -r '.endpoint_var')
-            PORT=$(echo $chain | jq -r '.port')
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            ENDPOINT_VAR=$(echo "$chain" | jq -r '.endpoint_var')
+            PORT=$(echo "$chain" | jq -r '.port')
             echo "${ENDPOINT_VAR}=ws://localhost:${PORT}" >> $GITHUB_ENV
           done
 
