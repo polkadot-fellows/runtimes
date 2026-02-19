@@ -9787,9 +9787,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-democracy"
-version = "21.6.1"
+version = "21.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cc13ee72143452a85600455cc5812d520af2a29d38a78d4835245e99cc9eff9"
+checksum = "118b05b1ad0312cd3df56d91aae1f22bcfbf25d0aeb6e30c7b1762d70ab29065"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
