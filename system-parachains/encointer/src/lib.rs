@@ -919,7 +919,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (pallet_encointer_democracy::migration::MigrateToV2<Runtime>,);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
