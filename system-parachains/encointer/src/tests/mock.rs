@@ -130,6 +130,7 @@ impl pallet_assets::Config for Test {
 	type AssetIdParameter = AssetIdForAssets;
 	type CallbackHandle = ();
 	type Holder = ();
+	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
