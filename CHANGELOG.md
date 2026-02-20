@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add hyperbridge to parachains header root ([#1073](https://github.com/polkadot-fellows/runtimes/pull/1073))
 
+### Changed
+
+- Set hard cap enactment block number to relay block number [30_354_008](https://polkadot.subscan.io/block/30354008) ([#1076](https://github.com/polkadot-fellows/runtimes/pull/1076))
+
 ## [2.0.5] 13.01.2026
 
 ### Added
