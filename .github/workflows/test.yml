@@ -475,7 +475,9 @@ jobs:
       - name: Checkout polkadot-ecosystem-tests
         uses: actions/checkout@v4
         with:
-          repository: open-web3-stack/polkadot-ecosystem-tests
+          # TODO: revert to open-web3-stack/polkadot-ecosystem-tests once PR #524 merges
+          repository: sigurpol/polkadot-ecosystem-tests
+          ref: sigurpol-fix-set-staking-config-and-proxy-event
           path: ecosystem-tests
 
       - name: Install test dependencies
