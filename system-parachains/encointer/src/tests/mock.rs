@@ -130,6 +130,8 @@ impl pallet_assets::Config for Test {
 	type AssetIdParameter = AssetIdForAssets;
 	type CallbackHandle = ();
 	type Holder = ();
+	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
+	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
@@ -242,7 +244,7 @@ impl WeightTrader for TestTrader {
 		payment: AssetsInHolding,
 		_context: &XcmContext,
 	) -> Result<AssetsInHolding, XcmError> {
-		let amount = KusamaWeightToFee::weight_to_fee(&weight);
+		let amount = KusamaWeightToFee::<Test>::weight_to_fee(&weight);
 		let required: Asset = (Here, amount).into();
 		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
 		self.weight_bought_so_far.saturating_add(weight);
@@ -251,7 +253,7 @@ impl WeightTrader for TestTrader {
 
 	fn refund_weight(&mut self, weight: Weight, _context: &XcmContext) -> Option<Asset> {
 		let weight = weight.min(self.weight_bought_so_far);
-		let amount = KusamaWeightToFee::weight_to_fee(&weight);
+		let amount = KusamaWeightToFee::<Test>::weight_to_fee(&weight);
 		self.weight_bought_so_far -= weight;
 		if amount > 0 {
 			Some((Here, amount).into())
@@ -277,7 +279,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
 	type Trader = UsingComponents<
-		system_parachains_constants::kusama::fee::WeightToFee,
+		system_parachains_constants::kusama::fee::WeightToFee<Test>,
 		KsmLocation,
 		AccountId,
 		Balances,
@@ -383,6 +385,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			(100, TreasuryAccountId::get(), INITIAL_BALANCE),
 		],
 		next_asset_id: None,
+		reserves: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

@@ -24,10 +24,7 @@ use integration_tests_helpers::{
 	test_relay_is_trusted_teleporter,
 };
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
-use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
-};
+use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV2;
 
 #[test]
 fn teleport_via_transfer_assets_from_and_to_relay() {

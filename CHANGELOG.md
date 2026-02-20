@@ -7,17 +7,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-- AH Polkadot - Regenerate weights for staking and election pallets ([#1042](https://github.com/polkadot-fellows/runtimes/pull/1042))
-- AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+- Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
 
 ### Changed
+
+- Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
+- Re-add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)
+- Fix check-migration(asset-hub-polkadot) CI job [#1057](https://github.com/polkadot-fellows/runtimes/pull/1057)
+- Update to polkadot-sdk stable2512 (tag 2512-2), introduce DAP pallet, refine StakingOperator and add Session keys handling on AssetHub  [#1065](https://github.com/polkadot-fellows/runtimes/pull/1065)
+
+## [2.0.7] 16.02.2026
+
+### Added
+
+- Add hyperbridge to parachains header root ([#1073](https://github.com/polkadot-fellows/runtimes/pull/1073))
+
+### Changed
+
+- Set hard cap enactment block number to relay block number [30_354_008](https://polkadot.subscan.io/block/30354008) ([#1076](https://github.com/polkadot-fellows/runtimes/pull/1076))
+
+## [2.0.5] 13.01.2026
+
+### Added
+- Bridge-Hubs - Add proxy pallet ([#1045](https://github.com/polkadot-fellows/runtimes/pull/1045)).
+- AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+- AH Polkadot - Added `pallet_revive` and changed proof size fee formula ([polkadot-fellows/runtimes/pull/1050](https://github.com/polkadot-fellows/runtimes/pull/1050))
+- Add `cumulus-pallet-weight-reclaim` to all Polkadot system parachains (Asset Hub, Bridge Hub, Coretime, People, Collectives) for storage weight reclaim functionality ([#1047](https://github.com/polkadot-fellows/runtimes/pull/1047)).
+
+### Changed
+
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898))
 - AH Polkadot - Enable Elastic Scaling for Polkadot Hub ([polkadot-fellows/runtimes/pull/1048](https://github.com/polkadot-fellows/runtimes/pull/1048))
 - AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+### Fixed
+
+- [PAH] Migrate missing Stellaswap sovereign accounts ([1036](https://github.com/polkadot-fellows/runtimes/pull/1036))
 
 ## [2.0.4] 18.12.2025
 
 ### Changed
 
+- Add StakingOperator proxy type and the ability for Staking proxy to manage StakingOperator proxies ([#1033](https://github.com/polkadot-fellows/runtimes/pull/1033))
 - asset-hub-polkadot: remove treasury burns ([#1028](https://github.com/polkadot-fellows/runtimes/pull/1028))
 - asset-hub-polkadot: fix the regression in doc-test for staking after changing the base deposit for NPoS solution from 4 to 100 DOT ([#1023](https://github.com/polkadot-fellows/runtimes/pull/1023))
 - asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))

@@ -44,6 +44,7 @@ pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-conversion = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-assets = { workspace = true }
+pallet-assets-precompiles = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
@@ -61,10 +62,11 @@ pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
+pallet-revive = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
@@ -82,6 +84,11 @@ pallet-whitelist = { workspace = true }
 sp-api = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
+authority-discovery-primitives = { workspace = true }
+babe-primitives = { workspace = true }
+beefy-primitives = { workspace = true }
+grandpa-primitives = { workspace = true }
+polkadot-primitives = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -101,11 +108,13 @@ primitive-types = { features = [
 	"num-traits",
 	"scale-info",
 ], workspace = true }
+pallet-dap = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 
 # Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
+pallet-xcm-precompiles = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -119,6 +128,7 @@ xcm-runtime-apis = { workspace = true }
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
+cumulus-pallet-weight-reclaim = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { features = ["bridging"], workspace = true }
 cumulus-primitives-aura = { workspace = true }
@@ -141,7 +151,11 @@ approx = { workspace = true }
 asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
+polkadot-runtime = { workspace = true }
 sp-tracing = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
+frame-try-runtime = { workspace = true }
+tokio = { features = ["macros"], workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
@@ -152,6 +166,7 @@ default = ["std"]
 polkadot-ahm = [
 	"pallet-ah-migrator/polkadot-ahm",
 	"pallet-rc-migrator/polkadot-ahm",
+	"polkadot-runtime/polkadot-ahm",
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
@@ -161,6 +176,7 @@ runtime-benchmarks = [
 	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
+	"cumulus-pallet-weight-reclaim/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
@@ -175,6 +191,7 @@ runtime-benchmarks = [
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
+	"pallet-assets-precompiles/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -182,6 +199,7 @@ runtime-benchmarks = [
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-dap/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-block/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
@@ -195,7 +213,9 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
+	"pallet-revive/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
@@ -209,11 +229,14 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
+	"pallet-xcm-precompiles/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"snowbridge-pallet-system-frontend/runtime-benchmarks",
 	"snowbridge-runtime-common/runtime-benchmarks",
@@ -227,9 +250,11 @@ runtime-benchmarks = [
 	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
+	"asset-test-utils/try-runtime",
 	"assets-common/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
+	"cumulus-pallet-weight-reclaim/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-xcmp-queue/try-runtime",
 	"frame-election-provider-support/try-runtime",
@@ -242,6 +267,7 @@ try-runtime = [
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
+	"pallet-assets-precompiles/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -251,6 +277,7 @@ try-runtime = [
 	"pallet-child-bounties/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-dap/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-block/try-runtime",
 	"pallet-indices/try-runtime",
@@ -263,6 +290,7 @@ try-runtime = [
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
+	"pallet-revive/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-staking-async-rc-client/try-runtime",
@@ -277,19 +305,26 @@ try-runtime = [
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm-bridge-hub-router/try-runtime",
+	"pallet-xcm-precompiles/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"polkadot-runtime/try-runtime",
+	"snowbridge-inbound-queue-primitives/try-runtime",
 	"snowbridge-pallet-system-frontend/try-runtime",
 	"snowbridge-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 std = [
 	"pallet-ah-migrator/std",
 
 	"assets-common/std",
+	"authority-discovery-primitives/std",
+	"babe-primitives/std",
+	"beefy-primitives/std",
 	"bp-asset-hub-kusama/std",
 	"bp-asset-hub-polkadot/std",
 	"bp-bridge-hub-kusama/std",
@@ -298,6 +333,7 @@ std = [
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-session-benchmarking/std",
+	"cumulus-pallet-weight-reclaim/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
 	"cumulus-primitives-aura/std",
@@ -312,6 +348,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"grandpa-primitives/std",
 	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
@@ -319,6 +356,7 @@ std = [
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-rate/std",
+	"pallet-assets-precompiles/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -328,6 +366,7 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-collator-selection/std",
 	"pallet-conviction-voting/std",
+	"pallet-dap/std",
 	"pallet-delegated-staking/std",
 	"pallet-election-provider-multi-block/std",
 	"pallet-indices/std",
@@ -343,6 +382,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
+	"pallet-revive/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-staking-async-rc-client/std",
@@ -360,11 +400,13 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm-bridge-hub-router/std",
+	"pallet-xcm-precompiles/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
+	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"primitive-types/std",

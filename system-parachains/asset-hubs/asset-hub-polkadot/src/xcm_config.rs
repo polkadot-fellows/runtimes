@@ -18,10 +18,10 @@ pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
 	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CollatorSelection, FellowshipAdmin, ForeignAssets, GeneralAdmin, NativeAndAssets,
-	ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, StakingAdmin, ToKusamaXcmRouter,
-	Treasurer, WeightToFee, XcmpQueue,
+	CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
+	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
+	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -457,7 +457,7 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type Trader = (
 		UsingComponents<
-			WeightToFee,
+			WeightToFee<Runtime>,
 			DotLocation,
 			AccountId,
 			Balances,
@@ -468,7 +468,7 @@ impl xcm_executor::Config for XcmConfig {
 		cumulus_primitives_utility::SwapFirstAssetTrader<
 			DotLocation,
 			AssetConversion,
-			WeightToFee,
+			WeightToFee<Runtime>,
 			NativeAndAssets,
 			(
 				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
@@ -650,9 +650,19 @@ impl cumulus_pallet_xcm::Config for Runtime {
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+impl
+	pallet_assets::BenchmarkHelper<
+		Location,
+		assets_common::local_and_foreign_assets::ForeignAssetReserveData,
+	> for XcmBenchmarkHelper
+{
 	fn create_asset_id_parameter(id: u32) -> Location {
 		Location::new(1, Parachain(id))
+	}
+	fn create_reserve_id_parameter(
+		id: u32,
+	) -> assets_common::local_and_foreign_assets::ForeignAssetReserveData {
+		(Location::new(1, Parachain(id)), false).into()
 	}
 }
 
