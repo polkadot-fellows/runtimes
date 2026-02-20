@@ -9,9 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+- Add `pallet_multi_asset_bounties` pallet to Asset Hub Kusama and Asset Hub Polkadot for multi-asset bounty support ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
 
 ### Changed
 
+- Remove local pay module in favor of upstream implementation ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
 - Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
 - Re-add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)
 - Fix check-migration(asset-hub-polkadot) CI job [#1057](https://github.com/polkadot-fellows/runtimes/pull/1057)
