@@ -27,6 +27,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Set hard cap enactment block number to relay block number [30_354_008](https://polkadot.subscan.io/block/30354008) ([#1076](https://github.com/polkadot-fellows/runtimes/pull/1076))
 
+## [2.0.6] 04.02.2026
+
+### Changed
+
+- Updates to latest polkadot-sdk
+
 ## [2.0.5] 13.01.2026
 
 ### Added
