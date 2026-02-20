@@ -17,6 +17,7 @@ pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
+xcm-runtime-apis = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 
 # Cumulus
@@ -30,5 +31,6 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]

@@ -22,6 +22,7 @@ pub mod bags_thresholds;
 pub mod nom_pools;
 
 use crate::{governance::StakingAdmin, *};
+use codec::Encode;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
 use frame_support::traits::tokens::imbalance::ResolveTo;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
@@ -113,7 +114,7 @@ impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
 			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
 				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
 		{
-			5
+			10
 		} else {
 			0
 		}
@@ -178,6 +179,7 @@ impl multi_block::Config for Runtime {
 	type VoterSnapshotPerBlock = VoterSnapshotPerBlock;
 	type TargetSnapshotPerBlock = TargetSnapshotPerBlock;
 	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
+	type ManagerOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
 	type DataProvider = Staking;
 	type MinerConfig = Self;
 	type Verifier = MultiBlockElectionVerifier;
@@ -293,6 +295,9 @@ impl multi_block::unsigned::miner::MinerConfig for Runtime {
 	type MaxVotesPerVoter =
 		<<Self as multi_block::Config>::DataProvider as ElectionDataProvider>::MaxVotesPerVoter;
 	type MaxLength = MinerMaxLength;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Solver = frame_election_provider_support::QuickDirtySolver<AccountId, Perbill>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Solver = <Runtime as multi_block::unsigned::Config>::OffchainSolver;
 	type Pages = Pages;
 	type Solution = NposCompactSolution24;
@@ -374,8 +379,15 @@ parameter_types! {
 		frame_election_provider_support::NposSolution
 	>::LIMIT as u32;
 
-	/// Maximum numbers that we prune from pervious eras in each `prune_era` tx.
+	/// Maximum numbers that we prune from previous eras in each `prune_era` tx.
 	pub MaxPruningItems: u32 = 100;
+
+	/// Unlike Polkadot, Kusama nominators are expected to be slashable and do not
+	/// support fast unbonding. Consequently, AreNominatorSlashable is intended to
+	/// remain set to true and should not be modified via governance.
+	/// NominatorFastUnbondDuration value below is therefore ignored.
+	pub const NominatorFastUnbondDuration: sp_staking::EraIndex = BondingDuration::get();
+	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
 impl pallet_staking_async::Config for Runtime {
@@ -417,6 +429,19 @@ impl pallet_staking_async::Config for Runtime {
 	type MaxEraDuration = MaxEraDuration;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
 	type MaxPruningItems = MaxPruningItems;
+	type NominatorFastUnbondDuration = NominatorFastUnbondDuration;
+}
+
+// Must match Kusama relay chain's `SessionKeys` structure for encoding/decoding compatibility.
+sp_runtime::impl_opaque_keys! {
+	pub struct RelayChainSessionKeys {
+		pub grandpa: grandpa_primitives::AuthorityId,
+		pub babe: babe_primitives::AuthorityId,
+		pub para_validator: polkadot_primitives::ValidatorId,
+		pub para_assignment: polkadot_primitives::AssignmentId,
+		pub authority_discovery: authority_discovery_primitives::AuthorityId,
+		pub beefy: beefy_primitives::ecdsa_crypto::AuthorityId,
+	}
 }
 
 impl pallet_staking_async_rc_client::Config for Runtime {
@@ -424,8 +449,20 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type AHStakingInterface = Staking;
 	type SendToRelayChain = StakingXcmToRelayChain;
 	type MaxValidatorSetRetries = ConstU32<64>;
-	// Export elected validator set at the end of the 4th session of the era.
-	type ValidatorSetExportSession = ConstU32<4>;
+	type ValidatorSetExportSession = ValidatorSetExportSession;
+	type RelayChainSessionKeys = RelayChainSessionKeys;
+	type Balance = Balance;
+	// | Key                 | Crypto  | Public Key | Signature |
+	// |---------------------|---------|------------|-----------|
+	// | grandpa             | Ed25519 | 32 bytes   | 64 bytes  |
+	// | babe                | Sr25519 | 32 bytes   | 64 bytes  |
+	// | para_validator      | Sr25519 | 32 bytes   | 64 bytes  |
+	// | para_assignment     | Sr25519 | 32 bytes   | 64 bytes  |
+	// | authority_discovery | Sr25519 | 32 bytes   | 64 bytes  |
+	// | beefy               | ECDSA   | 33 bytes   | 65 bytes  |
+	// Buffer for SCALE encoding overhead and future expansions.
+	type MaxSessionKeysLength = ConstU32<256>;
+	type WeightInfo = weights::pallet_staking_async_rc_client::WeightInfo<Runtime>;
 }
 
 #[derive(Encode, Decode)]
@@ -438,9 +475,15 @@ pub enum RelayChainRuntimePallets {
 
 #[derive(Encode, Decode)]
 pub enum AhClientCalls {
-	// index of `fn validator_set` in `staking-async-ah-client`. It has only one call.
+	// index of `fn validator_set` in `staking-async-ah-client`.
 	#[codec(index = 0)]
 	ValidatorSet(rc_client::ValidatorSetReport<AccountId>),
+	// index of `fn set_keys_from_ah` in `staking-async-ah-client`.
+	#[codec(index = 3)]
+	SetKeys { stash: AccountId, keys: Vec<u8> },
+	// index of `fn purge_keys_from_ah` in `staking-async-ah-client`.
+	#[codec(index = 4)]
+	PurgeKeys { stash: AccountId },
 }
 
 pub struct ValidatorSetToXcm;
@@ -448,30 +491,38 @@ impl sp_runtime::traits::Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<(
 	for ValidatorSetToXcm
 {
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
-		Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Native,
-				fallback_max_weight: None,
-				call: RelayChainRuntimePallets::AhClient(AhClientCalls::ValidatorSet(report))
-					.encode()
-					.into(),
-			},
-		])
+		rc_client::build_transact_xcm(
+			RelayChainRuntimePallets::AhClient(AhClientCalls::ValidatorSet(report)).encode(),
+		)
+	}
+}
+
+pub struct KeysMessageToXcm;
+impl sp_runtime::traits::Convert<rc_client::KeysMessage<AccountId>, Xcm<()>> for KeysMessageToXcm {
+	fn convert(msg: rc_client::KeysMessage<AccountId>) -> Xcm<()> {
+		let encoded_call = match msg {
+			rc_client::KeysMessage::SetKeys { stash, keys } =>
+				RelayChainRuntimePallets::AhClient(AhClientCalls::SetKeys { stash, keys }).encode(),
+			rc_client::KeysMessage::PurgeKeys { stash } =>
+				RelayChainRuntimePallets::AhClient(AhClientCalls::PurgeKeys { stash }).encode(),
+		};
+		rc_client::build_transact_xcm(encoded_call)
 	}
 }
 
 parameter_types! {
 	pub RelayLocation: Location = Location::parent();
+	/// Conservative RC execution cost for set/purge keys operations.
+	/// ~3x of Kusama relay benchmarked session set/purge_keys (~61-62M ref_time, ~16538 proof).
+	pub RemoteKeysExecutionWeight: Weight = Weight::from_parts(190_000_000, 50_000);
 }
 
 pub struct StakingXcmToRelayChain;
 
 impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 	type AccountId = AccountId;
+	type Balance = Balance;
+
 	fn validator_set(report: rc_client::ValidatorSetReport<Self::AccountId>) -> Result<(), ()> {
 		rc_client::XCMSender::<
 			xcm_config::XcmRouter,
@@ -479,6 +530,63 @@ impl rc_client::SendToRelayChain for StakingXcmToRelayChain {
 			rc_client::ValidatorSetReport<Self::AccountId>,
 			ValidatorSetToXcm,
 		>::send(report)
+	}
+
+	fn set_keys(
+		stash: Self::AccountId,
+		keys: Vec<u8>,
+		max_delivery_and_remote_execution_fee: Option<Self::Balance>,
+	) -> Result<Self::Balance, rc_client::SendKeysError<Self::Balance>> {
+		let execution_cost =
+			<KsmWeightToFee<Runtime> as frame_support::weights::WeightToFee>::weight_to_fee(
+				&RemoteKeysExecutionWeight::get(),
+			);
+
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			RelayLocation,
+			rc_client::KeysMessage<Self::AccountId>,
+			KeysMessageToXcm,
+		>::send_with_fees::<
+			xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
+			RuntimeCall,
+			AccountId,
+			rc_client::AccountId32ToLocation,
+			Self::Balance,
+		>(
+			rc_client::KeysMessage::set_keys(stash.clone(), keys),
+			stash,
+			max_delivery_and_remote_execution_fee,
+			execution_cost,
+		)
+	}
+
+	fn purge_keys(
+		stash: Self::AccountId,
+		max_delivery_and_remote_execution_fee: Option<Self::Balance>,
+	) -> Result<Self::Balance, rc_client::SendKeysError<Self::Balance>> {
+		let execution_cost =
+			<KsmWeightToFee<Runtime> as frame_support::weights::WeightToFee>::weight_to_fee(
+				&RemoteKeysExecutionWeight::get(),
+			);
+
+		rc_client::XCMSender::<
+			xcm_config::XcmRouter,
+			RelayLocation,
+			rc_client::KeysMessage<Self::AccountId>,
+			KeysMessageToXcm,
+		>::send_with_fees::<
+			xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
+			RuntimeCall,
+			AccountId,
+			rc_client::AccountId32ToLocation,
+			Self::Balance,
+		>(
+			rc_client::KeysMessage::purge_keys(stash.clone()),
+			stash,
+			max_delivery_and_remote_execution_fee,
+			execution_cost,
+		)
 	}
 }
 

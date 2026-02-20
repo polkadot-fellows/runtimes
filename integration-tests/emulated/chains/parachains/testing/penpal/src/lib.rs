@@ -96,7 +96,15 @@ impl_assert_events_helpers_for_parachain!(PenpalA);
 impl_assert_events_helpers_for_parachain!(PenpalB);
 impl_assets_helpers_for_parachain!(PenpalA);
 impl_assets_helpers_for_parachain!(PenpalB);
-impl_foreign_assets_helpers_for_parachain!(PenpalA, xcm::latest::Location);
-impl_foreign_assets_helpers_for_parachain!(PenpalB, xcm::latest::Location);
+impl_foreign_assets_helpers_for_parachain!(
+	PenpalA,
+	xcm::latest::Location,
+	penpal_runtime::ForeignAssetReserveData
+);
+impl_foreign_assets_helpers_for_parachain!(
+	PenpalB,
+	xcm::latest::Location,
+	penpal_runtime::ForeignAssetReserveData
+);
 impl_xcm_helpers_for_parachain!(PenpalA);
 impl_xcm_helpers_for_parachain!(PenpalB);
