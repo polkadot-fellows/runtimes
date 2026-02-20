@@ -244,14 +244,14 @@ use xcm::prelude::*;
 parameter_types! {
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
 	// pallet instance. This sovereign account will need funding.
-	pub Interior: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	pub FellowshipSalaryInteriorLocation: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
 }
 
-const USDT_UNITS: u128 = 1_000_000;
+pub const USDT_UNITS: u128 = 1_000_000;
 
 /// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in USDT.
 pub type FellowshipSalaryPaymaster = PayOverXcm<
-	Interior,
+	FellowshipSalaryInteriorLocation,
 	crate::xcm_config::XcmRouter,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
