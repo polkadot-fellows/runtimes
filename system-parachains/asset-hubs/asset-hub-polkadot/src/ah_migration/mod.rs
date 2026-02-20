@@ -122,7 +122,6 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			Auction => Ok(ProxyType::Auction),
 			NominationPools => Ok(ProxyType::NominationPools),
 			ParaRegistration => Ok(ProxyType::ParaRegistration),
-			StakingOperator => Ok(ProxyType::StakingOperator),
 		}
 	}
 }

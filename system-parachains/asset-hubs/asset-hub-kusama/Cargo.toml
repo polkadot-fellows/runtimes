@@ -70,7 +70,7 @@ pallet-scheduler = { workspace = true }
 pallet-society = { workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
@@ -88,6 +88,11 @@ pallet-whitelist = { workspace = true }
 sp-api = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
+authority-discovery-primitives = { workspace = true }
+babe-primitives = { workspace = true }
+beefy-primitives = { workspace = true }
+grandpa-primitives = { workspace = true }
+polkadot-primitives = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -141,6 +146,7 @@ snowbridge-inbound-queue-primitives = { workspace = true }
 
 [dev-dependencies]
 asset-test-utils = { workspace = true }
+kusama-runtime = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 sp-io = { workspace = true, default-features = true }
 sp-tracing = { workspace = true, default-features = true }
@@ -150,7 +156,11 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
-kusama-ahm = ["pallet-ah-migrator/kusama-ahm", "pallet-rc-migrator/kusama-ahm"]
+kusama-ahm = [
+	"kusama-runtime/kusama-ahm",
+	"pallet-ah-migrator/kusama-ahm",
+	"pallet-rc-migrator/kusama-ahm",
+]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"bp-asset-hub-kusama/runtime-benchmarks",
@@ -169,6 +179,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
 	"pallet-ah-migrator/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
@@ -201,6 +212,7 @@ runtime-benchmarks = [
 	"pallet-remote-proxy/runtime-benchmarks",
 	"pallet-revive/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
@@ -219,6 +231,7 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
@@ -231,6 +244,7 @@ runtime-benchmarks = [
 	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
+	"asset-test-utils/try-runtime",
 	"assets-common/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
@@ -242,6 +256,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"kusama-runtime/try-runtime",
 	"pallet-ah-migrator/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
@@ -294,12 +309,16 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"snowbridge-inbound-queue-primitives/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
 	"system-parachains-constants/try-runtime",
 ]
 std = [
 	"assets-common/std",
+	"authority-discovery-primitives/std",
+	"babe-primitives/std",
+	"beefy-primitives/std",
 	"bp-asset-hub-kusama/std",
 	"bp-asset-hub-polkadot/std",
 	"bp-bridge-hub-kusama/std",
@@ -323,6 +342,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"grandpa-primitives/std",
 	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-ah-migrator/std",
@@ -384,6 +404,7 @@ std = [
 	"parachains-common/std",
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
+	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"primitive-types/std",
 	"scale-info/std",

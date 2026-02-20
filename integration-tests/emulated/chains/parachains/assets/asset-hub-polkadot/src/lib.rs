@@ -59,5 +59,9 @@ impl_accounts_helpers_for_parachain!(AssetHubPolkadot);
 impl_assert_events_helpers_for_parachain!(AssetHubPolkadot);
 impl_assets_helpers_for_system_parachain!(AssetHubPolkadot, Polkadot);
 impl_assets_helpers_for_parachain!(AssetHubPolkadot);
-impl_foreign_assets_helpers_for_parachain!(AssetHubPolkadot, xcm::latest::Location);
+impl_foreign_assets_helpers_for_parachain!(
+	AssetHubPolkadot,
+	xcm::latest::Location,
+	assets_common::local_and_foreign_assets::ForeignAssetReserveData
+);
 impl_xcm_helpers_for_parachain!(AssetHubPolkadot);

@@ -558,6 +558,9 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
-      - ecosystem-tests
+      # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
+      # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
+      # params), false negatives will occur. See #1078 .
+      #- ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
