@@ -1,10 +1,6 @@
 extensions:
   client:
-    endpoints:
-      - wss://sys.ibp.network/asset-hub-polkadot
-      - wss://asset-hub-polkadot.dotters.network
-      - wss://polkadot-asset-hub-rpc.polkadot.io
-      - wss://asset-hub-polkadot-rpc.n.dwellir.com
+    endpoints: {{ENDPOINTS}}
     shuffle_endpoints: true
   event_bus:
   substrate_api:
