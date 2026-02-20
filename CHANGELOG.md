@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+- Collectives/Asset Hub Polkadot: Allow Architects track (rank 4+ Fellowship members) to manage Fellowship Treasury and Salary on Asset Hub via XCM ([polkadot-fellows/runtimes/pull/1072](https://github.com/polkadot-fellows/runtimes/pull/1072))
 
 ### Changed
 

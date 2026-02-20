@@ -357,3 +357,144 @@ fn asset_hub_kusama_root_does_not_alias_into_asset_hub_polkadot_origins() {
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 	});
 }
+
+#[test]
+fn fellowship_treasurer_aliases_into_fellowship_treasury_and_salary() {
+	AssetHubPolkadot::execute_with(|| {
+		let collectives_para_id = CollectivesPolkadot::para_id().into();
+
+		// The Treasurer plurality (Voice) from Collectives — this is the origin that the
+		// Architects track produces via `ArchitectsToTreasurerPlurality`.
+		let treasurer_origin = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Treasury, part: BodyPart::Voice },
+			]
+			.into()),
+		);
+
+		// Fellowship Treasury pallet on Collectives.
+		let fellowship_treasury_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Fellowship Salary pallet on Collectives.
+		let fellowship_salary_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Treasurer plurality can alias into Fellowship Treasury.
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&treasurer_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Treasurer plurality can alias into Fellowship Salary.
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&treasurer_origin,
+			&fellowship_salary_target,
+		));
+	});
+}
+
+#[test]
+fn non_treasurer_cannot_alias_into_fellowship_treasury_or_salary() {
+	AssetHubPolkadot::execute_with(|| {
+		let collectives_para_id = CollectivesPolkadot::para_id().into();
+
+		let fellowship_treasury_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		let fellowship_salary_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Technical (Fellows) plurality cannot alias into Fellowship Treasury or Salary.
+		let fellows_origin = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&fellows_origin,
+			&fellowship_treasury_target,
+		));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&fellows_origin,
+			&fellowship_salary_target,
+		));
+
+		// A regular account on Collectives cannot alias into Fellowship Treasury.
+		let account_origin = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				AccountId32Junction { network: None, id: [1u8; 32] },
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&account_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Treasurer plurality from a non-Collectives parachain cannot alias.
+		let wrong_chain_origin = Location::new(
+			1,
+			X2([Parachain(9999), Plurality { id: BodyId::Treasury, part: BodyPart::Voice }].into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&wrong_chain_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Treasurer plurality cannot alias into an unrelated pallet.
+		let treasurer_origin = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Treasury, part: BodyPart::Voice },
+			]
+			.into()),
+		);
+		let unrelated_pallet_target =
+			Location::new(1, X2([Parachain(collectives_para_id), PalletInstance(99)].into()));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&treasurer_origin,
+			&unrelated_pallet_target,
+		));
+	});
+}
