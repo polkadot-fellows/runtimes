@@ -490,7 +490,7 @@ fn check_compatibility_for_token_id_stored_on_ethereum() {
 					},
 				],
 			),
-			foreign: hex!("2a8080362874bbfeb585d676eba3f06e3b878d7c5d5f98d2a092ebb375bd484c")
+			foreign: hex!("e63b941f18079384e8de0a0bd11b3e0043b7bd675a3c4d2167dea38234047e2a")
 				.into(),
 		},
 	];
