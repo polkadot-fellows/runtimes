@@ -5030,9 +5030,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-primitives"
-version = "21.5.0"
+version = "21.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2298cb818363eb35abc7d0b8cad7ebe3cb8d00f8ee44b0595bb8544b7fa75578"
+checksum = "553e7b2684575a4989bb42924de5ea8f6ff24f2d6e50cd569847bef699640499"
 dependencies = [
  "bs58",
  "crc",
@@ -9894,9 +9894,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-democracy"
-version = "21.7.0"
+version = "21.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "118b05b1ad0312cd3df56d91aae1f22bcfbf25d0aeb6e30c7b1762d70ab29065"
+checksum = "ef1730c52ba304b7a846ed92a2c515df3a8d76fcc3e164603d4d80c19c2011fa"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -9996,9 +9996,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-reputation-rings"
-version = "21.0.0"
+version = "21.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a3ac53e00b90eaa7f1dc7aaa5904b3ad66a5a717b283fcf4b7b2368f8d3c459"
+checksum = "e7a89f3b6d6a33a74732059dc2807d85617be6c8a7df2c582d4d244183d1dc54"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
