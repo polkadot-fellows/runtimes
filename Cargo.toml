@@ -143,6 +143,7 @@ pallet-insecure-randomness-collective-flip = { version = "33.0.0", default-featu
 pallet-membership = { version = "45.0.0", default-features = false }
 pallet-message-queue = { version = "48.0.0", default-features = false }
 pallet-mmr = { version = "45.0.0", default-features = false }
+pallet-multi-asset-bounties = { version = "0.2.1", default-features = false }
 pallet-multisig = { version = "45.0.0", default-features = false }
 pallet-nft-fractionalization = { version = "29.0.0", default-features = false }
 pallet-nfts = { version = "39.0.0", default-features = false }

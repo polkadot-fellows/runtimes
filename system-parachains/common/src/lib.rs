@@ -17,8 +17,10 @@
 //! Shared types between system-parachains runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod pay;
 pub mod randomness;
+
+#[cfg(feature = "multi-asset-bounties")]
+pub mod multi_asset_bounty_sources;
 
 /// Extra runtime APIs.
 pub mod apis {

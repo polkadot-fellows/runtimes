@@ -1549,6 +1549,7 @@ construct_runtime!(
 		Bounties: pallet_bounties = 65,
 		ChildBounties: pallet_child_bounties = 66,
 		AssetRate: pallet_asset_rate = 67,
+		MultiAssetBounties: pallet_multi_asset_bounties = 68,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
@@ -1769,6 +1770,7 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
+		[pallet_multi_asset_bounties, MultiAssetBounties]
 		[pallet_ah_migrator, AhMigrator]
 		[pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
