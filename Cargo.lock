@@ -15527,9 +15527,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a07a72f1a6f06255b86b4afeaf6c0e812f8b32a8c178532a49b1c1dd2127456f"
+checksum = "2fb58cba2820e72d795e2d75e027e418e969002d085f363909a1934c8b7b4ea4"
 dependencies = [
  "bp-relayers",
  "frame-support",
@@ -15630,9 +15630,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-primitives"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff2520e04b5559348198dac6a9a29d97eda26e3ca26fc9d2c32a400913790d09"
+checksum = "20ba1371768bcf9d0e24a94bc64509226a1ea8d5d4cb413787eb6fd084a9ee3b"
 dependencies = [
  "alloy-core",
  "ethabi-decode",
@@ -17375,9 +17375,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "24.0.0"
+version = "24.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51a120dd21a304e81e8efda8d6b114e74ce2a2a4a2ad0024868f1dce7ed9ef17"
+checksum = "e170ec1fc40070d7459aa3348a9e2dae9569aab99fd60986a61b76e3ff36470e"
 dependencies = [
  "environmental",
  "frame-benchmarking",
