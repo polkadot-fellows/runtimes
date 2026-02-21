@@ -91,8 +91,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Remove AHM Test code to speed up CI ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
-- Relinquish AHM multisig functionality post AHM ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Remove AHM Test code to speed up CI ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
+ - Relinquish AHM multisig functionality post AHM ([#997](https://github.com/polkadot-fellows/runtimes/pull/997))
 
 ### Changed
 
@@ -134,13 +134,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Kusama Asset Hub: add missing staking Runtime APIs and re-enable vested transfers ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
+- Kusama Asset Hub: add missing staking Runtime APIs and  re-enable vested transfers ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
 - Polkadot Asset Hub: add missing staking Runtime APIs ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/949))
 
 ### Fixed
 
 - [AHM] Do not migrate staking era forcing info to AH ([polkadot-fellows/runtimes/pull/939](https://github.com/polkadot-fellows/runtimes/pull/939))
-- [AHM]Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
+- [AHM] Small fixes to successfully dry-run migration tests ([polkadot-fellows/runtimes/pull/942](https://github.com/polkadot-fellows/runtimes/pull/942))
 - [AHM] Fix crowdloan withdrawing and weight limit ([polkadot-fellows/runtimes/pull/943](https://github.com/polkadot-fellows/runtimes/pull/943))
 - [Encointer] Fix remote treasury payout on asset hub ([polkadot-fellows/runtimes/pull/944](https://github.com/polkadot-fellows/runtimes/pull/944))
 - [AHM] Post Kusama Migration cleanup ([polkadot-fellows/runtimes/pull/946](https://github.com/polkadot-fellows/runtimes/pull/946))
@@ -161,7 +161,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
+-  Pallet XCM - Disable reserve_asset_transfer for DOT|KSM ([polkadot-fellows/runtimes/pull/880](https://github.com/polkadot-fellows/runtimes/pull/880))
   🚨 Pallet XCM's `limited_reserve_transfer_assets` and `reserve_transfer_assets` extrinsics now returns an error when it determines that a reserve transfer of DOT|KSM has to be done.
   This is a safeguard in preparation for the Asset Hub Migration (AHM), where the reserve of DOT|KSM will change from the Relay Chain to Asset Hub.
   After the migration, another patch will remove this error case and use the correct reserve.
@@ -242,12 +242,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     If your chain uses pallet-revive, you can support ERC20s as well by adding the transactor, which lives in assets-common.
   - [#8197](https://github.com/paritytech/polkadot-sdk/pull/8197): [pallet-revive] Add `fee_history`
   - [#8148](https://github.com/paritytech/polkadot-sdk/pull/8148): [pallet-revive] eth-rpc refactoring
-    - Refactor eth-rpc.
-    - Get rid of the in-memory cache; we can just store receipts / logs into sqlite.
-    - Track both best and finalized blocks so that we can properly index transactions in case of a Relay Chain re-org.
-    - Keep reference to the latest finalized block so that we can use that for queries that use the finalized block tag.
-    - Use `--index-last-n-blocks` CLI parameter to re-index the last `n` blocks when the server starts.
-    - Fix issue with `gas_price` calculation for EIP1559.
+      - Refactor eth-rpc.
+      - Get rid of the in-memory cache; we can just store receipts / logs into sqlite.
+      - Track both best and finalized blocks so that we can properly index transactions in case of a Relay Chain re-org.
+      - Keep reference to the latest finalized block so that we can use that for queries that use the finalized block tag.
+      - Use `--index-last-n-blocks` CLI parameter to re-index the last `n` blocks when the server starts.
+      - Fix issue with `gas_price` calculation for EIP1559.
   - [#8545](https://github.com/paritytech/polkadot-sdk/pull/8545): [pallet-revive] eth-rpc improved healthcheck
   - [#8587](https://github.com/paritytech/polkadot-sdk/pull/8587): [pallet-revive] Make subscription task panic on error
   - [#8664](https://github.com/paritytech/polkadot-sdk/pull/8664): [pallet-revive] Fix rpc-types
