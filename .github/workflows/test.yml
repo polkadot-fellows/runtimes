@@ -348,6 +348,71 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
+  # Soft gate: failures are visible but don't block the test suite.
+  # TODO: make this a hard gate once we gain confidence in the check.
+  check-runtimes:
+    needs: [ runtime-matrix, build-runtimes ]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Download ${{ matrix.runtime.name }} WASM artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ matrix.runtime.name }}
+
+      - name: Check runtime
+        timeout-minutes: 10
+        env:
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+          URIS_JSON: ${{ toJSON(matrix.runtime.uris) }}
+        run: |
+          # Skip runtimes without URIs (e.g. glutton-kusama)
+          if [ "$URIS_JSON" = "null" ] || [ -z "$URIS_JSON" ]; then
+            echo "::notice::Skipping $RUNTIME_NAME — no URIs configured"
+            exit 0
+          fi
+
+          # Fail if WASM artifact is missing (build failed)
+          WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
+          if [ -z "$WASM" ]; then
+            echo "::error::WASM artifact missing for $RUNTIME_NAME — build may have failed"
+            exit 1
+          fi
+          echo "Found WASM: $WASM"
+
+          # Try each RPC with a timeout to handle unreachable endpoints
+          # (check-runtime hangs indefinitely on unreachable RPCs).
+          readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
+          for URI in "${URIS[@]}"; do
+            echo "Trying $URI..."
+            set +e
+            timeout 60 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            EXIT_CODE=$?
+            set -e
+            if [ $EXIT_CODE -eq 0 ]; then
+              exit 0
+            # When the time limit is reached, timeout returns exit code 124
+            elif [ $EXIT_CODE -eq 124 ]; then
+              echo "Timed out on $URI, trying next..."
+              continue
+            else
+              # Otherwise, it returns the exit status of the managed command
+              exit $EXIT_CODE
+            fi
+          done
+
+          echo "::error::No reachable RPC for $RUNTIME_NAME"
+          exit 1
+
   ecosystem-tests:
     name: "PET (${{ matrix.network.name }})"
     needs: [build-runtimes]
