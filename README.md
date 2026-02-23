@@ -88,7 +88,7 @@ Here is an overview of the recommended steps.
 |Steps |Description |
 |------|------------|
 |0 |Open an [issue](https://github.com/polkadot-fellows/runtimes/issues) for the release in the runtimes repo with the **version number**. |
-|1 |Update **[polkadot-sdk](https://github.com/paritytech/polkadot-sdk?tab=readme-ov-file#-releases)**, if applicable. |
+|1 |Update **[polkadot-sdk](https://github.com/paritytech/polkadot-sdk?tab=readme-ov-file#-releases)**, if applicable. It is recommended to use [psvm](https://github.com/paritytech/psvm). |
 |2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). |
 |3 |Identify and include **PRs** with required tests, highlighting the integration tests that have changed. |
 |4 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @anaelleltd** in your commentary. Make sure to **review the tooling used in the Fellows CI pipeline** (e.g. [get-fellows-action](https://github.com/paritytech/get-fellows-action) or [review-bot](https://github.com/paritytech/review-bot)). |
