@@ -84,7 +84,7 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
-
+            
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
         uses: paritytech/srtool-actions@v0.9.4
