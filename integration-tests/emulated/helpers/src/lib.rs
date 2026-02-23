@@ -31,6 +31,7 @@ pub use xcm_emulator::Chain;
 
 pub mod common;
 
+// TODO: remove, use from SDK
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
 	( $sender_relay:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {

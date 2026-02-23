@@ -27,6 +27,8 @@ use emulated_integration_tests_common::{
 };
 use polkadot_emulated_chain::Polkadot;
 
+pub use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
+
 // AssetHubPolkadot Parachain declaration
 decl_test_parachains! {
 	pub struct AssetHubPolkadot {
@@ -62,6 +64,6 @@ impl_assets_helpers_for_parachain!(AssetHubPolkadot);
 impl_foreign_assets_helpers_for_parachain!(
 	AssetHubPolkadot,
 	xcm::latest::Location,
-	assets_common::local_and_foreign_assets::ForeignAssetReserveData
+	ForeignAssetReserveData
 );
 impl_xcm_helpers_for_parachain!(AssetHubPolkadot);

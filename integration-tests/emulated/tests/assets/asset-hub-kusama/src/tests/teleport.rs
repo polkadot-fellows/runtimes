@@ -14,7 +14,6 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
 use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},

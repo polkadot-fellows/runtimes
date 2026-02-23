@@ -14,7 +14,6 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::DotLocation;
 use emulated_integration_tests_common::RESERVABLE_ASSET_ID;
 use polkadot_system_emulated_network::{
 	penpal_emulated_chain::LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
