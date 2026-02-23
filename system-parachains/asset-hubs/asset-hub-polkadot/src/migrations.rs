@@ -54,12 +54,12 @@ pub type MbmMigrations =
 ///
 /// The hardcoded rules (see `xcm_config.rs`) migrated here:
 /// 1. Foreign Assets native to sibling parachains are teleportable between the asset's native chain
-///    and Asset Hub.
-///  ----> `ForeignAssetReserveData { reserve: "Asset's native chain", teleport: true }`
-/// 2. Foreign assets native to Ethereum Ecosystem have Ethereum as trusted reserve.
-///  ----> `ForeignAssetReserveData { reserve: "Ethereum", teleport: false }`
-/// 3. Foreign assets native to Kusama Ecosystem have Asset Hub Kusama as trusted reserve.
-///  ----> `ForeignAssetReserveData { reserve: "Asset Hub Kusama", teleport: false }`
+///    and Asset Hub ==> `ForeignAssetReserveData { reserve: "Asset's native chain", teleport: true
+///    }`
+/// 2. Foreign assets native to Ethereum Ecosystem have Ethereum as trusted reserve. ==>
+///    `ForeignAssetReserveData { reserve: "Ethereum", teleport: false }`
+/// 3. Foreign assets native to Kusama Ecosystem have Asset Hub Kusama as trusted reserve. ==>
+///    `ForeignAssetReserveData { reserve: "Asset Hub Kusama", teleport: false }`
 pub struct AssetHubPolkadotForeignAssetsReservesProvider;
 impl ForeignAssetsReservesProvider for AssetHubPolkadotForeignAssetsReservesProvider {
 	type ReserveData = ForeignAssetReserveData;
@@ -95,7 +95,7 @@ impl ForeignAssetsReservesProvider for AssetHubPolkadotForeignAssetsReservesProv
 		if reserves.is_empty() {
 			log::error!(
 				target: "runtime::AssetHubPolkadotForeignAssetsReservesProvider::reserves_for",
-				"unexpected asset id {:?}", asset_id,
+				"unexpected asset id {asset_id:?}",
 			);
 		}
 		reserves
