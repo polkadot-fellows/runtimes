@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+- Encointer: add pallets `offline-payment` and `reputation-rings` and fixes ([polkadot-fellows/runtimes/pull/1082](https://github.com/polkadot-fellows/runtimes/pull/1082))
 
 ### Changed
 
@@ -16,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Re-add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)
 - Fix check-migration(asset-hub-polkadot) CI job [#1057](https://github.com/polkadot-fellows/runtimes/pull/1057)
 - Update to polkadot-sdk stable2512 (tag 2512-2), introduce DAP pallet, refine StakingOperator and add Session keys handling on AssetHub  [#1065](https://github.com/polkadot-fellows/runtimes/pull/1065)
+- asset-hub-polkadot and asset-hub-kusama: new weights for staking and election pallets [#1042](https://github.com/polkadot-fellows/runtimes/pull/1042)
 
 ## [2.0.7] 16.02.2026
 
