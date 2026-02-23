@@ -72,7 +72,7 @@ encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
 encointer-primitives = { version = "~21.5.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
-frame-benchmarking = { version = "45.0.2", default-features = false }
+frame-benchmarking = { version = "45.0.3", default-features = false }
 frame-election-provider-support = { version = "45.0.0", default-features = false }
 frame-executive = { version = "45.0.1", default-features = false }
 frame-support = { version = "45.1.0", default-features = false }
@@ -263,7 +263,7 @@ sp-state-machine = { version = "0.49.0", default-features = false }
 sp-storage = { version = "22.0.0", default-features = false }
 sp-tracing = { version = "19.0.0", default-features = false }
 sp-transaction-pool = { version = "40.0.0", default-features = false }
-sp-trie = { version = "42.0.0", default-features = false }
+sp-trie = { version = "42.0.1", default-features = false }
 sp-version = { version = "43.0.0", default-features = false }
 sp-weights = { version = "33.2.0", default-features = false }
 substrate-wasm-builder = { version = "31.1.0" }
