@@ -96,7 +96,7 @@ pub fn set_up_foreign_asset(
 	AssetHubPolkadot::set_foreign_asset_reserves(
 		foreign_asset_at_asset_hub.clone(),
 		penpal_sovereign_account.clone(),
-		reserves_data.try_into().unwrap(),
+		reserves_data,
 	);
 	(asset_location_on_penpal, foreign_asset_at_asset_hub)
 }
@@ -111,7 +111,7 @@ pub fn penpal_set_foreign_asset_reserves_on_asset_hub(
 		<AssetHubPolkadot as Chain>::Runtime,
 		pallet_assets::Instance2,
 	>::set_reserves {
-		id: asset_id_on_ah.into(),
+		id: asset_id_on_ah,
 		reserves: reserves.try_into().unwrap(),
 	})
 	.encode()
@@ -173,7 +173,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 			DepositAsset { assets: Wild(All), beneficiary: receiver.clone().into() },
 		]);
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest.clone(),
@@ -202,7 +202,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 	// reserve-transferring the asset fails
 	PenpalA::execute_with(|| {
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest,
@@ -260,7 +260,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 		]);
 		// reserve-transferring the asset back to penpal fails
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest.clone(),
@@ -280,7 +280,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 		));
 		// teleporting it back works
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest,
@@ -344,7 +344,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 		]);
 		// teleporting the asset fails
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest.clone(),
@@ -364,7 +364,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 		));
 		// reserve-transferring the asset works
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest,
@@ -412,7 +412,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 		]);
 		// teleporting the asset back to penpal fails
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest.clone(),
@@ -432,7 +432,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 		));
 		// but reserve-transferring it back works
 		let xcm = Xcm::<()>(vec![
-			WithdrawAsset(assets.clone().into()),
+			WithdrawAsset(assets.clone()),
 			SetFeesMode { jit_withdraw: true },
 			InitiateTransfer {
 				destination: dest,
