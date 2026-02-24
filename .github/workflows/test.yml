@@ -348,6 +348,62 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
+  check-runtimes:
+    needs: [ runtime-matrix, build-runtimes ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Download ${{ matrix.runtime.name }} WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+
+      - name: Check runtime
+        timeout-minutes: 10
+        env:
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+          URIS_JSON: ${{ toJSON(matrix.runtime.uris) }}
+        run: |
+          # Skip runtimes without URIs (e.g. glutton-kusama)
+          if [ "$URIS_JSON" = "null" ] || [ -z "$URIS_JSON" ]; then
+            echo "::notice::Skipping $RUNTIME_NAME — no URIs configured"
+            exit 0
+          fi
+
+          WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
+          echo "WASM: $WASM"
+
+          # Try each RPC with a timeout to handle unreachable endpoints
+          # (check-runtime hangs indefinitely on unreachable RPCs).
+          readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
+          for URI in "${URIS[@]}"; do
+            echo "Trying $URI..."
+            set +e
+            timeout 120 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            EXIT_CODE=$?
+            set -e
+            if [ $EXIT_CODE -eq 0 ]; then
+              exit 0
+            # When the time limit is reached, timeout returns exit code 124
+            elif [ $EXIT_CODE -eq 124 ]; then
+              echo "Timed out on $URI, trying next..."
+              continue
+            else
+              # Otherwise, it returns the exit status of the managed command
+              exit $EXIT_CODE
+            fi
+          done
+
+          echo "::error::No reachable RPC for $RUNTIME_NAME"
+          exit 1
+
   ecosystem-tests:
     name: "PET (${{ matrix.network.name }})"
     needs: [build-runtimes]
@@ -558,6 +614,7 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
+      - check-runtimes
       # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
       # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
       # params), false negatives will occur. See #1078 .
