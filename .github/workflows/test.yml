@@ -386,7 +386,7 @@ jobs:
           for URI in "${URIS[@]}"; do
             echo "Trying $URI..."
             set +e
-            timeout 60 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            timeout 120 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
             EXIT_CODE=$?
             set -e
             if [ $EXIT_CODE -eq 0 ]; then
