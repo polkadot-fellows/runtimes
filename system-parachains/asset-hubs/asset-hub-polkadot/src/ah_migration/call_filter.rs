@@ -96,6 +96,7 @@ pub fn call_allowed_status(
 		Balances(..) => ON, // no reason to disable it, just convenience
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
+		MultiAssetBounties(..) => OFF,
 		Claims(..) => OFF,
 		CollatorSelection(..) => ON, // Why?
 		ConvictionVoting(..) => OFF,
@@ -171,6 +172,7 @@ pub fn call_allowed_before_migration(
 		// Governance disabled before migration starts.
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
+		MultiAssetBounties(..) => OFF,
 		ConvictionVoting(..) => OFF,
 		Referenda(..) => OFF,
 		Treasury(..) => OFF,
