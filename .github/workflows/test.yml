@@ -348,6 +348,62 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
+  check-runtimes:
+    needs: [ runtime-matrix, build-runtimes ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Download ${{ matrix.runtime.name }} WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+
+      - name: Check runtime
+        timeout-minutes: 10
+        env:
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+          URIS_JSON: ${{ toJSON(matrix.runtime.uris) }}
+        run: |
+          # Skip runtimes without URIs (e.g. glutton-kusama)
+          if [ "$URIS_JSON" = "null" ] || [ -z "$URIS_JSON" ]; then
+            echo "::notice::Skipping $RUNTIME_NAME — no URIs configured"
+            exit 0
+          fi
+
+          WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
+          echo "WASM: $WASM"
+
+          # Try each RPC with a timeout to handle unreachable endpoints
+          # (check-runtime hangs indefinitely on unreachable RPCs).
+          readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
+          for URI in "${URIS[@]}"; do
+            echo "Trying $URI..."
+            set +e
+            timeout 120 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            EXIT_CODE=$?
+            set -e
+            if [ $EXIT_CODE -eq 0 ]; then
+              exit 0
+            # When the time limit is reached, timeout returns exit code 124
+            elif [ $EXIT_CODE -eq 124 ]; then
+              echo "Timed out on $URI, trying next..."
+              continue
+            else
+              # Otherwise, it returns the exit status of the managed command
+              exit $EXIT_CODE
+            fi
+          done
+
+          echo "::error::No reachable RPC for $RUNTIME_NAME"
+          exit 1
+
   ecosystem-tests:
     name: "PET (${{ matrix.network.name }})"
     needs: [build-runtimes]
@@ -361,20 +417,20 @@ jobs:
           - name: "polkadot"
             test_dir: "packages/polkadot"
             chains:
-              - { config: "polkadot.yml", port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
-              - { config: "asset-hub-polkadot.yml", port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
-              - { config: "bridge-hub-polkadot.yml", port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
-              - { config: "collectives-polkadot.yml", port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
-              - { config: "coretime-polkadot.yml", port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
-              - { config: "people-polkadot.yml", port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "polkadot", port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
+              - { chain: "asset-hub-polkadot", port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
+              - { chain: "bridge-hub-polkadot", port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
+              - { chain: "collectives-polkadot", port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
+              - { chain: "coretime-polkadot", port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
+              - { chain: "people-polkadot", port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:
-              - { config: "kusama.yml", port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
-              - { config: "asset-hub-kusama.yml", port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
-              - { config: "bridge-hub-kusama.yml", port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
-              - { config: "coretime-kusama.yml", port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
-              - { config: "people-kusama.yml", port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
+              - { chain: "kusama", port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
+              - { chain: "asset-hub-kusama", port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
+              - { chain: "bridge-hub-kusama", port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
+              - { chain: "coretime-kusama", port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
+              - { chain: "people-kusama", port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -406,20 +462,26 @@ jobs:
           echo "Starting all Subway instances for ${{ matrix.network.name }}..."
 
           # Start each subway instance
-          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while read chain; do
-            CONFIG=$(echo $chain | jq -r '.config')
-            PORT=$(echo $chain | jq -r '.port')
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
+            PORT=$(echo "$chain" | jq -r '.port')
 
-            echo "Starting Subway for $CONFIG on port $PORT..."
-            sed "s/{{PORT}}/$PORT/g" .github/subway-configs/$CONFIG > /tmp/subway-$PORT.yml
+            ENDPOINTS=$(jq -c --arg chain "$CHAIN_NAME" '.[] | select(.name == $chain) | .uris' .github/workflows/runtimes-matrix.json)
+            if [ -z "$ENDPOINTS" ] || [ "$ENDPOINTS" = "null" ]; then
+              echo "ERROR: No endpoints found for $CHAIN_NAME in runtimes-matrix.json"
+              exit 1
+            fi
+
+            echo "Starting Subway for $CHAIN_NAME on port $PORT..."
+            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" .github/subway-configs/template.yml > /tmp/subway-$PORT.yml
             subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
             echo $! >> /tmp/subway.pids
           done
 
           # Wait for all subways to start
           echo "Waiting for all Subway instances to start..."
-          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while read chain; do
-            PORT=$(echo $chain | jq -r '.port')
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            PORT=$(echo "$chain" | jq -r '.port')
             timeout=60
             elapsed=0
             while [ $elapsed -lt $timeout ]; do
@@ -448,9 +510,9 @@ jobs:
       - name: Setup endpoint and runtime overrides
         run: |
           # Set all subway endpoint environment variables
-          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while read chain; do
-            ENDPOINT_VAR=$(echo $chain | jq -r '.endpoint_var')
-            PORT=$(echo $chain | jq -r '.port')
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            ENDPOINT_VAR=$(echo "$chain" | jq -r '.endpoint_var')
+            PORT=$(echo "$chain" | jq -r '.port')
             echo "${ENDPOINT_VAR}=ws://localhost:${PORT}" >> $GITHUB_ENV
           done
 
@@ -552,6 +614,7 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
+      - check-runtimes
       # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
       # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
       # params), false negatives will occur. See #1078 .
