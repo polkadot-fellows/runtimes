@@ -476,6 +476,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
           path: ecosystem-tests
 
       - name: Install test dependencies
