@@ -348,11 +348,8 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
-  # Soft gate: failures are visible but don't block the test suite.
-  # TODO: make this a hard gate once we gain confidence in the check.
   check-runtimes:
     needs: [ runtime-matrix, build-runtimes ]
-    continue-on-error: true
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -365,7 +362,6 @@ jobs:
 
       - name: Download ${{ matrix.runtime.name }} WASM artifact
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: ${{ matrix.runtime.name }}
 
@@ -381,13 +377,8 @@ jobs:
             exit 0
           fi
 
-          # Fail if WASM artifact is missing (build failed)
           WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
-          if [ -z "$WASM" ]; then
-            echo "::error::WASM artifact missing for $RUNTIME_NAME — build may have failed"
-            exit 1
-          fi
-          echo "Found WASM: $WASM"
+          echo "WASM: $WASM"
 
           # Try each RPC with a timeout to handle unreachable endpoints
           # (check-runtime hangs indefinitely on unreachable RPCs).
