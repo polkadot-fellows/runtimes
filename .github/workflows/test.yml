@@ -608,6 +608,7 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
+      - check-runtimes
       # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
       # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
       # params), false negatives will occur. See #1078 .
