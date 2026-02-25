@@ -37,7 +37,6 @@ pub mod pallet_ranked_collective_fellowship_collective;
 pub mod pallet_ranked_collective_secretary_collective;
 pub mod pallet_referenda_ambassador_referenda;
 pub mod pallet_referenda_fellowship_referenda;
-pub mod pallet_salary_ambassador_salary;
 pub mod pallet_salary_fellowship_salary;
 pub mod pallet_salary_secretary_salary;
 pub mod pallet_scheduler;

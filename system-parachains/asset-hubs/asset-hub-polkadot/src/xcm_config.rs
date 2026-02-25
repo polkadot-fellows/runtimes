@@ -295,14 +295,6 @@ impl Contains<Location> for AmbassadorEntities {
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
-						collectives_polkadot_runtime_constants::AMBASSADOR_SALARY_PALLET_INDEX
-					)
-				]
-			) | (
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					PalletInstance(
 						collectives_polkadot_runtime_constants::AMBASSADOR_TREASURY_PALLET_INDEX
 					)
 				]
