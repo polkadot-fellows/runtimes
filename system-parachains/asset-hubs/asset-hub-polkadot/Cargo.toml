@@ -27,7 +27,7 @@ collectives-polkadot-runtime-constants = { workspace = true }
 kusama-runtime-constants = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
-system-parachains-common = { workspace = true }
+system-parachains-common = { workspace = true, features = ["multi-asset-bounties"] }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
@@ -57,6 +57,7 @@ pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-multi-asset-bounties = { workspace = true }
 pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
 pallet-parameters = { workspace = true }
@@ -206,6 +207,7 @@ runtime-benchmarks = [
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-migrations/runtime-benchmarks",
+	"pallet-multi-asset-bounties/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
@@ -285,6 +287,7 @@ try-runtime = [
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-migrations/try-runtime",
+	"pallet-multi-asset-bounties/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-nomination-pools/try-runtime",
@@ -375,6 +378,7 @@ std = [
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-migrations/std",
+	"pallet-multi-asset-bounties/std",
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
