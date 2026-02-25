@@ -2164,7 +2164,7 @@ mod benches {
 		pub TrustedReserve: Option<(Location, Asset)> = Some({
 			use frame_support::traits::tokens::fungible::{Inspect, Mutate};
 			let dot_id = xcm_config::bridging::to_polkadot::DotLocation::get();
-			let dot = Asset::from((dot_id.clone(), 1000000000000 as u128));
+			let dot = Asset::from((dot_id.clone(), 1000000000000_u128));
 			let reserve = xcm_config::bridging::to_polkadot::AssetHubPolkadot::get();
 			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
 			assert_ok!(<Balances as Mutate<_>>::mint_into(
@@ -2174,7 +2174,7 @@ mod benches {
 			// register foreign DOTs
 			assert_ok!(ForeignAssets::force_create(
 				RuntimeOrigin::root(),
-				dot_id.clone().into(),
+				dot_id.clone(),
 				account.clone().into(),
 				true,
 				1u128,
@@ -2183,7 +2183,7 @@ mod benches {
 			// set trusted reserve
 			assert_ok!(ForeignAssets::set_reserves(
 				RuntimeOrigin::signed(account),
-				dot_id.clone().into(),
+				dot_id.clone(),
 				vec![reserves.clone()].try_into().unwrap(),
 			));
 			(reserves.reserve, dot)
