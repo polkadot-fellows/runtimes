@@ -21,7 +21,8 @@ pub use pallet_message_queue;
 
 // Polkadot
 pub use pallet_xcm;
-pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
+pub use xcm::prelude::{AccountId32, VersionedAssetId, VersionedAssets, Weight, WeightLimit};
+pub use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2;
 
 // Cumulus
 pub use cumulus_pallet_xcmp_queue;
@@ -87,8 +88,10 @@ macro_rules! test_relay_is_trusted_teleporter {
 							.unwrap();
 						assert_eq!(messages_to_query.len(), 1);
 						remote_message = messages_to_query[0].clone();
+						// Native asset of the relay chain for delivery fees
+						let asset_id_for_delivery_fees = $crate::VersionedAssetId::from(Here);
 						let delivery_fees =
-							Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+							<Runtime as $crate::XcmPaymentApiV2<_>>::query_delivery_fees(destination_to_query.clone(), remote_message.clone(), asset_id_for_delivery_fees)
 								.unwrap();
 						let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
 						let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
@@ -232,8 +235,10 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 					.unwrap();
 				assert_eq!(messages_to_query.len(), 1);
 				remote_message = messages_to_query[0].clone();
+				// Native asset of the relay chain for delivery fees
+				let asset_id_for_delivery_fees = $crate::VersionedAssetId::from(Parent);
 				let delivery_fees =
-					Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+					<Runtime as $crate::XcmPaymentApiV2<_>>::query_delivery_fees(destination_to_query.clone(), remote_message.clone(), asset_id_for_delivery_fees)
 						.unwrap();
 				let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
 				delivery_fees_amount = if let Some(first_asset) = latest_delivery_fees.inner().first() {
@@ -375,8 +380,10 @@ macro_rules! test_parachain_is_trusted_teleporter {
 							.unwrap();
 						assert_eq!(messages_to_query.len(), 1);
 						remote_message = messages_to_query[0].clone();
+						// Native asset of the relay chain for delivery fees
+						let asset_id_for_delivery_fees = $crate::VersionedAssetId::from(Parent);
 						let delivery_fees =
-							Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+							<Runtime as $crate::XcmPaymentApiV2<_>>::query_delivery_fees(destination_to_query.clone(), remote_message.clone(), asset_id_for_delivery_fees)
 								.unwrap();
 						let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
 						let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {

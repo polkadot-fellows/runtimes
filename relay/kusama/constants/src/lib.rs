@@ -186,10 +186,6 @@ pub mod proxy {
 		Spokesperson,
 		#[codec(index = 10)]
 		ParaRegistration,
-		/// Operator proxy for validators. Can only manage session keys.
-		/// Cannot do staking operations (those are on Asset Hub).
-		#[codec(index = 11)]
-		StakingOperator,
 	}
 
 	/// Remote proxy interface that uses the relay chain as remote location.

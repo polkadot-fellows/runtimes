@@ -84,6 +84,9 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "pallet_staking_async": ["prune_era_total_stake"]
     }
   },
   {
@@ -109,6 +112,9 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "pallet_staking_async": ["prune_era_total_stake"]
     }
   },
   {
