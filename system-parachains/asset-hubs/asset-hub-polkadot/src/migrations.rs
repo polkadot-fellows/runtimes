@@ -15,126 +15,140 @@
 
 //! The runtime migrations per release.
 
-use crate::{
-	xcm_config::bridging::{
-		to_ethereum::EthereumLocation,
-		to_kusama::{AssetHubKusama, KsmLocation},
-	},
-	*,
-};
-use alloc::{vec, vec::Vec};
-use assets_common::{
-	local_and_foreign_assets::ForeignAssetReserveData,
-	migrations::foreign_assets_reserves::ForeignAssetsReservesProvider,
-};
-use frame_support::traits::Contains;
-use xcm::v5::{Junction, Location};
-use xcm_builder::StartsWith;
-
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = ();
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
 
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = (Unreleased, Permanent);
 
-/// MBM migrations to apply on runtime upgrade.
-pub type MbmMigrations =
-	assets_common::migrations::foreign_assets_reserves::ForeignAssetsReservesMigration<
-		Runtime,
-		ForeignAssetsInstance,
-		AssetHubPolkadotForeignAssetsReservesProvider,
-	>;
+#[cfg(not(feature = "runtime-benchmarks"))]
+pub use multiblock_migrations::MbmMigrations;
 
-/// This type provides reserves information for `asset_id`. Meant to be used in a migration running
-/// on the Asset Hub Polkadot upgrade which changes the Foreign Assets reserve-transfers and
-/// teleports from hardcoded rules to per-asset configured reserves.
-///
-/// The hardcoded rules (see `xcm_config.rs`) migrated here:
-/// 1. Foreign Assets native to sibling parachains are teleportable between the asset's native chain
-///    and Asset Hub ==> `ForeignAssetReserveData { reserve: "Asset's native chain", teleport: true
-///    }`
-/// 2. Foreign assets native to Ethereum Ecosystem have Ethereum as trusted reserve. ==>
-///    `ForeignAssetReserveData { reserve: "Ethereum", teleport: false }`
-/// 3. Foreign assets native to Kusama Ecosystem have Asset Hub Kusama as trusted reserve. ==>
-///    `ForeignAssetReserveData { reserve: "Asset Hub Kusama", teleport: false }`
-pub struct AssetHubPolkadotForeignAssetsReservesProvider;
-impl ForeignAssetsReservesProvider for AssetHubPolkadotForeignAssetsReservesProvider {
-	type ReserveData = ForeignAssetReserveData;
-	fn reserves_for(asset_id: &Location) -> Vec<Self::ReserveData> {
-		let reserves = if StartsWith::<KsmLocation>::contains(asset_id) {
-			// rule 3: Kusama asset, Asset Hub Kusama reserve, non teleportable
-			vec![(AssetHubKusama::get(), false).into()]
-		} else if StartsWith::<EthereumLocation>::contains(asset_id) {
-			// rule 2: Ethereum asset, Ethereum reserve, non teleportable
-			vec![(EthereumLocation::get(), false).into()]
-		} else {
-			match asset_id.unpack() {
-				(1, interior) => {
-					match interior.first() {
-						Some(Junction::Parachain(sibling_para_id))
-							if sibling_para_id.ne(
-								&polkadot_runtime_constants::system_parachain::ASSET_HUB_ID,
-							) =>
-						{
-							// rule 1: sibling parachain asset, sibling parachain reserve,
-							// teleportable
-							vec![ForeignAssetReserveData {
-								reserve: Location::new(1, Junction::Parachain(*sibling_para_id)),
-								teleportable: true,
-							}]
-						},
-						_ => vec![],
-					}
-				},
-				_ => vec![],
+#[cfg(not(feature = "runtime-benchmarks"))]
+mod multiblock_migrations {
+	use crate::{
+		xcm_config::bridging::{
+			to_ethereum::EthereumLocation,
+			to_kusama::{AssetHubKusama, KsmLocation},
+		},
+		*,
+	};
+	use alloc::{vec, vec::Vec};
+	use assets_common::{
+		local_and_foreign_assets::ForeignAssetReserveData,
+		migrations::foreign_assets_reserves::ForeignAssetsReservesProvider,
+	};
+	use frame_support::traits::Contains;
+	use xcm::v5::{Junction, Location};
+	use xcm_builder::StartsWith;
+
+	/// MBM migrations to apply on runtime upgrade.
+	pub type MbmMigrations =
+		assets_common::migrations::foreign_assets_reserves::ForeignAssetsReservesMigration<
+			Runtime,
+			ForeignAssetsInstance,
+			AssetHubPolkadotForeignAssetsReservesProvider,
+		>;
+
+	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
+	/// running on the Asset Hub Polkadot upgrade which changes the Foreign Assets
+	/// reserve-transfers and teleports from hardcoded rules to per-asset configured reserves.
+	///
+	/// The hardcoded rules (see `xcm_config.rs`) migrated here:
+	/// 1. Foreign Assets native to sibling parachains are teleportable between the asset's native
+	///    chain and Asset Hub ==> `ForeignAssetReserveData { reserve: "Asset's native chain",
+	///    teleport: true }`
+	/// 2. Foreign assets native to Ethereum Ecosystem have Ethereum as trusted reserve. ==>
+	///    `ForeignAssetReserveData { reserve: "Ethereum", teleport: false }`
+	/// 3. Foreign assets native to Kusama Ecosystem have Asset Hub Kusama as trusted reserve. ==>
+	///    `ForeignAssetReserveData { reserve: "Asset Hub Kusama", teleport: false }`
+	pub struct AssetHubPolkadotForeignAssetsReservesProvider;
+	impl ForeignAssetsReservesProvider for AssetHubPolkadotForeignAssetsReservesProvider {
+		type ReserveData = ForeignAssetReserveData;
+		fn reserves_for(asset_id: &Location) -> Vec<Self::ReserveData> {
+			let reserves = if StartsWith::<KsmLocation>::contains(asset_id) {
+				// rule 3: Kusama asset, Asset Hub Kusama reserve, non teleportable
+				vec![(AssetHubKusama::get(), false).into()]
+			} else if StartsWith::<EthereumLocation>::contains(asset_id) {
+				// rule 2: Ethereum asset, Ethereum reserve, non teleportable
+				vec![(EthereumLocation::get(), false).into()]
+			} else {
+				match asset_id.unpack() {
+					(1, interior) => {
+						match interior.first() {
+							Some(Junction::Parachain(sibling_para_id))
+								if sibling_para_id.ne(
+									&polkadot_runtime_constants::system_parachain::ASSET_HUB_ID,
+								) =>
+							{
+								// rule 1: sibling parachain asset, sibling parachain reserve,
+								// teleportable
+								vec![ForeignAssetReserveData {
+									reserve: Location::new(
+										1,
+										Junction::Parachain(*sibling_para_id),
+									),
+									teleportable: true,
+								}]
+							},
+							_ => vec![],
+						}
+					},
+					_ => vec![],
+				}
+			};
+			if reserves.is_empty() {
+				log::error!(
+					target: "runtime::AssetHubPolkadotForeignAssetsReservesProvider::reserves_for",
+					"unexpected asset id {asset_id:?}",
+				);
 			}
-		};
-		if reserves.is_empty() {
-			log::error!(
-				target: "runtime::AssetHubPolkadotForeignAssetsReservesProvider::reserves_for",
-				"unexpected asset id {asset_id:?}",
-			);
+			reserves
 		}
-		reserves
-	}
 
-	#[cfg(feature = "try-runtime")]
-	fn check_reserves_for(asset_id: &Location, reserves: Vec<Self::ReserveData>) -> bool {
-		if StartsWith::<KsmLocation>::contains(asset_id) {
-			let expected =
-				ForeignAssetReserveData { reserve: AssetHubKusama::get(), teleportable: false };
-			// rule 3: Kusama asset
-			reserves.len() == 1 && expected.eq(reserves.get(0).unwrap())
-		} else if StartsWith::<EthereumLocation>::contains(asset_id) {
-			let expected =
-				ForeignAssetReserveData { reserve: EthereumLocation::get(), teleportable: false };
-			// rule 2: Ethereum asset
-			reserves.len() == 1 && expected.eq(reserves.get(0).unwrap())
-		} else {
-			match asset_id.unpack() {
-				(1, interior) => {
-					match interior.first() {
-						Some(Junction::Parachain(sibling_para_id))
-							if sibling_para_id.ne(
-								&polkadot_runtime_constants::system_parachain::ASSET_HUB_ID,
-							) =>
-						{
-							let expected = ForeignAssetReserveData {
-								reserve: Location::new(1, Junction::Parachain(*sibling_para_id)),
-								teleportable: true,
-							};
-							// rule 1: sibling parachain asset
-							reserves.len() == 1 && expected.eq(reserves.get(0).unwrap())
-						},
-						// unexpected asset
-						_ => false,
-					}
-				},
-				// unexpected asset
-				_ => false,
+		#[cfg(feature = "try-runtime")]
+		fn check_reserves_for(asset_id: &Location, reserves: Vec<Self::ReserveData>) -> bool {
+			if StartsWith::<KsmLocation>::contains(asset_id) {
+				let expected =
+					ForeignAssetReserveData { reserve: AssetHubKusama::get(), teleportable: false };
+				// rule 3: Kusama asset
+				reserves.len() == 1 && expected.eq(reserves.get(0).unwrap())
+			} else if StartsWith::<EthereumLocation>::contains(asset_id) {
+				let expected = ForeignAssetReserveData {
+					reserve: EthereumLocation::get(),
+					teleportable: false,
+				};
+				// rule 2: Ethereum asset
+				reserves.len() == 1 && expected.eq(reserves.get(0).unwrap())
+			} else {
+				match asset_id.unpack() {
+					(1, interior) => {
+						match interior.first() {
+							Some(Junction::Parachain(sibling_para_id))
+								if sibling_para_id.ne(
+									&polkadot_runtime_constants::system_parachain::ASSET_HUB_ID,
+								) =>
+							{
+								let expected = ForeignAssetReserveData {
+									reserve: Location::new(
+										1,
+										Junction::Parachain(*sibling_para_id),
+									),
+									teleportable: true,
+								};
+								// rule 1: sibling parachain asset
+								reserves.len() == 1 && expected.eq(reserves.get(0).unwrap())
+							},
+							// unexpected asset
+							_ => false,
+						}
+					},
+					// unexpected asset
+					_ => false,
+				}
 			}
 		}
 	}

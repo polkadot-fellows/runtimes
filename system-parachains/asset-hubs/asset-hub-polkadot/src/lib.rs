@@ -2070,7 +2070,7 @@ mod benches {
 			assert_ok!(ForeignAssets::set_reserves(
 				RuntimeOrigin::signed(account),
 				ksm_id.clone().into(),
-				vec![reserves.clone()],
+				vec![reserves.clone()].try_into().unwrap(),
 			));
 			(reserves.reserve, ksm)
 		});

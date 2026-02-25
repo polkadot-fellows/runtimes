@@ -2180,7 +2180,7 @@ mod benches {
 			assert_ok!(ForeignAssets::set_reserves(
 				RuntimeOrigin::signed(account),
 				dot_id.clone().into(),
-				vec![reserves.clone()],
+				vec![reserves.clone()].try_into().unwrap(),
 			));
 			(reserves.reserve, dot)
 		});
