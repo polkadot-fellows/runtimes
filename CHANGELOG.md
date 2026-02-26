@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - asset-hub-polkadot and asset-hub-kusama: new weights for staking and election pallets [#1042](https://github.com/polkadot-fellows/runtimes/pull/1042)
 - Update crates to SDK release `2512-2` [#1084](https://github.com/polkadot-fellows/runtimes/pull/1084)
 - Update election-provider-multi-phase and staking crates [#1090](https://github.com/polkadot-fellows/runtimes/pull/1090)
+- Restrict StakingOperator proxy to explicit utility batch calls [#1093](https://github.com/polkadot-fellows/runtimes/pull/1093)
 
 ## [2.0.7] 16.02.2026
 
