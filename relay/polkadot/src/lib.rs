@@ -69,16 +69,13 @@ use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInf
 use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
-	slashing,
-	vstaging::{
-		async_backing::Constraints, CandidateEvent,
-		CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreState, ScrapedOnChainVotes,
-	},
-	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
-	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
+	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
+	BlockNumber, CandidateEvent, CandidateHash,
+	CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState,
+	ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
 	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
-	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
-	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
+	PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature, ValidationCode,
+	ValidationCodeHash, ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
@@ -104,9 +101,7 @@ use runtime_parachains::{
 	initializer as parachains_initializer, on_demand as parachains_on_demand,
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::{
-		v11 as parachains_runtime_api_impl, vstaging as parachains_runtime_api_impl_vstaging,
-	},
+	runtime_api_impl::v13 as parachains_runtime_api_impl,
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -674,7 +669,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 	#[cfg(feature = "runtime-benchmarks")]
-	type MaxAutoRebagPerBlock = ConstU32<5>;
+	type MaxAutoRebagPerBlock = ConstU32<10>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = ();
 }
@@ -1159,20 +1154,7 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 					RuntimeCall::Utility(..) |
 					RuntimeCall::FastUnstake(..) |
 					RuntimeCall::VoterList(..) |
-					RuntimeCall::NominationPools(..) |
-					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
-						proxy_type: TransparentProxyType(ProxyType::StakingOperator),
-						..
-					}) | RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
-					proxy_type: TransparentProxyType(ProxyType::StakingOperator),
-					..
-				})
-			),
-			ProxyType::StakingOperator => matches!(
-				c,
-				RuntimeCall::Session(pallet_session::Call::set_keys { .. }) |
-					RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
-					RuntimeCall::Utility { .. }
+					RuntimeCall::NominationPools(..)
 			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
@@ -1209,7 +1191,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
-			(ProxyType::Staking, ProxyType::StakingOperator) => true,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -1569,7 +1550,7 @@ impl ah_client::Config for Runtime {
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
 	type AdminOrigin = EnsureRoot<AccountId>;
-	type SessionInterface = Self;
+	type SessionInterface = Session;
 	type SendToAssetHub = StakingXcmToAssetHub;
 	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
 	// count increasing.
@@ -2285,7 +2266,7 @@ sp_api::impl_runtime_apis! {
 			VERSION
 		}
 
-		fn execute_block(block: Block) {
+		fn execute_block(block: <Block as BlockT>::LazyBlock) {
 			Executive::execute_block(block);
 		}
 
@@ -2322,7 +2303,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn check_inherents(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			data: sp_inherents::InherentData,
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
@@ -2514,7 +2495,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn unapplied_slashes(
-		) -> Vec<(SessionIndex, CandidateHash, slashing::PendingSlashes)> {
+		) -> Vec<(SessionIndex, CandidateHash, slashing::LegacyPendingSlashes)> {
 			parachains_runtime_api_impl::unapplied_slashes::<Runtime>()
 		}
 
@@ -2542,7 +2523,7 @@ sp_api::impl_runtime_apis! {
 			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
 		}
 
-		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::vstaging::async_backing::BackingState> {
+		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::async_backing::BackingState> {
 			#[allow(deprecated)]
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
@@ -2573,15 +2554,15 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn validation_code_bomb_limit() -> u32 {
-			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
+			parachains_runtime_api_impl::validation_code_bomb_limit::<Runtime>()
 		}
 
 		fn backing_constraints(para_id: ParaId) -> Option<Constraints> {
-			parachains_runtime_api_impl_vstaging::backing_constraints::<Runtime>(para_id)
+			parachains_runtime_api_impl::backing_constraints::<Runtime>(para_id)
 		}
 
 		fn scheduling_lookahead() -> u32 {
-			parachains_runtime_api_impl_vstaging::scheduling_lookahead::<Runtime>()
+			parachains_runtime_api_impl::scheduling_lookahead::<Runtime>()
 		}
 	}
 
@@ -2636,16 +2617,6 @@ sp_api::impl_runtime_apis! {
 				key_owner_proof.decode()?,
 			)
 		}
-
-		fn generate_ancestry_proof(
-			prev_block_number: BlockNumber,
-			best_known_block_number: Option<BlockNumber>,
-		) -> Option<sp_runtime::OpaqueValue> {
-			Mmr::generate_ancestry_proof(prev_block_number, best_known_block_number)
-				.map(|p| p.encode())
-				.map(OpaqueKeyOwnershipProof::new)
-				.ok()
-		}
 	}
 
 	impl mmr::MmrApi<Block, Hash, BlockNumber> for Runtime {
@@ -2672,6 +2643,13 @@ sp_api::impl_runtime_apis! {
 					)
 				},
 			)
+		}
+
+		fn generate_ancestry_proof(
+			prev_block_number: BlockNumber,
+			best_known_block_number: Option<BlockNumber>,
+		) -> Result<mmr::AncestryProof<mmr::Hash>, mmr::Error> {
+			Mmr::generate_ancestry_proof(prev_block_number, best_known_block_number)
 		}
 
 		fn verify_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::LeafProof<mmr::Hash>)
@@ -2873,8 +2851,9 @@ sp_api::impl_runtime_apis! {
 			XcmPallet::query_xcm_weight(message)
 		}
 
-		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
-			XcmPallet::query_delivery_fees(destination, message)
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>, asset_id: VersionedAssetId) -> Result<VersionedAssets, XcmPaymentApiError> {
+			type AssetExchanger = <xcm_config::XcmConfig as xcm_executor::Config>::AssetExchanger;
+			XcmPallet::query_delivery_fees::<AssetExchanger>(destination, message, asset_id)
 		}
 	}
 
@@ -2884,7 +2863,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+			XcmPallet::dry_run_xcm::<xcm_config::XcmRouter>(origin_location, xcm)
 		}
 	}
 
@@ -2923,7 +2902,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn execute_block(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			state_root_check: bool,
 			signature_check: bool,
 			select: frame_try_runtime::TryStateSelect,
@@ -3037,14 +3016,12 @@ mod test_fees {
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		);
-		let uxt = UncheckedExtrinsic {
-			preamble: generic::Preamble::Signed(
-				MultiAddress::Id(Alice.to_account_id()),
-				MultiSignature::Sr25519(Alice.sign(b"foo")),
-				tx_ext,
-			),
-			function: call,
-		};
+		let uxt = UncheckedExtrinsic::new_signed(
+			call,
+			MultiAddress::Id(Alice.to_account_id()),
+			MultiSignature::Sr25519(Alice.sign(b"foo")),
+			tx_ext,
+		);
 		let len = uxt.encoded_size();
 
 		let mut ext = sp_io::TestExternalities::new_empty();
@@ -3173,84 +3150,6 @@ mod test {
 		let path = xcm::VersionedXcm::<()>::type_info().path;
 		// Ensure that the name doesn't include `staging` (from the pallet name)
 		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
-	}
-
-	#[test]
-	fn staking_operator_proxy_filter_works() {
-		use frame_support::traits::InstanceFilter;
-
-		let proxy = TransparentProxyType(ProxyType::StakingOperator);
-
-		// StakingOperator ALLOWS these calls on relay chain:
-		// - Session::set_keys
-		let keys = SessionKeys {
-			grandpa: GrandpaId::from(sp_core::ed25519::Public::from_raw([0u8; 32])),
-			babe: pallet_babe::AuthorityId::from(sp_core::sr25519::Public::from_raw([0u8; 32])),
-			para_validator: ValidatorId::from(sp_core::sr25519::Public::from_raw([0u8; 32])),
-			para_assignment: polkadot_primitives::AssignmentId::from(
-				sp_core::sr25519::Public::from_raw([0u8; 32]),
-			),
-			authority_discovery: AuthorityDiscoveryId::from(sp_core::sr25519::Public::from_raw(
-				[0u8; 32],
-			)),
-			beefy: BeefyId::from(sp_core::ecdsa::Public::from_raw([0u8; 33])),
-		};
-		assert!(proxy
-			.filter(&RuntimeCall::Session(pallet_session::Call::set_keys { keys, proof: vec![] })));
-
-		// - Session::purge_keys
-		assert!(proxy.filter(&RuntimeCall::Session(pallet_session::Call::purge_keys {})));
-
-		// - Utility calls (for batching)
-		assert!(proxy.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
-
-		// StakingOperator DISALLOWS staking operations (those are on Asset Hub after AHM):
-		// - Staking calls
-		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::bond {
-			value: 1000,
-			payee: pallet_staking::RewardDestination::Stash
-		})));
-		assert!(!proxy
-			.filter(&RuntimeCall::Staking(pallet_staking::Call::nominate { targets: vec![] })));
-		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::validate {
-			prefs: pallet_staking::ValidatorPrefs::default()
-		})));
-		assert!(!proxy.filter(&RuntimeCall::Staking(pallet_staking::Call::chill {})));
-
-		// - NominationPools calls
-		assert!(!proxy.filter(&RuntimeCall::NominationPools(
-			pallet_nomination_pools::Call::join { amount: 1000, pool_id: 1 }
-		)));
-
-		// - VoterList calls
-		assert!(!proxy.filter(&RuntimeCall::VoterList(pallet_bags_list::Call::rebag {
-			dislocated: sp_runtime::MultiAddress::Id(AccountId::from([0u8; 32])),
-		})));
-
-		// Verify is_superset relationship
-		let staking_proxy = TransparentProxyType(ProxyType::Staking);
-		assert!(staking_proxy.is_superset(&proxy));
-		assert!(TransparentProxyType(ProxyType::NonTransfer).is_superset(&proxy));
-
-		// Staking proxy can add/remove StakingOperator proxies
-		let delegate = sp_runtime::MultiAddress::Id(AccountId::from([1u8; 32]));
-		assert!(staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
-			delegate: delegate.clone(),
-			proxy_type: TransparentProxyType(ProxyType::StakingOperator),
-			delay: 0,
-		})));
-		assert!(staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
-			delegate: delegate.clone(),
-			proxy_type: TransparentProxyType(ProxyType::StakingOperator),
-			delay: 0,
-		})));
-
-		// But Staking proxy cannot add/remove other proxy types
-		assert!(!staking_proxy.filter(&RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
-			delegate,
-			proxy_type: TransparentProxyType(ProxyType::Any),
-			delay: 0,
-		})));
 	}
 }
 
@@ -3682,142 +3581,6 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
-		});
-	}
-}
-
-#[cfg(test)]
-mod proxy_tests {
-	use super::*;
-	use frame_support::assert_ok;
-	use sp_runtime::traits::StaticLookup;
-
-	/// A Staking proxy can add/remove a StakingOperator proxy for the account it is proxying.
-	#[test]
-	fn staking_proxy_can_manage_staking_operator() {
-		// Given: Build storage with balances for test accounts
-		let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
-
-		let alice: AccountId = [1u8; 32].into();
-		let bob: AccountId = [2u8; 32].into();
-		let carol: AccountId = [3u8; 32].into();
-
-		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![
-				(alice.clone(), 100 * UNITS),
-				(bob.clone(), 100 * UNITS),
-				(carol.clone(), 100 * UNITS),
-			],
-			dev_accounts: None,
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
-
-		let mut ext = sp_io::TestExternalities::new(t);
-		ext.execute_with(|| {
-			System::set_block_number(1);
-
-			// Given: Alice has Bob as her Staking proxy
-			assert_ok!(Proxy::add_proxy(
-				RuntimeOrigin::signed(alice.clone()),
-				<Runtime as frame_system::Config>::Lookup::unlookup(bob.clone()),
-				TransparentProxyType(polkadot_runtime_constants::proxy::ProxyType::Staking),
-				0
-			));
-
-			// When: Bob (via proxy) adds Carol as StakingOperator for Alice
-			let add_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
-				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
-				proxy_type: TransparentProxyType(
-					polkadot_runtime_constants::proxy::ProxyType::StakingOperator,
-				),
-				delay: 0,
-			});
-			assert_ok!(Proxy::proxy(
-				RuntimeOrigin::signed(bob.clone()),
-				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
-				None,
-				Box::new(add_call)
-			));
-
-			// Then: Carol is Alice's StakingOperator proxy
-			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
-			assert!(
-				alice_proxies.0.iter().any(|p| p.delegate == carol &&
-					p.proxy_type ==
-						TransparentProxyType(
-							polkadot_runtime_constants::proxy::ProxyType::StakingOperator
-						)),
-				"Carol should be Alice's StakingOperator proxy"
-			);
-
-			// When: Bob tries to add an Any proxy for Alice
-			let add_any_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
-				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
-				proxy_type: TransparentProxyType(polkadot_runtime_constants::proxy::ProxyType::Any),
-				delay: 0,
-			});
-			// proxy() returns Ok(()) but inner call result is in ProxyExecuted event
-			assert_ok!(Proxy::proxy(
-				RuntimeOrigin::signed(bob.clone()),
-				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
-				None,
-				Box::new(add_any_call),
-			));
-
-			// Then: The ProxyExecuted event should contain CallFiltered error
-			let events = System::events();
-			let proxy_executed = events.iter().rev().find_map(|record| {
-				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
-					&record.event
-				{
-					Some(*result)
-				} else {
-					None
-				}
-			});
-			assert_eq!(
-				proxy_executed,
-				Some(Err(frame_system::Error::<Runtime>::CallFiltered.into())),
-				"Inner call should fail with CallFiltered"
-			);
-
-			// And: Carol was NOT added as Any proxy
-			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
-			assert!(
-				!alice_proxies.0.iter().any(|p| p.delegate == carol &&
-					p.proxy_type ==
-						TransparentProxyType(
-							polkadot_runtime_constants::proxy::ProxyType::Any
-						)),
-				"Carol should NOT be Alice's Any proxy - Staking proxy cannot add Any"
-			);
-
-			// When: Bob (via proxy) removes Carol as StakingOperator for Alice
-			let remove_call = RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
-				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
-				proxy_type: TransparentProxyType(
-					polkadot_runtime_constants::proxy::ProxyType::StakingOperator,
-				),
-				delay: 0,
-			});
-			assert_ok!(Proxy::proxy(
-				RuntimeOrigin::signed(bob.clone()),
-				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
-				None,
-				Box::new(remove_call)
-			));
-
-			// Then: Carol is no longer Alice's StakingOperator proxy
-			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
-			assert!(
-				!alice_proxies.0.iter().any(|p| p.delegate == carol &&
-					p.proxy_type ==
-						TransparentProxyType(
-							polkadot_runtime_constants::proxy::ProxyType::StakingOperator
-						)),
-				"Carol should no longer be Alice's StakingOperator proxy"
-			);
 		});
 	}
 }

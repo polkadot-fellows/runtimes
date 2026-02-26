@@ -166,6 +166,8 @@ pub mod snowbridge {
 	parameter_types! {
 		/// Should match the `ForeignAssets::create` index on Asset Hub.
 		pub const CreateAssetCall: [u8;2] = [53, 0];
+		/// Should match the `ForeignAssets::set_reserves` index on Asset Hub.
+		pub const SetReservesCall: [u8;2] = [53, 33];
 		/// The pallet index of the Ethereum inbound queue pallet in the BridgeHub runtime.
 		pub const InboundQueuePalletInstance: u8 = 80;
 		/// The pallet index of the Ethereum inbound queue v2 pallet in the BridgeHub runtime.

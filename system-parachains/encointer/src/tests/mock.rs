@@ -130,6 +130,8 @@ impl pallet_assets::Config for Test {
 	type AssetIdParameter = AssetIdForAssets;
 	type CallbackHandle = ();
 	type Holder = ();
+	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
+	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
@@ -383,6 +385,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			(100, TreasuryAccountId::get(), INITIAL_BALANCE),
 		],
 		next_asset_id: None,
+		reserves: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
