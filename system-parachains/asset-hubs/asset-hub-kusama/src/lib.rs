@@ -1216,7 +1216,7 @@ parameter_types! {
 	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 10;
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
-	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(9, 10);
+	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(5, 10);
 }
 
 impl pallet_revive::Config for Runtime {
