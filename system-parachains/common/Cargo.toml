@@ -15,59 +15,42 @@ scale-info = { features = ["derive"], workspace = true }
 sp-runtime = { workspace = true }
 sp-state-machine = { workspace = true }
 sp-api = { workspace = true }
-sp-core = { workspace = true }
 
 frame-support = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 polkadot-primitives = { workspace = true }
-
-parachains-common = { workspace = true }
-polkadot-runtime-common = { workspace = true }
-xcm = { workspace = true }
-xcm-executor = { workspace = true }
-pallet-treasury = { workspace = true, optional = true }
+pallet-multi-asset-bounties = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
+multi-asset-bounties = ["pallet-multi-asset-bounties"]
 std = [
 	"codec/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"log/std",
-	"pallet-treasury/std",
-	"parachains-common/std",
+	"pallet-multi-asset-bounties?/std",
 	"polkadot-primitives/std",
-	"polkadot-runtime-common/std",
 	"scale-info/std",
 	"sp-api/std",
-	"sp-core/std",
 	"sp-runtime/std",
 	"sp-state-machine/std",
-	"xcm-executor/std",
-	"xcm/std",
 ]
 
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
-	"pallet-treasury",
-	"pallet-treasury/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks",
+	"pallet-multi-asset-bounties?/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
-	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
-	"xcm/runtime-benchmarks",
 ]
 
 try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"frame-support/try-runtime",
-	"pallet-treasury/try-runtime",
-	"parachains-common/try-runtime",
-	"polkadot-runtime-common/try-runtime",
+	"pallet-multi-asset-bounties?/try-runtime",
 	"sp-runtime/try-runtime",
 ]

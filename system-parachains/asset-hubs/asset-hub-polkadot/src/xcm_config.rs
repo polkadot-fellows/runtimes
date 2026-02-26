@@ -317,26 +317,6 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
-/// Location type to determine the Secretary Collective related
-/// pallets for use in XCM.
-pub struct SecretaryEntities;
-impl Contains<Location> for SecretaryEntities {
-	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
-			(
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					PalletInstance(
-						collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX
-					)
-				]
-			)
-		)
-	}
-}
-
 /// Allows the Fellowship Treasurer plurality from Collectives to alias into
 /// the Fellowship Treasury or Fellowship Salary pallet locations.
 ///
@@ -415,7 +395,6 @@ pub type Barrier = TrailingSetTopicAsId<
 						Equals<RelayTreasuryLocation>,
 						Equals<bridging::SiblingBridgeHub>,
 						AmbassadorEntities,
-						SecretaryEntities,
 						IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
 					)>,
 					// Subscriptions for version tracking are OK.
@@ -437,7 +416,6 @@ pub type WaivedLocations = (
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,
 	AmbassadorEntities,
-	SecretaryEntities,
 	LocalPlurality,
 );
 
