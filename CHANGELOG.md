@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update to polkadot-sdk stable2512 (tag 2512-2-rc2), introduce DAP pallet, refine StakingOperator and add Session keys handling on AssetHub  [#1065](https://github.com/polkadot-fellows/runtimes/pull/1065)
 - asset-hub-polkadot and asset-hub-kusama: new weights for staking and election pallets [#1042](https://github.com/polkadot-fellows/runtimes/pull/1042)
 - Update crates to SDK release `2512-2` [#1084](https://github.com/polkadot-fellows/runtimes/pull/1084)
+- Lower `MaxEthExtrinsicWeight` from 90% to 50% [#1091](https://github.com/polkadot-fellows/runtimes/pull/1091)
 
 ## [2.0.7] 16.02.2026
 
