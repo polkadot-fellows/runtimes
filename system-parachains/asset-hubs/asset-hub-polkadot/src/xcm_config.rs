@@ -266,7 +266,8 @@ impl Contains<Location> for FellowshipEntities {
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Treasury, .. }
+					Plurality { id: BodyId::Technical, .. },
+					GeneralIndex(_)
 				]
 			) | (
 				1,
@@ -317,15 +318,15 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
-/// Allows the Fellowship Treasurer plurality from Collectives to alias into
+/// Allows the Fellowship Architects origin from Collectives to alias into
 /// the Fellowship Treasury or Fellowship Salary pallet locations.
 ///
 /// This allows the Architects track (rank 4+ Fellowship members) on the Collectives chain to
 /// manage the fellowship treasury and salary here on Asset Hub. The Architects origin is converted
-/// to a `Plurality { id: BodyId::Treasury, part: BodyPart::Voice }` via
-/// `ArchitectsToTreasurerPlurality` before being sent over XCM.
-pub struct FellowshipTreasurerAlias;
-impl ContainsPair<Location, Location> for FellowshipTreasurerAlias {
+/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(4)]` via
+/// `ArchitectsToLocation` before being sent over XCM.
+pub struct FellowshipArchitectsAlias;
+impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
 	fn contains(origin: &Location, target: &Location) -> bool {
 		matches!(
 			origin.unpack(),
@@ -333,7 +334,8 @@ impl ContainsPair<Location, Location> for FellowshipTreasurerAlias {
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Treasury, part: BodyPart::Voice }
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(4)
 				]
 			)
 		) && matches!(
@@ -452,7 +454,7 @@ pub type TrustedAliasers = (
 	AliasChildLocation,
 	AuthorizedAliasers<Runtime>,
 	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
-	FellowshipTreasurerAlias,
+	FellowshipArchitectsAlias,
 );
 
 pub struct XcmConfig;

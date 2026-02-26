@@ -22,8 +22,8 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
+		EnsureOrigin, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -34,7 +34,7 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::{AccountIdConversion, TryConvert};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -288,15 +288,24 @@ parameter_types! {
 /// Type to convert the Fellows origin to a Plurality `Location` value.
 pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
 
-/// Type to convert the Architects origin to a Treasurer Plurality `Location` value.
-pub type ArchitectsToTreasurerPlurality =
-	OriginToPluralityVoice<RuntimeOrigin, Architects, TreasurerBodyId>;
+/// Converts the Architects origin to an XCM `Location` representing the Technical body (Fellowship)
+/// refined to rank 4 (Architects): `[Plurality { id: Technical, part: Voice }, GeneralIndex(4)]`.
+pub struct ArchitectsToLocation;
+impl TryConvert<RuntimeOrigin, Location> for ArchitectsToLocation {
+	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
+		let _ = Architects::try_origin(o)?;
+		Ok(Location {
+			parents: 0,
+			interior: [Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(4)]
+				.into(),
+		})
+	}
+}
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	// We allow the Fellows and Architects to send messages.
-	type SendXcmOrigin =
-		EnsureXcmOrigin<RuntimeOrigin, (FellowsToPlurality, ArchitectsToTreasurerPlurality)>;
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, (FellowsToPlurality, ArchitectsToLocation)>;
 	type XcmRouter = XcmRouter;
 	// Any local signed origin can execute XCM messages.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
