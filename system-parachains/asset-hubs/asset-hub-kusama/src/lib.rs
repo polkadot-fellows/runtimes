@@ -629,7 +629,7 @@ pub enum ProxyType {
 	/// destinations, or nominate.
 	///
 	/// Contains `Staking` (validate, chill, kick), `StakingRcClient` (set_keys, purge_keys),
-	/// and `Utility` pallets.
+	/// and `Utility` batching calls (batch, batch_all, force_batch).
 	StakingOperator,
 }
 
@@ -725,7 +725,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						pallet_staking_async_rc_client::Call::set_keys { .. }
 					) | RuntimeCall::StakingRcClient(
 					pallet_staking_async_rc_client::Call::purge_keys { .. }
-				) | RuntimeCall::Utility { .. }
+				) | RuntimeCall::Utility(pallet_utility::Call::batch { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. })
 			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
@@ -2996,9 +2998,33 @@ mod tests {
 			}
 		)));
 
-		// - Utility calls (for batching)
+		// - Utility batching calls
 		assert!(ProxyType::StakingOperator
 			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: vec![] })));
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Utility(pallet_utility::Call::force_batch { calls: vec![] })));
+
+		// - Utility non-batching calls are disallowed
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Utility(
+			pallet_utility::Call::as_derivative {
+				index: 0,
+				call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+			}
+		)));
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Utility(
+			pallet_utility::Call::dispatch_as {
+				as_origin: Box::new(OriginCaller::system(frame_system::RawOrigin::Root)),
+				call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+			}
+		)));
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Utility(
+			pallet_utility::Call::with_weight {
+				call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+				weight: Default::default(),
+			}
+		)));
 
 		// StakingOperator DISALLOWS these calls:
 		// - Staking::bond_extra (cannot add more stake)
