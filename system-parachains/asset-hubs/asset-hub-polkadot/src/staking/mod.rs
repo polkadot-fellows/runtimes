@@ -513,7 +513,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type MaxValidatorSetRetries = ConstU32<64>;
 	type ValidatorSetExportSession = ValidatorSetExportSession;
 	type RelayChainSessionKeys = RelayChainSessionKeys;
-	type MinSetKeysBond = ConstU128<{ 10_000 * UNITS }>;
+	type MinSetKeysBond = ConstU128<{ 1_000 * UNITS }>;
 	type Balance = Balance;
 	// | Key                 | Crypto  | Public Key | Signature |
 	// |---------------------|---------|------------|-----------|
