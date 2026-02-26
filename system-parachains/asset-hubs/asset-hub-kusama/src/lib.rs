@@ -1968,6 +1968,7 @@ mod benches {
 			use frame_support::traits::fungible::Mutate;
 
 			let stash: Self::AccountId = account("validator", 0, 0);
+			// Must be >= 2 * MinSetKeysBond (250 KSM) since we bond half.
 			let balance = 10_000 * UNITS;
 
 			let _ = Balances::mint_into(&stash, balance);
