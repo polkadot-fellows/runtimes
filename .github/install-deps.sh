@@ -11,10 +11,10 @@ sudo apt install --assume-yes openssl pkg-config g++ make cmake protobuf-compile
 df -h
 sudo apt -y autoremove --purge
 sudo apt -y autoclean
-sudo rm -rf /usr/share/dotnet
-sudo rm -rf /opt/ghc
-sudo rm -rf "/usr/local/share/boost"
-sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+sudo rm -rf /usr/share/dotnet || true
+sudo rm -rf /opt/ghc || true
+sudo rm -rf "/usr/local/share/boost" || true
+sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
 df -h
 
 # Install solc
