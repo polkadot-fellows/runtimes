@@ -277,7 +277,7 @@ jobs:
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
-    needs: [ runtime-matrix ]
+    needs: [runtime-matrix]
     runs-on: self-hosted
     strategy:
       # Ensure the other jobs are continue
@@ -527,7 +527,7 @@ jobs:
       - name: Use latest Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: "node"
 
       - name: Enable Corepack for Yarn Berry
         run: |
@@ -601,6 +601,63 @@ jobs:
               cat "$log" || true
             fi
           done
+
+  revive-differential-tests:
+    needs: [build-runtimes]
+    runs-on: self-hosted
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Checkout polkadot-sdk
+        uses: actions/checkout@v4
+        with:
+          repository: paritytech/polkadot-sdk
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Setup runtime overrides
+        run: |
+          jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
+            NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
+            RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
+            echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            # Set the path to the build runtimes
+            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+          done
+
+      - name: Build the polkadot-omni-node
+        run: cargo build --profile production --bin polkadot-omni-node
+
+      - name: Run the Kusama Differential Tests
+        uses: paritytech/revive-differential-tests/.github/actions/run-differential-tests@main
+        with:
+          platform: polkadot-omni-node-revm-solc
+          cargo-command: "cargo"
+          revive-differential-tests-ref: "main"
+          resolc-version: "0.5.0"
+          polkadot-omnichain-node-runtime-path: ./asset_hub_kusama_runtime.compact.compressed.wasm
+          polkadot-omnichain-node-parachain-id: 1000
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
