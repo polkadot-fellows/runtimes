@@ -69,6 +69,7 @@ pub mod ah_migration;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
+mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
 pub mod staking;
@@ -103,7 +104,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
 };
-use system_parachains_constants::async_backing::MINUTES;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -144,12 +144,12 @@ use parachains_common::{
 	message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets,
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-
 use sp_runtime::RuntimeDebug;
+use system_parachains_common::ForceUnstuckOnFailedMigration;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
 	},
 	polkadot::{
 		consensus::{
@@ -162,7 +162,6 @@ use system_parachains_constants::{
 		fee::WeightToFee as DotWeightToFee,
 	},
 };
-
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
@@ -265,10 +264,29 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = ConstU32<64>;
 	type SingleBlockMigrations = migrations::SingleBlockMigrations;
-	type MultiBlockMigrator = ();
+	type MultiBlockMigrator = MultiBlockMigrations;
 	type PreInherents = ();
 	type PostInherents = ();
 	type PostTransactions = ();
+}
+
+parameter_types! {
+	pub MbmServiceWeight: Weight = Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+}
+
+impl pallet_migrations::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Migrations = migrations::MbmMigrations;
+	// Benchmarks need mocked migrations to guarantee that they succeed.
+	#[cfg(feature = "runtime-benchmarks")]
+	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
+	type CursorMaxLen = ConstU32<65_536>;
+	type IdentifierMaxLen = ConstU32<256>;
+	type MigrationStatusHandler = ();
+	type FailedMigrationHandler = ForceUnstuckOnFailedMigration;
+	type MaxServiceWeight = MbmServiceWeight;
+	type WeightInfo = weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -440,7 +458,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	type ReserveData = ForeignAssetReserveData;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = xcm_config::XcmBenchmarkHelper;
+	type BenchmarkHelper = assets_common::benchmarks::LocationAssetsBenchmarkHelper;
 }
 
 parameter_types! {
@@ -556,7 +574,7 @@ pub enum ProxyType {
 	/// destinations, or nominate.
 	///
 	/// Contains `Staking` (validate, chill, kick), `StakingRcClient` (set_keys, purge_keys),
-	/// and `Utility` pallets.
+	/// and `Utility` batching calls (batch, batch_all, force_batch).
 	StakingOperator,
 }
 impl Default for ProxyType {
@@ -643,7 +661,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						pallet_staking_async_rc_client::Call::set_keys { .. }
 					) | RuntimeCall::StakingRcClient(
 					pallet_staking_async_rc_client::Call::purge_keys { .. }
-				) | RuntimeCall::Utility { .. }
+				) | RuntimeCall::Utility(pallet_utility::Call::batch { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. })
 			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
@@ -1502,6 +1522,7 @@ construct_runtime!(
 		Scheduler: pallet_scheduler = 6,
 		Parameters: pallet_parameters = 7,
 		WeightReclaim: cumulus_pallet_weight_reclaim = 8,
+		MultiBlockMigrations: pallet_migrations = 9,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1630,24 +1651,6 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-/// The runtime migrations per release.
-#[allow(deprecated, missing_docs)]
-pub mod migrations {
-	use super::*;
-
-	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
-	/// All single block migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
-}
-
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -1747,6 +1750,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
+		[pallet_migrations, MultiBlockMigrations]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
 		[pallet_preimage, Preimage]
@@ -2046,15 +2050,33 @@ mod benches {
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubPolkadot trusts AssetHubKusama as reserve for KSMs
-		pub TrustedReserve: Option<(Location, Asset)> = Some(
-			(
-				xcm_config::bridging::to_kusama::AssetHubKusama::get(),
-				Asset::from((
-					xcm_config::bridging::to_kusama::KsmLocation::get(),
-					1000000000000_u128
-				))
-			)
-		);
+		pub TrustedReserve: Option<(Location, Asset)> = Some({
+			use frame_support::traits::tokens::fungible::{Inspect, Mutate};
+			let ksm_id = xcm_config::bridging::to_kusama::KsmLocation::get();
+			let ksm = Asset::from((ksm_id.clone(), 1000000000000_u128));
+			let reserve = xcm_config::bridging::to_kusama::AssetHubKusama::get();
+			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
+			assert_ok!(<Balances as Mutate<_>>::mint_into(
+				&account,
+				<Balances as Inspect<_>>::minimum_balance(),
+			));
+			// register foreign KSMs
+			assert_ok!(ForeignAssets::force_create(
+				RuntimeOrigin::root(),
+				ksm_id.clone(),
+				account.clone().into(),
+				true,
+				1u128,
+			));
+			let reserves = ForeignAssetReserveData { reserve, teleportable: false };
+			// set trusted reserve
+			assert_ok!(ForeignAssets::set_reserves(
+				RuntimeOrigin::signed(account),
+				ksm_id.clone(),
+				vec![reserves.clone()].try_into().unwrap(),
+			));
+			(reserves.reserve, ksm)
+		});
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -2884,9 +2906,33 @@ mod tests {
 			}
 		)));
 
-		// - Utility calls (for batching)
+		// - Utility batching calls
 		assert!(ProxyType::StakingOperator
 			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: vec![] })));
+		assert!(ProxyType::StakingOperator
+			.filter(&RuntimeCall::Utility(pallet_utility::Call::force_batch { calls: vec![] })));
+
+		// - Utility non-batching calls are disallowed
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Utility(
+			pallet_utility::Call::as_derivative {
+				index: 0,
+				call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+			}
+		)));
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Utility(
+			pallet_utility::Call::dispatch_as {
+				as_origin: Box::new(OriginCaller::system(frame_system::RawOrigin::Root)),
+				call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+			}
+		)));
+		assert!(!ProxyType::StakingOperator.filter(&RuntimeCall::Utility(
+			pallet_utility::Call::with_weight {
+				call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+				weight: Default::default(),
+			}
+		)));
 
 		// StakingOperator DISALLOWS these calls:
 		// - Staking::bond_extra (cannot add more stake)

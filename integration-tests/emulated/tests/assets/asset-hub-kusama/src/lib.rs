@@ -22,6 +22,7 @@ pub use frame_support::{
 	pallet_prelude::Weight,
 	sp_runtime::{AccountId32, DispatchError, DispatchResult},
 	traits::fungibles::Inspect,
+	BoundedVec,
 };
 pub use sp_runtime::traits::Dispatchable;
 
@@ -33,7 +34,7 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Cumulus
-pub use asset_hub_kusama_runtime::xcm_config::XcmConfig as AssetHubKusamaXcmConfig;
+pub use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
 	test_parachain_is_trusted_teleporter,
@@ -51,12 +52,18 @@ pub use kusama_runtime::xcm_config::UniversalLocation as KusamaUniversalLocation
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::{AssetHubKusamaAssetOwner, ED as ASSET_HUB_KUSAMA_ED},
-		AssetHubKusamaParaPallet as AssetHubKusamaPallet,
+		AssetHubKusamaParaPallet as AssetHubKusamaPallet, ForeignAssetReserveData,
 	},
 	bridge_hub_kusama_emulated_chain::BridgeHubKusamaParaPallet as BridgeHubKusamaPallet,
 	coretime_kusama_emulated_chain::CoretimeKusamaParaPallet as CoretimeKusamaPallet,
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	penpal_emulated_chain::{
+		penpal_runtime::xcm_config::{
+			LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
+			LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub,
+			UniversalLocation as PenpalUniversalLocation,
+			UsdtFromAssetHub as PenpalUsdtFromAssetHub,
+		},
 		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
 		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},

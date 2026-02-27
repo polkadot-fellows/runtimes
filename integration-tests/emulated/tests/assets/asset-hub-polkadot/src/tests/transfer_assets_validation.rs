@@ -17,7 +17,6 @@
 //! See the `pallet_xcm::transfer_assets_validation` module for more information.
 
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::DotLocation;
 use emulated_integration_tests_common::USDT_ID;
 use frame_support::{assert_err, assert_ok};
 use sp_runtime::DispatchError;
