@@ -21,11 +21,7 @@ pub mod cumulus_pallet_xcmp_queue;
 pub mod extrinsic_weights;
 pub mod frame_system;
 pub mod frame_system_extensions;
-<<<<<<< HEAD
-=======
 pub mod inmemorydb_weights;
-pub mod pallet_ah_migrator;
->>>>>>> origin/main
 pub mod pallet_ah_ops;
 pub mod pallet_asset_conversion;
 pub mod pallet_asset_conversion_tx_payment;
