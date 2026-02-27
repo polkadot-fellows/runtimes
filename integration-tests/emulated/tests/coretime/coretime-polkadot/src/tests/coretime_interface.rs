@@ -65,7 +65,7 @@ fn transact_hardcoded_weights_are_sane() {
 
 		// Configure broker and start sales.
 		let config = ConfigRecord {
-			advance_notice: 1,
+			advance_notice: 2,
 			interlude_length: 1,
 			leadin_length: 2,
 			region_length: 1,

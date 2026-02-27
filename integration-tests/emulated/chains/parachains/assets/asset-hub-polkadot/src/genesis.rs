@@ -67,8 +67,8 @@ pub mod collators {
 
 	pub fn session_keys() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
 		vec![
-			(Sr25519Keyring::Alice.to_account_id(), Ed25519Keyring::Alice.public().into()),
-			(Sr25519Keyring::Bob.to_account_id(), Ed25519Keyring::Bob.public().into()),
+			(Sr25519Keyring::Dave.to_account_id(), Ed25519Keyring::Dave.public().into()),
+			(Sr25519Keyring::Eve.to_account_id(), Ed25519Keyring::Eve.public().into()),
 		]
 	}
 }

@@ -21,10 +21,7 @@ use frame_support::{
 	traits::fungible::Mutate,
 };
 use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
-use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
-};
+use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV2;
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(false, Some(AssetHubKusama::para_id()), None);
@@ -312,7 +309,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 ) {
 	// Init values for Parachain
 	let fee_amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 10000;
-	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
+	let asset_location_on_penpal = PenpalA::execute_with(PenpalLocalTeleportableToAssetHub::get);
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
 		Some(Junction::GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),

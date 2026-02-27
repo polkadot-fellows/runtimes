@@ -31,7 +31,7 @@ use pallet_utility::Call as UtilityCall;
 use sp_core::{ConstU32, ConstU64, H256};
 use sp_io::TestExternalities;
 use sp_runtime::{
-	traits::{BlakeTwo256, Dispatchable},
+	traits::{BlakeTwo256, BlockNumberProvider, Dispatchable},
 	BoundedVec, BuildStorage,
 };
 
@@ -233,6 +233,8 @@ fn remote_proxy_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 0,
+				at: <Test as pallet_proxy::Config>::BlockNumberProvider::current_block_number(),
+				extrinsic_index: System::extrinsic_index().unwrap(),
 			}
 			.into(),
 		);
@@ -314,6 +316,8 @@ fn remote_proxy_register_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 0,
+				at: <Test as pallet_proxy::Config>::BlockNumberProvider::current_block_number(),
+				extrinsic_index: System::extrinsic_index().unwrap(),
 			}
 			.into(),
 		);
@@ -436,6 +440,8 @@ fn remote_proxy_multiple_register_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 0,
+				at: <Test as pallet_proxy::Config>::BlockNumberProvider::current_block_number(),
+				extrinsic_index: System::extrinsic_index().unwrap(),
 			}
 			.into(),
 		);
@@ -449,6 +455,8 @@ fn remote_proxy_multiple_register_works() {
 				who: 1,
 				proxy_type: ProxyType::Any,
 				disambiguation_index: 1,
+				at: <Test as pallet_proxy::Config>::BlockNumberProvider::current_block_number(),
+				extrinsic_index: System::extrinsic_index().unwrap(),
 			}
 			.into(),
 		);
@@ -627,7 +635,7 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 		for i in 31u32..=40u32 {
 			RemoteProxy::on_validation_data(&PersistedValidationData {
 				parent_head: vec![].into(),
-				relay_parent_number: dbg!(i),
+				relay_parent_number: i,
 				relay_parent_storage_root: root,
 				max_pov_size: 5000000,
 			});

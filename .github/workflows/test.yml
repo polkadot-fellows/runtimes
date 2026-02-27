@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
@@ -33,7 +33,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
@@ -103,7 +103,7 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
-          WS: ${{ matrix.runtime.uri }}
+          WS: ${{ matrix.runtime.uris[0] }}
           RUST_LOG: "remote-ext=info"
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
@@ -220,6 +220,62 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
 
+  # Job required by "confirmTestPassed"
+  zombienet-smoke:
+    runs-on: self-hosted
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build
+        run: |
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
+
+      - name: Zombienet smoke test
+        timeout-minutes: 20
+        run: |
+          # Since we are running the runner in a dind environment we need to find the ip
+          # of the proxy where the ports will be exposed.
+          # In the current infra there are 2 containes, the `dind` and the runner.
+          export ZOMBIE_LOCAL_IP=$(hostname -i | awk -F"." '{printf "%d.%d.%d.%d", $1, $2, $3, $4 - 1}')
+          export PATH=$(pwd)/target/release:$PATH
+          cargo test --manifest-path integration-tests/zombienet/Cargo.toml
+
   build-runtimes:
     needs: [ runtime-matrix ]
     runs-on: self-hosted
@@ -292,10 +348,89 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
+  check-runtimes:
+    needs: [ runtime-matrix, build-runtimes ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Download ${{ matrix.runtime.name }} WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+
+      - name: Check runtime
+        timeout-minutes: 10
+        env:
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+          URIS_JSON: ${{ toJSON(matrix.runtime.uris) }}
+        run: |
+          # Skip runtimes without URIs (e.g. glutton-kusama)
+          if [ "$URIS_JSON" = "null" ] || [ -z "$URIS_JSON" ]; then
+            echo "::notice::Skipping $RUNTIME_NAME — no URIs configured"
+            exit 0
+          fi
+
+          WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
+          echo "WASM: $WASM"
+
+          # Try each RPC with a timeout to handle unreachable endpoints
+          # (check-runtime hangs indefinitely on unreachable RPCs).
+          readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
+          for URI in "${URIS[@]}"; do
+            echo "Trying $URI..."
+            set +e
+            timeout 120 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            EXIT_CODE=$?
+            set -e
+            if [ $EXIT_CODE -eq 0 ]; then
+              exit 0
+            # When the time limit is reached, timeout returns exit code 124
+            elif [ $EXIT_CODE -eq 124 ]; then
+              echo "Timed out on $URI, trying next..."
+              continue
+            else
+              # Otherwise, it returns the exit status of the managed command
+              exit $EXIT_CODE
+            fi
+          done
+
+          echo "::error::No reachable RPC for $RUNTIME_NAME"
+          exit 1
+
   ecosystem-tests:
-    needs: [runtime-matrix, build-runtimes]
+    name: "PET (${{ matrix.network.name }})"
+    needs: [build-runtimes]
     runs-on: self-hosted
+    timeout-minutes: 120
     if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: "polkadot"
+            test_dir: "packages/polkadot"
+            chains:
+              - { chain: "polkadot", port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
+              - { chain: "asset-hub-polkadot", port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
+              - { chain: "bridge-hub-polkadot", port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
+              - { chain: "collectives-polkadot", port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
+              - { chain: "coretime-polkadot", port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
+              - { chain: "people-polkadot", port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+          - name: "kusama"
+            test_dir: "packages/kusama"
+            chains:
+              - { chain: "kusama", port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
+              - { chain: "asset-hub-kusama", port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
+              - { chain: "bridge-hub-kusama", port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
+              - { chain: "coretime-kusama", port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
+              - { chain: "people-kusama", port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -306,58 +441,184 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Checkout polkadot-ecosystem-tests
-        uses: actions/checkout@v4
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
-          repository: open-web3-stack/polkadot-ecosystem-tests
-          path: ecosystem-tests
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Install Subway
+        run: cargo install --git https://github.com/AcalaNetwork/subway
+
+      - name: Start all Subway instances
+        run: |
+          echo "Starting all Subway instances for ${{ matrix.network.name }}..."
+
+          # Start each subway instance
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
+            PORT=$(echo "$chain" | jq -r '.port')
+
+            ENDPOINTS=$(jq -c --arg chain "$CHAIN_NAME" '.[] | select(.name == $chain) | .uris' .github/workflows/runtimes-matrix.json)
+            if [ -z "$ENDPOINTS" ] || [ "$ENDPOINTS" = "null" ]; then
+              echo "ERROR: No endpoints found for $CHAIN_NAME in runtimes-matrix.json"
+              exit 1
+            fi
+
+            echo "Starting Subway for $CHAIN_NAME on port $PORT..."
+            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" .github/subway-configs/template.yml > /tmp/subway-$PORT.yml
+            subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
+            echo $! >> /tmp/subway.pids
+          done
+
+          # Wait for all subways to start
+          echo "Waiting for all Subway instances to start..."
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            PORT=$(echo "$chain" | jq -r '.port')
+            timeout=60
+            elapsed=0
+            while [ $elapsed -lt $timeout ]; do
+              if curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
+                echo "Subway on port $PORT started successfully!"
+                break
+              fi
+              sleep 1
+              elapsed=$((elapsed + 1))
+            done
+
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout waiting for subway on port $PORT"
+              cat /tmp/subway-$PORT.log
+              exit 1
+            fi
+          done
+
+          echo "All Subway instances started successfully!"
 
       - name: Download WASM artifacts
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
 
-      - name: Setup runtime overrides
+      - name: Setup endpoint and runtime overrides
         run: |
+          # Set all subway endpoint environment variables
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            ENDPOINT_VAR=$(echo "$chain" | jq -r '.endpoint_var')
+            PORT=$(echo "$chain" | jq -r '.port')
+            echo "${ENDPOINT_VAR}=ws://localhost:${PORT}" >> $GITHUB_ENV
+          done
+
+          # Set runtime WASM overrides
           jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
             NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
             RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-            # Set the path to the build runtimes
-            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            echo "${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}" >> $GITHUB_ENV
           done
-          
+
       - name: Use latest Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 'node'
 
-      - name: Install yarn
-        run: npm install -g yarn
+      - name: Enable Corepack for Yarn Berry
+        run: |
+          npm install --global corepack
+          corepack enable
 
-      - name: Installing dependencies of ecosystem tests
-        working-directory: ecosystem-tests
-        run: yarn install
-
-      - name: Running ecosystem tests
-        uses: nick-fields/retry@v3
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
         with:
-          timeout_minutes: 90
-          max_attempts: 3
-          command: cd ecosystem-tests && yarn test
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
+          path: ecosystem-tests
+
+      - name: Install test dependencies
+        working-directory: ecosystem-tests
+        run: yarn install --immutable
+
+      - name: Print environment variables
+        run: |
+          echo "=== Injected Environment Variables ==="
+          env | grep -E "ENDPOINT=|_WASM=" | sort || true
+          echo "======================================"
+
+      - name: Update known good block numbers
+        working-directory: ecosystem-tests
+        run: |
+          yarn update-known-good ${{ matrix.network.name }}
+
+      - name: Run ${{ matrix.network.name }} ecosystem tests
+        working-directory: ecosystem-tests
+        run: |
+          echo "Finding Fellowship runtime test files in ${{ matrix.network.test_dir }}..."
+          # Only run tests for chains that have a local Subway proxy (i.e. a *_ENDPOINT env var set).
+          # External parachains (bifrost, acala, hydration, ...) never have endpoint vars set, so
+          # they are excluded automatically — no hard-coded allowlist/denylist needed.
+          TEST_FILES=$(find ${{ matrix.network.test_dir }} -name "*.e2e.test.ts" | \
+            while IFS= read -r f; do
+              chain=$(basename "$f" | cut -d. -f1)
+              envvar=$(echo "$chain" | tr '[:lower:]' '[:upper:]')_ENDPOINT
+              [ -n "${!envvar}" ] && echo "$f"
+            done | tr '\n' ' ')
+
+          if [ -z "$TEST_FILES" ]; then
+            echo "No test files found in ${{ matrix.network.test_dir }}"
+            exit 0
+          fi
+
+          echo "Running tests with limited parallelism..."
+          # Notes on flags below:
+          # 1. `-u` updates snapshots so that they don't fail spuriously e.g. proof size/ref time changes
+          # 2. `--pool=threads` runs test files from `$TEST_FILES` in parallel using worker threads. Default
+          #    is `--pool=forks`, which uses child processes - heavier.
+          # 3. `--maxWorkers=3` combined with the above means at most 3 test files running concurrently, each in its
+          #    own thread
+          # 4. `--retry=3` attempts a failing test 3 times. This operates at the level of individual tests, not modules,
+          #    or the whole test suite; one failure will *not* require a full rerun.
+          yarn test -u $TEST_FILES --pool=threads --maxWorkers=3 --retry=3
+
+      - name: Cleanup all Subway instances
+        if: always()
+        run: |
+          if [ -f /tmp/subway.pids ]; then
+            echo "Stopping all subway instances..."
+            cat /tmp/subway.pids | xargs kill || true
+          fi
+
+          # Print logs for debugging
+          for log in /tmp/subway-*.log; do
+            if [ -f "$log" ]; then
+              echo "=== $log ==="
+              cat "$log" || true
+            fi
+          done
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - ecosystem-tests
+      - zombienet-smoke
+      - check-runtimes
+      # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
+      # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
+      # params), false negatives will occur. See #1078 .
+      #- ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

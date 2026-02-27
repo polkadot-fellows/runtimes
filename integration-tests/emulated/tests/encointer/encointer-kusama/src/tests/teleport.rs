@@ -20,10 +20,7 @@ use frame_support::{
 	traits::fungible::Mutate,
 };
 use integration_tests_helpers::test_parachain_is_trusted_teleporter;
-use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
-};
+use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV2;
 
 fn relay_dest_assertions_fail(_t: EncointerParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(false, Some(EncointerKusama::para_id()), None);

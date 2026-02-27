@@ -29,7 +29,7 @@ use frame_support::{
 use xcm::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2,
 };
 
 /// We are able to dry-run and estimate the fees for a multi-hop XCM journey.
@@ -94,9 +94,13 @@ fn multi_hop_works() {
 			.unwrap();
 		assert_eq!(messages_to_query.len(), 1);
 		remote_message = messages_to_query[0].clone();
-		let delivery_fees =
-			Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
-				.unwrap();
+		let asset_id_for_delivery_fees = VersionedAssetId::from(Location::parent());
+		let delivery_fees = Runtime::query_delivery_fees(
+			destination_to_query.clone(),
+			remote_message.clone(),
+			asset_id_for_delivery_fees,
+		)
+		.unwrap();
 		delivery_fees_amount = get_amount_from_versioned_assets(delivery_fees);
 	});
 
@@ -137,9 +141,11 @@ fn multi_hop_works() {
 		// We could've gotten the message from the queue without having to dry-run, but
 		// offchain applications would have to dry-run, so we do it here as well.
 		intermediate_remote_message = messages_to_query[0].clone();
+		let asset_id_for_delivery_fees = VersionedAssetId::from(Location::parent());
 		let delivery_fees = Runtime::query_delivery_fees(
 			destination_to_query.clone(),
 			intermediate_remote_message.clone(),
+			asset_id_for_delivery_fees,
 		)
 		.unwrap();
 		intermediate_delivery_fees_amount = get_amount_from_versioned_assets(delivery_fees);

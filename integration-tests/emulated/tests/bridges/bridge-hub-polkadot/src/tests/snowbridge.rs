@@ -566,30 +566,29 @@ fn ethereum_sovereign_account() -> AccountId {
 }
 
 fn make_register_token_message() -> EventFixture {
-	EventFixture{
+	EventFixture {
 		event: EventProof {
-			event_log: Log{
+			event_log: Log {
 				address: hex!("eda338e4dc46038493b885327842fd3e301cab39").into(),
 				topics: vec![
 					hex!("7153f9357c8ea496bba60bf82e67143e27b64462b49041f8e689e1b05728f84f").into(),
 					hex!("c173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539").into(),
 					hex!("5f7060e971b0dc81e63f0aa41831091847d97c1a4693ac450cc128c7214e65e0").into(),
 				],
-				data: hex!("00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002e0001000000000000000087d1f7fdfee7f651fabc8bfcb6e086c278b77a7d00e40b54020000000000000000000000000000000000000000000000000000000000").into(),
+				data: hex!("00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002e00a736aa00000000000087d1f7fdfee7f651fabc8bfcb6e086c278b77a7d00e40b54020000000000000000000000000000000000000000000000000000000000").into(),
 			},
 			proof: Proof {
-				receipt_proof: (vec![
-					hex!("4a98e45a319168b0fc6005ce6b744ee9bf54338e2c0784b976a8578d241ced0f").to_vec(),
-				], vec![
-					hex!("f9028c30b9028802f90284018301d205b9010000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000080000000000000000000000000000004000000000080000000000000000000000000000000000010100000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000040004000000000000002000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000200000000000010f90179f85894eda338e4dc46038493b885327842fd3e301cab39e1a0f78bb28d4b1d7da699e5c0bc2be29c2b04b5aab6aacf6298fe5304f9db9c6d7ea000000000000000000000000087d1f7fdfee7f651fabc8bfcb6e086c278b77a7df9011c94eda338e4dc46038493b885327842fd3e301cab39f863a07153f9357c8ea496bba60bf82e67143e27b64462b49041f8e689e1b05728f84fa0c173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539a05f7060e971b0dc81e63f0aa41831091847d97c1a4693ac450cc128c7214e65e0b8a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002e0001000000000000000087d1f7fdfee7f651fabc8bfcb6e086c278b77a7d00e40b54020000000000000000000000000000000000000000000000000000000000").to_vec(),
-				]),
+				receipt_proof: vec![
+					hex!("f851a09c01dd6d2d8de951c45af23d3ad00829ce021c04d6c8acbe1612d456ee320d4980808080808080a04a98e45a319168b0fc6005ce6b744ee9bf54338e2c0784b976a8578d241ced0f8080808080808080").to_vec(),
+					hex!("f9028c30b9028802f90284018301d205b9010000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000080000000000000000000000000000004000000000080000000000000000000000000000000000010100000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000040004000000000000002000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000200000000000010f90179f85894eda338e4dc46038493b885327842fd3e301cab39e1a0f78bb28d4b1d7da699e5c0bc2be29c2b04b5aab6aacf6298fe5304f9db9c6d7ea000000000000000000000000087d1f7fdfee7f651fabc8bfcb6e086c278b77a7df9011c94eda338e4dc46038493b885327842fd3e301cab39f863a07153f9357c8ea496bba60bf82e67143e27b64462b49041f8e689e1b05728f84fa0c173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539a05f7060e971b0dc81e63f0aa41831091847d97c1a4693ac450cc128c7214e65e0b8a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002e00a736aa00000000000087d1f7fdfee7f651fabc8bfcb6e086c278b77a7d00e40b54020000000000000000000000000000000000000000000000000000000000").to_vec(),
+				],
 				execution_proof: ExecutionProof {
 					header: BeaconHeader {
 						slot: 393,
 						proposer_index: 4,
 						parent_root: hex!("6545b47a614a1dd4cad042a0cdbbf5be347e8ffcdc02c6c64540d5153acebeef").into(),
 						state_root: hex!("b62ac34a8cb82497be9542fe2114410c9f6021855b766015406101a1f3d86434").into(),
-						body_root: hex!("308e4c20194c0c77155c65a2d2c7dcd0ec6a7b20bdeb002c065932149fe0aa1b").into(),
+						body_root: hex!("04005fe231e11a5b7b1580cb73b177ae8b338bedd745497e6bb7122126a806db").into(),
 					},
 					ancestry_proof: Some(AncestryProof {
 						header_branch: vec![
@@ -613,7 +612,7 @@ fn make_register_token_message() -> EventFixture {
 						parent_hash: hex!("8092290aa21b7751576440f77edd02a94058429ce50e63a92d620951fb25eda2").into(),
 						fee_recipient: hex!("0000000000000000000000000000000000000000").into(),
 						state_root: hex!("96a83e9ddf745346fafcb0b03d57314623df669ed543c110662b21302a0fae8b").into(),
-						receipts_root: hex!("62d13e9a073dc7cf609005b5531bb208c8686f18f7c8ae02d76232d83ae41a21").into(),
+						receipts_root: hex!("dccdfceea05036f7b61dcdabadc937945d31e68a8d3dfd4dc85684457988c284").into(),
 						logs_bloom: hex!("00000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000080000000400000000000000000000004000000000080000000000000000000000000000000000010100000000000000000000000000000000020000000000000000000000000000000000080000000000000000000000000000040004000000000000002002002000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000080000000000000000000000000000000000100000000000000000200000200000010").into(),
 						prev_randao: hex!("62e309d4f5119d1f5c783abc20fc1a549efbab546d8d0b25ff1cfd58be524e67").into(),
 						block_number: 393,
@@ -634,8 +633,8 @@ fn make_register_token_message() -> EventFixture {
 						hex!("db56114e00fdd4c1f85c892bf35ac9a89289aaecb1ebd0a96cde606a748b5d71").into(),
 						hex!("d3af7c05c516726be7505239e0b9c7cb53d24abce6b91cdb3b3995f0164a75da").into(),
 					],
-				}
-			}
+				},
+			},
 		},
 		finalized_header: BeaconHeader {
 			slot: 864,
@@ -644,11 +643,11 @@ fn make_register_token_message() -> EventFixture {
 			state_root: hex!("5fa8dfca3d760e4242ab46d529144627aa85348a19173b6e081172c701197a4a").into(),
 			body_root: hex!("0f34c083b1803666bb1ac5e73fa71582731a2cf37d279ff0a3b0cad5a2ff371e").into(),
 		},
-		block_roots_root: hex!("3adb5c78afd49ef17160ca7fc38b47228cbb13a317709c86bb6f51d799ba9ab6").into(),
+		block_roots_root: hex!("b9aab9c388c4e4fcd899b71f62c498fc73406e38e8eb14aa440e9affa06f2a10").into(),
 	}
 }
 
-fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u128) {
+fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], amount: u128, fee: u128) {
 	// Fund asset hub sovereign on bridge hub
 	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
@@ -668,7 +667,7 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 			command: Command::SendToken {
 				token: WETH.into(),
 				destination: Destination::AccountId32 { id: account_id },
-				amount: MIN_ETHER_BALANCE,
+				amount,
 				fee,
 			},
 		});
@@ -687,7 +686,11 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 
 #[test]
 fn send_token_from_ethereum_to_existent_account_on_asset_hub() {
-	send_token_from_ethereum_to_asset_hub_with_fee(AssetHubPolkadotSender::get().into(), XCM_FEE);
+	send_token_from_ethereum_to_asset_hub_with_fee(
+		AssetHubPolkadotSender::get().into(),
+		MIN_ETHER_BALANCE,
+		XCM_FEE,
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -704,7 +707,7 @@ fn send_token_from_ethereum_to_existent_account_on_asset_hub() {
 
 #[test]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub() {
-	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], XCM_FEE);
+	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], MIN_ETHER_BALANCE, XCM_FEE);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -721,7 +724,11 @@ fn send_token_from_ethereum_to_non_existent_account_on_asset_hub() {
 
 #[test]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_insufficient_fee() {
-	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], INSUFFICIENT_XCM_FEE);
+	send_token_from_ethereum_to_asset_hub_with_fee(
+		[1; 32],
+		MIN_ETHER_BALANCE,
+		INSUFFICIENT_XCM_FEE,
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -740,18 +747,41 @@ fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_insufficie
 #[test]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_sufficient_fee_but_do_not_satisfy_ed(
 ) {
-	// On AH the xcm fee is 26_789_690 and the ED is 3_300_000
-	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], 30_000_000);
+	// On AH, ED is 0.1 DOT. Make both the transfer amount (in WETH) and the XCM fee below the ED.
+	let insufficient_token_amount_in_weth_below_ed = MIN_ETHER_BALANCE - 1;
+	let sufficient_fee_in_dot_below_ed = ASSET_HUB_POLKADOT_ED - 1;
+	// let sufficient_fee_above_ed = XCM_FEE;
+	send_token_from_ethereum_to_asset_hub_with_fee(
+		[1; 32],
+		insufficient_token_amount_in_weth_below_ed,
+		sufficient_fee_in_dot_below_ed,
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-
-		// Check that the message was not processed successfully due to insufficient ED
+		// Since the XCM fee is sufficient, the message is processed successfully.
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:false, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:true, .. }) => {},
 			]
+		);
+		let events = AssetHubPolkadot::events();
+		//Check that no foreign assets were issued
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. })
+			)),
+			"Assets issued, should not happen."
+		);
+		//Check that no new account created
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::System(frame_system::Event::NewAccount { .. })
+			)),
+			"Account created, should not happen."
 		);
 	});
 }
