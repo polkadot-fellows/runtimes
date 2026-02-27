@@ -3029,7 +3029,7 @@ mod tests {
 	}
 
 	#[test]
-	fn staking_mb_manager_permission_good() {
+	fn epmb_manage_origin_good() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
 			// pretend AHM is done to disable its call filter
 			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
