@@ -2747,7 +2747,7 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{assert_noop, assert_ok};
+	use frame_support::{assert_noop, hypothetically_ok};
 	use sp_runtime::{
 		traits::{Dispatchable, Zero},
 		DispatchError,
@@ -3048,19 +3048,19 @@ mod tests {
 			let alice = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
 			assert_noop!(call.clone().dispatch(alice), DispatchError::BadOrigin);
 
-			// root can call
-			assert_ok!(call.clone().dispatch(RuntimeOrigin::root()));
+			// root could call
+			hypothetically_ok!(call.clone().dispatch(RuntimeOrigin::root()));
 
 			// try_successful_origin is feature gated
 			#[cfg(feature = "runtime-benchmarks")]
 			{
-				// manager origin can call
+				// manager origin could call
 				let manager = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
-				assert_ok!(call.clone().dispatch(manager));
+				hypothetically_ok!(call.clone().dispatch(manager));
 
-				// admin origin can call
+				// admin origin could call
 				let admin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
-				assert_ok!(call.dispatch(admin));
+				hypothetically_ok!(call.dispatch(admin));
 			}
 		});
 	}
