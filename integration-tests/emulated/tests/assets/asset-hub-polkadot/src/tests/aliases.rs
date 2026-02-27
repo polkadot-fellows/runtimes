@@ -372,7 +372,7 @@ fn fellowship_architects_aliases_into_fellowship_treasury_and_salary() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(4),
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
 			]
 			.into()),
 		);
@@ -501,7 +501,7 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 			X3([
 				Parachain(9999),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(4),
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
 			]
 			.into()),
 		);
@@ -516,7 +516,7 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(4),
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
 			]
 			.into()),
 		);
@@ -570,9 +570,9 @@ fn architects_alias_into_fellowship_pallet(pallet_index: u8) {
 
 	// Send XCM from Collectives with the Architects origin.
 	// pallet_xcm::send auto-prepends DescendOrigin based on ArchitectsToLocation, which
-	// converts Architects to [Plurality { Technical, Voice }, GeneralIndex(4)].
+	// converts Architects to [Plurality { Technical, Voice }, GeneralIndex(ARCHITECTS_RANK)].
 	// After DescendOrigin, the executor origin on AH becomes:
-	//   (1, [Parachain(1001), Plurality { Technical, Voice }, GeneralIndex(4)])
+	//   (1, [Parachain(1001), Plurality { Technical, Voice }, GeneralIndex(ARCHITECTS_RANK)])
 	//
 	// The message then:
 	// 1. UnpaidExecution — allowed because the computed origin matches FellowshipEntities
@@ -627,6 +627,122 @@ fn architects_alias_into_fellowship_pallet(pallet_index: u8) {
 			"Beneficiary balance should have increased: pre={}, post={}",
 			pre_beneficiary_balance,
 			post_beneficiary_balance,
+		);
+	});
+}
+
+/// Negative test: the Fellows origin (rank 3) should NOT be able to alias into the Fellowship
+/// Treasury. Only the Architects origin (rank 4+) can do so.
+///
+/// The Fellows origin is converted to `[Plurality { Technical, Voice }]` via `FellowsToPlurality`,
+/// which does NOT include a `GeneralIndex` suffix. When it attempts `AliasOrigin` into the
+/// Fellowship Treasury, `FellowshipArchitectsAlias` rejects it because the origin doesn't have
+/// `GeneralIndex(ARCHITECTS_RANK)`. The XCM execution fails and balances remain unchanged.
+#[test]
+fn fellowship_fellows_cannot_alias_into_treasury_via_xcm() {
+	let collectives_para_id: u32 = CollectivesPolkadot::para_id().into();
+	let amount: Balance = POLKADOT_ED * 100;
+
+	// Fellowship Treasury pallet location on Collectives, as seen from AH.
+	let pallet_location = Location::new(
+		1,
+		[
+			Parachain(collectives_para_id),
+			PalletInstance(
+				collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+			),
+		],
+	);
+
+	// Compute the sovereign account for the treasury pallet on AH.
+	let pallet_sovereign =
+		asset_hub_polkadot_runtime::xcm_config::LocationToAccountId::convert_location(
+			&pallet_location,
+		)
+		.expect("Failed to convert pallet location to account");
+
+	let beneficiary: AccountId = [43u8; 32].into();
+
+	// Fund the treasury's sovereign account on AH.
+	AssetHubPolkadot::fund_accounts(vec![(pallet_sovereign.clone(), amount * 2)]);
+
+	// Record pre-balances on AH.
+	let (pre_sovereign_balance, pre_beneficiary_balance) = AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+		(
+			<Balances as Inspect<_>>::balance(&pallet_sovereign),
+			<Balances as Inspect<_>>::balance(&beneficiary),
+		)
+	});
+
+	// Send XCM from Collectives with the Fellows origin (NOT Architects).
+	// pallet_xcm::send auto-prepends DescendOrigin based on FellowsToPlurality, which
+	// converts Fellows to [Plurality { Technical, Voice }] (no GeneralIndex).
+	// After DescendOrigin, the executor origin on AH becomes:
+	//   (1, [Parachain(1001), Plurality { Technical, Voice }])
+	//
+	// The message then:
+	// 1. UnpaidExecution — allowed because Fellows matches FellowshipEntities first arm
+	// 2. AliasOrigin — REJECTED: FellowshipArchitectsAlias requires GeneralIndex(ARCHITECTS_RANK)
+	// 3. XCM execution fails, WithdrawAsset + DepositAsset never execute
+	CollectivesPolkadot::execute_with(|| {
+		let fellows_origin = collectives_polkadot_runtime::RuntimeOrigin::from(
+			collectives_polkadot_runtime::fellowship::pallet_fellowship_origins::Origin::Fellows,
+		);
+
+		let destination: Location =
+			Location::new(1, [Parachain(AssetHubPolkadot::para_id().into())]);
+
+		let xcm = Xcm::<()>(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			AliasOrigin(pallet_location),
+			WithdrawAsset((Parent, amount).into()),
+			DepositAsset {
+				assets: Wild(All),
+				beneficiary: Location::new(
+					0,
+					[AccountId32Junction { network: None, id: beneficiary.clone().into() }],
+				),
+			},
+		]);
+
+		assert_ok!(<CollectivesPolkadot as CollectivesPolkadotPallet>::PolkadotXcm::send(
+			fellows_origin,
+			bx!(VersionedLocation::from(destination)),
+			bx!(VersionedXcm::from(xcm)),
+		));
+	});
+
+	// Verify message was processed with failure on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: false, .. }
+				) => {},
+			]
+		);
+	});
+
+	// Verify balances are unchanged — the alias was rejected so no funds moved.
+	AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+
+		let post_sovereign_balance = <Balances as Inspect<_>>::balance(&pallet_sovereign);
+		let post_beneficiary_balance = <Balances as Inspect<_>>::balance(&beneficiary);
+
+		assert_eq!(
+			post_sovereign_balance, pre_sovereign_balance,
+			"Sovereign account balance should be unchanged: pre={}, post={}",
+			pre_sovereign_balance, post_sovereign_balance,
+		);
+		assert_eq!(
+			post_beneficiary_balance, pre_beneficiary_balance,
+			"Beneficiary balance should be unchanged: pre={}, post={}",
+			pre_beneficiary_balance, post_beneficiary_balance,
 		);
 	});
 }

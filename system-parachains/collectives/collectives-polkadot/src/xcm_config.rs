@@ -291,15 +291,19 @@ parameter_types! {
 pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
 
 /// Converts the Architects origin to an XCM `Location` representing the Technical body (Fellowship)
-/// refined to rank 4 (Architects): `[Plurality { id: Technical, part: Voice }, GeneralIndex(4)]`.
+/// refined to rank 4 (Architects): `[Plurality { id: Technical, part: Voice },
+/// GeneralIndex(ARCHITECTS_RANK)]`.
 pub struct ArchitectsToLocation;
 impl TryConvert<RuntimeOrigin, Location> for ArchitectsToLocation {
 	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
 		let _ = Architects::try_origin(o)?;
 		Ok(Location {
 			parents: 0,
-			interior: [Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(4)]
-				.into(),
+			interior: [
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
+			]
+			.into(),
 		})
 	}
 }

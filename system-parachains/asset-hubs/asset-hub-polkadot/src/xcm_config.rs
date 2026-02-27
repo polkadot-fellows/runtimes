@@ -267,7 +267,7 @@ impl Contains<Location> for FellowshipEntities {
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, .. },
-					GeneralIndex(_)
+					GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK)
 				]
 			) | (
 				1,
@@ -323,8 +323,8 @@ impl Contains<Location> for AmbassadorEntities {
 ///
 /// This allows the Architects track (rank 4+ Fellowship members) on the Collectives chain to
 /// manage the fellowship treasury and salary here on Asset Hub. The Architects origin is converted
-/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(4)]` via
-/// `ArchitectsToLocation` before being sent over XCM.
+/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(ARCHITECTS_RANK)]`
+/// via `ArchitectsToLocation` before being sent over XCM.
 pub struct FellowshipArchitectsAlias;
 impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
 	fn contains(origin: &Location, target: &Location) -> bool {
@@ -335,7 +335,7 @@ impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-					GeneralIndex(4)
+					GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK)
 				]
 			)
 		) && matches!(
