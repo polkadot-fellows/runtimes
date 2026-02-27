@@ -319,9 +319,9 @@ impl EraPayout {
 	// Taken from [AH Block 10469901](https://assethub-polkadot.subscan.io/event/10469901-6).
 	const PRE_HARD_CAP_DAILY_EMISSION: Balance = 328797u128 * UNITS;
 
-	// Should be around 14th March 2026 noon UTC assuming 0.5-1% clock time drift.
-	// https://polkadot.subscan.io/block/30354008
-	const HARD_CAP_START: BlockNumber = 30_354_008;
+	// Calculated assuming a 11.7 minute per day time drift (A block time of 6.04875 seconds).
+	// https://polkadot.subscan.io/block/30349908
+	const HARD_CAP_START: BlockNumber = 30_349_908;
 
 	// The hard issuance cap ratified in Referendum 1710.
 	const HARD_CAP_TARGET: Balance = 2_100_000_000u128 * UNITS;
@@ -879,7 +879,7 @@ mod tests {
 		}));
 	}
 
-	const MARCH_14_2026: RC_BlockNumber = 30_354_008;
+	const MARCH_14_2026: RC_BlockNumber = 30_349_908;
 	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
 	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
