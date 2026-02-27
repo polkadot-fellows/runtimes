@@ -15,8 +15,8 @@
 use crate::{
 	tests::{
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
-		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
-		dot_at_ah_polkadot, snowbridge_common::*,
+		asset_hub_kusama_location, asset_hub_polkadot_global_location, bridged_dot_at_ah_kusama,
+		create_foreign_on_ah_kusama, dot_at_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };
@@ -1153,7 +1153,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 
 	// Create foreign asset using the V4 location
-	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
+	let dot_reserve = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true, dot_reserve);
 
 	// We'll need this later in the code, so clone it before it's moved into the closure
 	let bridged_dot_at_asset_hub_kusama_for_later = bridged_dot_at_asset_hub_kusama.clone();

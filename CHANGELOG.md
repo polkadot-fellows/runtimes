@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Asset Hub(s): Foreign Asset owners can now configure how to support crosschain transfers for each asset: either reserve-based or teleport-based [#1085](https://github.com/polkadot-fellows/runtimes/pull/1085)
 - Remove local pay module in favor of upstream implementation ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
 - Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
 - Re-add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)

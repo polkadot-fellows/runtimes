@@ -17,10 +17,24 @@
 //! Shared types between system-parachains runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::migrations::FailedMigrationHandling;
+
 pub mod randomness;
 
 #[cfg(feature = "multi-asset-bounties")]
 pub mod multi_asset_bounty_sources;
+
+/// Ignore any MBM errors and unlock all calls that were locked during migration.
+///
+/// This implies that any storage invariants that were violated by a faulty MBM could now be exposed
+/// to users via calls. It is equivalent to how a faulty single-block-migration would be handled.
+pub struct ForceUnstuckOnFailedMigration;
+// TODO: use this from upstream SDK when available (2603 or newer)
+impl frame_support::migrations::FailedMigrationHandler for ForceUnstuckOnFailedMigration {
+	fn failed(_migration: Option<u32>) -> FailedMigrationHandling {
+		FailedMigrationHandling::ForceUnstuck
+	}
+}
 
 /// Extra runtime APIs.
 pub mod apis {
