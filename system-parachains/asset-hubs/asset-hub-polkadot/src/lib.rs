@@ -2747,7 +2747,11 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::traits::Zero;
+	use frame_support::{assert_noop, assert_ok};
+	use sp_runtime::{
+		traits::{Dispatchable, Zero},
+		DispatchError,
+	};
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
@@ -3022,5 +3026,42 @@ mod tests {
 			proxy_type: ProxyType::Any,
 			delay: 0,
 		})));
+	}
+
+	#[test]
+	fn staking_mb_manager_permission_good() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// pretend AHM is done to disable its call filter
+			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
+				pallet_ah_migrator::MigrationStage::MigrationDone,
+			);
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::set(0u32.into());
+
+			let call: RuntimeCall = pallet_election_provider_multi_block::Call::manage {
+				op: pallet_election_provider_multi_block::ManagerOperation::ForceRotateRound
+			}.into();
+
+			// unsigned cannot call
+			assert_noop!(call.clone().dispatch(RuntimeOrigin::none()), DispatchError::BadOrigin);
+
+			// signed cannot call
+			let alice = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+			assert_noop!(call.clone().dispatch(alice), DispatchError::BadOrigin);
+
+			// root can call
+			assert_ok!(call.clone().dispatch(RuntimeOrigin::root()));
+
+			// try_successful_origin is feature gated
+			#[cfg(feature = "runtime-benchmarks")]
+			{
+				// manager origin can call
+				let manager = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
+				assert_ok!(call.clone().dispatch(manager));
+
+				// admin origin can call
+				let admin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
+				assert_ok!(call.dispatch(admin));
+			}
+		});
 	}
 }
