@@ -123,7 +123,6 @@ pub fn call_allowed_status(
 		Session(..) => OFF,
 		Staking(..) => OFF,
 		StakingRcClient(..) => ON,     // Keep on for incoming RC calls over XCM
-		StateTrieMigration(..) => OFF, // Deprecated
 		System(..) => ON,              // remark plus root calls
 		Timestamp(..) => ON,           // only `set` inherit
 		ToPolkadotXcmRouter(..) => ON, // Allow to report bridge congestion
@@ -204,7 +203,6 @@ pub fn call_allowed_before_migration(
 		Scheduler(..) |
 		Session(..) |
 		StakingRcClient(..) |
-		StateTrieMigration(..) |
 		System(..) |
 		Timestamp(..) |
 		ToPolkadotXcmRouter(..) |

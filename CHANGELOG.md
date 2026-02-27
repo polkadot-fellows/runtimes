@@ -394,6 +394,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.4.3] 14.04.2025
 
+### Removed
+
+- Remove StateTrieMigration pallet from Polkadot relay chain, Asset Hub Polkadot, and Asset Hub Kusama - V0→V1 state trie migration complete ([polkadot-fellows/runtimes#1040](https://github.com/polkadot-fellows/runtimes/pull/1040))
+
 ### Changed
 
 - Apply patch for stable2409-6 ([polkadot-fellows/runtimes/pull/623](https://github.com/polkadot-fellows/runtimes/pull/623))

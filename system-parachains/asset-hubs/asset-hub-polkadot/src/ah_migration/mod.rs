@@ -39,8 +39,8 @@ impl From<pallet_rc_migrator::types::PortableHoldReason> for RuntimeHoldReason {
 				pallet_staking::HoldReason::Staking =>
 					Staking(pallet_staking_async::HoldReason::Staking),
 			},
-			PortableHoldReason::StateTrieMigration(state_trie_migration) =>
-				StateTrieMigration(state_trie_migration),
+			PortableHoldReason::StateTrieMigration(_) =>
+				unreachable!("StateTrieMigration pallet removed - no holds should exist"),
 			PortableHoldReason::DelegatedStaking(delegated_staking) =>
 				DelegatedStaking(delegated_staking),
 			PortableHoldReason::Session(session) => Session(session),
