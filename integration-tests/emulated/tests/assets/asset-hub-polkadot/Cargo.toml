@@ -37,6 +37,7 @@ cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 
 # Local
 asset-hub-polkadot-runtime = { workspace = true }
+collectives-polkadot-runtime = { workspace = true }
 collectives-polkadot-runtime-constants = { workspace = true }
 integration-tests-helpers = { workspace = true }
 polkadot-runtime = { workspace = true }
@@ -46,6 +47,7 @@ system-parachains-constants = { workspace = true, default-features = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"collectives-polkadot-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",

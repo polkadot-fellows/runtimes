@@ -17,8 +17,9 @@
 
 use crate::*;
 use emulated_integration_tests_common::{macros::AccountId, test_cross_chain_alias};
-use frame_support::traits::ContainsPair;
+use frame_support::traits::{fungible::Inspect, ContainsPair};
 use xcm::latest::Junctions::*;
+use xcm_executor::traits::ConvertLocation;
 use AssetHubPolkadotXcmConfig as XcmConfig;
 
 const ALLOWED: bool = true;
@@ -526,4 +527,120 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 			&unrelated_pallet_target,
 		));
 	});
+}
+
+/// Helper: sends an XCM from Collectives with the Architects origin to Asset Hub.
+/// The message aliases into the Fellowship pallet at `pallet_index`, withdraws DOT from the
+/// pallet's sovereign account, and deposits it to a beneficiary.
+///
+/// This uses `PolkadotXcm::send` on the Collectives chain with the Architects origin, which
+/// auto-prepends `DescendOrigin` via `ArchitectsToLocation`. Asset Hub then processes the
+/// message: the origin descends to the Architects location, aliases into the target pallet,
+/// and performs the transfer.
+///
+/// Only works for the `FellowshipTreasury` and `FellowshipSalary` pallet instances.
+fn architects_alias_into_fellowship_pallet(pallet_index: u8) {
+	let collectives_para_id: u32 = CollectivesPolkadot::para_id().into();
+	let amount: Balance = POLKADOT_ED * 100;
+
+	// The Fellowship pallet location (treasury or salary) on Collectives, as seen from AH.
+	let pallet_location =
+		Location::new(1, [Parachain(collectives_para_id), PalletInstance(pallet_index)]);
+
+	// Compute the sovereign account for this pallet location on AH.
+	let pallet_sovereign =
+		asset_hub_polkadot_runtime::xcm_config::LocationToAccountId::convert_location(
+			&pallet_location,
+		)
+		.expect("Failed to convert pallet location to account");
+
+	let beneficiary: AccountId = [42u8; 32].into();
+
+	// Fund the pallet's sovereign account on AH.
+	AssetHubPolkadot::fund_accounts(vec![(pallet_sovereign.clone(), amount * 2)]);
+
+	// Record pre-balances on AH.
+	let (pre_sovereign_balance, pre_beneficiary_balance) = AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+		(
+			<Balances as Inspect<_>>::balance(&pallet_sovereign),
+			<Balances as Inspect<_>>::balance(&beneficiary),
+		)
+	});
+
+	// Send XCM from Collectives with the Architects origin.
+	// pallet_xcm::send auto-prepends DescendOrigin based on ArchitectsToLocation, which
+	// converts Architects to [Plurality { Technical, Voice }, GeneralIndex(4)].
+	// After DescendOrigin, the executor origin on AH becomes:
+	//   (1, [Parachain(1001), Plurality { Technical, Voice }, GeneralIndex(4)])
+	//
+	// The message then:
+	// 1. UnpaidExecution — allowed because the computed origin matches FellowshipEntities
+	// 2. AliasOrigin — FellowshipArchitectsAlias allows Architects → treasury/salary
+	// 3. WithdrawAsset — withdraws DOT from the aliased pallet's sovereign account
+	// 4. DepositAsset — deposits to beneficiary
+	CollectivesPolkadot::execute_with(|| {
+		let architects_origin = collectives_polkadot_runtime::RuntimeOrigin::from(
+			collectives_polkadot_runtime::fellowship::pallet_fellowship_origins::Origin::Architects,
+		);
+
+		// Destination: sibling Asset Hub.
+		let destination: Location =
+			Location::new(1, [Parachain(AssetHubPolkadot::para_id().into())]);
+
+		// The XCM body — no DescendOrigin needed, pallet_xcm::send prepends it.
+		let xcm = Xcm::<()>(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			AliasOrigin(pallet_location),
+			WithdrawAsset((Parent, amount).into()),
+			DepositAsset {
+				assets: Wild(All),
+				beneficiary: Location::new(
+					0,
+					[AccountId32Junction { network: None, id: beneficiary.clone().into() }],
+				),
+			},
+		]);
+
+		assert_ok!(<CollectivesPolkadot as CollectivesPolkadotPallet>::PolkadotXcm::send(
+			architects_origin,
+			bx!(VersionedLocation::from(destination)),
+			bx!(VersionedXcm::from(xcm)),
+		));
+	});
+
+	// Verify balance changes on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+
+		let post_sovereign_balance = <Balances as Inspect<_>>::balance(&pallet_sovereign);
+		let post_beneficiary_balance = <Balances as Inspect<_>>::balance(&beneficiary);
+
+		assert!(
+			post_sovereign_balance < pre_sovereign_balance,
+			"Sovereign account balance should have decreased: pre={}, post={}",
+			pre_sovereign_balance,
+			post_sovereign_balance,
+		);
+		assert!(
+			post_beneficiary_balance > pre_beneficiary_balance,
+			"Beneficiary balance should have increased: pre={}, post={}",
+			pre_beneficiary_balance,
+			post_beneficiary_balance,
+		);
+	});
+}
+
+#[test]
+fn fellowship_architects_alias_into_treasury_via_xcm() {
+	architects_alias_into_fellowship_pallet(
+		collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+	);
+}
+
+#[test]
+fn fellowship_architects_alias_into_salary_via_xcm() {
+	architects_alias_into_fellowship_pallet(
+		collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+	);
 }

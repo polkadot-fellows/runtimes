@@ -143,6 +143,7 @@ parameter_types! {
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
+/// Matches the relay chain or pluralities on the relay chain.
 pub struct ParentOrParentsPlurality;
 impl Contains<Location> for ParentOrParentsPlurality {
 	fn contains(location: &Location) -> bool {
@@ -150,10 +151,11 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+/// Matches local pluralities and ranks inside those pluralities.
 pub struct LocalPlurality;
 impl Contains<Location> for LocalPlurality {
 	fn contains(loc: &Location) -> bool {
-		matches!(loc.unpack(), (0, [Plurality { .. }]))
+		matches!(loc.unpack(), (0, [Plurality { .. }]) | (0, [Plurality { .. }, GeneralIndex(_)]))
 	}
 }
 
