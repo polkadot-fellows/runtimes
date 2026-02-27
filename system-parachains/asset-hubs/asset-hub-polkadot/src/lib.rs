@@ -3031,13 +3031,12 @@ mod tests {
 		use frame_support::traits::InstanceFilter;
 		use sp_runtime::MultiAddress;
 
-		let call = RuntimeCall::MultiAssetBounties(
-			pallet_multi_asset_bounties::Call::propose_curator {
+		let call =
+			RuntimeCall::MultiAssetBounties(pallet_multi_asset_bounties::Call::propose_curator {
 				parent_bounty_id: 0,
 				child_bounty_id: Some(0),
 				curator: MultiAddress::Id(AccountId::from([0u8; 32])),
-			},
-		);
+			});
 
 		assert!(
 			ProxyType::Governance.filter(&call),
