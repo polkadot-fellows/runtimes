@@ -1124,6 +1124,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
  "hex-literal",
  "integration-tests-helpers",
  "kusama-runtime-constants",
@@ -1295,6 +1296,7 @@ dependencies = [
  "sp-core 39.0.0",
  "sp-keyring",
  "staging-xcm",
+ "staging-xcm-builder",
 ]
 
 [[package]]
@@ -1309,6 +1311,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
  "hex-literal",
  "integration-tests-helpers",
  "pallet-asset-conversion",
@@ -1384,6 +1387,7 @@ dependencies = [
  "pallet-election-provider-multi-block",
  "pallet-indices",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-multi-asset-bounties",
  "pallet-multisig",
  "pallet-nfts",

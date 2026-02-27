@@ -195,7 +195,14 @@ pub fn register_foreign_asset_on_penpal(id: Location, owner: AccountId, sufficie
 
 /// Registers a foreign asset on Polkadot AssetHub.
 pub fn register_foreign_asset(id: Location, owner: AccountId, sufficient: bool) {
-	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
+	AssetHubPolkadot::force_create_foreign_asset(
+		id.clone(),
+		owner.clone(),
+		sufficient,
+		ASSET_MIN_BALANCE,
+		vec![],
+	);
+	AssetHubPolkadot::set_foreign_asset_reserves(id, owner, vec![(eth_location(), false).into()]);
 }
 
 /// Create PAL (native asset for penpal) on AH.

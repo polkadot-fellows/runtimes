@@ -14,16 +14,10 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::{
-	dispatch::{GetDispatchInfo, RawOrigin},
-	sp_runtime::traits::Dispatchable,
-	traits::fungible::Mutate,
-};
 use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
 	test_relay_is_trusted_teleporter,
 };
-use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV2;
 
 #[test]
 fn teleport_via_transfer_assets_from_and_to_relay() {

@@ -53,7 +53,7 @@ pub use kusama_polkadot_system_emulated_network::{
 	},
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
-		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet, ForeignAssetReserveData,
 	},
 	bridge_hub_polkadot_emulated_chain::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
