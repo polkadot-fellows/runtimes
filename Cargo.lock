@@ -1177,10 +1177,10 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
- "pallet-ah-migrator",
  "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-assets",
  "pallet-assets-precompiles",
@@ -1364,10 +1364,10 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
- "pallet-ah-migrator",
  "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-assets",
  "pallet-assets-precompiles",
@@ -9096,64 +9096,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-ah-migrator"
-version = "0.1.0"
-dependencies = [
- "assets-common",
- "cumulus-primitives-core",
- "frame-benchmarking",
- "frame-election-provider-support",
- "frame-support",
- "frame-system",
- "hex",
- "hex-literal",
- "impl-trait-for-tuples",
- "log",
- "pallet-ah-ops",
- "pallet-asset-rate",
- "pallet-bags-list",
- "pallet-balances",
- "pallet-bounties",
- "pallet-child-bounties",
- "pallet-conviction-voting",
- "pallet-delegated-staking",
- "pallet-indices",
- "pallet-message-queue",
- "pallet-multisig",
- "pallet-nomination-pools",
- "pallet-preimage",
- "pallet-proxy",
- "pallet-rc-migrator",
- "pallet-recovery",
- "pallet-referenda",
- "pallet-scheduler",
- "pallet-society",
- "pallet-staking",
- "pallet-staking-async",
- "pallet-state-trie-migration",
- "pallet-timestamp",
- "pallet-treasury",
- "pallet-vesting",
- "pallet-xcm",
- "parachains-common",
- "parity-scale-codec",
- "polkadot-parachain-primitives",
- "polkadot-runtime-common",
- "polkadot-runtime-parachains",
- "scale-info",
- "serde",
- "sp-application-crypto 44.0.0",
- "sp-core 39.0.0",
- "sp-io 44.0.0",
- "sp-runtime 45.0.0",
- "sp-staking",
- "sp-std",
- "staging-xcm",
- "staging-xcm-builder",
- "staging-xcm-executor",
-]
-
-[[package]]
 name = "pallet-ah-ops"
 version = "0.1.0"
 dependencies = [
@@ -9232,6 +9174,16 @@ dependencies = [
  "pallet-transaction-payment",
  "parity-scale-codec",
  "scale-info",
+ "sp-runtime 45.0.0",
+]
+
+[[package]]
+name = "pallet-asset-hub-migration-api"
+version = "0.0.0"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 40.0.0",
  "sp-runtime 45.0.0",
 ]
 
@@ -12012,6 +11964,7 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -17224,6 +17177,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
