@@ -10748,9 +10748,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-session"
-version = "45.1.0"
+version = "45.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28917666a918e39caf8d5bcc52150f4efdd4966243f6a02c5b70e6ae90bf3311"
+checksum = "03d39362f12857e78d799689c68a9ac286013e121dbf51bbc8342800285efed0"
 dependencies = [
  "frame-support",
  "frame-system",
