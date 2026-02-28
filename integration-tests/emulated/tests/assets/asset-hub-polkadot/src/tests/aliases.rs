@@ -618,15 +618,11 @@ fn architects_alias_into_fellowship_pallet(pallet_index: u8) {
 
 		assert!(
 			post_sovereign_balance < pre_sovereign_balance,
-			"Sovereign account balance should have decreased: pre={}, post={}",
-			pre_sovereign_balance,
-			post_sovereign_balance,
+			"Sovereign account balance should have decreased: pre={pre_sovereign_balance}, post={post_sovereign_balance}",
 		);
 		assert!(
 			post_beneficiary_balance > pre_beneficiary_balance,
-			"Beneficiary balance should have increased: pre={}, post={}",
-			pre_beneficiary_balance,
-			post_beneficiary_balance,
+			"Beneficiary balance should have increased: pre={pre_beneficiary_balance}, post={post_beneficiary_balance}",
 		);
 	});
 }
