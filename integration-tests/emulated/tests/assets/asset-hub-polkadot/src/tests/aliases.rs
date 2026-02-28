@@ -732,13 +732,11 @@ fn fellowship_fellows_cannot_alias_into_treasury_via_xcm() {
 
 		assert_eq!(
 			post_sovereign_balance, pre_sovereign_balance,
-			"Sovereign account balance should be unchanged: pre={}, post={}",
-			pre_sovereign_balance, post_sovereign_balance,
+			"Sovereign account balance should be unchanged: pre={pre_sovereign_balance}, post={post_sovereign_balance}",
 		);
 		assert_eq!(
 			post_beneficiary_balance, pre_beneficiary_balance,
-			"Beneficiary balance should be unchanged: pre={}, post={}",
-			pre_beneficiary_balance, post_beneficiary_balance,
+			"Beneficiary balance should be unchanged: pre={pre_beneficiary_balance}, post={post_beneficiary_balance}",
 		);
 	});
 }
