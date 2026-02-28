@@ -47,6 +47,7 @@ pub use emulated_integration_tests_common::{
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
+		ForeignAssetReserveData,
 	},
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
