@@ -270,6 +270,13 @@ impl Contains<Location> for FellowshipEntities {
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, .. },
+					GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
 					)
@@ -308,6 +315,49 @@ impl Contains<Location> for AmbassadorEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::AMBASSADOR_TREASURY_PALLET_INDEX
+					)
+				]
+			)
+		)
+	}
+}
+
+/// Allows the Fellowship Architects origin from Collectives to alias into
+/// the Fellowship Treasury or Fellowship Salary pallet locations.
+///
+/// This allows the Architects track (rank 4+ Fellowship members) on the Collectives chain to
+/// manage the fellowship treasury and salary here on Asset Hub. The Architects origin is converted
+/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(ARCHITECTS_RANK)]`
+/// via `ArchitectsToLocation` before being sent over XCM.
+pub struct FellowshipArchitectsAlias;
+impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
+	fn contains(origin: &Location, target: &Location) -> bool {
+		matches!(
+			origin.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK)
+				]
+			)
+		) && matches!(
+			target.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+					)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
 					)
 				]
 			)
@@ -417,6 +467,7 @@ pub type TrustedAliasers = (
 	AliasChildLocation,
 	AuthorizedAliasers<Runtime>,
 	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
+	FellowshipArchitectsAlias,
 );
 
 pub struct XcmConfig;

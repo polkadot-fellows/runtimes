@@ -22,6 +22,9 @@ pub const FELLOWSHIP_SALARY_PALLET_INDEX: u8 = 64;
 /// Polkadot Fellowship Treasury pallet instance.
 pub const FELLOWSHIP_TREASURY_PALLET_INDEX: u8 = 65;
 
+/// Fellowship Architects rank (rank 4). Used with `GeneralIndex` in XCM locations.
+pub const ARCHITECTS_RANK: u128 = 4;
+
 /// Polkadot Ambassador Salary pallet instance.
 pub const AMBASSADOR_SALARY_PALLET_INDEX: u8 = 74;
 

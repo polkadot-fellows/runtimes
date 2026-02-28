@@ -17,8 +17,9 @@
 
 use crate::*;
 use emulated_integration_tests_common::{macros::AccountId, test_cross_chain_alias};
-use frame_support::traits::ContainsPair;
+use frame_support::traits::{fungible::Inspect, ContainsPair};
 use xcm::latest::Junctions::*;
+use xcm_executor::traits::ConvertLocation;
 use AssetHubPolkadotXcmConfig as XcmConfig;
 
 const ALLOWED: bool = true;
@@ -356,4 +357,400 @@ fn asset_hub_kusama_root_does_not_alias_into_asset_hub_polkadot_origins() {
 		);
 		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(&origin, &target));
 	});
+}
+
+#[test]
+fn fellowship_architects_aliases_into_fellowship_treasury_and_salary() {
+	AssetHubPolkadot::execute_with(|| {
+		let collectives_para_id = CollectivesPolkadot::para_id().into();
+
+		// The Architects origin from Collectives — this is the origin that the
+		// Architects track produces via `ArchitectsToLocation`:
+		// Technical body (Fellowship) refined to rank 4 (Architects).
+		let architects_origin = Location::new(
+			1,
+			X3([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
+			]
+			.into()),
+		);
+
+		// Fellowship Treasury pallet on Collectives.
+		let fellowship_treasury_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Fellowship Salary pallet on Collectives.
+		let fellowship_salary_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Architects origin can alias into Fellowship Treasury.
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&architects_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Architects origin can alias into Fellowship Salary.
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&architects_origin,
+			&fellowship_salary_target,
+		));
+	});
+}
+
+#[test]
+fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
+	AssetHubPolkadot::execute_with(|| {
+		let collectives_para_id = CollectivesPolkadot::para_id().into();
+
+		let fellowship_treasury_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		let fellowship_salary_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Technical (Fellows) plurality without GeneralIndex cannot alias into Fellowship
+		// Treasury or Salary.
+		let fellows_origin = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&fellows_origin,
+			&fellowship_treasury_target,
+		));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&fellows_origin,
+			&fellowship_salary_target,
+		));
+
+		// Wrong GeneralIndex (rank 3 instead of 4) cannot alias into Fellowship Treasury or
+		// Salary.
+		let wrong_rank_origin = Location::new(
+			1,
+			X3([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(3),
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&wrong_rank_origin,
+			&fellowship_treasury_target,
+		));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&wrong_rank_origin,
+			&fellowship_salary_target,
+		));
+
+		// A regular account on Collectives cannot alias into Fellowship Treasury.
+		let account_origin = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				AccountId32Junction { network: None, id: [1u8; 32] },
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&account_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Architects origin from a non-Collectives parachain cannot alias.
+		let wrong_chain_origin = Location::new(
+			1,
+			X3([
+				Parachain(9999),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
+			]
+			.into()),
+		);
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&wrong_chain_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Architects origin cannot alias into an unrelated pallet.
+		let architects_origin = Location::new(
+			1,
+			X3([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
+			]
+			.into()),
+		);
+		let unrelated_pallet_target =
+			Location::new(1, X2([Parachain(collectives_para_id), PalletInstance(99)].into()));
+		assert!(!<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&architects_origin,
+			&unrelated_pallet_target,
+		));
+	});
+}
+
+/// Helper: sends an XCM from Collectives with the Architects origin to Asset Hub.
+/// The message aliases into the Fellowship pallet at `pallet_index`, withdraws DOT from the
+/// pallet's sovereign account, and deposits it to a beneficiary.
+///
+/// This uses `PolkadotXcm::send` on the Collectives chain with the Architects origin, which
+/// auto-prepends `DescendOrigin` via `ArchitectsToLocation`. Asset Hub then processes the
+/// message: the origin descends to the Architects location, aliases into the target pallet,
+/// and performs the transfer.
+///
+/// Only works for the `FellowshipTreasury` and `FellowshipSalary` pallet instances.
+fn architects_alias_into_fellowship_pallet(pallet_index: u8) {
+	let collectives_para_id: u32 = CollectivesPolkadot::para_id().into();
+	let amount: Balance = POLKADOT_ED * 100;
+
+	// The Fellowship pallet location (treasury or salary) on Collectives, as seen from AH.
+	let pallet_location =
+		Location::new(1, [Parachain(collectives_para_id), PalletInstance(pallet_index)]);
+
+	// Compute the sovereign account for this pallet location on AH.
+	let pallet_sovereign =
+		asset_hub_polkadot_runtime::xcm_config::LocationToAccountId::convert_location(
+			&pallet_location,
+		)
+		.expect("Failed to convert pallet location to account");
+
+	let beneficiary: AccountId = [42u8; 32].into();
+
+	// Fund the pallet's sovereign account on AH.
+	AssetHubPolkadot::fund_accounts(vec![(pallet_sovereign.clone(), amount * 2)]);
+
+	// Record pre-balances on AH.
+	let (pre_sovereign_balance, pre_beneficiary_balance) = AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+		(
+			<Balances as Inspect<_>>::balance(&pallet_sovereign),
+			<Balances as Inspect<_>>::balance(&beneficiary),
+		)
+	});
+
+	// Send XCM from Collectives with the Architects origin.
+	// pallet_xcm::send auto-prepends DescendOrigin based on ArchitectsToLocation, which
+	// converts Architects to [Plurality { Technical, Voice }, GeneralIndex(ARCHITECTS_RANK)].
+	// After DescendOrigin, the executor origin on AH becomes:
+	//   (1, [Parachain(1001), Plurality { Technical, Voice }, GeneralIndex(ARCHITECTS_RANK)])
+	//
+	// The message then:
+	// 1. UnpaidExecution — allowed because the computed origin matches FellowshipEntities
+	// 2. AliasOrigin — FellowshipArchitectsAlias allows Architects → treasury/salary
+	// 3. WithdrawAsset — withdraws DOT from the aliased pallet's sovereign account
+	// 4. DepositAsset — deposits to beneficiary
+	CollectivesPolkadot::execute_with(|| {
+		let architects_origin = collectives_polkadot_runtime::RuntimeOrigin::from(
+			collectives_polkadot_runtime::fellowship::pallet_fellowship_origins::Origin::Architects,
+		);
+
+		// Destination: sibling Asset Hub.
+		let destination: Location =
+			Location::new(1, [Parachain(AssetHubPolkadot::para_id().into())]);
+
+		// The XCM body — no DescendOrigin needed, pallet_xcm::send prepends it.
+		let xcm = Xcm::<()>(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			AliasOrigin(pallet_location),
+			WithdrawAsset((Parent, amount).into()),
+			DepositAsset {
+				assets: Wild(All),
+				beneficiary: Location::new(
+					0,
+					[AccountId32Junction { network: None, id: beneficiary.clone().into() }],
+				),
+			},
+		]);
+
+		assert_ok!(<CollectivesPolkadot as CollectivesPolkadotPallet>::PolkadotXcm::send(
+			architects_origin,
+			bx!(VersionedLocation::from(destination)),
+			bx!(VersionedXcm::from(xcm)),
+		));
+	});
+
+	// Verify balance changes on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+
+		let post_sovereign_balance = <Balances as Inspect<_>>::balance(&pallet_sovereign);
+		let post_beneficiary_balance = <Balances as Inspect<_>>::balance(&beneficiary);
+
+		assert!(
+			post_sovereign_balance < pre_sovereign_balance,
+			"Sovereign account balance should have decreased: pre={pre_sovereign_balance}, post={post_sovereign_balance}",
+		);
+		assert!(
+			post_beneficiary_balance > pre_beneficiary_balance,
+			"Beneficiary balance should have increased: pre={pre_beneficiary_balance}, post={post_beneficiary_balance}",
+		);
+	});
+}
+
+/// Negative test: the Fellows origin (rank 3) should NOT be able to alias into the Fellowship
+/// Treasury. Only the Architects origin (rank 4+) can do so.
+///
+/// The Fellows origin is converted to `[Plurality { Technical, Voice }]` via `FellowsToPlurality`,
+/// which does NOT include a `GeneralIndex` suffix. When it attempts `AliasOrigin` into the
+/// Fellowship Treasury, `FellowshipArchitectsAlias` rejects it because the origin doesn't have
+/// `GeneralIndex(ARCHITECTS_RANK)`. The XCM execution fails and balances remain unchanged.
+#[test]
+fn fellowship_fellows_cannot_alias_into_treasury_via_xcm() {
+	let collectives_para_id: u32 = CollectivesPolkadot::para_id().into();
+	let amount: Balance = POLKADOT_ED * 100;
+
+	// Fellowship Treasury pallet location on Collectives, as seen from AH.
+	let pallet_location = Location::new(
+		1,
+		[
+			Parachain(collectives_para_id),
+			PalletInstance(
+				collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+			),
+		],
+	);
+
+	// Compute the sovereign account for the treasury pallet on AH.
+	let pallet_sovereign =
+		asset_hub_polkadot_runtime::xcm_config::LocationToAccountId::convert_location(
+			&pallet_location,
+		)
+		.expect("Failed to convert pallet location to account");
+
+	let beneficiary: AccountId = [43u8; 32].into();
+
+	// Fund the treasury's sovereign account on AH.
+	AssetHubPolkadot::fund_accounts(vec![(pallet_sovereign.clone(), amount * 2)]);
+
+	// Record pre-balances on AH.
+	let (pre_sovereign_balance, pre_beneficiary_balance) = AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+		(
+			<Balances as Inspect<_>>::balance(&pallet_sovereign),
+			<Balances as Inspect<_>>::balance(&beneficiary),
+		)
+	});
+
+	// Send XCM from Collectives with the Fellows origin (NOT Architects).
+	// pallet_xcm::send auto-prepends DescendOrigin based on FellowsToPlurality, which
+	// converts Fellows to [Plurality { Technical, Voice }] (no GeneralIndex).
+	// After DescendOrigin, the executor origin on AH becomes:
+	//   (1, [Parachain(1001), Plurality { Technical, Voice }])
+	//
+	// The message then:
+	// 1. UnpaidExecution — allowed because Fellows matches FellowshipEntities first arm
+	// 2. AliasOrigin — REJECTED: FellowshipArchitectsAlias requires GeneralIndex(ARCHITECTS_RANK)
+	// 3. XCM execution fails, WithdrawAsset + DepositAsset never execute
+	CollectivesPolkadot::execute_with(|| {
+		let fellows_origin = collectives_polkadot_runtime::RuntimeOrigin::from(
+			collectives_polkadot_runtime::fellowship::pallet_fellowship_origins::Origin::Fellows,
+		);
+
+		let destination: Location =
+			Location::new(1, [Parachain(AssetHubPolkadot::para_id().into())]);
+
+		let xcm = Xcm::<()>(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			AliasOrigin(pallet_location),
+			WithdrawAsset((Parent, amount).into()),
+			DepositAsset {
+				assets: Wild(All),
+				beneficiary: Location::new(
+					0,
+					[AccountId32Junction { network: None, id: beneficiary.clone().into() }],
+				),
+			},
+		]);
+
+		assert_ok!(<CollectivesPolkadot as CollectivesPolkadotPallet>::PolkadotXcm::send(
+			fellows_origin,
+			bx!(VersionedLocation::from(destination)),
+			bx!(VersionedXcm::from(xcm)),
+		));
+	});
+
+	// Verify message was processed with failure on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: false, .. }
+				) => {},
+			]
+		);
+	});
+
+	// Verify balances are unchanged — the alias was rejected so no funds moved.
+	AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+
+		let post_sovereign_balance = <Balances as Inspect<_>>::balance(&pallet_sovereign);
+		let post_beneficiary_balance = <Balances as Inspect<_>>::balance(&beneficiary);
+
+		assert_eq!(
+			post_sovereign_balance, pre_sovereign_balance,
+			"Sovereign account balance should be unchanged: pre={pre_sovereign_balance}, post={post_sovereign_balance}",
+		);
+		assert_eq!(
+			post_beneficiary_balance, pre_beneficiary_balance,
+			"Beneficiary balance should be unchanged: pre={pre_beneficiary_balance}, post={post_beneficiary_balance}",
+		);
+	});
+}
+
+#[test]
+fn fellowship_architects_alias_into_treasury_via_xcm() {
+	architects_alias_into_fellowship_pallet(
+		collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+	);
+}
+
+#[test]
+fn fellowship_architects_alias_into_salary_via_xcm() {
+	architects_alias_into_fellowship_pallet(
+		collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+	);
 }

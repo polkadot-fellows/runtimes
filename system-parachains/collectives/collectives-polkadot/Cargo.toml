@@ -81,13 +81,13 @@ cumulus-pallet-xcmp-queue = { workspace = true }
 cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
+collectives-polkadot-runtime-constants = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
-collectives-polkadot-runtime-constants = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 sp-io = { workspace = true }
 

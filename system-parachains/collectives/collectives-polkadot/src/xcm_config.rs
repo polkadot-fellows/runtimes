@@ -14,16 +14,16 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balance, Balances, CollatorSelection, Fellows, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Architects, Balance, Balances, CollatorSelection, Fellows,
+	ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
+		EnsureOrigin, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -34,7 +34,7 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::{AccountIdConversion, TryConvert};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -143,6 +143,7 @@ parameter_types! {
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
+/// Matches the relay chain or pluralities on the relay chain.
 pub struct ParentOrParentsPlurality;
 impl Contains<Location> for ParentOrParentsPlurality {
 	fn contains(location: &Location) -> bool {
@@ -150,10 +151,11 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+/// Matches local pluralities and ranks inside those pluralities.
 pub struct LocalPlurality;
 impl Contains<Location> for LocalPlurality {
 	fn contains(loc: &Location) -> bool {
-		matches!(loc.unpack(), (0, [Plurality { .. }]))
+		matches!(loc.unpack(), (0, [Plurality { .. }]) | (0, [Plurality { .. }, GeneralIndex(_)]))
 	}
 }
 
@@ -288,10 +290,28 @@ parameter_types! {
 /// Type to convert the Fellows origin to a Plurality `Location` value.
 pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
 
+/// Converts the Architects origin to an XCM `Location` representing the Technical body (Fellowship)
+/// refined to rank 4 (Architects): `[Plurality { id: Technical, part: Voice },
+/// GeneralIndex(ARCHITECTS_RANK)]`.
+pub struct ArchitectsToLocation;
+impl TryConvert<RuntimeOrigin, Location> for ArchitectsToLocation {
+	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
+		let _ = Architects::try_origin(o)?;
+		Ok(Location {
+			parents: 0,
+			interior: [
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK),
+			]
+			.into(),
+		})
+	}
+}
+
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// We only allow the Fellows to send (arbitrary) messages.
-	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, FellowsToPlurality>;
+	// We allow the Fellows and Architects to send messages.
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, (FellowsToPlurality, ArchitectsToLocation)>;
 	type XcmRouter = XcmRouter;
 	// Any local signed origin can execute XCM messages.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
