@@ -14,7 +14,6 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::KsmLocation;
 use kusama_system_emulated_network::{
 	kusama_emulated_chain::kusama_runtime::Dmp,
 	penpal_emulated_chain::LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,

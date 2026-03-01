@@ -23,8 +23,8 @@ use crate::{
 	*,
 };
 use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
+use emulated_integration_tests_common::PenpalATeleportableAssetLocation;
 use frame_support::{assert_noop, BoundedVec};
-use kusama_polkadot_system_emulated_network::asset_hub_kusama_emulated_chain::genesis::PenpalATeleportableAssetLocation;
 use snowbridge_core::AssetMetadata;
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::v5::AssetTransferFilter;
