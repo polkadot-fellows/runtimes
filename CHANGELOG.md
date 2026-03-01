@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
 - Encointer: add pallets `offline-payment` and `reputation-rings` and fixes ([polkadot-fellows/runtimes/pull/1082](https://github.com/polkadot-fellows/runtimes/pull/1082))
 - Add `pallet_multi_asset_bounties` pallet to Asset Hub Kusama and Asset Hub Polkadot for multi-asset bounty support ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
+- Asset Hub Polkadot: Add `MultiAssetBounties` to `Governance` and `NonTransfer` proxy type filters, matching Asset Hub Kusama ([#1095](https://github.com/polkadot-fellows/runtimes/pull/1095))
 
 ### Changed
 

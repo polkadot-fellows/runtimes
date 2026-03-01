@@ -3137,4 +3137,26 @@ mod tests {
 			delay: 0,
 		})));
 	}
+
+	#[test]
+	fn governance_and_nontransfer_proxy_allow_multi_asset_bounties() {
+		use frame_support::traits::InstanceFilter;
+		use sp_runtime::MultiAddress;
+
+		let call =
+			RuntimeCall::MultiAssetBounties(pallet_multi_asset_bounties::Call::propose_curator {
+				parent_bounty_id: 0,
+				child_bounty_id: Some(0),
+				curator: MultiAddress::Id(AccountId::from([0u8; 32])),
+			});
+
+		assert!(
+			ProxyType::Governance.filter(&call),
+			"Governance proxy must allow MultiAssetBounties::propose_curator",
+		);
+		assert!(
+			ProxyType::NonTransfer.filter(&call),
+			"NonTransfer proxy must allow MultiAssetBounties::propose_curator",
+		);
+	}
 }
