@@ -107,6 +107,7 @@ pub fn call_allowed_status(
 		MultiBlockElectionSigned(..) => OFF,
 		MultiBlockElectionUnsigned(..) => OFF,
 		MultiBlockElectionVerifier(..) => OFF,
+		MultiBlockMigrations(..) => OFF,
 		MessageQueue(..) => ON, // contains non-permissioned service calls
 		Multisig(..) => OFF,
 		Nfts(..) => ON, // no reason to disable it, just convenience
@@ -189,6 +190,7 @@ pub fn call_allowed_before_migration(
 		CumulusXcm(..) |
 		ForeignAssets(..) |
 		MessageQueue(..) |
+		MultiBlockMigrations(..) |
 		Multisig(..) |
 		Nfts(..) |
 		ParachainInfo(..) |

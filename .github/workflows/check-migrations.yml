@@ -101,11 +101,19 @@ jobs:
         shell: bash
 
       - name: Save snapshot to cache
-        if: steps.cache-restore.outputs.cache-matched-key == ''
+        if: steps.cache-restore.outputs.cache-matched-key == '' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
           key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.get-date.outputs.today }}
+
+      - name: Upload snapshot as artifact
+        if: steps.cache-restore.outputs.cache-matched-key == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: try-runtime-snapshot-${{ matrix.runtime.name }}
+          path: snapshot.raw
+          retention-days: 1
 
 
   check-migrations:
@@ -185,12 +193,25 @@ jobs:
           sudo mv try-runtime /usr/local/bin/
 
       - name: Restore snapshot from cache
+        id: cache-restore
         uses: actions/cache/restore@v4
         with:
           path: snapshot.raw
           key: try-runtime-snapshot-${{ matrix.runtime.name }}-
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
 
+      - name: Download snapshot artifact
+        if: steps.cache-restore.outputs.cache-matched-key == ''
+        uses: actions/download-artifact@v4
+        with:
+          name: try-runtime-snapshot-${{ matrix.runtime.name }}
+
+      - name: Verify snapshot exists
+        run: |
+          if [ ! -f snapshot.raw ]; then
+            echo "::error::snapshot.raw not found from cache or artifact"
+            exit 1
+          fi
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         env:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}

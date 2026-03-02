@@ -27,6 +27,8 @@ use emulated_integration_tests_common::{
 };
 use kusama_emulated_chain::Kusama;
 
+pub use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
+
 // AssetHubKusama Parachain declaration
 decl_test_parachains! {
 	pub struct AssetHubKusama {
@@ -60,6 +62,6 @@ impl_assets_helpers_for_parachain!(AssetHubKusama);
 impl_foreign_assets_helpers_for_parachain!(
 	AssetHubKusama,
 	xcm::latest::Location,
-	assets_common::local_and_foreign_assets::ForeignAssetReserveData
+	ForeignAssetReserveData
 );
 impl_xcm_helpers_for_parachain!(AssetHubKusama);

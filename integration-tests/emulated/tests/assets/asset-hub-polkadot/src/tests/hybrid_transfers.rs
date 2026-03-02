@@ -19,7 +19,6 @@ use crate::{
 	tests::teleport::do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using_xt,
 	*,
 };
-use asset_hub_polkadot_runtime::xcm_config::DotLocation;
 use emulated_integration_tests_common::USDT_ID;
 use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 

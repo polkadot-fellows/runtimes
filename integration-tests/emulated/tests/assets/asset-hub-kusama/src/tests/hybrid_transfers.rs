@@ -19,7 +19,6 @@ use crate::{
 	tests::teleport::do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using_xt,
 	*,
 };
-use asset_hub_kusama_runtime::xcm_config::KsmLocation;
 use emulated_integration_tests_common::USDT_ID;
 use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 

@@ -6,14 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.1.0] 26.02.2026
 
+- Collectives Polkadot - Change Secretary Salary Location [1067](https://github.com/polkadot-fellows/runtimes/pull/1067)
+
 ### Added
 
 - Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
 - Encointer: add pallets `offline-payment` and `reputation-rings` and fixes ([polkadot-fellows/runtimes/pull/1082](https://github.com/polkadot-fellows/runtimes/pull/1082))
 - Add `pallet_multi_asset_bounties` pallet to Asset Hub Kusama and Asset Hub Polkadot for multi-asset bounty support ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
+- Asset Hub Polkadot: Add `MultiAssetBounties` to `Governance` and `NonTransfer` proxy type filters, matching Asset Hub Kusama ([#1095](https://github.com/polkadot-fellows/runtimes/pull/1095))
 
 ### Changed
 
+- Asset Hub(s): Foreign Asset owners can now configure how to support crosschain transfers for each asset: either reserve-based or teleport-based [#1085](https://github.com/polkadot-fellows/runtimes/pull/1085)
 - Remove local pay module in favor of upstream implementation ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
 - Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
 - Re-add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)
@@ -21,6 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update to polkadot-sdk stable2512 (tag 2512-2-rc2), introduce DAP pallet, refine StakingOperator and add Session keys handling on AssetHub  [#1065](https://github.com/polkadot-fellows/runtimes/pull/1065)
 - asset-hub-polkadot and asset-hub-kusama: new weights for staking and election pallets [#1042](https://github.com/polkadot-fellows/runtimes/pull/1042)
 - Update crates to SDK release `2512-2` [#1084](https://github.com/polkadot-fellows/runtimes/pull/1084)
+- Lower `MaxEthExtrinsicWeight` from 90% to 50% [#1091](https://github.com/polkadot-fellows/runtimes/pull/1091)
+- Update election-provider-multi-phase and staking crates [#1090](https://github.com/polkadot-fellows/runtimes/pull/1090)
+- Restrict StakingOperator proxy to explicit utility batch calls [#1093](https://github.com/polkadot-fellows/runtimes/pull/1093)
+- Regenerate weights for pallet_bridge_relayers on bridge-hub-polkadot [#1092](https://github.com/polkadot-fellows/runtimes/pull/1092)
 
 ## [2.0.7] 16.02.2026
 

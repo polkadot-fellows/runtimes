@@ -95,25 +95,68 @@ Upload preimages using the URLs from opengov-cli output:
 
 | Preimage | Kusama | Polkadot |
 |----------|--------|----------|
-| Public referendum | Relay (port 8005) | Relay (port 8005) |
+| Public referendum | Asset Hub (port 8000) | Asset Hub (port 8001) |
 | Fellowship whitelist | Relay (port 8005) | Collectives (port 8000) |
 
-#### Dispatch the Fellowship Whitelist Call
+#### Dispatch via Script
 
-Open the JS console for the Fellowship chain:
+Use `dry-run/proposal.sh` to dispatch the calls automatically.
+
+**Fellowship whitelist (Kusama):**
+```shell
+dry-run/proposal.sh \
+    --preimage-hash <FELLOWSHIP_CALL_HASH> \
+    --sender ws://localhost:8005 \
+    --origin Fellows
+```
+
+**Fellowship whitelist (Polkadot):**
+```shell
+dry-run/proposal.sh \
+    --preimage-hash <FELLOWSHIP_CALL_HASH> \
+    --sender ws://localhost:8000 \
+    --origin Fellows
+```
+
+**Public referendum (Kusama):**
+```shell
+dry-run/proposal.sh \
+    --preimage-hash <PUBLIC_CALL_HASH> \
+    --sender ws://localhost:8000 \
+    --origin WhitelistedCaller
+```
+
+**Public referendum (Polkadot):**
+```shell
+dry-run/proposal.sh \
+    --preimage-hash <PUBLIC_CALL_HASH> \
+    --sender ws://localhost:8001 \
+    --origin WhitelistedCaller
+```
+
+#### Dispatch via JS Console (Manual)
+
+##### Fellowship Whitelist Call
+Open the JS console for the chain that dispatches the fellowship call:
 - **Kusama:** [Relay chain console](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:8005#/js)
 - **Polkadot:** [Collectives console](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:8000#/js)
 
-Inject and execute the whitelist call:
+> **Scheduler block number:** `incompleteSince` is where the scheduler starts scanning.
+> On parachains with async backing, two consecutive blocks can share the same relay
+> parent, pushing `incompleteSince` 1 ahead of `lastRelayChainBlockNumber`. Use
+> `min(incompleteSince, lastRelayChainBlockNumber)` so the entry is picked up
+> immediately. On relay chains `incompleteSince` alone is sufficient.
+
+**Kusama:**
 
 ```javascript
-const number = (await api.rpc.chain.getHeader()).number.toNumber()
-
+const blockNumber = (await api.query.scheduler.incompleteSince()).unwrap().toNumber()
 await api.rpc('dev_setStorage', {
   scheduler: {
+    incompleteSince: blockNumber,
     agenda: [
       [
-        [number + 1], [
+        [blockNumber], [
           {
             call: {
               Lookup: {
@@ -122,8 +165,7 @@ await api.rpc('dev_setStorage', {
               }
             },
             origin: {
-              // Kusama: { Origins: 'Fellows' }
-              // Polkadot: { FellowshipOrigins: 'Fellows' }
+              Origins: 'Fellows'
             }
           }
         ]
@@ -135,18 +177,88 @@ await api.rpc('dev_setStorage', {
 await api.rpc('dev_newBlock', { count: 1 })
 ```
 
-#### Dispatch the Public Referendum Call
+**Polkadot:**
 
-In the [relay chain JS console](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:8005#/js), dispatch the whitelisted-caller referendum:
+In the [Collectives JS console](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:8000#/js):
 
 ```javascript
-const number = (await api.rpc.chain.getHeader()).number.toNumber()
-
+const incompleteSince = (await api.query.scheduler.incompleteSince()).unwrap().toNumber()
+const lrcbn = (await api.query.parachainSystem.lastRelayChainBlockNumber()).toNumber()
+const blockNumber = Math.min(incompleteSince, lrcbn)
 await api.rpc('dev_setStorage', {
   scheduler: {
+    incompleteSince: blockNumber,
     agenda: [
       [
-        [number + 1], [
+        [blockNumber], [
+          {
+            call: {
+              Lookup: {
+                hash: '<FELLOWSHIP_CALL_HASH>',
+                len: <FELLOWSHIP_CALL_LENGTH>
+              }
+            },
+            origin: {
+              FellowshipOrigins: 'Fellows'
+            }
+          }
+        ]
+      ]
+    ]
+  }
+})
+await api.rpc('dev_newBlock', { count: 1 })
+```
+
+##### Public Referendum Call
+**Kusama:**
+
+In the [Asset Hub JS console](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:8000#/js):
+
+```javascript
+const incompleteSince = (await api.query.scheduler.incompleteSince()).unwrap().toNumber()
+const lrcbn = (await api.query.parachainSystem.lastRelayChainBlockNumber()).toNumber()
+const blockNumber = Math.min(incompleteSince, lrcbn)
+await api.rpc('dev_setStorage', {
+  scheduler: {
+    incompleteSince: blockNumber,
+    agenda: [
+      [
+        [blockNumber], [
+          {
+            call: {
+              Lookup: {
+                hash: '<PUBLIC_CALL_HASH>',
+                len: <PUBLIC_CALL_LENGTH>
+              }
+            },
+            origin: {
+              Origins: 'WhitelistedCaller'
+            }
+          }
+        ]
+      ]
+    ]
+  }
+})
+
+await api.rpc('dev_newBlock', { count: 1 })
+```
+
+**Polkadot:**
+
+In the [Asset Hub JS console](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:8001#/js):
+
+```javascript
+const incompleteSince = (await api.query.scheduler.incompleteSince()).unwrap().toNumber()
+const lrcbn = (await api.query.parachainSystem.lastRelayChainBlockNumber()).toNumber()
+const blockNumber = Math.min(incompleteSince, lrcbn)
+await api.rpc('dev_setStorage', {
+  scheduler: {
+    incompleteSince: blockNumber,
+    agenda: [
+      [
+        [blockNumber], [
           {
             call: {
               Lookup: {
