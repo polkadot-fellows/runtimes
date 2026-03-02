@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Collectives/Asset Hub Polkadot: Allow Architects track (rank 4+ Fellowship members) to manage Fellowship Treasury and Salary on Asset Hub via XCM. The Architects origin is represented as `[Plurality { id: Technical, part: Voice }, GeneralIndex(4)]` ([polkadot-fellows/runtimes/pull/1072](https://github.com/polkadot-fellows/runtimes/pull/1072))
 - Encointer: add pallets `offline-payment` and `reputation-rings` and fixes ([polkadot-fellows/runtimes/pull/1082](https://github.com/polkadot-fellows/runtimes/pull/1082))
 - Add `pallet_multi_asset_bounties` pallet to Asset Hub Kusama and Asset Hub Polkadot for multi-asset bounty support ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
+- Asset Hub Polkadot: Add `MultiAssetBounties` to `Governance` and `NonTransfer` proxy type filters, matching Asset Hub Kusama ([#1095](https://github.com/polkadot-fellows/runtimes/pull/1095))
 
 ### Changed
 
@@ -29,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update election-provider-multi-phase and staking crates [#1090](https://github.com/polkadot-fellows/runtimes/pull/1090)
 - Restrict StakingOperator proxy to explicit utility batch calls [#1093](https://github.com/polkadot-fellows/runtimes/pull/1093)
 - Regenerate weights for pallet_bridge_relayers on bridge-hub-polkadot [#1092](https://github.com/polkadot-fellows/runtimes/pull/1092)
+- Bump pallet-session to 45.2.0 to track consumer refs and release deposits for externally set keys([#1097](https://github.com/polkadot-fellows/runtimes/pull/1097))
 
 ## [2.0.7] 16.02.2026
 
