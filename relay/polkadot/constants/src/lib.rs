@@ -112,13 +112,22 @@ pub mod xcm {
 		// Preallocated for the Root body.
 		#[allow(dead_code)]
 		const ROOT_INDEX: u32 = 0;
-		// The bodies corresponding to the Polkadot OpenGov Origins.
+		/// The FellowshipAdmin OpenGov body index. Used with `Plurality { id: BodyId::Index(..), .. }`.
 		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
 		// The body corresponding to the Treasurer OpenGov track.
 		#[deprecated = "Will be removed after August 2024; Use `xcm::latest::BodyId::Treasury` \
 			instead"]
 		pub const TREASURER_INDEX: u32 = 2;
 	}
+}
+
+/// Fellowship-related constants.
+pub mod fellowship {
+	/// Fellowship Fellows rank (rank 3). The minimum rank with Fellowship privileges
+	/// in XCM location filters. Used with `GeneralIndex` in XCM locations.
+	pub const FELLOWS_RANK: u128 = 3;
+	/// Fellowship Architects rank (rank 4). Used with `GeneralIndex` in XCM locations.
+	pub const ARCHITECTS_RANK: u128 = 4;
 }
 
 /// System Parachains.

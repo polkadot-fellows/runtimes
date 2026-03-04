@@ -50,7 +50,11 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{system_parachain, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use polkadot_runtime_constants::{
+	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	system_parachain,
+};
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;
 use xcm::latest::prelude::*;
@@ -264,16 +268,14 @@ impl Contains<Location> for FellowshipEntities {
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. }
-				]
-			) | (
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, .. },
-					GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK)
+					GeneralIndex(rank)
 				]
-			) | (
+			)
+			if *rank >= FELLOWS_RANK
+		) || matches!(
+			location.unpack(),
+			(
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
@@ -339,7 +341,7 @@ impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-					GeneralIndex(collectives_polkadot_runtime_constants::ARCHITECTS_RANK)
+					GeneralIndex(ARCHITECTS_RANK)
 				]
 			)
 		) && matches!(

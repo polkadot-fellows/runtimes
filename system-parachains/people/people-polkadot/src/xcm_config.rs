@@ -39,7 +39,7 @@ use parachains_common::{
 	TREASURY_PALLET_ID,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{fellowship::FELLOWS_RANK, system_parachain};
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -194,9 +194,11 @@ impl Contains<Location> for FellowsPlurality {
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. }
+					Plurality { id: BodyId::Technical, .. },
+					GeneralIndex(rank)
 				]
 			)
+			if *rank >= FELLOWS_RANK
 		)
 	}
 }

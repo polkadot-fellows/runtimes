@@ -32,7 +32,10 @@ use polkadot_runtime_common::{
 	ToAuthor,
 };
 use polkadot_runtime_constants::{
-	currency::CENTS, system_parachain::*, xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	currency::CENTS,
+	fellowship::FELLOWS_RANK,
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	system_parachain::*,
 };
 use sp_core::ConstU32;
 use xcm::latest::{prelude::*, BodyId};
@@ -176,7 +179,15 @@ impl Contains<Location> for Fellows {
 	fn contains(loc: &Location) -> bool {
 		matches!(
 			loc.unpack(),
-			(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
+			(
+				0,
+				[
+					Parachain(COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, .. },
+					GeneralIndex(rank)
+				]
+			)
+			if *rank >= FELLOWS_RANK
 		)
 	}
 }
