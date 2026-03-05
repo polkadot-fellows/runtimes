@@ -10788,9 +10788,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-society"
-version = "45.0.0"
+version = "45.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93ed4285c839ffc078cf355d50079d5eea771b8815f0a417dd65095499313fb"
+checksum = "1bb738526ccaf243513c4d93879bfdcfacae3c8c482c0c7107bc84567fb6a539"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -10829,9 +10829,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "910d5804a210f615bf04957dfe2d7222837da35bc108c4591030834e01e22295"
+checksum = "f0cfdf9b997aac730403dd16dc327fe90cbe57cbf57057dab824bdfe13d3ce67"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10876,9 +10876,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async-rc-client"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92dfaba74c6934040d0996f8d2da514db7083d43612437aff5ef6d6975d3f790"
+checksum = "95a0e0dc41bb39c821ff4ef358686c85d76c1123e1647d6b204bbbff7aa84091"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
