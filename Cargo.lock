@@ -1325,6 +1325,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-runtime",
  "polkadot-runtime-common",
+ "polkadot-runtime-constants",
  "polkadot-system-emulated-network",
  "sp-runtime 45.0.0",
  "staging-xcm",

@@ -372,7 +372,7 @@ fn fellowship_architects_aliases_into_fellowship_treasury_and_salary() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(collectives_polkadot_runtime_constants::xcm::body::ARCHITECTS_RANK),
+				GeneralIndex(polkadot_runtime_constants::fellowship::ARCHITECTS_RANK),
 			]
 			.into()),
 		);
@@ -449,7 +449,7 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(collectives_polkadot_runtime_constants::xcm::body::FELLOWS_RANK),
+				GeneralIndex(polkadot_runtime_constants::fellowship::FELLOWS_RANK),
 			]
 			.into()),
 		);
@@ -502,7 +502,7 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 			X3([
 				Parachain(9999),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(collectives_polkadot_runtime_constants::xcm::body::ARCHITECTS_RANK),
+				GeneralIndex(polkadot_runtime_constants::fellowship::ARCHITECTS_RANK),
 			]
 			.into()),
 		);
@@ -517,7 +517,7 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(collectives_polkadot_runtime_constants::xcm::body::ARCHITECTS_RANK),
+				GeneralIndex(polkadot_runtime_constants::fellowship::ARCHITECTS_RANK),
 			]
 			.into()),
 		);
@@ -770,7 +770,7 @@ fn fellows_cannot_escalate_to_architects_via_alias_child_location() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(collectives_polkadot_runtime_constants::xcm::body::FELLOWS_RANK),
+				GeneralIndex(polkadot_runtime_constants::fellowship::FELLOWS_RANK),
 			]
 			.into()),
 		);
@@ -782,7 +782,7 @@ fn fellows_cannot_escalate_to_architects_via_alias_child_location() {
 			X3([
 				Parachain(collectives_para_id),
 				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-				GeneralIndex(collectives_polkadot_runtime_constants::xcm::body::ARCHITECTS_RANK),
+				GeneralIndex(polkadot_runtime_constants::fellowship::ARCHITECTS_RANK),
 			]
 			.into()),
 		);

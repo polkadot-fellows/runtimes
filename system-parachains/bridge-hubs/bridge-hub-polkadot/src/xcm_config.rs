@@ -145,18 +145,19 @@ impl Contains<Location> for ParentOrParentsPlurality {
 pub struct FellowsPlurality;
 impl Contains<Location> for FellowsPlurality {
 	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
+		match location.unpack() {
+			// New format with rank qualifier.
 			(
 				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. },
-					GeneralIndex(rank)
-				]
-			)
-			if *rank >= FELLOWS_RANK
-		)
+				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }, GeneralIndex(rank)],
+			) if *rank >= FELLOWS_RANK => true,
+			// Legacy format without rank qualifier (transitional compatibility).
+			(
+				1,
+				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }],
+			) => true,
+			_ => false,
+		}
 	}
 }
 

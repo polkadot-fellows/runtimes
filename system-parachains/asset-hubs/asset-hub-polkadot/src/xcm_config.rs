@@ -262,37 +262,32 @@ parameter_types! {
 pub struct FellowshipEntities;
 impl Contains<Location> for FellowshipEntities {
 	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
+		match location.unpack() {
+			// New format with rank qualifier.
 			(
 				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. },
-					GeneralIndex(rank)
-				]
-			)
-			if *rank >= FELLOWS_RANK
-		) || matches!(
-			location.unpack(),
+				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }, GeneralIndex(rank)],
+			) if *rank >= FELLOWS_RANK => true,
+			// Legacy format without rank qualifier (transitional compatibility).
 			(
 				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					PalletInstance(
-						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
-					)
-				]
-			) | (
+				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }],
+			) => true,
+			// Fellowship salary and treasury pallets.
+			(
 				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					PalletInstance(
-						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
-					)
-				]
-			)
-		)
+				[Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+				)],
+			) |
+			(
+				1,
+				[Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+				)],
+			) => true,
+			_ => false,
+		}
 	}
 }
 

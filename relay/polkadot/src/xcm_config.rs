@@ -175,18 +175,16 @@ pub type TrustedTeleporters = (
 pub struct Fellows;
 impl Contains<Location> for Fellows {
 	fn contains(loc: &Location) -> bool {
-		matches!(
-			loc.unpack(),
+		match loc.unpack() {
+			// New format with rank qualifier.
 			(
 				0,
-				[
-					Parachain(COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. },
-					GeneralIndex(rank)
-				]
-			)
-			if *rank >= FELLOWS_RANK
-		)
+				[Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }, GeneralIndex(rank)],
+			) if *rank >= FELLOWS_RANK => true,
+			// Legacy format without rank qualifier (transitional compatibility).
+			(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }]) => true,
+			_ => false,
+		}
 	}
 }
 
