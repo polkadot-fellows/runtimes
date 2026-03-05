@@ -345,14 +345,17 @@ pub type Barrier = TrailingSetTopicAsId<
 					// The locations listed below get free execution.
 					// Parent, its pluralities (i.e. governance bodies), the Fellows plurality and
 					// sibling bridge hub get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						FellowshipEntities,
-						Equals<RelayTreasuryLocation>,
-						Equals<bridging::SiblingBridgeHub>,
-						AmbassadorEntities,
-						IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							FellowshipEntities,
+							Equals<RelayTreasuryLocation>,
+							Equals<bridging::SiblingBridgeHub>,
+							AmbassadorEntities,
+							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
+						),
+						TrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),

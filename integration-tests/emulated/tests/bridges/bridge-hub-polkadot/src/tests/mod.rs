@@ -17,6 +17,7 @@ use crate::*;
 
 mod aliases;
 mod asset_transfers;
+mod bridged_fellowship;
 mod claim_assets;
 mod register_bridged_assets;
 mod send_xcm;

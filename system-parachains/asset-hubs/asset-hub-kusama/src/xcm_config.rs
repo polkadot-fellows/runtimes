@@ -44,7 +44,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
-use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
+use pallet_xcm::{AuthorizedAliasers, IsVoiceOfBody, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
 	RelayOrOtherSystemParachains,
@@ -86,7 +86,9 @@ parameter_types! {
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub FellowshipLocation: Location = RelayChainLocation::get();
+	pub KusamaFellowshipLocation: Location = RelayChainLocation::get();
+	pub PolkadotFellowshipLocation: Location =
+		Location::new(2, [GlobalConsensus(Polkadot), Parachain(1001)]);
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
@@ -276,7 +278,32 @@ impl Contains<Location> for LocalPlurality {
 pub struct FellowshipEntities;
 impl Contains<Location> for FellowshipEntities {
 	fn contains(location: &Location) -> bool {
-		matches!(location.unpack(), (1, [Plurality { id: BodyId::Technical, .. }]))
+		let origin = location.unpack();
+		// Technical Fellowship on Kusama Relay
+		let is_kusama_technical_fellows =
+			matches!(origin, (1, [Plurality { id: BodyId::Technical, .. }]));
+		// Technical Fellowship on Polkadot Collectives
+		let is_polkadot_technical_fellows = matches!(
+			origin,
+			(
+				2,
+				[
+					GlobalConsensus(Polkadot),
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, .. },
+				],
+			)
+		);
+		is_kusama_technical_fellows || is_polkadot_technical_fellows
+	}
+}
+
+/// Filter for locations acting as the Voice of the Technical Fellowship.
+pub struct TechnicalFellowshipVoice;
+impl Contains<Location> for TechnicalFellowshipVoice {
+	fn contains(l: &Location) -> bool {
+		IsVoiceOfBody::<KusamaFellowshipLocation, FellowsBodyId>::contains(l) ||
+			IsVoiceOfBody::<PolkadotFellowshipLocation, FellowsBodyId>::contains(l)
 	}
 }
 
@@ -295,13 +322,16 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent, its pluralities (i.e. governance bodies), parent's treasury and
 					// sibling bridge hub get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						Equals<RelayTreasuryLocation>,
-						Equals<bridging::SiblingBridgeHub>,
-						FellowshipEntities,
-						IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							Equals<RelayTreasuryLocation>,
+							Equals<bridging::SiblingBridgeHub>,
+							FellowshipEntities,
+							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
+						),
+						TrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
