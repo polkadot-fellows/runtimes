@@ -52,8 +52,8 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{
 	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
-	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 	system_parachain,
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;

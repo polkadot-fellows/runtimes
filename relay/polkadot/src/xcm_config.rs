@@ -32,10 +32,8 @@ use polkadot_runtime_common::{
 	ToAuthor,
 };
 use polkadot_runtime_constants::{
-	currency::CENTS,
-	fellowship::FELLOWS_RANK,
+	currency::CENTS, fellowship::FELLOWS_RANK, system_parachain::*,
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
-	system_parachain::*,
 };
 use sp_core::ConstU32;
 use xcm::latest::{prelude::*, BodyId};
