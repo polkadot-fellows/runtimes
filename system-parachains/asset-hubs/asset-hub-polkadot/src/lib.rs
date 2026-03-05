@@ -1848,9 +1848,9 @@ mod benches {
 			[AccountId32 { network: None, id: account.into() }].into()
 		}
 
-		fn generate_session_keys() -> Vec<u8> {
+		fn generate_session_keys_and_proof(_owner: Self::AccountId) -> (Vec<u8>, Vec<u8>) {
 			use staking::RelayChainSessionKeys;
-			RelayChainSessionKeys::generate(None)
+			(RelayChainSessionKeys::generate(None), vec![])
 		}
 
 		fn setup_validator() -> Self::AccountId {
@@ -1858,8 +1858,8 @@ mod benches {
 			use frame_support::traits::fungible::Mutate;
 
 			let stash: Self::AccountId = account("validator", 0, 0);
-			// Must be >= 2 * MinSetKeysBond (10_000 DOT) since we bond half.
-			let balance = 20_000 * UNITS;
+			// Must be >= 2 * KeyDeposit (10 DOT) since we bond half.
+			let balance = 100 * UNITS;
 
 			let _ = Balances::mint_into(&stash, balance);
 
@@ -2897,6 +2897,7 @@ mod tests {
 		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -3016,6 +3017,7 @@ mod tests {
 		assert!(ProxyType::Staking.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
