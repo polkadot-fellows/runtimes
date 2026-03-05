@@ -102,7 +102,7 @@ parameter_types! {
 	pub const ParachainPalletNameAtKusama: &'static str = bp_kusama::PARAS_PALLET_NAME;
 
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
-	pub PriorityBoostPerMessage: u64 = 3_981_967_375_185;
+	pub PriorityBoostPerMessage: u64 = 3_641_799_307_958;
 }
 
 /// Proof of messages, coming from Kusama.
