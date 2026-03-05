@@ -17,6 +17,7 @@ pub use asset_hub_kusama_emulated_chain;
 pub use asset_hub_polkadot_emulated_chain;
 pub use bridge_hub_kusama_emulated_chain;
 pub use bridge_hub_polkadot_emulated_chain;
+pub use collectives_polkadot_emulated_chain;
 pub use kusama_emulated_chain;
 pub use penpal_emulated_chain;
 pub use polkadot_emulated_chain;
@@ -25,6 +26,7 @@ use asset_hub_kusama_emulated_chain::AssetHubKusama;
 use asset_hub_polkadot_emulated_chain::AssetHubPolkadot;
 use bridge_hub_kusama_emulated_chain::BridgeHubKusama;
 use bridge_hub_polkadot_emulated_chain::BridgeHubPolkadot;
+use collectives_polkadot_emulated_chain::CollectivesPolkadot;
 use kusama_emulated_chain::Kusama;
 use penpal_emulated_chain::{PenpalA, PenpalB};
 use polkadot_emulated_chain::Polkadot;
@@ -55,6 +57,7 @@ decl_test_networks! {
 		parachains = vec![
 			AssetHubPolkadot,
 			BridgeHubPolkadot,
+			CollectivesPolkadot,
 			PenpalB,
 		],
 		bridge = PolkadotKusamaMockBridge
@@ -97,6 +100,7 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	PolkadotRelay { sender: ALICE, receiver: BOB },
 	AssetHubPolkadotPara { sender: ALICE, receiver: BOB },
 	BridgeHubPolkadotPara { sender: ALICE, receiver: BOB },
+	CollectivesPolkadotPara { sender: ALICE, receiver: BOB },
 	PenpalAPara { sender: ALICE, receiver: BOB },
 	PenpalBPara { sender: ALICE, receiver: BOB }
 }
