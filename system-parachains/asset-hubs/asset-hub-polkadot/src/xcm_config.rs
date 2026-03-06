@@ -288,7 +288,8 @@ impl Contains<Location> for FellowshipTreasuryPaymasterEntities {
 /// Location types for Technical Fellowship origins in XCM barriers and fee waiving.
 /// Includes both the Fellowship voice origins (for governance) and the Treasury/Salary
 /// pallet origins (for `PayOverXcm` payouts).
-pub type FellowshipEntities = (IsFellowshipVoice<FellowshipLocation>, FellowshipTreasuryPaymasterEntities);
+pub type FellowshipEntities =
+	(IsFellowshipVoice<FellowshipLocation>, FellowshipTreasuryPaymasterEntities);
 
 /// Location type to determine the Ambassador Collective
 /// pallets for use in XCM.
