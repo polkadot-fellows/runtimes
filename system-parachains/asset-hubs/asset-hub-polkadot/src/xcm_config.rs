@@ -460,11 +460,6 @@ impl Contains<Location> for KusamaGlobalConsensus {
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow origins explicitly authorized by the alias target location.
 /// - Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
-/// Defines origin aliasing rules for this chain.
-///
-/// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
-/// - Allow origins explicitly authorized by the alias target location.
-/// - Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
 /// - Allow Technical Fellowship Architects to alias into Fellowship Treasury and Salary pallets.
 pub type TrustedAliasers = (
 	AliasChildLocation,
