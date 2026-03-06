@@ -466,7 +466,11 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type ValidatorSetExportSession = ValidatorSetExportSession;
 	type RelayChainSessionKeys = RelayChainSessionKeys;
 	type Currency = Balances;
+	// Need a smaller value since the benchmarks do not properly fund the account.
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type KeyDeposit = KeyDeposit;
+	#[cfg(feature = "runtime-benchmarks")]
+	type KeyDeposit = ConstU128<UNITS>;
 	type WeightInfo = weights::pallet_staking_async_rc_client::WeightInfo<Runtime>;
 }
 
