@@ -3055,11 +3055,13 @@ mod tests {
 			#[cfg(feature = "runtime-benchmarks")]
 			{
 				// manager origin could call
-				let manager = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
+				let manager: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
+				assert_eq!(&manager.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
 				hypothetically_ok!(call.clone().dispatch(manager));
 
 				// admin origin could call
-				let admin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
+				let admin: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
+				assert_eq!(&admin.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
 				hypothetically_ok!(call.dispatch(admin));
 			}
 		});
