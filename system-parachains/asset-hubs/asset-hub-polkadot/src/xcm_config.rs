@@ -326,8 +326,8 @@ impl Contains<Location> for AmbassadorEntities {
 /// manage the fellowship treasury and salary here on Asset Hub. The origin is converted
 /// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)]`
 /// via `ArchitectsToLocation` (or equivalent) before being sent over XCM.
-pub struct FellowshipArchitectsAlias;
-impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
+pub struct FellowshipArchitectsAliases;
+impl ContainsPair<Location, Location> for FellowshipArchitectsAliases {
 	fn contains(origin: &Location, target: &Location) -> bool {
 		matches!(
 			origin.unpack(),
@@ -460,11 +460,17 @@ impl Contains<Location> for KusamaGlobalConsensus {
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow origins explicitly authorized by the alias target location.
 /// - Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
+/// Defines origin aliasing rules for this chain.
+///
+/// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
+/// - Allow origins explicitly authorized by the alias target location.
+/// - Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
+/// - Allow Technical Fellowship Architects to alias into Fellowship Treasury and Salary pallets.
 pub type TrustedAliasers = (
 	AliasChildLocation,
 	AuthorizedAliasers<Runtime>,
 	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
-	FellowshipArchitectsAlias,
+	FellowshipArchitectsAliases,
 );
 
 pub struct XcmConfig;
