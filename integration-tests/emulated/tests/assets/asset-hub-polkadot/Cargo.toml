@@ -63,6 +63,7 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"polkadot-runtime/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
@@ -70,5 +71,4 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"polkadot-runtime-constants/runtime-benchmarks"
 ]
