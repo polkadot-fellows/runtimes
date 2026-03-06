@@ -35,7 +35,9 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Cumulus
-pub use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
+pub use asset_hub_polkadot_runtime::xcm_config::{
+	DotLocation, XcmConfig as AssetHubPolkadotXcmConfig,
+};
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
 	test_parachain_is_trusted_teleporter,
@@ -54,7 +56,7 @@ pub use polkadot_runtime::xcm_config::UniversalLocation as PolkadotUniversalLoca
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
-		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet, ForeignAssetReserveData,
 	},
 	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	collectives_polkadot_emulated_chain::{
@@ -63,6 +65,12 @@ pub use polkadot_system_emulated_network::{
 	},
 	coretime_polkadot_emulated_chain::CoretimePolkadotParaPallet as CoretimePolkadotPallet,
 	penpal_emulated_chain::{
+		penpal_runtime::xcm_config::{
+			LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
+			LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub,
+			UniversalLocation as PenpalUniversalLocation,
+			UsdtFromAssetHub as PenpalUsdtFromAssetHub,
+		},
 		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
 		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},

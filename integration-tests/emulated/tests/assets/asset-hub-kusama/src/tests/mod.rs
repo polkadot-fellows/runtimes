@@ -15,6 +15,7 @@
 
 mod aliases;
 mod claim_assets;
+mod foreign_assets;
 mod hybrid_transfers;
 mod reserve_transfer;
 mod send;
@@ -32,6 +33,18 @@ macro_rules! foreign_balance_on {
 			<$chain>::execute_with(|| {
 				type ForeignAssets = <$chain as [<$chain Pallet>]>::ForeignAssets;
 				<ForeignAssets as Inspect<_>>::balance($id.try_into().unwrap(), $who)
+			})
+		}
+	};
+}
+
+#[macro_export]
+macro_rules! assets_balance_on {
+	( $chain:ident, $id:expr, $who:expr ) => {
+		emulated_integration_tests_common::impls::paste::paste! {
+			<$chain>::execute_with(|| {
+				type Assets = <$chain as [<$chain Pallet>]>::Assets;
+				<Assets as Inspect<_>>::balance($id, $who)
 			})
 		}
 	};

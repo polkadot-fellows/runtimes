@@ -13,7 +13,7 @@
 // limitations under the License.
 use crate::{tests::snowbridge_common::*, *};
 use asset_hub_polkadot_runtime::ForeignAssets;
-use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
+use bp_bridge_hub_polkadot::snowbridge::{CreateAssetCall, SetReservesCall};
 use bridge_hub_polkadot_runtime::{
 	bridge_common_config::BridgeReward, bridge_to_ethereum_config::EthereumGatewayAddress,
 	EthereumInboundQueueV2,
@@ -327,7 +327,7 @@ fn send_weth_v2() {
 }
 
 #[test]
-fn register_and_send_multiple_tokens_v2() {
+fn register_and_send_token_in_one_transaction_fails() {
 	let relayer_account = BridgeHubPolkadotSender::get();
 
 	let token: H160 = TOKEN_ID.into();
@@ -391,8 +391,20 @@ fn register_and_send_multiple_tokens_v2() {
 					.encode()
 					.into(),
 			},
+			// set Ethereum as the asset's reserve.
+			Transact {
+				origin_kind: OriginKind::Xcm,
+				fallback_max_weight: None,
+				call: (
+					SetReservesCall::get(),
+					token_location.clone(),
+					vec![ForeignAssetReserveData { reserve: eth_location(), teleportable: false }],
+				)
+					.encode()
+					.into(),
+			},
 			ExpectTransactStatus(MaybeErrorCode::Success),
-			// deposit new token, weth and leftover ether fees to beneficiary.
+			// try to deposit new token, weth and leftover ether fees to beneficiary.
 			RefundSurplus,
 			DepositAsset { assets: Wild(AllCounted(3)), beneficiary: beneficiary.clone() },
 		];
@@ -434,42 +446,13 @@ fn register_and_send_multiple_tokens_v2() {
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				// message processed successfully
+				// message should not be processed, since assets cannot be ReserveAssetDeposited
+				// in the same step as asset creation.
 				RuntimeEvent::MessageQueue(
-					pallet_message_queue::Event::Processed { success: true, .. }
+					pallet_message_queue::Event::Processed { success: false, .. }
 				) => {},
-				// Check that the token was created as a foreign asset on AssetHub
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Created { asset_id, owner, .. }) => {
-					asset_id: *asset_id == token_location.clone(),
-					owner: *owner == bridge_owner.clone(),
-				},
-				// Check that the token was received and issued as a foreign asset on AssetHub
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == token_location,
-					owner: *owner == beneficiary_acc_bytes.into(),
-				},
-				// Check that excess fees were paid to the beneficiary
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == eth_location(),
-					owner: *owner == beneficiary_acc_bytes.into(),
-				},
 			]
 		);
-
-		// Beneficiary received the token transfer value
-		assert_eq!(
-			ForeignAssets::balance(token_location, AccountId::from(beneficiary_acc_bytes)),
-			token_transfer_value
-		);
-
-		// Beneficiary received the weth transfer value
-		assert!(
-			ForeignAssets::balance(weth_location(), AccountId::from(beneficiary_acc_bytes)) >=
-				weth_transfer_value
-		);
-
-		// Beneficiary received eth refund for fees paid
-		assert!(ForeignAssets::balance(eth_location(), AccountId::from(beneficiary_acc_bytes)) > 0);
 	});
 
 	ensure_no_assets_trapped_on_pah();
