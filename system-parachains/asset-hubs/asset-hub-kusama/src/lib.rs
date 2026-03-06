@@ -135,6 +135,7 @@ use xcm_runtime_apis::{
 };
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}

@@ -35,7 +35,7 @@ use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
 	generic,
-	traits::{BlockNumberProvider, Convert},
+	traits::{BlockNumberProvider, Convert, OpaqueKeys},
 	transaction_validity::TransactionPriority,
 	FixedPointNumber, Perquintill, SaturatedConversion,
 };
@@ -506,6 +506,18 @@ sp_runtime::impl_opaque_keys! {
 	}
 }
 
+parameter_types! {
+	// Deposit for one NextKeys entry and multiple KeyOwner entries and ExternallySetKeys.
+	pub KeyDeposit: Balance = polkadot_runtime_constants::currency::deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(
+			polkadot_runtime_constants::currency::deposit(<Runtime as pallet_session::Config>::Keys::key_ids().len() as u32,
+								<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32
+			)
+		).saturating_add(
+			polkadot_runtime_constants::currency::deposit(1, AccountId::max_encoded_len() as u32)
+		);
+}
+
 impl pallet_staking_async_rc_client::Config for Runtime {
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
@@ -514,7 +526,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type ValidatorSetExportSession = ValidatorSetExportSession;
 	type RelayChainSessionKeys = RelayChainSessionKeys;
 	type Currency = Balances;
-	type KeyDeposit = ConstU128<{ 10 * UNITS }>;
+	type KeyDeposit = KeyDeposit;
 	type WeightInfo = weights::pallet_staking_async_rc_client::WeightInfo<Runtime>;
 }
 
@@ -1370,6 +1382,15 @@ mod tests {
 					.unwrap(),
 				Some(Percent::from_percent(50)),
 			);
+		}
+
+		#[test]
+		fn session_key_deposit_at_most_61_dot() {
+			assert!(
+				<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit::get() <=
+					61 * UNITS
+			);
+			assert!(<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit::get() > 0);
 		}
 	}
 }

@@ -28,7 +28,9 @@ use frame_support::traits::tokens::imbalance::ResolveTo;
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
-use sp_runtime::{generic, transaction_validity::TransactionPriority, Perquintill};
+use sp_runtime::{
+	generic, traits::OpaqueKeys, transaction_validity::TransactionPriority, Perquintill,
+};
 use sp_staking::SessionIndex;
 use system_parachains_common::apis::InflationInfo;
 use xcm::v5::prelude::*;
@@ -444,6 +446,18 @@ sp_runtime::impl_opaque_keys! {
 	}
 }
 
+parameter_types! {
+	// Deposit for one NextKeys entry and multiple KeyOwner entries and ExternallySetKeys.
+	pub KeyDeposit: Balance = kusama_runtime_constants::currency::deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(
+			kusama_runtime_constants::currency::deposit(<Runtime as pallet_session::Config>::Keys::key_ids().len() as u32,
+								<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32
+			)
+		).saturating_add(
+			kusama_runtime_constants::currency::deposit(1, AccountId::max_encoded_len() as u32)
+		);
+}
+
 impl pallet_staking_async_rc_client::Config for Runtime {
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
@@ -452,7 +466,7 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type ValidatorSetExportSession = ValidatorSetExportSession;
 	type RelayChainSessionKeys = RelayChainSessionKeys;
 	type Currency = Balances;
-	type KeyDeposit = ConstU128<{ UNITS }>;
+	type KeyDeposit = KeyDeposit;
 	type WeightInfo = weights::pallet_staking_async_rc_client::WeightInfo<Runtime>;
 }
 
@@ -919,6 +933,14 @@ mod tests {
 					.unwrap(),
 				Some(Percent::from_percent(50)),
 			);
+		}
+
+		#[test]
+		fn session_key_deposit_at_most_three_ksm() {
+			assert!(
+				<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit::get() <= 3 * UNITS
+			);
+			assert!(<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit::get() > 0);
 		}
 	}
 }
