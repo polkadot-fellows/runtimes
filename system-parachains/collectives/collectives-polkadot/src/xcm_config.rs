@@ -14,16 +14,16 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balance, Balances, CollatorSelection, Fellows, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Architects, Balance, Balances, CollatorSelection, Fellows,
+	ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
+		EnsureOrigin, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -33,8 +33,11 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
-use sp_runtime::traits::AccountIdConversion;
+use polkadot_runtime_constants::{
+	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
+use sp_runtime::traits::{AccountIdConversion, TryConvert};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -43,10 +46,10 @@ use xcm_builder::{
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete, LocatableAssetId,
-	LocationAsSuperuser, OriginToPluralityVoice, ParentIsPreset, RelayChainAsNative,
-	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	LocationAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
@@ -139,10 +142,9 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
+/// Matches the relay chain or pluralities on the relay chain.
 pub struct ParentOrParentsPlurality;
 impl Contains<Location> for ParentOrParentsPlurality {
 	fn contains(location: &Location) -> bool {
@@ -150,10 +152,11 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+/// Matches local pluralities and ranks inside those pluralities.
 pub struct LocalPlurality;
 impl Contains<Location> for LocalPlurality {
 	fn contains(loc: &Location) -> bool {
-		matches!(loc.unpack(), (0, [Plurality { .. }]))
+		matches!(loc.unpack(), (0, [Plurality { .. }]) | (0, [Plurality { .. }, GeneralIndex(_)]))
 	}
 }
 
@@ -285,13 +288,46 @@ parameter_types! {
 		RuntimeHoldReason::PolkadotXcm(pallet_xcm::HoldReason::AuthorizeAlias);
 }
 
-/// Type to convert the Fellows origin to a Plurality `Location` value.
-pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
+/// Converts the Fellows origin to an XCM `Location` representing the Technical body (Fellowship)
+/// refined to rank 3 (Fellows): `[Plurality { id: Technical, part: Voice },
+/// GeneralIndex(FELLOWS_RANK)]`.
+pub struct FellowsToLocation;
+impl TryConvert<RuntimeOrigin, Location> for FellowsToLocation {
+	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
+		let _ = Fellows::try_origin(o)?;
+		Ok(Location {
+			parents: 0,
+			interior: [
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(FELLOWS_RANK),
+			]
+			.into(),
+		})
+	}
+}
+
+/// Converts the Architects origin to an XCM `Location` representing the Technical body (Fellowship)
+/// refined to rank 4 (Architects): `[Plurality { id: Technical, part: Voice },
+/// GeneralIndex(ARCHITECTS_RANK)]`.
+pub struct ArchitectsToLocation;
+impl TryConvert<RuntimeOrigin, Location> for ArchitectsToLocation {
+	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
+		let _ = Architects::try_origin(o)?;
+		Ok(Location {
+			parents: 0,
+			interior: [
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(ARCHITECTS_RANK),
+			]
+			.into(),
+		})
+	}
+}
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// We only allow the Fellows to send (arbitrary) messages.
-	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, FellowsToPlurality>;
+	// We allow the Fellows and Architects to send messages.
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, (FellowsToLocation, ArchitectsToLocation)>;
 	type XcmRouter = XcmRouter;
 	// Any local signed origin can execute XCM messages.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
