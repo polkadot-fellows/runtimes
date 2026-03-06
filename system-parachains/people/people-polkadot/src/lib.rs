@@ -329,11 +329,6 @@ impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
-parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
-}
-
 /// Privileged origin that represents Root or Fellows pluralistic body.
 pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;

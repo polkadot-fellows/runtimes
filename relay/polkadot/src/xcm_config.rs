@@ -32,7 +32,7 @@ use polkadot_runtime_common::{
 	ToAuthor,
 };
 use polkadot_runtime_constants::{
-	currency::CENTS, fellowship::FELLOWS_RANK, system_parachain::*,
+	currency::CENTS, fellowship::IsFellowshipVoice, system_parachain::*,
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use sp_core::ConstU32;
@@ -63,8 +63,6 @@ parameter_types! {
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -172,21 +170,7 @@ pub type TrustedTeleporters = (
 	Case<DotForPeople>,
 );
 
-pub struct Fellows;
-impl Contains<Location> for Fellows {
-	fn contains(loc: &Location) -> bool {
-		match loc.unpack() {
-			// New format with rank qualifier.
-			(
-				0,
-				[Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }, GeneralIndex(rank)],
-			) if *rank >= FELLOWS_RANK => true,
-			// Legacy format without rank qualifier (transitional compatibility).
-			(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }]) => true,
-			_ => false,
-		}
-	}
-}
+pub type Fellows = IsFellowshipVoice<CollectivesLocation>;
 
 pub struct OnlyParachains;
 impl Contains<Location> for OnlyParachains {

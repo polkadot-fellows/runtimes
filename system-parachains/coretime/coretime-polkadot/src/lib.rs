@@ -382,8 +382,6 @@ pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
 parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = AssetId(DotRelayLocation::get());
 	/// The base fee for the message delivery fees.

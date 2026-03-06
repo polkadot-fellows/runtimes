@@ -34,7 +34,7 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{fellowship::FELLOWS_RANK, system_parachain};
+use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
 use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -153,24 +153,7 @@ impl Contains<Location> for ParentOrParentsPlurality {
 }
 
 /// A location matching the Core Technical Fellowship.
-pub struct FellowsPlurality;
-impl Contains<Location> for FellowsPlurality {
-	fn contains(location: &Location) -> bool {
-		match location.unpack() {
-			// New format with rank qualifier.
-			(
-				1,
-				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }, GeneralIndex(rank)],
-			) if *rank >= FELLOWS_RANK => true,
-			// Legacy format without rank qualifier (transitional compatibility).
-			(
-				1,
-				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }],
-			) => true,
-			_ => false,
-		}
-	}
-}
+pub type FellowsPlurality = IsFellowshipVoice<FellowshipLocation>;
 
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<

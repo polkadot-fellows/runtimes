@@ -416,6 +416,73 @@ fn fellowship_architects_aliases_into_fellowship_treasury_and_salary() {
 }
 
 #[test]
+fn higher_rank_can_alias_into_fellowship_treasury_and_salary() {
+	AssetHubPolkadot::execute_with(|| {
+		let collectives_para_id = CollectivesPolkadot::para_id().into();
+
+		// Rank 7 (Masters) origin — should be able to alias since rank >= ARCHITECTS_RANK (4).
+		let masters_origin = Location::new(
+			1,
+			X3([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(7),
+			]
+			.into()),
+		);
+
+		let fellowship_treasury_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		let fellowship_salary_target = Location::new(
+			1,
+			X2([
+				Parachain(collectives_para_id),
+				PalletInstance(
+					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
+				),
+			]
+			.into()),
+		);
+
+		// Masters (rank 7) can alias into Fellowship Treasury.
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&masters_origin,
+			&fellowship_treasury_target,
+		));
+
+		// Masters (rank 7) can alias into Fellowship Salary.
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&masters_origin,
+			&fellowship_salary_target,
+		));
+
+		// Rank 5 can also alias.
+		let rank5_origin = Location::new(
+			1,
+			X3([
+				Parachain(collectives_para_id),
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(5),
+			]
+			.into()),
+		);
+		assert!(<XcmConfig as xcm_executor::Config>::Aliasers::contains(
+			&rank5_origin,
+			&fellowship_treasury_target,
+		));
+	});
+}
+
+#[test]
 fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 	AssetHubPolkadot::execute_with(|| {
 		let collectives_para_id = CollectivesPolkadot::para_id().into();
@@ -443,7 +510,7 @@ fn non_architects_cannot_alias_into_fellowship_treasury_or_salary() {
 		);
 
 		// Fellows origin (rank 3) cannot alias into Fellowship Treasury or Salary
-		// (only Architects rank 4 can).
+		// (only rank 4+ can).
 		let fellows_origin = Location::new(
 			1,
 			X3([
@@ -629,12 +696,12 @@ fn architects_alias_into_fellowship_pallet(pallet_index: u8) {
 }
 
 /// Negative test: the Fellows origin (rank 3) should NOT be able to alias into the Fellowship
-/// Treasury. Only the Architects origin (rank 4+) can do so.
+/// Treasury. Only rank 4+ (Architects and above) can do so.
 ///
 /// The Fellows origin is converted to `[Plurality { Technical, Voice }, GeneralIndex(3)]` via
 /// `FellowsToLocation`. When it attempts `AliasOrigin` into the Fellowship Treasury,
 /// `FellowshipArchitectsAlias` rejects it because the origin has `GeneralIndex(3)` (Fellows rank)
-/// instead of `GeneralIndex(4)` (Architects rank). The XCM execution fails and balances remain
+/// which is below the required `ARCHITECTS_RANK` (4). The XCM execution fails and balances remain
 /// unchanged.
 #[test]
 fn fellowship_fellows_cannot_alias_into_treasury_via_xcm() {
@@ -681,7 +748,7 @@ fn fellowship_fellows_cannot_alias_into_treasury_via_xcm() {
 	//
 	// The message then:
 	// 1. UnpaidExecution — allowed because Fellows matches FellowshipEntities
-	// 2. AliasOrigin — REJECTED: FellowshipArchitectsAlias requires GeneralIndex(ARCHITECTS_RANK)
+	// 2. AliasOrigin — REJECTED: FellowshipArchitectsAlias requires rank >= ARCHITECTS_RANK (4)
 	// 3. XCM execution fails, WithdrawAsset + DepositAsset never execute
 	CollectivesPolkadot::execute_with(|| {
 		let fellows_origin = collectives_polkadot_runtime::RuntimeOrigin::from(

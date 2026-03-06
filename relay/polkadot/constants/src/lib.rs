@@ -146,24 +146,22 @@ pub mod fellowship {
 	impl<Prefix: Get<Location>> Contains<Location> for IsFellowshipVoice<Prefix> {
 		fn contains(l: &Location) -> bool {
 			let prefix = Prefix::get();
-			match l.match_and_split(&prefix) {
-				// Legacy format: last junction is Plurality{Technical, Voice}
-				Some(Plurality { id: BodyId::Technical, part: BodyPart::Voice }) => true,
-				// New format: extend prefix with Plurality and check for GeneralIndex(rank)
-				_ => {
-					let mut extended = prefix;
-					if extended
-						.append_with(Plurality { id: BodyId::Technical, part: BodyPart::Voice })
-						.is_ok()
-					{
-						matches!(
-							l.match_and_split(&extended),
-							Some(GeneralIndex(rank)) if *rank >= FELLOWS_RANK
-						)
-					} else {
-						false
-					}
-				},
+			let (prefix_parents, prefix_junctions) = prefix.unpack();
+			let (parents, junctions) = l.unpack();
+			if parents != prefix_parents {
+				return false;
+			}
+			if !junctions.starts_with(prefix_junctions) {
+				return false;
+			}
+			match &junctions[prefix_junctions.len()..] {
+				// Legacy format: just Plurality{Technical, Voice}
+				[Plurality { id: BodyId::Technical, part: BodyPart::Voice }] => true,
+				// New format: Plurality{Technical, Voice} + GeneralIndex(rank >= FELLOWS_RANK)
+				[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)]
+					if *rank >= FELLOWS_RANK =>
+					true,
+				_ => false,
 			}
 		}
 	}
@@ -328,6 +326,7 @@ mod tests {
 	use super::{
 		currency::{CENTS, DOLLARS, MILLICENTS},
 		fee::WeightToFee,
+		fellowship::{IsFellowshipVoice, ARCHITECTS_RANK, FELLOWS_RANK},
 		proxy::ProxyType,
 		time::YEARS,
 	};
@@ -396,5 +395,90 @@ mod tests {
 	fn years_constant_does_not_round() {
 		// Years should be 60 * 60 * 24 * 365.25 / 6 = 5259600
 		assert_eq!(YEARS, 5259600);
+	}
+
+	mod is_fellowship_voice {
+		use super::*;
+		use frame_support::{parameter_types, traits::Contains};
+		use xcm::latest::prelude::*;
+
+		parameter_types! {
+			pub Prefix: Location = Location::new(1, [Parachain(1001)]);
+		}
+
+		type TestFilter = IsFellowshipVoice<Prefix>;
+
+		#[test]
+		fn matches_legacy_format() {
+			let loc = Location::new(
+				1,
+				[Parachain(1001), Plurality { id: BodyId::Technical, part: BodyPart::Voice }],
+			);
+			assert!(TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn matches_new_format_fellows_rank() {
+			let loc = Location::new(
+				1,
+				[
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(FELLOWS_RANK),
+				],
+			);
+			assert!(TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn matches_new_format_architects_rank() {
+			let loc = Location::new(
+				1,
+				[
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(ARCHITECTS_RANK),
+				],
+			);
+			assert!(TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_insufficient_rank() {
+			let loc = Location::new(
+				1,
+				[
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(2),
+				],
+			);
+			assert!(!TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_wrong_body_id() {
+			let loc = Location::new(
+				1,
+				[Parachain(1001), Plurality { id: BodyId::Administration, part: BodyPart::Voice }],
+			);
+			assert!(!TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_wrong_prefix() {
+			let loc = Location::new(
+				1,
+				[Parachain(9999), Plurality { id: BodyId::Technical, part: BodyPart::Voice }],
+			);
+			assert!(!TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_wrong_parents() {
+			let loc =
+				Location::new(0, [Plurality { id: BodyId::Technical, part: BodyPart::Voice }]);
+			assert!(!TestFilter::contains(&loc));
+		}
 	}
 }

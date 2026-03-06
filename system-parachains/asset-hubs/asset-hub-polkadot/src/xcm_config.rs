@@ -51,7 +51,7 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{
-	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
+	fellowship::{IsFellowshipVoice, ARCHITECTS_RANK},
 	system_parachain,
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
@@ -257,39 +257,15 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Location type to determine the Technical Fellowship related
-/// pallets for use in XCM.
-pub struct FellowshipEntities;
-impl Contains<Location> for FellowshipEntities {
-	fn contains(location: &Location) -> bool {
-		match location.unpack() {
-			// New format with rank qualifier.
-			(
-				1,
-				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }, GeneralIndex(rank)],
-			) if *rank >= FELLOWS_RANK => true,
-			// Legacy format without rank qualifier (transitional compatibility).
-			(
-				1,
-				[Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }],
-			) => true,
-			// Fellowship salary and treasury pallets.
-			(
-				1,
-				[Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(
-					collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX,
-				)],
-			) |
-			(
-				1,
-				[Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(
-					collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
-				)],
-			) => true,
-			_ => false,
-		}
-	}
-}
+/// Location type to determine the Technical Fellowship origins for use in XCM
+/// barriers (unpaid execution) and fee waiving.
+///
+/// Note: Fellowship Treasury and Salary pallet locations are NOT included here.
+/// Those accounts are managed by the Architects origin (rank 4+) via `AliasOrigin`:
+/// the Architects send an XCM that first passes the barrier with their own plurality origin
+/// (matched here), then uses `AliasOrigin` to assume the treasury/salary pallet identity
+/// for `WithdrawAsset`/`DepositAsset`. See `FellowshipArchitectsAlias` in `TrustedAliasers`.
+pub type FellowshipEntities = IsFellowshipVoice<FellowshipLocation>;
 
 /// Location type to determine the Ambassador Collective
 /// pallets for use in XCM.
@@ -319,13 +295,13 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
-/// Allows the Fellowship Architects origin from Collectives to alias into
+/// Allows the Fellowship Architects origin (or higher rank) from Collectives to alias into
 /// the Fellowship Treasury or Fellowship Salary pallet locations.
 ///
-/// This allows the Architects track (rank 4+ Fellowship members) on the Collectives chain to
-/// manage the fellowship treasury and salary here on Asset Hub. The Architects origin is converted
-/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(ARCHITECTS_RANK)]`
-/// via `ArchitectsToLocation` before being sent over XCM.
+/// This allows rank 4+ Fellowship members (Architects, Masters, etc.) on the Collectives chain to
+/// manage the fellowship treasury and salary here on Asset Hub. The origin is converted
+/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)]`
+/// via `ArchitectsToLocation` (or equivalent) before being sent over XCM.
 pub struct FellowshipArchitectsAlias;
 impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
 	fn contains(origin: &Location, target: &Location) -> bool {
@@ -336,9 +312,9 @@ impl ContainsPair<Location, Location> for FellowshipArchitectsAlias {
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-					GeneralIndex(ARCHITECTS_RANK)
+					GeneralIndex(rank)
 				]
-			)
+			) if *rank >= ARCHITECTS_RANK
 		) && matches!(
 			target.unpack(),
 			(
