@@ -12175,6 +12175,7 @@ dependencies = [
  "sp-runtime 45.0.0",
  "sp-trie 42.0.1",
  "sp-weights",
+ "staging-xcm",
  "staging-xcm-builder",
 ]
 
