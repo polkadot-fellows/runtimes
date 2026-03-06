@@ -56,6 +56,7 @@ use parachains_common::{
 	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -328,16 +329,9 @@ impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
-parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
-}
-
 /// Privileged origin that represents Root or Fellows pluralistic body.
-pub type RootOrFellows = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
->;
+pub type RootOrFellows =
+	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
