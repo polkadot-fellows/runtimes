@@ -942,9 +942,13 @@ mod tests {
 		#[test]
 		fn session_key_deposit_at_most_three_ksm() {
 			assert!(
-				<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit::get() <= 3 * UNITS
+				<<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit as Get<u128>>::get(
+				) <= 3 * UNITS
 			);
-			assert!(<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit::get() > 0);
+			assert!(
+				<<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit as Get<u128>>::get(
+				) > 0
+			);
 		}
 	}
 }
