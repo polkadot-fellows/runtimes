@@ -20,6 +20,7 @@ sp-weights = { workspace = true }
 sp-core = { workspace = true }
 sp-trie = { workspace = true, optional = true }
 
+xcm = { workspace = true }
 xcm-builder = { workspace = true }
 
 [features]
@@ -35,6 +36,7 @@ std = [
 	"sp-runtime/std",
 	"sp-trie?/std",
 	"sp-weights/std",
+	"xcm/std",
 	"xcm-builder/std",
 ]
 fast-runtime = []

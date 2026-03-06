@@ -124,11 +124,49 @@ pub mod xcm {
 
 /// Fellowship-related constants.
 pub mod fellowship {
+	use core::marker::PhantomData;
+	use frame_support::traits::{Contains, Get};
+	use xcm::latest::prelude::*;
+
 	/// Fellowship Fellows rank (rank 3). The minimum rank with Fellowship privileges
 	/// in XCM location filters. Used with `GeneralIndex` in XCM locations.
 	pub const FELLOWS_RANK: u128 = 3;
 	/// Fellowship Architects rank (rank 4). Used with `GeneralIndex` in XCM locations.
 	pub const ARCHITECTS_RANK: u128 = 4;
+
+	/// Matches Fellowship voice locations in both legacy and new (rank-qualified) formats.
+	///
+	/// - Legacy: `[Prefix, Plurality { id: Technical, part: Voice }]`
+	/// - New: `[Prefix, Plurality { id: Technical, part: Voice }, GeneralIndex(rank)]` where `rank
+	///   >= FELLOWS_RANK`
+	///
+	/// Use this as a drop-in replacement for `IsVoiceOfBody<Prefix, FellowsBodyId>` in dispatch
+	/// origin checks to support the new rank-qualified Fellowship XCM locations.
+	pub struct IsFellowshipVoice<Prefix>(PhantomData<Prefix>);
+	impl<Prefix: Get<Location>> Contains<Location> for IsFellowshipVoice<Prefix> {
+		fn contains(l: &Location) -> bool {
+			let prefix = Prefix::get();
+			match l.match_and_split(&prefix) {
+				// Legacy format: last junction is Plurality{Technical, Voice}
+				Some(Plurality { id: BodyId::Technical, part: BodyPart::Voice }) => true,
+				// New format: extend prefix with Plurality and check for GeneralIndex(rank)
+				_ => {
+					let mut extended = prefix;
+					if extended
+						.append_with(Plurality { id: BodyId::Technical, part: BodyPart::Voice })
+						.is_ok()
+					{
+						matches!(
+							l.match_and_split(&extended),
+							Some(GeneralIndex(rank)) if *rank >= FELLOWS_RANK
+						)
+					} else {
+						false
+					}
+				},
+			}
+		}
+	}
 }
 
 /// System Parachains.
