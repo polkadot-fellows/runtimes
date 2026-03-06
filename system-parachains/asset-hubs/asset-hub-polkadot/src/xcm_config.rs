@@ -257,15 +257,38 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Location type to determine the Technical Fellowship origins for use in XCM
-/// barriers (unpaid execution) and fee waiving.
-///
-/// Note: Fellowship Treasury and Salary pallet locations are NOT included here.
-/// Those accounts are managed by the Architects origin (rank 4+) via `AliasOrigin`:
-/// the Architects send an XCM that first passes the barrier with their own plurality origin
-/// (matched here), then uses `AliasOrigin` to assume the treasury/salary pallet identity
-/// for `WithdrawAsset`/`DepositAsset`. See `FellowshipArchitectsAlias` in `TrustedAliasers`.
-pub type FellowshipEntities = IsFellowshipVoice<FellowshipLocation>;
+/// Fellowship Treasury and Salary pallet locations.
+/// These pallets send XCM directly via `PayOverXcm` for treasury payouts and salary payments.
+pub struct FellowshipTreasuryPaymasterEntities;
+impl Contains<Location> for FellowshipTreasuryPaymasterEntities {
+	fn contains(location: &Location) -> bool {
+		matches!(
+			location.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
+					)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+					)
+				]
+			)
+		)
+	}
+}
+
+/// Location types for Technical Fellowship origins in XCM barriers and fee waiving.
+/// Includes both the Fellowship voice origins (for governance) and the Treasury/Salary
+/// pallet origins (for `PayOverXcm` payouts).
+pub type FellowshipEntities = (IsFellowshipVoice<FellowshipLocation>, FellowshipTreasuryPaymasterEntities);
 
 /// Location type to determine the Ambassador Collective
 /// pallets for use in XCM.
