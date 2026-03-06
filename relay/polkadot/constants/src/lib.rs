@@ -112,13 +112,9 @@ pub mod xcm {
 		// Preallocated for the Root body.
 		#[allow(dead_code)]
 		const ROOT_INDEX: u32 = 0;
-		/// The FellowshipAdmin OpenGov body index. Used with `Plurality { id: BodyId::Index(..), ..
-		/// }`.
+		/// The FellowshipAdmin OpenGov body index.
+		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
 		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
-		// The body corresponding to the Treasurer OpenGov track.
-		#[deprecated = "Will be removed after August 2024; Use `xcm::latest::BodyId::Treasury` \
-			instead"]
-		pub const TREASURER_INDEX: u32 = 2;
 	}
 }
 
