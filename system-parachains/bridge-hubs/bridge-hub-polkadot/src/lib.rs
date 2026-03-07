@@ -73,6 +73,7 @@ use frame_system::{
 	EnsureRoot,
 };
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
@@ -412,8 +413,6 @@ impl pallet_message_queue::Config for Runtime {
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = AssetId(xcm_config::DotRelayLocation::get());
 	/// The base fee for the message delivery fees.
@@ -422,10 +421,8 @@ parameter_types! {
 }
 
 /// Privileged origin that represents Root or Fellows.
-pub type RootOrFellows = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
->;
+pub type RootOrFellows =
+	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
 pub type PriceForSiblingParachainDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
 	FeeAssetId,

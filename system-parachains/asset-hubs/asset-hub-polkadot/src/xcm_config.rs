@@ -50,7 +50,11 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{system_parachain, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use polkadot_runtime_constants::{
+	fellowship::{IsFellowshipVoice, ARCHITECTS_RANK},
+	system_parachain,
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;
 use xcm::latest::prelude::*;
@@ -253,20 +257,14 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Location type to determine the Technical Fellowship related
-/// pallets for use in XCM.
-pub struct FellowshipEntities;
-impl Contains<Location> for FellowshipEntities {
+/// Fellowship Treasury and Salary pallet locations.
+/// These pallets send XCM directly via `PayOverXcm` for treasury payouts and salary payments.
+pub struct FellowshipTreasuryPaymasterEntities;
+impl Contains<Location> for FellowshipTreasuryPaymasterEntities {
 	fn contains(location: &Location) -> bool {
 		matches!(
 			location.unpack(),
 			(
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. }
-				]
-			) | (
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
@@ -286,6 +284,12 @@ impl Contains<Location> for FellowshipEntities {
 		)
 	}
 }
+
+/// Location types for Technical Fellowship origins in XCM barriers and fee waiving.
+/// Includes both the Fellowship voice origins (for governance) and the Treasury/Salary
+/// pallet origins (for `PayOverXcm` payouts).
+pub type FellowshipEntities =
+	(IsFellowshipVoice<FellowshipLocation>, FellowshipTreasuryPaymasterEntities);
 
 /// Location type to determine the Ambassador Collective
 /// pallets for use in XCM.
@@ -308,6 +312,49 @@ impl Contains<Location> for AmbassadorEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::AMBASSADOR_TREASURY_PALLET_INDEX
+					)
+				]
+			)
+		)
+	}
+}
+
+/// Allows the Fellowship Architects origin (or higher rank) from Collectives to alias into
+/// the Fellowship Treasury or Fellowship Salary pallet locations.
+///
+/// This allows rank 4+ Fellowship members (Architects, Masters, etc.) on the Collectives chain to
+/// manage the fellowship treasury and salary here on Asset Hub. The origin is converted
+/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)]`
+/// via `ArchitectsToLocation` (or equivalent) before being sent over XCM.
+pub struct FellowshipArchitectsAliases;
+impl ContainsPair<Location, Location> for FellowshipArchitectsAliases {
+	fn contains(origin: &Location, target: &Location) -> bool {
+		matches!(
+			origin.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(rank)
+				]
+			) if *rank >= ARCHITECTS_RANK
+		) && matches!(
+			target.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+					)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
 					)
 				]
 			)
@@ -413,10 +460,12 @@ impl Contains<Location> for KusamaGlobalConsensus {
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow origins explicitly authorized by the alias target location.
 /// - Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
+/// - Allow Technical Fellowship Architects to alias into Fellowship Treasury and Salary pallets.
 pub type TrustedAliasers = (
 	AliasChildLocation,
 	AuthorizedAliasers<Runtime>,
 	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
+	FellowshipArchitectsAliases,
 );
 
 pub struct XcmConfig;

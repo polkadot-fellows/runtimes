@@ -182,9 +182,11 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{
 	claims as pallet_claims, prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}
@@ -852,8 +854,6 @@ impl pallet_message_queue::Config for Runtime {
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = AssetId(xcm_config::DotLocation::get());
 	/// The base fee for the message delivery fees.
@@ -886,10 +886,8 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	// need to set the page size larger than that until we reduce the channel size on-chain.
 	type MaxPageSize = ConstU32<{ 103 * 1024 }>;
 	type MaxInboundSuspended = sp_core::ConstU32<1_000>;
-	type ControllerOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-	>;
+	type ControllerOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
 }
@@ -1410,10 +1408,8 @@ impl pallet_ah_ops::Config for Runtime {
 	type AssetId = Location;
 	type RelevantAssets = RelevantAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type MigrateOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-	>;
+	type MigrateOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
@@ -1430,10 +1426,8 @@ impl pallet_ah_migrator::Config for Runtime {
 	type PortableHoldReason = pallet_rc_migrator::types::PortableHoldReason;
 	type PortableFreezeReason = pallet_rc_migrator::types::PortableFreezeReason;
 	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-	>;
+	type AdminOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type Currency = Balances;
 	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type TreasuryPaymaster = treasury::TreasuryPaymaster;
@@ -1846,9 +1840,9 @@ mod benches {
 			[AccountId32 { network: None, id: account.into() }].into()
 		}
 
-		fn generate_session_keys() -> Vec<u8> {
+		fn generate_session_keys_and_proof(_owner: Self::AccountId) -> (Vec<u8>, Vec<u8>) {
 			use staking::RelayChainSessionKeys;
-			RelayChainSessionKeys::generate(None)
+			(RelayChainSessionKeys::generate(None), vec![])
 		}
 
 		fn setup_validator() -> Self::AccountId {
@@ -1856,8 +1850,8 @@ mod benches {
 			use frame_support::traits::fungible::Mutate;
 
 			let stash: Self::AccountId = account("validator", 0, 0);
-			// Must be >= 2 * MinSetKeysBond (10_000 DOT) since we bond half.
-			let balance = 20_000 * UNITS;
+			// Must be >= 2 * KeyDeposit (10 DOT) since we bond half.
+			let balance = 100 * UNITS;
 
 			let _ = Balances::mint_into(&stash, balance);
 
@@ -2747,7 +2741,7 @@ impl pallet_state_trie_migration::Config for Runtime {
 	// An origin that can control the whole pallet: Should be a Fellowship member or the controller
 	// of the migration.
 	type ControlOrigin = EitherOfDiverse<
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+		EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 		EnsureSignedBy<MigControllerRoot, AccountId>,
 	>;
 	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
@@ -2767,7 +2761,11 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::traits::Zero;
+	use frame_support::{assert_noop, hypothetically_ok};
+	use sp_runtime::{
+		traits::{Dispatchable, Zero},
+		DispatchError,
+	};
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
@@ -2895,6 +2893,7 @@ mod tests {
 		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -3014,6 +3013,7 @@ mod tests {
 		assert!(ProxyType::Staking.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -3042,6 +3042,45 @@ mod tests {
 			proxy_type: ProxyType::Any,
 			delay: 0,
 		})));
+	}
+
+	#[test]
+	fn epmb_manage_origin_good() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// pretend AHM is done to disable its call filter
+			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
+				pallet_ah_migrator::MigrationStage::MigrationDone,
+			);
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::set(0u32.into());
+
+			let call: RuntimeCall = pallet_election_provider_multi_block::Call::manage {
+				op: pallet_election_provider_multi_block::ManagerOperation::ForceRotateRound
+			}.into();
+
+			// unsigned cannot call
+			assert_noop!(call.clone().dispatch(RuntimeOrigin::none()), DispatchError::BadOrigin);
+
+			// signed cannot call
+			let alice = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+			assert_noop!(call.clone().dispatch(alice), DispatchError::BadOrigin);
+
+			// root could call
+			hypothetically_ok!(call.clone().dispatch(RuntimeOrigin::root()));
+
+			// try_successful_origin is feature gated
+			#[cfg(feature = "runtime-benchmarks")]
+			{
+				// manager origin could call
+				let manager: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
+				assert_eq!(&manager.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
+				hypothetically_ok!(call.clone().dispatch(manager));
+
+				// admin origin could call
+				let admin: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
+				assert_eq!(&admin.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
+				hypothetically_ok!(call.dispatch(admin));
+			}
+		});
 	}
 
 	#[test]
