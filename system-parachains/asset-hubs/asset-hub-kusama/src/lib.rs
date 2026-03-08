@@ -135,6 +135,7 @@ use xcm_runtime_apis::{
 };
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}
@@ -1956,9 +1957,9 @@ mod benches {
 			[AccountId32 { network: None, id: account.into() }].into()
 		}
 
-		fn generate_session_keys() -> Vec<u8> {
+		fn generate_session_keys_and_proof(_owner: Self::AccountId) -> (Vec<u8>, Vec<u8>) {
 			use staking::RelayChainSessionKeys;
-			RelayChainSessionKeys::generate(None)
+			(RelayChainSessionKeys::generate(None), vec![])
 		}
 
 		fn setup_validator() -> Self::AccountId {
@@ -1966,8 +1967,8 @@ mod benches {
 			use frame_support::traits::fungible::Mutate;
 
 			let stash: Self::AccountId = account("validator", 0, 0);
-			// Must be >= 2 * MinSetKeysBond (250 KSM) since we bond half.
-			let balance = 10_000 * UNITS;
+			// Must be >= 2 * KeyDeposit (1 KSM) since we bond half.
+			let balance = 100 * UNITS;
 
 			let _ = Balances::mint_into(&stash, balance);
 
@@ -2856,7 +2857,11 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::traits::Zero;
+	use frame_support::{assert_noop, hypothetically_ok};
+	use sp_runtime::{
+		traits::{Dispatchable, Zero},
+		DispatchError,
+	};
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = KsmWeightToFee<Runtime>;
@@ -2984,6 +2989,7 @@ mod tests {
 		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -3103,6 +3109,7 @@ mod tests {
 		assert!(ProxyType::Staking.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -3131,6 +3138,45 @@ mod tests {
 			proxy_type: ProxyType::Any,
 			delay: 0,
 		})));
+	}
+
+	#[test]
+	fn epmb_manage_origin_good() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// pretend AHM is done to disable its call filter
+			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
+				pallet_ah_migrator::MigrationStage::MigrationDone,
+			);
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::set(0u32.into());
+
+			let call: RuntimeCall = pallet_election_provider_multi_block::Call::manage {
+				op: pallet_election_provider_multi_block::ManagerOperation::ForceRotateRound
+			}.into();
+
+			// unsigned cannot call
+			assert_noop!(call.clone().dispatch(RuntimeOrigin::none()), DispatchError::BadOrigin);
+
+			// signed cannot call
+			let alice = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+			assert_noop!(call.clone().dispatch(alice), DispatchError::BadOrigin);
+
+			// root could call
+			hypothetically_ok!(call.clone().dispatch(RuntimeOrigin::root()));
+
+			// try_successful_origin is feature gated
+			#[cfg(feature = "runtime-benchmarks")]
+			{
+				// manager origin could call
+				let manager: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
+				assert_eq!(&manager.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
+				hypothetically_ok!(call.clone().dispatch(manager));
+
+				// admin origin could call
+				let admin: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
+				assert_eq!(&admin.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
+				hypothetically_ok!(call.dispatch(admin));
+			}
+		});
 	}
 
 	#[test]

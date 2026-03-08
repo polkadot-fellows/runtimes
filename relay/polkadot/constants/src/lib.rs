@@ -112,12 +112,54 @@ pub mod xcm {
 		// Preallocated for the Root body.
 		#[allow(dead_code)]
 		const ROOT_INDEX: u32 = 0;
-		// The bodies corresponding to the Polkadot OpenGov Origins.
+		/// The FellowshipAdmin OpenGov body index.
+		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
 		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
-		// The body corresponding to the Treasurer OpenGov track.
-		#[deprecated = "Will be removed after August 2024; Use `xcm::latest::BodyId::Treasury` \
-			instead"]
-		pub const TREASURER_INDEX: u32 = 2;
+	}
+}
+
+/// Fellowship-related constants.
+pub mod fellowship {
+	use core::marker::PhantomData;
+	use frame_support::traits::{Contains, Get};
+	use xcm::latest::prelude::*;
+
+	/// Fellowship Fellows rank (rank 3). The minimum rank with Fellowship privileges
+	/// in XCM location filters. Used with `GeneralIndex` in XCM locations.
+	pub const FELLOWS_RANK: u128 = 3;
+	/// Fellowship Architects rank (rank 4). Used with `GeneralIndex` in XCM locations.
+	pub const ARCHITECTS_RANK: u128 = 4;
+
+	/// Matches Fellowship voice locations in both legacy and new (rank-qualified) formats.
+	///
+	/// - Legacy: `[Prefix, Plurality { id: Technical, part: Voice }]`
+	/// - New: `[Prefix, Plurality { id: Technical, part: Voice }, GeneralIndex(rank)]` where `rank
+	///   >= FELLOWS_RANK`
+	///
+	/// Use this as a drop-in replacement for `IsVoiceOfBody<Prefix, FellowsBodyId>` in dispatch
+	/// origin checks to support the new rank-qualified Fellowship XCM locations.
+	pub struct IsFellowshipVoice<Prefix>(PhantomData<Prefix>);
+	impl<Prefix: Get<Location>> Contains<Location> for IsFellowshipVoice<Prefix> {
+		fn contains(l: &Location) -> bool {
+			let prefix = Prefix::get();
+			let (prefix_parents, prefix_junctions) = prefix.unpack();
+			let (parents, junctions) = l.unpack();
+			if parents != prefix_parents {
+				return false;
+			}
+			if !junctions.starts_with(prefix_junctions) {
+				return false;
+			}
+			match &junctions[prefix_junctions.len()..] {
+				// Legacy format: just Plurality{Technical, Voice}
+				[Plurality { id: BodyId::Technical, part: BodyPart::Voice }] => true,
+				// New format: Plurality{Technical, Voice} + GeneralIndex(rank >= FELLOWS_RANK)
+				[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)]
+					if *rank >= FELLOWS_RANK =>
+					true,
+				_ => false,
+			}
+		}
 	}
 }
 
@@ -280,6 +322,7 @@ mod tests {
 	use super::{
 		currency::{CENTS, DOLLARS, MILLICENTS},
 		fee::WeightToFee,
+		fellowship::{IsFellowshipVoice, ARCHITECTS_RANK, FELLOWS_RANK},
 		proxy::ProxyType,
 		time::YEARS,
 	};
@@ -348,5 +391,90 @@ mod tests {
 	fn years_constant_does_not_round() {
 		// Years should be 60 * 60 * 24 * 365.25 / 6 = 5259600
 		assert_eq!(YEARS, 5259600);
+	}
+
+	mod is_fellowship_voice {
+		use super::*;
+		use frame_support::{parameter_types, traits::Contains};
+		use xcm::latest::prelude::*;
+
+		parameter_types! {
+			pub Prefix: Location = Location::new(1, [Parachain(1001)]);
+		}
+
+		type TestFilter = IsFellowshipVoice<Prefix>;
+
+		#[test]
+		fn matches_legacy_format() {
+			let loc = Location::new(
+				1,
+				[Parachain(1001), Plurality { id: BodyId::Technical, part: BodyPart::Voice }],
+			);
+			assert!(TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn matches_new_format_fellows_rank() {
+			let loc = Location::new(
+				1,
+				[
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(FELLOWS_RANK),
+				],
+			);
+			assert!(TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn matches_new_format_architects_rank() {
+			let loc = Location::new(
+				1,
+				[
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(ARCHITECTS_RANK),
+				],
+			);
+			assert!(TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_insufficient_rank() {
+			let loc = Location::new(
+				1,
+				[
+					Parachain(1001),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(2),
+				],
+			);
+			assert!(!TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_wrong_body_id() {
+			let loc = Location::new(
+				1,
+				[Parachain(1001), Plurality { id: BodyId::Administration, part: BodyPart::Voice }],
+			);
+			assert!(!TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_wrong_prefix() {
+			let loc = Location::new(
+				1,
+				[Parachain(9999), Plurality { id: BodyId::Technical, part: BodyPart::Voice }],
+			);
+			assert!(!TestFilter::contains(&loc));
+		}
+
+		#[test]
+		fn rejects_wrong_parents() {
+			let loc =
+				Location::new(0, [Plurality { id: BodyId::Technical, part: BodyPart::Voice }]);
+			assert!(!TestFilter::contains(&loc));
+		}
 	}
 }
