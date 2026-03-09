@@ -4,6 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Added
+- Migration for claiming trapped funds in nomination pool in PAH [1104](https://github.com/polkadot-fellows/runtimes/pull/1104)
+
 ## [2.1.0] 09.03.2026
 
 - Collectives Polkadot - Change Secretary Salary Location [1067](https://github.com/polkadot-fellows/runtimes/pull/1067)
