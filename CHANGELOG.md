@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- Revert hard cap enactment block number back to [30_349_908](https://polkadot.subscan.io/block/30349908) ([TODO](https://github.com/polkadot-fellows/runtimes/pull/ TODO))
+
 ## [2.1.0] 09.03.2026
 
 - Collectives Polkadot - Change Secretary Salary Location [1067](https://github.com/polkadot-fellows/runtimes/pull/1067)
