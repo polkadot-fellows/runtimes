@@ -10084,9 +10084,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-fast-unstake"
-version = "44.0.0"
+version = "44.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d45d60eb50bc0c178b83882b7195ac471edd3b1824f2c0dede385d943711248"
+checksum = "355110d0be6b3f0cd8c87171fd6658d3e9dd4c407ada9e63bfbf53e0cee85b75"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -10363,9 +10363,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools"
-version = "43.0.2"
+version = "43.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58cdf70b0ac3073ab3d439ebe051bbabb22c91113314bde8069b215afae0473e"
+checksum = "483e794532aaa7af4dbff671e4aff1d08a86a7b80ffdab6f824f613947cd5281"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -10382,9 +10382,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools-benchmarking"
-version = "43.0.0"
+version = "43.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dda24fadfc72bac3fe0942d5a3d7e1bd345c5787549598b58b6ca1bcb959a250"
+checksum = "dde9cb6c00dd2764e23541977d95ad3fccd450a275bbc7d6c2f257c230d4001a"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10810,9 +10810,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking"
-version = "45.0.0"
+version = "45.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c41b382a779e753eb29cf39e89d97c9cd920d181a9448f60e82754195ddbab48"
+checksum = "2e13e8ac070c030c2502bf36500c69d0d1d559db62573eabc81f2614e32d352c"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10833,9 +10833,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0cfdf9b997aac730403dd16dc327fe90cbe57cbf57057dab824bdfe13d3ce67"
+checksum = "1983c4fdcdf5437c5f00fcf17cc1b00b47f09c57ef4abd79dd7cec79dc93e098"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -16899,9 +16899,9 @@ dependencies = [
 
 [[package]]
 name = "sp-staking"
-version = "42.1.0"
+version = "42.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56facdf4a950590afa2aa45d2f4d8acac77dfa486f9124e4977c55f6b8ecac90"
+checksum = "11c6b50d5b2b607d6d9d87c71ba2828143f8497be28922545a06d470fe4a4939"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
