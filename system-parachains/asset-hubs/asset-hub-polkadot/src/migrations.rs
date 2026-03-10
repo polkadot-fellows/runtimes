@@ -15,8 +15,21 @@
 
 //! The runtime migrations per release.
 
+frame_support::parameter_types! {
+	// Account `15jAYzPdLorBGAj4LLGaqohpzpw4mEohVkzszNpaBPbnDaXn` (Nomination Pool #296)
+	// has trapped funds on PAH. See issue: https://github.com/paritytech/polkadot-sdk/issues/10993.
+	pub TrappedBalanceMember: crate::AccountId = crate::AccountId::from(
+		hex_literal::hex!("d11964e74f0571827c231ee07fc7268fc835499db3a0089c9e6f02c2435f50fc")
+	);
+}
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = ();
+pub type Unreleased = (
+	// no-op if member has no trapped balance, so second run is safe.
+	pallet_nomination_pools::migration::unversioned::ClaimTrappedBalance<
+		crate::Runtime,
+		TrappedBalanceMember,
+	>,
+);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
