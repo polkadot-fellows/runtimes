@@ -44,6 +44,7 @@ jobs:
     env:
       PROD_FEATURES: "--features on-chain-release-build"
       TRY_RUNTIME_LOGGING_FEATURES: "--features try-runtime,metadata-hash"
+      FAST_RUNTIME_LOGGING_FEATURES: "--features fast-runtime,metadata-hash"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -101,6 +102,34 @@ jobs:
         with:
           name: ${{ matrix.runtime.name }}-compact
           path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
+
+      - name: Check if fast-runtime is supported
+        id: check_fast_runtime
+        run: |
+          if grep -q 'fast-runtime' ${{ matrix.runtime.path }}/Cargo.toml; then
+            echo "fast-runtime-supported=true" >> $GITHUB_OUTPUT
+          else
+            echo "fast-runtime-supported=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build ${{ matrix.runtime.name }} (fast-runtime & logging)
+        if: steps.check_fast_runtime.outputs.fast-runtime-supported == 'true'
+        id: srtool_fast
+        uses: paritytech/srtool-actions@v0.9.4
+        env:
+          BUILD_OPTS: ${{ env.FAST_RUNTIME_LOGGING_FEATURES }}
+        with:
+          chain: ${{ matrix.runtime.name }}
+          package: ${{ matrix.runtime.package }}
+          runtime_dir: ${{ matrix.runtime.path }}
+          profile: "release"
+
+      - name: Upload ${{ matrix.runtime.name }} Wasm (fast-runtime & logging)
+        if: steps.check_fast_runtime.outputs.fast-runtime-supported == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}-fast
+          path: ${{ steps.srtool_fast.outputs.wasm_compressed }}
 
   publish-release:
     runs-on: self-hosted
@@ -237,4 +266,27 @@ jobs:
           upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
           asset_path: runtimes-with-try-runtime-and-logging.zip
           asset_name: runtimes-with-try-runtime-and-logging.zip
+          asset_content_type: application/zip
+
+  package-fast-runtime-wasms:
+    needs: [ build-runtimes, publish-release ]
+    runs-on: self-hosted
+    steps:
+      - name: Download fast-runtime artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-fast'
+
+      - name: Create fast-runtime runtimes archive
+        run: |
+          zip -j runtimes-with-fast-runtime.zip */*.compact.compressed.wasm
+
+      - name: Upload archive to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
+          asset_path: runtimes-with-fast-runtime.zip
+          asset_name: runtimes-with-fast-runtime.zip
           asset_content_type: application/zip
