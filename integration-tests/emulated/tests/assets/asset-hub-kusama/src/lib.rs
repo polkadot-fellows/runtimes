@@ -84,6 +84,7 @@ pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
 
+pub type RelayToSystemParaTest = Test<Kusama, AssetHubKusama>;
 pub type RelayToParaTest = Test<Kusama, PenpalA>;
 pub type ParaToRelayTest = Test<PenpalA, Kusama>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
@@ -92,6 +93,7 @@ pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
 pub type ParaToParaThroughRelayTest = Test<PenpalA, PenpalB, Kusama>;
 pub type ParaToParaThroughAHTest = Test<PenpalA, PenpalB, AssetHubKusama>;
 pub type RelayToParaThroughAHTest = Test<Kusama, PenpalA, AssetHubKusama>;
+pub type PenpalToRelayThroughAHTest = Test<PenpalA, Kusama, AssetHubKusama>;
 
 #[cfg(test)]
 mod tests;

@@ -66,3 +66,47 @@ fn pay_salary_technical_fellowship() {
 		);
 	});
 }
+
+#[test]
+fn pay_salary_secretary() {
+	const USDT_ID: u32 = 1984;
+	// SecretarySalary uses FellowshipSalaryPaymaster, so the pay_from account is derived
+	// from the fellowship salary pallet's interior location (pallet index 64).
+	let fellowship_salary = (
+		Parent,
+		Parachain(CollectivesPolkadot::para_id().into()),
+		PalletInstance(FELLOWSHIP_SALARY_PALLET_ID),
+	);
+	let pay_from = LocationToAccountId::convert_location(&fellowship_salary.into()).unwrap();
+	let pay_to = Polkadot::account_id_of(ALICE);
+	let pay_amount = 9_000_000_000;
+
+	AssetHubPolkadot::execute_with(|| {
+		type AssetHubAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
+		// USDT registered in genesis, now mint some into the payer's account
+		assert_ok!(<AssetHubAssets as Mutate<_>>::mint_into(USDT_ID, &pay_from, pay_amount * 2));
+	});
+
+	CollectivesPolkadot::execute_with(|| {
+		type RuntimeEvent = <CollectivesPolkadot as Chain>::RuntimeEvent;
+
+		assert_ok!(FellowshipSalaryPaymaster::pay(&pay_to, (), pay_amount));
+		assert_expected_events!(
+			CollectivesPolkadot,
+			vec![
+				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::Assets(pallet_assets::Event::Transferred { .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true ,.. }) => {},
+			]
+		);
+	});
+}

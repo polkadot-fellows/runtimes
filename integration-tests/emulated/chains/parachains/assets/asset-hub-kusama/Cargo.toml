@@ -10,9 +10,13 @@ publish = false
 [dependencies]
 
 # Substrate
+codec = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
+
+# Pallets
+pallet-ah-migrator = { workspace = true, default-features = true }
 
 # Cumulus
 assets-common = { workspace = true, default-features = true }
@@ -45,4 +49,5 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-ah-migrator/runtime-benchmarks"
 ]
