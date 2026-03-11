@@ -16,8 +16,7 @@
 use crate::tests::*;
 
 /// Test that the Polkadot Collectives Fellowship can whitelist a call on Kusama Asset Hub
-/// over the bridge, validating that `EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>`
-/// correctly accepts the bridged Fellows origin.
+/// over the bridge.
 ///
 /// CollectivesPolkadot dispatches an XCM using origin: FellowsOrigin, to AHP containing
 /// `InitiateTransfer` with `preserve_origin: true` that forwards the message to AHK over
