@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Migration for claiming trapped funds in nomination pool in PAH [1104](https://github.com/polkadot-fellows/runtimes/pull/1104)
+- Kusama system parachains recognize authority of the Polkadot Technical Fellowship ([#1100](https://github.com/polkadot-fellows/runtimes/pull/1100))
 
 ## [2.1.0] 09.03.2026
 
