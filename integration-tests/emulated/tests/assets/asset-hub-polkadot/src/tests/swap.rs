@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use crate::*;
+use emulated_integration_tests_common::test_xcm_fee_querying_apis_work_for_asset_hub;
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
@@ -406,4 +407,9 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 			]
 		);
 	});
+}
+
+#[test]
+fn xcm_fee_querying_apis_work() {
+	test_xcm_fee_querying_apis_work_for_asset_hub!(AssetHubPolkadot);
 }

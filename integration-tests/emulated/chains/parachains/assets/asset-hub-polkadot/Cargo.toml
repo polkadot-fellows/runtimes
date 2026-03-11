@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 
 # Substrate
+codec = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
@@ -25,6 +26,7 @@ polkadot-parachain-primitives = { workspace = true }
 
 # Runtimes
 asset-hub-polkadot-runtime = { workspace = true }
+pallet-ah-migrator = { workspace = true, default-features = true }
 polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 
@@ -41,6 +43,7 @@ runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
+	"pallet-ah-migrator/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
