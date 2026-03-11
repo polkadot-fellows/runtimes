@@ -106,14 +106,15 @@ jobs:
       - name: Check if fast-runtime is supported
         id: check_fast_runtime
         run: |
-          if grep -q 'fast-runtime' ${{ matrix.runtime.path }}/Cargo.toml; then
-            echo "fast-runtime-supported=true" >> $GITHUB_OUTPUT
+          if cargo metadata --format-version 1 --no-deps --manifest-path ${{ matrix.runtime.path }}/Cargo.toml \
+            | jq -e '.packages[] | select(.name == "${{ matrix.runtime.package }}") | .features["fast-runtime"]' > /dev/null 2>&1; then
+            echo "fast_runtime_supported=true" >> $GITHUB_OUTPUT
           else
-            echo "fast-runtime-supported=false" >> $GITHUB_OUTPUT
+            echo "fast_runtime_supported=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Build ${{ matrix.runtime.name }} (fast-runtime & logging)
-        if: steps.check_fast_runtime.outputs.fast-runtime-supported == 'true'
+        if: steps.check_fast_runtime.outputs.fast_runtime_supported == 'true'
         id: srtool_fast
         uses: paritytech/srtool-actions@v0.9.4
         env:
@@ -125,7 +126,7 @@ jobs:
           profile: "release"
 
       - name: Upload ${{ matrix.runtime.name }} Wasm (fast-runtime & logging)
-        if: steps.check_fast_runtime.outputs.fast-runtime-supported == 'true'
+        if: steps.check_fast_runtime.outputs.fast_runtime_supported == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.runtime.name }}-fast
@@ -278,10 +279,20 @@ jobs:
           pattern: '*-fast'
 
       - name: Create fast-runtime runtimes archive
+        id: create_archive
         run: |
-          zip -j runtimes-with-fast-runtime.zip */*.compact.compressed.wasm
+          shopt -s nullglob
+          files=(*/*.compact.compressed.wasm)
+          if [ ${#files[@]} -gt 0 ]; then
+            zip -j runtimes-with-fast-runtime.zip "${files[@]}"
+            echo "has_archive=true" >> $GITHUB_OUTPUT
+          else
+            echo "No fast-runtime wasms found, skipping"
+            echo "has_archive=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload archive to GitHub Release
+        if: steps.create_archive.outputs.has_archive == 'true'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
