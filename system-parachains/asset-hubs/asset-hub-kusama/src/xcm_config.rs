@@ -52,6 +52,7 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use sp_runtime::traits::TryConvertInto;
+use system_parachains_constants::kusama::fellowship::IsFellowshipVoice;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -270,31 +271,6 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
-/// Location type to determine the Technical Fellowship related
-/// pallets for use in XCM.
-pub struct FellowshipEntities;
-impl Contains<Location> for FellowshipEntities {
-	fn contains(location: &Location) -> bool {
-		let origin = location.unpack();
-		// Technical Fellowship on Kusama Relay
-		let is_kusama_technical_fellows =
-			matches!(origin, (1, [Plurality { id: BodyId::Technical, .. }]));
-		// Technical Fellowship on Polkadot Collectives
-		let is_polkadot_technical_fellows = matches!(
-			origin,
-			(
-				2,
-				[
-					GlobalConsensus(Polkadot),
-					Parachain(1001),
-					Plurality { id: BodyId::Technical, .. },
-				],
-			)
-		);
-		is_kusama_technical_fellows || is_polkadot_technical_fellows
-	}
-}
-
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -315,7 +291,7 @@ pub type Barrier = TrailingSetTopicAsId<
 							ParentOrParentsPlurality,
 							Equals<RelayTreasuryLocation>,
 							Equals<bridging::SiblingBridgeHub>,
-							FellowshipEntities,
+							IsFellowshipVoice,
 							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
 						),
 						TrustedAliasers,
@@ -337,7 +313,7 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
-	FellowshipEntities,
+	IsFellowshipVoice,
 	LocalPlurality,
 );
 
