@@ -72,8 +72,8 @@ runtime-benchmarks = [
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"xcm-builder/runtime-benchmarks"
 ]
