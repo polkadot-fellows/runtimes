@@ -117,6 +117,7 @@ use system_parachains_constants::{
 		},
 		currency::*,
 		fee::WeightToFee as KsmWeightToFee,
+		fellowship::IsFellowshipVoice,
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
@@ -126,7 +127,7 @@ use xcm::{
 };
 use xcm_config::{
 	ForeignAssetsConvertedConcreteId, KsmLocation, LocationToAccountId,
-	PoolAssetsConvertedConcreteId, RelayChainLocation, StakingPot, TechnicalFellowshipVoice,
+	PoolAssetsConvertedConcreteId, RelayChainLocation, StakingPot,
 	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
 };
 use xcm_runtime_apis::{
@@ -956,8 +957,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	// need to set the page size larger than that until we reduce the channel size on-chain.
 	type MaxPageSize = ConstU32<{ 103 * 1024 }>;
 	type MaxInboundSuspended = sp_core::ConstU32<1_000>;
-	type ControllerOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<TechnicalFellowshipVoice>>;
+	type ControllerOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
 	type ControllerOriginConverter = xcm_config::XcmOriginToTransactDispatchOrigin;
 	type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
@@ -1357,7 +1357,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type PortableHoldReason = pallet_rc_migrator::types::PortableHoldReason;
 	type PortableFreezeReason = pallet_rc_migrator::types::PortableFreezeReason;
 	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<TechnicalFellowshipVoice>>;
+	type AdminOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
 	type Currency = Balances;
 	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type TreasuryPaymaster = treasury::TreasuryPaymaster;
@@ -2834,10 +2834,8 @@ impl pallet_state_trie_migration::Config for Runtime {
 	type SignedDepositBase = MigrationSignedDepositBase;
 	// An origin that can control the whole pallet: Should be a Fellowship member or the controller
 	// of the migration.
-	type ControlOrigin = EitherOfDiverse<
-		EnsureXcm<TechnicalFellowshipVoice>,
-		EnsureSignedBy<MigControllerRoot, AccountId>,
-	>;
+	type ControlOrigin =
+		EitherOfDiverse<EnsureXcm<IsFellowshipVoice>, EnsureSignedBy<MigControllerRoot, AccountId>>;
 	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
 
 	// Replace this with weight based on your runtime.

@@ -17,13 +17,13 @@
 //! Governance configurations for the Asset Hub runtime.
 
 use super::*;
-use crate::xcm_config::TechnicalFellowshipVoice;
 use frame_support::{
 	parameter_types,
 	traits::{EitherOf, EitherOfDiverse},
 };
 use frame_system::EnsureRootWithSuccess;
 use pallet_xcm::EnsureXcm;
+use system_parachains_constants::kusama::fellowship::IsFellowshipVoice;
 use xcm::latest::BodyId;
 
 mod origins;
@@ -74,7 +74,7 @@ impl pallet_whitelist::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type WhitelistOrigin =
-		EitherOfDiverse<EnsureRoot<Self::AccountId>, EnsureXcm<TechnicalFellowshipVoice>>;
+		EitherOfDiverse<EnsureRoot<Self::AccountId>, EnsureXcm<IsFellowshipVoice>>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
 }
