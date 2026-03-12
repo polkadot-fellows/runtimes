@@ -21,6 +21,7 @@ use crate::{
 };
 use emulated_integration_tests_common::USDT_ID;
 use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
+use xcm::latest::AssetTransferFilter;
 
 fn para_to_para_assethub_hop_assertions(t: ParaToParaThroughAHTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
@@ -968,4 +969,212 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 	// Receiver gets `transfer_amount` minus fees.
 	let receiver_balance_after = foreign_balance_on!(PenpalB, usdt_location.clone(), &receiver);
 	assert!(receiver_balance_after > receiver_balance_before);
+}
+
+// ===============================================================
+// ===== Transfer - Native Asset - Parachain->AssetHub->Relay ====
+// ===============================================================
+/// Transfers of native asset from Parachain to Relay (using AssetHub reserve). Parachains want to
+/// avoid managing SAs on all system chains, thus want all their KSM-in-reserve to be held in their
+/// Sovereign Account on Asset Hub.
+#[test]
+fn transfer_native_asset_from_penpal_to_relay_through_asset_hub() {
+	let destination = KsmLocation::get();
+	let sender = PenpalASender::get();
+	let amount_to_send: Balance = KUSAMA_ED * 100;
+	let relay_native_asset_location = KsmLocation::get();
+	let receiver = KusamaReceiver::get();
+
+	// Pre-fund Relay's checking account since Kusama relay has teleport tracking enabled
+	// (default Pending migration stage). The AH→Relay teleport needs this.
+	Kusama::execute_with(|| {
+		use frame_support::assert_ok;
+		type Balances = <Kusama as KusamaPallet>::Balances;
+		let check_account = kusama_runtime::xcm_config::CheckAccount::get();
+		assert_ok!(Balances::force_set_balance(
+			<Kusama as Chain>::RuntimeOrigin::root(),
+			check_account.into(),
+			amount_to_send * 2,
+		));
+	});
+
+	let test_args = TestContext {
+		sender: sender.clone(),
+		receiver: receiver.clone(),
+		args: TestArgs::new_para(
+			destination.clone(),
+			receiver.clone(),
+			amount_to_send,
+			(Parent, amount_to_send).into(),
+			None,
+			0,
+		),
+	};
+	let mut test = PenpalToRelayThroughAHTest::new(test_args);
+
+	let sov_penpal_on_ah = AssetHubKusama::sovereign_account_id_of(
+		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
+	);
+
+	// Fund PenpalA sender with relay native asset and fund its SA on AH
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
+		relay_native_asset_location.clone(),
+		sender.clone(),
+		amount_to_send * 2,
+	);
+	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ah.clone(), amount_to_send * 2)]);
+
+	// Query initial balances
+	let sender_balance_before = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
+	});
+	let sov_penpal_on_ah_before = AssetHubKusama::execute_with(|| {
+		<AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(sov_penpal_on_ah.clone())
+	});
+	let receiver_balance_before =
+		Kusama::execute_with(|| <Kusama as KusamaPallet>::Balances::free_balance(receiver.clone()));
+
+	fn transfer_assets_dispatchable(t: PenpalToRelayThroughAHTest) -> DispatchResult {
+		let fee_idx = t.args.fee_asset_item as usize;
+		let fee: Asset = t.args.assets.inner().get(fee_idx).cloned().unwrap();
+		let asset_hub_location = PenpalA::sibling_location_of(AssetHubKusama::para_id());
+		let context = PenpalUniversalLocation::get();
+
+		// reanchor fees to the view of destination (Relay)
+		let mut remote_fees = fee.clone().reanchored(&t.args.dest, &context).unwrap();
+		if let Fungible(ref mut amount) = remote_fees.fun {
+			*amount /= 2;
+		}
+		let xcm_on_final_dest = Xcm::<()>(vec![
+			BuyExecution { fees: remote_fees, weight_limit: t.args.weight_limit.clone() },
+			DepositAsset {
+				assets: Wild(AllCounted(t.args.assets.len() as u32)),
+				beneficiary: t.args.beneficiary,
+			},
+		]);
+
+		// reanchor final dest (Relay) to the view of hop (Asset Hub)
+		let mut dest = t.args.dest.clone();
+		dest.reanchor(&asset_hub_location, &context).unwrap();
+
+		// on Asset Hub, teleport assets to Relay
+		let xcm_on_hop = Xcm::<()>(vec![InitiateTeleport {
+			assets: Wild(AllCounted(t.args.assets.len() as u32)),
+			dest,
+			xcm: xcm_on_final_dest,
+		}]);
+
+		<PenpalA as PenpalAPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+			t.signed_origin,
+			bx!(asset_hub_location.into()),
+			bx!(t.args.assets.into()),
+			bx!(TransferType::DestinationReserve),
+			bx!(fee.id.into()),
+			bx!(TransferType::DestinationReserve),
+			bx!(VersionedXcm::from(xcm_on_hop)),
+			t.args.weight_limit,
+		)
+	}
+
+	test.set_dispatchable::<PenpalA>(transfer_assets_dispatchable);
+	test.assert();
+
+	// Query final balances
+	let sender_balance_after = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
+	});
+	let sov_penpal_on_ah_after = AssetHubKusama::execute_with(|| {
+		<AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(sov_penpal_on_ah.clone())
+	});
+	let receiver_balance_after =
+		Kusama::execute_with(|| <Kusama as KusamaPallet>::Balances::free_balance(receiver.clone()));
+
+	// Sender's balance is reduced by amount sent plus delivery fees
+	assert!(sender_balance_after < sender_balance_before - amount_to_send);
+	// Sovereign account on AH is reduced by amount sent
+	assert_eq!(sov_penpal_on_ah_after, sov_penpal_on_ah_before - amount_to_send);
+	// Receiver's balance is increased
+	assert!(receiver_balance_after > receiver_balance_before);
+	// Receiver's balance increased by `amount_to_send - delivery_fees - bought_execution`
+	assert!(receiver_balance_after < receiver_balance_before + amount_to_send);
+}
+
+// ==============================================================================================
+// ==== Bidirectional Transfer - Native + Teleportable Foreign Assets - Parachain<->AssetHub ====
+// ==============================================================================================
+/// Bidirectional transfers of native asset plus teleportable foreign asset between Parachain and
+/// AssetHub using explicit XCM programs with `InitiateTransfer`.
+#[test]
+fn bidirectional_transfer_multiple_assets_between_penpal_and_asset_hub() {
+	fn execute_xcm_penpal_to_asset_hub(t: ParaToSystemParaTest) -> DispatchResult {
+		let all_assets = t.args.assets.clone().into_inner();
+		let mut assets = all_assets.clone();
+		let mut fees = assets.remove(t.args.fee_asset_item as usize);
+		if let Fungible(fees_amount) = fees.fun {
+			fees.fun = Fungible(fees_amount / 2);
+		}
+		let xcm_on_dest = Xcm(vec![
+			RefundSurplus,
+			DepositAsset { assets: Wild(All), beneficiary: t.args.beneficiary },
+		]);
+		let xcm = Xcm::<()>(vec![
+			WithdrawAsset(all_assets.into()),
+			PayFees { asset: fees.clone() },
+			InitiateTransfer {
+				destination: t.args.dest,
+				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(fees.into())),
+				preserve_origin: false,
+				assets: BoundedVec::truncate_from(vec![AssetTransferFilter::Teleport(
+					assets.into(),
+				)]),
+				remote_xcm: xcm_on_dest,
+			},
+		]);
+		<PenpalA as PenpalAPallet>::PolkadotXcm::execute(
+			t.signed_origin,
+			bx!(xcm::VersionedXcm::from(xcm.into())),
+			Weight::MAX,
+		)
+		.unwrap();
+		Ok(())
+	}
+	fn execute_xcm_asset_hub_to_penpal(t: SystemParaToParaTest) -> DispatchResult {
+		let all_assets = t.args.assets.clone().into_inner();
+		let mut assets = all_assets.clone();
+		let mut fees = assets.remove(t.args.fee_asset_item as usize);
+		if let Fungible(fees_amount) = fees.fun {
+			fees.fun = Fungible(fees_amount / 2);
+		}
+		let xcm_on_dest = Xcm(vec![
+			RefundSurplus,
+			DepositAsset { assets: Wild(All), beneficiary: t.args.beneficiary },
+		]);
+		let xcm = Xcm::<()>(vec![
+			WithdrawAsset(all_assets.into()),
+			PayFees { asset: fees.clone() },
+			InitiateTransfer {
+				destination: t.args.dest,
+				remote_fees: Some(AssetTransferFilter::ReserveDeposit(fees.into())),
+				preserve_origin: false,
+				assets: BoundedVec::truncate_from(vec![AssetTransferFilter::Teleport(
+					assets.into(),
+				)]),
+				remote_xcm: xcm_on_dest,
+			},
+		]);
+		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::execute(
+			t.signed_origin,
+			bx!(xcm::VersionedXcm::from(xcm.into())),
+			Weight::MAX,
+		)
+		.unwrap();
+		Ok(())
+	}
+	do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using_xt(
+		execute_xcm_penpal_to_asset_hub,
+		execute_xcm_asset_hub_to_penpal,
+	);
 }
