@@ -281,14 +281,18 @@ jobs:
     needs: [ build-runtimes, publish-release ]
     runs-on: self-hosted
     steps:
+      - name: Clean workspace
+        run: rm -rf fast-runtime-artifacts
+
       - name: Download fast-runtime artifacts
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           pattern: '*-fast'
+          path: fast-runtime-artifacts
 
       - name: Create fast-runtime runtimes archive
-        run: find . -path '*/*.compact.compressed.wasm' -exec zip -j runtimes-with-fast-runtime.zip {} +
+        run: find fast-runtime-artifacts -name '*.compact.compressed.wasm' -exec zip -j runtimes-with-fast-runtime.zip {} +
 
       - name: Upload archive to GitHub Release
         if: hashFiles('runtimes-with-fast-runtime.zip') != ''
