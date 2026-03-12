@@ -43,8 +43,6 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     env:
       PROD_FEATURES: "--features on-chain-release-build"
-      TRY_RUNTIME_LOGGING_FEATURES: "--features try-runtime,metadata-hash"
-      FAST_RUNTIME_LOGGING_FEATURES: "--features fast-runtime,metadata-hash"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -57,6 +55,26 @@ jobs:
           restore-keys: |
             srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-
             srtool-target-${{ matrix.runtime.path }}-
+
+      - name: Detect supported features
+        id: features
+        run: |
+          CARGO_TOML="${{ matrix.runtime.path }}/Cargo.toml"
+          has_feature() { awk '/^\[features\]/,/^\[/' "$CARGO_TOML" | grep -q "^$1 *="; }
+
+          METADATA_HASH=""
+          if has_feature "metadata-hash"; then
+            METADATA_HASH=",metadata-hash"
+          fi
+
+          echo "try_runtime=--features try-runtime${METADATA_HASH}" >> $GITHUB_OUTPUT
+
+          if has_feature "fast-runtime"; then
+            echo "fast_runtime=--features fast-runtime${METADATA_HASH}" >> $GITHUB_OUTPUT
+            echo "has_fast_runtime=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_fast_runtime=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
@@ -85,12 +103,12 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
-            
+
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
         uses: paritytech/srtool-actions@v0.9.4
         env:
-          BUILD_OPTS: ${{ env.TRY_RUNTIME_LOGGING_FEATURES }}
+          BUILD_OPTS: ${{ steps.features.outputs.try_runtime }}
         with:
           chain:   ${{ matrix.runtime.name }}
           package: ${{ matrix.runtime.package }}
@@ -103,22 +121,12 @@ jobs:
           name: ${{ matrix.runtime.name }}-compact
           path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
 
-      - name: Check if fast-runtime is supported
-        id: check_fast_runtime
-        run: |
-          if cargo metadata --format-version 1 --no-deps --manifest-path ${{ matrix.runtime.path }}/Cargo.toml \
-            | jq -e '.packages[] | select(.name == "${{ matrix.runtime.package }}") | .features["fast-runtime"]' > /dev/null 2>&1; then
-            echo "fast_runtime_supported=true" >> $GITHUB_OUTPUT
-          else
-            echo "fast_runtime_supported=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build ${{ matrix.runtime.name }} (fast-runtime & logging)
-        if: steps.check_fast_runtime.outputs.fast_runtime_supported == 'true'
+        if: steps.features.outputs.has_fast_runtime == 'true'
         id: srtool_fast
         uses: paritytech/srtool-actions@v0.9.4
         env:
-          BUILD_OPTS: ${{ env.FAST_RUNTIME_LOGGING_FEATURES }}
+          BUILD_OPTS: ${{ steps.features.outputs.fast_runtime }}
         with:
           chain: ${{ matrix.runtime.name }}
           package: ${{ matrix.runtime.package }}
@@ -126,7 +134,7 @@ jobs:
           profile: "release"
 
       - name: Upload ${{ matrix.runtime.name }} Wasm (fast-runtime & logging)
-        if: steps.check_fast_runtime.outputs.fast_runtime_supported == 'true'
+        if: steps.features.outputs.has_fast_runtime == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.runtime.name }}-fast
