@@ -60,7 +60,7 @@ jobs:
         id: features
         run: |
           CARGO_TOML="${{ matrix.runtime.path }}/Cargo.toml"
-          has_feature() { awk '/^\[features\]/,/^\[/' "$CARGO_TOML" | grep -q "^$1 *="; }
+          has_feature() { sed -n '/^\[features\]/,/^\[/{ /^\[/d; p; }' "$CARGO_TOML" | grep -q "^$1 *="; }
 
           METADATA_HASH=""
           if has_feature "metadata-hash"; then
