@@ -279,20 +279,10 @@ jobs:
           pattern: '*-fast'
 
       - name: Create fast-runtime runtimes archive
-        id: create_archive
-        run: |
-          shopt -s nullglob
-          files=(*/*.compact.compressed.wasm)
-          if [ ${#files[@]} -gt 0 ]; then
-            zip -j runtimes-with-fast-runtime.zip "${files[@]}"
-            echo "has_archive=true" >> $GITHUB_OUTPUT
-          else
-            echo "No fast-runtime wasms found, skipping"
-            echo "has_archive=false" >> $GITHUB_OUTPUT
-          fi
+        run: find . -path '*/*.compact.compressed.wasm' -exec zip -j runtimes-with-fast-runtime.zip {} +
 
       - name: Upload archive to GitHub Release
-        if: steps.create_archive.outputs.has_archive == 'true'
+        if: hashFiles('runtimes-with-fast-runtime.zip') != ''
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
