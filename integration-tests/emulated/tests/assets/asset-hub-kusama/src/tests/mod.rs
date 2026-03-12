@@ -15,13 +15,16 @@
 
 mod aliases;
 mod claim_assets;
+mod exchange_asset;
 mod foreign_assets;
 mod hybrid_transfers;
 mod reserve_transfer;
 mod send;
+mod set_asset_claimer;
 mod set_xcm_versions;
 mod swap;
 mod teleport;
+mod transact;
 mod transfer_assets_validation;
 mod treasury;
 mod xcm_fee_estimation;
@@ -52,7 +55,20 @@ macro_rules! assets_balance_on {
 
 #[macro_export]
 macro_rules! create_pool_with_ksm_on {
+	// default amounts
 	( $chain:ident, $asset_id:expr, $is_foreign:expr, $asset_owner:expr ) => {
+		$crate::create_pool_with_ksm_on!(
+			$chain,
+			$asset_id,
+			$is_foreign,
+			$asset_owner,
+			1_000_000_000_000,
+			2_000_000_000_000
+		);
+	};
+
+	// custom amounts
+	( $chain:ident, $asset_id:expr, $is_foreign:expr, $asset_owner:expr, $ksm_amount:expr, $asset_amount:expr ) => {
 		emulated_integration_tests_common::impls::paste::paste! {
 			<$chain>::execute_with(|| {
 				type RuntimeEvent = <$chain as Chain>::RuntimeEvent;
@@ -96,8 +112,8 @@ macro_rules! create_pool_with_ksm_on {
 					signed_owner,
 					Box::new(ksm_location.try_into().unwrap()),
 					Box::new($asset_id.try_into().unwrap()),
-					1_000_000_000_000,
-					2_000_000_000_000, // $asset_id is worth half of ksm
+					$ksm_amount,
+					$asset_amount,
 					0,
 					0,
 					owner.into()
