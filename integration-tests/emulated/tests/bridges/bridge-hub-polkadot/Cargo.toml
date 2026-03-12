@@ -22,6 +22,7 @@ pallet-balances = { workspace = true, default-features = true }
 pallet-asset-conversion = { workspace = true, default-features = true }
 pallet-assets = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
+pallet-whitelist = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
@@ -47,6 +48,7 @@ bridge-hub-common = { workspace = true, default-features = true }
 bp-asset-hub-polkadot = { workspace = true, default-features = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 asset-hub-polkadot-runtime = { workspace = true }
+collectives-polkadot-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 kusama-polkadot-system-emulated-network = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }
@@ -73,6 +75,7 @@ runtime-benchmarks = [
 	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"bridge-hub-common/runtime-benchmarks",
 	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"collectives-polkadot-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
@@ -85,6 +88,7 @@ runtime-benchmarks = [
 	"pallet-bridge-messages/runtime-benchmarks",
 	"pallet-bridge-relayers/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
