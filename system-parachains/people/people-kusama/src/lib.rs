@@ -80,6 +80,7 @@ use system_parachains_constants::{
 		},
 		currency::*,
 		fee::WeightToFee,
+		fellowship::IsFellowshipVoice,
 	},
 };
 
@@ -90,8 +91,8 @@ use xcm::{
 	VersionedXcm,
 };
 use xcm_config::{
-	AssetHubLocation, FellowshipLocation, PriceForSiblingParachainDelivery, RelayChainLocation,
-	StakingPot, XcmConfig, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, PriceForSiblingParachainDelivery, RelayChainLocation, StakingPot, XcmConfig,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 use xcm_runtime_apis::{
@@ -354,10 +355,7 @@ parameter_types! {
 }
 
 /// Privileged origin that represents Root or Fellows pluralistic body.
-pub type RootOrFellows = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
->;
+pub type RootOrFellows = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;

@@ -130,3 +130,43 @@ pub mod locations {
 		}
 	}
 }
+
+/// Fellowship-related constants.
+pub mod fellowship {
+	use frame_support::traits::Contains;
+	use xcm::latest::prelude::*;
+
+	/// Fellowship Fellows rank (rank 3). The minimum rank with Fellowship privileges
+	/// in XCM location filters. Used with `GeneralIndex` in XCM locations.
+	pub const FELLOWS_RANK: u128 = 3;
+	/// Fellowship Architects rank (rank 4). Used with `GeneralIndex` in XCM locations.
+	pub const ARCHITECTS_RANK: u128 = 4;
+
+	/// Matches Fellowship voice locations in both Kusama and Polkadot Technical Fellowships.
+	///
+	/// - Kusama: `[Parent, Plurality { id: Technical, part: Voice }]`
+	/// - Bridged Polkadot: `[Parent, Parent, GlobalConsensus(Polkadot), Parachain(1001), Plurality
+	///   { id: Technical, part: Voice }, GeneralIndex(rank)]` where `rank >= FELLOWS_RANK`
+	///
+	/// Use this in Parachain runtimes as a drop-in replacement for `IsVoiceOfBody<Prefix,
+	/// FellowsBodyId>` in dispatch origin checks to support the new rank-qualified Fellowship XCM
+	/// locations.
+	///
+	/// WARNING: only use this on parachains, the hardcoded fellowship locations do not match when
+	/// used in the context of the Relay Chain.
+	pub struct IsFellowshipVoice;
+	impl Contains<Location> for IsFellowshipVoice {
+		fn contains(l: &Location) -> bool {
+			match l.unpack() {
+				// Kusama Technical Fellowship
+				(1, [Plurality { id: BodyId::Technical, part: BodyPart::Voice }]) => true,
+				// Polkadot Technical Fellowship
+				(
+					2,
+					[GlobalConsensus(Polkadot), Parachain(1001), Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)],
+				) if *rank >= FELLOWS_RANK => true,
+				_ => false,
+			}
+		}
+	}
+}
