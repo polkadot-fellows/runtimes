@@ -274,6 +274,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Download fast-runtime artifacts
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           pattern: '*-fast'
