@@ -17,7 +17,7 @@
 #![cfg(test)]
 
 use bulletin_polkadot_runtime::{
-	polkadot_constants::fee::WeightToFee,
+	WeightToFee,
 	xcm_config::{
 		polkadot_system_parachain, GovernanceLocation, LocationToAccountId, PeopleLocation,
 	},

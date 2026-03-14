@@ -308,8 +308,8 @@ pub type XcmRouter = WithUniqueTopic<(
 )>;
 
 parameter_types! {
-	pub const DepositPerItem: Balance = crate::polkadot_constants::currency::deposit(1, 0);
-	pub const DepositPerByte: Balance = crate::polkadot_constants::currency::deposit(0, 1);
+	pub const DepositPerItem: Balance = system_parachains_constants::polkadot::currency::system_para_deposit(1, 0);
+	pub const DepositPerByte: Balance = system_parachains_constants::polkadot::currency::system_para_deposit(0, 1);
 	pub const AuthorizeAliasHoldReason: RuntimeHoldReason = RuntimeHoldReason::PolkadotXcm(pallet_xcm::HoldReason::AuthorizeAlias);
 }
 

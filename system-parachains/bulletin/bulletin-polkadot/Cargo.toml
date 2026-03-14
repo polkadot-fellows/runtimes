@@ -58,7 +58,6 @@ sp-weights = { workspace = true }
 # Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
-polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 xcm = { workspace = true }
@@ -80,6 +79,7 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
+system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
 parachains-runtimes-test-utils = { workspace = true, default-features = true }
@@ -124,13 +124,13 @@ std = [
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
-	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"scale-info/std",
 	"serde",
 	"serde_json/std",
 	"smallvec/write",
+	"system-parachains-constants/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
