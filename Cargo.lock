@@ -2786,6 +2786,74 @@ dependencies = [
 ]
 
 [[package]]
+name = "bulletin-polkadot-runtime"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-aura-ext",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-session-benchmarking",
+ "cumulus-pallet-weight-reclaim",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
+ "cumulus-primitives-core",
+ "cumulus-primitives-utility",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-metadata-hash-extension",
+ "frame-support",
+ "frame-system",
+ "frame-system-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
+ "pallet-aura",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-collator-selection",
+ "pallet-message-queue",
+ "pallet-session",
+ "pallet-skip-feeless-payment",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
+ "pallet-xcm",
+ "pallet-xcm-benchmarks",
+ "parachains-common",
+ "parachains-runtimes-test-utils",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-common",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "sp-api 40.0.0",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core 39.0.0",
+ "sp-genesis-builder 0.21.0",
+ "sp-inherents 40.0.0",
+ "sp-io 44.0.0",
+ "sp-keyring",
+ "sp-offchain",
+ "sp-runtime 45.0.0",
+ "sp-session",
+ "sp-storage",
+ "sp-transaction-pool",
+ "sp-version 43.0.0",
+ "sp-weights",
+ "staging-parachain-info",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+ "substrate-wasm-builder",
+ "tracing",
+ "xcm-runtime-apis",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10801,6 +10869,19 @@ dependencies = [
  "rand 0.8.5",
  "sp-runtime 45.0.0",
  "sp-session",
+]
+
+[[package]]
+name = "pallet-skip-feeless-payment"
+version = "20.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca2cd02d4dd8fd4f55603d1b01fd7bcbaada88ccec27cba540ee526de248eedd"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 45.0.0",
 ]
 
 [[package]]

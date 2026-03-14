@@ -169,6 +169,7 @@ pallet-salary = { version = "30.0.0", default-features = false }
 pallet-scheduler = { version = "46.0.0", default-features = false }
 pallet-session = { version = "45.2.0", default-features = false }
 pallet-session-benchmarking = { version = "45.0.0", default-features = false }
+pallet-skip-feeless-payment = { version = "20.0.0", default-features = false }
 pallet-society = { version = "45.1.0", default-features = false }
 pallet-staking = { version = "45.1.0", default-features = false }
 pallet-delegated-staking = { version = "12.0.0", default-features = false }
@@ -278,6 +279,7 @@ xcm-executor = { version = "24.0.1", default-features = false, package = "stagin
 xcm-runtime-apis = { version = "0.12.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
+tracing = { version = "0.1.44", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
 zombienet-sdk = { version = "0.4.2" }
 tuplex = { version = "0.1.0", default-features = false }
@@ -332,6 +334,7 @@ members = [
 	"system-parachains/asset-hubs/asset-hub-kusama/primitives",
 	"system-parachains/asset-hubs/asset-hub-polkadot",
 	"system-parachains/asset-hubs/asset-hub-polkadot/primitives",
+	"system-parachains/bulletin/bulletin-polkadot",
 	"system-parachains/bridge-hubs/bridge-hub-kusama",
 	"system-parachains/bridge-hubs/bridge-hub-kusama/primitives",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot",
