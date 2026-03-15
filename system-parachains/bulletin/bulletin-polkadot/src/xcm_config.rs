@@ -80,6 +80,7 @@ pub const TREASURY_PALLET_ID_ON_RELAY: u8 = 19;
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const TokenRelayLocation: Location = Location::parent();
+	pub const RelayChainLocation: Location = Location::parent();
 	pub AssetHubLocation: Location = Location::new(1, [Parachain(ASSET_HUB_ID)]);
 	// Polkadot network uses the `Polkadot` NetworkId variant
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
@@ -303,7 +304,7 @@ pub type PriceForParentDelivery =
 /// queues.
 pub type XcmRouter = WithUniqueTopic<(
 	// Two routers - use UMP to communicate with the relay chain:
-	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, ()>,
+	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, PriceForParentDelivery>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 )>;
