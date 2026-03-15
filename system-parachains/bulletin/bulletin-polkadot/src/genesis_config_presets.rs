@@ -20,14 +20,13 @@ use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::ParaId;
 use frame_support::build_struct_json_patch;
 use parachains_common::{AccountId, AuraId};
-use system_parachains_constants::{
-	genesis_presets::SAFE_XCM_VERSION,
-	polkadot::currency::UNITS as DOT,
-};
-use sp_core::sr25519;
+use sp_core::{sr25519, Pair};
 use sp_genesis_builder::PresetId;
 use sp_keyring::Sr25519Keyring;
 use sp_runtime::traits::{IdentifyAccount, Verify};
+use system_parachains_constants::{
+	genesis_presets::SAFE_XCM_VERSION, polkadot::currency::UNITS as DOT,
+};
 
 /// Generate an account ID from a seed string (e.g. `"//Chunkedsigner"`).
 fn account_id_from_seed(seed: &str) -> AccountId {

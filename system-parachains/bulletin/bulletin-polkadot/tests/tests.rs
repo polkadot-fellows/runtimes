@@ -17,12 +17,11 @@
 #![cfg(test)]
 
 use bulletin_polkadot_runtime::{
-	WeightToFee,
 	xcm_config::{
 		polkadot_system_parachain, GovernanceLocation, LocationToAccountId, PeopleLocation,
 	},
 	AllPalletsWithoutSystem, Block, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	System, TxExtension, UncheckedExtrinsic,
+	System, TxExtension, UncheckedExtrinsic, WeightToFee,
 };
 use frame_support::{assert_err, assert_ok};
 use parachains_common::{AccountId, AuraId, Hash as PcHash, Signature as PcSignature};
@@ -255,8 +254,10 @@ fn governance_authorize_upgrade_works() {
 	);
 
 	// ok - governance location
-	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
-		Runtime,
-		RuntimeOrigin,
-	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+	assert_ok!(
+		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+			Runtime,
+			RuntimeOrigin,
+		>(GovernanceOrigin::Location(GovernanceLocation::get()))
+	);
 }

@@ -53,18 +53,6 @@ use parachains_common::{
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
 	AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use system_parachains_constants::{
-	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MILLISECS_PER_BLOCK,
-	},
-	polkadot::{
-		consensus::*,
-		currency::{
-			system_para_deposit as deposit, CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
-			UNITS,
-		},
-	},
-};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
@@ -78,6 +66,17 @@ use sp_runtime::{
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use system_parachains_constants::{
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MILLISECS_PER_BLOCK,
+	},
+	polkadot::{
+		consensus::*,
+		currency::{
+			system_para_deposit as deposit, CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
+		},
+	},
+};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{prelude::*, Version as XcmVersion};
 use xcm_config::{
@@ -226,13 +225,7 @@ parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	// 10 MiB (allows 9 MiB for normal transactions with 90% NORMAL_DISPATCH_RATIO)
 	pub RuntimeBlockLength: BlockLength =
-		BlockLength::builder()
-		.max_length(MAX_BLOCK_LENGTH)
-		.modify_max_length_for_class(
-			DispatchClass::Normal,
-			|m| *m = NORMAL_DISPATCH_RATIO * MAX_BLOCK_LENGTH,
-		)
-		.build();
+		BlockLength::max_with_normal_ratio(MAX_BLOCK_LENGTH, NORMAL_DISPATCH_RATIO);
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
