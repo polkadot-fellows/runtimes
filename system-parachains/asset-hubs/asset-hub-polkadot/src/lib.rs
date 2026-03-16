@@ -1454,7 +1454,7 @@ impl pallet_ah_migrator::Config for Runtime {
 
 parameter_types! {
 	pub const DepositPerItem: Balance = system_para_deposit(1, 0);
-	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 10;
+	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 100;
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(5, 10);
