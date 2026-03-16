@@ -750,7 +750,7 @@ mod tests {
 	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
 	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
-	
+
 	// Sets the view of the relay chain block number.
 	fn set_relay_number(n: RC_BlockNumber) {
 		ValidationData::<Runtime>::set(Some(PersistedValidationData {
