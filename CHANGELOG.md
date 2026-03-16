@@ -4,6 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+- Polkadot and Kusama AH: reduce `DepositPerChildTrieItem` config of pallet-revive by factor of 10
+
 ## [2.1.1] 13.03.2026
 
 ### Added
