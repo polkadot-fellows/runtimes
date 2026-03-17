@@ -90,6 +90,7 @@ impl pallet_bounties::Config for Runtime {
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
+	type TransferAllAssets = (); // TODO @ggwpez
 }
 
 parameter_types! {

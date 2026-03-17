@@ -195,6 +195,7 @@ impl multi_block::Config for Runtime {
 	// Clean all data on round rotation. Later on, we can move to lazy deletion.
 	type OnRoundRotation = multi_block::CleanRound<Self>;
 	type WeightInfo = weights::pallet_election_provider_multi_block::WeightInfo<Self>;
+	type Signed = MultiBlockElectionSigned;
 }
 
 impl multi_block::verifier::Config for Runtime {
@@ -202,8 +203,6 @@ impl multi_block::verifier::Config for Runtime {
 	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type MaxBackersPerWinnerFinal = MaxBackersPerWinnerFinal;
 	type SolutionDataProvider = MultiBlockElectionSigned;
-	// Deliberate choice: we want any solution, even an epsilon better, to be considered superior.
-	type SolutionImprovementThreshold = ();
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Self>;
 }
 
@@ -423,8 +422,6 @@ impl pallet_staking_async::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = MaxControllersInDeprecationBatch;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	// Note used; don't care.
-	type MaxInvulnerables = frame_support::traits::ConstU32<20>;
 	// This will start election for the next era as soon as an era starts.
 	type PlanningEraOffset = ConstU32<6>;
 	type RcClientInterface = StakingRcClient;

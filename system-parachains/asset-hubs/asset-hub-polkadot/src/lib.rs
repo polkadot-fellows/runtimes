@@ -1482,7 +1482,6 @@ impl pallet_revive::Config for Runtime {
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
 	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
-	type UnsafeUnstableInterface = ConstBool<false>;
 	type UploadOrigin = EnsureSigned<Self::AccountId>;
 	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -1496,6 +1495,7 @@ impl pallet_revive::Config for Runtime {
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
 	type GasScale = ConstU32<80_000>;
+	type OnBurn = Dap;
 }
 
 impl cumulus_pallet_weight_reclaim::Config for Runtime {
@@ -1580,7 +1580,7 @@ construct_runtime!(
 		MultiBlockElectionSigned: pallet_election_provider_multi_block::signed = 88,
 		Staking: pallet_staking_async = 89,
 
-		// Contracts
+		// Contracts in the 90s
 		Revive: pallet_revive = 90,
 
 		// Asset Hub Migration in the 250s

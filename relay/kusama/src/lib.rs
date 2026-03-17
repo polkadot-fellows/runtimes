@@ -962,7 +962,7 @@ impl Get<Permill> for TreasuryBurnHandler {
 
 pub type TreasuryPaymaster = PayOverXcm<
 	TreasuryInteriorLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::XcmPallet,
 	ConstU32<{ 6 * HOURS }>,
 	<Runtime as pallet_treasury::Config>::Beneficiary,
@@ -1020,6 +1020,7 @@ impl pallet_bounties::Config for Runtime {
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
+	type TransferAllAssets = (); // TODO @ggwpez
 }
 
 parameter_types! {
@@ -1463,7 +1464,7 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	type AssignCoretime = CoretimeAssignmentProvider;
+	type AssignCoretime = ParaScheduler;
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 1000.
 	type CooldownRemovalMultiplier = ConstUint<{ 1000 * UNITS / DAYS as u128 }>;
@@ -1553,7 +1554,7 @@ impl parachains_paras_inherent::Config for Runtime {
 impl parachains_scheduler::Config for Runtime {
 	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
 	// otherwise provide a migration.
-	type AssignmentProvider = CoretimeAssignmentProvider;
+	// TODO @bkontur I removed this type AssignmentProvider = CoretimeAssignmentProvider;
 }
 
 parameter_types! {

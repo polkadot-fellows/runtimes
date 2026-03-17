@@ -1242,7 +1242,6 @@ impl pallet_revive::Config for Runtime {
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
 	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
-	type UnsafeUnstableInterface = ConstBool<false>;
 	type UploadOrigin = EnsureSigned<Self::AccountId>;
 	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -1256,6 +1255,7 @@ impl pallet_revive::Config for Runtime {
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
 	type GasScale = ConstU32<100_000>;
+	type OnBurn = (); // TODO @ggwpez to treasury
 }
 
 parameter_types! {

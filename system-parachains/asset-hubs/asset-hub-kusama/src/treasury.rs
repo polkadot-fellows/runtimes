@@ -148,6 +148,7 @@ impl pallet_bounties::Config for Runtime {
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
+	type TransferAllAssets = (); // TODO @ggwpez
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
