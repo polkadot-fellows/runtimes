@@ -27,7 +27,7 @@ pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,
@@ -229,7 +229,7 @@ pub mod alias {
 		Clone,
 		PartialEq,
 		Eq,
-		RuntimeDebug,
+		Debug,
 		TypeInfo,
 		MaxEncodedLen,
 	)]

@@ -4,6 +4,161 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+<!--
+	Generated with https://github.com/ggwpez/substrate-scripts/blob/master/fellowship-changelog.py
+
+	fellowship-changelog.py --root ../polkadot-sdk/prdoc --output ../runtimes/new_changelog.md --versions stable2603 --audiences Runtime User,Runtime Dev --integration-mr-number 9999
+-->
+
+Changes marked with 💥 are possibly breaking (SemVer Major).
+
+### Added
+
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Add configuration to set Ethereum gas scale ([stable2603 #10393](https://github.com/paritytech/polkadot-sdk/pull/10393)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Add MinSetKeysBond check in `rc_client::set_keys` ([stable2603 #11168](https://github.com/paritytech/polkadot-sdk/pull/11168)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Add relay chain state proof API for parachains ([stable2603 #10678](https://github.com/paritytech/polkadot-sdk/pull/10678)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Introduce `MaxParachainBlockWeight` and related functionality ([stable2603 #10315](https://github.com/paritytech/polkadot-sdk/pull/10315)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Introduce pallet-dap-satellite and redirect system burns to DAP ([stable2603 #10597](https://github.com/paritytech/polkadot-sdk/pull/10597)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Pallet-broker: add extrinsic to forcefully remove the potential renewal ([stable2603 #10828](https://github.com/paritytech/polkadot-sdk/pull/10828)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Pallet-broker: add extrinsic to force transfer a region ([stable2603 #10856](https://github.com/paritytech/polkadot-sdk/pull/10856)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Pallet-revive: add DebugSetting for bypassing eip-3607 for contracts and precompiles ([stable2603 #10387](https://github.com/paritytech/polkadot-sdk/pull/10387)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Relay_chain: add max_relay_parent_session_age runtime API and HostConfiguration field ([stable2603 #11231](https://github.com/paritytech/polkadot-sdk/pull/11231)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Add comprehensive test data for Ethereum trie root validation ([stable2603 #9452](https://github.com/paritytech/polkadot-sdk/pull/9452)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Add kick_member to Society pallet ([stable2603 #11154](https://github.com/paritytech/polkadot-sdk/pull/11154)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Add must_use attributes ([stable2603 #10682](https://github.com/paritytech/polkadot-sdk/pull/10682)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Add Pallas and Vesta curve host functions to sp-crypto-ec-utils ([stable2603 #11035](https://github.com/paritytech/polkadot-sdk/pull/11035)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Add revive substrate runtime-api integration tests for call & instantiate ([stable2603 #10919](https://github.com/paritytech/polkadot-sdk/pull/10919)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  MBM: Add ForceUnstuck handler ([stable2603 #11194](https://github.com/paritytech/polkadot-sdk/pull/11194)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Minor pallet-scheduler documentation/unit test additions ([stable2603 #10511](https://github.com/paritytech/polkadot-sdk/pull/10511)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-assets: add ForeignAssetIdExtractor to assets precompile ([stable2603 #10869](https://github.com/paritytech/polkadot-sdk/pull/10869)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-assets-precompiles: Add EIP-2612 permit support for gasless approvals ([stable2603 #11044](https://github.com/paritytech/polkadot-sdk/pull/11044)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: added trybuild test for precompile compile-time checks ([stable2603 #10698](https://github.com/paritytech/polkadot-sdk/pull/10698)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: add EVM gas call syscalls ([stable2603 #10554](https://github.com/paritytech/polkadot-sdk/pull/10554)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: add tracing for selfdestruct ([stable2603 #10244](https://github.com/paritytech/polkadot-sdk/pull/10244)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: add zero-value transfer/send stipend tests ([stable2603 #11227](https://github.com/paritytech/polkadot-sdk/pull/11227)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: remove unstable host function ecdsa_to_eth_address ([stable2603 #10638](https://github.com/paritytech/polkadot-sdk/pull/10638)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Refactor XCM executor, introduce process_holding_transaction macro ([stable2603 #11320](https://github.com/paritytech/polkadot-sdk/pull/11320)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Revive eth-rpc Add polkadot_postDispatchWeight rpc methods ([stable2603 #10612](https://github.com/paritytech/polkadot-sdk/pull/10612)).
+
+### Changed
+
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Align Common Functions between Bulletin and SDK ([stable2603 #10593](https://github.com/paritytech/polkadot-sdk/pull/10593)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Bulletin as parachain missing features ([stable2603 #10662](https://github.com/paritytech/polkadot-sdk/pull/10662)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Disable polkavm logging in `pallet-revive` ([stable2603 #10385](https://github.com/paritytech/polkadot-sdk/pull/10385)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 `ExecuteBlock` split up seal verification and actual execution ([stable2603 #10396](https://github.com/paritytech/polkadot-sdk/pull/10396)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Expose migrating keys ([stable2603 #9461](https://github.com/paritytech/polkadot-sdk/pull/9461)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 FRAME: Bounties return balance and assets on close ([stable2603 #10729](https://github.com/paritytech/polkadot-sdk/pull/10729)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 FRAME: Omni bencher run each benchmark at least 10 secs ([stable2603 #10794](https://github.com/paritytech/polkadot-sdk/pull/10794)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Genesis Patch Support for Frame Omni-Bencher ([stable2603 #10735](https://github.com/paritytech/polkadot-sdk/pull/10735)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Limit the authority to adjust nomination pool deposits ([stable2603 #10399](https://github.com/paritytech/polkadot-sdk/pull/10399)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Make HRMP advancement rule more restrictive ([stable2603 #9086](https://github.com/paritytech/polkadot-sdk/pull/9086)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Meta Transactions - Benchmarking update ([stable2603 #10982](https://github.com/paritytech/polkadot-sdk/pull/10982)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Migrate `pallet-example-offchain-worker` to use `TransactionExtension` API ([stable2603 #10716](https://github.com/paritytech/polkadot-sdk/pull/10716)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Rework EC Hostcalls ([stable2603 #10830](https://github.com/paritytech/polkadot-sdk/pull/10830)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Runtime: Allow cross-session relay parents for parachain candidates ([stable2603 #11328](https://github.com/paritytech/polkadot-sdk/pull/11328)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Snowbridge: receipt verification with alloy primitives ([stable2603 #11144](https://github.com/paritytech/polkadot-sdk/pull/11144)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Snowbridge V2: Generic inbound message processing ([stable2603 #8175](https://github.com/paritytech/polkadot-sdk/pull/8175)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Staking-Async + EPMB: Migrate operations to `poll` ([stable2603 #9925](https://github.com/paritytech/polkadot-sdk/pull/9925)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Take the header size into account for the total block size ([stable2603 #10804](https://github.com/paritytech/polkadot-sdk/pull/10804)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 V3 Candidate Descriptor Support with Explicit Scheduling Parent ([stable2603 #10472](https://github.com/paritytech/polkadot-sdk/pull/10472)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 XCM executor keeps track and resolves all imbalances created by XCM operations ([stable2603 #10384](https://github.com/paritytech/polkadot-sdk/pull/10384)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Accept custom capacity for block notifier buffer ([stable2603 #10451](https://github.com/paritytech/polkadot-sdk/pull/10451)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Aura: Support automatic slot migration ([stable2603 #10022](https://github.com/paritytech/polkadot-sdk/pull/10022)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Build & deploy eth-rpc docker image for stable release ([stable2603 #10739](https://github.com/paritytech/polkadot-sdk/pull/10739)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Bump pallet-staking-reward-fn ([stable2603 #10905](https://github.com/paritytech/polkadot-sdk/pull/10905)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  CI: Download resolc from GitHub release instead of artifact ([stable2603 #11282](https://github.com/paritytech/polkadot-sdk/pull/11282)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Consolidate pallet-assets metadata benchmarks into single get_metadata benchmark ([stable2603 #11037](https://github.com/paritytech/polkadot-sdk/pull/11037)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Enable force debug in revive dev node ([stable2603 #10383](https://github.com/paritytech/polkadot-sdk/pull/10383)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Enforce match_arm_blocks = true for consistent formatting ([stable2603 #10958](https://github.com/paritytech/polkadot-sdk/pull/10958)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Eth-rpc:: cap block_number_to_hashes map size ([stable2603 #11193](https://github.com/paritytech/polkadot-sdk/pull/11193)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Expand multisig pallet tests ([stable2603 #10843](https://github.com/paritytech/polkadot-sdk/pull/10843)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Extend remote externalities `Client` and child storage query unit tests ([stable2603 #10866](https://github.com/paritytech/polkadot-sdk/pull/10866)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Implement general gas tracking ([stable2603 #10166](https://github.com/paritytech/polkadot-sdk/pull/10166)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Implement IERC20Metadata for pallet-assets precompiles ([stable2603 #10971](https://github.com/paritytech/polkadot-sdk/pull/10971)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Improve `charge_transaction_payment benchmark` ergonomics ([stable2603 #10444](https://github.com/paritytech/polkadot-sdk/pull/10444)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-assets-precompiles: Idiomatic Rust cleanups ([stable2603 #11322](https://github.com/paritytech/polkadot-sdk/pull/11322)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-aura: Extend `try_state` to also check `CurrentSlot` ([stable2603 #10505](https://github.com/paritytech/polkadot-sdk/pull/10505)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: Enable call_invalid_opcode test ([stable2603 #10849](https://github.com/paritytech/polkadot-sdk/pull/10849)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: Enforce weight limit on dry-run RPC calls ([stable2603 #10902](https://github.com/paritytech/polkadot-sdk/pull/10902)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: eth-rpc improve submit ([stable2603 #10328](https://github.com/paritytech/polkadot-sdk/pull/10328)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: opcode tracer ([stable2603 #9722](https://github.com/paritytech/polkadot-sdk/pull/9722)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: small improvements ([stable2603 #10922](https://github.com/paritytech/polkadot-sdk/pull/10922)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: update evm create benchmark ([stable2603 #10366](https://github.com/paritytech/polkadot-sdk/pull/10366)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: use u128 Balance in test config ([stable2603 #11276](https://github.com/paritytech/polkadot-sdk/pull/11276)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-session: track consumer refs and release deposits for externally set keys ([stable2603 #11197](https://github.com/paritytech/polkadot-sdk/pull/11197)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Parachain-system: Ensure left-over message budget fits into the PoV ([stable2603 #10863](https://github.com/paritytech/polkadot-sdk/pull/10863)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pin solc version to 0.8.30 in tests-misc.yml ([stable2603 #10558](https://github.com/paritytech/polkadot-sdk/pull/10558)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pool: Claim trapped balance via one-time migration ([stable2603 #11018](https://github.com/paritytech/polkadot-sdk/pull/11018)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Refund deposit_eth_extrinsic_revert_event on the base_weight ([stable2603 #10693](https://github.com/paritytech/polkadot-sdk/pull/10693)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Revive: cap remaining_gas to `u64::MAX` in substrate_execution ([stable2603 #10924](https://github.com/paritytech/polkadot-sdk/pull/10924)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Revive: Change default value of eth_getStorageAt ([stable2603 #10471](https://github.com/paritytech/polkadot-sdk/pull/10471)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Revive-eth-rpc: Use pending block for estimate_gas in dev mode ([stable2603 #10963](https://github.com/paritytech/polkadot-sdk/pull/10963)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Snowbridge: Describe the token location with the length field included to avoid collisions ([stable2603 #10771](https://github.com/paritytech/polkadot-sdk/pull/10771)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Staking-async/rc-client: replace MinSetKeysBond with storage deposit ([stable2603 #11222](https://github.com/paritytech/polkadot-sdk/pull/11222)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Tighten length estimation during dry running ([stable2603 #10540](https://github.com/paritytech/polkadot-sdk/pull/10540)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Try state check for pallet authority discovery ([stable2603 #10475](https://github.com/paritytech/polkadot-sdk/pull/10475)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Try state check for pallet babe ([stable2603 #11216](https://github.com/paritytech/polkadot-sdk/pull/11216)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Try State Hook for Pallet Assets ([stable2603 #10371](https://github.com/paritytech/polkadot-sdk/pull/10371)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Update the commit hash of the revive-differential-tests ([stable2603 #10397](https://github.com/paritytech/polkadot-sdk/pull/10397)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Update the resolc and retester versions ([stable2603 #10907](https://github.com/paritytech/polkadot-sdk/pull/10907)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Update to Rust 1.93 ([stable2603 #10816](https://github.com/paritytech/polkadot-sdk/pull/10816)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Use the revive-differential-tests reusable action ([stable2603 #10732](https://github.com/paritytech/polkadot-sdk/pull/10732)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Wasm-builder: Only overwrite wasm files if they changed ([stable2603 #10448](https://github.com/paritytech/polkadot-sdk/pull/10448)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Weight: Put `must_use` above some of the functions ([stable2603 #10686](https://github.com/paritytech/polkadot-sdk/pull/10686)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  XCMP: implement `ConcatenatedOpaqueVersionedXcm` negotiation ([stable2603 #11263](https://github.com/paritytech/polkadot-sdk/pull/11263)).
+
+### Fixed
+
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Fix coretime partitioning and improve on-demand latency ([stable2603 #10184](https://github.com/paritytech/polkadot-sdk/pull/10184)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Fix fee handling of pay-over-xcm trait(s) ([stable2603 #10831](https://github.com/paritytech/polkadot-sdk/pull/10831)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Pallet-revive: Fix EXTCODESIZE and EXTCODEHASH for mocked addresses ([stable2603 #10911](https://github.com/paritytech/polkadot-sdk/pull/10911)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Pallet-revive: Fix gas_cost and weight_cost for nested calls in execution tracer ([stable2603 #10928](https://github.com/paritytech/polkadot-sdk/pull/10928)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix assertion ([stable2603 #10427](https://github.com/paritytech/polkadot-sdk/pull/10427)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix auto-renew core tracking on immediate renew ([stable2603 #10767](https://github.com/paritytech/polkadot-sdk/pull/10767)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix `burn` call weight in balances pallet ([stable2603 #11184](https://github.com/paritytech/polkadot-sdk/pull/11184)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix delegatecall callTracer addresses ([stable2603 #10918](https://github.com/paritytech/polkadot-sdk/pull/10918)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix Differential Testing CI Flakiness ([stable2603 #10524](https://github.com/paritytech/polkadot-sdk/pull/10524)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  FixedPoint: Support parsing `x.y` format ([stable2603 #9184](https://github.com/paritytech/polkadot-sdk/pull/9184)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix eth-rpc publish ([stable2603 #10580](https://github.com/paritytech/polkadot-sdk/pull/10580)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix off-by-one error in child bounty limit validation ([stable2603 #10713](https://github.com/paritytech/polkadot-sdk/pull/10713)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix pallet-revive-fixtures ([stable2603 #10780](https://github.com/paritytech/polkadot-sdk/pull/10780)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix(revive): handle transaction hash conflicts during re-org ([stable2603 #10950](https://github.com/paritytech/polkadot-sdk/pull/10950)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix `sp-crypto-ec-utils` `no_std` compilation ([stable2603 #11150](https://github.com/paritytech/polkadot-sdk/pull/11150)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Fix termination ([stable2603 #10302](https://github.com/paritytech/polkadot-sdk/pull/10302)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Grandpa `on_new_session()`: simplification + fix ([stable2603 #11160](https://github.com/paritytech/polkadot-sdk/pull/11160)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive benchmark opcode fix ([stable2603 #10380](https://github.com/paritytech/polkadot-sdk/pull/10380)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: fix delegate_call_contract in evm-test-suites ([stable2603 #10510](https://github.com/paritytech/polkadot-sdk/pull/10510)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: Fix evm_sized and update call stipend ([stable2603 #11151](https://github.com/paritytech/polkadot-sdk/pull/11151)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: Fix storage deposit refunds in nested contract calls ([stable2603 #10920](https://github.com/paritytech/polkadot-sdk/pull/10920)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: fixtures compilation fix for rust 1.92.0 ([stable2603 #10749](https://github.com/paritytech/polkadot-sdk/pull/10749)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: minor cleanups and fixes ([stable2603 #11054](https://github.com/paritytech/polkadot-sdk/pull/11054)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Revive: Fix construction of negative zero SignedGas ([stable2603 #10567](https://github.com/paritytech/polkadot-sdk/pull/10567)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Revive: fix revive post_upgrade assert ([stable2603 #10680](https://github.com/paritytech/polkadot-sdk/pull/10680)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Tiny fixes for staking weights ([stable2603 #11167](https://github.com/paritytech/polkadot-sdk/pull/11167)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  WIP:pallet-revive: replaced binary erc20 fixtures with solidity fixtures ([stable2603 #10663](https://github.com/paritytech/polkadot-sdk/pull/10663)).
+
+### Removed
+
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Deprecate `RuntimeDebug` and replace it with `Debug` ([stable2603 #10582](https://github.com/paritytech/polkadot-sdk/pull/10582)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Pallet-revive: remove code related to stable and unstable_hostfn ([stable2603 #10712](https://github.com/paritytech/polkadot-sdk/pull/10712)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Remove Bandersnatch SW form from host calls ([stable2603 #11384](https://github.com/paritytech/polkadot-sdk/pull/11384)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Remove invulnerables form staking-async ([stable2603 #10359](https://github.com/paritytech/polkadot-sdk/pull/10359)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Remove "SolutionImprovementThreshold" logic ([stable2603 #10340](https://github.com/paritytech/polkadot-sdk/pull/10340)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)] 💥 Remove unused code in staking-async ([stable2603 #10842](https://github.com/paritytech/polkadot-sdk/pull/10842)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Cleanup HRMP channels that were force removed from RC state ([stable2603 #10324](https://github.com/paritytech/polkadot-sdk/pull/10324)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Frame-support: remove error reporting in `remote_transfer_xcm` for paid execution ([stable2603 #10697](https://github.com/paritytech/polkadot-sdk/pull/10697)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: evm remove contract storage slot when writing all zero bytes ([stable2603 #10309](https://github.com/paritytech/polkadot-sdk/pull/10309)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: remove disabled host functions terminate and set_code_hash ([stable2603 #10517](https://github.com/paritytech/polkadot-sdk/pull/10517)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Pallet-revive: remove unstable host function sr25519_verify ([stable2603 #10635](https://github.com/paritytech/polkadot-sdk/pull/10635)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Remove MaxSessionKeysLength and MaxSessionKeysProofLength ([stable2603 #11115](https://github.com/paritytech/polkadot-sdk/pull/11115)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Remove `pallet::getter` usage from merkel mountain range pallet ([stable2603 #10437](https://github.com/paritytech/polkadot-sdk/pull/10437)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Remove `pallet::getter` usage from sassafras pallet ([stable2603 #10460](https://github.com/paritytech/polkadot-sdk/pull/10460)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Remove uses of sp-debug-derive/force-debug feature ([stable2603 #10634](https://github.com/paritytech/polkadot-sdk/pull/10634)).
+- [[#9999](https://github.com/polkadot-fellows/runtimes/pull/9999)]  Staking: do not remove an invulnerable in case of bad solution ([stable2603 #10454](https://github.com/paritytech/polkadot-sdk/pull/10454)).
+
+
 ## [2.1.1] 13.03.2026
 
 ### Added

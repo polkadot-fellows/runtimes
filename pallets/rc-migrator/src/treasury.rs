@@ -27,7 +27,7 @@ use polkadot_runtime_common::impls::VersionedLocatableAsset;
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,

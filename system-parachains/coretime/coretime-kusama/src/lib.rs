@@ -66,7 +66,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{BlakeTwo256, Block as BlockT, BlockNumberProvider},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiAddress, Perbill, RuntimeDebug,
+	ApplyExtrinsicResult, MultiAddress, Perbill, Debug,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -510,7 +510,7 @@ impl pallet_multisig::Config for Runtime {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]

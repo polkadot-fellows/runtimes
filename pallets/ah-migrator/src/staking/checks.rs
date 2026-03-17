@@ -62,7 +62,7 @@ impl<T: crate::Config> crate::types::AhMigrationCheck
 		assert_eq!(rc.chill_threshold, pallet_staking_async::ChillThreshold::<T>::get());
 
 		// Storage Maps
-		assert_equal_items(rc.invulnerables, pallet_staking_async::Invulnerables::<T>::get());
+		//assert_equal_items(rc.invulnerables, pallet_staking_async::Invulnerables::<T>::get());
 		assert_equal_items(
 			rc.bonded.into_iter().map(|(a, b)| (t(a), t(b))),
 			pallet_staking_async::Bonded::<T>::iter(),

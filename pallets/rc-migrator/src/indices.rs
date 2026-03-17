@@ -30,7 +30,7 @@ pub struct IndicesMigrator<T> {
 	Decode,
 	MaxEncodedLen,
 	TypeInfo,
-	RuntimeDebug,
+	Debug,
 	Clone,
 	PartialEq,
 	Eq,

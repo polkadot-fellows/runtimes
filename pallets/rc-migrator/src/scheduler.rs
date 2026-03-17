@@ -26,7 +26,7 @@ use pallet_scheduler::{RetryConfig, TaskAddress};
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,
@@ -304,7 +304,7 @@ pub mod alias {
 	// FROM: https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/scheduler/src/lib.rs#L148
 	#[derive(
 		Clone,
-		RuntimeDebug,
+		Debug,
 		Encode,
 		DecodeWithMemTracking,
 		Decode,

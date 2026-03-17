@@ -45,7 +45,7 @@ use sp_runtime::{
 /// Move towards a desired value by a percentage of the remaining difference at each step.
 ///
 /// Step size will be (target_total - current_value) * pct.
-#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone, Default)]
+#[derive(PartialEq, Eq, sp_core::Debug, TypeInfo, Clone, Default)]
 pub struct RemainingPct {
 	/// The asymptote the curve will move towards.
 	pub target: FixedU128,
@@ -57,7 +57,7 @@ pub struct RemainingPct {
 ///
 /// Steps every `period` from the `initial_value` as defined by `step`.
 /// First step from `initial_value` takes place at `start` + `period`.
-#[derive(PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo, Clone, Default)]
+#[derive(PartialEq, Eq, sp_core::Debug, TypeInfo, Clone, Default)]
 pub struct SteppedCurve {
 	/// The starting point for the curve.
 	pub start: FixedU128,

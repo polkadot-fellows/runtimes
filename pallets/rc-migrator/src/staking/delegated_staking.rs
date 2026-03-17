@@ -25,7 +25,7 @@ use types::AccountIdOf;
 	Decode,
 	DecodeWithMemTracking,
 	Clone,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,

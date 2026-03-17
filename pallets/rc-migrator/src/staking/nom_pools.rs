@@ -33,7 +33,7 @@ use sp_runtime::Perbill;
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -66,7 +66,7 @@ pub enum NomPoolsStage<AccountId> {
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -101,7 +101,7 @@ impl<Balance> NomPoolsStorageValues<Balance> {
 	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
-	RuntimeDebugNoBound,
+	DebugNoBound,
 	CloneNoBound,
 	PartialEqNoBound,
 	EqNoBound,
@@ -430,7 +430,7 @@ pub mod tests {
 		pub state: PoolState,
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
 	pub struct GenericPoolMember<Balance, RewardCounter> {
 		pub pool_id: PoolId,
 		pub points: Balance,
@@ -438,7 +438,7 @@ pub mod tests {
 		pub unbonding_eras: BTreeMap<EraIndex, Balance>,
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
 	pub struct GenericRewardPool<Balance, RewardCounter> {
 		pub last_recorded_reward_counter: RewardCounter,
 		pub last_recorded_total_payouts: Balance,
@@ -447,13 +447,13 @@ pub mod tests {
 		pub total_commission_claimed: Balance,
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
 	pub struct GenericUnbondPool<Balance> {
 		pub points: Balance,
 		pub balance: Balance,
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
 	pub struct GenericSubPools<Balance> {
 		pub no_era: GenericUnbondPool<Balance>,
 		pub with_era: BTreeMap<EraIndex, GenericUnbondPool<Balance>>,
@@ -464,7 +464,7 @@ pub mod tests {
 		Decode,
 		MaxEncodedLen,
 		TypeInfo,
-		RuntimeDebugNoBound,
+		DebugNoBound,
 		CloneNoBound,
 		PartialEqNoBound,
 		EqNoBound,

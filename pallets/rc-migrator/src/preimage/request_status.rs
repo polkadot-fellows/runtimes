@@ -24,7 +24,7 @@ use crate::{types::*, *};
 	TypeInfo,
 	Clone,
 	MaxEncodedLen,
-	RuntimeDebug,
+	Debug,
 	PartialEq,
 	Eq,
 )]
@@ -40,7 +40,7 @@ pub struct PortableRequestStatus {
 	TypeInfo,
 	Clone,
 	MaxEncodedLen,
-	RuntimeDebug,
+	Debug,
 	PartialEq,
 	Eq,
 )]

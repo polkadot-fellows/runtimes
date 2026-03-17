@@ -130,7 +130,7 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 ///
 /// These origins are utilized in Governance and mapped to Asset Hub origins for active referendums.
 #[allow(non_camel_case_types)]
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum RcPalletsOrigin {
 	#[codec(index = 0u8)]
 	system(frame_system::Origin<Runtime>),
@@ -156,7 +156,7 @@ impl TryConvert<RcPalletsOrigin, OriginCaller> for RcToAhPalletsOrigin {
 }
 
 /// Relay Chain Runtime Call.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum RcRuntimeCall {
 	#[codec(index = 0u8)]
 	System(frame_system::Call<Runtime>),
@@ -178,7 +178,7 @@ pub enum RcRuntimeCall {
 
 /// Relay Chain Treasury Call obtained from cargo expand.
 #[allow(non_camel_case_types)]
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum RcTreasuryCall {
 	/// Propose and approve a spend of treasury funds.
 	#[codec(index = 3u8)]
@@ -215,7 +215,7 @@ pub enum RcTreasuryCall {
 ///
 /// The variants that are not generally used in Governance are not included.
 #[allow(non_camel_case_types)]
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum RcUtilityCall {
 	/// Send a batch of dispatch calls.
 	#[codec(index = 0u8)]
@@ -236,7 +236,7 @@ pub enum RcUtilityCall {
 ///
 /// The variants that are not generally used in Governance are not included.
 #[allow(non_camel_case_types)]
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum RcSchedulerCall {
 	#[codec(index = 4u8)]
 	schedule_after {
@@ -251,7 +251,7 @@ pub enum RcSchedulerCall {
 ///
 /// The variants that are not generally used in Governance are not included.
 #[allow(non_camel_case_types)]
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum RcXcmCall {
 	#[codec(index = 0u8)]
 	send { dest: Box<VersionedLocation>, message: Box<VersionedXcm<()>> },

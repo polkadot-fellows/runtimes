@@ -144,7 +144,7 @@ type RcAccountFor<T> = RcAccount<
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -185,7 +185,7 @@ pub enum PalletEventName {
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,
@@ -236,7 +236,7 @@ impl MigrationStage {
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]

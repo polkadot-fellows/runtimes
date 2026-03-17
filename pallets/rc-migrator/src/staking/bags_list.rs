@@ -27,7 +27,7 @@ type I = pallet_bags_list::Instance1;
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -48,7 +48,7 @@ pub type BagsListStageOf<T> = BagsListStage<
 	DecodeWithMemTracking,
 	MaxEncodedLen,
 	TypeInfo,
-	RuntimeDebugNoBound,
+	DebugNoBound,
 	CloneNoBound,
 	PartialEqNoBound,
 	EqNoBound,
@@ -67,7 +67,7 @@ pub enum PortableBagsListMessage {
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 )]
 pub struct PortableNode {
 	pub id: AccountId32,
@@ -113,7 +113,7 @@ impl<T: Config> From<PortableNode> for pallet_bags_list::Node<T, I> {
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 )]
 pub struct PortableBag {
 	pub head: Option<AccountId32>,

@@ -38,7 +38,7 @@ use sp_staking::{EraIndex, Page, SessionIndex};
 	Decode,
 	DecodeWithMemTracking,
 	TypeInfo,
-	RuntimeDebugNoBound,
+	DebugNoBound,
 	CloneNoBound,
 	PartialEqNoBound,
 	EqNoBound,
@@ -163,7 +163,7 @@ impl TranslateAccounts for PortableStakingMessage {
 }
 
 /// Generic staking storage values.
-#[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, Debug, Clone, PartialEq, Eq)]
 pub struct StakingValues<Balance> {
 	pub validator_count: Option<u32>,
 	pub min_validator_count: Option<u32>,
@@ -255,7 +255,7 @@ pub type PortableStakingValues = StakingValues<u128>;
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -285,7 +285,7 @@ impl Into<pallet_staking_async::ActiveEraInfo> for PortableActiveEraInfo {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -329,7 +329,7 @@ impl Into<pallet_staking_async::Forcing> for PortableForcing {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -408,7 +408,7 @@ impl<
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -447,7 +447,7 @@ impl Into<pallet_staking_async::UnlockChunk<u128>> for PortableUnlockChunk {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -527,7 +527,7 @@ impl<
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -588,7 +588,7 @@ impl Into<pallet_staking_async::RewardDestination<AccountId32>> for PortableRewa
 	Clone,
 	Encode,
 	Decode,
-	RuntimeDebugNoBound,
+	DebugNoBound,
 	TypeInfo,
 	MaxEncodedLen,
 	DecodeWithMemTracking,
@@ -650,7 +650,7 @@ where
 	Clone,
 	Encode,
 	Decode,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	Default,
 	MaxEncodedLen,
@@ -710,7 +710,7 @@ impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMeta
 	Clone,
 	Encode,
 	Decode,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	DecodeWithMemTracking,
 )]
@@ -781,7 +781,7 @@ impl<
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 )]
 pub struct PortableIndividualExposure {
@@ -817,7 +817,7 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 	Clone,
 	Encode,
 	Decode,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	DecodeWithMemTracking,
@@ -883,7 +883,7 @@ impl<
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 )]
 pub struct PortableValidatorPrefs {

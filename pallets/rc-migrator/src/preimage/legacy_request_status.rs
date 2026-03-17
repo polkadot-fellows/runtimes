@@ -27,7 +27,7 @@ use crate::{types::*, *};
 	TypeInfo,
 	Clone,
 	MaxEncodedLen,
-	RuntimeDebug,
+	Debug,
 	PartialEq,
 	Eq,
 )]

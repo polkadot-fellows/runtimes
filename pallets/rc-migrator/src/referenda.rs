@@ -27,7 +27,7 @@ use pallet_referenda::{
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,

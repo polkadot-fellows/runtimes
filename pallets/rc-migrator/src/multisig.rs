@@ -29,7 +29,7 @@ mod aliases {
 
 	/// Copied from https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/multisig/src/lib.rs#L96-L111
 	#[derive(
-		Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo, MaxEncodedLen,
+		Clone, Eq, PartialEq, Encode, Decode, Default, Debug, TypeInfo, MaxEncodedLen,
 	)]
 	#[scale_info(skip_type_params(MaxApprovals))]
 	pub struct Multisig<BlockNumber, Balance, AccountId, MaxApprovals>
@@ -73,7 +73,7 @@ mod aliases {
 // generics, otherwise it would be a bug and fail to decode. However, we can just prevent that but
 // by not exposing generics... On the other hand: for Westend and Kusama it could possibly help if
 // we don't hard-code all types.
-#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct RcMultisig<AccountId, Balance> {
 	/// The creator of the multisig who placed the deposit.
 	pub creator: AccountId,

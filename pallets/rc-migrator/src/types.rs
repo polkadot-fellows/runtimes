@@ -170,7 +170,7 @@ pub enum AhMigratorCall<T: Config> {
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,
@@ -184,7 +184,7 @@ pub struct MigrationFinishedData<Balance> {
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
 ///
 /// From: https://github.com/paritytech/polkadot-sdk/blob/b7afe48ed0bfef30836e7ca6359c2d8bb594d16e/polkadot/runtime/common/src/paras_registrar/mod.rs#L50-L59
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, Debug, TypeInfo)]
 pub struct ParaInfo<AccountId, Balance> {
 	/// The account that has placed a deposit for registering this para.
 	pub manager: AccountId,
@@ -349,7 +349,7 @@ impl<Querier: Contains<Location>> Contains<Xcm<()>> for ExceptResponseFor<Querie
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -644,7 +644,7 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -672,7 +672,7 @@ impl BenchmarkingDefault for PortableHoldReason {
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]

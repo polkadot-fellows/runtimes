@@ -60,10 +60,10 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating StakingValues");
 				pallet_rc_migrator::staking::StakingMigrator::<T>::put_values(values);
 			},
-			Invulnerables(invulnerables) => {
+			Invulnerables(_invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
-				let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
-				pallet_staking_async::Invulnerables::<T>::put(bounded);
+				//let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
+				//pallet_staking_async::Invulnerables::<T>::put(bounded);
 			},
 			Bonded { stash, controller } => {
 				log::debug!(target: LOG_TARGET, "Integrating Bonded of stash {stash:?}");

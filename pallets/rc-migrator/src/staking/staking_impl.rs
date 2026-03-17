@@ -35,7 +35,7 @@ pub struct StakingMigrator<T> {
 	Default,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]

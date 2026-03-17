@@ -30,7 +30,7 @@ pub const CHUNK_SIZE: u32 = MAX_XCM_SIZE - 100;
 	TypeInfo,
 	Clone,
 	MaxEncodedLen,
-	RuntimeDebug,
+	Debug,
 	PartialEq,
 	Eq,
 )]

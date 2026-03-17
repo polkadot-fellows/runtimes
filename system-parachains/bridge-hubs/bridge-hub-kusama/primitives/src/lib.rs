@@ -30,10 +30,10 @@ use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
 };
-use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating, StateVersion};
+use sp_runtime::{FixedPointNumber, FixedU128, Debug, Saturating, StateVersion};
 
 /// BridgeHubKusama parachain.
-#[derive(RuntimeDebug)]
+#[derive(Debug)]
 pub struct BridgeHubKusama;
 
 impl Chain for BridgeHubKusama {

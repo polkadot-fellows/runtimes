@@ -26,7 +26,7 @@ use pallet_claims::{EthereumAddress, StatementKind};
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -45,7 +45,7 @@ pub enum ClaimsStage<AccountId> {
 	Decode,
 	MaxEncodedLen,
 	TypeInfo,
-	RuntimeDebug,
+	Debug,
 	Clone,
 	PartialEq,
 	Eq,

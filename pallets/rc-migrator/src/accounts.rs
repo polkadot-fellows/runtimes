@@ -33,7 +33,7 @@ use sp_runtime::{traits::Zero, BoundedVec};
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -123,7 +123,7 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -222,7 +222,7 @@ pub type AccountFor<T> = Account<
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]

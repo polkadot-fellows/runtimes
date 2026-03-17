@@ -164,7 +164,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	Clone,
 	PartialEq,
 	Eq,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
@@ -181,7 +181,7 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 	Decode,
 	Clone,
 	Default,
-	RuntimeDebug,
+	Debug,
 	TypeInfo,
 	MaxEncodedLen,
 	PartialEq,
