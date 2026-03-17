@@ -66,7 +66,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{BlakeTwo256, Block as BlockT, BlockNumberProvider},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiAddress, Perbill, Debug,
+	ApplyExtrinsicResult, Debug, MultiAddress, Perbill,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;

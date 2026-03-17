@@ -158,15 +158,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 >;
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum PalletEventName {
 	FastUnstake,

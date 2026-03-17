@@ -138,15 +138,7 @@ type RcAccountFor<T> = RcAccount<
 >;
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum PalletEventName {
 	AssetRates,

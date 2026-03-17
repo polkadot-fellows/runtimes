@@ -249,15 +249,7 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 pub type PortableStakingValues = StakingValues<u128>;
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct PortableActiveEraInfo {
 	pub index: EraIndex,
@@ -279,15 +271,7 @@ impl Into<pallet_staking_async::ActiveEraInfo> for PortableActiveEraInfo {
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum PortableForcing {
 	NotForcing,
@@ -323,15 +307,7 @@ impl Into<pallet_staking_async::Forcing> for PortableForcing {
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct PortableStakingLedger {
 	pub stash: AccountId32,
@@ -402,15 +378,7 @@ impl<
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct PortableUnlockChunk {
 	pub value: u128,
@@ -441,15 +409,7 @@ impl Into<pallet_staking_async::UnlockChunk<u128>> for PortableUnlockChunk {
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct PortableUnappliedSlash {
 	pub validator: AccountId32,
@@ -521,15 +481,7 @@ impl<
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum PortableRewardDestination {
 	Staked,
@@ -703,16 +655,7 @@ impl Into<sp_staking::PagedExposureMetadata<u128>> for PortablePagedExposureMeta
 
 /// A snapshot of the stake backing a single validator in the system.
 #[derive(
-	PartialEq,
-	Eq,
-	PartialOrd,
-	Ord,
-	Clone,
-	Encode,
-	Decode,
-	Debug,
-	TypeInfo,
-	DecodeWithMemTracking,
+	PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, Debug, TypeInfo, DecodeWithMemTracking,
 )]
 pub struct PortableExposurePage {
 	pub page_total: u128,
@@ -773,16 +716,7 @@ impl<
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	PartialOrd,
-	Ord,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
+	PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo,
 )]
 pub struct PortableIndividualExposure {
 	pub who: AccountId32,
@@ -812,15 +746,7 @@ impl Into<sp_staking::IndividualExposure<AccountId32, u128>> for PortableIndivid
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	Clone,
-	Encode,
-	Decode,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	DecodeWithMemTracking,
+	PartialEq, Eq, Clone, Encode, Decode, Debug, TypeInfo, MaxEncodedLen, DecodeWithMemTracking,
 )]
 pub struct PortableEraRewardPoints {
 	pub total: u32,
@@ -875,16 +801,7 @@ impl<
 }
 
 #[derive(
-	PartialEq,
-	Eq,
-	PartialOrd,
-	Ord,
-	Clone,
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Debug,
-	TypeInfo,
+	PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo,
 )]
 pub struct PortableValidatorPrefs {
 	pub commission: Perbill,

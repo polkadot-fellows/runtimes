@@ -638,15 +638,7 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 
 /// Relay Chain Hold Reason
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum PortableHoldReason {
 	Preimage(pallet_preimage::HoldReason),
@@ -666,15 +658,7 @@ impl BenchmarkingDefault for PortableHoldReason {
 
 /// Relay Chain Freeze Reason
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum PortableFreezeReason {
 	NominationPools(pallet_nomination_pools::FreezeReason),

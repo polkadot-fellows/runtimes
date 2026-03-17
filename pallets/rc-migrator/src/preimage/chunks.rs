@@ -24,15 +24,7 @@ pub const CHUNK_SIZE: u32 = MAX_XCM_SIZE - 100;
 
 /// A chunk of a preimage that was migrated out of the Relay and can be integrated into AH.
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	TypeInfo,
-	Clone,
-	MaxEncodedLen,
-	Debug,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, TypeInfo, Clone, MaxEncodedLen, Debug, PartialEq, Eq,
 )]
 pub struct RcPreimageChunk {
 	/// The hash of the original preimage.

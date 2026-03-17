@@ -97,7 +97,7 @@ use sp_runtime::{
 		Get, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128, Perbill, Permill, Perquintill, Debug,
+	ApplyExtrinsicResult, Debug, FixedU128, Perbill, Permill, Perquintill,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;

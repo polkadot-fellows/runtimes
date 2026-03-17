@@ -225,7 +225,7 @@ impl frame_election_provider_support::ElectionProvider for Runtime {
 		Ok(())
 	}
 
-	fn status() -> Result<Option<Weight>, ()> {		
+	fn status() -> Result<Option<Weight>, ()> {
 		Ok(None)
 	}
 }

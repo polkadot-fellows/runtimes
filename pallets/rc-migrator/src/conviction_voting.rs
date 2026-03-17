@@ -20,15 +20,7 @@ use pallet_conviction_voting::{ClassLocksFor, TallyOf, Voting};
 
 /// Stage of the scheduler pallet migration.
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub enum ConvictionVotingStage<AccountId, Class> {
 	VotingFor(Option<(AccountId, Class)>),
@@ -37,15 +29,7 @@ pub enum ConvictionVotingStage<AccountId, Class> {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Debug,
-	Clone,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub enum RcConvictionVotingMessage<AccountId, Class, Voting, Balance> {
 	VotingFor(AccountId, Class, Voting),

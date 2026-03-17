@@ -21,15 +21,7 @@ use crate::{types::*, *};
 type I = pallet_bags_list::Instance1;
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum BagsListStage<AccountId, Score> {
 	ListNodes(Option<AccountId>),
@@ -59,15 +51,7 @@ pub enum PortableBagsListMessage {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
+	Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, Debug,
 )]
 pub struct PortableNode {
 	pub id: AccountId32,
@@ -105,15 +89,7 @@ impl<T: Config> From<PortableNode> for pallet_bags_list::Node<T, I> {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
+	Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, Debug,
 )]
 pub struct PortableBag {
 	pub head: Option<AccountId32>,

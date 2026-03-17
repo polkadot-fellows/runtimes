@@ -28,9 +28,7 @@ mod aliases {
 	use pallet_multisig::Timepoint;
 
 	/// Copied from https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/multisig/src/lib.rs#L96-L111
-	#[derive(
-		Clone, Eq, PartialEq, Encode, Decode, Default, Debug, TypeInfo, MaxEncodedLen,
-	)]
+	#[derive(Clone, Eq, PartialEq, Encode, Decode, Default, Debug, TypeInfo, MaxEncodedLen)]
 	#[scale_info(skip_type_params(MaxApprovals))]
 	pub struct Multisig<BlockNumber, Balance, AccountId, MaxApprovals>
 	where

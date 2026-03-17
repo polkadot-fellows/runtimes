@@ -27,7 +27,7 @@ use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::dispatch::DispatchClass;
-use sp_runtime::{FixedPointNumber, FixedU128, Debug, Saturating, StateVersion};
+use sp_runtime::{Debug, FixedPointNumber, FixedU128, Saturating, StateVersion};
 
 /// BridgeHubPolkadot parachain.
 #[derive(Debug)]

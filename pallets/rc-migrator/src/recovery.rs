@@ -23,15 +23,7 @@ use crate::{
 pub const MAX_FRIENDS: u32 = 9;
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub enum RecoveryStage {
 	Recoverable(Option<AccountId32>),
@@ -41,15 +33,7 @@ pub enum RecoveryStage {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub enum PortableRecoveryMessage {
 	Recoverable((AccountId32, PortableRecoveryConfig)),
@@ -58,15 +42,7 @@ pub enum PortableRecoveryMessage {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub struct PortableRecoveryConfig {
 	pub delay_period: u32,
@@ -76,15 +52,7 @@ pub struct PortableRecoveryConfig {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub struct PortableActiveRecovery {
 	pub created: u32,
@@ -93,15 +61,7 @@ pub struct PortableActiveRecovery {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub struct PortableRecoveryFriends {
 	pub friends: BoundedVec<AccountId32, ConstU32<MAX_FRIENDS>>,

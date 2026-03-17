@@ -223,15 +223,7 @@ pub mod alias {
 	///
 	/// Alias of [pallet_bounties::Bounty].
 	#[derive(
-		Encode,
-		DecodeWithMemTracking,
-		Decode,
-		Clone,
-		PartialEq,
-		Eq,
-		Debug,
-		TypeInfo,
-		MaxEncodedLen,
+		Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 	)]
 	pub struct Bounty<AccountId, Balance, BlockNumber> {
 		/// The account proposing it.

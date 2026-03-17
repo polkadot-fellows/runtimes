@@ -21,15 +21,7 @@ use types::AccountIdOf;
 
 /// Stage of the delegated-staking pallet migration.
 #[derive(
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Clone,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialEq,
-	Eq,
+	Encode, Decode, DecodeWithMemTracking, Clone, Debug, TypeInfo, MaxEncodedLen, PartialEq, Eq,
 )]
 pub enum DelegatedStakingStage<AccountId> {
 	Delegators(Option<AccountId>),

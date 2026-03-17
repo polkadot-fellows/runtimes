@@ -27,15 +27,7 @@ use sp_runtime::Perbill;
 ///
 /// They advance in a linear fashion.
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum NomPoolsStage<AccountId> {
 	/// Migrate the storage values.
@@ -60,15 +52,7 @@ pub enum NomPoolsStage<AccountId> {
 
 /// All the `StorageValues` from the nominations pools pallet.
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct NomPoolsStorageValues<Balance> {
 	pub total_value_locked: Option<Balance>,

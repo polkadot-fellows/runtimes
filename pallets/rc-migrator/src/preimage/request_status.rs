@@ -18,15 +18,7 @@
 use crate::{types::*, *};
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	TypeInfo,
-	Clone,
-	MaxEncodedLen,
-	Debug,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, TypeInfo, Clone, MaxEncodedLen, Debug, PartialEq, Eq,
 )]
 pub struct PortableRequestStatus {
 	pub hash: H256,
@@ -34,15 +26,7 @@ pub struct PortableRequestStatus {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	TypeInfo,
-	Clone,
-	MaxEncodedLen,
-	Debug,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, TypeInfo, Clone, MaxEncodedLen, Debug, PartialEq, Eq,
 )]
 pub enum PortableRequestStatusInner {
 	Unrequested {

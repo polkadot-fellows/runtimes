@@ -22,15 +22,7 @@ pub struct CrowdloanMigrator<T> {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	Debug,
-	Clone,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, Debug, Clone, PartialEq, Eq,
 )]
 pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 	/// Reserve for some slot leases.
@@ -90,15 +82,7 @@ pub type RcCrowdloanMessageOf<T> =
 	RcCrowdloanMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>;
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	Debug,
-	Clone,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, Debug, Clone, PartialEq, Eq,
 )]
 pub enum CrowdloanStage {
 	Setup,

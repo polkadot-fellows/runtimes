@@ -303,15 +303,7 @@ pub mod alias {
 	/// Information regarding an item to be executed in the future.
 	// FROM: https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/scheduler/src/lib.rs#L148
 	#[derive(
-		Clone,
-		Debug,
-		Encode,
-		DecodeWithMemTracking,
-		Decode,
-		MaxEncodedLen,
-		TypeInfo,
-		PartialEq,
-		Eq,
+		Clone, Debug, Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, PartialEq, Eq,
 	)]
 	pub struct Scheduled<Call, BlockNumber, PalletsOrigin> {
 		/// The unique identity for this task, if there is one.

@@ -20,15 +20,7 @@ use frame_support::traits::{Currency, VestingSchedule};
 use pallet_claims::{EthereumAddress, StatementKind};
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum ClaimsStage<AccountId> {
 	StorageValues,
@@ -40,15 +32,7 @@ pub enum ClaimsStage<AccountId> {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	Debug,
-	Clone,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, Debug, Clone, PartialEq, Eq,
 )]
 pub enum RcClaimsMessage<AccountId, Balance, BlockNumber> {
 	StorageValues { total: Balance },

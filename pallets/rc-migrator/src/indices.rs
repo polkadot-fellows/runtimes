@@ -25,15 +25,7 @@ pub struct IndicesMigrator<T> {
 }
 
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	Debug,
-	Clone,
-	PartialEq,
-	Eq,
+	Encode, DecodeWithMemTracking, Decode, MaxEncodedLen, TypeInfo, Debug, Clone, PartialEq, Eq,
 )]
 pub struct RcIndicesIndex<AccountIndex, AccountId, Balance> {
 	pub index: AccountIndex,
