@@ -122,7 +122,7 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 	type RewardKind = BridgeReward;
 	type DefaultRewardKind = SnowbridgeReward;
 	type RewardPayment = BridgeRelayers;
-	type MessageProcessor = MessageQueue; // TODO @clara please check
+	type MessageProcessor = (); // TODO @clara please add
 }
 
 impl snowbridge_pallet_outbound_queue::Config for Runtime {
