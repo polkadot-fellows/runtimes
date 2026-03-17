@@ -112,7 +112,6 @@ impl pallet_staking_async::Config for Runtime {
 	type HistoryDepth = ();
 	type MaxControllersInDeprecationBatch = ();
 	type EventListeners = ();
-	type MaxInvulnerables = ();
 	type PlanningEraOffset = ();
 	type RcClientInterface = Self;
 	type MaxEraDuration = ();
@@ -226,8 +225,8 @@ impl frame_election_provider_support::ElectionProvider for Runtime {
 		Ok(())
 	}
 
-	fn status() -> Result<bool, ()> {
-		Ok(true)
+	fn status() -> Result<Option<Weight>, ()> {		
+		Ok(None)
 	}
 }
 
