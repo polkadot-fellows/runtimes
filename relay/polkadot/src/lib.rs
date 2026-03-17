@@ -804,7 +804,7 @@ parameter_types! {
 
 pub type TreasuryPaymaster = PayOverXcm<
 	TreasuryInteriorLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::XcmPallet,
 	ConstU32<{ 6 * HOURS }>,
 	<Runtime as pallet_treasury::Config>::Beneficiary,
@@ -862,6 +862,7 @@ impl pallet_bounties::Config for Runtime {
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
+	type TransferAllAssets = (); // not used on the relay
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
@@ -1246,7 +1247,7 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	type AssignCoretime = CoretimeAssignmentProvider;
+	type AssignCoretime = ParaScheduler; // TODO @tsvetomir please check
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 5000.
 	type CooldownRemovalMultiplier = ConstUint<{ 5000 * UNITS / DAYS as u128 }>;
@@ -1336,7 +1337,7 @@ impl parachains_paras_inherent::Config for Runtime {
 impl parachains_scheduler::Config for Runtime {
 	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
 	// otherwise provide a migration.
-	type AssignmentProvider = CoretimeAssignmentProvider;
+	// TODO @tsvetomir this got removed type AssignmentProvider = CoretimeAssignmentProvider;
 }
 
 parameter_types! {
@@ -2771,8 +2772,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(seed)
+		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			SessionKeys::generate(&owner, seed).into()
 		}
 
 		fn decode_session_keys(
