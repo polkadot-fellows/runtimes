@@ -67,11 +67,11 @@ cumulus-primitives-aura = { version = "0.22.0", default-features = false }
 cumulus-primitives-core = { version = "0.24.0", default-features = false }
 cumulus-primitives-utility = { version = "0.26.0", default-features = false }
 emulated-integration-tests-common = { version = "29.0.0" }
-encointer-balances-tx-payment = { version = "~22.1.0", default-features = false }
-encointer-balances-tx-payment-rpc-runtime-api = { version = "~22.1.0", default-features = false }
-encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
-encointer-primitives = { version = "~22.5.0", default-features = false }
+# TODO @ggwpez encointer-balances-tx-payment = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez encointer-balances-tx-payment-rpc-runtime-api = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez encointer-kusama-runtime = { path = "system-parachains/encointer" }
+# TODO @ggwpez encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
+# TODO @ggwpez encointer-primitives = { version = "~22.5.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "46.0.0", default-features = false }
 frame-election-provider-support = { version = "46.0.0", default-features = false }
@@ -122,21 +122,21 @@ pallet-dap = { version = "0.3.0", default-features = false }
 pallet-core-fellowship = { version = "30.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "45.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "45.0.0", default-features = false }
-pallet-encointer-balances = { version = "~22.2.0", default-features = false }
-pallet-encointer-bazaar = { version = "~22.1.0", default-features = false }
-pallet-encointer-bazaar-rpc-runtime-api = { version = "~22.1.0", default-features = false }
-pallet-encointer-ceremonies = { version = "~22.1.0", default-features = false }
-pallet-encointer-ceremonies-rpc-runtime-api = { version = "~22.1.0", default-features = false }
-pallet-encointer-communities = { version = "~22.1.0", default-features = false }
-pallet-encointer-communities-rpc-runtime-api = { version = "~22.1.0", default-features = false }
-pallet-encointer-democracy = { version = "~22.7.0", default-features = false }
-pallet-encointer-faucet = { version = "~22.2.0", default-features = false }
-pallet-encointer-offline-payment = { version = "~22.0.0", default-features = false }
-pallet-encointer-reputation-commitments = { version = "~22.1.1", default-features = false }
-pallet-encointer-reputation-rings = { version = "~22.0.0", default-features = false }
-pallet-encointer-scheduler = { version = "~22.1.0", default-features = false }
-pallet-encointer-treasuries = { version = "~22.7.0", default-features = false }
-pallet-encointer-treasuries-rpc-runtime-api = { version = "~22.3.0", default-features = false }
+# TODO @ggwpez pallet-encointer-balances = { version = "~22.2.0", default-features = false }
+# TODO @ggwpez pallet-encointer-bazaar = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-bazaar-rpc-runtime-api = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-ceremonies = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-ceremonies-rpc-runtime-api = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-communities = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-communities-rpc-runtime-api = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-democracy = { version = "~22.7.0", default-features = false }
+# TODO @ggwpez pallet-encointer-faucet = { version = "~22.2.0", default-features = false }
+# TODO @ggwpez pallet-encointer-offline-payment = { version = "~22.0.0", default-features = false }
+# TODO @ggwpez pallet-encointer-reputation-commitments = { version = "~22.1.1", default-features = false }
+# TODO @ggwpez pallet-encointer-reputation-rings = { version = "~22.0.0", default-features = false }
+# TODO @ggwpez pallet-encointer-scheduler = { version = "~22.1.0", default-features = false }
+# TODO @ggwpez pallet-encointer-treasuries = { version = "~22.7.0", default-features = false }
+# TODO @ggwpez pallet-encointer-treasuries-rpc-runtime-api = { version = "~22.3.0", default-features = false }
 pallet-fast-unstake = { version = "45.0.0", default-features = false }
 pallet-glutton = { version = "32.0.0", default-features = false }
 pallet-grandpa = { version = "46.0.0", default-features = false }
@@ -299,7 +299,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-polkadot",
-	"integration-tests/emulated/chains/parachains/encointer/encointer-kusama",
+	# TODO @ggwpez "integration-tests/emulated/chains/parachains/encointer/encointer-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
@@ -317,7 +317,7 @@ members = [
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/coretime/coretime-polkadot",
-	"integration-tests/emulated/tests/encointer/encointer-kusama",
+	# TODO @ggwpez "integration-tests/emulated/tests/encointer/encointer-kusama",
 	"integration-tests/emulated/tests/governance/kusama",
 	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
@@ -346,7 +346,7 @@ members = [
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",
-	"system-parachains/encointer",
+	# TODO @ggwpez "system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
