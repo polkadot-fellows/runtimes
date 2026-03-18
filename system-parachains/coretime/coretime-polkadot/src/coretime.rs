@@ -99,28 +99,25 @@ fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
 	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
 
-	return Ok(()); // TODO @ggwpez
-	            /*
-				let parent_assets = Into::<Assets>::into(withdrawn)
-					.reanchored(&dest, &Here)
-					.defensive_map_err(|_| XcmError::ReanchorFailed)?;
+	let parent_assets = withdrawn
+		.reanchored_assets(&dest, &Here);
 
-				PolkadotXcm::send_xcm(
-					Here,
-					Location::parent(),
-					Xcm(vec![
-						Instruction::UnpaidExecution {
-							weight_limit: WeightLimit::Unlimited,
-							check_origin: None,
-						},
-						ReceiveTeleportedAsset(parent_assets.clone()),
-						BurnAsset(parent_assets),
-					]),
-				)?;
+	PolkadotXcm::send_xcm(
+		Here,
+		Location::parent(),
+		Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			ReceiveTeleportedAsset(parent_assets.clone()),
+			BurnAsset(parent_assets),
+		]),
+	)?;
 
-				AssetTransactor::check_out(&dest, &asset, &dummy_xcm_context);
+	AssetTransactor::check_out(&dest, &asset, &dummy_xcm_context);
 
-				Ok(())*/
+	Ok(())
 }
 
 parameter_types! {

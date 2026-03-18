@@ -1255,7 +1255,7 @@ impl pallet_revive::Config for Runtime {
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
 	type GasScale = ConstU32<100_000>;
-	type OnBurn = (); // TODO @ggwpez to treasury
+	type OnBurn = (); // TODO @paolo please review
 }
 
 // TODO @pg
