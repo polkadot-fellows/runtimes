@@ -14,6 +14,7 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 asset-hub-polkadot-emulated-chain = { workspace = true }
+bulletin-polkadot-emulated-chain = { workspace = true }
 bridge-hub-polkadot-emulated-chain = { workspace = true }
 collectives-polkadot-emulated-chain = { workspace = true }
 coretime-polkadot-emulated-chain = { workspace = true }
@@ -24,6 +25,7 @@ people-polkadot-emulated-chain = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-polkadot-emulated-chain/runtime-benchmarks",
+	"bulletin-polkadot-emulated-chain/runtime-benchmarks",
 	"bridge-hub-polkadot-emulated-chain/runtime-benchmarks",
 	"collectives-polkadot-emulated-chain/runtime-benchmarks",
 	"coretime-polkadot-emulated-chain/runtime-benchmarks",
