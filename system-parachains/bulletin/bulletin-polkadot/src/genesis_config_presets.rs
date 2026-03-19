@@ -20,25 +20,14 @@ use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::ParaId;
 use frame_support::build_struct_json_patch;
 use parachains_common::{AccountId, AuraId};
-use sp_core::{sr25519, Pair};
 use sp_genesis_builder::PresetId;
 use sp_keyring::Sr25519Keyring;
-use sp_runtime::traits::{IdentifyAccount, Verify};
 use system_parachains_constants::{
 	genesis_presets::SAFE_XCM_VERSION, polkadot::currency::UNITS as DOT,
 };
 
-/// Generate an account ID from a seed string (e.g. `"//Chunkedsigner"`).
-fn account_id_from_seed(seed: &str) -> AccountId {
-	type AccountPublic = <Signature as Verify>::Signer;
-	let public = sr25519::Pair::from_string(seed, None)
-		.expect("static values are valid; qed")
-		.public();
-	AccountPublic::from(public).into_account()
-}
-
 const BULLETIN_POLKADOT_ED: Balance = ExistentialDeposit::get();
-pub const BULLETIN_PARA_ID: ParaId = ParaId::new(2487);
+pub const BULLETIN_PARA_ID: ParaId = ParaId::new(1006);
 
 fn bulletin_polkadot_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,
@@ -46,7 +35,6 @@ fn bulletin_polkadot_genesis(
 	endowment: Balance,
 	id: ParaId,
 ) -> serde_json::Value {
-	let _ = account_id_from_seed; // suppress unused warning until transaction_storage is re-added
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k| (k, endowment)).collect(),

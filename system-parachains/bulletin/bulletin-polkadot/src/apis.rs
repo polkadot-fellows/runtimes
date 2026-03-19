@@ -175,7 +175,7 @@ impl_runtime_apis! {
 		fn query_acceptable_payment_assets(
 			xcm_version: xcm::Version
 		) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let acceptable_assets = vec![AssetId(xcm_config::TokenRelayLocation::get())];
+			let acceptable_assets = vec![AssetId(xcm_config::DotLocation::get())];
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 
@@ -350,7 +350,7 @@ impl_runtime_apis! {
 
 			use alloc::boxed::Box;
 			use xcm::latest::prelude::*;
-			use xcm_config::TokenRelayLocation;
+			use xcm_config::DotLocation;
 			use xcm_executor::AssetsInHolding;
 
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
@@ -365,7 +365,7 @@ impl_runtime_apis! {
 						xcm_config::XcmConfig,
 						ExistentialDepositAsset,
 						PriceForSiblingParachainDelivery,
-						RandomParaId,
+						BenchmarkParaId,
 						ParachainSystem,
 					>
 				);
@@ -375,8 +375,10 @@ impl_runtime_apis! {
 				}
 
 				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-					// Non-system parachains do not support teleports.
-					None
+					Some((
+						Asset { id: AssetId(DotLocation::get()), fun: Fungible(ExistentialDeposit::get()) },
+						xcm_config::AssetHubLocation::get(),
+					))
 				}
 
 				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
@@ -399,7 +401,7 @@ impl_runtime_apis! {
 
 			parameter_types! {
 				pub ExistentialDepositAsset: Option<Asset> = Some((
-					TokenRelayLocation::get(),
+					DotLocation::get(),
 					ExistentialDeposit::get()
 				).into());
 			}
@@ -417,32 +419,32 @@ impl_runtime_apis! {
 						xcm_config::XcmConfig,
 						ExistentialDepositAsset,
 						PriceForSiblingParachainDelivery,
-						RandomParaId,
+						BenchmarkParaId,
 						ParachainSystem,
 					>
 				);
 
 				type AccountIdConverter = xcm_config::LocationToAccountId;
 				fn valid_destination() -> Result<Location, BenchmarkError> {
-					Ok(TokenRelayLocation::get())
+					Ok(DotLocation::get())
 				}
 				fn worst_case_holding(_depositable_count: u32) -> AssetsInHolding {
 					use pallet_xcm_benchmarks::MockCredit;
 					// just concrete assets according to relay chain.
 					AssetsInHolding::new_from_fungible_credit(
-						AssetId(TokenRelayLocation::get()),
+						AssetId(DotLocation::get()),
 						Box::new(MockCredit(1_000_000 * UNITS)),
 					)
 				}
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(Location, Asset)> = None;
-				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
-				pub const TrustedReserve: Option<(Location, Asset)> = Some((
-					TokenRelayLocation::get(),
-					Asset { fun: Fungible(UNITS), id: AssetId(TokenRelayLocation::get()) },
+				pub TrustedTeleporter: Option<(Location, Asset)> = Some((
+					xcm_config::AssetHubLocation::get(),
+					Asset { fun: Fungible(UNITS), id: AssetId(DotLocation::get()) },
 				));
+				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
+				pub const TrustedReserve: Option<(Location, Asset)> = None;
 			}
 
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -454,7 +456,7 @@ impl_runtime_apis! {
 
 				fn get_asset() -> Asset {
 					Asset {
-						id: AssetId(TokenRelayLocation::get()),
+						id: AssetId(DotLocation::get()),
 						fun: Fungible(UNITS),
 					}
 				}
@@ -477,23 +479,23 @@ impl_runtime_apis! {
 				}
 
 				fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
-					Ok((TokenRelayLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
+					Ok((DotLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
 				}
 
 				fn subscribe_origin() -> Result<Location, BenchmarkError> {
-					Ok(TokenRelayLocation::get())
+					Ok(DotLocation::get())
 				}
 
 				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
-					let origin = TokenRelayLocation::get();
-					let assets: Assets = (AssetId(TokenRelayLocation::get()), 1_000 * UNITS).into();
+					let origin = DotLocation::get();
+					let assets: Assets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
 				fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
 					Ok((Asset {
-						id: AssetId(TokenRelayLocation::get()),
+						id: AssetId(DotLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					}, WeightLimit::Limited(Weight::from_parts(5000, 5000))))
 				}
