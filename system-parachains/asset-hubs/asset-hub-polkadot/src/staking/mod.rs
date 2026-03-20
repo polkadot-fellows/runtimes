@@ -722,7 +722,7 @@ impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 		ensure!(March2026TI::exists(), "March2026TI should exist");
-		Ok(Vec::new())                                                            
+		Ok(Vec::new())
 	}
 
 	fn on_runtime_upgrade() -> Weight {
@@ -733,8 +733,8 @@ impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
 	#[cfg(feature = "try-runtime")]
 	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 		ensure!(!March2026TI::exists(), "March2026TI should be removed");
-		Ok(())                                                                    
-	} 
+		Ok(())
+	}
 }
 
 #[cfg(test)]
@@ -770,7 +770,7 @@ mod tests {
 		}));
 	}
 
-	// With a March 2026 TI value of 16,743,421,533,310,057,487 planck, 
+	// With a March 2026 TI value of 16,743,421,533,310,057,487 planck,
 	// the daily era payout is ~153,000 DOT. As seen here:
 	// https://assethub-polkadot.subscan.io/event/13377452-23
 	#[test]
