@@ -19,23 +19,13 @@ use crate::*;
 use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::ParaId;
 use frame_support::build_struct_json_patch;
-use parachains_common::{AccountId, AuraId};
-use sp_core::{sr25519, Pair};
+use parachains_common::AuraId;
+use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
-use sp_keyring::Sr25519Keyring;
-use sp_runtime::traits::{IdentifyAccount, Verify};
 use system_parachains_constants::{
-	genesis_presets::SAFE_XCM_VERSION, polkadot::currency::UNITS as DOT,
+	genesis_presets::*,
+	polkadot::currency::UNITS as DOT,
 };
-
-/// Generate an account ID from a seed string (e.g. `"//Chunkedsigner"`).
-fn account_id_from_seed(seed: &str) -> AccountId {
-	type AccountPublic = <Signature as Verify>::Signer;
-	let public = sr25519::Pair::from_string(seed, None)
-		.expect("static values are valid; qed")
-		.public();
-	AccountPublic::from(public).into_account()
-}
 
 const BULLETIN_POLKADOT_ED: Balance = ExistentialDeposit::get();
 pub const BULLETIN_PARA_ID: ParaId = ParaId::new(2487);
@@ -46,7 +36,6 @@ fn bulletin_polkadot_genesis(
 	endowment: Balance,
 	id: ParaId,
 ) -> serde_json::Value {
-	let _ = account_id_from_seed; // suppress unused warning until transaction_storage is re-added
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k| (k, endowment)).collect(),
@@ -77,22 +66,22 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => bulletin_polkadot_genesis(
 			// initial collators.
-			vec![
-				(Sr25519Keyring::Alice.to_account_id(), Sr25519Keyring::Alice.public().into()),
-				(Sr25519Keyring::Bob.to_account_id(), Sr25519Keyring::Bob.public().into()),
-			],
-			Sr25519Keyring::well_known().map(|k| k.to_account_id()).collect(),
+			invulnerables(),
+			testnet_accounts(),
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
 		),
 		sp_genesis_builder::DEV_RUNTIME_PRESET => bulletin_polkadot_genesis(
 			// initial collators.
-			vec![(Sr25519Keyring::Alice.to_account_id(), Sr25519Keyring::Alice.public().into())],
+			vec![(
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_from_seed::<AuraId>("Alice"),
+			)],
 			vec![
-				Sr25519Keyring::Alice.to_account_id(),
-				Sr25519Keyring::Bob.to_account_id(),
-				Sr25519Keyring::AliceStash.to_account_id(),
-				Sr25519Keyring::BobStash.to_account_id(),
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 			],
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
