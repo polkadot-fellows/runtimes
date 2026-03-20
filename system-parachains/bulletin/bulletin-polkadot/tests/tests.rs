@@ -28,7 +28,7 @@ use parachains_common::{AccountId, AuraId, Hash as PcHash, Signature as PcSignat
 use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin, RuntimeHelper};
 use sp_core::{crypto::Ss58Codec, Encode, Pair};
 use sp_keyring::Sr25519Keyring;
-use sp_runtime::{transaction_validity, ApplyExtrinsicResult, BuildStorage, Either};
+use sp_runtime::{transaction_validity, BuildStorage, Either};
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
@@ -77,14 +77,6 @@ fn construct_extrinsic(
 		// Unsigned call.
 		Ok(UncheckedExtrinsic::new_transaction(call, tx_ext))
 	}
-}
-
-fn construct_and_apply_extrinsic(
-	account: Option<sp_core::sr25519::Pair>,
-	call: RuntimeCall,
-) -> ApplyExtrinsicResult {
-	let xt = construct_extrinsic(account, call)?;
-	bulletin_polkadot_runtime::Executive::apply_extrinsic(xt)
 }
 
 #[test]

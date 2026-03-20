@@ -2786,6 +2786,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "bulletin-polkadot-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "bulletin-polkadot-runtime",
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "parachains-common",
+ "sp-core 39.0.0",
+]
+
+[[package]]
+name = "bulletin-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-test-utils",
+ "bulletin-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "integration-tests-helpers",
+ "pallet-balances",
+ "pallet-message-queue",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-runtime-common",
+ "polkadot-runtime-constants",
+ "polkadot-system-emulated-network",
+ "sp-runtime 45.0.0",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "xcm-runtime-apis",
+]
+
+[[package]]
 name = "bulletin-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
@@ -12380,6 +12417,7 @@ version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-emulated-chain",
  "bridge-hub-polkadot-emulated-chain",
+ "bulletin-polkadot-emulated-chain",
  "collectives-polkadot-emulated-chain",
  "coretime-polkadot-emulated-chain",
  "emulated-integration-tests-common",

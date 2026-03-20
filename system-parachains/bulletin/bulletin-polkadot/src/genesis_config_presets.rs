@@ -19,7 +19,7 @@ use crate::*;
 use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::ParaId;
 use frame_support::build_struct_json_patch;
-use parachains_common::AuraId;
+use parachains_common::{AccountId, AuraId};
 use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
 use system_parachains_constants::{
@@ -28,7 +28,7 @@ use system_parachains_constants::{
 };
 
 const BULLETIN_POLKADOT_ED: Balance = ExistentialDeposit::get();
-pub const BULLETIN_PARA_ID: ParaId = ParaId::new(2487);
+pub const BULLETIN_PARA_ID: ParaId = ParaId::new(1006);
 
 fn bulletin_polkadot_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,

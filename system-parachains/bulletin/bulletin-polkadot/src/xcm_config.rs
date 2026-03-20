@@ -16,8 +16,8 @@
 
 //! XCM Configuration for Bulletin Polkadot Parachain
 //!
-//! As a non-system parachain, this runtime:
-//! - Uses Asset Hub as the reserve location for DOT (no teleports)
+//! As a system parachain, this runtime:
+//! - Supports DOT teleports with the relay chain and system parachains
 //! - Trusts Asset Hub as the governance location (not the relay)
 
 use super::{
@@ -38,7 +38,7 @@ use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::{
 	xcm_config::{
 		AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
-		ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
+		ConcreteAssetFromSystem, ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 	},
 	TREASURY_PALLET_ID,
 };
@@ -70,16 +70,15 @@ pub mod polkadot_system_parachain {
 	pub const PEOPLE_ID: u32 = 1004;
 	/// Coretime parachain ID.
 	pub const CORETIME_ID: u32 = 1005;
+	/// Bulletin parachain ID.
+	pub const BULLETIN_ID: u32 = 1006;
 }
 
 use polkadot_system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID, PEOPLE_ID};
 
-/// Polkadot Treasury pallet ID (index 19 on Polkadot relay chain).
-pub const TREASURY_PALLET_ID_ON_RELAY: u8 = 19;
-
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
-	pub const TokenRelayLocation: Location = Location::parent();
+	pub const DotLocation: Location = Location::parent();
 	pub const RelayChainLocation: Location = Location::parent();
 	pub AssetHubLocation: Location = Location::new(1, [Parachain(ASSET_HUB_ID)]);
 	// Polkadot network uses the `Polkadot` NetworkId variant
@@ -109,7 +108,7 @@ pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<TokenRelayLocation>,
+	IsConcrete<DotLocation>,
 	// Do a simple punn to convert an `AccountId32` `Location` into a native chain
 	// `AccountId`:
 	LocationToAccountId,
@@ -198,40 +197,15 @@ pub type Barrier = TrailingSetTopicAsId<
 
 parameter_types! {
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(TREASURY_PALLET_ID_ON_RELAY)).into();
 }
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (
-	Equals<RootLocation>,
-	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
-	Equals<AssetHubLocation>,
-);
+pub type WaivedLocations =
+	(Equals<RootLocation>, RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>);
 
-/// Helper type to match DOT (relay native token) from Asset Hub.
-pub struct IsRelayTokenFrom<Origin>(core::marker::PhantomData<Origin>);
-impl<Origin> frame_support::traits::ContainsPair<Asset, Location> for IsRelayTokenFrom<Origin>
-where
-	Origin: frame_support::traits::Get<Location>,
-{
-	fn contains(asset: &Asset, origin: &Location) -> bool {
-		let loc = Origin::get();
-		&loc == origin &&
-			matches!(
-				asset,
-				Asset { id: AssetId(asset_id_location), fun: Fungible(_) }
-					if *asset_id_location == TokenRelayLocation::get()
-			)
-	}
-}
-
-/// Reserve locations for assets (Asset Hub for DOT).
-pub type Reserves = IsRelayTokenFrom<AssetHubLocation>;
-
-/// No trusted teleporters.
-pub type TrustedTeleporters = ();
+/// Trusted teleporters for DOT from the relay chain and system parachains.
+pub type TrustedTeleporters = ConcreteAssetFromSystem<DotLocation>;
 
 /// Defines origin aliasing rules for this chain.
 ///
@@ -253,7 +227,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmEventEmitter = PolkadotXcm;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = Reserves;
+	type IsReserve = ();
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
@@ -264,7 +238,7 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type Trader = UsingComponents<
 		WeightToFee,
-		TokenRelayLocation,
+		DotLocation,
 		AccountId,
 		Balances,
 		ResolveTo<StakingPotAccountId<Runtime>, Balances>,
@@ -324,8 +298,8 @@ impl pallet_xcm::Config for Runtime {
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
 	type XcmExecuteFilter = Everything;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type XcmTeleportFilter = Nothing;
-	type XcmReserveTransferFilter = Everything;
+	type XcmTeleportFilter = Everything;
+	type XcmReserveTransferFilter = Nothing;
 	type Weigher = WeightInfoBounds<
 		crate::weights::xcm::BulletinPolkadotXcmWeight<RuntimeCall>,
 		RuntimeCall,
