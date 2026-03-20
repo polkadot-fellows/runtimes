@@ -17,45 +17,28 @@
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 
 // Cumulus
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
+use codec::Encode;
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
+	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
+	PenpalASiblingSovereignAccount, PenpalATeleportableAssetLocation, PenpalBLocation,
+	PenpalBSiblingSovereignAccount, PenpalBTeleportableAssetLocation, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
-use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
-use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use xcm::prelude::*;
+use xcm_builder::ExternalConsensusLocationsConverterFor;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
+pub const USDT_ED: Balance = 70_000;
 
 frame_support::parameter_types! {
 	pub AssetHubPolkadotAssetOwner: AccountId = Sr25519Keyring::Alice.to_account_id();
-	pub PenpalATeleportableAssetLocation: Location
-		= Location::new(1, [
-				Parachain(penpal_emulated_chain::PARA_ID_A),
-				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
-			]
-		);
-	pub PenpalBTeleportableAssetLocation: Location
-		= Location::new(1, [
-				Parachain(penpal_emulated_chain::PARA_ID_B),
-				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
-			]
-		);
-	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
-	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
-	pub EthereumSovereignAccount: AccountId = EthereumLocationsConverterFor::<AccountId>::convert_location(
-		&Location::new(
-			2,
-			[GlobalConsensus(EthereumNetwork::get())],
-		),
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Polkadot), Parachain(PARA_ID)].into();
+	pub EthereumSovereignAccount: AccountId = ExternalConsensusLocationsConverterFor::<UniversalLocation, AccountId>::convert_location(
+		&EthLocation::get(),
 	).unwrap();
 }
 
@@ -81,6 +64,12 @@ pub fn genesis() -> sp_core::storage::Storage {
 				.iter()
 				.cloned()
 				.map(|k| (k, ED * 4096 * 4096))
+				// pre-fund checking account to avoid pre-funding for every test scenario
+				// teleporting funds to asset hub
+				.chain(std::iter::once((
+					asset_hub_polkadot_runtime::xcm_config::CheckingAccount::get(),
+					ED * 4096 * 4096 * 4096,
+				)))
 				.collect(),
 			dev_accounts: None,
 		},
@@ -113,7 +102,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		assets: asset_hub_polkadot_runtime::AssetsConfig {
 			assets: vec![
 				(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), false, ED),
-				(USDT_ID, AssetHubPolkadotAssetOwner::get(), true, ED),
+				(USDT_ID, AssetHubPolkadotAssetOwner::get(), true, USDT_ED),
 			],
 			..Default::default()
 		},
@@ -137,14 +126,37 @@ pub fn genesis() -> sp_core::storage::Storage {
 				// Weth
 				(WethLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 			],
+			reserves: vec![
+				(
+					PenpalATeleportableAssetLocation::get(),
+					vec![(PenpalALocation::get(), true).into()],
+				),
+				(
+					PenpalBTeleportableAssetLocation::get(),
+					vec![(PenpalBLocation::get(), true).into()],
+				),
+				(EthLocation::get(), vec![(EthLocation::get(), false).into()]),
+				(WethLocation::get(), vec![(EthLocation::get(), false).into()]),
+			],
 			..Default::default()
 		},
 		..Default::default()
 	};
 
-	build_genesis_storage(
+	let mut storage = build_genesis_storage(
 		&genesis_config,
 		asset_hub_polkadot_runtime::WASM_BINARY
 			.expect("WASM binary was not built, please build it!"),
-	)
+	);
+
+	// Set AH migration stage to MigrationDone so teleport tracking is enabled
+	// and the checking account is used for teleport operations.
+	use frame_support::storage::generator::StorageValue as _;
+	let key = pallet_ah_migrator::AhMigrationStage::<
+		asset_hub_polkadot_runtime::Runtime,
+	>::storage_value_final_key();
+	let value = pallet_ah_migrator::MigrationStage::MigrationDone;
+	storage.top.insert(key.to_vec(), value.encode());
+
+	storage
 }

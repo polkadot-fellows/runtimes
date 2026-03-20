@@ -53,12 +53,13 @@ pub use kusama_polkadot_system_emulated_network::{
 	},
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
-		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet, ForeignAssetReserveData,
 	},
 	bridge_hub_polkadot_emulated_chain::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
+	collectives_polkadot_emulated_chain::CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	kusama_emulated_chain::KusamaRelayPallet as KusamaPallet,
 	penpal_emulated_chain::{
 		penpal_runtime::xcm_config::{
@@ -78,7 +79,8 @@ pub use kusama_polkadot_system_emulated_network::{
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, KusamaRelay as Kusama,
+	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender,
+	CollectivesPolkadotPara as CollectivesPolkadot, KusamaRelay as Kusama,
 	KusamaRelayReceiver as KusamaReceiver, PenpalAPara as PenpalA,
 	PenpalAParaReceiver as PenpalAReceiver, PenpalBPara as PenpalB,
 	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,

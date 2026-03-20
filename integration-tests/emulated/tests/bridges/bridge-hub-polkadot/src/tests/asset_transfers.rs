@@ -42,7 +42,8 @@ fn set_up_dot_for_penpal_polkadot_through_pah_to_kah(
 ) -> (Location, Location) {
 	let dot_at_polkadot_parachains = dot_at_ah_polkadot();
 	let dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
-	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true);
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true, reserves);
 	create_pool_with_native_on!(
 		AssetHubKusama,
 		dot_at_asset_hub_kusama.clone(),
@@ -99,7 +100,8 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let dot_at_asset_hub_polkadot_latest: Location = dot_at_ah_polkadot();
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 
-	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true, reserves);
 	create_pool_with_native_on!(
 		AssetHubKusama,
 		bridged_dot_at_asset_hub_kusama.clone(),
@@ -198,7 +200,8 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		sender.clone(),
 		MIN_ETHER_BALANCE,
 	);
-	create_foreign_on_ah_kusama(bridged_usdt_at_asset_hub_kusama.clone(), true);
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_usdt_at_asset_hub_kusama.clone(), true, reserves);
 	create_pool_with_native_on!(
 		AssetHubKusama,
 		bridged_usdt_at_asset_hub_kusama.clone(),
@@ -265,9 +268,11 @@ fn send_back_ksm_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let bridged_ksm_at_asset_hub_polkadot_latest: Location =
 		bridged_ksm_at_asset_hub_polkadot.clone();
 	let prefund_accounts = vec![(sender.clone(), prefund_amount)];
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
 	create_foreign_on_ah_polkadot(
 		bridged_ksm_at_asset_hub_polkadot.clone(),
 		true,
+		reserves,
 		prefund_accounts,
 	);
 
@@ -351,7 +356,8 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama()
 	let bridged_dot_at_ah_kusama_latest = bridged_dot_at_ah_kusama();
 	let bridged_dot_at_ah_kusama = bridged_dot_at_ah_kusama();
 
-	create_foreign_on_ah_kusama(bridged_dot_at_ah_kusama.clone(), true);
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_dot_at_ah_kusama.clone(), true, reserves);
 	create_pool_with_native_on!(
 		AssetHubKusama,
 		bridged_dot_at_ah_kusama.clone(),
@@ -680,7 +686,8 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 	let dot_at_polkadot_parachains = dot_at_ah_polkadot();
 	let dot_at_kusama_parachains = bridged_dot_at_ah_kusama();
 	// create foreign DOT on AH Kusama
-	create_foreign_on_ah_kusama(dot_at_kusama_parachains.clone(), true);
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(dot_at_kusama_parachains.clone(), true, reserves);
 	create_pool_with_native_on!(
 		AssetHubKusama,
 		dot_at_kusama_parachains.clone(),
@@ -859,7 +866,13 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_kah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	let prefund_accounts = vec![(sov_penpal_on_kah, amount * 2)];
-	create_foreign_on_ah_polkadot(ksm_at_polkadot_parachains.clone(), true, prefund_accounts);
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
+	create_foreign_on_ah_polkadot(
+		ksm_at_polkadot_parachains.clone(),
+		true,
+		reserves,
+		prefund_accounts,
+	);
 	let asset_owner: AccountId = AssetHubPolkadot::account_id_of(ALICE);
 	PenpalB::force_create_foreign_asset(
 		ksm_at_polkadot_parachains_latest.clone(),
@@ -994,7 +1007,13 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_pah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	let prefund_accounts = vec![(sov_penpal_on_pah.clone(), amount * 2)];
-	create_foreign_on_ah_polkadot(ksm_at_polkadot_parachains.clone(), true, prefund_accounts);
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
+	create_foreign_on_ah_polkadot(
+		ksm_at_polkadot_parachains.clone(),
+		true,
+		reserves,
+		prefund_accounts,
+	);
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
 		ksm_at_polkadot_parachains.clone(),
@@ -1180,7 +1199,13 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_pah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	let prefund_accounts = vec![(sov_penpal_on_pah.clone(), amount * 2)];
-	create_foreign_on_ah_polkadot(ksm_at_polkadot_parachains.clone(), true, prefund_accounts);
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
+	create_foreign_on_ah_polkadot(
+		ksm_at_polkadot_parachains.clone(),
+		true,
+		reserves,
+		prefund_accounts,
+	);
 	create_pool_with_native_on!(
 		AssetHubPolkadot,
 		ksm_at_polkadot_parachains.clone(),

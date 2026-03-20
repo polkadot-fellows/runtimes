@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use crate::*;
+use emulated_integration_tests_common::test_xcm_fee_querying_apis_work_for_asset_hub;
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
@@ -363,14 +364,15 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	});
 
 	PenpalB::execute_with(|| {
-		// send xcm transact from `penpal` account which as only `ASSET_ID` tokens on
+		// send xcm transact from `penpal` account while paying with `ASSET_ID` tokens on
 		// `AssetHubPolkadot`
-		let call = AssetHubPolkadot::force_create_asset_call(
-			ASSET_ID + 1000,
-			penpal.clone(),
-			true,
-			ASSET_MIN_BALANCE,
-		);
+		let call = <AssetHubPolkadot as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubPolkadot as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
 
 		let penpal_root = <PenpalB as Chain>::RuntimeOrigin::root();
 		let fee_amount = 4_000_000_000_000u128;
@@ -405,4 +407,9 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 			]
 		);
 	});
+}
+
+#[test]
+fn xcm_fee_querying_apis_work() {
+	test_xcm_fee_querying_apis_work_for_asset_hub!(AssetHubPolkadot);
 }

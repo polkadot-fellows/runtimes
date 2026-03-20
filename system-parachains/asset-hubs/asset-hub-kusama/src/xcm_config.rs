@@ -25,7 +25,10 @@ use super::{
 use crate::ForeignAssets;
 use alloc::{vec, vec::Vec};
 use assets_common::{
-	matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
+	matching::{
+		FromSiblingParachain, IsForeignConcreteAsset, NonTeleportableAssetFromTrustedReserve,
+		ParentLocation, TeleportableAssetWithTrustedReserve,
+	},
 	TrustBackedAssetsAsLocation,
 };
 use core::marker::PhantomData;
@@ -49,6 +52,7 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use sp_runtime::traits::TryConvertInto;
+use system_parachains_constants::kusama::fellowship::IsFellowshipVoice;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -83,7 +87,6 @@ parameter_types! {
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub FellowshipLocation: Location = RelayChainLocation::get();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
@@ -268,15 +271,6 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
-/// Location type to determine the Technical Fellowship related
-/// pallets for use in XCM.
-pub struct FellowshipEntities;
-impl Contains<Location> for FellowshipEntities {
-	fn contains(location: &Location) -> bool {
-		matches!(location.unpack(), (1, [Plurality { id: BodyId::Technical, .. }]))
-	}
-}
-
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -292,13 +286,16 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent, its pluralities (i.e. governance bodies), parent's treasury and
 					// sibling bridge hub get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						Equals<RelayTreasuryLocation>,
-						Equals<bridging::SiblingBridgeHub>,
-						FellowshipEntities,
-						IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							Equals<RelayTreasuryLocation>,
+							Equals<bridging::SiblingBridgeHub>,
+							IsFellowshipVoice,
+							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
+						),
+						TrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
@@ -316,17 +313,26 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
-	FellowshipEntities,
+	IsFellowshipVoice,
 	LocalPlurality,
+);
+
+/// Asset Hub accepts incoming reserve transfers only for "Foreign Assets" and only from locations
+/// explicitly set by the asset's owner.
+pub type TrustedReserves = (
+	IsForeignConcreteAsset<
+		NonTeleportableAssetFromTrustedReserve<SelfParaId, crate::ForeignAssets>,
+	>,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 ///
 /// - KSM with the parent Relay Chain and sibling system parachains; and
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
+/// - Sibling parachains' assets according to their configured trusted reserves (teleportable when
+///   `Here` and `origin` are both trusted reserve locations).
 pub type TrustedTeleporters = (
 	ConcreteAssetFromSystem<KsmLocation>,
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
+	IsForeignConcreteAsset<TeleportableAssetWithTrustedReserve<SelfParaId, crate::ForeignAssets>>,
 );
 
 /// During migration we only allow teleports of foreign assets (not DOT).
@@ -365,11 +371,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmRecorder = PolkadotXcm;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
-	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset
-	// native to the Polkadot or Ethereum ecosystems.
-	type IsReserve = (bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,);
+	type IsReserve = TrustedReserves;
 	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
 		crate::AhMigrator,
 		TrustedTeleportersWhileMigrating,
@@ -549,25 +551,6 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-
-/// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
-pub struct XcmBenchmarkHelper;
-#[cfg(feature = "runtime-benchmarks")]
-impl
-	pallet_assets::BenchmarkHelper<
-		Location,
-		assets_common::local_and_foreign_assets::ForeignAssetReserveData,
-	> for XcmBenchmarkHelper
-{
-	fn create_asset_id_parameter(id: u32) -> Location {
-		Location::new(1, Parachain(id))
-	}
-	fn create_reserve_id_parameter(
-		id: u32,
-	) -> assets_common::local_and_foreign_assets::ForeignAssetReserveData {
-		(Location::new(1, Parachain(id)), false).into()
-	}
 }
 
 /// All configuration related to bridging
