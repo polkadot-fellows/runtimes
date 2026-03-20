@@ -721,7 +721,7 @@ pub struct RemoveMarchTIValue;
 impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		ensure!(March2026TI::exists(), "March2026TI should exist");
+		frame_support::ensure!(March2026TI::exists(), "March2026TI should exist");
 		Ok(Vec::new())
 	}
 
@@ -732,7 +732,7 @@ impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
 
 	#[cfg(feature = "try-runtime")]
 	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		ensure!(!March2026TI::exists(), "March2026TI should be removed");
+		frame_support::ensure!(!March2026TI::exists(), "March2026TI should be removed");
 		Ok(())
 	}
 }
