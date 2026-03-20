@@ -2886,7 +2886,6 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "tracing",
  "xcm-runtime-apis",
 ]
 

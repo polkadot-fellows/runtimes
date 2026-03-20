@@ -18,23 +18,42 @@
 pub use frame_support::{assert_ok, traits::fungibles::Inspect};
 
 // Polkadot
-pub use xcm::prelude::*;
+pub use xcm::prelude::{AccountId32 as AccountId32Junction, *};
 
 // Cumulus
 pub use bulletin_polkadot_runtime::ExistentialDeposit as BulletinPolkadotExistentialDeposit;
-pub use emulated_integration_tests_common::xcm_emulator::{Chain, TestExt};
+pub use emulated_integration_tests_common::{
+	impls::Parachain,
+	xcm_emulator::{Chain, TestExt},
+};
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
-	asset_hub_polkadot_emulated_chain::genesis::ED as ASSET_HUB_POLKADOT_ED,
+	asset_hub_polkadot_emulated_chain::{
+		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+	},
+	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	bulletin_polkadot_emulated_chain::{
 		self, bulletin_polkadot_runtime, genesis::ED as BULLETIN_POLKADOT_ED,
 		BulletinPolkadotParaPallet as BulletinPolkadotPallet,
 	},
-	penpal_emulated_chain::PenpalAssetOwner,
-	polkadot_emulated_chain::genesis::ED as POLKADOT_ED,
-	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
-	BulletinPolkadotPara as BulletinPolkadot, CollectivesPolkadotPara as CollectivesPolkadot,
-	PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
+	collectives_polkadot_emulated_chain::CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
+	people_polkadot_emulated_chain::PeoplePolkadotParaPallet as PeoplePolkadotPallet,
+	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
+	AssetHubPolkadotPara as AssetHubPolkadot,
+	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
+	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
+	BridgeHubPolkadotPara as BridgeHubPolkadot,
+	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
+	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender,
+	BulletinPolkadotPara as BulletinPolkadot,
+	BulletinPolkadotParaReceiver as BulletinPolkadotReceiver,
+	BulletinPolkadotParaSender as BulletinPolkadotSender,
+	CollectivesPolkadotPara as CollectivesPolkadot, PenpalAPara as PenpalA,
+	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
+	PeoplePolkadotPara as PeoplePolkadot, PeoplePolkadotParaReceiver as PeoplePolkadotReceiver,
+	PeoplePolkadotParaSender as PeoplePolkadotSender, PolkadotRelay as Polkadot,
+	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 
 #[cfg(test)]

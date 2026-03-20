@@ -22,10 +22,7 @@ use frame_support::build_struct_json_patch;
 use parachains_common::{AccountId, AuraId};
 use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
-use system_parachains_constants::{
-	genesis_presets::*,
-	polkadot::currency::UNITS as DOT,
-};
+use system_parachains_constants::{genesis_presets::*, polkadot::currency::UNITS as DOT};
 
 const BULLETIN_POLKADOT_ED: Balance = ExistentialDeposit::get();
 pub const BULLETIN_PARA_ID: ParaId = ParaId::new(1006);
