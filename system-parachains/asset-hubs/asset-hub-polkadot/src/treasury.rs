@@ -63,12 +63,12 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-	// where `176` is the size of the `Bounty` struct in bytes.
 	// Assets that legacy bounties can hold: native DOT, USDT (1984), USDC (1337).
 	pub BountyRelevantAssets: Vec<xcm::latest::Location> = vec![
 		xcm_config::DotLocation::get(),
 		xcm::latest::Location::new(
 			0,
+			// TODO @ggwpez MYTH, DED
 			[xcm::latest::Junction::PalletInstance(
 				xcm_config::TrustBackedAssetsPalletIndex::get(),
 			), xcm::latest::Junction::GeneralIndex(1984)],
@@ -80,6 +80,7 @@ parameter_types! {
 			), xcm::latest::Junction::GeneralIndex(1337)],
 		),
 	];
+	// `176` is the size of the `Bounty` struct in bytes.
 	pub const BountyDepositBase: Balance = system_para_deposit(0, 176);
 	// per byte for the bounty description.
 	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
