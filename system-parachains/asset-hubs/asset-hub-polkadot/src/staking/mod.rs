@@ -332,22 +332,12 @@ impl EraPayout {
 	// The maximum amount an era can emit. Used as a final safeguard.
 	pub const MAX_ERA_EMISSION: Balance = Self::PRE_HARD_CAP_DAILY_EMISSION * 7;
 
+	// The TI at the time of `HARD_CAP_START`.
+	pub const MARCH_2026_TI: Balance = 16_743_421_533_310_057_487;
+
 	// The yearly emission post hard pressure enactment.
 	fn yearly_after_hard_cap(relay_block_num: BlockNumber) -> Balance {
-		// Get TI from March 14, 2026.
-		let starting_ti = March2026TI::get().unwrap_or_else(|| {
-			// If first time, store it.
-			let current_ti = pallet_balances::Pallet::<Runtime>::total_issuance();
-			// Sanity check to prevent blow-up. Make sure TI is reasonable number.
-			if current_ti < Self::FIXED_PRE_HARD_CAP_TI {
-				March2026TI::put(Self::FIXED_PRE_HARD_CAP_TI);
-				Self::FIXED_PRE_HARD_CAP_TI
-			} else {
-				March2026TI::put(current_ti);
-				current_ti
-			}
-		});
-		let march_14_2026_ti = FixedU128::saturating_from_integer(starting_ti);
+		let march_14_2026_ti = FixedU128::saturating_from_integer(Self::MARCH_2026_TI);
 		let target_ti = FixedU128::saturating_from_integer(Self::HARD_CAP_TARGET);
 
 		// Start date of the curve is set two years prior, thus ensuring first step in March,
@@ -759,6 +749,31 @@ mod tests {
 			max_pov_size: Default::default(),
 			relay_parent_storage_root: Default::default(),
 		}));
+	}
+
+	// With a March 2026 TI value of 16,743,421,533,310,057,487 planck, 
+	// the daily era payout is ~153,000 DOT. As seen here:
+	// https://assethub-polkadot.subscan.io/event/13377452-23
+	#[test]
+	fn new_march_ti_const_is_empirally_correct() {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(EraPayout::MARCH_2026_TI);
+			set_relay_number(MARCH_14_2026);
+
+			let (to_stakers, to_treasury) = EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				MILLISECONDS_PER_DAY,
+			);
+
+			let total_era_payout = to_stakers + to_treasury;
+			let expected = 153_000 * UNITS;
+			assert_relative_eq!(
+				total_era_payout as f64,
+				expected as f64,
+				max_relative = 0.005, // within 0.5%
+			);
+		});
 	}
 
 	// The emission values for the two year periods are as expected.
