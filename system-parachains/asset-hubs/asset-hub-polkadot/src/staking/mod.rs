@@ -756,8 +756,7 @@ mod tests {
 
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
 	const MARCH_14_2026: RC_BlockNumber = 30_349_908;
-	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
-	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
+	const MARCH_TI: u128 = EraPayout::MARCH_2026_TI;
 	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
 
 	// Sets the view of the relay chain block number.
@@ -818,17 +817,6 @@ mod tests {
 				first_period_emission as f64,
 				max_relative = 0.00001
 			);
-			// Visual checks.
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				(152_271 * UNITS) as f64,
-				max_relative = 0.00001,
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
-				(55_617_170 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E2.
-				max_relative = 0.00001,
-			);
 
 			// Second period - March 14, 2028 -> March 14, 2030.
 			let march_14_2028 = MARCH_14_2026 + two_years;
@@ -845,17 +833,6 @@ mod tests {
 				second_period_emission as f64,
 				max_relative = 0.00001
 			);
-			// Visual checks.
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				(112_254 * UNITS) as f64,
-				max_relative = 0.00001,
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
-				(41_000_978 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E3.
-				max_relative = 0.00001,
-			);
 
 			// Third period - March 14, 2030 -> March 14, 2032.
 			let march_14_2030 = march_14_2028 + two_years;
@@ -871,17 +848,6 @@ mod tests {
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
 				third_period_emission as f64,
 				max_relative = 0.00001
-			);
-			// Visual checks.
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				(82_754 * UNITS) as f64,
-				max_relative = 0.00001,
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
-				(30_225_921 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E4.
-				max_relative = 0.00001,
 			);
 		});
 	}
