@@ -387,10 +387,6 @@ impl EraPayout {
 	}
 }
 
-// Holds the TI from March 14, 2026
-#[storage_alias(verbatim)]
-pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
-
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
 		_total_staked: Balance,
@@ -716,6 +712,31 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 
 		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
 	}
+}
+
+// Deprecated: Holds the TI from March 14, 2026
+#[storage_alias(verbatim)]
+pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
+
+pub struct RemoveMarchTIValue;
+
+impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+		ensure!(March2026TI::exists(), "March2026TI should exist");
+		Ok(Vec::new())                                                            
+	}
+
+	fn on_runtime_upgrade() -> Weight {
+		March2026TI::kill();
+		<Runtime as frame_system::Config>::DbWeight::get().writes(1)
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		ensure!(!March2026TI::exists(), "March2026TI should be removed");
+		Ok(())                                                                    
+	} 
 }
 
 #[cfg(test)]
