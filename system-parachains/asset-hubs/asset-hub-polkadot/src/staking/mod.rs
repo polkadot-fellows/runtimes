@@ -332,7 +332,7 @@ impl EraPayout {
 	// The maximum amount an era can emit. Used as a final safeguard.
 	pub const MAX_ERA_EMISSION: Balance = Self::PRE_HARD_CAP_DAILY_EMISSION * 7;
 
-	// The TI at the time of `HARD_CAP_START`.
+	/// The TI at the time of `HARD_CAP_START`.
 	pub const MARCH_2026_TI: Balance = 16_743_421_533_310_057_487;
 
 	// The yearly emission post hard pressure enactment.
