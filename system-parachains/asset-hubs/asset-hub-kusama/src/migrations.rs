@@ -24,13 +24,13 @@ pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Run
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = (Unreleased, Permanent);
 
-parameter_types! {
+frame_support::parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	AhMigratorPalletName,
-	<Runtime as frame_system::Config>::DbWeight,
+	<crate::Runtime as frame_system::Config>::DbWeight,
 >;
 
 #[cfg(not(feature = "runtime-benchmarks"))]

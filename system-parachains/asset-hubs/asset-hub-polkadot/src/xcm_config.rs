@@ -26,9 +26,8 @@ use super::{
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
 	matching::{
-		FromNetwork, FromSiblingParachain, IsForeignConcreteAsset,
-		NonTeleportableAssetFromTrustedReserve, ParentLocation,
-		TeleportableAssetWithTrustedReserve,
+		FromNetwork, IsForeignConcreteAsset, NonTeleportableAssetFromTrustedReserve,
+		ParentLocation, TeleportableAssetWithTrustedReserve,
 	},
 	TrustBackedAssetsAsLocation,
 };
