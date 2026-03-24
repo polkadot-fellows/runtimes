@@ -73,7 +73,14 @@ pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::polkadot::{
-	consensus::*, currency::*, fee::WeightToFee as DotWeightToFee,
+	consensus::{
+		elastic_scaling::{
+			BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
+		},
+		RELAY_CHAIN_SLOT_DURATION_MILLIS,
+	},
+	currency::*,
+	fee::WeightToFee as DotWeightToFee,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
@@ -159,7 +166,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("people-polkadot"),
 	impl_name: Cow::Borrowed("people-polkadot"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_001_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -287,7 +294,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
-	type RelayParentOffset = ConstU32<0>;
+	type RelayParentOffset = ConstU32<RELAY_PARENT_OFFSET>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -884,7 +891,7 @@ impl_runtime_apis! {
 
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
-			0
+			RELAY_PARENT_OFFSET
 		}
 	}
 
