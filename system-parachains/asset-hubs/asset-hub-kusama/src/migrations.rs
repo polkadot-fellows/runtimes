@@ -16,9 +16,7 @@
 //! The runtime migrations per release.
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = (
-	RemoveAhMigratorPallet,
-);
+pub type Unreleased = (RemoveAhMigratorPallet,);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;

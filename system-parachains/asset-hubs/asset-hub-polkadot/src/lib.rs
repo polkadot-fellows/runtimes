@@ -3017,12 +3017,6 @@ mod tests {
 	#[test]
 	fn epmb_manage_origin_good() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// pretend AHM is done to disable its call filter
-			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
-				pallet_ah_migrator::MigrationStage::MigrationDone,
-			);
-			pallet_ah_migrator::MigrationEndBlock::<Runtime>::set(0u32.into());
-
 			let call: RuntimeCall = pallet_election_provider_multi_block::Call::manage {
 				op: pallet_election_provider_multi_block::ManagerOperation::ForceRotateRound
 			}.into();
