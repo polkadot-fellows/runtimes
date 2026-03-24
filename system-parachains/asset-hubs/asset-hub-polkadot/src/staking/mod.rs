@@ -35,7 +35,7 @@ use pallet_staking_async_rc_client as rc_client;
 use sp_arithmetic::FixedU128;
 use sp_runtime::{
 	generic,
-	traits::{BlockNumberProvider, Convert},
+	traits::{BlockNumberProvider, Convert, OpaqueKeys},
 	transaction_validity::TransactionPriority,
 	FixedPointNumber, Perquintill, SaturatedConversion,
 };
@@ -303,9 +303,9 @@ impl EraPayout {
 	// Taken from [AH Block 10469901](https://assethub-polkadot.subscan.io/event/10469901-6).
 	const PRE_HARD_CAP_DAILY_EMISSION: Balance = 328797u128 * UNITS;
 
-	// Should be around 14th March 2026 noon UTC assuming 0.5-1% clock time drift.
-	// https://polkadot.subscan.io/block/30354008
-	const HARD_CAP_START: BlockNumber = 30_354_008;
+	// Calculated assuming a 11.7 minute per day time drift (A block time of 6.04875 seconds).
+	// https://polkadot.subscan.io/block/30349908
+	const HARD_CAP_START: BlockNumber = 30_349_908;
 
 	// The hard issuance cap ratified in Referendum 1710.
 	const HARD_CAP_TARGET: Balance = 2_100_000_000u128 * UNITS;
@@ -490,6 +490,18 @@ sp_runtime::impl_opaque_keys! {
 	}
 }
 
+parameter_types! {
+	// Deposit for one NextKeys entry and multiple KeyOwner entries and ExternallySetKeys.
+	pub KeyDeposit: Balance = polkadot_runtime_constants::currency::deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(
+			polkadot_runtime_constants::currency::deposit(<Runtime as pallet_session::Config>::Keys::key_ids().len() as u32,
+								<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32
+			)
+		).saturating_add(
+			polkadot_runtime_constants::currency::deposit(1, AccountId::max_encoded_len() as u32)
+		);
+}
+
 impl pallet_staking_async_rc_client::Config for Runtime {
 	type RelayChainOrigin = EnsureRoot<AccountId>;
 	type AHStakingInterface = Staking;
@@ -497,18 +509,12 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	type MaxValidatorSetRetries = ConstU32<64>;
 	type ValidatorSetExportSession = ValidatorSetExportSession;
 	type RelayChainSessionKeys = RelayChainSessionKeys;
-	type MinSetKeysBond = ConstU128<{ 10_000 * UNITS }>;
-	type Balance = Balance;
-	// | Key                 | Crypto  | Public Key | Signature |
-	// |---------------------|---------|------------|-----------|
-	// | grandpa             | Ed25519 | 32 bytes   | 64 bytes  |
-	// | babe                | Sr25519 | 32 bytes   | 64 bytes  |
-	// | para_validator      | Sr25519 | 32 bytes   | 64 bytes  |
-	// | para_assignment     | Sr25519 | 32 bytes   | 64 bytes  |
-	// | authority_discovery | Sr25519 | 32 bytes   | 64 bytes  |
-	// | beefy               | ECDSA   | 33 bytes   | 65 bytes  |
-	// Buffer for SCALE encoding overhead and future expansions.
-	type MaxSessionKeysLength = ConstU32<256>;
+	type Currency = Balances;
+	// Need a smaller value since the benchmarks do not properly fund the account.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type KeyDeposit = KeyDeposit;
+	#[cfg(feature = "runtime-benchmarks")]
+	type KeyDeposit = ConstU128<UNITS>;
 	type WeightInfo = weights::pallet_staking_async_rc_client::WeightInfo<Runtime>;
 }
 
@@ -863,7 +869,7 @@ mod tests {
 		}));
 	}
 
-	const MARCH_14_2026: RC_BlockNumber = 30_354_008;
+	const MARCH_14_2026: RC_BlockNumber = 30_349_908;
 	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
 	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
@@ -1363,6 +1369,18 @@ mod tests {
 					.max_extrinsic
 					.unwrap(),
 				Some(Percent::from_percent(50)),
+			);
+		}
+
+		#[test]
+		fn session_key_deposit_at_most_61_dot() {
+			assert!(
+				<<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit as Get<u128>>::get(
+				) <= 61 * UNITS
+			);
+			assert!(
+				<<Runtime as pallet_staking_async_rc_client::Config>::KeyDeposit as Get<u128>>::get(
+				) > 0
 			);
 		}
 	}

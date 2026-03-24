@@ -72,14 +72,13 @@ use sp_runtime::{
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
+	kusama::{consensus::*, currency::*, fee::WeightToFee, fellowship::IsFellowshipVoice},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::prelude::*;
 use xcm_config::{
-	AssetHubLocation, FellowshipLocation, RelayChainLocation, StakingPot,
-	XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, RelayChainLocation, StakingPot, XcmOriginToTransactDispatchOrigin,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -153,7 +152,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("coretime-kusama"),
 	impl_name: Cow::Borrowed("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 2_000_005,
+	spec_version: 2_001_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -375,10 +374,7 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 }
 
 /// Privileged origin that represents Root or Fellows pluralistic body.
-pub type RootOrFellows = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
->;
+pub type RootOrFellows = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
 
 parameter_types! {
 	// Fellows pluralistic body.

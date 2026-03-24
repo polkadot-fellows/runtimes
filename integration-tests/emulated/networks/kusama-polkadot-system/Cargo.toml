@@ -17,6 +17,7 @@ asset-hub-kusama-emulated-chain = { workspace = true }
 asset-hub-polkadot-emulated-chain = { workspace = true }
 bridge-hub-kusama-emulated-chain = { workspace = true }
 bridge-hub-polkadot-emulated-chain = { workspace = true }
+collectives-polkadot-emulated-chain = { workspace = true }
 kusama-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
@@ -27,6 +28,7 @@ runtime-benchmarks = [
 	"asset-hub-polkadot-emulated-chain/runtime-benchmarks",
 	"bridge-hub-kusama-emulated-chain/runtime-benchmarks",
 	"bridge-hub-polkadot-emulated-chain/runtime-benchmarks",
+	"collectives-polkadot-emulated-chain/runtime-benchmarks",
 	"kusama-emulated-chain/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",

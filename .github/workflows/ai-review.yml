@@ -2,7 +2,7 @@ name: AI Review PR
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize, reopened]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -43,7 +43,7 @@ jobs:
           config: .config/review.polkacodes.yml
         env:
           POLKA_API_PROVIDER: openrouter
-          POLKA_MODEL: openai/gpt-5.2
+          POLKA_MODEL: openai/gpt-5.4
           GITHUB_TOKEN: ${{ github.token }}
           POLKA_API_KEY: ${{ secrets.POLKA_API_KEY }}
           POLKA_BUDGET: 5

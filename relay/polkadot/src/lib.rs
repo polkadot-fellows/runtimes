@@ -86,6 +86,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use sp_runtime::traits::Convert;
 
 use pallet_staking_async_ah_client as ah_client;
@@ -124,6 +125,7 @@ use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
 use xcm_config::{AssetHubLocation, GeneralAdminBodyId, StakingAdminBodyId};
+use xcm_config::{AssetHubLocation, CollectivesLocation, GeneralAdminBodyId, StakingAdminBodyId};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -169,7 +171,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 2_000_005,
+	spec_version: 2_001_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,

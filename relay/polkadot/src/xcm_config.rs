@@ -32,7 +32,8 @@ use polkadot_runtime_common::{
 	ToAuthor,
 };
 use polkadot_runtime_constants::{
-	currency::CENTS, system_parachain::*, xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	currency::CENTS, fellowship::IsFellowshipVoice, system_parachain::*,
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use sp_core::ConstU32;
 use xcm::latest::{prelude::*, BodyId};
@@ -62,8 +63,6 @@ parameter_types! {
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -164,15 +163,7 @@ pub type TrustedTeleporters = (
 	Case<DotForPeople>,
 );
 
-pub struct Fellows;
-impl Contains<Location> for Fellows {
-	fn contains(loc: &Location) -> bool {
-		matches!(
-			loc.unpack(),
-			(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
-		)
-	}
-}
+pub type Fellows = IsFellowshipVoice<CollectivesLocation>;
 
 pub struct OnlyParachains;
 impl Contains<Location> for OnlyParachains {

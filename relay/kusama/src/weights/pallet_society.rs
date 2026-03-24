@@ -454,4 +454,11 @@ impl<T: frame_system::Config> pallet_society::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	// TODO: generate proper weights via `/cmd bench --pallet pallet_society`.
+	// Values taken from pallet-society-45.1.0 default impl.
+	fn kick_member() -> Weight {
+		Weight::from_parts(28_000_000, 3722)
+			.saturating_add(T::DbWeight::get().reads(6_u64))
+			.saturating_add(T::DbWeight::get().writes(6_u64))
+	}
 }

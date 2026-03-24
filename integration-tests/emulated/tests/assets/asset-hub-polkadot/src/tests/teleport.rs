@@ -14,15 +14,12 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::{DotLocation, XcmConfig as AssetHubPolkadotXcmConfig};
-use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
-use frame_support::{
-	dispatch::{GetDispatchInfo, RawOrigin},
-	sp_runtime::traits::Dispatchable,
-	traits::fungible::Mutate,
+use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
+use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
+use polkadot_system_emulated_network::{
+	penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub,
+	polkadot_emulated_chain::polkadot_runtime::Dmp,
 };
-use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
-use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV2;
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Polkadot::assert_ump_queue_processed(false, Some(AssetHubPolkadot::para_id()), None);
@@ -97,22 +94,14 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
-	let (_, expected_native_amount) =
-		fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
-	let (_, expected_foreign_asset_amount) =
+	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
-			// native asset used for fees is transferred to Parachain's Sovereign account as reserve
-			RuntimeEvent::Balances(
-				pallet_balances::Event::Transfer { from, amount, .. }
-			) => {
-				from: *from == t.sender.account_id,
-				amount: *amount == expected_native_amount,
-			},
 			// foreign asset is burned locally as part of teleportation
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { owner, balance, .. }) => {
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
+				asset_id: *asset_id == expected_foreign_asset_id,
 				owner: *owner == t.sender.account_id,
 				balance: *balance == expected_foreign_asset_amount,
 			},
@@ -125,17 +114,10 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 	let expected_asset_id = t.args.asset_id.unwrap();
 	let (_, expected_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
-	let checking_account = <PenpalB as PenpalBPallet>::PolkadotXcm::check_account();
 	PenpalB::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		PenpalB,
 		vec![
-			// checking account burns local asset as part of incoming teleport
-			RuntimeEvent::Assets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-				asset_id: *asset_id == expected_asset_id,
-				owner: *owner == checking_account,
-				balance: *balance == expected_asset_amount,
-			},
 			// local asset is teleported into account of receiver
 			RuntimeEvent::Assets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
 				asset_id: *asset_id == expected_asset_id,
@@ -557,5 +539,357 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using_xt(
 		para_to_system_para_transfer_assets,
 		system_para_to_para_transfer_assets,
+	);
+}
+
+fn relay_origin_assertions(t: RelayToSystemParaTest) {
+	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
+	Polkadot::assert_xcm_pallet_attempted_complete(None);
+	assert_expected_events!(
+		Polkadot,
+		vec![
+			// Amount to teleport is withdrawn from Sender
+			RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
+				who: *who == t.sender.account_id,
+				amount: *amount == t.args.amount,
+			},
+		]
+	);
+}
+
+fn relay_to_system_para_limited_teleport_assets(t: RelayToSystemParaTest) -> DispatchResult {
+	Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
+
+	<Polkadot as PolkadotPallet>::XcmPallet::limited_teleport_assets(
+		t.signed_origin,
+		bx!(t.args.dest.into()),
+		bx!(t.args.beneficiary.into()),
+		bx!(t.args.assets.into()),
+		t.args.fee_asset_item,
+		t.args.weight_limit,
+	)
+}
+
+/// Teleport of native asset from System Parachain to untrusted chain should fail.
+#[test]
+fn teleport_to_untrusted_chain_fails() {
+	// Init values for Parachain Origin
+	let destination = AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
+	let signed_origin =
+		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get());
+	let dot_to_send: Balance = POLKADOT_ED * 10000;
+	let dot_location = DotLocation::get();
+
+	// Assets to send
+	let assets: Vec<Asset> = vec![(dot_location.clone(), dot_to_send).into()];
+	let fee_id: AssetId = dot_location.into();
+
+	// this should fail
+	AssetHubPolkadot::execute_with(|| {
+		let result = <AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+			signed_origin.clone(),
+			bx!(destination.clone().into()),
+			bx!(assets.clone().into()),
+			bx!(TransferType::Teleport),
+			bx!(fee_id.into()),
+			bx!(TransferType::Teleport),
+			bx!(VersionedXcm::from(Xcm::<()>::new())),
+			Unlimited,
+		);
+		assert_err!(
+			result,
+			DispatchError::Module(sp_runtime::ModuleError {
+				index: 31,
+				error: [2, 0, 0, 0],
+				message: Some("Filtered")
+			})
+		);
+	});
+
+	// this should also fail
+	AssetHubPolkadot::execute_with(|| {
+		let xcm: Xcm<asset_hub_polkadot_runtime::RuntimeCall> = Xcm(vec![
+			WithdrawAsset(assets.into()),
+			InitiateTeleport { assets: Wild(All), dest: destination, xcm: Xcm::<()>::new() },
+		]);
+		let result = <AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+			signed_origin,
+			bx!(xcm::VersionedXcm::from(xcm)),
+			Weight::MAX,
+		);
+		assert!(result.is_err());
+	});
+}
+
+/// Checking account should have balance when teleport from relay fails due to
+/// insufficient checking account balance.
+#[test]
+fn limited_teleport_native_assets_from_relay_to_asset_hub_checking_acc_fails() {
+	let check_account = AssetHubPolkadot::execute_with(|| {
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::check_account()
+	});
+	let amount_to_send_larger_than_checking_acc: Balance =
+		AssetHubPolkadot::account_data_of(check_account).free + 1;
+
+	// Fund relay sender to afford the large amount (CheckingAccount is heavily pre-funded
+	// in genesis, so the default endowment may not be enough).
+	Polkadot::execute_with(|| {
+		use frame_support::assert_ok;
+		type Balances = <Polkadot as PolkadotPallet>::Balances;
+		assert_ok!(Balances::force_set_balance(
+			<Polkadot as Chain>::RuntimeOrigin::root(),
+			PolkadotSender::get().into(),
+			amount_to_send_larger_than_checking_acc * 2,
+		));
+	});
+
+	let destination = Polkadot::child_location_of(AssetHubPolkadot::para_id());
+	let beneficiary_id = AssetHubPolkadotReceiver::get();
+	let assets = (Here, amount_to_send_larger_than_checking_acc).into();
+
+	let test_args = TestContext {
+		sender: PolkadotSender::get(),
+		receiver: AssetHubPolkadotReceiver::get(),
+		args: TestArgs::new_para(
+			destination,
+			beneficiary_id,
+			amount_to_send_larger_than_checking_acc,
+			assets,
+			None,
+			0,
+		),
+	};
+
+	let mut test = RelayToSystemParaTest::new(test_args);
+
+	let sender_balance_before = test.sender.balance;
+	let receiver_balance_before = test.receiver.balance;
+
+	fn para_dest_assertions_fails(_t: RelayToSystemParaTest) {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: false, .. }
+				) => {},
+			]
+		);
+	}
+
+	test.set_assertion::<AssetHubPolkadot>(para_dest_assertions_fails);
+	test.set_assertion::<Polkadot>(relay_origin_assertions);
+	test.set_dispatchable::<Polkadot>(relay_to_system_para_limited_teleport_assets);
+	test.assert();
+
+	let sender_balance_after = test.sender.balance;
+	let receiver_balance_after = test.receiver.balance;
+
+	let delivery_fees = Polkadot::execute_with(|| {
+		xcm_helpers::teleport_assets_delivery_fees::<
+			<polkadot_runtime::xcm_config::XcmConfig as xcm_executor::Config>::XcmSender,
+		>(
+			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
+		)
+	});
+
+	// Sender's balance is reduced
+	assert_eq!(
+		sender_balance_before - amount_to_send_larger_than_checking_acc - delivery_fees,
+		sender_balance_after
+	);
+	// Receiver's balance does not change
+	assert_eq!(receiver_balance_after, receiver_balance_before);
+}
+
+/// Checking account should correctly account for incoming teleports.
+#[test]
+fn limited_teleport_native_assets_from_relay_to_asset_hub_checking_acc_burn_works() {
+	// Init values for Relay Chain
+	let amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 1000;
+	let destination = Polkadot::child_location_of(AssetHubPolkadot::para_id());
+	let beneficiary_id = AssetHubPolkadotReceiver::get();
+	let assets = (Here, amount_to_send).into();
+
+	let test_args = TestContext {
+		sender: PolkadotSender::get(),
+		receiver: AssetHubPolkadotReceiver::get(),
+		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
+	};
+
+	let mut test = RelayToSystemParaTest::new(test_args);
+
+	let sender_balance_before = test.sender.balance;
+	let receiver_balance_before = test.receiver.balance;
+
+	fn para_dest_assertions_works(t: RelayToSystemParaTest) {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				// Amount to teleport is burned from Asset Hub's `CheckAccount`
+				RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
+					who: *who == <AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::check_account(),
+					amount:  *amount == t.args.amount,
+				},
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+					who: *who == t.receiver.account_id,
+				},
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+			]
+		);
+	}
+
+	test.set_assertion::<AssetHubPolkadot>(para_dest_assertions_works);
+	test.set_assertion::<Polkadot>(relay_origin_assertions);
+	test.set_dispatchable::<Polkadot>(relay_to_system_para_limited_teleport_assets);
+	test.assert();
+
+	let sender_balance_after = test.sender.balance;
+	let receiver_balance_after = test.receiver.balance;
+
+	let delivery_fees = Polkadot::execute_with(|| {
+		xcm_helpers::teleport_assets_delivery_fees::<
+			<polkadot_runtime::xcm_config::XcmConfig as xcm_executor::Config>::XcmSender,
+		>(
+			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
+		)
+	});
+
+	// Sender's balance is reduced
+	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
+	// Receiver's asset balance is increased
+	assert!(receiver_balance_after > receiver_balance_before);
+	// Receiver's asset balance increased by `amount_to_send - delivery_fees - bought_execution`;
+	// `delivery_fees` might be paid from transfer or JIT, also `bought_execution` is unknown but
+	// should be non-zero
+	assert!(receiver_balance_after < receiver_balance_before + amount_to_send);
+}
+
+/// Checking account should correctly account for outgoing teleports.
+#[test]
+fn limited_teleport_native_assets_from_asset_hub_to_relay_checking_acc_mint_works() {
+	// Init values for Relay Chain
+	let amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 1000;
+	let destination = AssetHubPolkadot::parent_location();
+	let beneficiary_id = PolkadotReceiver::get();
+	let assets = (Parent, amount_to_send).into();
+
+	let test_args = TestContext {
+		sender: AssetHubPolkadotSender::get(),
+		receiver: PolkadotReceiver::get(),
+		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
+	};
+
+	// Pre-fund the Relay's CheckAccount so the incoming teleport can be processed
+	// (in Pending state, the relay has teleport tracking enabled and does CheckIn by
+	// withdrawing from CheckAccount).
+	Polkadot::execute_with(|| {
+		use frame_support::assert_ok;
+		type Balances = <Polkadot as PolkadotPallet>::Balances;
+		let check_account = polkadot_runtime::xcm_config::CheckAccount::get();
+		assert_ok!(Balances::force_set_balance(
+			<Polkadot as Chain>::RuntimeOrigin::root(),
+			check_account.into(),
+			amount_to_send * 2,
+		));
+	});
+
+	let mut test = SystemParaToRelayTest::new(test_args);
+
+	let sender_balance_before = test.sender.balance;
+	let receiver_balance_before = test.receiver.balance;
+
+	fn para_origin_assertions_mint(t: SystemParaToRelayTest) {
+		AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
+
+		AssetHubPolkadot::assert_parachain_system_ump_sent();
+
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::Balances(
+					pallet_balances::Event::Burned { who, amount }
+				) => {
+					who: *who == t.sender.account_id,
+					amount: *amount == t.args.amount,
+				},
+				// Amount to teleport is minted into Asset Hub's `CheckAccount`
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount }) => {
+					who: *who == <AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::check_account(),
+					amount:  *amount == t.args.amount,
+				},
+			]
+		);
+	}
+
+	fn relay_dest_assertions_mint(t: SystemParaToRelayTest) {
+		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			Polkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+				RuntimeEvent::Balances(pallet_balances::Event::Burned { .. }) => {},
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+					who: *who == t.receiver.account_id,
+				},
+			]
+		);
+	}
+
+	test.set_assertion::<AssetHubPolkadot>(para_origin_assertions_mint);
+	test.set_assertion::<Polkadot>(relay_dest_assertions_mint);
+	test.set_dispatchable::<AssetHubPolkadot>(system_para_limited_teleport_assets);
+	test.assert();
+
+	let sender_balance_after = test.sender.balance;
+	let receiver_balance_after = test.receiver.balance;
+
+	let delivery_fees = AssetHubPolkadot::execute_with(|| {
+		xcm_helpers::teleport_assets_delivery_fees::<
+			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
+		>(
+			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
+		)
+	});
+
+	// Sender's balance is reduced
+	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
+	// Receiver's asset balance is increased
+	assert!(receiver_balance_after > receiver_balance_before);
+	// Receiver's asset balance increased by `amount_to_send - delivery_fees - bought_execution`;
+	// `delivery_fees` might be paid from transfer or JIT, also `bought_execution` is unknown but
+	// should be non-zero
+	assert!(receiver_balance_after < receiver_balance_before + amount_to_send);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 100;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,        // Origin
+		vec![BridgeHubPolkadot], // Destinations
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 100;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,        // Origin
+		vec![BridgeHubPolkadot], // Destinations
+		(native_asset, amount),
+		transfer_assets
 	);
 }

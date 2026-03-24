@@ -69,6 +69,7 @@ pub mod ah_migration;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
+mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
 pub mod staking;
@@ -103,7 +104,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
 };
-use system_parachains_constants::async_backing::MINUTES;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -145,12 +145,12 @@ use parachains_common::{
 	message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets,
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-
 use sp_runtime::RuntimeDebug;
+use system_parachains_common::ForceUnstuckOnFailedMigration;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
 	},
 	polkadot::{
 		consensus::{
@@ -163,7 +163,6 @@ use system_parachains_constants::{
 		fee::WeightToFee as DotWeightToFee,
 	},
 };
-
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
@@ -184,9 +183,11 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{
 	claims as pallet_claims, prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, InMemoryDbWeight};
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}
@@ -200,7 +201,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_000_005,
+	spec_version: 2_001_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -266,10 +267,29 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = ConstU32<64>;
 	type SingleBlockMigrations = migrations::SingleBlockMigrations;
-	type MultiBlockMigrator = ();
+	type MultiBlockMigrator = MultiBlockMigrations;
 	type PreInherents = ();
 	type PostInherents = ();
 	type PostTransactions = ();
+}
+
+parameter_types! {
+	pub MbmServiceWeight: Weight = Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+}
+
+impl pallet_migrations::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Migrations = migrations::MbmMigrations;
+	// Benchmarks need mocked migrations to guarantee that they succeed.
+	#[cfg(feature = "runtime-benchmarks")]
+	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
+	type CursorMaxLen = ConstU32<65_536>;
+	type IdentifierMaxLen = ConstU32<256>;
+	type MigrationStatusHandler = ();
+	type FailedMigrationHandler = ForceUnstuckOnFailedMigration;
+	type MaxServiceWeight = MbmServiceWeight;
+	type WeightInfo = weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -384,7 +404,6 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
-	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -441,7 +460,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	type ReserveData = ForeignAssetReserveData;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = xcm_config::XcmBenchmarkHelper;
+	type BenchmarkHelper = assets_common::benchmarks::LocationAssetsBenchmarkHelper;
 }
 
 parameter_types! {
@@ -589,6 +608,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Treasury(..) |
 				RuntimeCall::Bounties(..) |
 				RuntimeCall::ChildBounties(..) |
+				RuntimeCall::MultiAssetBounties(..) |
 				RuntimeCall::ConvictionVoting(..) |
 				RuntimeCall::Referenda(..) |
 				RuntimeCall::Whitelist(..) |
@@ -614,6 +634,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Bounties(..) |
 					RuntimeCall::Utility(..) |
 					RuntimeCall::ChildBounties(..) |
+					RuntimeCall::MultiAssetBounties(..) |
 					RuntimeCall::ConvictionVoting(..) |
 					RuntimeCall::Referenda(..) |
 					RuntimeCall::Whitelist(..)
@@ -834,8 +855,6 @@ impl pallet_message_queue::Config for Runtime {
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = AssetId(xcm_config::DotLocation::get());
 	/// The base fee for the message delivery fees.
@@ -868,10 +887,8 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	// need to set the page size larger than that until we reduce the channel size on-chain.
 	type MaxPageSize = ConstU32<{ 103 * 1024 }>;
 	type MaxInboundSuspended = sp_core::ConstU32<1_000>;
-	type ControllerOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-	>;
+	type ControllerOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
 }
@@ -1073,7 +1090,6 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type Extra = ();
 	type CallbackHandle = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
-	// TODO FIXME BEFORE 2.1.0: see https://github.com/sigurpol/runtimes/pull/5
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -1388,10 +1404,8 @@ impl pallet_ah_ops::Config for Runtime {
 	type AssetId = Location;
 	type RelevantAssets = RelevantAssets;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type MigrateOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-	>;
+	type MigrateOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 	type MigrationCompletion = ConstBool<true>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
@@ -1405,7 +1419,7 @@ parameter_types! {
 	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 10;
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
-	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(9, 10);
+	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(5, 10);
 }
 
 impl pallet_revive::Config for Runtime {
@@ -1464,6 +1478,7 @@ construct_runtime!(
 		Scheduler: pallet_scheduler = 6,
 		Parameters: pallet_parameters = 7,
 		WeightReclaim: cumulus_pallet_weight_reclaim = 8,
+		MultiBlockMigrations: pallet_migrations = 9,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1591,33 +1606,6 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-/// The runtime migrations per release.
-#[allow(deprecated, missing_docs)]
-pub mod migrations {
-	use super::*;
-
-	parameter_types! {
-		pub const AhMigratorPalletName: &'static str = "AhMigrator";
-	}
-
-	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		frame_support::migrations::RemovePallet<
-			AhMigratorPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-	);
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
-	/// All single block migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
-}
-
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -1717,6 +1705,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
+		[pallet_migrations, MultiBlockMigrations]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
 		[pallet_preimage, Preimage]
@@ -1811,9 +1800,9 @@ mod benches {
 			[AccountId32 { network: None, id: account.into() }].into()
 		}
 
-		fn generate_session_keys() -> Vec<u8> {
+		fn generate_session_keys_and_proof(_owner: Self::AccountId) -> (Vec<u8>, Vec<u8>) {
 			use staking::RelayChainSessionKeys;
-			RelayChainSessionKeys::generate(None)
+			(RelayChainSessionKeys::generate(None), vec![])
 		}
 
 		fn setup_validator() -> Self::AccountId {
@@ -1821,8 +1810,8 @@ mod benches {
 			use frame_support::traits::fungible::Mutate;
 
 			let stash: Self::AccountId = account("validator", 0, 0);
-			// Must be >= 2 * MinSetKeysBond (10_000 DOT) since we bond half.
-			let balance = 20_000 * UNITS;
+			// Must be >= 2 * KeyDeposit (10 DOT) since we bond half.
+			let balance = 100 * UNITS;
 
 			let _ = Balances::mint_into(&stash, balance);
 
@@ -2015,15 +2004,33 @@ mod benches {
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubPolkadot trusts AssetHubKusama as reserve for KSMs
-		pub TrustedReserve: Option<(Location, Asset)> = Some(
-			(
-				xcm_config::bridging::to_kusama::AssetHubKusama::get(),
-				Asset::from((
-					xcm_config::bridging::to_kusama::KsmLocation::get(),
-					1000000000000_u128
-				))
-			)
-		);
+		pub TrustedReserve: Option<(Location, Asset)> = Some({
+			use frame_support::traits::tokens::fungible::{Inspect, Mutate};
+			let ksm_id = xcm_config::bridging::to_kusama::KsmLocation::get();
+			let ksm = Asset::from((ksm_id.clone(), 1000000000000_u128));
+			let reserve = xcm_config::bridging::to_kusama::AssetHubKusama::get();
+			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
+			assert_ok!(<Balances as Mutate<_>>::mint_into(
+				&account,
+				<Balances as Inspect<_>>::minimum_balance(),
+			));
+			// register foreign KSMs
+			assert_ok!(ForeignAssets::force_create(
+				RuntimeOrigin::root(),
+				ksm_id.clone(),
+				account.clone().into(),
+				true,
+				1u128,
+			));
+			let reserves = ForeignAssetReserveData { reserve, teleportable: false };
+			// set trusted reserve
+			assert_ok!(ForeignAssets::set_reserves(
+				RuntimeOrigin::signed(account),
+				ksm_id.clone(),
+				vec![reserves.clone()].try_into().unwrap(),
+			));
+			(reserves.reserve, ksm)
+		});
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -2704,7 +2711,7 @@ impl pallet_state_trie_migration::Config for Runtime {
 	// An origin that can control the whole pallet: Should be a Fellowship member or the controller
 	// of the migration.
 	type ControlOrigin = EitherOfDiverse<
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+		EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 		EnsureSignedBy<MigControllerRoot, AccountId>,
 	>;
 	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
@@ -2724,7 +2731,11 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::traits::Zero;
+	use frame_support::{assert_noop, hypothetically_ok};
+	use sp_runtime::{
+		traits::{Dispatchable, Zero},
+		DispatchError,
+	};
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
@@ -2852,6 +2863,7 @@ mod tests {
 		assert!(ProxyType::StakingOperator.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -2971,6 +2983,7 @@ mod tests {
 		assert!(ProxyType::Staking.filter(&RuntimeCall::StakingRcClient(
 			pallet_staking_async_rc_client::Call::set_keys {
 				keys: Default::default(),
+				proof: Default::default(),
 				max_delivery_and_remote_execution_fee: None,
 			}
 		)));
@@ -2999,5 +3012,66 @@ mod tests {
 			proxy_type: ProxyType::Any,
 			delay: 0,
 		})));
+	}
+
+	#[test]
+	fn epmb_manage_origin_good() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// pretend AHM is done to disable its call filter
+			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
+				pallet_ah_migrator::MigrationStage::MigrationDone,
+			);
+			pallet_ah_migrator::MigrationEndBlock::<Runtime>::set(0u32.into());
+
+			let call: RuntimeCall = pallet_election_provider_multi_block::Call::manage {
+				op: pallet_election_provider_multi_block::ManagerOperation::ForceRotateRound
+			}.into();
+
+			// unsigned cannot call
+			assert_noop!(call.clone().dispatch(RuntimeOrigin::none()), DispatchError::BadOrigin);
+
+			// signed cannot call
+			let alice = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+			assert_noop!(call.clone().dispatch(alice), DispatchError::BadOrigin);
+
+			// root could call
+			hypothetically_ok!(call.clone().dispatch(RuntimeOrigin::root()));
+
+			// try_successful_origin is feature gated
+			#[cfg(feature = "runtime-benchmarks")]
+			{
+				// manager origin could call
+				let manager: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::ManagerOrigin::try_successful_origin().unwrap();
+				assert_eq!(&manager.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
+				hypothetically_ok!(call.clone().dispatch(manager));
+
+				// admin origin could call
+				let admin: RuntimeOrigin = <Runtime as pallet_election_provider_multi_block::Config>::AdminOrigin::try_successful_origin().unwrap();
+				assert_eq!(&admin.caller, &RuntimeOrigin::root().caller, "This is just root and already tested above");
+				hypothetically_ok!(call.dispatch(admin));
+			}
+		});
+	}
+
+	#[test]
+	fn governance_and_nontransfer_proxy_allow_multi_asset_bounties() {
+		use frame_support::traits::InstanceFilter;
+		use sp_runtime::MultiAddress;
+
+		let call =
+			RuntimeCall::MultiAssetBounties(pallet_multi_asset_bounties::Call::propose_curator {
+				parent_bounty_id: 0,
+				child_bounty_id: Some(0),
+				curator: MultiAddress::Id(AccountId::from([0u8; 32])),
+			});
+
+		assert!(
+			ProxyType::Governance.filter(&call),
+			"Governance proxy must allow MultiAssetBounties::propose_curator",
+		);
+		assert!(
+			ProxyType::NonTransfer.filter(&call),
+			"NonTransfer proxy must allow MultiAssetBounties::propose_curator",
+		);
 	}
 }

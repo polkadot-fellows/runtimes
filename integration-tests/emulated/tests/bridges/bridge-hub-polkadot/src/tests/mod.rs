@@ -17,6 +17,7 @@ use crate::*;
 
 mod aliases;
 mod asset_transfers;
+mod bridged_fellowship;
 mod claim_assets;
 mod register_bridged_assets;
 mod send_xcm;
@@ -33,6 +34,10 @@ mod teleport;
 
 pub(crate) fn asset_hub_kusama_location() -> Location {
 	Location::new(2, [GlobalConsensus(Kusama), Parachain(AssetHubKusama::para_id().into())])
+}
+
+pub(crate) fn asset_hub_polkadot_global_location() -> Location {
+	Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())])
 }
 
 pub(crate) fn bridge_hub_kusama_location() -> Location {
@@ -79,19 +84,38 @@ pub(crate) fn weth_at_asset_hubs() -> Location {
 	)
 }
 
-pub(crate) fn create_foreign_on_ah_kusama(id: Location, sufficient: bool) {
+pub(crate) fn create_foreign_on_ah_kusama(
+	id: Location,
+	sufficient: bool,
+	reserves: Vec<ForeignAssetReserveData>,
+) {
 	let owner = AssetHubKusama::account_id_of(ALICE);
-	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
+	AssetHubKusama::force_create_foreign_asset(
+		id.clone(),
+		owner.clone(),
+		sufficient,
+		ASSET_MIN_BALANCE,
+		vec![],
+	);
+	AssetHubKusama::set_foreign_asset_reserves(id, owner, reserves);
 }
 
 pub(crate) fn create_foreign_on_ah_polkadot(
 	id: Location,
 	sufficient: bool,
+	reserves: Vec<ForeignAssetReserveData>,
 	prefund_accounts: Vec<(AccountId, u128)>,
 ) {
 	let owner = AssetHubPolkadot::account_id_of(ALICE);
 	let min = ASSET_MIN_BALANCE;
-	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
+	AssetHubPolkadot::force_create_foreign_asset(
+		id.clone(),
+		owner.clone(),
+		sufficient,
+		min,
+		prefund_accounts,
+	);
+	AssetHubPolkadot::set_foreign_asset_reserves(id, owner, reserves);
 }
 
 pub(crate) fn foreign_balance_on_ah_kusama(id: Location, who: &AccountId) -> u128 {
