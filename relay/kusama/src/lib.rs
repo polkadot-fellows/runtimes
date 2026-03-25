@@ -25,7 +25,6 @@ compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 
 extern crate alloc;
 
-use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
 	vec,
@@ -43,6 +42,7 @@ use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, NposSolution,
 	SequentialPhragmen,
 };
+use frame_support::traits::Everything;
 use frame_support::{
 	construct_runtime,
 	dispatch::RawOrigin,
@@ -206,7 +206,7 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type BaseCallFilter = ahm_phase1::CallsEnabledAfterMigration;
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -1884,10 +1884,6 @@ const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 );
 
 parameter_types! {
-	// Exvivalent to `kusama_asset_hub_runtime::MessageQueueServiceWeight`.
-	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
-	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
-	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get();
 	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(60) * BlockWeights::get().max_block;
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
