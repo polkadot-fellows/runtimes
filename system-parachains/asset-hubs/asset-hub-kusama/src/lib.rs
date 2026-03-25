@@ -29,8 +29,6 @@ compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 
 extern crate alloc;
 
-pub mod ah_migration;
-// Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod governance;
 mod migrations;
