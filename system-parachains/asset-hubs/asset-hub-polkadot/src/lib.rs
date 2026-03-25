@@ -64,8 +64,6 @@ compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
 
 extern crate alloc;
 
-// Genesis preset configurations.
-pub mod ah_migration;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
@@ -241,7 +239,7 @@ parameter_types! {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = ah_migration::call_filter::CallsEnabledAfterMigration;
+	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
