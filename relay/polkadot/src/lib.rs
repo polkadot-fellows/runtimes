@@ -1711,26 +1711,6 @@ impl OnSwap for SwapLeases {
 	}
 }
 
-// Derived from `polkadot_asset_hub_runtime::RuntimeBlockWeights`.
-const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
-	polkadot_primitives::MAX_POV_SIZE as u64,
-);
-
-parameter_types! {
-	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(60) * BlockWeights::get().max_block;
-	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
-	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
-	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-}
-
-pub struct ProxyTypeAny;
-impl frame_support::traits::Contains<TransparentProxyType<ProxyType>> for ProxyTypeAny {
-	fn contains(proxy_type: &TransparentProxyType<ProxyType>) -> bool {
-		proxy_type.0 == polkadot_runtime_constants::proxy::ProxyType::Any
-	}
-}
-
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Currency = Balances;
