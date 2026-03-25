@@ -157,8 +157,6 @@ mod past_payouts;
 // XCM configurations.
 pub mod xcm_config;
 
-pub mod ah_migration;
-
 // Governance configurations.
 pub mod governance;
 use governance::{

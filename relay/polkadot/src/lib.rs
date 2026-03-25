@@ -22,7 +22,6 @@
 
 extern crate alloc;
 
-use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{BTreeMap, VecDeque},
 	vec,
@@ -39,6 +38,7 @@ use core::cmp::Ordering;
 use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
 };
+use frame_support::traits::Everything;
 use frame_support::{
 	construct_runtime,
 	genesis_builder_helper::{build_state, get_preset},
@@ -140,8 +140,6 @@ mod weights;
 mod bag_thresholds;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
-// Governance configurations.
-pub mod ah_migration;
 pub mod governance;
 use governance::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin, StakingAdmin,
@@ -195,7 +193,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = ahm_phase1::CallsEnabledAfterMigration;
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
