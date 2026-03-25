@@ -42,7 +42,6 @@ use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, NposSolution,
 	SequentialPhragmen,
 };
-use frame_support::traits::Everything;
 use frame_support::{
 	construct_runtime,
 	dispatch::RawOrigin,
@@ -53,8 +52,9 @@ use frame_support::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
-		EnsureOriginWithArg, FromContains, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice,
-		OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		EnsureOriginWithArg, Everything, FromContains, InstanceFilter, KeyOwnerProofSystem,
+		LinearStoragePrice, OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
