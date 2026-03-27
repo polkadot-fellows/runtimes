@@ -47,7 +47,7 @@ use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
-	AllowExplicitUnpaidExecutionFrom, AllowHrmpNotificationsFromRelayChain,
+	AllowExplicitUnpaidExecutionFrom,
 	AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
 	DenyRecursively, DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal,
 	DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter,
@@ -58,7 +58,7 @@ use xcm_builder::{
 };
 use xcm_executor::XcmExecutor;
 
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
 pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, PeopleLocation};
 
 parameter_types! {
@@ -134,15 +134,8 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
-pub struct FellowsPlurality;
-impl Contains<Location> for FellowsPlurality {
-	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
-			(1, [Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
-		)
-	}
-}
+/// A location matching the Core Technical Fellowship.
+pub type FellowsPlurality = IsFellowshipVoice<FellowshipLocation>;
 
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
@@ -168,8 +161,6 @@ pub type Barrier = TrailingSetTopicAsId<
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
-					// HRMP notifications from the relay chain are OK.
-					AllowHrmpNotificationsFromRelayChain,
 				),
 				UniversalLocation,
 				ConstU32<8>,
