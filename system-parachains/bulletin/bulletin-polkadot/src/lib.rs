@@ -73,7 +73,7 @@ use system_parachains_constants::{
 	polkadot::{
 		consensus::*,
 		currency::{
-			system_para_deposit as deposit, CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
+			CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
 		},
 	},
 };
@@ -503,13 +503,6 @@ impl pallet_collator_selection::Config for Runtime {
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
 	type ValidatorRegistration = Session;
 	type WeightInfo = weights::pallet_collator_selection::WeightInfo<Runtime>;
-}
-
-parameter_types! {
-	/// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
-	/// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
 }
 
 impl pallet_utility::Config for Runtime {
