@@ -58,29 +58,13 @@ use xcm_builder::{
 };
 use xcm_executor::XcmExecutor;
 
-/// Polkadot system parachain IDs.
-pub mod polkadot_system_parachain {
-	/// Asset Hub parachain ID.
-	pub const ASSET_HUB_ID: u32 = 1000;
-	/// Collectives parachain ID.
-	pub const COLLECTIVES_ID: u32 = 1001;
-	/// Bridge Hub parachain ID.
-	pub const BRIDGE_HUB_ID: u32 = 1002;
-	/// People parachain ID.
-	pub const PEOPLE_ID: u32 = 1004;
-	/// Coretime parachain ID.
-	pub const CORETIME_ID: u32 = 1005;
-	/// Bulletin parachain ID.
-	pub const BULLETIN_ID: u32 = 1006;
-}
-
-use polkadot_system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID, PEOPLE_ID};
+use polkadot_runtime_constants::system_parachain;
+pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, PeopleLocation};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
 	pub const RelayChainLocation: Location = Location::parent();
-	pub AssetHubLocation: Location = Location::new(1, [Parachain(ASSET_HUB_ID)]);
 	// Polkadot network uses the `Polkadot` NetworkId variant
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -88,8 +72,7 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub FellowshipLocation: Location = Location::new(1, Parachain(COLLECTIVES_ID));
-	pub PeopleLocation: Location = Location::new(1, Parachain(PEOPLE_ID));
+	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub GovernanceLocation: Location = AssetHubLocation::get();
 }
 
@@ -156,7 +139,7 @@ impl Contains<Location> for FellowsPlurality {
 	fn contains(location: &Location) -> bool {
 		matches!(
 			location.unpack(),
-			(1, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
+			(1, [Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
 		)
 	}
 }

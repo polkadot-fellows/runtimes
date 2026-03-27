@@ -17,67 +17,18 @@
 #![cfg(test)]
 
 use bulletin_polkadot_runtime::{
-	xcm_config::{
-		polkadot_system_parachain, GovernanceLocation, LocationToAccountId, PeopleLocation,
-	},
-	AllPalletsWithoutSystem, Block, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	System, TxExtension, UncheckedExtrinsic, WeightToFee,
+	xcm_config::{GovernanceLocation, LocationToAccountId},
+	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
 };
 use frame_support::{assert_err, assert_ok};
-use parachains_common::{AccountId, AuraId, Hash as PcHash, Signature as PcSignature};
-use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin, RuntimeHelper};
-use sp_core::{crypto::Ss58Codec, Encode, Pair};
-use sp_keyring::Sr25519Keyring;
-use sp_runtime::{transaction_validity, BuildStorage, Either};
+use parachains_common::AccountId;
+use parachains_runtimes_test_utils::GovernanceOrigin;
+use sp_core::crypto::Ss58Codec;
+use sp_runtime::Either;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
-
-fn construct_extrinsic(
-	sender: Option<sp_core::sr25519::Pair>,
-	call: RuntimeCall,
-) -> Result<UncheckedExtrinsic, transaction_validity::TransactionValidityError> {
-	// provide a known block hash for the immortal era check
-	frame_system::BlockHash::<Runtime>::insert(0, PcHash::default());
-	let inner = (
-		frame_system::AuthorizeCall::<Runtime>::new(),
-		frame_system::CheckNonZeroSender::<Runtime>::new(),
-		frame_system::CheckSpecVersion::<Runtime>::new(),
-		frame_system::CheckTxVersion::<Runtime>::new(),
-		frame_system::CheckGenesis::<Runtime>::new(),
-		frame_system::CheckEra::<Runtime>::from(sp_runtime::generic::Era::immortal()),
-		frame_system::CheckNonce::<Runtime>::from(if let Some(s) = sender.as_ref() {
-			let account_id = AccountId::from(s.public());
-			frame_system::Pallet::<Runtime>::account(&account_id).nonce
-		} else {
-			0
-		}),
-		frame_system::CheckWeight::<Runtime>::new(),
-		pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
-			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0u128),
-		),
-		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-	);
-	let tx_ext: TxExtension =
-		cumulus_pallet_weight_reclaim::StorageWeightReclaim::<Runtime, _>::from(inner);
-
-	if let Some(s) = sender.as_ref() {
-		// Signed call.
-		let account_id = AccountId::from(s.public());
-		let payload = sp_runtime::generic::SignedPayload::new(call.clone(), tx_ext.clone())?;
-		let signature = payload.using_encoded(|e| s.sign(e));
-		Ok(UncheckedExtrinsic::new_signed(
-			call,
-			account_id.into(),
-			PcSignature::Sr25519(signature),
-			tx_ext,
-		))
-	} else {
-		// Unsigned call.
-		Ok(UncheckedExtrinsic::new_transaction(call, tx_ext))
-	}
-}
 
 #[test]
 fn location_conversion_works() {
@@ -201,7 +152,7 @@ fn xcm_payment_api_works() {
 
 #[test]
 fn governance_authorize_upgrade_works() {
-	use polkadot_system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
+	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID};
 
 	// no - random para
 	assert_err!(
