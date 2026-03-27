@@ -281,7 +281,6 @@ xcm-executor = { version = "24.0.1", default-features = false, package = "stagin
 xcm-runtime-apis = { version = "0.12.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
-tracing = { version = "0.1.44", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
 zombienet-sdk = { version = "0.4.2" }
 tuplex = { version = "0.1.0", default-features = false }
