@@ -60,13 +60,12 @@ use xcm_executor::XcmExecutor;
 
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
 pub use system_parachains_constants::polkadot::locations::{
-	AssetHubLocation, AssetHubPlurality, PeopleLocation,
+	AssetHubLocation, AssetHubPlurality, PeopleLocation, RelayChainLocation,
 };
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
-	pub const RelayChainLocation: Location = Location::parent();
 	// Polkadot network uses the `Polkadot` NetworkId variant
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -180,8 +179,11 @@ parameter_types! {
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations =
-	(Equals<RootLocation>, RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>);
+pub type WaivedLocations = (
+	Equals<RootLocation>,
+	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
+	FellowsPlurality,
+);
 
 /// Trusted teleporters for DOT from the relay chain and system parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<DotLocation>;
