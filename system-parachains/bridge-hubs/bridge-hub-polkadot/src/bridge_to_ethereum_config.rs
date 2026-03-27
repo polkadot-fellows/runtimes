@@ -35,7 +35,13 @@ use parachains_common::{AccountId, Balance};
 use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::AllowSiblingsOnly;
-use snowbridge_inbound_queue_primitives::{v1::MessageToXcm, v2::CreateAssetCallInfo};
+use snowbridge_inbound_queue_primitives::{
+	v1::MessageToXcm,
+	v2::{
+		CreateAssetCallInfo, MessageToXcm as MessageToXcmV2,
+		XcmMessageProcessor as InboundXcmMessageProcessor,
+	},
+};
 use snowbridge_outbound_queue_primitives::{
 	v1::{ConstantGasMeter, EthereumBlobExporter},
 	v2::{ConstantGasMeter as ConstantGasMeterV2, EthereumBlobExporter as EthereumBlobExporterV2},
@@ -74,6 +80,7 @@ parameter_types! {
 	pub InboundQueueV2Location: InteriorLocation = [PalletInstance(InboundQueueV2PalletInstance::get())].into();
 	pub const SnowbridgeReward: BridgeReward = BridgeReward::Snowbridge;
 	pub SnowbridgeFrontendLocation: Location = Location::new(1, [Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID), PalletInstance(SystemFrontendPalletInstance::get())]);
+	pub TargetLocation: Location = Location::new(1, [Parachain(AssetHubParaId::get().into())]);
 	pub CreateAssetCall: CreateAssetCallInfo = CreateAssetCallInfo {
 		create_call: CreateAssetCallIndex::get(),
 		deposit: bp_asset_hub_polkadot::CreateForeignAssetDeposit::get(),
@@ -112,6 +119,27 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
 }
 
+pub type XcmMessageProcessor = InboundXcmMessageProcessor<
+	Runtime,
+	xcm_config::XcmRouter,
+	XcmExecutor<xcm_config::XcmConfig>,
+	MessageToXcmV2<
+		CreateAssetCall,
+		EthereumNetwork,
+		RelayNetwork,
+		EthereumGatewayAddress,
+		InboundQueueV2Location,
+		AssetHubParaId,
+		EthereumSystem,
+		AccountId,
+	>,
+	xcm_builder::AliasesIntoAccountId32<
+		RelayNetwork,
+		<Runtime as frame_system::Config>::AccountId,
+	>,
+	TargetLocation,
+>;
+
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Verifier = EthereumBeaconClient;
@@ -122,7 +150,10 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 	type RewardKind = BridgeReward;
 	type DefaultRewardKind = SnowbridgeReward;
 	type RewardPayment = BridgeRelayers;
-	type MessageProcessor = (); // TODO @clara please add
+	#[cfg(feature = "runtime-benchmarks")]
+	type MessageProcessor = benchmark_helpers::DummyXcmProcessor;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MessageProcessor = XcmMessageProcessor;
 }
 
 impl snowbridge_pallet_outbound_queue::Config for Runtime {
@@ -284,8 +315,14 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
-	use super::{EthereumGatewayAddress, RelayTreasuryPalletAccount, Runtime};
-	use crate::{Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
+	use super::{
+		CreateAssetCall, EthereumGatewayAddress, EthereumNetwork, EthereumSystem,
+		InboundQueueV2Location, InboundXcmMessageProcessor, MessageToXcmV2, RelayNetwork,
+		RelayTreasuryPalletAccount, Runtime, TargetLocation,
+	};
+	use crate::{xcm_config, Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+	use xcm_executor::XcmExecutor;
 	use codec::Encode;
 	use frame_support::{parameter_types, traits::fungible};
 	use hex_literal::hex;
@@ -354,6 +391,27 @@ pub mod benchmark_helpers {
 			Ok(hash)
 		}
 	}
+
+	pub type DummyXcmProcessor = InboundXcmMessageProcessor<
+		Runtime,
+		DoNothingRouter,
+		XcmExecutor<xcm_config::XcmConfig>,
+		MessageToXcmV2<
+			CreateAssetCall,
+			EthereumNetwork,
+			RelayNetwork,
+			EthereumGatewayAddress,
+			InboundQueueV2Location,
+			AssetHubParaId,
+			EthereumSystem,
+			<Runtime as frame_system::Config>::AccountId,
+		>,
+		xcm_builder::AliasesIntoAccountId32<
+			RelayNetwork,
+			<Runtime as frame_system::Config>::AccountId,
+		>,
+		TargetLocation,
+	>;
 
 	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for Runtime {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
