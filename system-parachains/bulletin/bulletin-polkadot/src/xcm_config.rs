@@ -59,7 +59,9 @@ use xcm_builder::{
 use xcm_executor::XcmExecutor;
 
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, PeopleLocation};
+pub use system_parachains_constants::polkadot::locations::{
+	AssetHubLocation, AssetHubPlurality, PeopleLocation,
+};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -150,15 +152,18 @@ pub type Barrier = TrailingSetTopicAsId<
 					// If the message is one that immediately attempts to pay for execution, then
 					// allow it.
 					AllowTopLevelPaidExecutionFrom<Everything>,
-					// Parent, its pluralities (i.e. governance bodies), and the Fellows plurality
-					// get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						FellowsPlurality,
-						Equals<GovernanceLocation>,
-						// People chain has free execution for PoP authorizations.
-						Equals<PeopleLocation>,
-					)>,
+					// Parent and its pluralities (i.e. governance bodies) get free execution.
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							FellowsPlurality,
+							Equals<GovernanceLocation>,
+							AssetHubPlurality,
+							// People chain has free execution for PoP authorizations.
+							Equals<PeopleLocation>,
+						),
+						TrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
