@@ -44,8 +44,6 @@ pub use polkadot_system_emulated_network::{
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
-	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender,
 	BulletinPolkadotPara as BulletinPolkadot,
 	BulletinPolkadotParaReceiver as BulletinPolkadotReceiver,
 	BulletinPolkadotParaSender as BulletinPolkadotSender,
