@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Fix fee calculation on Polkadot and Kusama system parachains: use chain-specific `ExtrinsicBaseWeight` instead of the generic `frame_support` default [1117](https://github.com/polkadot-fellows/runtimes/pull/1117).
+
 ## [2.1.1] 13.03.2026
 
 ### Added
