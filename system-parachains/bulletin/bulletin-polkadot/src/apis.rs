@@ -335,8 +335,6 @@ impl_runtime_apis! {
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
 			use frame_benchmarking::{BenchmarkBatch, BenchmarkError};
 			use sp_storage::TrackedStorageKey;
-			use codec::Encode;
-
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {
 				fn setup_set_code_requirements(code: &alloc::vec::Vec<u8>) -> Result<(), BenchmarkError> {
@@ -350,17 +348,11 @@ impl_runtime_apis! {
 			}
 
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-			impl cumulus_pallet_session_benchmarking::Config for Runtime {
-				fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
-					let keys = SessionKeys::generate(&owner.encode(), None);
-					(keys.keys, keys.proof.encode())
-				}
-			}
+			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
-			use alloc::boxed::Box;
 			use xcm::latest::prelude::*;
 			use xcm_config::DotLocation;
-			use xcm_executor::AssetsInHolding;
+			use system_parachains_constants::polkadot::currency::UNITS;
 
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
@@ -437,13 +429,11 @@ impl_runtime_apis! {
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(DotLocation::get())
 				}
-				fn worst_case_holding(_depositable_count: u32) -> AssetsInHolding {
-					use pallet_xcm_benchmarks::MockCredit;
+				fn worst_case_holding(_depositable_count: u32) -> Assets {
 					// just concrete assets according to relay chain.
-					AssetsInHolding::new_from_fungible_credit(
-						AssetId(DotLocation::get()),
-						Box::new(MockCredit(1_000_000 * UNITS)),
-					)
+					let assets: Vec<Asset> =
+						vec![Asset { id: AssetId(DotLocation::get()), fun: Fungible(1_000_000 * UNITS) }];
+					assets.into()
 				}
 			}
 
@@ -503,10 +493,10 @@ impl_runtime_apis! {
 				}
 
 				fn worst_case_for_trader() -> Result<(Asset, WeightLimit), BenchmarkError> {
-					Ok((Asset {
-						id: AssetId(DotLocation::get()),
-						fun: Fungible(1_000_000 * UNITS),
-					}, WeightLimit::Limited(Weight::from_parts(5000, 5000))))
+					Ok((
+						Asset { id: AssetId(DotLocation::get()), fun: Fungible(1_000_000 * UNITS) },
+						Limited(Weight::from_parts(5000, 5000)),
+					))
 				}
 
 				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
@@ -519,9 +509,10 @@ impl_runtime_apis! {
 				}
 
 				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-					let origin = Location::new(1, [Parachain(1000)]);
-					let target = Location::new(1, [Parachain(1000), AccountId32 { id: [128u8; 32], network: None }]);
-					Ok((origin, target))
+					Ok((
+						Location::new(1, [Parachain(1000)]),
+						Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
+					))
 				}
 			}
 
