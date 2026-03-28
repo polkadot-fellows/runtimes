@@ -25,8 +25,8 @@ people-polkadot-emulated-chain = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-polkadot-emulated-chain/runtime-benchmarks",
-	"bulletin-polkadot-emulated-chain/runtime-benchmarks",
 	"bridge-hub-polkadot-emulated-chain/runtime-benchmarks",
+	"bulletin-polkadot-emulated-chain/runtime-benchmarks",
 	"collectives-polkadot-emulated-chain/runtime-benchmarks",
 	"coretime-polkadot-emulated-chain/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",

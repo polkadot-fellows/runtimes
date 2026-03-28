@@ -48,13 +48,13 @@ use frame_system::{
 	EnsureRoot,
 };
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use parachains_common::{
 	impls::DealWithFees,
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
 	AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -73,9 +73,7 @@ use system_parachains_constants::{
 	},
 	polkadot::{
 		consensus::*,
-		currency::{
-			CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
-		},
+		currency::{CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT},
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
