@@ -175,13 +175,13 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"polkadot-runtime-constants/runtime-benchmarks",
-	"system-parachains-constants/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -208,7 +208,7 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
-	"system-parachains-constants/try-runtime"
+	"system-parachains-constants/try-runtime",
 ]
 
 fast-runtime = []
