@@ -151,6 +151,7 @@ impl<T: frame_system::Config> WeightInfo<T> {
 	/// Storage: `Assets::Asset` (r:1 w:1)
 	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
 	pub(crate) fn deposit_asset() -> Weight {
+		// TODO: fresh
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `4273`
