@@ -100,6 +100,7 @@ std = [
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
+	"sp-api/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
