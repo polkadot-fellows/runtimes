@@ -166,8 +166,7 @@ impl pallet_bounties::Config for Runtime {
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
-	type TransferAllAssets =
-		TransferAllFungibles<AccountId, NativeAndAssets, BountyRelevantAssets>;
+	type TransferAllAssets = TransferAllFungibles<AccountId, NativeAndAssets, BountyRelevantAssets>;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
