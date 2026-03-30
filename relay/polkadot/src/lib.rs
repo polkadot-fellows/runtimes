@@ -45,7 +45,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, ConstUint, Contains, EitherOf, EitherOfDiverse, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
@@ -191,8 +191,49 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+/// Pallets that are blocked for user calls after the AHM.
+pub struct PostAhmFilter;
+impl Contains<RuntimeCall> for PostAhmFilter {
+	fn contains(call: &RuntimeCall) -> bool {
+		use RuntimeCall::*;
+		match call {
+			Scheduler(..) |
+			Preimage(..) |
+			Indices(..) |
+			Staking(..) |
+			Treasury(..) |
+			ConvictionVoting(..) |
+			Referenda(..) |
+			Whitelist(..) |
+			Claims(..) |
+			Vesting(..) |
+			Bounties(..) |
+			ChildBounties(..) |
+			ElectionProviderMultiPhase(..) |
+			VoterList(..) |
+			NominationPools(..) |
+			FastUnstake(..) |
+			Slots(..) |
+			Auctions(..) |
+			StateTrieMigration(..) |
+			AssetRate(..) => false,
+
+			// Crowdloan: only dissolve, refund, and withdraw are allowed.
+			Crowdloan(
+				crowdloan::Call::<Runtime>::dissolve { .. } |
+				crowdloan::Call::<Runtime>::refund { .. } |
+				crowdloan::Call::<Runtime>::withdraw { .. },
+			) => true,
+			Crowdloan(..) => false,
+
+			// Everything else is allowed.
+			_ => true,
+		}
+	}
+}
+
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
