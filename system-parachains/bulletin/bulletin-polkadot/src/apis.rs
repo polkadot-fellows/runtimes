@@ -354,49 +354,48 @@ impl_runtime_apis! {
 			use xcm_config::DotLocation;
 			use system_parachains_constants::polkadot::currency::UNITS;
 
+			use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+			use alloc::boxed::Box;
+
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
-				type DeliveryHelper = (
-					cumulus_primitives_utility::ToParentDeliveryHelper<
-						xcm_config::XcmConfig,
-						ExistentialDepositAsset,
-						xcm_config::PriceForParentDelivery,
-					>,
-					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
-						xcm_config::XcmConfig,
-						ExistentialDepositAsset,
-						PriceForSiblingParachainDelivery,
-						BenchmarkParaId,
-						ParachainSystem,
-					>
-				);
+				type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					xcm_config::XcmConfig,
+					ExistentialDepositAsset,
+					PriceForSiblingParachainDelivery,
+					AssetHubParaId,
+					ParachainSystem,
+				>;
 
 				fn reachable_dest() -> Option<Location> {
-					Some(Parent.into())
+					Some(xcm_config::AssetHubLocation::get())
 				}
 
 				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
+					// Relay/native token can be teleported between Bulletin and Asset Hub.
 					Some((
-						Asset { id: AssetId(DotLocation::get()), fun: Fungible(ExistentialDeposit::get()) },
+						Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
 						xcm_config::AssetHubLocation::get(),
 					))
 				}
 
 				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-					// None due to https://github.com/paritytech/polkadot-sdk/issues/9054
 					None
 				}
 
-				fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, alloc::boxed::Box<dyn FnOnce()>)> {
-					// None due to https://github.com/paritytech/polkadot-sdk/issues/9054
-					None
+				fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+					// Only supports native token teleports to system parachain
+					let native_location = Parent.into();
+					let dest = xcm_config::AssetHubLocation::get();
+
+					pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+						native_location,
+						dest,
+					)
 				}
 
 				fn get_asset() -> Asset {
-					Asset {
-						id: AssetId(Location::parent()),
-						fun: Fungible(ExistentialDeposit::get()),
-					}
+					Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
 				}
 			}
 
@@ -409,25 +408,16 @@ impl_runtime_apis! {
 
 			impl pallet_xcm_benchmarks::Config for Runtime {
 				type XcmConfig = xcm_config::XcmConfig;
-
-				type DeliveryHelper = (
-					cumulus_primitives_utility::ToParentDeliveryHelper<
-						xcm_config::XcmConfig,
-						ExistentialDepositAsset,
-						xcm_config::PriceForParentDelivery,
-					>,
-					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
-						xcm_config::XcmConfig,
-						ExistentialDepositAsset,
-						PriceForSiblingParachainDelivery,
-						BenchmarkParaId,
-						ParachainSystem,
-					>
-				);
-
 				type AccountIdConverter = xcm_config::LocationToAccountId;
+				type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					xcm_config::XcmConfig,
+					ExistentialDepositAsset,
+					PriceForSiblingParachainDelivery,
+					AssetHubParaId,
+					ParachainSystem,
+				>;
 				fn valid_destination() -> Result<Location, BenchmarkError> {
-					Ok(DotLocation::get())
+					Ok(xcm_config::AssetHubLocation::get())
 				}
 				fn worst_case_holding(_depositable_count: u32) -> Assets {
 					// just concrete assets according to relay chain.
