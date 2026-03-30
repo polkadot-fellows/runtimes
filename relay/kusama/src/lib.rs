@@ -943,7 +943,29 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
+	type WeightInfo = DisableOnIdle<weights::pallet_fast_unstake::WeightInfo<Runtime>>;
+}
+
+/// Disable the on_idle of the fast_unstake pallet.
+pub struct DisableOnIdle<Inner>(core::marker::PhantomData<Inner>);
+impl<Inner: pallet_fast_unstake::weights::WeightInfo>
+	pallet_fast_unstake::weights::WeightInfo for DisableOnIdle<Inner>
+{
+	fn on_idle_unstake(_: u32) -> Weight {
+		Weight::MAX
+	}
+	fn on_idle_check(_: u32, _: u32) -> Weight {
+		Weight::MAX
+	}
+	fn register_fast_unstake() -> Weight {
+		Inner::register_fast_unstake()
+	}
+	fn deregister() -> Weight {
+		Inner::deregister()
+	}
+	fn control() -> Weight {
+		Inner::control()
+	}
 }
 
 parameter_types! {
