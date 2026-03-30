@@ -1329,7 +1329,9 @@ impl pallet_claims::Config for Runtime {
 }
 
 parameter_types! {
+	/// https://assethub-kusama.subscan.io/event/11150168-6
 	pub MigrationStartBlock: BlockNumberFor<Runtime> = 11_150_168u32;
+	/// https://assethub-kusama.subscan.io/event/11151931-7
 	pub MigrationEndBlock: BlockNumberFor<Runtime> = 11_151_931u32;
 }
 
