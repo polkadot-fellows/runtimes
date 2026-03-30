@@ -139,7 +139,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		max_validators: None,
 		pvf_voting_ttl: 2,
 		approval_voting_params: ApprovalVotingParams { max_approval_coalesce_count: 1 },
-		max_relay_parent_session_age: 3, // TODO @alindima please check
+		max_relay_parent_session_age: 0, // to be set via ref
 	}
 }
 
