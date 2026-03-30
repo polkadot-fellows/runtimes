@@ -134,3 +134,16 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 }
+
+pub mod runtime_api {
+	sp_api::decl_runtime_apis! {
+		/// API to query information about the Asset Hub migration process.
+		pub trait AssetHubMigrationApi<BlockNumber> where BlockNumber: sp_runtime::traits::BlockNumber {
+			/// Returns the block number when the migration started.
+			fn migration_start_block() -> BlockNumber;
+
+			/// Returns the block number when the migration ended.
+			fn migration_end_block() -> BlockNumber;
+		}
+	}
+}

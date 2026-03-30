@@ -2648,7 +2648,7 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 		}
 	}
 
-	impl pallet_asset_hub_migration_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+	impl pallet_rc_migrator::runtime_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
 		fn migration_start_block() -> BlockNumber {
 			<Runtime as pallet_ah_ops::Config>::MigrationStartBlock::get()
 		}

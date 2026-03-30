@@ -1185,7 +1185,6 @@ dependencies = [
  "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
- "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-assets",
  "pallet-assets-precompiles",
@@ -1380,7 +1379,6 @@ dependencies = [
  "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
- "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-assets",
  "pallet-assets-precompiles",
@@ -9197,16 +9195,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-asset-hub-migration-api"
-version = "0.0.0"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api 40.0.0",
- "sp-runtime 45.0.0",
-]
-
-[[package]]
 name = "pallet-asset-rate"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10523,6 +10511,7 @@ dependencies = [
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
+ "sp-api 40.0.0",
  "sp-core 39.0.0",
  "sp-io 44.0.0",
  "sp-runtime 45.0.0",
@@ -11983,7 +11972,6 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
- "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -17197,7 +17185,6 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
- "pallet-asset-hub-migration-api",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",

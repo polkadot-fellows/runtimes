@@ -11,7 +11,6 @@ version.workspace = true
 [dependencies]
 pallet-rc-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
-pallet-asset-hub-migration-api = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 hex-literal = { workspace = true }
@@ -348,7 +347,6 @@ std = [
 	"pallet-ah-ops/std",
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
-	"pallet-asset-hub-migration-api/std",
 	"pallet-asset-rate/std",
 	"pallet-assets-precompiles/std",
 	"pallet-assets/std",

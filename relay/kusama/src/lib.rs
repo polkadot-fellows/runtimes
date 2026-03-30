@@ -3049,7 +3049,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_asset_hub_migration_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+	impl pallet_rc_migrator::runtime_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
 		fn migration_start_block() -> BlockNumber {
 			pallet_rc_migrator::MigrationStartBlock::<Runtime>::get().unwrap_or(0)
 		}
