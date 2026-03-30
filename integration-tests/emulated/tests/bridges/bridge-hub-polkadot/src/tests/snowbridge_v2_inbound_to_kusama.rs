@@ -30,7 +30,7 @@ use frame_support::BoundedVec;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
 	EthereumAsset::{ForeignTokenERC20, NativeTokenERC20},
-	Message, XcmPayload,
+	Message, Payload as XcmPayload,
 };
 use sp_core::{H160, H256};
 use xcm::opaque::latest::AssetTransferFilter::{ReserveDeposit, ReserveWithdraw};
@@ -146,7 +146,7 @@ fn send_token_to_kusama_v2() {
 			nonce: 1,
 			origin,
 			assets,
-			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
+			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 3,
@@ -284,7 +284,7 @@ fn send_ether_to_kusama_v2() {
 			nonce: 1,
 			origin,
 			assets: vec![],
-			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
+			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 2,
@@ -448,7 +448,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 			nonce: 1,
 			origin,
 			assets,
-			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
+			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 2,

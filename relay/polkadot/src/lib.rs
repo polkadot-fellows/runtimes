@@ -464,6 +464,9 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_transaction_payment::BenchmarkConfig for Runtime {}
+
 parameter_types! {
 	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
@@ -2071,7 +2074,12 @@ mod benches {
 		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
 	};
 
-	impl pallet_session_benchmarking::Config for Runtime {}
+	impl pallet_session_benchmarking::Config for Runtime {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			let keys = SessionKeys::generate(&owner.encode(), None);
+			(keys.keys, keys.proof.encode())
+		}
+	}
 	impl pallet_offences_benchmarking::Config for Runtime {}
 	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
@@ -2153,13 +2161,15 @@ mod benches {
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
 		}
-		fn worst_case_holding(_depositable_count: u32) -> Assets {
+		fn worst_case_holding(_depositable_count: u32) -> xcm_executor::AssetsInHolding {
+			use pallet_xcm_benchmarks::MockCredit;
 			// Polkadot only knows about DOT
-			vec![Asset {
-				id: AssetId(TokenLocation::get()),
-				fun: Fungible(1_000_000_000_000 * UNITS),
-			}]
-			.into()
+			let mut holding = xcm_executor::AssetsInHolding::new();
+			holding.fungible.insert(
+				AssetId(TokenLocation::get()),
+				alloc::boxed::Box::new(MockCredit(1_000_000 * UNITS)),
+			);
+			holding
 		}
 	}
 
@@ -3402,26 +3412,25 @@ mod remote_tests {
 	use super::*;
 	use frame_try_runtime::{runtime_decl_for_try_runtime::TryRuntime, UpgradeCheckSelect};
 	use remote_externalities::{
-		Builder, Mode, OfflineConfig, OnlineConfig, RemoteExternalities, SnapshotConfig, Transport,
+		Builder, Mode, OfflineConfig, OnlineConfig, RemoteExternalities, SnapshotConfig,
 	};
 	use std::env::var;
 
 	async fn remote_ext_test_setup() -> RemoteExternalities<Block> {
-		let transport: Transport =
-			var("WS").unwrap_or("wss://polkadot-rpc.dwellir.com".to_string()).into();
+		let transport: String = var("WS").unwrap_or("wss://polkadot-rpc.dwellir.com".to_string());
 		let maybe_state_snapshot: Option<SnapshotConfig> = var("SNAP").map(|s| s.into()).ok();
 		Builder::<Block>::default()
 			.mode(if let Some(state_snapshot) = maybe_state_snapshot {
 				Mode::OfflineOrElseOnline(
 					OfflineConfig { state_snapshot: state_snapshot.clone() },
 					OnlineConfig {
-						transport,
+						transport_uris: vec![transport],
 						state_snapshot: Some(state_snapshot),
 						..Default::default()
 					},
 				)
 			} else {
-				Mode::Online(OnlineConfig { transport, ..Default::default() })
+				Mode::Online(OnlineConfig { transport_uris: vec![transport], ..Default::default() })
 			})
 			.build()
 			.await
@@ -3526,11 +3535,11 @@ mod remote_tests {
 		}
 		use hex_literal::hex;
 		sp_tracing::try_init_simple();
-		let transport: Transport =
-			var("WS").unwrap_or("wss://rpc.dotters.network/polkadot".to_string()).into();
+		let transport: String =
+			var("WS").unwrap_or("wss://rpc.dotters.network/polkadot".to_string());
 		let mut ext = Builder::<Block>::default()
 			.mode(Mode::Online(OnlineConfig {
-				transport,
+				transport_uris: vec![transport],
 				hashed_prefixes: vec![
 					// staking eras total stake
 					hex!("5f3e4907f716ac89b6347d15ececedcaa141c4fe67c2d11f4a10c6aca7a79a04")

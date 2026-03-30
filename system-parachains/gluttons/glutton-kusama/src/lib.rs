@@ -408,7 +408,8 @@ impl_runtime_apis! {
 			Some(Vec::new())
 		}
 
-		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+		fn generate_session_keys(_owner: Vec<u8>, _seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			// TODO @ggwpez check again
 			sp_session::OpaqueGeneratedSessionKeys { keys: Default::default(), proof: Default::default() }
 		}
 	}

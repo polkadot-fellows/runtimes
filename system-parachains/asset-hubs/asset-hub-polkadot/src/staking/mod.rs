@@ -1304,7 +1304,7 @@ mod tests {
 			use multi_block::WeightInfo;
 			analyze_weight(
 				"snapshot_msp",
-				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_msp(),
+				<Runtime as multi_block::Config>::WeightInfo::per_block_snapshot_msp(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);
@@ -1315,7 +1315,7 @@ mod tests {
 			use multi_block::WeightInfo;
 			analyze_weight(
 				"snapshot_rest",
-				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_rest(),
+				<Runtime as multi_block::Config>::WeightInfo::per_block_snapshot_rest(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);
@@ -1326,14 +1326,15 @@ mod tests {
 			use multi_block::verifier::WeightInfo;
 			analyze_weight(
 				"verifier valid terminal",
-				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_valid_terminal(),
+				<Runtime as multi_block::verifier::Config>::WeightInfo::verification_valid_terminal(
+				),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);
 
 			analyze_weight(
 				"verifier invalid terminal",
-				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_invalid_terminal(),
+				<Runtime as multi_block::verifier::Config>::WeightInfo::verification_invalid_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);

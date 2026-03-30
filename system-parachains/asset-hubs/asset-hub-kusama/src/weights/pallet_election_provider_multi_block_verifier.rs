@@ -57,7 +57,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::verifier::We
 	fn verification_invalid_terminal() -> Weight {
 		Weight::zero()
 	}
-	fn verification_invalid_non_terminal(v: u32, ) -> Weight {
+	fn verification_invalid_non_terminal(_: u32, ) -> Weight {
 		Weight::zero()
 	} // TODO @ggwpez rerun
 }
