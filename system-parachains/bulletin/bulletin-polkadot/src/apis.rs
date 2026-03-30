@@ -468,15 +468,18 @@ impl_runtime_apis! {
 				}
 
 				fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
-					Ok((DotLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
+					Ok((
+						xcm_config::AssetHubLocation::get(),
+						frame_system::Call::remark_with_event { remark: vec![] }.into(),
+					))
 				}
 
 				fn subscribe_origin() -> Result<Location, BenchmarkError> {
-					Ok(DotLocation::get())
+					Ok(xcm_config::AssetHubLocation::get())
 				}
 
 				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
-					let origin = DotLocation::get();
+					let origin = xcm_config::AssetHubLocation::get();
 					let assets: Assets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
