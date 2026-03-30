@@ -3530,3 +3530,60 @@ mod remote_tests {
 		});
 	}
 }
+
+#[cfg(test)]
+mod post_ahm_filter_tests {
+	use super::*;
+	use sp_runtime::traits::Dispatchable;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
+			.unwrap()
+			.into()
+	}
+
+	#[test]
+	fn staking_is_blocked() {
+		new_test_ext().execute_with(|| {
+			let call = RuntimeCall::Staking(pallet_staking::Call::bond {
+				value: 100,
+				payee: pallet_staking::RewardDestination::Staked,
+			});
+			
+			let origin = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+			let result = call.dispatch(origin);
+
+			assert_eq!(
+				result.unwrap_err().error,
+				frame_system::Error::<Runtime>::CallFiltered.into(),
+			);
+		});
+	}
+
+	#[test]
+	fn transfer_is_allowed() {
+		new_test_ext().execute_with(|| {
+			let sender = AccountId::from([1u8; 32]);
+			let dest = AccountId::from([0u8; 32]);
+
+			// Fund the sender.
+			pallet_balances::Pallet::<Runtime>::force_set_balance(
+				RuntimeOrigin::root(),
+				sp_runtime::MultiAddress::Id(sender.clone()),
+				1_000_000_000_000,
+			)
+			.unwrap();
+
+			let call = RuntimeCall::Balances(
+				pallet_balances::Call::transfer_allow_death {
+					dest: sp_runtime::MultiAddress::Id(dest),
+					value: 100_000_000_000,
+				},
+			);
+
+			let origin = RuntimeOrigin::signed(sender);
+			assert!(call.dispatch(origin).is_ok());
+		});
+	}
+}
