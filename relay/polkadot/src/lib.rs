@@ -811,8 +811,8 @@ impl pallet_fast_unstake::Config for Runtime {
 
 /// Disable the on_idle of the fast_unstake pallet.
 pub struct DisableOnIdle<Inner>(core::marker::PhantomData<Inner>);
-impl<Inner: pallet_fast_unstake::weights::WeightInfo>
-	pallet_fast_unstake::weights::WeightInfo for DisableOnIdle<Inner>
+impl<Inner: pallet_fast_unstake::weights::WeightInfo> pallet_fast_unstake::weights::WeightInfo
+	for DisableOnIdle<Inner>
 {
 	fn on_idle_unstake(_: u32) -> Weight {
 		Weight::MAX
@@ -3572,7 +3572,7 @@ mod post_ahm_filter_tests {
 				value: 100,
 				payee: pallet_staking::RewardDestination::Staked,
 			});
-			
+
 			let origin = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
 			let result = call.dispatch(origin);
 
@@ -3597,12 +3597,10 @@ mod post_ahm_filter_tests {
 			)
 			.unwrap();
 
-			let call = RuntimeCall::Balances(
-				pallet_balances::Call::transfer_allow_death {
-					dest: sp_runtime::MultiAddress::Id(dest),
-					value: 100_000_000_000,
-				},
-			);
+			let call = RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
+				dest: sp_runtime::MultiAddress::Id(dest),
+				value: 100_000_000_000,
+			});
 
 			let origin = RuntimeOrigin::signed(sender);
 			assert!(call.dispatch(origin).is_ok());
