@@ -13,7 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Fix auto-renew core tracking on immediate renew ([stable2603 #10767](https://github.com/paritytech/polkadot-sdk/pull/10767)).
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Fix auto-renew core tracking on immediate renew ([stable2603 #10767](https://github.com/paritytech/polkadot-sdk/pull/10767))
+- [encointer] updated hardcoded remote execution weight for AHK [1124](https://github.com/polkadot-fellows/runtimes/pull/1124)
 - Fix fee calculation on Polkadot and Kusama system parachains: use chain-specific `ExtrinsicBaseWeight` instead of the generic `frame_support` default [1117](https://github.com/polkadot-fellows/runtimes/pull/1117).
 - Remove hardcoded `deposit_asset` weight cap from people runtimes to align with other system parachains ([#1121](https://github.com/polkadot-fellows/runtimes/pull/1121)).
 
