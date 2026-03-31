@@ -135,10 +135,7 @@ pub type XcmMessageProcessor = InboundXcmMessageProcessor<
 		EthereumSystem,
 		AccountId,
 	>,
-	xcm_builder::AliasesIntoAccountId32<
-		RelayNetwork,
-		<Runtime as frame_system::Config>::AccountId,
-	>,
+	xcm_builder::AliasesIntoAccountId32<RelayNetwork, <Runtime as frame_system::Config>::AccountId>,
 	TargetLocation,
 >;
 
@@ -323,11 +320,10 @@ pub mod benchmark_helpers {
 		RelayTreasuryPalletAccount, Runtime, TargetLocation,
 	};
 	use crate::{xcm_config, Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
-	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
-	use xcm_executor::XcmExecutor;
 	use codec::Encode;
 	use frame_support::{parameter_types, traits::fungible};
 	use hex_literal::hex;
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use snowbridge_beacon_primitives::BeaconHeader;
 	use snowbridge_inbound_queue_primitives::EventFixture;
 	use snowbridge_pallet_inbound_queue::BenchmarkHelper;
@@ -337,6 +333,7 @@ pub mod benchmark_helpers {
 	use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
 	use sp_core::{H160, H256};
 	use xcm::latest::{Assets, Location, SendError, SendResult, SendXcm, Xcm, XcmHash};
+	use xcm_executor::XcmExecutor;
 
 	parameter_types! {
 		// The fixture data for benchmark tests in the Polkadot SDK relies on these gateway addresses,

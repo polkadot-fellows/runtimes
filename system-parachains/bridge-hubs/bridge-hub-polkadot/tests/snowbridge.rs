@@ -50,7 +50,10 @@ use sp_runtime::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{HandleFee, XcmFeeManagerFromComponents};
-use xcm_executor::{traits::{ConvertLocation, FeeManager, FeeReason}, AssetsInHolding};
+use xcm_executor::{
+	traits::{ConvertLocation, FeeManager, FeeReason},
+	AssetsInHolding,
+};
 
 parameter_types! {
 	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
@@ -177,7 +180,11 @@ impl Contains<Location> for MockWaivedLocations {
 
 struct MockFeeHandler;
 impl HandleFee for MockFeeHandler {
-	fn handle_fee(fee: AssetsInHolding, _context: Option<&XcmContext>, _reason: FeeReason) -> AssetsInHolding {
+	fn handle_fee(
+		fee: AssetsInHolding,
+		_context: Option<&XcmContext>,
+		_reason: FeeReason,
+	) -> AssetsInHolding {
 		fee
 	}
 }
