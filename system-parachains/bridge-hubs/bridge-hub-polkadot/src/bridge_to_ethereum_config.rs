@@ -38,7 +38,7 @@ use snowbridge_core::AllowSiblingsOnly;
 use snowbridge_inbound_queue_primitives::{
 	v1::MessageToXcm,
 	v2::{
-		CreateAssetCallInfo, MessageToXcm as MessageToXcmV2,
+		CreateAssetCallInfo, MessageToXcm as MessageV2ToXcm,
 		XcmMessageProcessor as InboundXcmMessageProcessor,
 	},
 };
@@ -119,11 +119,13 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
 }
 
+/// Processes inbound XCM messages from Ethereum, converting them via [`MessageV2ToXcm`] and
+/// routing them to their destination through the XCM router.
 pub type XcmMessageProcessor = InboundXcmMessageProcessor<
 	Runtime,
 	xcm_config::XcmRouter,
 	XcmExecutor<xcm_config::XcmConfig>,
-	MessageToXcmV2<
+	MessageV2ToXcm<
 		CreateAssetCall,
 		EthereumNetwork,
 		RelayNetwork,
@@ -317,7 +319,7 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 pub mod benchmark_helpers {
 	use super::{
 		CreateAssetCall, EthereumGatewayAddress, EthereumNetwork, EthereumSystem,
-		InboundQueueV2Location, InboundXcmMessageProcessor, MessageToXcmV2, RelayNetwork,
+		InboundQueueV2Location, InboundXcmMessageProcessor, MessageV2ToXcm, RelayNetwork,
 		RelayTreasuryPalletAccount, Runtime, TargetLocation,
 	};
 	use crate::{xcm_config, Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
@@ -396,7 +398,7 @@ pub mod benchmark_helpers {
 		Runtime,
 		DoNothingRouter,
 		XcmExecutor<xcm_config::XcmConfig>,
-		MessageToXcmV2<
+		MessageV2ToXcm<
 			CreateAssetCall,
 			EthereumNetwork,
 			RelayNetwork,
