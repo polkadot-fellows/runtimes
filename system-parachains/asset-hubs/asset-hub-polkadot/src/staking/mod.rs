@@ -332,29 +332,12 @@ impl EraPayout {
 	// The maximum amount an era can emit. Used as a final safeguard.
 	pub const MAX_ERA_EMISSION: Balance = Self::PRE_HARD_CAP_DAILY_EMISSION * 7;
 
-	// The yearly emission prior to hard pressure enactment.
-	fn yearly_before_hard_cap() -> Balance {
-		let fixed_total_issuance = Self::FIXED_PRE_HARD_CAP_TI;
-		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
-		fixed_inflation_rate.saturating_mul_int(fixed_total_issuance)
-	}
+	/// The TI at the time of `HARD_CAP_START`.
+	pub const MARCH_2026_TI: Balance = 16_743_421_533_310_057_487;
 
 	// The yearly emission post hard pressure enactment.
 	fn yearly_after_hard_cap(relay_block_num: BlockNumber) -> Balance {
-		// Get TI from March 14, 2026.
-		let starting_ti = March2026TI::get().unwrap_or_else(|| {
-			// If first time, store it.
-			let current_ti = pallet_balances::Pallet::<Runtime>::total_issuance();
-			// Sanity check to prevent blow-up. Make sure TI is reasonable number.
-			if current_ti < Self::FIXED_PRE_HARD_CAP_TI {
-				March2026TI::put(Self::FIXED_PRE_HARD_CAP_TI);
-				Self::FIXED_PRE_HARD_CAP_TI
-			} else {
-				March2026TI::put(current_ti);
-				current_ti
-			}
-		});
-		let march_14_2026_ti = FixedU128::saturating_from_integer(starting_ti);
+		let march_14_2026_ti = FixedU128::saturating_from_integer(Self::MARCH_2026_TI);
 		let target_ti = FixedU128::saturating_from_integer(Self::HARD_CAP_TARGET);
 
 		// Start date of the curve is set two years prior, thus ensuring first step in March,
@@ -387,8 +370,6 @@ impl EraPayout {
 	}
 
 	pub(crate) fn impl_experimental_inflation_info() -> InflationInfo {
-		//TODO: Update post March 14th, 2026
-
 		// We assume un-delayed 24h eras.
 		let era_duration = 24 * 60 * 60 * 1000;
 		let next_mint =
@@ -404,10 +385,6 @@ impl EraPayout {
 	}
 }
 
-// Holds the TI from March 14, 2026
-#[storage_alias(verbatim)]
-pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
-
 impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	fn era_payout(
 		_total_staked: Balance,
@@ -420,15 +397,9 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 			Self::MILLISECONDS_PER_YEAR.into(),
 		);
 
-		// Branch based off the 12AM 14th March 2026 initial stepping date -[Ref 1710](https://polkadot.subsquare.io/referenda/1710).
 		let relay_block_num =
 			<RelaychainDataProvider<Runtime> as BlockNumberProvider>::current_block_number();
-
-		let yearly_emission = if relay_block_num < Self::HARD_CAP_START {
-			Self::yearly_before_hard_cap()
-		} else {
-			Self::yearly_after_hard_cap(relay_block_num)
-		};
+		let yearly_emission = Self::yearly_after_hard_cap(relay_block_num);
 
 		let era_emission =
 			relative_era_len.saturating_mul_int(yearly_emission).min(Self::MAX_ERA_EMISSION);
@@ -741,6 +712,35 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	}
 }
 
+// Deprecated: Holds the TI from March 14, 2026
+#[storage_alias(verbatim)]
+pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
+
+pub struct RemoveMarchTIValue;
+
+impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+		frame_support::ensure!(March2026TI::exists(), "March2026TI value should exist");
+		frame_support::ensure!(
+			March2026TI::get().unwrap() == EraPayout::MARCH_2026_TI,
+			"New value should match the old."
+		);
+		Ok(Vec::new())
+	}
+
+	fn on_runtime_upgrade() -> Weight {
+		March2026TI::kill();
+		<Runtime as frame_system::Config>::DbWeight::get().writes(1)
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		frame_support::ensure!(!March2026TI::exists(), "March2026TI should be removed");
+		Ok(())
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -753,127 +753,15 @@ mod tests {
 	};
 	use pallet_staking_async::EraPayout as _;
 	use polkadot_runtime_constants::time::YEARS as RC_YEARS;
-	use sp_runtime::{Perbill, Percent};
+	use sp_runtime::Percent;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
-
-	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
-	const APPROX_PRE_CAP_STAKING: Balance = 279_477 * UNITS;
-	const APPROX_PRE_CAP_TREASURY: Balance = 49_320 * UNITS;
-	const APPROX_PRE_CAP_TOTAL: Balance = APPROX_PRE_CAP_STAKING + APPROX_PRE_CAP_TREASURY;
 
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
 
-	#[test]
-	fn inflation_sanity_check() {
-		use pallet_staking_async::EraPayout as _;
-		// values taken from the last Polkadot staking payout while it was in RC.
-		// https://polkadot.subscan.io/block/28481296
-		// Payout: 279k DOT to validators / 49k DOT to treasury
-		// active era: 1980
-		// Note: Amount don't exactly match due to timestamp being an estimate. Same ballpark is
-		// good.
-		sp_io::TestExternalities::new_empty().execute_with(|| {
-			let average_era_duration_millis = 24 * 60 * 60 * 1000; // 24h
-			let (staking, treasury) = super::EraPayout::era_payout(
-				0, // not used
-				0, // not used
-				average_era_duration_millis,
-			);
-			assert_eq!(staking, 279477_8104198508);
-			assert_eq!(treasury, 49319_6136035030);
-
-			// a recent TI of Polkadot
-			pallet_balances::TotalIssuance::<Runtime>::put(16_336_817_797_558_128_793);
-			let expected_issuance_parts = 73510802784664934;
-			assert_eq!(
-				super::EraPayout::impl_experimental_inflation_info(),
-				InflationInfo {
-					issuance: Perquintill::from_parts(expected_issuance_parts),
-					next_mint: (2794778104198508, 493196136035030)
-				}
-			);
-			// around 7% for now.
-			assert_eq!(expected_issuance_parts * 100 / 10u64.pow(18), 7);
-		});
-	}
-
-	#[test]
-	fn pre_march_2026_formula_staking_inflation_correct_single_era() {
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let (to_stakers, to_treasury) = EraPayout::era_payout(
-				123, // ignored
-				456, // ignored
-				MILLISECONDS_PER_DAY,
-			);
-
-			// Values are within 0.1%
-			assert_relative_eq!(
-				to_stakers as f64,
-				APPROX_PRE_CAP_STAKING as f64,
-				max_relative = 0.001
-			);
-			assert_relative_eq!(
-				to_treasury as f64,
-				APPROX_PRE_CAP_TREASURY as f64,
-				max_relative = 0.001
-			);
-			// Total per day is ~328,797 DOT
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64),
-				APPROX_PRE_CAP_TOTAL as f64,
-				max_relative = 0.001
-			);
-		});
-	}
-
-	#[test]
-	fn pre_march_2026_formula_staking_inflation_correct_longer_era() {
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			// Twice the era duration means twice the emission:
-			let (to_stakers, to_treasury) = EraPayout::era_payout(
-				123, // ignored
-				456, // ignored
-				2 * MILLISECONDS_PER_DAY,
-			);
-
-			assert_relative_eq!(
-				to_stakers as f64,
-				APPROX_PRE_CAP_STAKING as f64 * 2.0,
-				max_relative = 0.001
-			);
-			assert_relative_eq!(
-				to_treasury as f64,
-				APPROX_PRE_CAP_TREASURY as f64 * 2.0,
-				max_relative = 0.001
-			);
-		});
-	}
-
-	// 100 years into the future, our values do not overflow.
-	#[test]
-	fn pre_march_2026_formula_staking_inflation_correct_not_overflow() {
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			let mut emission_total = 0;
-			for _ in 0..36525 {
-				let (to_stakers, to_treasury) = EraPayout::era_payout(
-					123, // ignored
-					456, // ignored
-					MILLISECONDS_PER_DAY,
-				);
-				emission_total += to_stakers + to_treasury;
-			}
-
-			let initial_ti: i128 = 15_011_657_390_566_252_333;
-			let projected_total_issuance = (emission_total as i128) + initial_ti;
-
-			// In 2124, there will be about 13.5 billion DOT in existence.
-			assert_relative_eq!(
-				projected_total_issuance as f64,
-				(13_500_000_000 * UNITS) as f64,
-				max_relative = 0.001
-			);
-		});
-	}
+	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
+	const MARCH_14_2026: RC_BlockNumber = 30_349_908;
+	const MARCH_TI: u128 = EraPayout::MARCH_2026_TI;
+	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
 
 	// Sets the view of the relay chain block number.
 	fn set_relay_number(n: RC_BlockNumber) {
@@ -885,98 +773,27 @@ mod tests {
 		}));
 	}
 
-	const MARCH_14_2026: RC_BlockNumber = 30_349_908;
-	// The March 14, 2026 TI used for calculations in [Ref 1710](https://polkadot.subsquare.io/referenda/1710).
-	const MARCH_TI: u128 = 1_676_733_867 * UNITS;
-	const TARGET_TI: u128 = 2_100_000_000 * UNITS;
-
+	// With a March 2026 TI value of 16,743,421,533,310,057,487 planck,
+	// the daily era payout is ~153,000 DOT. As seen here:
+	// https://assethub-polkadot.subscan.io/event/13377452-23
 	#[test]
-	fn storing_ti_works() {
+	fn new_march_ti_const_is_empirally_correct() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			// Pre-march.
-			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
-			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert!(March2026TI::get().is_none());
-
-			// Post-march.
+			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(EraPayout::MARCH_2026_TI);
 			set_relay_number(MARCH_14_2026);
-			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert_eq!(March2026TI::get(), Some(MARCH_TI));
 
-			// No change on subsequent call.
-			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
-			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
-			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert_eq!(March2026TI::get(), Some(MARCH_TI));
-		});
-	}
-
-	#[test]
-	fn storing_ti_fallback_works() {
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			// Pre-march.
-			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
-			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert!(March2026TI::get().is_none());
-
-			// Post-march, TI got messed up somehow.
-			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(0);
-			set_relay_number(MARCH_14_2026);
-			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert_eq!(March2026TI::get(), Some(super::EraPayout::FIXED_PRE_HARD_CAP_TI));
-
-			// No change on subsequent call.
-			set_relay_number(MARCH_14_2026 + 2 * RC_YEARS);
-			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI + 1);
-			EraPayout::era_payout(0, 0, MILLISECONDS_PER_DAY);
-			assert_eq!(March2026TI::get(), Some(super::EraPayout::FIXED_PRE_HARD_CAP_TI));
-		});
-	}
-
-	// The transition from set emission to stepped emission works.
-	#[test]
-	fn set_to_stepped_inflation_transition_works() {
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			// Check before transition date.
 			let (to_stakers, to_treasury) = EraPayout::era_payout(
 				123, // ignored
 				456, // ignored
 				MILLISECONDS_PER_DAY,
 			);
-			assert_relative_eq!(
-				to_stakers as f64,
-				APPROX_PRE_CAP_STAKING as f64,
-				max_relative = 0.001
-			);
-			assert_relative_eq!(
-				to_treasury as f64,
-				APPROX_PRE_CAP_TREASURY as f64,
-				max_relative = 0.001
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64),
-				APPROX_PRE_CAP_TOTAL as f64,
-				max_relative = 0.001
-			);
 
-			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
-
-			// Check after transition date.
-			set_relay_number(MARCH_14_2026);
-			let (to_stakers, to_treasury) = EraPayout::era_payout(
-				123, // ignored
-				456, // ignored
-				MILLISECONDS_PER_DAY,
-			);
-			let two_year_rate = EraPayout::BI_ANNUAL_RATE;
-			let era_rate = two_year_rate *
-				Perbill::from_rational(1u32, 2u32) *
-				Perbill::from_rational(100u32, 36525u32);
-			let assumed_payout = era_rate * (TARGET_TI - MARCH_TI);
+			let total_era_payout = to_stakers + to_treasury;
+			let expected = 153_000 * UNITS;
 			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64),
-				assumed_payout as f64,
-				max_relative = 0.00001
+				total_era_payout as f64,
+				expected as f64,
+				max_relative = 0.005, // within 0.5%
 			);
 		});
 	}
@@ -984,9 +801,7 @@ mod tests {
 	// The emission values for the two year periods are as expected.
 	#[test]
 	fn stepped_inflation_two_year_values_correct() {
-		ExtBuilder::<Runtime>::default()
-		.build()
-		.execute_with(|| {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			let two_years: RC_BlockNumber = RC_YEARS * 2;
 			pallet_balances::pallet::TotalIssuance::<Runtime, ()>::set(MARCH_TI);
 
@@ -1004,17 +819,6 @@ mod tests {
 				first_period_emission as f64,
 				max_relative = 0.00001
 			);
-			// Visual checks.
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				(152_271 * UNITS) as f64,
-				max_relative = 0.00001,
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
-				(55_617_170 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E2.
-				max_relative = 0.00001,
-			);
 
 			// Second period - March 14, 2028 -> March 14, 2030.
 			let march_14_2028 = MARCH_14_2026 + two_years;
@@ -1031,17 +835,6 @@ mod tests {
 				second_period_emission as f64,
 				max_relative = 0.00001
 			);
-			// Visual checks.
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				(112_254 * UNITS) as f64,
-				max_relative = 0.00001,
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
-				(41_000_978 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E3.
-				max_relative = 0.00001,
-			);
 
 			// Third period - March 14, 2030 -> March 14, 2032.
 			let march_14_2030 = march_14_2028 + two_years;
@@ -1057,17 +850,6 @@ mod tests {
 				(to_stakers as f64 + to_treasury as f64) * 365.25 * 2.0,
 				third_period_emission as f64,
 				max_relative = 0.00001
-			);
-			// Visual checks.
-			assert_relative_eq!(
-				to_stakers as f64 + to_treasury as f64,
-				(82_754 * UNITS) as f64,
-				max_relative = 0.00001,
-			);
-			assert_relative_eq!(
-				(to_stakers as f64 + to_treasury as f64) * 365.25, // full year
-				(30_225_921 * UNITS) as f64, // https://docs.google.com/spreadsheets/d/1pW6fVESnkenJkqIzRk2Pv4cp5KNzVYSupUI6EA-jeR8/edit?gid=0#gid=0&range=E4.
-				max_relative = 0.00001,
 			);
 		});
 	}

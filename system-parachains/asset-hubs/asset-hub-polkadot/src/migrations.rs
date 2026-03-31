@@ -29,6 +29,8 @@ pub type Unreleased = (
 		crate::Runtime,
 		TrappedBalanceMember,
 	>,
+	// Remove an old staking value.
+	crate::staking::RemoveMarchTIValue,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
