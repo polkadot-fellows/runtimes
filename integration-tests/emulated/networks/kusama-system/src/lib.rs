@@ -58,6 +58,6 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	PenpalAPara { sender: ALICE, receiver: BOB },
 	PenpalBPara { sender: ALICE, receiver: BOB },
 	PeopleKusamaPara { sender: ALICE, receiver: BOB },
-	CoretimeKusamaPara { sender: ALICE, receiver: BOB }
+	CoretimeKusamaPara { sender: ALICE, receiver: BOB },
 	EncointerKusamaPara { sender: ALICE, receiver: BOB }
 }
