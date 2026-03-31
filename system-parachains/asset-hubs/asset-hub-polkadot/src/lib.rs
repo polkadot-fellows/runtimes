@@ -123,9 +123,9 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
-		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
-		PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
+		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
+		TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -520,6 +520,7 @@ parameter_types! {
 	Copy,
 	Clone,
 	Eq,
+	Default,
 	PartialEq,
 	Ord,
 	PartialOrd,
@@ -532,6 +533,7 @@ parameter_types! {
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds or assets.
 	NonTransfer,
@@ -576,11 +578,6 @@ pub enum ProxyType {
 	/// Contains `Staking` (validate, chill, kick), `StakingRcClient` (set_keys, purge_keys),
 	/// and `Utility` batching calls (batch, batch_all, force_batch).
 	StakingOperator,
-}
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
