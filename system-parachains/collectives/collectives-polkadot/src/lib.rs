@@ -329,6 +329,7 @@ pub enum ProxyType {
 	/// Secretary proxy. Allows calls related to the Secretary collective
 	Secretary,
 }
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
