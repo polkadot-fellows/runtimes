@@ -215,7 +215,6 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			Treasury(..) |
 			ConvictionVoting(..) |
 			Referenda(..) |
-			Whitelist(..) |
 			Claims(..) |
 			Vesting(..) |
 			Bounties(..) |
