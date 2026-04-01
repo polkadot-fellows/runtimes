@@ -944,6 +944,10 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
+	// Bug in fast-unstake pallet; its benchmark cannot run when on_idle does not have weight.
+	#[cfg(feature = "runtime-benchmarks")]
+	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type WeightInfo = DisableOnIdle<weights::pallet_fast_unstake::WeightInfo<Runtime>>;
 }
 
