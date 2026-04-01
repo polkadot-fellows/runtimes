@@ -59,7 +59,7 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetwork::get())].into();
 	/// The Checking Account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
-	/// The Checking Account along with the indication that the local chain is able to mint tokens.
+	/// Relay cannot mint locally.
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
@@ -91,9 +91,8 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
-// Teleports disabled for the Relay Chain. DOT issuance tracking happens on AH.
-NoTeleportTracking,
+	// Teleports disabled for the Relay Chain. DOT issuance tracking happens on AH.
+	NoTeleportTracking,
 >;
 
 /// The means that we convert an XCM origin `Location` into the runtime's `Origin` type for
