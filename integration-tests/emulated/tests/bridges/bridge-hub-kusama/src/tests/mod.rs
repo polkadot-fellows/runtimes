@@ -31,6 +31,10 @@ pub(crate) fn asset_hub_polkadot_location() -> Location {
 	Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())])
 }
 
+pub(crate) fn asset_hub_kusama_global_location() -> Location {
+	Location::new(2, [GlobalConsensus(Kusama), Parachain(AssetHubKusama::para_id().into())])
+}
+
 pub(crate) fn bridge_hub_polkadot_location() -> Location {
 	Location::new(2, [GlobalConsensus(Polkadot), Parachain(BridgeHubPolkadot::para_id().into())])
 }
@@ -64,6 +68,10 @@ pub(crate) fn bridged_usdt_at_ah_kusama() -> Location {
 	)
 }
 
+pub fn eth_location() -> Location {
+	Location::new(2, [GlobalConsensus(Ethereum { chain_id: snowbridge::CHAIN_ID })])
+}
+
 // wETH has same relative location on both Kusama and Polkadot AssetHubs
 pub(crate) fn weth_at_asset_hubs() -> Location {
 	Location::new(
@@ -78,16 +86,35 @@ pub(crate) fn weth_at_asset_hubs() -> Location {
 pub(crate) fn create_foreign_on_ah_kusama(
 	id: Location,
 	sufficient: bool,
+	reserves: Vec<ForeignAssetReserveData>,
 	prefund_accounts: Vec<(AccountId, u128)>,
 ) {
 	let owner = AssetHubKusama::account_id_of(ALICE);
 	let min = ASSET_MIN_BALANCE;
-	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
+	AssetHubKusama::force_create_foreign_asset(
+		id.clone(),
+		owner.clone(),
+		sufficient,
+		min,
+		prefund_accounts,
+	);
+	AssetHubKusama::set_foreign_asset_reserves(id, owner, reserves);
 }
 
-pub(crate) fn create_foreign_on_ah_polkadot(id: Location, sufficient: bool) {
+pub(crate) fn create_foreign_on_ah_polkadot(
+	id: Location,
+	sufficient: bool,
+	reserves: Vec<ForeignAssetReserveData>,
+) {
 	let owner = AssetHubPolkadot::account_id_of(ALICE);
-	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
+	AssetHubPolkadot::force_create_foreign_asset(
+		id.clone(),
+		owner.clone(),
+		sufficient,
+		ASSET_MIN_BALANCE,
+		vec![],
+	);
+	AssetHubPolkadot::set_foreign_asset_reserves(id, owner, reserves);
 }
 
 pub(crate) fn foreign_balance_on_ah_kusama(id: Location, who: &AccountId) -> u128 {

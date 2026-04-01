@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use crate::*;
+use emulated_integration_tests_common::test_xcm_fee_querying_apis_work_for_asset_hub;
 use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use sp_runtime::ModuleError;
 use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
@@ -114,7 +115,8 @@ fn swap_locally_on_chain_using_local_assets() {
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
-	let asset_location_on_penpal: Location = PenpalLocalTeleportableToAssetHub::get();
+	let asset_location_on_penpal: Location =
+		PenpalA::execute_with(PenpalLocalTeleportableToAssetHub::get);
 	let foreign_asset_at_asset_hub_kusama =
 		Location::new(1, [Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
@@ -262,7 +264,6 @@ fn cannot_create_pool_from_pool_assets() {
 }
 
 #[test]
-#[ignore]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = Location {
@@ -344,14 +345,14 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	});
 
 	PenpalA::execute_with(|| {
-		// send xcm transact from `penpal` account which has only `ASSET_ID` tokens on
-		// `AssetHubKusama`
-		let call = AssetHubKusama::force_create_asset_call(
-			ASSET_ID + 1000,
-			penpal.clone(),
-			true,
-			ASSET_MIN_BALANCE,
-		);
+		// send xcm transact from `penpal` account
+		let call = <AssetHubKusama as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubKusama as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
 
 		let penpal_root = <PenpalA as Chain>::RuntimeOrigin::root();
 		let fee_amount = 4_000_000_000_000u128;
@@ -386,4 +387,9 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 			]
 		);
 	});
+}
+
+#[test]
+fn xcm_fee_querying_apis_work() {
+	test_xcm_fee_querying_apis_work_for_asset_hub!(AssetHubKusama);
 }

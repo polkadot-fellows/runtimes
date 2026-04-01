@@ -20,18 +20,20 @@ frame-support = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 polkadot-primitives = { workspace = true }
+pallet-multi-asset-bounties = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
+multi-asset-bounties = ["pallet-multi-asset-bounties"]
 std = [
 	"codec/std",
-	"scale-info/std",
-
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"log/std",
+	"pallet-multi-asset-bounties?/std",
 	"polkadot-primitives/std",
+	"scale-info/std",
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-state-machine/std",
@@ -41,6 +43,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"pallet-multi-asset-bounties?/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
@@ -48,5 +51,6 @@ runtime-benchmarks = [
 try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"frame-support/try-runtime",
+	"pallet-multi-asset-bounties?/try-runtime",
 	"sp-runtime/try-runtime",
 ]

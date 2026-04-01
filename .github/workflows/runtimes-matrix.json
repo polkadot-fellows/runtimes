@@ -3,7 +3,21 @@
     "name": "polkadot",
     "package": "polkadot-runtime",
     "path": "relay/polkadot",
-    "uri": "wss://try-runtime.polkadot.io:443",
+    "uris": [
+      "wss://try-runtime.polkadot.io:443",
+      "wss://polkadot-rpc.publicnode.com",
+      "wss://polkadot-public-rpc.blockops.network/ws",
+      "wss://polkadot-rpc.n.dwellir.com",
+      "wss://polkadot-rpc-tn.dwellir.com",
+      "wss://rpc-polkadot.helixstreet.io",
+      "wss://rpc.ibp.network/polkadot",
+      "wss://polkadot.dotters.network",
+      "wss://rpc-polkadot.luckyfriday.io",
+      "wss://polkadot.api.onfinality.io/public-ws",
+      "wss://polkadot.public.curie.radiumblock.co/ws",
+      "wss://dot-rpc.stakeworld.io",
+      "wss://polkadot.rpc.subquery.network/public/ws"
+    ],
     "is_relay": true,
     "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
@@ -17,7 +31,20 @@
     "name": "kusama",
     "package": "staging-kusama-runtime",
     "path": "relay/kusama",
-    "uri": "wss://try-runtime-kusama.polkadot.io:443",
+    "uris": [
+      "wss://try-runtime-kusama.polkadot.io:443",
+      "wss://kusama-rpc.publicnode.com",
+      "wss://kusama-public-rpc.blockops.network/ws",
+      "wss://kusama-rpc.n.dwellir.com",
+      "wss://kusama-rpc-tn.dwellir.com",
+      "wss://rpc-kusama.helixstreet.io",
+      "wss://rpc.ibp.network/kusama",
+      "wss://kusama.dotters.network",
+      "wss://rpc-kusama.luckyfriday.io",
+      "wss://kusama.api.onfinality.io/public-ws",
+      "wss://kusama.public.curie.radiumblock.co/ws",
+      "wss://ksm-rpc.stakeworld.io"
+    ],
     "is_relay": true,
     "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
@@ -39,7 +66,17 @@
     "name": "asset-hub-kusama",
     "package": "asset-hub-kusama-runtime",
     "path": "system-parachains/asset-hubs/asset-hub-kusama",
-    "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
+    "uris": [
+      "wss://kusama-asset-hub-rpc.polkadot.io:443",
+      "wss://asset-hub-kusama-rpc.n.dwellir.com",
+      "wss://statemine-rpc-tn.dwellir.com",
+      "wss://sys.ibp.network/asset-hub-kusama",
+      "wss://asset-hub-kusama.dotters.network",
+      "wss://rpc-asset-hub-kusama.luckyfriday.io",
+      "wss://assethub-kusama.api.onfinality.io/public-ws",
+      "wss://statemine.public.curie.radiumblock.co/ws",
+      "wss://ksm-rpc.stakeworld.io/assethub"
+    ],
     "is_relay": false,
     "blocktime": 12000,
     "try_runtime_args": "--overwrite-state-version 1",
@@ -47,13 +84,26 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "pallet_staking_async": ["prune_era_total_stake"]
     }
   },
   {
     "name": "asset-hub-polkadot",
     "package": "asset-hub-polkadot-runtime",
     "path": "system-parachains/asset-hubs/asset-hub-polkadot",
-    "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
+    "uris": [
+      "wss://polkadot-asset-hub-rpc.polkadot.io:443",
+      "wss://asset-hub-polkadot-rpc.n.dwellir.com",
+      "wss://statemint-rpc-tn.dwellir.com",
+      "wss://sys.ibp.network/asset-hub-polkadot",
+      "wss://asset-hub-polkadot.dotters.network",
+      "wss://rpc-asset-hub-polkadot.luckyfriday.io",
+      "wss://statemint.api.onfinality.io/public-ws",
+      "wss://statemint.public.curie.radiumblock.co/ws",
+      "wss://dot-rpc.stakeworld.io/assethub"
+    ],
     "is_relay": false,
     "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",
@@ -62,13 +112,26 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "pallet_staking_async": ["prune_era_total_stake"]
     }
   },
   {
     "name": "bridge-hub-kusama",
     "package": "bridge-hub-kusama-runtime",
     "path": "system-parachains/bridge-hubs/bridge-hub-kusama",
-    "uri": "wss://kusama-bridge-hub-rpc.polkadot.io:443",
+    "uris": [
+      "wss://kusama-bridge-hub-rpc.polkadot.io:443",
+      "wss://bridge-hub-kusama-rpc.n.dwellir.com",
+      "wss://kusama-bridge-hub-rpc-tn.dwellir.com",
+      "wss://sys.ibp.network/bridgehub-kusama",
+      "wss://bridge-hub-kusama.dotters.network",
+      "wss://rpc-bridge-hub-kusama.luckyfriday.io",
+      "wss://bridgehub-kusama.api.onfinality.io/public-ws",
+      "wss://bridgehub-kusama.public.curie.radiumblock.co/ws",
+      "wss://ksm-rpc.stakeworld.io/bridgehub"
+    ],
     "is_relay": false,
     "blocktime": 12000,
     "extra_args": "--disable-mbm-checks",
@@ -81,7 +144,17 @@
     "name": "bridge-hub-polkadot",
     "package": "bridge-hub-polkadot-runtime",
     "path": "system-parachains/bridge-hubs/bridge-hub-polkadot",
-    "uri": "wss://polkadot-bridge-hub-rpc.polkadot.io:443",
+    "uris": [
+      "wss://polkadot-bridge-hub-rpc.polkadot.io:443",
+      "wss://bridge-hub-polkadot-rpc.n.dwellir.com",
+      "wss://polkadot-bridge-hub-rpc-tn.dwellir.com",
+      "wss://sys.ibp.network/bridgehub-polkadot",
+      "wss://bridge-hub-polkadot.dotters.network",
+      "wss://rpc-bridge-hub-polkadot.luckyfriday.io",
+      "wss://bridgehub-polkadot.api.onfinality.io/public-ws",
+      "wss://bridgehub-polkadot.public.curie.radiumblock.co/ws",
+      "wss://dot-rpc.stakeworld.io/bridgehub"
+    ],
     "is_relay": false,
     "blocktime": 12000,
     "extra_args": "--disable-mbm-checks",
@@ -94,7 +167,17 @@
     "name": "collectives-polkadot",
     "package": "collectives-polkadot-runtime",
     "path": "system-parachains/collectives/collectives-polkadot",
-    "uri": "wss://polkadot-collectives-rpc.polkadot.io:443",
+    "uris": [
+      "wss://polkadot-collectives-rpc.polkadot.io:443",
+      "wss://collectives-polkadot-rpc.n.dwellir.com",
+      "wss://polkadot-collectives-rpc-tn.dwellir.com",
+      "wss://sys.ibp.network/collectives-polkadot",
+      "wss://collectives-polkadot.dotters.network",
+      "wss://rpc-collectives-polkadot.luckyfriday.io",
+      "wss://collectives.api.onfinality.io/public-ws",
+      "wss://collectives.public.curie.radiumblock.co/ws",
+      "wss://dot-rpc.stakeworld.io/collectives"
+    ],
     "is_relay": false,
     "blocktime": 12000,
     "extra_args": "--disable-mbm-checks",
@@ -107,7 +190,15 @@
     "name": "coretime-kusama",
     "package": "coretime-kusama-runtime",
     "path": "system-parachains/coretime/coretime-kusama",
-    "uri": "wss://kusama-coretime-rpc.polkadot.io:443",
+    "uris": [
+      "wss://kusama-coretime-rpc.polkadot.io:443",
+      "wss://coretime-kusama-rpc.n.dwellir.com",
+      "wss://sys.ibp.network/coretime-kusama",
+      "wss://coretime-kusama.dotters.network",
+      "wss://rpc-coretime-kusama.luckyfriday.io",
+      "wss://coretime-kusama.api.onfinality.io/public-ws",
+      "wss://ksm-rpc.stakeworld.io/coretime"
+    ],
     "is_relay": false,
     "blocktime": 12000,
     "extra_args": "--disable-mbm-checks",
@@ -122,7 +213,15 @@
     "path": "system-parachains/coretime/coretime-polkadot",
     "is_relay": false,
     "blocktime": 12000,
-    "uri": "wss://polkadot-coretime-rpc.polkadot.io:443",
+    "uris": [
+      "wss://polkadot-coretime-rpc.polkadot.io:443",
+      "wss://coretime-polkadot-rpc.n.dwellir.com",
+      "wss://sys.ibp.network/coretime-polkadot",
+      "wss://coretime-polkadot.dotters.network",
+      "wss://rpc-coretime-polkadot.luckyfriday.io",
+      "wss://coretime-polkadot.api.onfinality.io/public-ws",
+      "wss://dot-rpc.stakeworld.io/coretime"
+    ],
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -133,7 +232,16 @@
     "name": "people-kusama",
     "package": "people-kusama-runtime",
     "path": "system-parachains/people/people-kusama",
-    "uri": "wss://kusama-people-rpc.polkadot.io:443",
+    "uris": [
+      "wss://kusama-people-rpc.polkadot.io:443",
+      "wss://people-kusama-rpc.n.dwellir.com",
+      "wss://rpc-people-kusama.helixstreet.io",
+      "wss://sys.ibp.network/people-kusama",
+      "wss://people-kusama.dotters.network",
+      "wss://rpc-people-kusama.luckyfriday.io",
+      "wss://people-kusama.api.onfinality.io/public-ws",
+      "wss://ksm-rpc.stakeworld.io/people"
+    ],
     "is_relay": false,
     "blocktime": 6000,
     "benchmarks_templates": {
@@ -145,7 +253,15 @@
     "name": "people-polkadot",
     "package": "people-polkadot-runtime",
     "path": "system-parachains/people/people-polkadot",
-    "uri": "wss://polkadot-people-rpc.polkadot.io:443",
+    "uris": [
+      "wss://polkadot-people-rpc.polkadot.io:443",
+      "wss://people-polkadot-rpc.n.dwellir.com",
+      "wss://sys.ibp.network/people-polkadot",
+      "wss://people-polkadot.dotters.network",
+      "wss://rpc-people-polkadot.luckyfriday.io",
+      "wss://people-polkadot.api.onfinality.io/public-ws",
+      "wss://dot-rpc.stakeworld.io/people"
+    ],
     "is_relay": false,
     "blocktime": 12000,
     "benchmarks_templates": {
@@ -157,7 +273,13 @@
     "name": "encointer-kusama",
     "package": "encointer-kusama-runtime",
     "path": "system-parachains/encointer",
-    "uri": "wss://kusama.api.encointer.org:443",
+    "uris": [
+      "wss://kusama.api.encointer.org:443",
+      "wss://encointer-kusama-rpc.n.dwellir.com",
+      "wss://sys.ibp.network/encointer-kusama",
+      "wss://encointer-kusama.dotters.network",
+      "wss://rpc-encointer-kusama.luckyfriday.io"
+    ],
     "is_relay": false,
     "blocktime": 6000,
     "extra_args": "--disable-mbm-checks",

@@ -17,4 +17,5 @@ mod aliases;
 mod claim_assets;
 mod governance;
 mod identity;
+mod reserve_transfers;
 mod teleport;

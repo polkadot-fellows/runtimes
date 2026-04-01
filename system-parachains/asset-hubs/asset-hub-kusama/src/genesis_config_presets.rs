@@ -82,6 +82,11 @@ fn asset_hub_kusama_genesis(
 				.collect(),
 			..Default::default()
 		},
+		"revive": ReviveConfig {
+			mapped_accounts: endowed_accounts.iter().filter(|x| ! pallet_revive::is_eth_derived(x)).cloned().collect(),
+			accounts: Vec::new(),
+			debug_settings: None,
+		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})

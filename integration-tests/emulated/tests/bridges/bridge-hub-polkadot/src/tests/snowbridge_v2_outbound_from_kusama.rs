@@ -15,6 +15,7 @@
 
 use crate::{
 	tests::{
+		asset_hub_kusama_location, create_foreign_on_ah_polkadot,
 		snowbridge_common::*,
 		snowbridge_v2_outbound::{EthereumSystemFrontend, EthereumSystemFrontendCall},
 	},
@@ -22,11 +23,6 @@ use crate::{
 };
 use frame_support::{traits::fungibles::Mutate, BoundedVec};
 use xcm::latest::AssetTransferFilter;
-
-pub(crate) fn create_foreign_on_ah_polkadot(id: Location, sufficient: bool) {
-	let owner = AssetHubPolkadot::account_id_of(ALICE);
-	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
-}
 
 // set up pool
 pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(
@@ -156,7 +152,12 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 	let bridged_ksm_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
 
 	set_bridge_hub_ethereum_base_fee();
-	create_foreign_on_ah_polkadot(bridged_ksm_at_asset_hub_polkadot.clone(), true);
+	create_foreign_on_ah_polkadot(
+		bridged_ksm_at_asset_hub_polkadot.clone(),
+		true,
+		vec![(asset_hub_kusama_location(), false).into()],
+		vec![],
+	);
 	set_up_pool_with_dot_on_ah_polkadot(
 		bridged_ksm_at_asset_hub_polkadot.clone(),
 		true,
@@ -176,7 +177,12 @@ fn send_ksm_from_asset_hub_kusama_to_ethereum() {
 			eth_location()
 		));
 	});
-	create_foreign_on_ah_polkadot(eth_location(), true);
+	create_foreign_on_ah_polkadot(
+		eth_location(),
+		true,
+		vec![(eth_location(), false).into()],
+		vec![],
+	);
 	set_up_pool_with_dot_on_ah_polkadot(eth_location(), true, initial_fund, initial_liquidity);
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), initial_fund);
 	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaSender::get(), initial_fund)]);

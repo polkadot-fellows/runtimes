@@ -12,7 +12,9 @@ codec = { workspace = true, default-features = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
+pallet-assets = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
@@ -44,6 +46,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",

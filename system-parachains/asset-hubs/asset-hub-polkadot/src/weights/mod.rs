@@ -16,10 +16,12 @@
 
 pub mod block_weights;
 pub mod cumulus_pallet_parachain_system;
+pub mod cumulus_pallet_weight_reclaim;
 pub mod cumulus_pallet_xcmp_queue;
 pub mod extrinsic_weights;
 pub mod frame_system;
 pub mod frame_system_extensions;
+pub mod inmemorydb_weights;
 pub mod pallet_ah_migrator;
 pub mod pallet_ah_ops;
 pub mod pallet_asset_conversion;
@@ -40,6 +42,8 @@ pub mod pallet_election_provider_multi_block_unsigned;
 pub mod pallet_election_provider_multi_block_verifier;
 pub mod pallet_indices;
 pub mod pallet_message_queue;
+pub mod pallet_migrations;
+pub mod pallet_multi_asset_bounties;
 pub mod pallet_multisig;
 pub mod pallet_nfts;
 pub mod pallet_parameters;
@@ -49,6 +53,7 @@ pub mod pallet_referenda;
 pub mod pallet_scheduler;
 pub mod pallet_session;
 pub mod pallet_staking_async;
+pub mod pallet_staking_async_rc_client;
 pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
 pub mod pallet_treasury;
@@ -67,4 +72,4 @@ pub mod xcm;
 
 pub use block_weights::constants::BlockExecutionWeight;
 pub use extrinsic_weights::constants::ExtrinsicBaseWeight;
-pub use rocksdb_weights::constants::RocksDbWeight;
+pub use inmemorydb_weights::constants::InMemoryDbWeight;

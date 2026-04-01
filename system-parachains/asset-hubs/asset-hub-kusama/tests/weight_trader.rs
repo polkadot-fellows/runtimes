@@ -32,7 +32,7 @@ use frame_support::{
 };
 use parachains_common::{AccountId, AuraId};
 use sp_runtime::traits::MaybeEquivalence;
-use system_parachains_constants::kusama::{currency::*, fee::WeightToFee};
+use system_parachains_constants::kusama::{currency::*, fee::WeightToFee as KsmWeightToFee};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::WeightTrader;
 
@@ -40,6 +40,7 @@ const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
+type WeightToFee = KsmWeightToFee<Runtime>;
 
 #[test]
 fn test_buy_and_refund_weight_with_native() {

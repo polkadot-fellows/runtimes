@@ -17,9 +17,10 @@
 //! New governance configurations for the Polkadot runtime.
 
 use super::*;
-use crate::xcm_config::{CollectivesLocation, FellowsBodyId};
+use crate::xcm_config::CollectivesLocation;
 use frame_support::parameter_types;
 use frame_system::EnsureRootWithSuccess;
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 
 mod origins;
 pub use origins::{
@@ -65,7 +66,7 @@ impl pallet_whitelist::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WhitelistOrigin = EitherOfDiverse<
 		EnsureRoot<Self::AccountId>,
-		EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
+		EnsureXcm<IsFellowshipVoice<CollectivesLocation>>,
 	>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;

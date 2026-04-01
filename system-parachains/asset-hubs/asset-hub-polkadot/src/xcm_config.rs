@@ -18,14 +18,18 @@ pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
 	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CollatorSelection, FellowshipAdmin, ForeignAssets, GeneralAdmin, NativeAndAssets,
-	ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, StakingAdmin, ToKusamaXcmRouter,
-	Treasurer, WeightToFee, XcmpQueue,
+	CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
+	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
+	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
-	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
+	matching::{
+		FromNetwork, FromSiblingParachain, IsForeignConcreteAsset,
+		NonTeleportableAssetFromTrustedReserve, ParentLocation,
+		TeleportableAssetWithTrustedReserve,
+	},
 	TrustBackedAssetsAsLocation,
 };
 use core::marker::PhantomData;
@@ -46,7 +50,11 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{system_parachain, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use polkadot_runtime_constants::{
+	fellowship::{IsFellowshipVoice, ARCHITECTS_RANK},
+	system_parachain,
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;
 use xcm::latest::prelude::*;
@@ -193,26 +201,8 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 pub type PoolAssetsConvertedConcreteId =
 	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
 
-/// Means for transacting asset conversion pool assets on this chain.
-pub type PoolFungiblesTransactor = FungiblesAdapter<
-	// Use this fungibles implementation:
-	PoolAssets,
-	// Use this currency when it is a fungible asset matching the given location or name:
-	PoolAssetsConvertedConcreteId,
-	// Convert an XCM `Location` into a local account ID:
-	LocationToAccountId,
-	// Our chain's account ID type (we can't get away without mentioning it explicitly):
-	AccountId,
-	// We only want to allow teleports of known assets. We use non-zero issuance as an indication
-	// that this asset is known.
-	LocalMint<parachains_common::impls::NonZeroIssuance<AccountId, PoolAssets>>,
-	// The account to use for tracking teleports.
-	CheckingAccount,
->;
-
 /// Means for transacting assets on this chain.
-pub type AssetTransactors =
-	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
+pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor);
 
 /// Asset converter for pool assets.
 /// Used to convert one asset to another, when there is a pool available between the two.
@@ -267,20 +257,14 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Location type to determine the Technical Fellowship related
-/// pallets for use in XCM.
-pub struct FellowshipEntities;
-impl Contains<Location> for FellowshipEntities {
+/// Fellowship Treasury and Salary pallet locations.
+/// These pallets send XCM directly via `PayOverXcm` for treasury payouts and salary payments.
+pub struct FellowshipTreasuryPaymasterEntities;
+impl Contains<Location> for FellowshipTreasuryPaymasterEntities {
 	fn contains(location: &Location) -> bool {
 		matches!(
 			location.unpack(),
 			(
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. }
-				]
-			) | (
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
@@ -300,6 +284,12 @@ impl Contains<Location> for FellowshipEntities {
 		)
 	}
 }
+
+/// Location types for Technical Fellowship origins in XCM barriers and fee waiving.
+/// Includes both the Fellowship voice origins (for governance) and the Treasury/Salary
+/// pallet origins (for `PayOverXcm` payouts).
+pub type FellowshipEntities =
+	(IsFellowshipVoice<FellowshipLocation>, FellowshipTreasuryPaymasterEntities);
 
 /// Location type to determine the Ambassador Collective
 /// pallets for use in XCM.
@@ -329,19 +319,42 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
-/// Location type to determine the Secretary Collective related
-/// pallets for use in XCM.
-pub struct SecretaryEntities;
-impl Contains<Location> for SecretaryEntities {
-	fn contains(location: &Location) -> bool {
+/// Allows the Fellowship Architects origin (or higher rank) from Collectives to alias into
+/// the Fellowship Treasury or Fellowship Salary pallet locations.
+///
+/// This allows rank 4+ Fellowship members (Architects, Masters, etc.) on the Collectives chain to
+/// manage the fellowship treasury and salary here on Asset Hub. The origin is converted
+/// to `[Plurality { id: BodyId::Technical, part: BodyPart::Voice }, GeneralIndex(rank)]`
+/// via `ArchitectsToLocation` (or equivalent) before being sent over XCM.
+pub struct FellowshipArchitectsAliases;
+impl ContainsPair<Location, Location> for FellowshipArchitectsAliases {
+	fn contains(origin: &Location, target: &Location) -> bool {
 		matches!(
-			location.unpack(),
+			origin.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(rank)
+				]
+			) if *rank >= ARCHITECTS_RANK
+		) && matches!(
+			target.unpack(),
 			(
 				1,
 				[
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
-						collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX
+						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+					)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
 					)
 				]
 			)
@@ -379,15 +392,17 @@ pub type Barrier = TrailingSetTopicAsId<
 					// The locations listed below get free execution.
 					// Parent, its pluralities (i.e. governance bodies), the Fellows plurality and
 					// sibling bridge hub get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						FellowshipEntities,
-						Equals<RelayTreasuryLocation>,
-						Equals<bridging::SiblingBridgeHub>,
-						AmbassadorEntities,
-						SecretaryEntities,
-						IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							FellowshipEntities,
+							Equals<RelayTreasuryLocation>,
+							Equals<bridging::SiblingBridgeHub>,
+							AmbassadorEntities,
+							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
+						),
+						TrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
@@ -407,17 +422,25 @@ pub type WaivedLocations = (
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,
 	AmbassadorEntities,
-	SecretaryEntities,
 	LocalPlurality,
+);
+
+/// Asset Hub accepts incoming reserve transfers only for "Foreign Assets" and only from locations
+/// explicitly set by the asset's owner.
+pub type TrustedReserves = (
+	IsForeignConcreteAsset<
+		NonTeleportableAssetFromTrustedReserve<SelfParaId, crate::ForeignAssets>,
+	>,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 ///
 /// - DOT with the parent Relay Chain and sibling system parachains; and
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
+/// - Sibling parachains' assets according to their configured trusted reserves (teleportable when
+///   `Here` and `origin` are both trusted reserve locations).
 pub type TrustedTeleporters = (
 	ConcreteAssetFromSystem<DotLocation>,
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
+	IsForeignConcreteAsset<TeleportableAssetWithTrustedReserve<SelfParaId, crate::ForeignAssets>>,
 );
 
 /// During migration we only allow teleports of foreign assets (not DOT).
@@ -440,10 +463,12 @@ impl Contains<Location> for KusamaGlobalConsensus {
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow origins explicitly authorized by the alias target location.
 /// - Allow cousin Kusama Asset Hub to alias into Kusama (bridged) origins.
+/// - Allow Technical Fellowship Architects to alias into Fellowship Treasury and Salary pallets.
 pub type TrustedAliasers = (
 	AliasChildLocation,
 	AuthorizedAliasers<Runtime>,
 	AliasOriginRootUsingFilter<bridging::to_kusama::AssetHubKusama, KusamaGlobalConsensus>,
+	FellowshipArchitectsAliases,
 );
 
 pub struct XcmConfig;
@@ -453,14 +478,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmRecorder = PolkadotXcm;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
-	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). Asset Hub may _act_ as a reserve location for DOT and assets created
-	// under `pallet-assets`. Users must use teleport where allowed (e.g. DOT with the Relay Chain).
-	type IsReserve = (
-		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
-		bridging::to_ethereum::EthereumAssetFromEthereum,
-	);
+	type IsReserve = TrustedReserves;
 	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
 		crate::AhMigrator,
 		TrustedTeleportersWhileMigrating,
@@ -475,7 +493,7 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type Trader = (
 		UsingComponents<
-			WeightToFee,
+			WeightToFee<Runtime>,
 			DotLocation,
 			AccountId,
 			Balances,
@@ -486,7 +504,7 @@ impl xcm_executor::Config for XcmConfig {
 		cumulus_primitives_utility::SwapFirstAssetTrader<
 			DotLocation,
 			AssetConversion,
-			WeightToFee,
+			WeightToFee<Runtime>,
 			NativeAndAssets,
 			(
 				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
@@ -512,9 +530,6 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type SafeCallFilter = SafeCallFilter;
-	#[cfg(feature = "runtime-benchmarks")]
 	type SafeCallFilter = Everything;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
@@ -522,86 +537,6 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
 	type XcmEventEmitter = PolkadotXcm;
-}
-
-pub struct SafeCallFilter;
-impl Contains<RuntimeCall> for SafeCallFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		match call {
-			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { .. }) => true,
-			// Foreign assets instance
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::create {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::force_set_metadata {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::set_metadata {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::set_team {
-				..
-			}) => true,
-			RuntimeCall::ForeignAssets(pallet_assets::Call::<
-				Runtime,
-				crate::ForeignAssetsInstance,
-			>::touch {
-				..
-			}) => true,
-			RuntimeCall::Nfts(pallet_nfts::Call::create { .. }) => true,
-			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify {
-				..
-			}) => true,
-			RuntimeCall::SnowbridgeSystemFrontend(snowbridge_pallet_system_frontend::Call::<
-				Runtime,
-			>::register_token {
-				..
-			}) => true,
-			RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) => true,
-			// Allow staking stuff through XCM
-			RuntimeCall::Staking(pallet_staking_async::Call::bond_extra { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::bond { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::rebond { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::unbond { .. }) => true,
-			RuntimeCall::Staking(pallet_staking_async::Call::withdraw_unbonded { .. }) => true,
-			RuntimeCall::StakingRcClient(
-				pallet_staking_async_rc_client::Call::relay_session_report { .. },
-			) => true,
-			RuntimeCall::StakingRcClient(
-				pallet_staking_async_rc_client::Call::relay_new_offence_paged { .. },
-			) => true,
-			RuntimeCall::System(frame_system::Call::authorize_upgrade { .. }) => true,
-			RuntimeCall::System(frame_system::Call::set_storage { .. }) => true,
-			RuntimeCall::System(frame_system::Call::remark { .. }) => true,
-			RuntimeCall::System(frame_system::Call::remark_with_event { .. }) => true,
-			RuntimeCall::ToKusamaXcmRouter(pallet_xcm_bridge_hub_router::Call::<
-				Runtime,
-				crate::ToKusamaXcmRouterInstance,
-			>::report_bridge_status {
-				..
-			}) => true,
-			RuntimeCall::Utility(pallet_utility::Call::as_derivative { call, .. }) =>
-				Self::contains(call),
-			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) =>
-				calls.iter().all(Self::contains),
-			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) =>
-				calls.iter().all(Self::contains),
-			RuntimeCall::Whitelist(pallet_whitelist::Call::whitelist_call { .. }) => true,
-			_ => false,
-		}
-	}
 }
 
 parameter_types! {
@@ -748,15 +683,6 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-/// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
-pub struct XcmBenchmarkHelper;
-#[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> Location {
-		Location::new(1, Parachain(id))
-	}
-}
-
 /// All configuration related to bridging
 pub mod bridging {
 	use super::*;
@@ -893,7 +819,7 @@ pub mod bridging {
 
 	pub mod to_ethereum {
 		use super::*;
-		pub use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
+		pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
 		use bp_bridge_hub_polkadot::snowbridge::{
 			InboundQueuePalletInstance, InboundQueueV2PalletInstance,
 		};
