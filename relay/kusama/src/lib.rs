@@ -2217,9 +2217,7 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
-	use xcm_config::{
-		AssetHubLocation, SovereignAccountOf, TokenLocation, XcmConfig,
-	};
+	use xcm_config::{AssetHubLocation, SovereignAccountOf, TokenLocation, XcmConfig};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
 	impl pallet_offences_benchmarking::Config for Runtime {}

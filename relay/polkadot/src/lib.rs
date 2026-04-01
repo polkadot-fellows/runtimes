@@ -2032,10 +2032,7 @@ mod benches {
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
-	use xcm_builder::MintLocation;
-	use xcm_config::{
-		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
-	};
+	use xcm_config::{AssetHubLocation, SovereignAccountOf, TokenLocation, XcmConfig};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
 	impl pallet_offences_benchmarking::Config for Runtime {}
