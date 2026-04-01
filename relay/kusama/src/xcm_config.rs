@@ -59,7 +59,7 @@ parameter_types! {
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The check account that is allowed to mint assets locally.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = Some((CheckAccount::get(), MintLocation::Local));
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
