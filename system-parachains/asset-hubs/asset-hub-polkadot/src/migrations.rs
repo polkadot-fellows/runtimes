@@ -14,27 +14,40 @@
 // limitations under the License.
 
 //! The runtime migrations per release.
+use crate::Runtime;
+use frame_support::parameter_types;
 
-frame_support::parameter_types! {
+parameter_types! {
 	// Account `15jAYzPdLorBGAj4LLGaqohpzpw4mEohVkzszNpaBPbnDaXn` (Nomination Pool #296)
 	// has trapped funds on PAH. See issue: https://github.com/paritytech/polkadot-sdk/issues/10993.
 	pub TrappedBalanceMember: crate::AccountId = crate::AccountId::from(
 		hex_literal::hex!("d11964e74f0571827c231ee07fc7268fc835499db3a0089c9e6f02c2435f50fc")
 	);
 }
+
+parameter_types! {
+	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+}
+
+pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
+	AhMigratorPalletName,
+	<Runtime as frame_system::Config>::DbWeight,
+>;
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
 	pallet_nomination_pools::migration::unversioned::ClaimTrappedBalance<
-		crate::Runtime,
+		Runtime,
 		TrappedBalanceMember,
 	>,
+	RemoveAhMigratorPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
+pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = (Unreleased, Permanent);
