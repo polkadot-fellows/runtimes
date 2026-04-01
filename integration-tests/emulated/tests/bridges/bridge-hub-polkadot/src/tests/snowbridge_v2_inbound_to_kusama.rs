@@ -15,7 +15,8 @@
 use crate::{
 	tests::{
 		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
-		asset_hub_kusama_location, create_foreign_on_ah_polkadot, snowbridge_common::*,
+		asset_hub_kusama_location, asset_hub_polkadot_global_location,
+		create_foreign_on_ah_polkadot, snowbridge_common::*,
 	},
 	*,
 };
@@ -84,6 +85,11 @@ fn send_token_to_kusama_v2() {
 			token_location.clone(),
 		));
 	});
+	AssetHubKusama::set_foreign_asset_reserves(
+		token_location.clone(),
+		ethereum_sovereign.clone(),
+		vec![(asset_hub_polkadot_global_location(), false).into()],
+	);
 
 	// To satisfy ED
 	let sov_ahw_on_ahr = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
@@ -357,7 +363,12 @@ fn send_ksm_from_ethereum_to_kusama() {
 
 	let ethereum_sovereign: AccountId = ethereum_sovereign();
 	let bridged_roc_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
-	create_foreign_on_ah_polkadot(bridged_roc_at_asset_hub_polkadot.clone(), true, vec![]);
+	create_foreign_on_ah_polkadot(
+		bridged_roc_at_asset_hub_polkadot.clone(),
+		true,
+		vec![(asset_hub_kusama_location(), false).into()],
+		vec![],
+	);
 
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), initial_fund);
 	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaSender::get(), initial_fund)]);

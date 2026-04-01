@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use crate::*;
+use emulated_integration_tests_common::test_xcm_fee_querying_apis_work_for_asset_hub;
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
@@ -121,7 +122,8 @@ fn swap_locally_on_chain_using_local_assets() {
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocation::get());
-	let asset_location_on_penpal: Location = PenpalLocalTeleportableToAssetHub::get();
+	let asset_location_on_penpal: Location =
+		PenpalA::execute_with(PenpalLocalTeleportableToAssetHub::get);
 	let foreign_asset_at_asset_hub_polkadot =
 		Location::new(1, [Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
@@ -404,4 +406,9 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 			]
 		);
 	});
+}
+
+#[test]
+fn xcm_fee_querying_apis_work() {
+	test_xcm_fee_querying_apis_work_for_asset_hub!(AssetHubPolkadot);
 }

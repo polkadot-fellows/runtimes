@@ -94,7 +94,7 @@ pub use parachains_common::{
 };
 use polkadot_runtime_common::{
 	impls::{LocatableAssetConverter, VersionedLocatableAsset},
-	BlockHashCount, SlowAdjustingFeeUpdate,
+	prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 2_000_002,
+	spec_version: 2_001_001,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -182,20 +182,16 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
+	Default,
 	RuntimeDebug,
 	scale_info::TypeInfo,
 	MaxEncodedLen,
 )]
 pub enum ProxyType {
+	#[default]
 	Any,
 	NonTransfer,
 	BazaarEdit,
-}
-
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -220,7 +216,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::EncointerReputationCommitments(_) |
 					RuntimeCall::EncointerFaucet(_) |
 					RuntimeCall::EncointerDemocracy(_) |
-					RuntimeCall::EncointerTreasuries(_)
+					RuntimeCall::EncointerTreasuries(_) |
+					RuntimeCall::EncointerOfflinePayment(_) |
+					RuntimeCall::EncointerReputationRings(_)
 			),
 			ProxyType::BazaarEdit => matches!(
 				c,
@@ -369,7 +367,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -421,7 +419,6 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
-	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 	type RelayParentOffset = ConstU32<0>;
 }
 
@@ -437,6 +434,10 @@ impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
+
+impl cumulus_pallet_weight_reclaim::Config for Runtime {
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
+}
 
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
@@ -526,7 +527,8 @@ impl pallet_encointer_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	// attention!: EncointerDemocracy must be first hook as it potentially changes the rules for
 	// following hooks
-	type OnCeremonyPhaseChange = (EncointerDemocracy, EncointerCeremonies);
+	type OnCeremonyPhaseChange =
+		(EncointerDemocracy, EncointerCeremonies, EncointerReputationRings);
 	type MomentsPerDay = MomentsPerDay;
 	type CeremonyMaster = MoreThanHalfCouncil;
 	type WeightInfo = weights::pallet_encointer_scheduler::WeightInfo<Runtime>;
@@ -583,8 +585,8 @@ impl pallet_encointer_faucet::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
-	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
+	pub const ConfirmationPeriod: Moment = prod_or_fast!(2 * 24 * 3600 * 1000, 0); // [ms]
+	pub const ProposalLifetime: Moment = prod_or_fast!(9 * 24 * 3600 * 1000, 100 * 60 * 1000); // [ms]
 }
 
 impl pallet_encointer_democracy::Config for Runtime {
@@ -630,6 +632,32 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper =
 		impls::benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
+}
+
+parameter_types! {
+	pub const MaxProofSize: u32 = 256;
+	pub const MaxVkSize: u32 = 2048;
+}
+
+impl pallet_encointer_offline_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_encointer_offline_payment::WeightInfo<Runtime>;
+	type Currency = Balances;
+	type MaxProofSize = MaxProofSize;
+	type MaxVkSize = MaxVkSize;
+	type TrustedSetupOrigin = MoreThanHalfCouncil;
+}
+
+parameter_types! {
+	pub const MaxRingSize: u32 = 255;
+	pub const RingChunkSize: u32 = 100;
+}
+
+impl pallet_encointer_reputation_rings::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_encointer_reputation_rings::WeightInfo<Runtime>;
+	type MaxRingSize = MaxRingSize;
+	type ChunkSize = RingChunkSize;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -805,6 +833,7 @@ construct_runtime! {
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 2,
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 5,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -843,6 +872,8 @@ construct_runtime! {
 		EncointerFaucet: pallet_encointer_faucet = 66,
 		EncointerDemocracy: pallet_encointer_democracy = 67,
 		EncointerTreasuries: pallet_encointer_treasuries = 68,
+		EncointerOfflinePayment: pallet_encointer_offline_payment = 69,
+		EncointerReputationRings: pallet_encointer_reputation_rings = 70,
 	}
 }
 
@@ -891,17 +922,20 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 /// The SignedExtension to the basic transaction logic.
-pub type TxExtension = (
-	frame_system::CheckNonZeroSender<Runtime>,
-	frame_system::CheckSpecVersion<Runtime>,
-	frame_system::CheckTxVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
-	pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-);
+pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
@@ -912,7 +946,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
@@ -957,10 +991,13 @@ mod benches {
 		[pallet_encointer_communities, EncointerCommunities]
 		[pallet_encointer_democracy, EncointerDemocracy]
 		[pallet_encointer_faucet, EncointerFaucet]
+		[pallet_encointer_offline_payment, EncointerOfflinePayment]
 		[pallet_encointer_reputation_commitments, EncointerReputationCommitments]
+		[pallet_encointer_reputation_rings, EncointerReputationRings]
 		[pallet_encointer_scheduler, EncointerScheduler]
 		[pallet_encointer_treasuries, EncointerTreasuries]
 		[cumulus_pallet_parachain_system, ParachainSystem]
+		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
@@ -1180,7 +1217,7 @@ impl_runtime_apis! {
 			VERSION
 		}
 
-		fn execute_block(block: Block) {
+		fn execute_block(block: <Block as BlockT>::LazyBlock) {
 			Executive::execute_block(block)
 		}
 
@@ -1216,7 +1253,7 @@ impl_runtime_apis! {
 		}
 
 		fn check_inherents(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			data: sp_inherents::InherentData,
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
@@ -1303,8 +1340,9 @@ impl_runtime_apis! {
 			PolkadotXcm::query_xcm_weight(message)
 		}
 
-		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
-			PolkadotXcm::query_delivery_fees(destination, message)
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>, asset: VersionedAssetId) -> Result<VersionedAssets, XcmPaymentApiError> {
+			// We do not allow exchanging assets for delivery fees currently (our communities do not need to send XCMs paying with CC).
+			PolkadotXcm::query_delivery_fees::<()>(destination, message, asset)
 		}
 	}
 
@@ -1314,7 +1352,7 @@ impl_runtime_apis! {
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			PolkadotXcm::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+			PolkadotXcm::dry_run_xcm::<xcm_config::XcmRouter>(origin_location, xcm)
 		}
 	}
 
@@ -1446,7 +1484,7 @@ impl_runtime_apis! {
 		}
 
 		fn execute_block(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			state_root_check: bool,
 			signature_check: bool,
 			select: frame_try_runtime::TryStateSelect

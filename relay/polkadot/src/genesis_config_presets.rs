@@ -128,7 +128,8 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		minimum_backing_votes: 1,
 		node_features: NodeFeatures::from_element(
 			(1u8 << (FeatureIndex::ElasticScalingMVP as usize)) |
-				(1u8 << (FeatureIndex::EnableAssignmentsV2 as usize)),
+				(1u8 << (FeatureIndex::EnableAssignmentsV2 as usize)) |
+				(1u8 << (FeatureIndex::CandidateReceiptV2 as usize)),
 		),
 		async_backing_params: AsyncBackingParams {
 			max_candidate_depth: 2,

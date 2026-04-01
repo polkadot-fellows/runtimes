@@ -62,7 +62,6 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub FellowshipLocation: Location = RelayChainLocation::get();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
@@ -149,12 +148,15 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent and its pluralities (i.e. governance bodies) and relay treasury get
 					// free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						Equals<RelayTreasuryLocation>,
-						Equals<AssetHubLocation>,
-						AssetHubPlurality,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							Equals<RelayTreasuryLocation>,
+							Equals<AssetHubLocation>,
+							AssetHubPlurality,
+						),
+						TrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 					// HRMP notifications from the relay chain are OK.
@@ -204,7 +206,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader = UsingComponents<
-		WeightToFee,
+		WeightToFee<Runtime>,
 		RelayChainLocation,
 		AccountId,
 		Balances,

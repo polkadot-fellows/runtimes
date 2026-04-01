@@ -27,7 +27,7 @@ use frame_support::{
 use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::AssetHubKusamaParaPallet;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm::latest::Junctions::X2;
-use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
+use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2;
 
 fn remote_fee() -> u128 {
 	let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);

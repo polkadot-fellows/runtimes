@@ -96,6 +96,7 @@ pub fn call_allowed_status(
 		Balances(..) => ON, // no reason to disable it, just convenience
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
+		MultiAssetBounties(..) => OFF,
 		Claims(..) => OFF,
 		CollatorSelection(..) => ON, // Why?
 		ConvictionVoting(..) => OFF,
@@ -106,6 +107,7 @@ pub fn call_allowed_status(
 		MultiBlockElectionSigned(..) => OFF,
 		MultiBlockElectionUnsigned(..) => OFF,
 		MultiBlockElectionVerifier(..) => OFF,
+		MultiBlockMigrations(..) => OFF,
 		MessageQueue(..) => ON, // contains non-permissioned service calls
 		Multisig(..) => OFF,
 		Nfts(..) => ON, // no reason to disable it, just convenience
@@ -138,6 +140,7 @@ pub fn call_allowed_status(
 		Whitelist(..) => OFF,
 		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
 		Parameters(..) => ON, // allow governance to still update any params if needed
+		Revive(..) => OFF,
 	};
 	// Exhaustive match. Compiler ensures that we did not miss any.
 
@@ -170,6 +173,7 @@ pub fn call_allowed_before_migration(
 		// Governance disabled before migration starts.
 		Bounties(..) => OFF,
 		ChildBounties(..) => OFF,
+		MultiAssetBounties(..) => OFF,
 		ConvictionVoting(..) => OFF,
 		Referenda(..) => OFF,
 		Treasury(..) => OFF,
@@ -186,6 +190,7 @@ pub fn call_allowed_before_migration(
 		CumulusXcm(..) |
 		ForeignAssets(..) |
 		MessageQueue(..) |
+		MultiBlockMigrations(..) |
 		Multisig(..) |
 		Nfts(..) |
 		ParachainInfo(..) |
@@ -206,6 +211,7 @@ pub fn call_allowed_before_migration(
 		Utility(..) |
 		Whitelist(..) |
 		XcmpQueue(..) |
+		Revive(..) |
 		Parameters(..) => ON,
 	}
 }

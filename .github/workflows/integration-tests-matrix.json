@@ -42,5 +42,9 @@
   {
     "name": "governance-kusama",
     "package": "governance-kusama-integration-tests"
+  },
+  {
+    "name": "encointer-kusama",
+    "package": "encointer-kusama-integration-tests"
   }
 ]

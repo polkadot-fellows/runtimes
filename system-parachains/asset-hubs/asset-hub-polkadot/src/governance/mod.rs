@@ -19,8 +19,8 @@
 use super::*;
 use crate::xcm_config::FellowshipLocation;
 use frame_system::EnsureRootWithSuccess;
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use xcm::latest::BodyId;
+use pallet_xcm::EnsureXcm;
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 
 mod origins;
 pub use origins::{
@@ -49,8 +49,8 @@ impl pallet_conviction_voting::Config for Runtime {
 
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
-	pub const SubmissionDeposit: Balance = DOLLARS;
-	pub const UndecidingTimeout: BlockNumber = 14 * RC_DAYS;
+	pub const SubmissionDeposit: Balance = 10 * DOLLARS;
+	pub const UndecidingTimeout: BlockNumber = 3 * RC_DAYS;
 }
 
 parameter_types! {
@@ -60,18 +60,13 @@ pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>
 
 impl origins::pallet_custom_origins::Config for Runtime {}
 
-parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
-}
-
 impl pallet_whitelist::Config for Runtime {
 	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type WhitelistOrigin = EitherOfDiverse<
 		EnsureRoot<Self::AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+		EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 	>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;

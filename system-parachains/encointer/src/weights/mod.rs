@@ -21,6 +21,7 @@
 
 pub mod block_weights;
 pub mod cumulus_pallet_parachain_system;
+pub mod cumulus_pallet_weight_reclaim;
 pub mod cumulus_pallet_xcmp_queue;
 pub mod extrinsic_weights;
 pub mod frame_system;
@@ -35,7 +36,9 @@ pub mod pallet_encointer_ceremonies;
 pub mod pallet_encointer_communities;
 pub mod pallet_encointer_democracy;
 pub mod pallet_encointer_faucet;
+pub mod pallet_encointer_offline_payment;
 pub mod pallet_encointer_reputation_commitments;
+pub mod pallet_encointer_reputation_rings;
 pub mod pallet_encointer_scheduler;
 pub mod pallet_encointer_treasuries;
 pub mod pallet_membership;
