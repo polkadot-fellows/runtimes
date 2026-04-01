@@ -17,16 +17,7 @@
 
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
-use frame_support::{
-	dispatch::RawOrigin,
-	sp_runtime::traits::Dispatchable,
-	traits::{
-		fungible::Inspect,
-		fungibles::{Inspect as FungiblesInspect, Mutate},
-	},
-};
-use kusama_runtime::OriginCaller;
-use kusama_runtime_constants::currency::GRAND;
+use frame_support::traits::fungibles::{Inspect as FungiblesInspect, Mutate};
 use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
