@@ -421,7 +421,7 @@ fn check_compatibility_for_token_id_stored_on_ethereum() {
 		/// Output: Stable hash of reanchored location
 		pub foreign: TokenId,
 	}
-	let test_cases = vec![
+	let test_cases = [
 		// DOT
 		RegisterTokenTestCase {
 			native: Location::parent(),

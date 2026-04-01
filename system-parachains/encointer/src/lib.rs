@@ -182,20 +182,16 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
+	Default,
 	RuntimeDebug,
 	scale_info::TypeInfo,
 	MaxEncodedLen,
 )]
 pub enum ProxyType {
+	#[default]
 	Any,
 	NonTransfer,
 	BazaarEdit,
-}
-
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
