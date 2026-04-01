@@ -18,15 +18,30 @@ use crate::{create_pool_with_dot_on, *};
 /// Relay Chain should be able to execute `Transact` instructions in System Parachain
 /// when `OriginKind::Superuser`.
 #[test]
-#[ignore]
 fn send_transact_as_superuser_from_relay_to_asset_hub_works() {
-	AssetHubPolkadot::force_create_asset_from_relay_as_root(
-		ASSET_ID,
-		ASSET_MIN_BALANCE,
-		true,
-		AssetHubPolkadotSender::get(),
-		None,
-	)
+	Polkadot::execute_with(|| {
+		// send xcm transact to AssetHubPolkadot from root account on Relay
+		let call = <AssetHubPolkadot as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubPolkadot as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
+		let root = <Polkadot as Chain>::RuntimeOrigin::root();
+		let asset_hub_location = Polkadot::child_location_of(AssetHubPolkadot::para_id()).into();
+		let xcm = xcm_transact_unpaid_execution(call, OriginKind::Superuser);
+		Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
+		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
+			root,
+			bx!(asset_hub_location),
+			bx!(xcm),
+		));
+		Polkadot::assert_xcm_pallet_sent();
+	});
+	AssetHubPolkadot::execute_with(|| {
+		AssetHubPolkadot::assert_xcmp_queue_success(None);
+	});
 }
 
 pub fn penpal_register_foreign_asset_on_asset_hub(asset_location_on_penpal: Location) {
@@ -114,7 +129,6 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 /// - Parachain should be able to send XCM paying its fee at Asset Hub using a pool
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
-#[ignore]
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	use frame_support::traits::fungible::Mutate;
 
@@ -126,7 +140,6 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let penpal = AssetHubPolkadot::sovereign_account_id_of(AssetHubPolkadot::sibling_location_of(
 		PenpalB::para_id(),
 	));
-
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
