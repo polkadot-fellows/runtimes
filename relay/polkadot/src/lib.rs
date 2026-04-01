@@ -226,6 +226,8 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			) => true,
 			Crowdloan(..) => false,
 
+			Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => true,
+
 			// Everything else is allowed.
 			_ => true,
 		}

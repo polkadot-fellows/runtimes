@@ -241,6 +241,9 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			// Coretime: request_revenue_at is allowed, rest handled by catch-all.
 			Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => true,
 
+			// Fellowship and its preimages explicitly allowed.
+			FellowshipCollective(..) | FellowshipReferenda(..) | Preimage(..) => true,
+
 			// Everything else is allowed.
 			_ => true,
 		}
