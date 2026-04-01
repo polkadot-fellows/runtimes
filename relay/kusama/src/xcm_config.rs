@@ -59,7 +59,7 @@ parameter_types! {
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The check account that is allowed to mint assets locally.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = None;
+	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
@@ -91,7 +91,8 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
-	TeleportTracking,
+// Teleports disabled for the Relay Chain. KSM issuance tracking happens on AH.
+NoTeleportTracking,
 >;
 
 /// The means that we convert the XCM message origin location into a local dispatch origin.
