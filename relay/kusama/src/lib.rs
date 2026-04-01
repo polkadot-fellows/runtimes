@@ -2217,9 +2217,8 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
-	use xcm_builder::MintLocation;
 	use xcm_config::{
-		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
+		AssetHubLocation, SovereignAccountOf, TokenLocation, XcmConfig,
 	};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
@@ -2317,13 +2316,13 @@ mod benches {
 			Asset { fun: Fungible(UNITS), id: AssetId(TokenLocation::get()) },
 		));
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
-		pub LocalCheckAccount: (AccountId, MintLocation) = TeleportTracking::get().unwrap();
+		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 		type TransactAsset = Balances;
 
-		type CheckedAccount = LocalCheckAccount;
+		type CheckedAccount = CheckedAccount;
 		type TrustedTeleporter = TrustedTeleporter;
 		type TrustedReserve = TrustedReserve;
 

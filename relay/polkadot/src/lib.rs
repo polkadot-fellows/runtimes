@@ -2135,13 +2135,13 @@ mod benches {
 			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(UNITS) }
 		));
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
-		pub LocalCheckAccount: (AccountId, MintLocation) = TeleportTracking::get().unwrap();
+		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 		type TransactAsset = Balances;
 
-		type CheckedAccount = LocalCheckAccount;
+		type CheckedAccount = CheckedAccount;
 		type TrustedTeleporter = TrustedTeleporter;
 		type TrustedReserve = TrustedReserve;
 
