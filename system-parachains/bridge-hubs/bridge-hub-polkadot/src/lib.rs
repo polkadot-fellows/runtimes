@@ -557,7 +557,6 @@ impl pallet_utility::Config for Runtime {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	Default,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]

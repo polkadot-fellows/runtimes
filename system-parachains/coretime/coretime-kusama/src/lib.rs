@@ -511,7 +511,6 @@ impl pallet_multisig::Config for Runtime {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	Default,
 	RuntimeDebug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,

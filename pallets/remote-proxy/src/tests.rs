@@ -79,7 +79,6 @@ impl pallet_utility::Config for Test {
 	Decode,
 	DecodeWithMemTracking,
 	Debug,
-	Default,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]

@@ -527,7 +527,6 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	Default,
 	RuntimeDebug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,

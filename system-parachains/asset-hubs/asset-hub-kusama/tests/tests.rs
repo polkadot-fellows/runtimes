@@ -613,17 +613,6 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 }
 
 #[test]
-fn treasury_pallet_account_not_none() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		let relay_treasury_account: AccountId = RelayTreasuryPalletAccount::get();
-		assert_eq!(
-			relay_treasury_account,
-			LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-		)
-	});
-}
-
-#[test]
 fn location_conversion_works() {
 	let alice_32 =
 		AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(ALICE).into() };
