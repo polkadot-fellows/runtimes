@@ -22,13 +22,11 @@ use frame_support::{
 		tokens::imbalance::ResolveTo, AsEnsureOriginWithArg, ConstU32, Disabled, Everything,
 		IsInVec, Nothing,
 	},
-	weights::WeightToFee,
 };
 use frame_system::{EnsureRoot, EnsureSigned};
 use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
 use polkadot_primitives::{AccountIndex, BlakeTwo256, Signature};
 use sp_runtime::{generic, traits::MaybeEquivalence, AccountId32, BuildStorage};
-use system_parachains_constants::kusama::fee::WeightToFee as KusamaWeightToFee;
 use xcm::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
@@ -38,8 +36,8 @@ use xcm_builder::{
 	WithComputedOrigin,
 };
 use xcm_executor::{
-	traits::{ConvertLocation, JustTry, WeightTrader},
-	AssetsInHolding, XcmExecutor,
+	traits::{ConvertLocation, JustTry},
+	XcmExecutor,
 };
 
 pub type TxExtension = (
@@ -227,40 +225,6 @@ pub type Barrier = (
 	AllowUnpaidExecutionFrom<IsInVec<AllowUnpaidFrom>>,
 	// AllowSubscriptionsFrom<IsInVec<AllowSubsFrom>>,
 );
-
-#[derive(Clone)]
-pub struct TestTrader {
-	weight_bought_so_far: Weight,
-}
-impl WeightTrader for TestTrader {
-	fn new() -> Self {
-		Self { weight_bought_so_far: Weight::zero() }
-	}
-
-	fn buy_weight(
-		&mut self,
-		weight: Weight,
-		payment: AssetsInHolding,
-		_context: &XcmContext,
-	) -> Result<AssetsInHolding, XcmError> {
-		let amount = KusamaWeightToFee::<Test>::weight_to_fee(&weight);
-		let required: Asset = (Here, amount).into();
-		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
-		self.weight_bought_so_far.saturating_add(weight);
-		Ok(unused)
-	}
-
-	fn refund_weight(&mut self, weight: Weight, _context: &XcmContext) -> Option<Asset> {
-		let weight = weight.min(self.weight_bought_so_far);
-		let amount = KusamaWeightToFee::<Test>::weight_to_fee(&weight);
-		self.weight_bought_so_far -= weight;
-		if amount > 0 {
-			Some((Here, amount).into())
-		} else {
-			None
-		}
-	}
-}
 
 parameter_types! {
 	pub XcmFeePot: AccountId = AccountId32::new([0u8; 32]);

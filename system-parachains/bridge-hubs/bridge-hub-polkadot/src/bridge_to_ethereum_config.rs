@@ -50,6 +50,7 @@ use sp_core::H160;
 use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
 use system_parachains_constants::polkadot::fee::WeightToFee;
 use xcm::prelude::{GlobalConsensus, InteriorLocation, Location, PalletInstance, Parachain};
+use xcm_executor::XcmExecutor;
 
 pub const SLOTS_PER_EPOCH: u32 = snowbridge_pallet_ethereum_client::config::SLOTS_PER_EPOCH as u32;
 

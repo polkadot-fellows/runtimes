@@ -97,7 +97,7 @@ impl<T: frame_system::Config> runtime_parachains::on_demand::WeightInfo for Weig
 			.saturating_add(Weight::from_parts(0, 8))
 	}
 	/// Storage: `OnDemand::QueueStatus` (r:1 w:1)
-	/// Proof: `OnDemand::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)	
+	/// Proof: `OnDemand::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `OnDemand::Credits` (r:1 w:1)
 	/// Proof: `OnDemand::Credits` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `OnDemand::Revenue` (r:1 w:1)

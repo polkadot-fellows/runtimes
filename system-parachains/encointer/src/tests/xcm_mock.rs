@@ -43,6 +43,7 @@ use xcm_builder::{
 	RespectSuspension, TakeWeightCredit, TrailingSetTopicAsId,
 };
 pub use xcm_executor::{
+	test_helpers::mock_asset_to_holding,
 	traits::{
 		AssetExchange, AssetLock, CheckSuspension, ConvertOrigin, Enact, ExportXcm, FeeManager,
 		FeeReason, LockError, OnResponse, Properties, QueryHandler, QueryResponseStatus,
@@ -239,13 +240,20 @@ thread_local! {
 	pub static ASSETS: RefCell<BTreeMap<Location, AssetsInHolding>> = const { RefCell::new(BTreeMap::new()) };
 }
 pub fn assets(who: impl Into<Location>) -> AssetsInHolding {
-	ASSETS.with(|a| a.borrow().get(&who.into()).cloned()).unwrap_or_default()
+	ASSETS
+		.with(|a| a.borrow().get(&who.into()).map(clone_assets_in_holding))
+		.unwrap_or_else(AssetsInHolding::new)
 }
 pub fn asset_list(who: impl Into<Location>) -> Vec<Asset> {
-	Assets::from(assets(who)).into_inner()
+	assets(who).assets_iter().collect()
 }
 pub fn add_asset(who: impl Into<Location>, what: impl Into<Asset>) {
-	ASSETS.with(|a| a.borrow_mut().entry(who.into()).or_default().subsume(what.into()));
+	ASSETS.with(|a| {
+		a.borrow_mut()
+			.entry(who.into())
+			.or_insert_with(AssetsInHolding::new)
+			.subsume_assets(mock_asset_to_holding(what.into()))
+	});
 }
 pub fn clear_assets(who: impl Into<Location>) {
 	ASSETS.with(|a| a.borrow_mut().remove(&who.into()));
@@ -254,11 +262,16 @@ pub fn clear_assets(who: impl Into<Location>) {
 pub struct TestAssetTransactor;
 impl TransactAsset for TestAssetTransactor {
 	fn deposit_asset(
-		what: &Asset,
+		what: AssetsInHolding,
 		who: &Location,
 		_context: Option<&XcmContext>,
-	) -> Result<(), XcmError> {
-		add_asset(who.clone(), what.clone());
+	) -> Result<(), (AssetsInHolding, XcmError)> {
+		ASSETS.with(|a| {
+			a.borrow_mut()
+				.entry(who.clone())
+				.or_insert_with(AssetsInHolding::new)
+				.subsume_assets(what)
+		});
 		Ok(())
 	}
 
@@ -527,7 +540,7 @@ impl FeeManager for TestFeeManager {
 		IS_WAIVED.with(|l| l.borrow().contains(&r))
 	}
 
-	fn handle_fee(_: Assets, _: Option<&XcmContext>, _: FeeReason) {}
+	fn handle_fee(_: AssetsInHolding, _: Option<&XcmContext>, _: FeeReason) {}
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -555,8 +568,8 @@ pub fn allow_unlock(
 	ALLOWED_UNLOCKS.with(|l| {
 		l.borrow_mut()
 			.entry((owner.into(), unlocker.into()))
-			.or_default()
-			.subsume(asset.into())
+			.or_insert_with(AssetsInHolding::new)
+			.subsume_assets(mock_asset_to_holding(asset.into()))
 	});
 }
 pub fn disallow_unlock(
@@ -567,7 +580,7 @@ pub fn disallow_unlock(
 	ALLOWED_UNLOCKS.with(|l| {
 		l.borrow_mut()
 			.entry((owner.into(), unlocker.into()))
-			.or_default()
+			.or_insert_with(AssetsInHolding::new)
 			.saturating_take(asset.into().into())
 	});
 }
@@ -586,8 +599,8 @@ pub fn allow_request_unlock(
 	ALLOWED_REQUEST_UNLOCKS.with(|l| {
 		l.borrow_mut()
 			.entry((owner.into(), locker.into()))
-			.or_default()
-			.subsume(asset.into())
+			.or_insert_with(AssetsInHolding::new)
+			.subsume_assets(mock_asset_to_holding(asset.into()))
 	});
 }
 pub fn disallow_request_unlock(
@@ -598,7 +611,7 @@ pub fn disallow_request_unlock(
 	ALLOWED_REQUEST_UNLOCKS.with(|l| {
 		l.borrow_mut()
 			.entry((owner.into(), locker.into()))
-			.or_default()
+			.or_insert_with(AssetsInHolding::new)
 			.saturating_take(asset.into().into())
 	});
 }
@@ -671,12 +684,6 @@ impl AssetLock for TestAssetLock {
 thread_local! {
 	pub static EXCHANGE_ASSETS: RefCell<AssetsInHolding> = RefCell::new(AssetsInHolding::new());
 }
-pub fn set_exchange_assets(assets: impl Into<Assets>) {
-	EXCHANGE_ASSETS.with(|a| a.replace(assets.into().into()));
-}
-pub fn exchange_assets() -> Assets {
-	EXCHANGE_ASSETS.with(|a| a.borrow().clone().into())
-}
 pub struct TestAssetExchange;
 impl AssetExchange for TestAssetExchange {
 	fn exchange_asset(
@@ -685,7 +692,7 @@ impl AssetExchange for TestAssetExchange {
 		want: &Assets,
 		maximal: bool,
 	) -> Result<AssetsInHolding, AssetsInHolding> {
-		let mut have = EXCHANGE_ASSETS.with(|l| l.borrow().clone());
+		let mut have = EXCHANGE_ASSETS.with(|l| clone_assets_in_holding(&l.borrow()));
 		ensure!(have.contains_assets(want), give);
 		let get = if maximal {
 			std::mem::replace(&mut have, AssetsInHolding::new())
@@ -698,7 +705,7 @@ impl AssetExchange for TestAssetExchange {
 	}
 
 	fn quote_exchange_price(give: &Assets, want: &Assets, maximal: bool) -> Option<Assets> {
-		let mut have = EXCHANGE_ASSETS.with(|l| l.borrow().clone());
+		let mut have = EXCHANGE_ASSETS.with(|l| clone_assets_in_holding(&l.borrow()));
 		if !have.contains_assets(want) {
 			return None;
 		}
@@ -709,6 +716,17 @@ impl AssetExchange for TestAssetExchange {
 		};
 		let result: Vec<Asset> = get.fungible_assets_iter().collect();
 		Some(result.into())
+	}
+}
+
+fn clone_assets_in_holding(assets: &AssetsInHolding) -> AssetsInHolding {
+	AssetsInHolding {
+		fungible: assets
+			.fungible
+			.iter()
+			.map(|(id, accounting)| (id.clone(), accounting.unsafe_clone()))
+			.collect(),
+		non_fungible: assets.non_fungible.clone(),
 	}
 }
 
