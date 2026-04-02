@@ -64,8 +64,6 @@ compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
 
 extern crate alloc;
 
-// Genesis preset configurations.
-pub mod ah_migration;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
@@ -125,15 +123,16 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
-		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
-		PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
+		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
+		TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
+	pallet_prelude::BlockNumberFor,
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use pallet_assets_precompiles::{InlineIdConfig, ERC20};
@@ -240,7 +239,7 @@ parameter_types! {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = AhMigrator;
+	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -524,6 +523,7 @@ parameter_types! {
 	Copy,
 	Clone,
 	Eq,
+	Default,
 	PartialEq,
 	Ord,
 	PartialOrd,
@@ -536,6 +536,7 @@ parameter_types! {
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds or assets.
 	NonTransfer,
@@ -580,11 +581,6 @@ pub enum ProxyType {
 	/// Contains `Staking` (validate, chill, kick), `StakingRcClient` (set_keys, purge_keys),
 	/// and `Utility` batching calls (batch, batch_all, force_batch).
 	StakingOperator,
-}
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -1170,16 +1166,11 @@ parameter_types! {
 		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
-ord_parameter_types! {
-	pub const ManagerMultisig: AccountId = pallet_rc_migrator::Pallet::<Runtime>::manager_multisig_id();
-}
-
 impl pallet_preimage::Config for Runtime {
 	type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type ManagerOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<ManagerMultisig, AccountId>>;
+	type ManagerOrigin = EnsureRoot<AccountId>;
 	type Consideration = HoldConsideration<
 		AccountId,
 		Balances,
@@ -1216,11 +1207,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight = pallet_ah_migrator::LeftOrRight<
-		AhMigrator,
-		ZeroWeight,
-		dynamic_params::scheduler::MaximumWeight,
-	>;
+	type MaximumWeight = dynamic_params::scheduler::MaximumWeight;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = dynamic_params::scheduler::MaxScheduledPerBlock;
@@ -1366,6 +1353,10 @@ impl pallet_claims::Config for Runtime {
 }
 
 parameter_types! {
+	/// First block of the AHM https://assethub-polkadot.subscan.io/event/10254470-7
+	pub MigrationStartBlock: BlockNumberFor<Runtime> = 10_254_470u32;
+	/// Last block of the AHM https://assethub-polkadot.subscan.io/event/10259208-1
+	pub MigrationEndBlock: BlockNumberFor<Runtime> = 10_259_208u32;
 	pub PalletAssetsIndex: usize = <crate::Assets as frame_support::pallet_prelude::PalletInfoAccess>::index();
 	// Assets of the Stellaswap account that will be migrated.
 	pub RelevantAssets: Vec<Location> = vec![
@@ -1414,45 +1405,11 @@ impl pallet_ah_ops::Config for Runtime {
 	type MigrateOrigin =
 		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
-	type MigrationCompletion = pallet_rc_migrator::types::MigrationCompletion<AhMigrator>;
+	type MigrationCompletion = ConstBool<true>;
 	type TreasuryPreMigrationAccount = xcm_config::PreMigrationRelayTreasuryPalletAccount;
 	type TreasuryPostMigrationAccount = xcm_config::PostMigrationTreasuryAccount;
-}
-
-parameter_types! {
-	pub const DmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-}
-
-impl pallet_ah_migrator::Config for Runtime {
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type PortableHoldReason = pallet_rc_migrator::types::PortableHoldReason;
-	type PortableFreezeReason = pallet_rc_migrator::types::PortableFreezeReason;
-	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
-	type Currency = Balances;
-	type TreasuryBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type TreasuryPaymaster = treasury::TreasuryPaymaster;
-	type Assets = NativeAndAssets;
-	type CheckingAccount = xcm_config::CheckingAccount;
-	type StakingPotAccount = xcm_config::StakingPot;
-	type RcProxyType = ah_migration::RcProxyType;
-	type RcToProxyType = ah_migration::RcToProxyType;
-	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type RcToAhCall = ah_migration::RcToAhCall;
-	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
-	type RcToAhPalletsOrigin = ah_migration::RcToAhPalletsOrigin;
-	type Preimage = Preimage;
-	type SendXcm = xcm_builder::WithUniqueTopic<xcm_config::LocalXcmRouterWithoutException>;
-	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
-	type TreasuryAccounts = ah_migration::TreasuryAccounts;
-	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
-	type AhPreMigrationCalls = ah_migration::call_filter::CallsEnabledBeforeMigration;
-	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
-	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
-	type MessageQueue = MessageQueue;
-	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
+	type MigrationStartBlock = MigrationStartBlock;
+	type MigrationEndBlock = MigrationEndBlock;
 }
 
 parameter_types! {
@@ -1594,7 +1551,6 @@ construct_runtime!(
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
-		AhMigrator: pallet_ah_migrator = 255,
 	}
 );
 
@@ -1778,7 +1734,6 @@ mod benches {
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
 		[pallet_multi_asset_bounties, MultiAssetBounties]
-		[pallet_ah_migrator, AhMigrator]
 		[pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
@@ -2589,6 +2544,16 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 		}
 	}
 
+	impl pallet_rc_migrator::runtime_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+		fn migration_start_block() -> BlockNumber {
+			<Runtime as pallet_ah_ops::Config>::MigrationStartBlock::get()
+		}
+
+		fn migration_end_block() -> BlockNumber {
+			<Runtime as pallet_ah_ops::Config>::MigrationEndBlock::get()
+		}
+	}
+
 	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, Location> for Runtime {
 		fn quote_price_exact_tokens_for_tokens(
 			asset1: Location,
@@ -3070,12 +3035,6 @@ mod tests {
 	#[test]
 	fn epmb_manage_origin_good() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// pretend AHM is done to disable its call filter
-			pallet_ah_migrator::AhMigrationStage::<Runtime>::put(
-				pallet_ah_migrator::MigrationStage::MigrationDone,
-			);
-			pallet_ah_migrator::MigrationEndBlock::<Runtime>::set(0u32.into());
-
 			let call: RuntimeCall = pallet_election_provider_multi_block::Call::manage {
 				op: pallet_election_provider_multi_block::ManagerOperation::ForceRotateRound
 			}.into();

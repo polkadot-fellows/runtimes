@@ -308,12 +308,14 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	Debug,
+	Default,
+	RuntimeDebug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds.
 	NonTransfer,
@@ -330,11 +332,7 @@ pub enum ProxyType {
 	/// Secretary proxy. Allows calls related to the Secretary collective
 	Secretary,
 }
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
-}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
