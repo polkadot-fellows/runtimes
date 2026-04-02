@@ -379,8 +379,7 @@ pub fn bulletin_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec:
 
 	Ok(Box::new(
 		BulletinPolkadotChainSpec::builder(
-			bulletin_polkadot_runtime::WASM_BINARY
-				.expect("BulletinPolkadot wasm not available!"),
+			bulletin_polkadot_runtime::WASM_BINARY.expect("BulletinPolkadot wasm not available!"),
 			Extensions { relay_chain: "polkadot-local".into(), para_id: 1006 },
 		)
 		.with_name("Polkadot Bulletin Local")

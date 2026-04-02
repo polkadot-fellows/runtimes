@@ -120,8 +120,7 @@ fn main() -> Result<(), String> {
 			#[cfg(feature = "bulletin-polkadot")]
 			(
 				"bulletin-polkadot-local",
-				Box::new(system_parachains_specs::bulletin_polkadot_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::bulletin_polkadot_local_testnet_config) as Box<_>,
 			),
 		]);
 
