@@ -25,7 +25,6 @@ use frame_support::{
 		tokens::{Fortitude, Preservation},
 		DefensiveResult, OnUnbalanced,
 	},
-	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
 use frame_system::Pallet as System;
 use pallet_broker::{
@@ -140,14 +139,6 @@ impl CoretimeInterface for CoretimeAllocator {
 		use crate::coretime::CoretimeProviderCalls::RequestCoreCount;
 		let request_core_count_call = RelayRuntimePallets::Coretime(RequestCoreCount(count));
 
-		// Weight for `request_core_count` from Polkadot runtime benchmarks:
-		// `ref_time`, `proof_size`, reads, writes
-		// 9_660_000, 1640, 3, 1
-		// Use overestimates for reads and writes, add 30% to each component with a healthy round
-		// up.
-		let call_weight =
-			Weight::from_parts(250 * WEIGHT_REF_TIME_PER_MICROS, 3 * WEIGHT_PROOF_SIZE_PER_KB);
-
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
@@ -155,7 +146,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				fallback_max_weight: Some(call_weight),
+				fallback_max_weight: None,
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -177,19 +168,11 @@ impl CoretimeInterface for CoretimeAllocator {
 		let request_revenue_info_at_call =
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
-		// Weight for `request_revenue_at` from Polkadot runtime benchmarks:
-		// `ref_time`, `proof_size`, reads, writes
-		// 93_731_000, 6313, 7, 5
-		// Use overestimates for reads and writes, add 30% to each component with a healthy round
-		// up.
-		let call_weight =
-			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
-
 		let message = Xcm(vec![
 			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 			Transact {
 				origin_kind: OriginKind::Native,
-				fallback_max_weight: Some(call_weight),
+				fallback_max_weight: None,
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -223,14 +206,6 @@ impl CoretimeInterface for CoretimeAllocator {
 		end_hint: Option<RCBlockNumberOf<Self>>,
 	) {
 		use crate::coretime::CoretimeProviderCalls::AssignCore;
-
-		// Weight for `assign_core` from Polkadot runtime benchmarks:
-		// `ref_time`, `proof_size`, reads, writes
-		// 12_201_135 + 80 * 13_556, 3579, 1, 2
-		// Use overestimates for reads and writes, add 30% to each component with a healthy round
-		// up.
-		let call_weight =
-			Weight::from_parts(350 * WEIGHT_REF_TIME_PER_MICROS, 5 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		// The relay chain currently only allows `assign_core` to be called with a complete mask
 		// and only ever with increasing `begin`. The assignments must be truncated to avoid
@@ -268,7 +243,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 			Transact {
 				origin_kind: OriginKind::Native,
-				fallback_max_weight: Some(call_weight),
+				fallback_max_weight: None,
 				call: assign_core_call.encode().into(),
 			},
 		]);
