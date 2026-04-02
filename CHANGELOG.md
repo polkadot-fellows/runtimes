@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Runtime API view function for accessing the Asset Hub Migration start and end blocks ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
+
 ### Fixed
 
 - [encointer] updated hardcoded remote execution weight for AHK [1124](https://github.com/polkadot-fellows/runtimes/pull/1124)
@@ -110,6 +114,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
 - asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
+
+### Removed
+
+- Removed most of the Asset Hub Migration code ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
 
 ## [2.0.3] 21.11.2025
 

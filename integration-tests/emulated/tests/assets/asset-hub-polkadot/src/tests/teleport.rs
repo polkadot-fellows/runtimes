@@ -21,29 +21,6 @@ use polkadot_system_emulated_network::{
 	polkadot_emulated_chain::polkadot_runtime::Dmp,
 };
 
-fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Polkadot::assert_ump_queue_processed(false, Some(AssetHubPolkadot::para_id()), None);
-}
-
-fn para_origin_assertions(t: SystemParaToRelayTest) {
-	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-
-	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
-
-	AssetHubPolkadot::assert_parachain_system_ump_sent();
-
-	assert_expected_events!(
-		AssetHubPolkadot,
-		vec![
-			// Amount is withdrawn from Sender's account
-			RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
-				who: *who == t.sender.account_id,
-				amount: *amount == t.args.amount,
-			},
-		]
-	);
-}
-
 fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
 	let system_para_native_asset_location = DotLocation::get();
@@ -240,49 +217,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 		amount,
 		limited_teleport_assets
 	);
-}
-
-/// Limited Teleport of native asset from System Parachain to Relay Chain
-/// shouldn't work when there is not enough balance in Relay Chain's `CheckAccount`
-#[test]
-fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
-	// Init values for Relay Chain
-	let amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 1000;
-	let destination = AssetHubPolkadot::parent_location();
-	let beneficiary_id = PolkadotReceiver::get();
-	let assets = (Parent, amount_to_send).into();
-
-	let test_args = TestContext {
-		sender: AssetHubPolkadotSender::get(),
-		receiver: PolkadotReceiver::get(),
-		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
-	};
-
-	let mut test = SystemParaToRelayTest::new(test_args);
-
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
-
-	test.set_assertion::<AssetHubPolkadot>(para_origin_assertions);
-	test.set_assertion::<Polkadot>(relay_dest_assertions_fail);
-	test.set_dispatchable::<AssetHubPolkadot>(system_para_limited_teleport_assets);
-	test.assert();
-
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
-
-	let delivery_fees = AssetHubPolkadot::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
-		>(
-			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
-		)
-	});
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance does not change
-	assert_eq!(receiver_balance_after, receiver_balance_before);
 }
 
 /// Bidirectional teleports of local Penpal assets to Asset Hub as foreign assets while paying
@@ -768,9 +702,12 @@ fn limited_teleport_native_assets_from_relay_to_asset_hub_checking_acc_burn_work
 	assert!(receiver_balance_after < receiver_balance_before + amount_to_send);
 }
 
-/// Checking account should correctly account for outgoing teleports.
+/// Checking account on Asset Hub should correctly account for outgoing teleports.
+/// The relay has `TeleportTracking = None`, so the checking account lives on Asset Hub.
 #[test]
 fn limited_teleport_native_assets_from_asset_hub_to_relay_checking_acc_mint_works() {
+	use frame_support::traits::fungible::Inspect as FungibleInspect;
+
 	// Init values for Relay Chain
 	let amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 1000;
 	let destination = AssetHubPolkadot::parent_location();
@@ -783,24 +720,16 @@ fn limited_teleport_native_assets_from_asset_hub_to_relay_checking_acc_mint_work
 		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
 	};
 
-	// Pre-fund the Relay's CheckAccount so the incoming teleport can be processed
-	// (in Pending state, the relay has teleport tracking enabled and does CheckIn by
-	// withdrawing from CheckAccount).
-	Polkadot::execute_with(|| {
-		use frame_support::assert_ok;
-		type Balances = <Polkadot as PolkadotPallet>::Balances;
-		let check_account = polkadot_runtime::xcm_config::CheckAccount::get();
-		assert_ok!(Balances::force_set_balance(
-			<Polkadot as Chain>::RuntimeOrigin::root(),
-			check_account.into(),
-			amount_to_send * 2,
-		));
-	});
-
 	let mut test = SystemParaToRelayTest::new(test_args);
 
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;
+
+	let check_account_balance_before = AssetHubPolkadot::execute_with(|| {
+		<<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances as FungibleInspect<_>>::balance(
+			&<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::check_account(),
+		)
+	});
 
 	fn para_origin_assertions_mint(t: SystemParaToRelayTest) {
 		AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
@@ -834,7 +763,6 @@ fn limited_teleport_native_assets_from_asset_hub_to_relay_checking_acc_mint_work
 				RuntimeEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
 				) => {},
-				RuntimeEvent::Balances(pallet_balances::Event::Burned { .. }) => {},
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
 					who: *who == t.receiver.account_id,
 				},
@@ -849,6 +777,12 @@ fn limited_teleport_native_assets_from_asset_hub_to_relay_checking_acc_mint_work
 
 	let sender_balance_after = test.sender.balance;
 	let receiver_balance_after = test.receiver.balance;
+
+	let check_account_balance_after = AssetHubPolkadot::execute_with(|| {
+		<<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances as FungibleInspect<_>>::balance(
+			&<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::check_account(),
+		)
+	});
 
 	let delivery_fees = AssetHubPolkadot::execute_with(|| {
 		xcm_helpers::teleport_assets_delivery_fees::<
@@ -866,6 +800,28 @@ fn limited_teleport_native_assets_from_asset_hub_to_relay_checking_acc_mint_work
 	// `delivery_fees` might be paid from transfer or JIT, also `bought_execution` is unknown but
 	// should be non-zero
 	assert!(receiver_balance_after < receiver_balance_before + amount_to_send);
+
+	// Asset Hub's CheckAccount gained exactly the teleported amount (tracking the liability).
+	assert_eq!(check_account_balance_after - check_account_balance_before, amount_to_send,);
+
+	// Total balance across both chains is conserved: the decrease on Asset Hub (sender + delivery
+	// fees) equals the increase on the Relay (receiver) plus what is now held in the
+	// CheckAccount. The only "lost" tokens are execution fees on the Relay side.
+	let ah_balance_change = (sender_balance_before + check_account_balance_before) as i128 -
+		(sender_balance_after + check_account_balance_after) as i128;
+	let relay_balance_change = receiver_balance_after as i128 - receiver_balance_before as i128;
+	assert_eq!(ah_balance_change, delivery_fees as i128);
+	let execution_fees_on_relay = amount_to_send as i128 - relay_balance_change;
+	assert!(execution_fees_on_relay > 0, "relay should charge execution fees");
+
+	// All fees (delivery + execution) should be less than 5 cents.
+	use system_parachains_constants::polkadot::currency::CENTS;
+	let total_fees = delivery_fees + execution_fees_on_relay as u128;
+	assert!(
+		total_fees <= 5 * CENTS,
+		"total fees ({total_fees}) should be <= 5 cents ({})",
+		5 * CENTS
+	);
 }
 
 #[test]
