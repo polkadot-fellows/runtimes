@@ -187,14 +187,11 @@ fn governance_authorize_upgrade_works() {
 		Either::Right(InstructionError { index: 2, error: XcmError::BadOrigin })
 	);
 
-	// no - relaychain (relay chain does not have superuser access, only AssetHub does)
-	assert_err!(
-		parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
-			Runtime,
-			RuntimeOrigin,
-		>(GovernanceOrigin::Location(Location::parent())),
-		Either::Right(InstructionError { index: 1, error: XcmError::BadOrigin })
-	);
+	// ok - relaychain
+	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<
+		Runtime,
+		RuntimeOrigin,
+	>(GovernanceOrigin::Location(Location::parent())));
 
 	// ok - governance location
 	assert_ok!(parachains_runtimes_test_utils::test_cases::can_governance_authorize_upgrade::<

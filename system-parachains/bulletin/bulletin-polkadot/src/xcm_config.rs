@@ -108,8 +108,9 @@ pub type AssetTransactors = FungibleTransactor;
 /// ready for dispatching a transaction with XCM's `Transact`. There is an `OriginKind` that can
 /// bias the kind of local `Origin` it will become.
 pub type XcmOriginToTransactDispatchOrigin = (
-	// Governance location can gain root.
-	LocationAsSuperuser<Equals<GovernanceLocation>, RuntimeOrigin>,
+	// AssetHub or Relay can execute as root (based on: https://github.com/polkadot-fellows/runtimes/issues/651).
+	// This will allow them to issue a transaction from the Root origin.
+	LocationAsSuperuser<(Equals<RelayChainLocation>, Equals<AssetHubLocation>), RuntimeOrigin>,
 	// Sovereign account converter; this attempts to derive an `AccountId` from the origin location
 	// using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
 	// foreign chains who want to have a local sovereign account on this chain that they control.
