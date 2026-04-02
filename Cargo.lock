@@ -3055,6 +3055,7 @@ dependencies = [
  "asset-hub-polkadot-runtime",
  "bridge-hub-kusama-runtime",
  "bridge-hub-polkadot-runtime",
+ "bulletin-polkadot-runtime",
  "clap",
  "collectives-polkadot-runtime",
  "coretime-kusama-runtime",
