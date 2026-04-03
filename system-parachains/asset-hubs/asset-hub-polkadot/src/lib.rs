@@ -143,7 +143,7 @@ use parachains_common::{
 	message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets,
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use sp_runtime::RuntimeDebug;
+use sp_runtime::Debug;
 use system_parachains_common::ForceUnstuckOnFailedMigration;
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
@@ -215,7 +215,12 @@ pub fn native_version() -> NativeVersion {
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub RuntimeBlockLength: BlockLength =
-		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+		BlockLength::builder()
+			.max_length(5 * 1024 * 1024)
+			.modify_max_length_for_class(DispatchClass::Normal, |m| {
+				*m = NORMAL_DISPATCH_RATIO * *m
+			})
+			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
@@ -363,6 +368,9 @@ impl pallet_transaction_payment::Config for Runtime {
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_transaction_payment::BenchmarkConfig for Runtime {}
 
 parameter_types! {
 	pub const AssetDeposit: Balance = system_para_deposit(1, 190);
@@ -527,7 +535,7 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]
@@ -1439,7 +1447,6 @@ impl pallet_revive::Config for Runtime {
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
 	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
-	type UnsafeUnstableInterface = ConstBool<false>;
 	type UploadOrigin = EnsureSigned<Self::AccountId>;
 	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -1453,6 +1460,13 @@ impl pallet_revive::Config for Runtime {
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
 	type GasScale = ConstU32<80_000>;
+	type OnBurn = Dap;
+}
+
+// TODO @pg
+impl pallet_assets_precompiles::PermitConfig for Runtime {
+	type ChainId = <Runtime as pallet_revive::Config>::ChainId;
+	type WeightInfo = pallet_assets_precompiles::weights::SubstrateWeight<Runtime>;
 }
 
 impl cumulus_pallet_weight_reclaim::Config for Runtime {
@@ -1537,7 +1551,7 @@ construct_runtime!(
 		MultiBlockElectionSigned: pallet_election_provider_multi_block::signed = 88,
 		Staking: pallet_staking_async = 89,
 
-		// Contracts
+		// Contracts in the 90s
 		Revive: pallet_revive = 90,
 
 		// Asset Hub Migration in the 250s
@@ -1755,7 +1769,7 @@ mod benches {
 
 	use xcm::latest::prelude::{
 		AccountId32, Asset, Assets as XcmAssets, Fungible, Here, InteriorLocation, Junction,
-		Location, NetworkId, NonFungible, Parent, ParentThen, Response, XCM_VERSION,
+		Location, NetworkId, Parent, ParentThen, Response, XCM_VERSION,
 	};
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -1771,7 +1785,12 @@ mod benches {
 		}
 	}
 
-	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+	impl cumulus_pallet_session_benchmarking::Config for Runtime {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			let keys = SessionKeys::generate(&owner.encode(), None);
+			(keys.keys, keys.proof.encode())
+		}
+	}
 
 	use pallet_xcm_benchmarks::asset_instance_from;
 	use xcm_config::{DotLocation, MaxAssetsIntoHolding};
@@ -1795,9 +1814,10 @@ mod benches {
 			[AccountId32 { network: None, id: account.into() }].into()
 		}
 
-		fn generate_session_keys_and_proof(_owner: Self::AccountId) -> (Vec<u8>, Vec<u8>) {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Vec<u8>, Vec<u8>) {
 			use staking::RelayChainSessionKeys;
-			(RelayChainSessionKeys::generate(None), vec![])
+			let keys = RelayChainSessionKeys::generate(&owner.encode(), None);
+			(keys.keys.encode(), keys.proof.encode())
 		}
 
 		fn setup_validator() -> Self::AccountId {
@@ -1963,32 +1983,40 @@ mod benches {
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(PeopleLocation::get())
 		}
-		fn worst_case_holding(depositable_count: u32) -> XcmAssets {
+		fn worst_case_holding(depositable_count: u32) -> xcm_executor::AssetsInHolding {
+			use pallet_xcm_benchmarks::MockCredit;
 			// A mix of fungible, non-fungible, and concrete assets.
 			let holding_non_fungibles = MaxAssetsIntoHolding::get() / 2 - depositable_count;
-			let holding_fungibles = holding_non_fungibles.saturating_sub(2); // -2 for two `iter::once` bellow
+			let holding_fungibles = holding_non_fungibles - 2; // -2 for two `iter::once` below
 			let fungibles_amount: u128 = 100;
-			(0..holding_fungibles)
-				.map(|i| {
-					Asset {
-						id: AssetId(GeneralIndex(i as u128).into()),
-						fun: Fungible(fungibles_amount * (i + 1) as u128), // non-zero amount
-					}
-				})
-				.chain(core::iter::once(Asset {
-					id: AssetId(Here.into()),
-					fun: Fungible(u128::MAX),
-				}))
-				.chain(core::iter::once(Asset {
-					id: AssetId(DotLocation::get()),
-					fun: Fungible(1_000_000 * UNITS),
-				}))
-				.chain((0..holding_non_fungibles).map(|i| Asset {
-					id: AssetId(GeneralIndex(i as u128).into()),
-					fun: NonFungible(asset_instance_from(i)),
-				}))
-				.collect::<Vec<_>>()
-				.into()
+
+			let mut holding = xcm_executor::AssetsInHolding::new();
+
+			// Add fungible assets with MockCredit
+			for i in 0..holding_fungibles {
+				holding.fungible.insert(
+					AssetId(GeneralIndex(i as u128).into()),
+					alloc::boxed::Box::new(MockCredit(fungibles_amount * (i + 1) as u128)),
+				);
+			}
+
+			// Add two more fungible assets
+			holding
+				.fungible
+				.insert(AssetId(Here.into()), alloc::boxed::Box::new(MockCredit(u128::MAX)));
+			holding.fungible.insert(
+				AssetId(DotLocation::get()),
+				alloc::boxed::Box::new(MockCredit(1_000_000 * UNITS)),
+			);
+
+			// Add non-fungible assets
+			for i in 0..holding_non_fungibles {
+				holding
+					.non_fungible
+					.insert((AssetId(GeneralIndex(i as u128).into()), asset_instance_from(i)));
+			}
+
+			holding
 		}
 	}
 
@@ -2317,8 +2345,8 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(seed)
+		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			SessionKeys::generate(&owner, seed).into()
 		}
 
 		fn decode_session_keys(

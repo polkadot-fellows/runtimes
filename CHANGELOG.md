@@ -8,10 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] 💥 Pallet-broker: add extrinsic to forcefully remove the potential renewal ([stable2603 #10828](https://github.com/paritytech/polkadot-sdk/pull/10828)).
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] 💥 Pallet-broker: add extrinsic to force transfer a region ([stable2603 #10856](https://github.com/paritytech/polkadot-sdk/pull/10856)).
 - Runtime API view function for accessing the Asset Hub Migration start and end blocks ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
 
 ### Fixed
 
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Fix auto-renew core tracking on immediate renew ([stable2603 #10767](https://github.com/paritytech/polkadot-sdk/pull/10767))
 - [encointer] updated hardcoded remote execution weight for AHK [1124](https://github.com/polkadot-fellows/runtimes/pull/1124)
 - Fix fee calculation on Polkadot and Kusama system parachains: use chain-specific `ExtrinsicBaseWeight` instead of the generic `frame_support` default [1117](https://github.com/polkadot-fellows/runtimes/pull/1117)
 
@@ -19,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Remove hardcoded `deposit_asset` weight cap from people runtimes to align with other system parachains ([#1121](https://github.com/polkadot-fellows/runtimes/pull/1121))
 - Remove pre-hardcap related code and storage values. ([#1112](https://github.com/polkadot-fellows/runtimes/pull/1112))
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Frame-support: remove error reporting in `remote_transfer_xcm` for paid execution ([stable2603 #10697](https://github.com/paritytech/polkadot-sdk/pull/10697)).
 
 ### Changed
 

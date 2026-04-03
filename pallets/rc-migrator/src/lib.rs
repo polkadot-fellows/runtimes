@@ -46,15 +46,7 @@ use sp_runtime::AccountId32;
 
 /// The state for the Relay Chain accounts.
 #[derive(
-	Encode,
-	DecodeWithMemTracking,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
+	Encode, DecodeWithMemTracking, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub enum AccountState<Balance> {
 	/// The account should be migrated to AH and removed on RC.

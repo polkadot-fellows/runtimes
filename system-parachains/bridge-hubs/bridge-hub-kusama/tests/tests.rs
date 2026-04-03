@@ -261,6 +261,7 @@ fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
 			Runtime,
 			XcmConfig,
 			WithBridgeHubPolkadotMessagesInstance,
+			LocationToAccountId,
 		>(
 			collator_session_keys(),
 			bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,

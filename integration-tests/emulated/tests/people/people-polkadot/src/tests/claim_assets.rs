@@ -18,11 +18,18 @@
 use crate::*;
 
 use integration_tests_helpers::test_chain_can_claim_assets;
+use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
 
 #[test]
 fn assets_can_be_claimed() {
 	let amount = PeoplePolkadotExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
+	let assets: Asset = (Parent, amount).into();
 
-	test_chain_can_claim_assets!(PeoplePolkadot, RuntimeCall, NetworkId::Polkadot, assets, amount);
+	test_chain_can_claim_assets!(
+		PeoplePolkadot,
+		PeoplePolkadotXcmConfig,
+		NetworkId::Polkadot,
+		assets,
+		amount
+	);
 }
