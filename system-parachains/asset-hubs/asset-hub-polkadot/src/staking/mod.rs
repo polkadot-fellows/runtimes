@@ -704,7 +704,9 @@ pub struct RemoveMarchTIValue;
 impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		frame_support::ensure!(March2026TI::exists(), "March2026TI value should exist");
+		if !March2026TI::exists() {
+			return Ok(Vec::new()); // Migration already ran
+		}
 		frame_support::ensure!(
 			March2026TI::get().unwrap() == EraPayout::MARCH_2026_TI,
 			"New value should match the old."
