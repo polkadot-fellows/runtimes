@@ -1864,7 +1864,6 @@ construct_runtime! {
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
 		OnDemand: parachains_on_demand = 64,
-		// TODO @bkontur please check, this got removed: CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
