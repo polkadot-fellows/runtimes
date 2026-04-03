@@ -62,7 +62,7 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BountyDepositBase: Balance = 100 * DOLLARS;
+	pub const BountyDepositBase: Balance = 10 * DOLLARS;
 	// per byte for the bounty description.
 	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
