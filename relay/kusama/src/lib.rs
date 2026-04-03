@@ -1606,10 +1606,6 @@ impl parachains_paras_inherent::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_paras_inherent::WeightInfo<Runtime>;
 }
 
-impl parachains_scheduler::Config for Runtime {
-	// TODO @bkontur I removed this type AssignmentProvider = CoretimeAssignmentProvider;
-}
-
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
