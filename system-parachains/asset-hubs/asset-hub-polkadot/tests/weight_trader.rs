@@ -100,7 +100,9 @@ fn test_buy_and_refund_weight_with_native() {
 			// account.
 			drop(trader);
 			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(Balances::total_issuance(), total_issuance + fee - refund);
+			// Balanced operations: fee is transferred, not minted, so total issuance
+			// stays the same.
+			assert_eq!(Balances::total_issuance(), total_issuance);
 		})
 }
 
@@ -200,10 +202,8 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			// account.
 			drop(trader);
 			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(
-				Assets::total_issuance(asset_1),
-				asset_total_issuance + asset_fee - asset_refund
-			);
+			// Balanced operations: swap doesn't change total issuance.
+			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
 		})
 }
@@ -307,10 +307,8 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			// account.
 			drop(trader);
 			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(
-				ForeignAssets::total_issuance(foreign_location),
-				asset_total_issuance + asset_fee - asset_refund
-			);
+			// Balanced operations: swap doesn't change total issuance.
+			assert_eq!(ForeignAssets::total_issuance(foreign_location), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
 		})
 }

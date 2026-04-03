@@ -100,7 +100,9 @@ fn test_buy_and_refund_weight_with_native() {
 			// account.
 			drop(trader);
 			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(Balances::total_issuance(), total_issuance + fee - refund);
+			// Balanced operations: fee is transferred, not minted, so total issuance
+			// stays the same.
+			assert_eq!(Balances::total_issuance(), total_issuance);
 		})
 }
 
@@ -194,7 +196,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			let expected_refund = asset_to_holding((native_location, refund).into());
+			let expected_refund = asset_to_holding((asset_1_location, asset_refund).into());
 			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
@@ -203,10 +205,8 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			// account.
 			drop(trader);
 			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(
-				Assets::total_issuance(asset_1),
-				asset_total_issuance + asset_fee - asset_refund
-			);
+			// Balanced operations: swap doesn't change total issuance.
+			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
 		})
 }
@@ -301,7 +301,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			let expected_refund = asset_to_holding((native_location, refund).into());
+			let expected_refund = asset_to_holding((foreign_location.clone(), asset_refund).into());
 			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
@@ -310,10 +310,8 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			// account.
 			drop(trader);
 			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(
-				ForeignAssets::total_issuance(foreign_location),
-				asset_total_issuance + asset_fee - asset_refund
-			);
+			// Balanced operations: swap doesn't change total issuance.
+			assert_eq!(ForeignAssets::total_issuance(foreign_location), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
 		})
 }
