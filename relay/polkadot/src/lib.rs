@@ -1938,7 +1938,12 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (
+		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
+		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
+		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
+		parachains_shared::migration::MigrateToV2<Runtime>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;

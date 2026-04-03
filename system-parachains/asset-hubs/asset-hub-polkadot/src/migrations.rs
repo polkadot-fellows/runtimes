@@ -44,6 +44,7 @@ pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
+	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.

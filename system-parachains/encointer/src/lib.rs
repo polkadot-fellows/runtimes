@@ -954,7 +954,10 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,);
+	pub type Unreleased = (
+		pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+	);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
