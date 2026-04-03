@@ -138,8 +138,7 @@ parameter_types! {
 			), xcm::latest::Junction::GeneralIndex(8)],
 		),
 	];
-	// `176` is the size of the `Bounty` struct in bytes.
-	pub const BountyDepositBase: Balance = system_para_deposit(0, 176);
+	pub const BountyDepositBase: Balance = 100 * QUID;
 	// per byte for the bounty description.
 	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
