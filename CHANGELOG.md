@@ -20,6 +20,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove hardcoded `deposit_asset` weight cap from people runtimes to align with other system parachains ([#1121](https://github.com/polkadot-fellows/runtimes/pull/1121))
 - Remove pre-hardcap related code and storage values. ([#1112](https://github.com/polkadot-fellows/runtimes/pull/1112))
 
+### Changed
+
+- people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
+
 ## [2.1.1] 13.03.2026
 
 ### Added
