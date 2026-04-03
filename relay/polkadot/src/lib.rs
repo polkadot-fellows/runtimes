@@ -1309,7 +1309,7 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	type AssignCoretime = ParaScheduler; // TODO @tsvetomir please check
+	type AssignCoretime = ParaScheduler;
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 5000.
 	type CooldownRemovalMultiplier = ConstUint<{ 5000 * UNITS / DAYS as u128 }>;
@@ -1396,11 +1396,7 @@ impl parachains_paras_inherent::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_paras_inherent::WeightInfo<Runtime>;
 }
 
-impl parachains_scheduler::Config for Runtime {
-	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
-	// otherwise provide a migration.
-	// TODO @tsvetomir this got removed type AssignmentProvider = CoretimeAssignmentProvider;
-}
+impl parachains_scheduler::Config for Runtime {}
 
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;

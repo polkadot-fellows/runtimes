@@ -1606,6 +1606,8 @@ impl parachains_paras_inherent::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_paras_inherent::WeightInfo<Runtime>;
 }
 
+impl parachains_scheduler::Config for Runtime {}
+
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
@@ -2057,7 +2059,6 @@ construct_runtime! {
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
 		OnDemandAssignmentProvider: parachains_on_demand = 64,
-		// TODO @bkontur please check, this got removed: CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
