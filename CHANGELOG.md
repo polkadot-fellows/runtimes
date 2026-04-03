@@ -38,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
-- Asset Hub Polkadot/Kusama: Update `BountyDepositBase` to use a fixed value (100 DOT / 100 QUID) instead of `system_para_deposit(0, 176)` to better reflect the economic significance of bounty proposals ([#1132](https://github.com/polkadot-fellows/runtimes/pull/1132))
+- Asset Hub Polkadot/Kusama: Update `BountyDepositBase` to use a fixed value (10 DOT / 10 QUID) instead of `system_para_deposit(0, 176)` to better reflect the economic significance of bounty proposals ([#1132](https://github.com/polkadot-fellows/runtimes/pull/1132))
 
 ## [2.1.1] 13.03.2026
 
