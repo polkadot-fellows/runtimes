@@ -19,6 +19,7 @@ sc-network = { workspace = true }
 
 asset-hub-polkadot-runtime = { workspace = true, optional = true }
 asset-hub-kusama-runtime = { workspace = true, optional = true }
+bulletin-polkadot-runtime = { workspace = true, optional = true }
 collectives-polkadot-runtime = { workspace = true, optional = true }
 bridge-hub-polkadot-runtime = { workspace = true, optional = true }
 bridge-hub-kusama-runtime = { workspace = true, optional = true }
@@ -37,6 +38,7 @@ runtime-benchmarks = [
 	"asset-hub-polkadot-runtime?/runtime-benchmarks",
 	"bridge-hub-kusama-runtime?/runtime-benchmarks",
 	"bridge-hub-polkadot-runtime?/runtime-benchmarks",
+	"bulletin-polkadot-runtime?/runtime-benchmarks",
 	"collectives-polkadot-runtime?/runtime-benchmarks",
 	"coretime-kusama-runtime?/runtime-benchmarks",
 	"coretime-polkadot-runtime?/runtime-benchmarks",
@@ -53,6 +55,7 @@ on-chain-release-build = [
 	"asset-hub-polkadot-runtime?/on-chain-release-build",
 	"bridge-hub-kusama-runtime?/on-chain-release-build",
 	"bridge-hub-polkadot-runtime?/on-chain-release-build",
+	"bulletin-polkadot-runtime?/on-chain-release-build",
 	"collectives-polkadot-runtime?/on-chain-release-build",
 	"coretime-kusama-runtime?/on-chain-release-build",
 	"coretime-polkadot-runtime?/on-chain-release-build",
@@ -74,6 +77,7 @@ asset-hub-kusama = ["asset-hub-kusama-runtime"]
 collectives-polkadot = ["collectives-polkadot-runtime"]
 bridge-hub-polkadot = ["bridge-hub-polkadot-runtime"]
 bridge-hub-kusama = ["bridge-hub-kusama-runtime"]
+bulletin-polkadot = ["bulletin-polkadot-runtime"]
 encointer-kusama = ["encointer-kusama-runtime"]
 glutton-kusama = ["glutton-kusama-runtime"]
 coretime-kusama = ["coretime-kusama-runtime"]
@@ -84,6 +88,7 @@ people-polkadot = ["people-polkadot-runtime"]
 all-polkadot = [
 	"asset-hub-polkadot",
 	"bridge-hub-polkadot",
+	"bulletin-polkadot",
 	"collectives-polkadot",
 	"coretime-polkadot",
 	"people-polkadot",

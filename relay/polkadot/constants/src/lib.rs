@@ -184,6 +184,8 @@ pub mod system_parachain {
 	pub const PEOPLE_ID: u32 = 1004;
 	/// Coretime Chain ID.
 	pub const BROKER_ID: u32 = 1005;
+	/// Bulletin parachain ID.
+	pub const BULLETIN_ID: u32 = 1006;
 
 	// System parachains from Polkadot point of view.
 	pub type SystemParachains = IsChildSystemParachain<ParaId>;

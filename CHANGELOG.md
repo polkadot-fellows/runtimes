@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Runtime API view function for accessing the Asset Hub Migration start and end blocks ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
+- Add Bulletin Polkadot system parachain runtime ([#1120](https://github.com/polkadot-fellows/runtimes/pull/1120)).
 
 ### Fixed
 
