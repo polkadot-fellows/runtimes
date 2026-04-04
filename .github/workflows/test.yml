@@ -409,7 +409,7 @@ jobs:
     needs: [build-runtimes]
     runs-on: self-hosted
     timeout-minutes: 120
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
