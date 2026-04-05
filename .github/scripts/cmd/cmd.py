@@ -161,7 +161,7 @@ if args.command == 'bench':
 
             print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template} and excluded {excluded_string}')
 
-            status = os.system(f"frame-omni-bencher v1 benchmark pallet "
+            status = os.system(f"RUNTIME_LOG=error frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
                                f"--runtime=target/{profile}/wbuild/{config['package']}/{config['package'].replace('-', '_')}.wasm "
                                f"--pallet={pallet} "
@@ -171,6 +171,7 @@ if args.command == 'bench':
                                f"--steps=50 "
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
+                               f"--min-duration 1 "
                                f"{f'--template={template} ' if template else ''}"
                                f"{f'--exclude-extrinsics={excluded_string} ' if excluded_string else ''}"
                                )
