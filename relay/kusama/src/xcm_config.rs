@@ -203,7 +203,8 @@ parameter_types! {
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<TokenLocation>, Equals<TreasuryLocation>, LocalPlurality);
+pub type WaivedLocations =
+	(SystemParachains, Equals<TokenLocation>, Equals<TreasuryLocation>, LocalPlurality);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
