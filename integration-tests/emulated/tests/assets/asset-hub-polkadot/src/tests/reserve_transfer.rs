@@ -334,14 +334,14 @@ fn para_to_para_relay_hop_assertions(t: ParaToParaThroughRelayTest) {
 		vec![
 			// Withdrawn from sender parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Withdraw { who, amount } | pallet_balances::Event::Withdraw { who, amount }
+				pallet_balances::Event::Withdraw { who, amount }
 			) => {
 				who: *who == sov_penpal_b_on_polkadot,
 				amount: *amount == t.args.amount,
 			},
 			// Deposited to receiver parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Deposit { who, .. } | pallet_balances::Event::Deposit { who, .. }
+				pallet_balances::Event::Deposit { who, .. }
 			) => {
 				who: *who == sov_penpal_a_on_polkadot,
 			},
