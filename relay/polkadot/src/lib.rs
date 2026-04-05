@@ -2130,7 +2130,7 @@ mod benches {
 			let mut holding = xcm_executor::AssetsInHolding::new();
 			holding.fungible.insert(
 				AssetId(TokenLocation::get()),
-				alloc::boxed::Box::new(MockCredit(1_000_000 * UNITS)),
+				alloc::boxed::Box::new(MockCredit(1_000_000_000 * UNITS)),
 			);
 			holding
 		}
