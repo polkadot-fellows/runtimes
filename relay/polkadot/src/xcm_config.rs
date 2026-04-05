@@ -210,9 +210,13 @@ pub type Barrier = TrailingSetTopicAsId<(
 	>,
 )>;
 
+parameter_types! {
+	pub TreasuryLocation: Location = Location::new(0, [PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)]);
+}
+
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, Equals<TreasuryLocation>, LocalPlurality);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
