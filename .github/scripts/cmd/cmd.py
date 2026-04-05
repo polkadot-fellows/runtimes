@@ -172,6 +172,7 @@ if args.command == 'bench':
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
                                f"--min-duration 1 "
+                               f"--quiet "
                                f"{f'--template={template} ' if template else ''}"
                                f"{f'--exclude-extrinsics={excluded_string} ' if excluded_string else ''}"
                                )

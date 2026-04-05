@@ -20,6 +20,7 @@ use super::{
 };
 use cumulus_primitives_core::ParaId;
 use frame_support::{
+	pallet_prelude::PalletInfoAccess,
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
@@ -195,6 +196,19 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
+parameter_types! {
+	pub FellowshipTreasuryLocation: Location =
+		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
+	pub FellowshipSalaryLocation: Location =
+		PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	pub SecretarySalaryLocation: Location =
+		PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
+	pub AmbassadorSalaryLocation: Location =
+		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
+	pub AmbassadorTreasuryLocation: Location =
+		PalletInstance(<crate::AmbassadorTreasury as PalletInfoAccess>::index() as u8).into();
+}
+
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
@@ -202,6 +216,11 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
+	Equals<FellowshipTreasuryLocation>,
+	Equals<FellowshipSalaryLocation>,
+	Equals<SecretarySalaryLocation>,
+	Equals<AmbassadorSalaryLocation>,
+	Equals<AmbassadorTreasuryLocation>,
 	LocalPlurality,
 );
 
