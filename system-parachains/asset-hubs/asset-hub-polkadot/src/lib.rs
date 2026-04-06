@@ -135,7 +135,7 @@ use frame_system::{
 	pallet_prelude::BlockNumberFor,
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use pallet_assets_precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_xcm_precompiles::XcmPrecompile;
@@ -461,7 +461,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
-	type CallbackHandle = ();
+	type CallbackHandle = (ForeignAssetId<Runtime, ForeignAssetsInstance>,);
 	type AssetAccountDeposit = ForeignAssetsAssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	type ReserveData = ForeignAssetReserveData;
@@ -1439,9 +1439,8 @@ impl pallet_revive::Config for Runtime {
 	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
 	type Precompiles = (
 		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
-		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
-		// ERC20<Self, InlineIdConfig<0x220>, ForeignAssetsInstance>,
 		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
+		ERC20<Self, ForeignIdConfig<0x220, Self, ForeignAssetsInstance>, ForeignAssetsInstance>,
 		XcmPrecompile<Self>,
 	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
@@ -1463,7 +1462,13 @@ impl pallet_revive::Config for Runtime {
 	type OnBurn = Dap;
 }
 
-// TODO @pg
+impl pallet_assets_precompiles::ForeignAssetsConfig for Runtime {
+	// must match the AssetId type used by the `ForeignAssets` instance
+	type ForeignAssetId = <Runtime as pallet_assets::Config<ForeignAssetsInstance>>::AssetId;
+	#[cfg(feature = "runtime-benchmarks")]
+	type AssetsInstance = ForeignAssetsInstance;
+}
+
 impl pallet_assets_precompiles::PermitConfig for Runtime {
 	type ChainId = <Runtime as pallet_revive::Config>::ChainId;
 	type WeightInfo = pallet_assets_precompiles::weights::SubstrateWeight<Runtime>;
@@ -1553,6 +1558,9 @@ construct_runtime!(
 
 		// Contracts in the 90s
 		Revive: pallet_revive = 90,
+
+		AssetsPrecompiles: pallet_assets_precompiles::pallet = 91,
+		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 92,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
@@ -1709,6 +1717,7 @@ mod benches {
 		[pallet_assets, Local]
 		[pallet_assets, Foreign]
 		[pallet_assets, Pool]
+		[pallet_assets_precompiles, AssetsPrecompiles]
 		[pallet_asset_conversion, AssetConversion]
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]
 		[pallet_balances, Balances]

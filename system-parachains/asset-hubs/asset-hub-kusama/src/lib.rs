@@ -73,7 +73,7 @@ use frame_system::{
 };
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
-use pallet_assets_precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
@@ -511,7 +511,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
-	type CallbackHandle = ();
+	type CallbackHandle = (ForeignAssetId<Runtime, ForeignAssetsInstance>,);
 	type AssetAccountDeposit = ForeignAssetsAssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	type ReserveData = ForeignAssetReserveData;
@@ -1241,9 +1241,8 @@ impl pallet_revive::Config for Runtime {
 	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
 	type Precompiles = (
 		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
-		// We will add ForeignAssetsInstance at <0x220> once we have Location to Id mapping
-		// ERC20<Self, InlineIdConfig<0x220>, ForeignAssetsInstance>,
 		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
+		ERC20<Self, ForeignIdConfig<0x220, Self, ForeignAssetsInstance>, ForeignAssetsInstance>,
 		XcmPrecompile<Self>,
 	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
@@ -1265,7 +1264,13 @@ impl pallet_revive::Config for Runtime {
 	type OnBurn = ();
 }
 
-// TODO @pg
+impl pallet_assets_precompiles::ForeignAssetsConfig for Runtime {
+	// must match the AssetId type used by the `ForeignAssets` instance
+	type ForeignAssetId = <Runtime as pallet_assets::Config<ForeignAssetsInstance>>::AssetId;
+	#[cfg(feature = "runtime-benchmarks")]
+	type AssetsInstance = ForeignAssetsInstance;
+}
+
 impl pallet_assets_precompiles::PermitConfig for Runtime {
 	type ChainId = <Runtime as pallet_revive::Config>::ChainId;
 	type WeightInfo = pallet_assets_precompiles::weights::SubstrateWeight<Runtime>;
@@ -1637,6 +1642,9 @@ construct_runtime!(
 
 		Revive: pallet_revive = 60,
 
+		AssetsPrecompiles: pallet_assets_precompiles::pallet = 61,
+		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 62,
+
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
 
@@ -1817,6 +1825,7 @@ mod benches {
 		[pallet_assets, Local]
 		[pallet_assets, Foreign]
 		[pallet_assets, Pool]
+		[pallet_assets_precompiles, AssetsPrecompiles]
 		[pallet_asset_conversion, AssetConversion]
 		// TODO: Somehow, benchmarks for this pallet are not visible outside the pallet
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]

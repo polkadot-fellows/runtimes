@@ -75,12 +75,18 @@ mod multiblock_migrations {
 	use xcm_builder::StartsWith;
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations =
+	pub type MbmMigrations = (
 		assets_common::migrations::foreign_assets_reserves::ForeignAssetsReservesMigration<
 			Runtime,
 			ForeignAssetsInstance,
 			AssetHubPolkadotForeignAssetsReservesProvider,
-		>;
+		>,
+		pallet_assets_precompiles::MigrateForeignAssetPrecompileMappings<
+			Runtime,
+			ForeignAssetsInstance,
+			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
+		>,
+	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
 	/// running on the Asset Hub Polkadot upgrade which changes the Foreign Assets
