@@ -124,15 +124,14 @@ impl pallet_treasury::Config for Runtime {
 parameter_types! {
 	// Assets that legacy bounties can hold: native KSM, USDT (1984), RMRK (8).
 	pub BountyRelevantAssets: Vec<xcm::latest::Location> = vec![
-		xcm_config::KsmLocation::get(),
-		xcm::latest::Location::new(
+		xcm_config::KsmLocation::get(), // KSM
+		xcm::latest::Location::new( // USDT
 			0,
-			// TODO @ggwpez MYTH, DED
 			[xcm::latest::Junction::PalletInstance(
 				xcm_config::TrustBackedAssetsPalletIndex::get(),
 			), xcm::latest::Junction::GeneralIndex(1984)],
 		),
-		xcm::latest::Location::new(
+		xcm::latest::Location::new( // RMRK
 			0,
 			[xcm::latest::Junction::PalletInstance(
 				xcm_config::TrustBackedAssetsPalletIndex::get(),
