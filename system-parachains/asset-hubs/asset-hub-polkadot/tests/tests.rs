@@ -19,8 +19,9 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging, CheckingAccount, DotLocation, LocationToAccountId, RelayChainLocation,
-		StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
+		bridging, bridging::XcmBridgeHubRouterFeeAssetId, CheckingAccount, DotLocation,
+		LocationToAccountId, RelayChainLocation, RelayTreasuryPalletAccount, StakingPot,
+		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, Dap, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
@@ -361,11 +362,8 @@ fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
 	}
 }
 
-/* // FIXME @karol FAIL-CI
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
-	use sp_runtime::traits::Get;
-
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -393,9 +391,9 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		Some(TreasuryAccount::get()),
+		Some(RelayTreasuryPalletAccount::get()),
 	)
-} */
+}
 
 #[test]
 fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_swap_works() {

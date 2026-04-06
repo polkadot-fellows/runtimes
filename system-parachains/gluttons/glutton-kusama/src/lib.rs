@@ -414,7 +414,6 @@ impl_runtime_apis! {
 		}
 
 		fn generate_session_keys(_owner: Vec<u8>, _seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
-			// TODO @ggwpez check again
 			sp_session::OpaqueGeneratedSessionKeys { keys: Default::default(), proof: Default::default() }
 		}
 	}
