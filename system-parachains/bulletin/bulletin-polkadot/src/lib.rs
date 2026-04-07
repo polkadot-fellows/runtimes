@@ -74,6 +74,7 @@ use system_parachains_constants::{
 	polkadot::{
 		consensus::*,
 		currency::{CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT},
+		fee::WeightToFee,
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
@@ -89,60 +90,6 @@ use xcm_runtime_apis::{
 
 /// Bulletin uses 6s slot duration (same as block time).
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-/// Handles converting a weight scalar to a fee value, based on the scale and granularity
-/// of the node's balance type.
-///
-/// Takes the maximum of ref_time and proof_size fees.
-pub struct WeightToFee;
-impl frame_support::weights::WeightToFee for WeightToFee {
-	type Balance = Balance;
-
-	fn weight_to_fee(weight: &Weight) -> Self::Balance {
-		use frame_support::weights::{
-			FeePolynomial, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
-		};
-		use smallvec::smallvec;
-
-		/// Maps the reference time component of `Weight` to a fee.
-		struct RefTimeToFee;
-		impl WeightToFeePolynomial for RefTimeToFee {
-			type Balance = Balance;
-			fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-				let p = CENTS;
-				let q = 200 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
-				smallvec![WeightToFeeCoefficient {
-					degree: 1,
-					negative: false,
-					coeff_frac: Perbill::from_rational(p % q, q),
-					coeff_integer: p / q,
-				}]
-			}
-		}
-
-		/// Maps the proof size component of `Weight` to a fee.
-		struct ProofSizeToFee;
-		impl WeightToFeePolynomial for ProofSizeToFee {
-			type Balance = Balance;
-			fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-				let p = CENTS;
-				let q = 20_000;
-				smallvec![WeightToFeeCoefficient {
-					degree: 1,
-					negative: false,
-					coeff_frac: Perbill::from_rational(p % q, q),
-					coeff_integer: p / q,
-				}]
-			}
-		}
-
-		let time_poly: FeePolynomial<Balance> = RefTimeToFee::polynomial().into();
-		let proof_poly: FeePolynomial<Balance> = ProofSizeToFee::polynomial().into();
-
-		// Take the maximum instead of the sum to charge by the more scarce resource.
-		time_poly.eval(weight.ref_time()).max(proof_poly.eval(weight.proof_size()))
-	}
-}
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
@@ -331,7 +278,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, DealWithFees<Runtime>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Runtime>;
