@@ -80,6 +80,22 @@ if args.command == 'bench':
     failed_benchmarks = {}
     successful_benchmarks = {}
 
+    # Install frame-omni-bencher from the pinned polkadot-sdk release tag
+    print('-- installing frame-omni-bencher from polkadot-stable2506')
+    result = subprocess.run([
+        "cargo", "install", "frame-omni-bencher", "--locked", "--force",
+        "--tag", "polkadot-stable2506",
+        "--git", "https://github.com/paritytech/polkadot-sdk"
+    ])
+    if result.returncode != 0:
+        print("Failed to install frame-omni-bencher")
+        sys.exit(1)
+    result = subprocess.run(["frame-omni-bencher", "--version"], capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f'-- frame-omni-bencher version: {result.stdout.strip()}')
+    else:
+        print(f'-- frame-omni-bencher installed (--version not supported)')
+
     profile = "production"
 
     print(f'Provided runtimes: {args.runtime}')
