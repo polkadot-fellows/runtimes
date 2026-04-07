@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Kusama & Polkadot relay: Waive XCM fees for Treasury pallet origin.
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Collectives Polkadot: Waive XCM fees for Fellowship/Ambassador Treasury and Salary pallet origins.
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: Activate `TransferAllAssets` on `pallet_bounties` to sweep fungibles from closed bounty accounts.
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: Set `BountyDepositBase` on `pallet_bounties` to `10 * QUID` / `10 * DOLLARS` instead of `system_para_deposit(0, 176)`, aligning the proposer deposit with other fixed governance deposits on Asset Hub.
 
 ### Fixed
 
@@ -38,7 +39,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
-- Asset Hub Polkadot/Kusama: Update `BountyDepositBase` to use a fixed value (10 DOT / 10 QUID) instead of `system_para_deposit(0, 176)` to better reflect the economic significance of bounty proposals ([#1132](https://github.com/polkadot-fellows/runtimes/pull/1132))
 
 ## [2.1.1] 13.03.2026
 
