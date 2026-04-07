@@ -51,6 +51,8 @@ decl_test_parachains! {
 			PoolAssets: asset_hub_kusama_runtime::PoolAssets,
 			AssetConversion: asset_hub_kusama_runtime::AssetConversion,
 			Balances: asset_hub_kusama_runtime::Balances,
+			Treasury: asset_hub_kusama_runtime::Treasury,
+			AssetRate: asset_hub_kusama_runtime::AssetRate,
 		}
 	},
 }

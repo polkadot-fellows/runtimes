@@ -197,14 +197,9 @@ pub type Barrier = TrailingSetTopicAsId<(
 	>,
 )>;
 
-parameter_types! {
-	pub TreasuryLocation: Location = Location::new(0, [PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)]);
-}
-
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations =
-	(SystemParachains, Equals<TokenLocation>, Equals<TreasuryLocation>, LocalPlurality);
+pub type WaivedLocations = (SystemParachains, Equals<TokenLocation>, LocalPlurality);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
