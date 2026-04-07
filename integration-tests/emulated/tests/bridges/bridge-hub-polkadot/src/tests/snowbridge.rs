@@ -757,6 +757,8 @@ fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_sufficient
 		insufficient_token_amount_in_weth_below_ed,
 		sufficient_fee_in_dot_below_ed,
 	);
+	// Flush stale XcmpQueue outbound index to ensure the message is delivered to AHP
+	BridgeHubPolkadot::execute_with(|| {});
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;

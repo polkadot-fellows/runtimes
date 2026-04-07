@@ -227,21 +227,22 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		assets: Wild(AllCounted(assets.len() as u32)),
 		beneficiary: AccountId32Junction { network: None, id: receiver.clone().into() }.into(),
 	}]);
-	assert_ok!(AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
-			bx!(asset_hub_kusama_location().into()),
-			bx!(assets.into()),
-			bx!(TransferType::LocalReserve),
-			bx!(fee.into()),
-			bx!(TransferType::LocalReserve),
-			bx!(VersionedXcm::from(custom_xcm_on_dest)),
-			WeightLimit::Unlimited,
-		)
-	}));
-	// verify hops (also advances the message through the hops)
-	assert_bridge_hub_polkadot_message_accepted(true);
-	assert_bridge_hub_kusama_message_received();
+	send_assets_over_bridge(|| {
+		assert_ok!(AssetHubPolkadot::execute_with(|| {
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+				<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
+				bx!(asset_hub_kusama_location().into()),
+				bx!(assets.into()),
+				bx!(TransferType::LocalReserve),
+				bx!(fee.into()),
+				bx!(TransferType::LocalReserve),
+				bx!(VersionedXcm::from(custom_xcm_on_dest)),
+				WeightLimit::Unlimited,
+			)
+		}));
+	});
+	// Extra BHK block to flush stale XcmpQueue outbound index and deliver the real message
+	BridgeHubKusama::execute_with(|| {});
 	AssetHubKusama::execute_with(|| {
 		AssetHubKusama::assert_xcmp_queue_success(None);
 	});

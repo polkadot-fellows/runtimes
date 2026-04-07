@@ -725,6 +725,8 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 			]
 		);
 	});
+	// Flush stale XcmpQueue outbound index to ensure the message is delivered to AHP
+	BridgeHubPolkadot::execute_with(|| {});
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
