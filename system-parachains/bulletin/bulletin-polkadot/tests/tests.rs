@@ -18,13 +18,14 @@
 
 use bulletin_polkadot_runtime::{
 	xcm_config::{GovernanceLocation, LocationToAccountId},
-	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
+	Block, Runtime, RuntimeCall, RuntimeOrigin,
 };
 use frame_support::{assert_err, assert_ok};
 use parachains_common::AccountId;
 use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::Either;
+use system_parachains_constants::polkadot::fee::WeightToFee;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
@@ -146,7 +147,7 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
-		WeightToFee,
+		WeightToFee<Runtime>,
 	>();
 }
 
