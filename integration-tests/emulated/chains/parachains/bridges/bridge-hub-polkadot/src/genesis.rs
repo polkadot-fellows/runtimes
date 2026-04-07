@@ -31,7 +31,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		balances: bridge_hub_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([TreasuryAccount::get(), StakingPot::get()].into_iter())
+				.chain([TreasuryAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096))
 				.collect(),
 			dev_accounts: None,

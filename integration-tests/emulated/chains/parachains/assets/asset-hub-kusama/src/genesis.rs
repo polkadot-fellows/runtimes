@@ -46,7 +46,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		balances: asset_hub_kusama_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([TreasuryAccount::get(), StakingPot::get()].into_iter())
+				.chain([TreasuryAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096 * 4096 * 4096))
 				// pre-fund checking account to avoid pre-funding for every test scenario
 				// teleporting funds to asset hub

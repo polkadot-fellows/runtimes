@@ -31,7 +31,7 @@ pub fn genesis() -> Storage {
 		balances: people_kusama_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()].into_iter())
+				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
 				.map(|k| (k, ENDOWMENT))
 				.collect(),
 			dev_accounts: None,
