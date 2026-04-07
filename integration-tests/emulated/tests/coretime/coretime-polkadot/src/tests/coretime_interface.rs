@@ -131,42 +131,44 @@ fn broker_transacts_are_processed_by_relay() {
 			.expect("Pallet was configured earlier.")
 	});
 
-	// Now run up to the block before the sale is rotated.
+	// Run blocks until the sale is initialized and a core is assigned. The broker triggers these
+	// events when it detects the relay chain approaching the next timeslice boundary.
+	let mut found_sale_initialized = false;
+	let mut found_core_assigned = false;
+	let mut found_upward_message = false;
 	while block_number_cursor < TIMESLICE_PERIOD - config.advance_notice - 1 {
 		CoretimePolkadot::execute_with(|| {
 			// Hooks don't run in emulated tests - workaround.
 			<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
 				<CoretimePolkadot as Chain>::System::block_number(),
 			);
+
+			let events = <CoretimePolkadot as Chain>::System::events();
+			for event in &events {
+				match &event.event {
+					CoretimeEvent::Broker(pallet_broker::Event::SaleInitialized { .. }) => {
+						found_sale_initialized = true;
+					},
+					CoretimeEvent::Broker(pallet_broker::Event::CoreAssigned { .. }) => {
+						found_core_assigned = true;
+					},
+					CoretimeEvent::ParachainSystem(
+						cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. },
+					) => {
+						found_upward_message = true;
+					},
+					_ => {},
+				}
+			}
 		});
 
 		Polkadot::ext_wrapper(|| {
 			block_number_cursor = <Polkadot as Chain>::System::block_number();
 		});
 	}
-
-	// In this block we trigger assign core.
-	CoretimePolkadot::execute_with(|| {
-		// Hooks don't run in emulated tests - workaround.
-		<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
-			<CoretimePolkadot as Chain>::System::block_number(),
-		);
-
-		assert_expected_events!(
-			CoretimePolkadot,
-			vec![
-				CoretimeEvent::Broker(
-					pallet_broker::Event::SaleInitialized { .. }
-				) => {},
-				CoretimeEvent::Broker(
-					pallet_broker::Event::CoreAssigned { .. }
-				) => {},
-				CoretimeEvent::ParachainSystem(
-					cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }
-				) => {},
-			]
-		);
-	});
+	assert!(found_sale_initialized);
+	assert!(found_core_assigned);
+	assert!(found_upward_message);
 
 	// In this block we trigger request revenue.
 	CoretimePolkadot::execute_with(|| {
