@@ -2850,7 +2850,6 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "smallvec",
  "sp-api 40.0.0",
  "sp-block-builder",
  "sp-consensus-aura",
