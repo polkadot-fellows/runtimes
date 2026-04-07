@@ -68,10 +68,10 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees)
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
-	// TODO: replace this with DAP account (for collecting fees)
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	// Test [`treasury_pallet_account_not_none`] ensures that the result of location conversion is
 	// not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -82,7 +82,7 @@ parameter_types! {
 		location: AssetHubLocation::get(),
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
 	};
-	// TODO: replace this with DAP account (for collecting fees)
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }

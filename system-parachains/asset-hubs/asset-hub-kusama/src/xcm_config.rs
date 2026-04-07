@@ -88,7 +88,7 @@ parameter_types! {
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees)
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
@@ -103,7 +103,7 @@ parameter_types! {
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
 
-// TODO: replace this with DAP account (for collecting fees)
+// TODO: replace this with DAP account (for collecting fees) #1137
 /// Treasury account that changes once migration ends.
 pub type TreasuryAccount = PostMigrationTreasuryAccount;
 
