@@ -247,6 +247,9 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "cumulus_pallet_xcmp_queue": ["take_first_concatenated_xcm"]
     }
   },
   {
