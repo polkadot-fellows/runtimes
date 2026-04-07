@@ -746,7 +746,6 @@ fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_insufficie
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_sufficient_fee_but_do_not_satisfy_ed(
 ) {
 	// On AH, ED is 0.1 DOT. Make both the transfer amount (in WETH) and the XCM fee below the ED.

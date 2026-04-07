@@ -150,7 +150,6 @@ fn send_ksm_from_asset_hub_kusama_to_asset_hub_polkadot() {
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 /// Send bridged assets "back" from AssetHub Kusama to AssetHub Polkadot.
 ///
 /// This mix of assets should cover the whole range:

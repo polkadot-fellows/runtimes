@@ -86,7 +86,6 @@ fn send_assets_from_polkadot_chain_through_polkadot_ah_to_kusama_ah<F: FnOnce()>
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 /// Test transfer of DOT, USDT and wETH from AssetHub Polkadot to AssetHub Kusama.
 ///
 /// This mix of assets should cover the whole range:
@@ -852,7 +851,6 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama() {
 	let ksm_at_polkadot_parachains = bridged_ksm_at_ah_polkadot();
 	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone();

@@ -635,7 +635,6 @@ fn send_token_to_penpal_v2() {
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 fn send_foreign_erc20_token_back_to_polkadot() {
 	let relayer_account = BridgeHubPolkadotSender::get();
 

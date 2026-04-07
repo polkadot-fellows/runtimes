@@ -349,7 +349,6 @@ fn send_ether_to_kusama_v2() {
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 fn send_ksm_from_ethereum_to_kusama() {
 	let initial_fund: u128 = 200_000_000_000_000;
 	let relayer_account = BridgeHubPolkadotSender::get();
