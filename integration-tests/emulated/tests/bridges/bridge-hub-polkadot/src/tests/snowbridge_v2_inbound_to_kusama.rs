@@ -382,7 +382,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 	BridgeHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
-	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE).into();
+	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
 	let ksm = Location::new(1, [GlobalConsensus(Kusama)]);
 	let token_id = TokenIdOf::convert_location(&ksm).unwrap();

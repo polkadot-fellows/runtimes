@@ -705,7 +705,7 @@ fn send_foreign_erc20_token_back_to_polkadot() {
 			assets,
 			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
-			value: 1_500_000_000_000u128,
+			value: 12_000_000_000_000u128,
 			execution_fee: EXECUTION_IN_ETHER,
 			relayer_fee: RELAYER_REWARD_IN_ETHER,
 		};
