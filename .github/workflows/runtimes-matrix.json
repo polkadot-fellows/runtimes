@@ -4,6 +4,8 @@
     "package": "polkadot-runtime",
     "path": "relay/polkadot",
     "uris": [
+      "wss://polkadot.ibp.network",
+      "wss://polkadot.dotters.network",
       "wss://try-runtime.polkadot.io:443",
       "wss://polkadot-rpc.publicnode.com",
       "wss://polkadot-public-rpc.blockops.network/ws",
@@ -11,7 +13,6 @@
       "wss://polkadot-rpc-tn.dwellir.com",
       "wss://rpc-polkadot.helixstreet.io",
       "wss://rpc.ibp.network/polkadot",
-      "wss://polkadot.dotters.network",
       "wss://rpc-polkadot.luckyfriday.io",
       "wss://polkadot.api.onfinality.io/public-ws",
       "wss://polkadot.public.curie.radiumblock.co/ws",
