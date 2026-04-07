@@ -9,9 +9,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2506
-
 # cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
