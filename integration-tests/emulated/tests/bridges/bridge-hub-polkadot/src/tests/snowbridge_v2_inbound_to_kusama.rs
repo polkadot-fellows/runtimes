@@ -349,7 +349,6 @@ fn send_ether_to_kusama_v2() {
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 fn send_ksm_from_ethereum_to_kusama() {
 	let initial_fund: u128 = 200_000_000_000_000;
 	let relayer_account = BridgeHubPolkadotSender::get();
@@ -383,7 +382,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 	BridgeHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
-	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE).into();
+	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
 	let ksm = Location::new(1, [GlobalConsensus(Kusama)]);
 	let token_id = TokenIdOf::convert_location(&ksm).unwrap();
@@ -471,6 +470,8 @@ fn send_ksm_from_ethereum_to_kusama() {
 			]
 		);
 	});
+	// Flush stale XcmpQueue outbound index to ensure the message is delivered to AHP
+	BridgeHubPolkadot::execute_with(|| {});
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -489,6 +490,8 @@ fn send_ksm_from_ethereum_to_kusama() {
 	ensure_no_assets_trapped_on_pah();
 	assert_bridge_hub_polkadot_message_accepted(true);
 	assert_bridge_hub_kusama_message_received();
+	// Extra BHK block to flush stale XcmpQueue outbound index
+	BridgeHubKusama::execute_with(|| {});
 
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;

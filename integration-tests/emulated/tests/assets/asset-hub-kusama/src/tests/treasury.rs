@@ -23,7 +23,6 @@ use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
 
 #[test]
-#[ignore = "treasury moved from relay to asset hub, test needs rewrite"]
 fn create_and_claim_treasury_spend_in_usdt() {
 	const USDT_ID: u32 = 1984;
 	const SPEND_AMOUNT: u128 = 10_000_000;

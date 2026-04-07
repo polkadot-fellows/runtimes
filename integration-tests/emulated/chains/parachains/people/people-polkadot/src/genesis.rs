@@ -13,16 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Substrate
-use sp_core::storage::Storage;
-
-// Cumulus
 use cumulus_primitives_core::ParaId;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
 use parachains_common::Balance;
+use people_polkadot_runtime::xcm_config::{RelayTreasuryPalletAccount, StakingPot};
 use polkadot_runtime_constants::currency::UNITS as DOT;
+use sp_core::storage::Storage;
 
 const ENDOWMENT: u128 = 1_000 * DOT;
 pub const PARA_ID: u32 = 1004;
@@ -31,7 +29,11 @@ pub const ED: Balance = people_polkadot_runtime::ExistentialDeposit::get();
 pub fn genesis() -> Storage {
 	let genesis_config = people_polkadot_runtime::RuntimeGenesisConfig {
 		balances: people_polkadot_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+			balances: accounts::init_balances()
+				.into_iter()
+				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()].into_iter())
+				.map(|k| (k, ENDOWMENT))
+				.collect(),
 			dev_accounts: None,
 		},
 		system: people_polkadot_runtime::SystemConfig::default(),

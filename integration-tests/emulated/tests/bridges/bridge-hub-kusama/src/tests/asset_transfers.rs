@@ -150,7 +150,6 @@ fn send_ksm_from_asset_hub_kusama_to_asset_hub_polkadot() {
 }
 
 #[test]
-#[ignore = "needs investigation after SDK upgrade"]
 /// Send bridged assets "back" from AssetHub Kusama to AssetHub Polkadot.
 ///
 /// This mix of assets should cover the whole range:
@@ -317,21 +316,22 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		assets: Wild(AllCounted(assets.len() as u32)),
 		beneficiary: AccountId32Junction { network: None, id: receiver.clone().into() }.into(),
 	}]);
-	assert_ok!(AssetHubKusama::execute_with(|| {
-		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
-			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sender),
-			bx!(asset_hub_polkadot_location().into()),
-			bx!(assets.into()),
-			bx!(TransferType::DestinationReserve),
-			bx!(fee.into()),
-			bx!(TransferType::DestinationReserve),
-			bx!(VersionedXcm::from(custom_xcm_on_dest)),
-			WeightLimit::Unlimited,
-		)
-	}));
-	// verify hops (also advances the message through the hops)
-	assert_bridge_hub_kusama_message_accepted(true);
-	assert_bridge_hub_polkadot_message_received();
+	send_assets_over_bridge(|| {
+		assert_ok!(AssetHubKusama::execute_with(|| {
+			<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+				<AssetHubKusama as Chain>::RuntimeOrigin::signed(sender),
+				bx!(asset_hub_polkadot_location().into()),
+				bx!(assets.into()),
+				bx!(TransferType::DestinationReserve),
+				bx!(fee.into()),
+				bx!(TransferType::DestinationReserve),
+				bx!(VersionedXcm::from(custom_xcm_on_dest)),
+				WeightLimit::Unlimited,
+			)
+		}));
+	});
+	// Extra BHP block to flush stale XcmpQueue outbound index and deliver the real message
+	BridgeHubPolkadot::execute_with(|| {});
 	AssetHubPolkadot::execute_with(|| {
 		AssetHubPolkadot::assert_xcmp_queue_success(None);
 	});

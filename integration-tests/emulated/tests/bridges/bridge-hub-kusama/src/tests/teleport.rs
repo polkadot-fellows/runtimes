@@ -64,7 +64,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 }
 
 #[test]
-#[ignore = "total issuance assertion needs updating after SDK fee calculation changes"]
 fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
@@ -88,7 +87,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_work
 }
 
 #[test]
-#[ignore = "total issuance assertion needs updating after SDK fee calculation changes"]
 fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();

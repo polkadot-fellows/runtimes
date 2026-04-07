@@ -13,10 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Substrate
-use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
-
-// Cumulus
+use asset_hub_polkadot_runtime::xcm_config::{CheckingAccount, StakingPot, TreasuryAccount};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
 	PenpalASiblingSovereignAccount, PenpalATeleportableAssetLocation, PenpalBLocation,
@@ -25,6 +22,7 @@ use emulated_integration_tests_common::{
 };
 use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
+use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use xcm::prelude::*;
 use xcm_builder::ExternalConsensusLocationsConverterFor;
 
@@ -60,15 +58,12 @@ pub fn genesis() -> sp_core::storage::Storage {
 		system: asset_hub_polkadot_runtime::SystemConfig::default(),
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
-				.iter()
-				.cloned()
+				.into_iter()
+				.chain([TreasuryAccount::get(), StakingPot::get()].into_iter())
 				.map(|k| (k, ED * 4096 * 4096))
 				// pre-fund checking account to avoid pre-funding for every test scenario
 				// teleporting funds to asset hub
-				.chain(std::iter::once((
-					asset_hub_polkadot_runtime::xcm_config::CheckingAccount::get(),
-					ED * 4096 * 4096 * 4096,
-				)))
+				.chain(std::iter::once((CheckingAccount::get(), ED * 4096 * 4096 * 4096)))
 				.collect(),
 			dev_accounts: None,
 		},
