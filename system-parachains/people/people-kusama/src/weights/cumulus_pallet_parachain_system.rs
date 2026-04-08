@@ -48,6 +48,17 @@ use core::marker::PhantomData;
 /// Weight functions for `cumulus_pallet_parachain_system`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> cumulus_pallet_parachain_system::WeightInfo for WeightInfo<T> {
+		fn block_weight_tx_extension_max_weight() -> Weight {
+		Weight::zero()
+	}
+
+	fn block_weight_tx_extension_stays_fraction_of_core() -> Weight {
+		Weight::zero()
+	}
+
+	fn block_weight_tx_extension_full_core() -> Weight {
+		Weight::zero()
+	}
 	/// Storage: `ParachainSystem::LastDmqMqcHead` (r:1 w:1)
 	/// Proof: `ParachainSystem::LastDmqMqcHead` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `MessageQueue::BookStateFor` (r:1 w:1)
