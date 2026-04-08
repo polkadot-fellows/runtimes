@@ -36,14 +36,14 @@ fn para_to_para_assethub_hop_assertions(t: ParaToParaThroughAHTest) {
 		vec![
 			// Withdrawn from sender parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
+				pallet_balances::Event::Withdraw { who, amount }
 			) => {
 				who: *who == sov_penpal_a_on_ah,
 				amount: *amount == t.args.amount,
 			},
 			// Deposited to receiver parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Minted { who, .. }
+				pallet_balances::Event::Deposit { who, .. }
 			) => {
 				who: *who == sov_penpal_b_on_ah,
 			},
@@ -751,10 +751,10 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			PenpalA,
 			vec![
 				Event::ForeignAssets(
-					pallet_assets::Event::Burned { asset_id, balance, .. }
+					pallet_assets::Event::Withdrawn { asset_id, amount, .. }
 				) => {
 					asset_id: *asset_id == usdt_location.clone(),
-					balance: *balance == transfer_amount,
+					amount: *amount == transfer_amount,
 				},
 			]
 		);
@@ -773,11 +773,11 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			vec![
 				// USDT is burned from sovereign account of PenpalA.
 				Event::Assets(
-					pallet_assets::Event::Burned { asset_id, owner, balance }
+					pallet_assets::Event::Withdrawn { asset_id, who, amount }
 				) => {
 					asset_id: *asset_id == 1984,
-					owner: *owner == sov_penpal_on_ah,
-					balance: *balance == transfer_amount,
+					who: *who == sov_penpal_on_ah,
+					amount: *amount == transfer_amount,
 				},
 				// Credit is swapped.
 				Event::AssetConversion(
@@ -802,10 +802,10 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			vec![
 				// Final amount gets deposited to receiver.
 				Event::ForeignAssets(
-					pallet_assets::Event::Issued { asset_id, owner, .. }
+					pallet_assets::Event::Deposited { asset_id, who, .. }
 				) => {
 					asset_id: *asset_id == usdt_location,
-					owner: *owner == receiver,
+					who: *who == receiver,
 				},
 				// Swap was made to pay fees with USDT.
 				Event::AssetConversion(

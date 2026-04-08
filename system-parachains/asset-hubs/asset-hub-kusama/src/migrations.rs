@@ -16,7 +16,10 @@
 //! The runtime migrations per release.
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = (RemoveAhMigratorPallet,);
+pub type Unreleased = (
+	RemoveAhMigratorPallet,
+	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
+);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
@@ -52,12 +55,18 @@ mod multiblock_migrations {
 	use xcm_builder::StartsWith;
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations =
+	pub type MbmMigrations = (
 		assets_common::migrations::foreign_assets_reserves::ForeignAssetsReservesMigration<
 			Runtime,
 			ForeignAssetsInstance,
 			AssetHubKusamaForeignAssetsReservesProvider,
-		>;
+		>,
+		pallet_assets_precompiles::MigrateForeignAssetPrecompileMappings<
+			Runtime,
+			ForeignAssetsInstance,
+			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
+		>,
+	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
 	/// running on the Asset Hub Kusama upgrade which changes the Foreign Assets reserve-transfers

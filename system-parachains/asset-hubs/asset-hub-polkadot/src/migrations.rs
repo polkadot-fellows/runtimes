@@ -44,6 +44,7 @@ pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
+	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -74,12 +75,18 @@ mod multiblock_migrations {
 	use xcm_builder::StartsWith;
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations =
+	pub type MbmMigrations = (
 		assets_common::migrations::foreign_assets_reserves::ForeignAssetsReservesMigration<
 			Runtime,
 			ForeignAssetsInstance,
 			AssetHubPolkadotForeignAssetsReservesProvider,
-		>;
+		>,
+		pallet_assets_precompiles::MigrateForeignAssetPrecompileMappings<
+			Runtime,
+			ForeignAssetsInstance,
+			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
+		>,
+	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
 	/// running on the Asset Hub Polkadot upgrade which changes the Foreign Assets

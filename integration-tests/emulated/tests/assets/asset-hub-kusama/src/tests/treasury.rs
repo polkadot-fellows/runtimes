@@ -18,36 +18,27 @@
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::traits::fungibles::{Inspect as FungiblesInspect, Mutate};
-use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
+use parachains_common::pay::VersionedLocatableAccount;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
-use xcm_executor::traits::ConvertLocation;
 
 #[test]
 fn create_and_claim_treasury_spend_in_usdt() {
 	const USDT_ID: u32 = 1984;
 	const SPEND_AMOUNT: u128 = 10_000_000;
-	// treasury location from a sibling parachain.
-	let treasury_location: Location = Location::new(1, PalletInstance(18));
-	// treasury account on a sibling parachain.
-	let treasury_account =
-		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-			&treasury_location,
-		)
-		.unwrap();
-	let asset_hub_location =
-		v5::Location::new(0, v5::Junction::Parachain(AssetHubKusama::para_id().into()));
-	let root = <Kusama as Chain>::RuntimeOrigin::root();
-	// asset kind to be spend from the treasury.
+
+	let treasury_account = asset_hub_kusama_runtime::Treasury::account_id();
+	let root = <AssetHubKusama as Chain>::RuntimeOrigin::root();
+	// asset kind to be spent from the treasury.
 	let asset_kind = VersionedLocatableAsset::V5 {
-		location: asset_hub_location,
+		location: Location::new(0, []),
 		asset_id: v5::AssetId(
 			(v5::Junction::PalletInstance(50), v5::Junction::GeneralIndex(USDT_ID.into())).into(),
 		),
 	};
 	// treasury spend beneficiary.
 	let alice: AccountId = Kusama::account_id_of(ALICE);
-	let bob: AccountId = Kusama::account_id_of(BOB);
-	let bob_signed = <Kusama as Chain>::RuntimeOrigin::signed(bob.clone());
+	let bob: AccountId = AssetHubKusama::account_id_of(BOB);
+	let bob_signed = <AssetHubKusama as Chain>::RuntimeOrigin::signed(bob.clone());
 
 	AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::Assets;
@@ -58,70 +49,41 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		assert_eq!(<Assets as FungiblesInspect<_>>::balance(USDT_ID, &alice,), 0u128,);
 	});
 
-	Kusama::execute_with(|| {
-		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
-		type Treasury = <Kusama as KusamaPallet>::Treasury;
-		type AssetRate = <Kusama as KusamaPallet>::AssetRate;
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+		type Treasury = <AssetHubKusama as AssetHubKusamaPallet>::Treasury;
+		type AssetRate = <AssetHubKusama as AssetHubKusamaPallet>::AssetRate;
 
 		// create a conversion rate from `asset_kind` to the native currency.
 		assert_ok!(AssetRate::create(root.clone(), Box::new(asset_kind.clone()), 2.into()));
 
-		Dmp::make_parachain_reachable(1000);
 		// create and approve a treasury spend.
 		assert_ok!(Treasury::spend(
 			root,
 			Box::new(asset_kind),
 			SPEND_AMOUNT,
-			Box::new(Location::new(0, Into::<[u8; 32]>::into(alice.clone())).into()),
+			Box::new(VersionedLocatableAccount::V5 {
+				location: Location::new(0, []),
+				account_id: Location::new(0, Into::<[u8; 32]>::into(alice.clone())),
+			}),
 			None,
 		));
 		// claim the spend.
 		assert_ok!(Treasury::payout(bob_signed.clone(), 0));
+		// check the payment status.
+		assert_ok!(Treasury::check_status(bob_signed, 0));
 
-		assert_expected_events!(
-			Kusama,
-			vec![
-				RuntimeEvent::Treasury(pallet_treasury::Event::Paid { .. }) => {},
-			]
-		);
-	});
-
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::Assets;
-
-		// assert events triggered by xcm pay program
-		// 1. treasury asset transferred to spend beneficiary
-		// 2. response to Relay Chain treasury pallet instance sent back
-		// 3. XCM program completed
 		assert_expected_events!(
 			AssetHubKusama,
 			vec![
-				RuntimeEvent::Assets(pallet_assets::Event::Transferred { asset_id: id, from, to, amount }) => {
-					id: id == &USDT_ID,
-					from: from == &treasury_account,
-					to: to == &alice,
-					amount: amount == &SPEND_AMOUNT,
-				},
-				RuntimeEvent::ParachainSystem(cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }) => {},
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true ,.. }) => {},
-			]
-		);
-		// beneficiary received the assets from the treasury.
-		assert_eq!(<Assets as FungiblesInspect<_>>::balance(USDT_ID, &alice,), SPEND_AMOUNT,);
-	});
-
-	Kusama::execute_with(|| {
-		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
-		type Treasury = <Kusama as KusamaPallet>::Treasury;
-
-		// check the payment status to ensure the response from the AssetHub was received.
-		assert_ok!(Treasury::check_status(bob_signed, 0));
-		assert_expected_events!(
-			Kusama,
-			vec![
+				RuntimeEvent::Treasury(pallet_treasury::Event::AssetSpendApproved { .. }) => {},
+				RuntimeEvent::Treasury(pallet_treasury::Event::Paid { .. }) => {},
 				RuntimeEvent::Treasury(pallet_treasury::Event::SpendProcessed { .. }) => {},
 			]
 		);
+
+		// beneficiary received the assets from the treasury.
+		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::Assets;
+		assert_eq!(<Assets as FungiblesInspect<_>>::balance(USDT_ID, &alice,), SPEND_AMOUNT,);
 	});
 }
