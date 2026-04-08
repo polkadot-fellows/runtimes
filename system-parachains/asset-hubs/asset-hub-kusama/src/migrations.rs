@@ -16,13 +16,22 @@
 //! The runtime migrations per release.
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = ();
+pub type Unreleased = (RemoveAhMigratorPallet,);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
 
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = (Unreleased, Permanent);
+
+frame_support::parameter_types! {
+	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+}
+
+pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
+	AhMigratorPalletName,
+	<crate::Runtime as frame_system::Config>::DbWeight,
+>;
 
 #[cfg(not(feature = "runtime-benchmarks"))]
 pub use multiblock_migrations::MbmMigrations;

@@ -17,7 +17,6 @@
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 
 // Cumulus
-use codec::Encode;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
 	PenpalASiblingSovereignAccount, PenpalATeleportableAssetLocation, PenpalBLocation,
@@ -143,20 +142,9 @@ pub fn genesis() -> sp_core::storage::Storage {
 		..Default::default()
 	};
 
-	let mut storage = build_genesis_storage(
+	build_genesis_storage(
 		&genesis_config,
 		asset_hub_polkadot_runtime::WASM_BINARY
 			.expect("WASM binary was not built, please build it!"),
-	);
-
-	// Set AH migration stage to MigrationDone so teleport tracking is enabled
-	// and the checking account is used for teleport operations.
-	use frame_support::storage::generator::StorageValue as _;
-	let key = pallet_ah_migrator::AhMigrationStage::<
-		asset_hub_polkadot_runtime::Runtime,
-	>::storage_value_final_key();
-	let value = pallet_ah_migrator::MigrationStage::MigrationDone;
-	storage.top.insert(key.to_vec(), value.encode());
-
-	storage
+	)
 }

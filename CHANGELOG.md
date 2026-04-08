@@ -4,6 +4,26 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Runtime API view function for accessing the Asset Hub Migration start and end blocks ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
+
+### Fixed
+
+- [encointer] updated hardcoded remote execution weight for AHK [1124](https://github.com/polkadot-fellows/runtimes/pull/1124)
+- Fix fee calculation on Polkadot and Kusama system parachains: use chain-specific `ExtrinsicBaseWeight` instead of the generic `frame_support` default [1117](https://github.com/polkadot-fellows/runtimes/pull/1117)
+
+### Removed
+
+- Remove hardcoded `deposit_asset` weight cap from people runtimes to align with other system parachains ([#1121](https://github.com/polkadot-fellows/runtimes/pull/1121))
+- Remove pre-hardcap related code and storage values. ([#1112](https://github.com/polkadot-fellows/runtimes/pull/1112))
+
+### Changed
+
+- people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
+
 ## [2.1.1] 13.03.2026
 
 ### Added
@@ -98,6 +118,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
 - asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
+
+### Removed
+
+- Removed most of the Asset Hub Migration code ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
 
 ## [2.0.3] 21.11.2025
 

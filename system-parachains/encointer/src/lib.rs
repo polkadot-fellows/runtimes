@@ -176,6 +176,7 @@ parameter_types! {
 	Copy,
 	Clone,
 	Eq,
+	Default,
 	PartialEq,
 	Ord,
 	PartialOrd,
@@ -187,15 +188,10 @@ parameter_types! {
 	MaxEncodedLen,
 )]
 pub enum ProxyType {
+	#[default]
 	Any,
 	NonTransfer,
 	BazaarEdit,
-}
-
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
