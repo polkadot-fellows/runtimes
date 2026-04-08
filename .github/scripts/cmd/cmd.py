@@ -80,6 +80,22 @@ if args.command == 'bench':
     failed_benchmarks = {}
     successful_benchmarks = {}
 
+    # Install frame-omni-bencher from the pinned polkadot-sdk release tag
+    print('-- installing frame-omni-bencher from polkadot-stable2506')
+    result = subprocess.run([
+        "cargo", "install", "frame-omni-bencher", "--locked", "--force",
+        "--tag", "polkadot-stable2603",
+        "--git", "https://github.com/paritytech/polkadot-sdk"
+    ])
+    if result.returncode != 0:
+        print("Failed to install frame-omni-bencher")
+        sys.exit(1)
+    result = subprocess.run(["frame-omni-bencher", "--version"], capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f'-- frame-omni-bencher version: {result.stdout.strip()}')
+    else:
+        print(f'-- frame-omni-bencher installed (--version not supported)')
+
     profile = "production"
 
     print(f'Provided runtimes: {args.runtime}')
@@ -161,7 +177,10 @@ if args.command == 'bench':
 
             print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template} and excluded {excluded_string}')
 
-            status = os.system(f"frame-omni-bencher v1 benchmark pallet "
+            # Log memory before benchmark (OOM diagnosis, ref: #1130)
+            os.system("free -h")
+
+            bench_cmd = (f"frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
                                f"--runtime=target/{profile}/wbuild/{config['package']}/{config['package'].replace('-', '_')}.wasm "
                                f"--pallet={pallet} "
@@ -171,9 +190,18 @@ if args.command == 'bench':
                                f"--steps=50 "
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
+                               f"--min-duration 1 "
+                               f"--quiet "
                                f"{f'--template={template} ' if template else ''}"
                                f"{f'--exclude-extrinsics={excluded_string} ' if excluded_string else ''}"
                                )
+
+            # Wrap with /usr/bin/time to capture peak RSS for OOM diagnosis (ref: #1130)
+            status = os.system(f"/usr/bin/time -v {bench_cmd}")
+
+            # Check if OOM killer was involved
+            os.system("sudo dmesg -T 2>/dev/null | grep -iE 'oom|killed|out of memory' | tail -20 || true")
+            os.system("free -h")
             if status != 0 and not args.continue_on_fail:
                 print(f'Failed to benchmark {pallet} in {runtime}')
                 sys.exit(1)
