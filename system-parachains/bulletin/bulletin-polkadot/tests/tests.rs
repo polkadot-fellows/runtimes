@@ -45,12 +45,12 @@ fn location_conversion_works() {
 		TestCase {
 			description: "DescribeTerminus Parent",
 			location: Location::new(1, Here),
-			expected_account_id_str: "5GyWtDJP7qaipWRGr4KJ6VUDxRXf4jDnPW6KPTeCekHfqZkD",
+			expected_account_id_str: "5Dt6dpkWPwLaH4BBCKJwjiWrFVAGyYk3tLUabvyn4v7KtESG",
 		},
 		TestCase {
 			description: "DescribeTerminus Sibling",
 			location: Location::new(1, [Parachain(1111)]),
-			expected_account_id_str: "5EC5GfEFm9XEBYjXzxb1VseMHsG2VhPeGTGWF9H8tYZnGsSk",
+			expected_account_id_str: "5Eg2fnssmmJnF3z1iZ1NouAuzciDaaDQH7qURAy3w15jULDk",
 		},
 		// DescribePalletTerminal
 		TestCase {
