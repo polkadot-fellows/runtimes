@@ -84,7 +84,7 @@ if args.command == 'bench':
     print('-- installing frame-omni-bencher from polkadot-stable2506')
     result = subprocess.run([
         "cargo", "install", "frame-omni-bencher", "--locked", "--force",
-        "--tag", "polkadot-stable2506",
+        "--tag", "polkadot-stable2512",
         "--git", "https://github.com/paritytech/polkadot-sdk"
     ])
     if result.returncode != 0:
