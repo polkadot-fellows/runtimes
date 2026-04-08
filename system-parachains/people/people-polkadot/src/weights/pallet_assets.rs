@@ -48,6 +48,9 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_assets`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
+	fn get_metadata() -> Weight {
+		Weight::from_parts(0, 10000) // TODO @ggwpez
+	}
 	fn create() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`

@@ -105,7 +105,7 @@ fn register_asset_on_kah_from_pah(bridged_asset_at_kah: Location) {
 			AssetHubKusama,
 			vec![
 				// Burned the fee
-				RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Withdraw { who, amount }) => {
 					who: *who == sa_of_pah_on_kah.clone(),
 					amount: *amount == fee_amount,
 				},
@@ -116,7 +116,7 @@ fn register_asset_on_kah_from_pah(bridged_asset_at_kah: Location) {
 					owner: *owner == sa_of_pah_on_kah,
 				},
 				// Unspent fee minted to origin
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
 					who: *who == sa_of_pah_on_kah.clone(),
 				},
 			]

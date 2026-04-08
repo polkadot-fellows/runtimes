@@ -48,30 +48,41 @@ use core::marker::PhantomData;
 /// Weight functions for `cumulus_pallet_parachain_system`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> cumulus_pallet_parachain_system::WeightInfo for WeightInfo<T> {
-	/// Storage: `ParachainSystem::LastDmqMqcHead` (r:1 w:1)
-	/// Proof: `ParachainSystem::LastDmqMqcHead` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `MessageQueue::BookStateFor` (r:1 w:1)
-	/// Proof: `MessageQueue::BookStateFor` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
-	/// Storage: `MessageQueue::ServiceHead` (r:1 w:1)
-	/// Proof: `MessageQueue::ServiceHead` (`max_values`: Some(1), `max_size`: Some(5), added: 500, mode: `MaxEncodedLen`)
-	/// Storage: `ParachainSystem::LastProcessedDownwardMessage` (r:0 w:1)
-	/// Proof: `ParachainSystem::LastProcessedDownwardMessage` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `ParachainSystem::ProcessedDownwardMessages` (r:0 w:1)
-	/// Proof: `ParachainSystem::ProcessedDownwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `MessageQueue::Pages` (r:0 w:1000)
-	/// Proof: `MessageQueue::Pages` (`max_values`: None, `max_size`: Some(65585), added: 68060, mode: `MaxEncodedLen`)
+	/// Storage: ParachainSystem LastDmqMqcHead (r:1 w:1)
+	/// Proof Skipped: ParachainSystem LastDmqMqcHead (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: ParachainSystem ReservedDmpWeightOverride (r:1 w:0)
+	/// Proof Skipped: ParachainSystem ReservedDmpWeightOverride (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: MessageQueue BookStateFor (r:1 w:1)
+	/// Proof: MessageQueue BookStateFor (max_values: None, max_size: Some(52), added: 2527, mode: MaxEncodedLen)
+	/// Storage: MessageQueue ServiceHead (r:1 w:1)
+	/// Proof: MessageQueue ServiceHead (max_values: Some(1), max_size: Some(5), added: 500, mode: MaxEncodedLen)
+	/// Storage: ParachainSystem ProcessedDownwardMessages (r:0 w:1)
+	/// Proof Skipped: ParachainSystem ProcessedDownwardMessages (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: MessageQueue Pages (r:0 w:16)
+	/// Proof: MessageQueue Pages (max_values: None, max_size: Some(65585), added: 68060, mode: MaxEncodedLen)
 	/// The range of component `n` is `[0, 1000]`.
 	fn enqueue_inbound_downward_messages(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `218`
-		//  Estimated: `3517`
-		// Minimum execution time: 4_700_000 picoseconds.
-		Weight::from_parts(137_585_437, 0)
-			.saturating_add(Weight::from_parts(0, 3517))
-			// Standard Error: 100_215
-			.saturating_add(Weight::from_parts(134_922_157, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(5))
-			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+		//  Measured:  `12`
+		//  Estimated: `8013`
+		// Minimum execution time: 1_625_000 picoseconds.
+		Weight::from_parts(1_735_000, 8013)
+			// Standard Error: 14_563
+			.saturating_add(Weight::from_parts(25_300_108, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}
+
+	fn block_weight_tx_extension_max_weight() -> Weight {
+		Weight::zero()
+	}
+
+	fn block_weight_tx_extension_stays_fraction_of_core() -> Weight {
+		Weight::zero()
+	}
+
+	fn block_weight_tx_extension_full_core() -> Weight {
+		Weight::zero()
+	}
+	// TODO @ggwpez rerun
 }

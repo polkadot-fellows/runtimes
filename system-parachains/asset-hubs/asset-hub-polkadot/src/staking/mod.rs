@@ -102,29 +102,13 @@ parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bags_thresholds::THRESHOLDS;
 }
 
-/// We don't want to do any auto-rebags in pallet-bags while the migration is not started or
-/// ongoing.
-pub struct RebagIffMigrationDone;
-impl sp_runtime::traits::Get<u32> for RebagIffMigrationDone {
-	fn get() -> u32 {
-		if cfg!(feature = "runtime-benchmarks") ||
-			pallet_ah_migrator::MigrationEndBlock::<Runtime>::get()
-				.is_some_and(|n| frame_system::Pallet::<Runtime>::block_number() > n + 1)
-		{
-			10
-		} else {
-			0
-		}
-	}
-}
-
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ScoreProvider = Staking;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-	type MaxAutoRebagPerBlock = RebagIffMigrationDone;
+	type MaxAutoRebagPerBlock = ConstU32<10>;
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 }
 
@@ -194,6 +178,7 @@ impl multi_block::Config for Runtime {
 	type AreWeDone = multi_block::RevertToSignedIfNotQueuedOf<Self>;
 	type OnRoundRotation = multi_block::CleanRound<Self>;
 	type WeightInfo = weights::pallet_election_provider_multi_block::WeightInfo<Runtime>;
+	type Signed = MultiBlockElectionSigned;
 }
 
 impl multi_block::verifier::Config for Runtime {
@@ -201,7 +186,6 @@ impl multi_block::verifier::Config for Runtime {
 	type MaxBackersPerWinner = MaxBackersPerWinner;
 	type MaxBackersPerWinnerFinal = MaxBackersPerWinnerFinal;
 	type SolutionDataProvider = MultiBlockElectionSigned;
-	type SolutionImprovementThreshold = ();
 	type WeightInfo = weights::pallet_election_provider_multi_block_verifier::WeightInfo<Runtime>;
 }
 
@@ -456,7 +440,6 @@ impl pallet_staking_async::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = MaxControllersInDeprecationBatch;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	type MaxInvulnerables = frame_support::traits::ConstU32<20>;
 	// This will start election for the next era as soon as an era starts.
 	type PlanningEraOffset = ConstU32<6>;
 	type RcClientInterface = StakingRcClient;
@@ -721,7 +704,9 @@ pub struct RemoveMarchTIValue;
 impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		frame_support::ensure!(March2026TI::exists(), "March2026TI value should exist");
+		if !March2026TI::exists() {
+			return Ok(Vec::new()); // Migration already ran
+		}
 		frame_support::ensure!(
 			March2026TI::get().unwrap() == EraPayout::MARCH_2026_TI,
 			"New value should match the old."
@@ -1087,7 +1072,7 @@ mod tests {
 			use multi_block::WeightInfo;
 			analyze_weight(
 				"snapshot_msp",
-				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_msp(),
+				<Runtime as multi_block::Config>::WeightInfo::per_block_snapshot_msp(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);
@@ -1098,7 +1083,7 @@ mod tests {
 			use multi_block::WeightInfo;
 			analyze_weight(
 				"snapshot_rest",
-				<Runtime as multi_block::Config>::WeightInfo::on_initialize_into_snapshot_rest(),
+				<Runtime as multi_block::Config>::WeightInfo::per_block_snapshot_rest(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);
@@ -1109,14 +1094,15 @@ mod tests {
 			use multi_block::verifier::WeightInfo;
 			analyze_weight(
 				"verifier valid terminal",
-				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_valid_terminal(),
+				<Runtime as multi_block::verifier::Config>::WeightInfo::verification_valid_terminal(
+				),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);
 
 			analyze_weight(
 				"verifier invalid terminal",
-				<Runtime as multi_block::verifier::Config>::WeightInfo::on_initialize_invalid_terminal(),
+				<Runtime as multi_block::verifier::Config>::WeightInfo::verification_invalid_terminal(),
 				<Runtime as frame_system::Config>::BlockWeights::get().max_block,
 				Some(Percent::from_percent(75)),
 			);

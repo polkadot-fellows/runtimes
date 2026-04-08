@@ -20,7 +20,6 @@ use crate::{
 	*,
 };
 use emulated_integration_tests_common::USDT_ID;
-use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 use xcm::latest::AssetTransferFilter;
 
 fn para_to_para_assethub_hop_assertions(t: ParaToParaThroughAHTest) {
@@ -37,14 +36,14 @@ fn para_to_para_assethub_hop_assertions(t: ParaToParaThroughAHTest) {
 		vec![
 			// Withdrawn from sender parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
+				pallet_balances::Event::Withdraw { who, amount }
 			) => {
 				who: *who == sov_penpal_a_on_ah,
 				amount: *amount == t.args.amount,
 			},
 			// Deposited to receiver parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Minted { who, .. }
+				pallet_balances::Event::Deposit { who, .. }
 			) => {
 				who: *who == sov_penpal_b_on_ah,
 			},
@@ -656,172 +655,6 @@ fn bidirectional_teleport_foreign_asset_between_para_and_asset_hub_using_explici
 	);
 }
 
-// ===============================================================
-// ===== Transfer - Native Asset - Relay->AssetHub->Parachain ====
-// ===============================================================
-/// Transfers of native asset Relay to Parachain (using AssetHub reserve). Parachains want to avoid
-/// managing SAs on all system chains, thus want all their DOT-in-reserve to be held in their
-/// Sovereign Account on Asset Hub.
-#[test]
-fn transfer_native_asset_from_relay_to_para_through_asset_hub() {
-	// Init values for Relay
-	let destination = Polkadot::child_location_of(PenpalB::para_id());
-	let sender = PolkadotSender::get();
-	let amount_to_send: Balance = POLKADOT_ED * 1000;
-
-	// Init values for Parachain
-	let relay_native_asset_location = DotLocation::get();
-	let receiver = PenpalBReceiver::get();
-
-	// Init Test
-	let test_args = TestContext {
-		sender,
-		receiver: receiver.clone(),
-		args: TestArgs::new_relay(destination.clone(), receiver.clone(), amount_to_send),
-	};
-	let mut test = RelayToParaThroughAHTest::new(test_args);
-
-	let sov_penpal_on_ah = AssetHubPolkadot::sovereign_account_id_of(
-		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
-	);
-	// Query initial balances
-	let sender_balance_before = test.sender.balance;
-	let sov_penpal_on_ah_before = AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
-			sov_penpal_on_ah.clone(),
-		)
-	});
-	let receiver_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &receiver)
-	});
-
-	fn relay_assertions(t: RelayToParaThroughAHTest) {
-		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-		Polkadot::assert_xcm_pallet_attempted_complete(None);
-		assert_expected_events!(
-			Polkadot,
-			vec![
-				// Amount to teleport is withdrawn from Sender
-				RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
-					who: *who == t.sender.account_id,
-					amount: *amount == t.args.amount,
-				},
-				// Amount to teleport is deposited in Relay's `CheckAccount`
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount }) => {
-					who: *who == <Polkadot as PolkadotPallet>::XcmPallet::check_account(),
-					amount:  *amount == t.args.amount,
-				},
-			]
-		);
-	}
-	fn asset_hub_assertions(_: RelayToParaThroughAHTest) {
-		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-		let sov_penpal_on_ah = AssetHubPolkadot::sovereign_account_id_of(
-			AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
-		);
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![
-				// Deposited to receiver parachain SA
-				RuntimeEvent::Balances(
-					pallet_balances::Event::Minted { who, .. }
-				) => {
-					who: *who == sov_penpal_on_ah,
-				},
-				RuntimeEvent::MessageQueue(
-					pallet_message_queue::Event::Processed { success: true, .. }
-				) => {},
-			]
-		);
-	}
-	fn penpal_assertions(t: RelayToParaThroughAHTest) {
-		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
-		let expected_id = Location { parents: 1, interior: Here };
-		assert_expected_events!(
-			PenpalB,
-			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == expected_id,
-					owner: *owner == t.receiver.account_id,
-				},
-			]
-		);
-	}
-	fn transfer_assets_dispatchable(t: RelayToParaThroughAHTest) -> DispatchResult {
-		let fee_idx = t.args.fee_asset_item as usize;
-		let fee: Asset = t.args.assets.inner().get(fee_idx).cloned().unwrap();
-		let asset_hub_location = Polkadot::child_location_of(AssetHubPolkadot::para_id());
-		let context = PolkadotUniversalLocation::get();
-
-		// reanchor fees to the view of destination (Penpal)
-		let mut remote_fees = fee.clone().reanchored(&t.args.dest, &context).unwrap();
-		if let Fungible(ref mut amount) = remote_fees.fun {
-			// we already spent some fees along the way, just use half of what we started with
-			*amount /= 2;
-		}
-		let xcm_on_final_dest = Xcm::<()>(vec![
-			BuyExecution { fees: remote_fees, weight_limit: t.args.weight_limit.clone() },
-			DepositAsset {
-				assets: Wild(AllCounted(t.args.assets.len() as u32)),
-				beneficiary: t.args.beneficiary,
-			},
-		]);
-
-		// reanchor final dest (Penpal) to the view of hop (Asset Hub)
-		let mut dest = t.args.dest.clone();
-		dest.reanchor(&asset_hub_location, &context).unwrap();
-		// on Asset Hub, forward assets to Penpal
-		let xcm_on_hop = Xcm::<()>(vec![DepositReserveAsset {
-			assets: Wild(AllCounted(t.args.assets.len() as u32)),
-			dest,
-			xcm: xcm_on_final_dest,
-		}]);
-
-		Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
-
-		// First leg is a teleport, from there a local-reserve-transfer to final dest
-		<Polkadot as PolkadotPallet>::XcmPallet::transfer_assets_using_type_and_then(
-			t.signed_origin,
-			bx!(asset_hub_location.into()),
-			bx!(t.args.assets.into()),
-			bx!(TransferType::Teleport),
-			bx!(fee.id.into()),
-			bx!(TransferType::Teleport),
-			bx!(VersionedXcm::from(xcm_on_hop)),
-			t.args.weight_limit,
-		)
-	}
-
-	// Set assertions and dispatchables
-	test.set_assertion::<Polkadot>(relay_assertions);
-	test.set_assertion::<AssetHubPolkadot>(asset_hub_assertions);
-	test.set_assertion::<PenpalB>(penpal_assertions);
-	test.set_dispatchable::<Polkadot>(transfer_assets_dispatchable);
-	test.assert();
-
-	// Query final balances
-	let sender_balance_after = test.sender.balance;
-	let sov_penpal_on_ah_after = AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(sov_penpal_on_ah)
-	});
-	let receiver_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &receiver)
-	});
-
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_balance_after < sender_balance_before - amount_to_send);
-	// SA on AH balance is increased
-	assert!(sov_penpal_on_ah_after > sov_penpal_on_ah_before);
-	// Receiver's asset balance is increased
-	assert!(receiver_assets_after > receiver_assets_before);
-	// Receiver's asset balance increased by `amount_to_send - delivery_fees - bought_execution`;
-	// `delivery_fees` might be paid from transfer or JIT, also `bought_execution` is unknown but
-	// should be non-zero
-	assert!(receiver_assets_after < receiver_assets_before + amount_to_send);
-}
-
 // We transfer USDT from PenpalA to PenpalB through Asset Hub.
 // The sender on PenpalA pays delivery fees in DOT.
 // When the message arrives to Asset Hub, execution and delivery fees are paid in USDT
@@ -918,10 +751,10 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			PenpalA,
 			vec![
 				Event::ForeignAssets(
-					pallet_assets::Event::Burned { asset_id, balance, .. }
+					pallet_assets::Event::Withdrawn { asset_id, amount, .. }
 				) => {
 					asset_id: *asset_id == usdt_location.clone(),
-					balance: *balance == transfer_amount,
+					amount: *amount == transfer_amount,
 				},
 			]
 		);
@@ -940,11 +773,11 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			vec![
 				// USDT is burned from sovereign account of PenpalA.
 				Event::Assets(
-					pallet_assets::Event::Burned { asset_id, owner, balance }
+					pallet_assets::Event::Withdrawn { asset_id, who, amount }
 				) => {
 					asset_id: *asset_id == 1984,
-					owner: *owner == sov_penpal_on_ah,
-					balance: *balance == transfer_amount,
+					who: *who == sov_penpal_on_ah,
+					amount: *amount == transfer_amount,
 				},
 				// Credit is swapped.
 				Event::AssetConversion(
@@ -969,10 +802,10 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			vec![
 				// Final amount gets deposited to receiver.
 				Event::ForeignAssets(
-					pallet_assets::Event::Issued { asset_id, owner, .. }
+					pallet_assets::Event::Deposited { asset_id, who, .. }
 				) => {
 					asset_id: *asset_id == usdt_location,
-					owner: *owner == receiver,
+					who: *who == receiver,
 				},
 				// Swap was made to pay fees with USDT.
 				Event::AssetConversion(

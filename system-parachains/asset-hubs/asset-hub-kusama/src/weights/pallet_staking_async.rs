@@ -425,20 +425,6 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: `Staking::Invulnerables` (r:0 w:1)
-	/// Proof: `Staking::Invulnerables` (`max_values`: Some(1), `max_size`: Some(641), added: 1136, mode: `MaxEncodedLen`)
-	/// The range of component `v` is `[0, 20]`.
-	fn set_invulnerables(v: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 3_160_000 picoseconds.
-		Weight::from_parts(4_279_403, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 2_092
-			.saturating_add(Weight::from_parts(1_408, 0).saturating_mul(v.into()))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
 	/// Storage: `Staking::Ledger` (r:1024 w:1024)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(753), added: 3228, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:512 w:512)
