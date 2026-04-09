@@ -16,7 +16,7 @@
 
 use crate::{
 	bridge_common_config::BridgeReward,
-	xcm_config::{self, RelayNetwork, RelayTreasuryPalletAccount, RootLocation, UniversalLocation},
+	xcm_config::{self, DapSatelliteAccount, RelayNetwork, RootLocation, UniversalLocation},
 	AggregateMessageOrigin, Balances, BridgeRelayers, EthereumBeaconClient, EthereumInboundQueue,
 	EthereumInboundQueueV2, EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem,
 	EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
@@ -278,7 +278,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 	type OutboundQueue = EthereumOutboundQueue;
 	type SiblingOrigin = EnsureXcm<AllowSiblingsOnly>;
 	type AgentIdOf = snowbridge_core::AgentIdOf;
-	type TreasuryAccount = RelayTreasuryPalletAccount;
+	type TreasuryAccount = DapSatelliteAccount;
 	type Token = Balances;
 	type WeightInfo = crate::weights::snowbridge_pallet_system::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -315,9 +315,9 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
 	use super::{
-		CreateAssetCall, EthereumGatewayAddress, EthereumNetwork, EthereumSystem,
-		InboundQueueV2Location, InboundXcmMessageProcessor, MessageV2ToXcm, RelayNetwork,
-		RelayTreasuryPalletAccount, Runtime, TargetLocation,
+		CreateAssetCall, DapSatelliteAccount, EthereumGatewayAddress, EthereumNetwork,
+		EthereumSystem, InboundQueueV2Location, InboundXcmMessageProcessor, MessageV2ToXcm,
+		RelayNetwork, Runtime, TargetLocation,
 	};
 	use crate::{xcm_config, Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;
@@ -414,9 +414,9 @@ pub mod benchmark_helpers {
 
 	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for Runtime {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
-			// Drip ED to the `TreasuryAccount`
+			// Drip ED to the DapSatellite account
 			<Balances as fungible::Mutate<_>>::set_balance(
-				&RelayTreasuryPalletAccount::get(),
+				&DapSatelliteAccount::get(),
 				ExistentialDeposit::get(),
 			);
 

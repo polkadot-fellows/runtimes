@@ -17,9 +17,9 @@
 //! XCM configuration for Polkadot.
 
 use super::{
-	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, FellowshipAdmin,
-	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
-	TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AllPalletsWithSystem, Balances, DapSatellite, Dmp,
+	FellowshipAdmin, GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	StakingAdmin, TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
@@ -27,15 +27,13 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
-use polkadot_runtime_common::{
-	xcm_sender::{ChildParachainRouter, ExponentialPrice},
-	ToAuthor,
-};
+use polkadot_runtime_common::xcm_sender::{ChildParachainRouter, ExponentialPrice};
 use polkadot_runtime_constants::{
 	currency::CENTS, fellowship::IsFellowshipVoice, system_parachain::*,
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use sp_core::ConstU32;
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::{prelude::*, BodyId};
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
@@ -63,6 +61,7 @@ parameter_types! {
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	pub DapSatelliteAccount: AccountId = crate::DapSatellitePalletId::get().into_account_truncating();
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -235,8 +234,9 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	// The weight trader piggybacks on the existing transaction-fee conversion logic.
-	type Trader =
-		UsingComponents<WeightToFee, TokenLocation, AccountId, Balances, ToAuthor<Runtime>>;
+	// XCM execution fees are routed 100% to DAP satellite, matching the delivery-fee policy
+	// in `FeeManager` below.
+	type Trader = UsingComponents<WeightToFee, TokenLocation, AccountId, Balances, DapSatellite>;
 	type ResponseHandler = XcmPallet;
 	type AssetTrap = XcmPallet;
 	type AssetLocker = ();
@@ -244,11 +244,10 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
+	// TODO(#1144): move accumulated funds from the TreasuryAccount to DapSatelliteAccount.
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
-		// of the new AH Treasury.
-		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, DapSatelliteAccount>,
 	>;
 	// No bridges on the Relay Chain
 	type MessageExporter = ();

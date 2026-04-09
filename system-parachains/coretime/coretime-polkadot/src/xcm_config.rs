@@ -68,8 +68,8 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub DapSatelliteAccount: AccountId = crate::DapSatellitePalletId::get().into_account_truncating();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -191,10 +191,11 @@ pub type Barrier = TrailingSetTopicAsId<
 >;
 
 parameter_types! {
+	// TODO(#1137, #1144): post-AHM the relay Treasury has migrated to Asset Hub — remove
+	// RelayTreasuryLocation from WaivedLocations/Barrier and migrate any balance accumulated
+	// under RelayTreasuryPalletAccount on this chain into DapSatelliteAccount.
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -243,6 +244,8 @@ impl xcm_executor::Config for XcmConfig {
 		RuntimeCall,
 		MaxInstructions,
 	>;
+	// TODO(#1137, SDK#11409): redirect XCM execution fees to DAP satellite once DAP
+	// allocates collator budgets
 	type Trader = UsingComponents<
 		WeightToFee<Runtime>,
 		DotRelayLocation,
@@ -259,7 +262,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, DapSatelliteAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;

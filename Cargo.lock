@@ -2620,6 +2620,7 @@ dependencies = [
  "pallet-bridge-parachains",
  "pallet-bridge-relayers",
  "pallet-collator-selection",
+ "pallet-dap-satellite",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
@@ -3274,6 +3275,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-core-fellowship",
+ "pallet-dap-satellite",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-preimage",
@@ -3691,6 +3693,7 @@ dependencies = [
  "pallet-balances",
  "pallet-broker",
  "pallet-collator-selection",
+ "pallet-dap-satellite",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
@@ -9833,6 +9836,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-dap-satellite"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5704b02cc2ef3f13b70cb8ad73aa3e8e8dacfeca6917d2d64080e32b64ca4d07"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 46.0.0",
+]
+
+[[package]]
 name = "pallet-delegated-staking"
 version = "13.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11862,6 +11880,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
+ "pallet-dap-satellite",
  "pallet-identity",
  "pallet-message-queue",
  "pallet-migrations",
@@ -12199,6 +12218,7 @@ dependencies = [
  "pallet-broker",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-dap-satellite",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",

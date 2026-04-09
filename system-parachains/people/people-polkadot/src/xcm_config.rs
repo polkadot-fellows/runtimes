@@ -74,17 +74,18 @@ parameter_types! {
 	pub FeeAssetId: AssetId = AssetId(RelayLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
+	// TODO(#1137, #1144): post-AHM the relay Treasury has migrated to Asset Hub — remove
+	// RelayTreasuryLocation from WaivedLocations/Barrier and migrate any balance accumulated
+	// under RelayTreasuryPalletAccount on this chain into DapSatelliteAccount.
 	pub RelayTreasuryLocation: Location =
 		(Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub DapSatelliteAccount: AccountId = crate::DapSatellitePalletId::get().into_account_truncating();
 }
 
 pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
@@ -277,6 +278,8 @@ impl frame_support::weights::WeightToFee for WeightToStableFee {
 pub type FungibleHollar = ItemOf<AssetsPallet, HollarLocation, AccountId>;
 
 /// All ways of paying for execution fees via XCM.
+// TODO(#1137, SDK#11409): redirect XCM execution fees to DAP satellite once DAP
+// allocates collator budgets
 pub type Traders = (
 	UsingComponents<
 		WeightToNativeFee,
@@ -322,7 +325,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<FungibleTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<FungibleTransactor, DapSatelliteAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;

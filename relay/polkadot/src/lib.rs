@@ -43,11 +43,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration,
-		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, Contains, EitherOf, EitherOfDiverse, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstU32, ConstU8, ConstUint,
+		Contains, EitherOf, EitherOfDiverse, FromContains, Get, InstanceFilter,
+		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -64,7 +63,6 @@ use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
-use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
@@ -78,12 +76,12 @@ use polkadot_primitives::{
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
-		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
-		VersionedLocatableAsset, VersionedLocationConverter,
+		ContainsParts as ContainsLocationParts, LocatableAssetConverter, VersionedLocatableAsset,
+		VersionedLocationConverter,
 	},
 	paras_registrar, prod_or_fast, slots,
 	traits::OnSwap,
-	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
+	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate, ToAuthor,
 };
 use sp_runtime::traits::Convert;
 
@@ -381,7 +379,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = DapSatellite;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -489,11 +487,17 @@ parameter_types! {
 	/// This value increases the priority of `Operational` transactions by adding
 	/// a "virtual tip" that's equal to the `OperationalFeeMultiplier * final_fee`.
 	pub const OperationalFeeMultiplier: u8 = 5;
+	/// 80% of tx fees go to DAP satellite, 20% to block author.
+	pub const DapSatelliteFeePercent: Percent = Percent::from_percent(80);
 }
+
+/// Fee handler that splits fees between DAP satellite and block author.
+type DealWithFeesSatellite =
+	pallet_dap_satellite::DealWithFeesSplit<Runtime, DapSatelliteFeePercent, ToAuthor<Runtime>>;
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFeesSatellite>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -772,9 +776,9 @@ impl pallet_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
+	type RewardRemainder = DapSatellite;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = ResolveTo<TreasuryAccount, Balances>;
+	type Slash = DapSatellite;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -922,7 +926,9 @@ impl pallet_bounties::Config for Runtime {
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
-	type OnSlash = Treasury;
+	// Bounties is blocked post-AHM via PostAhmFilter.
+	// No new bounty calls can be executed, so setting to `()` is fine.
+	type OnSlash = ();
 	type TransferAllAssets = (); // not used on the relay
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
@@ -1594,11 +1600,19 @@ impl pallet_delegated_staking::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = DelegatedStakingPalletId;
 	type Currency = Balances;
-	// slashes are sent to the treasury.
-	type OnSlash = ResolveTo<TreasuryAccountId<Self>, Balances>;
+	type OnSlash = DapSatellite;
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
+}
+
+parameter_types! {
+	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
+}
+
+impl pallet_dap_satellite::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = DapSatellitePalletId;
 }
 
 impl ah_client::Config for Runtime {
@@ -1879,6 +1893,9 @@ construct_runtime! {
 
 		// Asset rate.
 		AssetRate: pallet_asset_rate = 101,
+
+		// DAP Satellite - collects funds for transfer to DAP on AssetHub.
+		DapSatellite: pallet_dap_satellite = 106,
 
 		// BEEFY Bridges support.
 		Beefy: pallet_beefy = 200,

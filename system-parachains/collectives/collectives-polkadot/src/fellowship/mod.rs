@@ -100,6 +100,8 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	>;
 	type CancelOrigin = Architects;
 	type KillOrigin = Masters;
+	// TODO(#1137, SDK#11704): redirect to DapSatellite once it supports NegativeImbalance.
+	// Needs SDK2604 which contains the related fix (SDK#11716).
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, FellowshipCollectiveInstance>;
