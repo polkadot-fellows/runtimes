@@ -6,7 +6,7 @@ use zombienet_sdk::subxt::{
 };
 use zombienet_sdk_tests::{
 	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
-	small_network, COLLATOR_1005, COLLATOR_1006_1,
+	small_network, COLLATOR_1005, COLLATOR_1010_1,
 };
 
 fn dump_provider_and_versions() {
@@ -86,7 +86,7 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	}
 
 	// wait 10 blocks on each parachain
-	for node_name in [COLLATOR_1005, COLLATOR_1006_1] {
+	for node_name in [COLLATOR_1005, COLLATOR_1010_1] {
 		let collator = network.get_node(node_name)?;
 		let collator_client: OnlineClient<PolkadotConfig> = collator.wait_client().await?;
 

@@ -25,7 +25,7 @@ use sp_genesis_builder::PresetId;
 use system_parachains_constants::{genesis_presets::*, polkadot::currency::UNITS as DOT};
 
 const BULLETIN_POLKADOT_ED: Balance = ExistentialDeposit::get();
-pub const BULLETIN_PARA_ID: ParaId = ParaId::new(1006);
+pub const BULLETIN_PARA_ID: ParaId = ParaId::new(1010);
 
 fn bulletin_polkadot_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,

@@ -23,7 +23,7 @@ use emulated_integration_tests_common::{
 };
 use parachains_common::Balance;
 
-pub const PARA_ID: u32 = 1006;
+pub const PARA_ID: u32 = 1010;
 pub const ED: Balance = bulletin_polkadot_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {
