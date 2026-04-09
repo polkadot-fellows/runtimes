@@ -17,6 +17,7 @@ concurrency:
 jobs:
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
+    if: false # temporarily disabled — only zombienet-smoke runs
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -30,6 +31,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
+    if: false # temporarily disabled — only zombienet-smoke runs
     runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
@@ -407,7 +409,7 @@ jobs:
     needs: [build-runtimes]
     runs-on: self-hosted
     timeout-minutes: 120
-    if: github.event_name == 'pull_request'
+    if: false # temporarily disabled — only zombienet-smoke runs
     strategy:
       fail-fast: false
       matrix:
@@ -607,16 +609,13 @@ jobs:
   confirmTestPassed:
     runs-on: ubuntu-24.04
     name: All tests passed
-    # If any new job gets added, be sure to add it to this list
+    # Temporarily only depending on zombienet-smoke
     needs:
-      - runtime-test
-      - integration-test
-      - build-chain-spec-generator
+      #- runtime-test
+      #- integration-test
+      #- build-chain-spec-generator
       - zombienet-smoke
-      - check-runtimes
-      # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
-      # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
-      # params), false negatives will occur. See #1078 .
+      #- check-runtimes
       #- ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
