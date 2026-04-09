@@ -347,8 +347,14 @@ impl_runtime_apis! {
 				}
 			}
 
+			use codec::Encode;
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+			impl cumulus_pallet_session_benchmarking::Config for Runtime {
+				fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+					let keys = crate::SessionKeys::generate(&owner.encode(), None);
+					(keys.keys, keys.proof.encode())
+				}
+			}
 
 			use xcm::latest::prelude::*;
 			use xcm_config::DotLocation;
@@ -419,7 +425,7 @@ impl_runtime_apis! {
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(xcm_config::AssetHubLocation::get())
 				}
-				fn worst_case_holding(_depositable_count: u32) -> Assets {
+				fn worst_case_holding(_depositable_count: u32) -> xcm_executor::AssetsInHolding {
 					// just concrete assets according to relay chain.
 					let assets: Vec<Asset> =
 						vec![Asset { id: AssetId(DotLocation::get()), fun: Fungible(1_000_000 * UNITS) }];
