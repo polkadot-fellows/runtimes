@@ -18,19 +18,26 @@
 use sp_core::storage::Storage;
 
 // Cumulus
+use bulletin_polkadot_runtime::xcm_config::TreasuryAccount;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
 use parachains_common::Balance;
+use polkadot_runtime_constants::currency::UNITS as DOT;
 
 pub const PARA_ID: u32 = 1010;
+pub const ENDOWMENT: u128 = 1_000 * DOT;
 pub const ED: Balance = bulletin_polkadot_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {
 	let genesis_config = bulletin_polkadot_runtime::RuntimeGenesisConfig {
 		system: bulletin_polkadot_runtime::SystemConfig::default(),
 		balances: bulletin_polkadot_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ED * 4096)).collect(),
+			balances: accounts::init_balances()
+				.into_iter()
+				.chain([TreasuryAccount::get()])
+				.map(|k| (k, ENDOWMENT))
+				.collect(),
 			dev_accounts: None,
 		},
 		parachain_info: bulletin_polkadot_runtime::ParachainInfoConfig {
