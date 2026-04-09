@@ -83,6 +83,12 @@ impl<T: frame_system::Config> pallet_broker::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	fn remove_potential_renewal() -> Weight {
+		Weight::zero()
+	}
+	fn force_transfer() -> Weight {
+		Weight::zero()
+	} // TODO @ggwpez rerun
 	/// Storage: `Broker::Leases` (r:1 w:1)
 	/// Proof: `Broker::Leases` (`max_values`: Some(1), `max_size`: Some(441), added: 936, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::ValidationData` (r:1 w:0)

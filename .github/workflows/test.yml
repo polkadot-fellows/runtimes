@@ -9,9 +9,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2506
-
 # cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -127,9 +124,10 @@ jobs:
             EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUNTIME_LOG: "error"
 
   # Job required by "confirmTestPassed"
   integration-test:

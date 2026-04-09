@@ -227,6 +227,11 @@ pub mod pallet {
 		}
 
 		fn on_validation_code_applied() {}
+		fn on_relay_state_proof(
+			_relay_state_proof: &cumulus_pallet_parachain_system::relay_state_snapshot::RelayChainStateProof,
+		) -> frame_support::weights::Weight {
+			Default::default()
+		}
 	}
 
 	#[pallet::error]
