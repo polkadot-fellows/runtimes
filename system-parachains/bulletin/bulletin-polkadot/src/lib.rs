@@ -76,7 +76,7 @@ use system_parachains_constants::{
 			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
 			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
-		currency::{CENTS, MILLICENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT},
+		currency::{CENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT},
 		fee::WeightToFee,
 	},
 };
