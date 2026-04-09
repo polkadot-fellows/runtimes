@@ -17,6 +17,7 @@
 
 use crate::*;
 
+use bulletin_polkadot_runtime::xcm_config::XcmConfig as BulletinPolkadotXcmConfig;
 use integration_tests_helpers::test_chain_can_claim_assets;
 
 #[test]
@@ -26,7 +27,7 @@ fn assets_can_be_claimed() {
 
 	test_chain_can_claim_assets!(
 		BulletinPolkadot,
-		RuntimeCall,
+		BulletinPolkadotXcmConfig,
 		NetworkId::Polkadot,
 		assets,
 		amount
