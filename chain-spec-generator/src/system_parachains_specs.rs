@@ -50,6 +50,8 @@ pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
+pub type BulletinPolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+
 #[cfg(feature = "asset-hub-polkadot")]
 pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
 {
@@ -360,6 +362,28 @@ pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::C
 		)
 		.with_name("Polkadot People Local")
 		.with_id("people-polkadot-local")
+		.with_chain_type(sc_chain_spec::ChainType::Local)
+		.with_genesis_config_preset_name("local_testnet")
+		.with_properties(properties)
+		.build(),
+	))
+}
+
+#[cfg(feature = "bulletin-polkadot")]
+pub fn bulletin_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 0.into());
+	properties.insert("tokenSymbol".into(), "DOT".into());
+	properties.insert("tokenDecimals".into(), 10.into());
+
+	Ok(Box::new(
+		BulletinPolkadotChainSpec::builder(
+			bulletin_polkadot_runtime::WASM_BINARY.expect("BulletinPolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot-local".into(), para_id: 1010 },
+		)
+		.with_name("Polkadot Bulletin Local")
+		.with_id("bulletin-polkadot-local")
 		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)

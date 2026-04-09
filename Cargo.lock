@@ -2782,6 +2782,100 @@ dependencies = [
 ]
 
 [[package]]
+name = "bulletin-polkadot-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "bulletin-polkadot-runtime",
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "parachains-common",
+ "polkadot-runtime-constants",
+ "sp-core 40.0.0",
+]
+
+[[package]]
+name = "bulletin-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "bulletin-polkadot-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "integration-tests-helpers",
+ "parachains-common",
+ "polkadot-system-emulated-network",
+ "staging-xcm",
+ "staging-xcm-executor",
+]
+
+[[package]]
+name = "bulletin-polkadot-runtime"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-aura-ext",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-session-benchmarking",
+ "cumulus-pallet-weight-reclaim",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
+ "cumulus-primitives-core",
+ "cumulus-primitives-utility",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-metadata-hash-extension",
+ "frame-support",
+ "frame-system",
+ "frame-system-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
+ "pallet-aura",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-collator-selection",
+ "pallet-message-queue",
+ "pallet-session",
+ "pallet-skip-feeless-payment",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
+ "pallet-xcm",
+ "pallet-xcm-benchmarks",
+ "parachains-common",
+ "parachains-runtimes-test-utils",
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-common",
+ "polkadot-runtime-constants",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-api 41.0.0",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core 40.0.0",
+ "sp-genesis-builder 0.22.0",
+ "sp-inherents 41.0.0",
+ "sp-io 45.0.0",
+ "sp-keyring",
+ "sp-offchain",
+ "sp-runtime 46.0.0",
+ "sp-session",
+ "sp-storage 23.0.0",
+ "sp-transaction-pool",
+ "sp-version 44.0.0",
+ "sp-weights 34.0.0",
+ "staging-parachain-info",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+ "substrate-wasm-builder",
+ "system-parachains-constants",
+ "xcm-runtime-apis",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2961,6 +3055,7 @@ dependencies = [
  "asset-hub-polkadot-runtime",
  "bridge-hub-kusama-runtime",
  "bridge-hub-polkadot-runtime",
+ "bulletin-polkadot-runtime",
  "clap",
  "collectives-polkadot-runtime",
  "coretime-kusama-runtime",
@@ -10823,6 +10918,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-skip-feeless-payment"
+version = "21.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cf79d43bfc3b82f5e9aa02146b0e1cdbebecfbe48b1885b8638bc0191e81a7d"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 46.0.0",
+]
+
+[[package]]
 name = "pallet-society"
 version = "46.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12345,6 +12453,7 @@ version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-emulated-chain",
  "bridge-hub-polkadot-emulated-chain",
+ "bulletin-polkadot-emulated-chain",
  "collectives-polkadot-emulated-chain",
  "coretime-polkadot-emulated-chain",
  "emulated-integration-tests-common",
