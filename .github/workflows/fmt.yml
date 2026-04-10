@@ -30,12 +30,12 @@ jobs:
           components: "rustfmt"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 
-      - name: Install taplo
-        run: |
-          cargo install taplo-cli --version $TAPLO_VERSION
-
       - name: Rustfmt (check)
         run: cargo +nightly-$RUST_NIGHTLY_VERSION fmt --all -- --check
+
+      - name: Install taplo
+        run: |
+          cargo install taplo-cli --version $TAPLO_VERSION --locked
 
       - name: Taplo (check)
         run: taplo format --check --config .config/taplo.toml
