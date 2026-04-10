@@ -15,6 +15,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-release-pr:
+    # Detect whether this is a release PR or a push on a release branch. Used to determine whether
+    # to run PET tests.
+    name: Check if release PR
+    runs-on: ubuntu-24.04
+    outputs:
+      is-release-pr: ${{ steps.check.outputs.is-release-pr }}
+    steps:
+      - name: Check if CHANGELOG.md changed
+        id: changed
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            CHANGELOG.md
+      - uses: actions/checkout@v4
+        if: steps.changed.outputs.any_changed == 'true'
+      - name: Check if release PR or on release branch
+        id: check
+        run: |
+          if [[ "${{ github.ref }}" == refs/heads/release-* ]]; then
+            echo "is-release-pr=1" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.changed.outputs.any_changed }}" != "true" ]; then
+            echo "is-release-pr=0" >> $GITHUB_OUTPUT
+          else
+            echo "is-release-pr=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
+          fi
+
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
     runs-on: ubuntu-24.04
@@ -404,10 +431,10 @@ jobs:
 
   ecosystem-tests:
     name: "PET (${{ matrix.network.name }})"
-    needs: [build-runtimes]
+    needs: [build-runtimes, check-release-pr]
     runs-on: self-hosted
     timeout-minutes: 120
-    if: github.event_name == 'pull_request'
+    if: needs.check-release-pr.outputs.is-release-pr == '1'
     strategy:
       fail-fast: false
       matrix:
