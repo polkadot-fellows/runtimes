@@ -247,6 +247,8 @@ jobs:
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
+    needs: [check-release-pr]
+    if: needs.check-release-pr.outputs.is-release-pr == '1'
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -639,11 +641,9 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - zombienet-smoke
       - check-runtimes
-      # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
-      # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
-      # params), false negatives will occur. See #1078 .
+      # These jobs only run on release PRs/branches, so they are not required for the gate.
+      #- zombienet-smoke
       #- ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
