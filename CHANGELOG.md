@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: EVM ERC-20 precompiles for foreign assets.
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Polkadot & Kusama relay: Set `max_relay_parent_session_age` to `0` in genesis presets (to be configured via governance).
 - Add Bulletin Polkadot system parachain runtime ([#1120](https://github.com/polkadot-fellows/runtimes/pull/1120)).
+- [[#1143](https://github.com/polkadot-fellows/runtimes/pull/1143)] All runtimes now support the transaction extension `AuthorizeCall`.
 
 ### Changed
 
