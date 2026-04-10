@@ -11,8 +11,11 @@ const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
 // Relaychain nodes
 const ALICE: &str = "alice";
 const BOB: &str = "bob";
+const CHARLIE: &str = "charlie";
 // Collator
-const COLLATOR: &str = "collator";
+pub const COLLATOR_1005: &str = "collator_1005";
+pub const COLLATOR_1010_1: &str = "collator_1010_1";
+pub const COLLATOR_1010_2: &str = "collator_1010_2";
 
 pub fn small_network() -> Result<NetworkConfig, Error> {
 	let images = environment::get_images_from_env();
@@ -26,15 +29,26 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 				.chain_spec_command_is_local(true)
 				.with_validator(|node| node.with_name(ALICE))
 				.with_validator(|node| node.with_name(BOB))
+				.with_validator(|node| node.with_name(CHARLIE))
 		})
 		.with_parachain(|p| {
 			p.with_id(1005)
-				.with_default_command("polkadot-parachain")
+				.with_default_command("polkadot-omni-node")
 				.with_default_image(images.cumulus.as_str())
 				.with_chain_spec_command(CMD_TPL)
 				.chain_spec_command_is_local(true)
 				.with_chain("coretime-polkadot-local")
-				.with_collator(|n| n.with_name(COLLATOR))
+				.with_collator(|n| n.with_name(COLLATOR_1005))
+		})
+		.with_parachain(|p| {
+			p.with_id(1010)
+				.with_default_command("polkadot-omni-node")
+				.with_default_image(images.cumulus.as_str())
+				.with_chain_spec_command(CMD_TPL)
+				.chain_spec_command_is_local(true)
+				.with_chain("bulletin-polkadot-local")
+				.with_collator(|n| n.with_name(COLLATOR_1010_1))
+				.with_collator(|n| n.with_name(COLLATOR_1010_2))
 		});
 
 	let config = if let Ok(local_ip) = std::env::var("ZOMBIE_LOCAL_IP") {

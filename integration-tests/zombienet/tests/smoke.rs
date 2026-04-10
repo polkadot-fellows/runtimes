@@ -1,8 +1,12 @@
 use std::time::Instant;
-use zombienet_sdk::subxt::{ext::futures::StreamExt, OnlineClient, PolkadotConfig};
+use zombienet_sdk::subxt::{
+	dynamic::{self, At, DecodedValueThunk, Value},
+	ext::futures::StreamExt,
+	OnlineClient, PolkadotConfig,
+};
 use zombienet_sdk_tests::{
 	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
-	small_network,
+	small_network, COLLATOR_1005, COLLATOR_1010_1,
 };
 
 fn dump_provider_and_versions() {
@@ -31,9 +35,22 @@ fn dump_provider_and_versions() {
 	}
 }
 
+async fn chain_label(client: &OnlineClient<PolkadotConfig>) -> Result<String, anyhow::Error> {
+	let call = dynamic::runtime_api_call("Core", "version", Vec::<Value>::new());
+	let result: DecodedValueThunk = client.runtime_api().at_latest().await?.call(call).await?;
+	let value = result.to_value()?;
+	let spec_name = value.at("spec_name").unwrap().at(0).unwrap().as_str().unwrap();
+	let spec_version = value.at("spec_version").unwrap().as_u128().unwrap();
+	Ok(format!("{spec_name}@{spec_version}"))
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn smoke() -> Result<(), anyhow::Error> {
-	tracing_subscriber::fmt::init();
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+		)
+		.init();
 
 	// config and env
 	dump_provider_and_versions();
@@ -42,7 +59,7 @@ async fn smoke() -> Result<(), anyhow::Error> {
 
 	// spawn
 	let now = Instant::now();
-	let network = spawn_fn(config).await.unwrap();
+	let network = spawn_fn(config).await?;
 	let elapsed = now.elapsed();
 	log::info!("🚀🚀🚀🚀 network deployed in {elapsed:.2?}");
 
@@ -54,31 +71,36 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	let alice_client: OnlineClient<PolkadotConfig> = alice.wait_client().await?;
 
 	// wait 10 blocks
+	let alice_chain_label = chain_label(&alice_client).await?;
 	let mut blocks = alice_client.blocks().subscribe_finalized().await.unwrap().take(10);
 
 	let mut now = Instant::now();
 	while let Some(block) = blocks.next().await {
 		log::info!(
-			"Block #{} in {} seconds",
+			"{alice_chain_label} Block #{} in {} seconds",
 			block.unwrap().header().number,
 			now.elapsed().as_secs()
 		);
 		now = Instant::now();
 	}
 
-	// wait 10 blocks on the parachain
-	let collator = network.get_node("collator")?;
-	let collator_client: OnlineClient<PolkadotConfig> = collator.wait_client().await?;
+	// wait 10 blocks on each parachain
+	for node_name in [COLLATOR_1005, COLLATOR_1010_1] {
+		let collator = network.get_node(node_name)?;
+		let collator_client: OnlineClient<PolkadotConfig> = collator.wait_client().await?;
 
-	let mut blocks = collator_client.blocks().subscribe_finalized().await.unwrap().take(20);
-	let mut now = Instant::now();
-	while let Some(block) = blocks.next().await {
-		log::info!(
-			"Parachain Block #{} in {} seconds",
-			block.unwrap().header().number,
-			now.elapsed().as_secs()
-		);
-		now = Instant::now();
+		let collator_chain_label = chain_label(&collator_client).await?;
+
+		let mut blocks = collator_client.blocks().subscribe_finalized().await.unwrap().take(10);
+		let mut now = Instant::now();
+		while let Some(block) = blocks.next().await {
+			log::info!(
+				"{collator_chain_label} Block #{} in {} seconds",
+				block.unwrap().header().number,
+				now.elapsed().as_secs()
+			);
+			now = Instant::now();
+		}
 	}
 
 	Ok(())

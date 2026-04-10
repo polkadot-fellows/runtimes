@@ -39,6 +39,8 @@ bp-relayers = { version = "0.26.0", default-features = false }
 bp-runtime = { version = "0.26.0", default-features = false }
 bp-xcm-bridge-hub = { version = "0.12.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.23.0", default-features = false }
+bulletin-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot" }
+bulletin-polkadot-runtime = { path = "system-parachains/bulletin/bulletin-polkadot" }
 bridge-hub-common = { version = "0.19.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
@@ -168,6 +170,7 @@ pallet-salary = { version = "31.0.0", default-features = false }
 pallet-scheduler = { version = "47.0.0", default-features = false }
 pallet-session = { version = "46.0.0", default-features = false }
 pallet-session-benchmarking = { version = "46.0.0", default-features = false }
+pallet-skip-feeless-payment = { version = "21.0.0", default-features = false }
 pallet-society = { version = "46.0.0", default-features = false }
 pallet-staking = { version = "46.0.0", default-features = false }
 pallet-delegated-staking = { version = "13.0.0", default-features = false }
@@ -292,6 +295,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
+	"integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-polkadot",
@@ -309,6 +313,7 @@ members = [
 	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
+	"integration-tests/emulated/tests/bulletin/bulletin-polkadot",
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/coretime/coretime-polkadot",
@@ -334,6 +339,7 @@ members = [
 	"system-parachains/bridge-hubs/bridge-hub-kusama/primitives",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot/primitives",
+	"system-parachains/bulletin/bulletin-polkadot",
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/common",

@@ -287,5 +287,16 @@
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
     }
+  },
+  {
+    "name": "bulletin-polkadot",
+    "package": "bulletin-polkadot-runtime",
+    "path": "system-parachains/bulletin/bulletin-polkadot",
+    "is_relay": false,
+    "blocktime": 6000,
+    "benchmarks_templates": {
+      "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
+      "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    }
   }
 ]

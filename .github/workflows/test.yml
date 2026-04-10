@@ -9,9 +9,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2603
-
 # cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -260,7 +257,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot --release --locked --quiet
 
       - name: Wait for Docker to Start
         run: |
@@ -272,7 +269,7 @@ jobs:
         run: |
           # Since we are running the runner in a dind environment we need to find the ip
           # of the proxy where the ports will be exposed.
-          # In the current infra there are 2 containes, the `dind` and the runner.
+          # In the current infra there are 2 containers, the `dind` and the runner.
           export ZOMBIE_LOCAL_IP=$(hostname -i | awk -F"." '{printf "%d.%d.%d.%d", $1, $2, $3, $4 - 1}')
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
