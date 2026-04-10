@@ -199,7 +199,6 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 		use RuntimeCall::*;
 		match call {
 			Scheduler(..) |
-			Preimage(..) |
 			Indices(..) |
 			Staking(..) |
 			Treasury(..) |
