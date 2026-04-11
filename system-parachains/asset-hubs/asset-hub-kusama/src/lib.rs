@@ -2143,7 +2143,6 @@ mod benches {
 			PeopleLocation::get(),
 			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocation::get()) },
 		));
-		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubKusama trusts AssetHubPolkadot as reserve for DOTs
 		pub TrustedReserve: Option<(Location, Asset)> = Some({
 			use frame_support::traits::tokens::fungible::{Inspect, Mutate};
@@ -2177,7 +2176,7 @@ mod benches {
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 		type TransactAsset = Balances;
 
-		type CheckedAccount = CheckedAccount;
+		type CheckedAccount = xcm_config::TeleportTracking;
 		type TrustedTeleporter = TrustedTeleporter;
 		type TrustedReserve = TrustedReserve;
 
