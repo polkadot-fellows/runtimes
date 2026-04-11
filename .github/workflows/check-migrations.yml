@@ -7,6 +7,8 @@ on:
   push:
     branches: ["release-*"]
   pull_request:
+    # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
   schedule:
     - cron: '0 1 * * *'  # Daily at 1 AM UTC
@@ -22,6 +24,7 @@ permissions: {}
 
 jobs:
   runtime-matrix:
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
