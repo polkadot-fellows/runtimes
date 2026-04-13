@@ -39,7 +39,6 @@ use polkadot_runtime_constants::{
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use sp_runtime::traits::{AccountIdConversion, TryConvert};
-use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -53,7 +52,7 @@ use xcm_builder::{
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -67,17 +66,7 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	// TODO(#1137, #1144): post-AHM the relay Treasury has migrated to Asset Hub — remove
-	// RelayTreasuryLocation from WaivedLocations/Barrier and migrate any balance accumulated
-	// under RelayTreasuryPalletAccount on this chain into DapSatelliteAccount.
-	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
-	// Test [`treasury_pallet_account_not_none`] ensures that the result of location conversion is
-	// not `None`.
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 	pub AssetHubUsdt: LocatableAssetId = LocatableAssetId {
 		location: AssetHubLocation::get(),
@@ -182,12 +171,7 @@ pub type Barrier = TrailingSetTopicAsId<
 					// Parent and its pluralities (i.e. governance bodies) and relay treasury get
 					// free execution.
 					AllowExplicitUnpaidExecutionFrom<
-						(
-							ParentOrParentsPlurality,
-							Equals<RelayTreasuryLocation>,
-							Equals<AssetHubLocation>,
-							AssetHubPlurality,
-						),
+						(ParentOrParentsPlurality, Equals<AssetHubLocation>, AssetHubPlurality),
 						TrustedAliasers,
 					>,
 					// Subscriptions for version tracking are OK.
@@ -219,7 +203,6 @@ parameter_types! {
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	Equals<FellowshipTreasuryLocation>,
 	Equals<FellowshipSalaryLocation>,
 	Equals<SecretarySalaryLocation>,
@@ -393,12 +376,4 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
 }

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bridge_hub_polkadot_runtime::xcm_config::{StakingPot, TreasuryAccount};
+use bridge_hub_polkadot_runtime::xcm_config::{DapSatelliteAccount, StakingPot};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
@@ -31,7 +31,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		balances: bridge_hub_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([TreasuryAccount::get(), StakingPot::get()])
+				.chain([DapSatelliteAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096))
 				.collect(),
 			dev_accounts: None,

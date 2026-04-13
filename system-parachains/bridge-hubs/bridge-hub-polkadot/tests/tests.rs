@@ -31,7 +31,7 @@ use bridge_hub_polkadot_runtime::{
 	},
 	xcm_config::{
 		AssetHubLocation, DotRelayLocation, LocationToAccountId, RelayChainLocation, RelayNetwork,
-		RelayTreasuryLocation, RelayTreasuryPalletAccount, XcmConfig,
+		XcmConfig,
 	},
 	AllPalletsWithoutSystem, Balances, Block, BridgeRejectObsoleteHeadersAndMessages,
 	BridgeRelayers, Executive, ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime,
@@ -463,14 +463,6 @@ pub fn can_calculate_fee_for_standalone_message_confirmation_transaction() {
 			"Estimate fee for `single message confirmation` for runtime: {:?}",
 			<Runtime as frame_system::Config>::Version::get()
 		),
-	)
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
 	)
 }
 
