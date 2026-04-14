@@ -199,7 +199,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_002_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -2034,7 +2034,6 @@ mod benches {
 			PeopleLocation::get(),
 			Asset { fun: Fungible(UNITS), id: AssetId(DotLocation::get()) },
 		));
-		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubPolkadot trusts AssetHubKusama as reserve for KSMs
 		pub TrustedReserve: Option<(Location, Asset)> = Some({
 			use frame_support::traits::tokens::fungible::{Inspect, Mutate};
@@ -2068,7 +2067,7 @@ mod benches {
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 		type TransactAsset = Balances;
 
-		type CheckedAccount = CheckedAccount;
+		type CheckedAccount = xcm_config::TeleportTracking;
 		type TrustedTeleporter = TrustedTeleporter;
 		type TrustedReserve = TrustedReserve;
 

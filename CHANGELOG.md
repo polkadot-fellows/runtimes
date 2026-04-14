@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Bump maximum number of reserved cores to 50 on Polkadot and Kusama Coretime chains ([#1147](https://github.com/polkadot-fellows/runtimes/pull/1147))
+
+## [2.2.0] 10.04.2026
+
 ### Added
 
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] 💥 Pallet-broker: add extrinsic to forcefully remove the potential renewal ([stable2603 #10828](https://github.com/paritytech/polkadot-sdk/pull/10828)).
@@ -23,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Collectives Polkadot: Waive XCM fees for Fellowship/Ambassador Treasury and Salary pallet origins.
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: Activate `TransferAllAssets` on `pallet_bounties` to sweep fungibles from closed bounty accounts.
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: Set `BountyDepositBase` on `pallet_bounties` to `10 * QUID` / `10 * DOLLARS` instead of `system_para_deposit(0, 176)`, aligning the proposer deposit with other fixed governance deposits on Asset Hub.
+- people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
 
 ### Fixed
 
@@ -37,10 +44,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Frame-support: remove error reporting in `remote_transfer_xcm` for paid execution ([stable2603 #10697](https://github.com/paritytech/polkadot-sdk/pull/10697)).
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Polkadot & Kusama relay: Remove `CoretimeAssignmentProvider` pallet, coretime assignment now via `ParaScheduler`.
 - [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Polkadot: Remove `March2026TI` value and hard-code instead.
-
-### Changed
-
-- people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
 
 ## [2.1.1] 13.03.2026
 
