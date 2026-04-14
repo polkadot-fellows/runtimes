@@ -19,13 +19,45 @@ use crate::*;
 use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::ParaId;
 use frame_support::build_struct_json_patch;
+use hex_literal::hex;
 use parachains_common::{AccountId, AuraId};
-use sp_core::sr25519;
+use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_genesis_builder::PresetId;
 use system_parachains_constants::{genesis_presets::*, polkadot::currency::UNITS as DOT};
 
 const BULLETIN_POLKADOT_ED: Balance = ExistentialDeposit::get();
 pub const BULLETIN_PARA_ID: ParaId = ParaId::new(1010);
+
+fn bulletin_polkadot_live_genesis(id: ParaId) -> serde_json::Value {
+	bulletin_polkadot_genesis(
+		vec![
+			// Faraday Nodes
+			// 155wHcqJ3fcfgtHsjqKHwNEU24pzRkkmZK865xxHeFTXMU8T
+			(
+				hex!("b4b4a8fdf51911242d0a860640fa8952f4005d0c4542428b4bcfb9815fc6ec55").into(),
+				hex!("4e91cfd5145fea6ebd1d1a441b33797e9c19918fa017291c73e56d2590566778")
+					.unchecked_into(),
+			),
+			// yaron
+			// 1sXuddoUew7f9F9XTVyns8KjCRRLvpvvUsZUyxZhqtH4RZn
+			(
+				hex!("268a505e81484de28108b814d0ab5ea13b947d153c19ee26bd280bd886e57815").into(),
+				hex!("80d6667f725e501088c081ff924dbe1aa50c67618b0984cb996c3d5fa5500f0f")
+					.unchecked_into(),
+			),
+			// dapestake
+			// 1A1WrKowzJD4yQQcETugEV5UWoNo1o7ujuA3f1fBfpxPjZL
+			(
+				hex!("06def0ef07d9b5153276dd785525839706f4696c8cb86227a2af27fd7495ee63").into(),
+				hex!("5e9659d151a03a5902e3135c9e361855f6d1caaea6e53a7d8613d7ad410bf507")
+					.unchecked_into(),
+			),
+		],
+		Vec::new(),
+		0,
+		id,
+	)
+}
 
 fn bulletin_polkadot_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,
@@ -61,6 +93,7 @@ fn bulletin_polkadot_genesis(
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
+		"live" => bulletin_polkadot_live_genesis(BULLETIN_PARA_ID),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => bulletin_polkadot_genesis(
 			// initial collators.
 			invulnerables(),
@@ -96,6 +129,7 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 /// List of supported presets.
 pub fn preset_names() -> Vec<PresetId> {
 	vec![
+		PresetId::from("live"),
 		PresetId::from(sp_genesis_builder::DEV_RUNTIME_PRESET),
 		PresetId::from(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET),
 	]

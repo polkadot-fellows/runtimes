@@ -370,6 +370,40 @@ pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::C
 }
 
 #[cfg(feature = "bulletin-polkadot")]
+pub fn bulletin_polkadot_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 0.into());
+	properties.insert("tokenSymbol".into(), "DOT".into());
+	properties.insert("tokenDecimals".into(), 10.into());
+
+	// TODO: Add post-launch.
+	let boot_nodes: [&str; 0] = [];
+
+	Ok(Box::new(
+		BulletinPolkadotChainSpec::builder(
+			bulletin_polkadot_runtime::WASM_BINARY.expect("BulletinPolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot".into(), para_id: 1010 },
+		)
+		.with_name("Polkadot Bulletin")
+		.with_id("bulletin-polkadot")
+		.with_chain_type(sc_chain_spec::ChainType::Live)
+		.with_genesis_config_preset_name("live")
+		.with_properties(properties)
+		.with_boot_nodes(
+			boot_nodes
+				.iter()
+				.map(|addr| {
+					use std::str::FromStr;
+					sc_network::config::MultiaddrWithPeerId::from_str(addr)
+						.expect("Boot node address is incorrect.")
+				})
+				.collect(),
+		)
+		.build(),
+	))
+}
+
+#[cfg(feature = "bulletin-polkadot")]
 pub fn bulletin_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
 {
 	let mut properties = sc_chain_spec::Properties::new();
