@@ -314,7 +314,7 @@ impl pallet_broker::Config for Runtime {
 	type OnRevenue = BurnCoretimeRevenue;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<50>;
-	type MaxReservedCores = ConstU32<10>;
+	type MaxReservedCores = ConstU32<50>;
 	type Coretime = CoretimeAllocator;
 	type ConvertBalance = sp_runtime::traits::Identity;
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
