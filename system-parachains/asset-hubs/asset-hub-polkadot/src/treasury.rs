@@ -17,6 +17,7 @@ use crate::{governance::Treasurer, *};
 use frame_support::traits::{
 	fungible::HoldConsideration, tokens::UnityOrOuterConversion, FromContains,
 };
+use pallet_bounties::TransferAllFungibles;
 use parachains_common::pay::{AccountIdToLocalLocation, LocalPay, VersionedLocatableAccount};
 use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 
@@ -41,7 +42,7 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod = pallet_ah_migrator::LeftOrRight<AhMigrator, DisableSpends, SpendPeriod>;
+	type SpendPeriod = SpendPeriod;
 	type Burn = ();
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
@@ -62,8 +63,35 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-	// where `176` is the size of the `Bounty` struct in bytes.
-	pub const BountyDepositBase: Balance = system_para_deposit(0, 176);
+	// Assets that legacy bounties can hold.
+	pub BountyRelevantAssets: Vec<xcm::latest::Location> = vec![
+		xcm_config::DotLocation::get(), // DOT
+		xcm::latest::Location::new( // USDT
+			0,
+			[xcm::latest::Junction::PalletInstance(
+				xcm_config::TrustBackedAssetsPalletIndex::get(),
+			), xcm::latest::Junction::GeneralIndex(1984)],
+		),
+		xcm::latest::Location::new( // USDC
+			0,
+			[xcm::latest::Junction::PalletInstance(
+				xcm_config::TrustBackedAssetsPalletIndex::get(),
+			), xcm::latest::Junction::GeneralIndex(1337)],
+		),
+		xcm::latest::Location::new( // DED
+			0,
+			[xcm::latest::Junction::PalletInstance(
+				xcm_config::TrustBackedAssetsPalletIndex::get(),
+			), xcm::latest::Junction::GeneralIndex(30)],
+		),
+		xcm::latest::Location::new( // MYTH
+			1,
+			xcm::latest::Junctions::X1(
+				[xcm::latest::Junction::Parachain(3369)].into()
+			),
+		),
+	];
+	pub const BountyDepositBase: Balance = 10 * DOLLARS;
 	// per byte for the bounty description.
 	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
@@ -90,6 +118,7 @@ impl pallet_bounties::Config for Runtime {
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
+	type TransferAllAssets = TransferAllFungibles<AccountId, NativeAndAssets, BountyRelevantAssets>;
 }
 
 parameter_types! {

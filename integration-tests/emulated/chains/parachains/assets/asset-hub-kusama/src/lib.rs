@@ -42,6 +42,7 @@ decl_test_parachains! {
 			LocationToAccountId: asset_hub_kusama_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: asset_hub_kusama_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			native_total_supply_tracker: true,
 		},
 		pallets = {
 			PolkadotXcm: asset_hub_kusama_runtime::PolkadotXcm,
@@ -50,6 +51,8 @@ decl_test_parachains! {
 			PoolAssets: asset_hub_kusama_runtime::PoolAssets,
 			AssetConversion: asset_hub_kusama_runtime::AssetConversion,
 			Balances: asset_hub_kusama_runtime::Balances,
+			Treasury: asset_hub_kusama_runtime::Treasury,
+			AssetRate: asset_hub_kusama_runtime::AssetRate,
 		}
 	},
 }

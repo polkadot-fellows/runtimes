@@ -95,10 +95,12 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	let code_hash_collectives = [3u8; 32].into();
 	let code_hash_coretime = [4u8; 32].into();
 	let code_hash_people = [5u8; 32].into();
+	let code_hash_bulletin = [6u8; 32].into();
 
 	Polkadot::execute_with(|| {
 		Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
 		Dmp::make_parachain_reachable(BridgeHubPolkadot::para_id());
+		Dmp::make_parachain_reachable(BulletinPolkadot::para_id());
 		Dmp::make_parachain_reachable(CollectivesPolkadot::para_id());
 		Dmp::make_parachain_reachable(CoretimePolkadot::para_id());
 		Dmp::make_parachain_reachable(PeoplePolkadot::para_id());
@@ -130,6 +132,11 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 				build_xcm_send_authorize_upgrade_call::<Polkadot, PeoplePolkadot>(
 					Polkadot::child_location_of(PeoplePolkadot::para_id()),
 					&code_hash_people,
+					None,
+				),
+				build_xcm_send_authorize_upgrade_call::<Polkadot, BulletinPolkadot>(
+					Polkadot::child_location_of(BulletinPolkadot::para_id()),
+					&code_hash_bulletin,
 					None,
 				),
 			],
@@ -191,6 +198,9 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	PeoplePolkadot::execute_with(|| {
 		assert!(<PeoplePolkadot as Chain>::System::authorized_upgrade().is_none())
 	});
+	BulletinPolkadot::execute_with(|| {
+		assert!(<BulletinPolkadot as Chain>::System::authorized_upgrade().is_none())
+	});
 
 	// ok - authorized
 	assert_ok!(dispatch_whitelisted_call_with_preimage::<Polkadot>(authorize_upgrade, ok_origin));
@@ -226,6 +236,12 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 		assert_eq!(
 			<PeoplePolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
 			&code_hash_people
+		)
+	});
+	BulletinPolkadot::execute_with(|| {
+		assert_eq!(
+			<BulletinPolkadot as Chain>::System::authorized_upgrade().unwrap().code_hash(),
+			&code_hash_bulletin
 		)
 	});
 }

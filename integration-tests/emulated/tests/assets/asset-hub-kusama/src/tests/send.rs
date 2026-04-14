@@ -18,15 +18,30 @@ use crate::*;
 /// Relay Chain should be able to execute `Transact` instructions in System Parachain
 /// when `OriginKind::Superuser`.
 #[test]
-#[ignore]
 fn send_transact_as_superuser_from_relay_to_asset_hub_works() {
-	AssetHubKusama::force_create_asset_from_relay_as_root(
-		ASSET_ID,
-		ASSET_MIN_BALANCE,
-		true,
-		AssetHubKusamaSender::get(),
-		None,
-	)
+	Kusama::execute_with(|| {
+		// send xcm transact to AssetHubKusama from root account on Relay
+		let call = <AssetHubKusama as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubKusama as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
+		let root = <Kusama as Chain>::RuntimeOrigin::root();
+		let asset_hub_location = Kusama::child_location_of(AssetHubKusama::para_id()).into();
+		let xcm = xcm_transact_unpaid_execution(call, OriginKind::Superuser);
+		Dmp::make_parachain_reachable(AssetHubKusama::para_id());
+		assert_ok!(<Kusama as KusamaPallet>::XcmPallet::send(
+			root,
+			bx!(asset_hub_location),
+			bx!(xcm),
+		));
+		Kusama::assert_xcm_pallet_sent();
+	});
+	AssetHubKusama::execute_with(|| {
+		AssetHubKusama::assert_xcmp_queue_success(None);
+	});
 }
 
 pub fn penpal_register_foreign_asset_on_asset_hub(asset_location_on_penpal: Location) {
@@ -80,7 +95,7 @@ pub fn penpal_register_foreign_asset_on_asset_hub(asset_location_on_penpal: Loca
 			AssetHubKusama,
 			vec![
 				// Burned the fee
-				RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Withdraw { who, amount }) => {
 					who: *who == penpal_sovereign_account,
 					amount: *amount == fee_amount,
 				},
@@ -114,7 +129,6 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 /// - Parachain should be able to send XCM paying its fee at Asset Hub using a pool
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
-#[ignore]
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = Location {
@@ -124,7 +138,6 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let penpal = AssetHubKusama::sovereign_account_id_of(AssetHubKusama::sibling_location_of(
 		PenpalA::para_id(),
 	));
-
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
@@ -196,14 +209,14 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	});
 
 	PenpalA::execute_with(|| {
-		// send xcm transact from `penpal` account which has only `ASSET_ID` tokens on
-		// `AssetHubKusama`
-		let call = AssetHubKusama::force_create_asset_call(
-			ASSET_ID + 1000,
-			penpal.clone(),
-			true,
-			ASSET_MIN_BALANCE,
-		);
+		// send xcm transact from `penpal` account
+		let call = <AssetHubKusama as Chain>::RuntimeCall::System(frame_system::Call::<
+			<AssetHubKusama as Chain>::Runtime,
+		>::remark {
+			remark: vec![],
+		})
+		.encode()
+		.into();
 
 		let penpal_root = <PenpalA as Chain>::RuntimeOrigin::root();
 		let fee_amount = 4_000_000_000_000u128;
@@ -312,10 +325,10 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_sufficient_asset() {
 			AssetHubKusama,
 			vec![
 				// Burned the fee
-				RuntimeEvent::Assets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
+				RuntimeEvent::Assets(pallet_assets::Event::Withdrawn { asset_id, who, amount }) => {
 					asset_id: *asset_id == ASSET_ID,
-					owner: *owner == para_sovereign_account,
-					balance: *balance == fee_amount,
+					who: *who == para_sovereign_account,
+					amount: *amount == fee_amount,
 				},
 				// Asset created
 				RuntimeEvent::Assets(pallet_assets::Event::Created { asset_id, creator, owner }) => {

@@ -112,7 +112,6 @@ impl pallet_staking_async::Config for Runtime {
 	type HistoryDepth = ();
 	type MaxControllersInDeprecationBatch = ();
 	type EventListeners = ();
-	type MaxInvulnerables = ();
 	type PlanningEraOffset = ();
 	type RcClientInterface = Self;
 	type MaxEraDuration = ();
@@ -226,8 +225,8 @@ impl frame_election_provider_support::ElectionProvider for Runtime {
 		Ok(())
 	}
 
-	fn status() -> Result<bool, ()> {
-		Ok(true)
+	fn status() -> Result<Option<Weight>, ()> {
+		Ok(None)
 	}
 }
 
@@ -235,6 +234,8 @@ parameter_types! {
 	pub const MigrationCompletion: bool = true;
 	pub TreasuryPreMigrationAccount: AccountId32 = AccountId32::from([1; 32]);
 	pub TreasuryPostMigrationAccount: AccountId32 = AccountId32::from([2; 32]);
+	pub MigrationStartBlock: BlockNumberFor<Runtime> = 123u64;
+	pub MigrationEndBlock: BlockNumberFor<Runtime> = 456u64;
 }
 
 impl Config for Runtime {
@@ -249,6 +250,8 @@ impl Config for Runtime {
 	type MigrationCompletion = MigrationCompletion;
 	type TreasuryPreMigrationAccount = TreasuryPreMigrationAccount;
 	type TreasuryPostMigrationAccount = TreasuryPostMigrationAccount;
+	type MigrationStartBlock = MigrationStartBlock;
+	type MigrationEndBlock = MigrationEndBlock;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

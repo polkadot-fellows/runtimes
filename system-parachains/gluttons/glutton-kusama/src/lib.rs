@@ -94,7 +94,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("glutton"),
 	impl_name: Cow::Borrowed("glutton"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_002_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -123,7 +123,12 @@ parameter_types! {
 	pub const BlockHashCount: BlockNumber = 4096;
 	pub const Version: RuntimeVersion = VERSION;
 	pub RuntimeBlockLength: BlockLength =
-		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+		BlockLength::builder()
+			.max_length(5 * 1024 * 1024)
+			.modify_max_length_for_class(DispatchClass::Normal, |m| {
+				*m = NORMAL_DISPATCH_RATIO * *m
+			})
+			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
@@ -408,8 +413,8 @@ impl_runtime_apis! {
 			Some(Vec::new())
 		}
 
-		fn generate_session_keys(_: Option<Vec<u8>>) -> Vec<u8> {
-			Vec::new()
+		fn generate_session_keys(_owner: Vec<u8>, _seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			sp_session::OpaqueGeneratedSessionKeys { keys: Default::default(), proof: Default::default() }
 		}
 	}
 

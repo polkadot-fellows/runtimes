@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -59,8 +59,8 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetwork::get())].into();
 	/// The Checking Account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
-	/// The Checking Account along with the indication that the local chain is able to mint tokens.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
+	/// Relay cannot mint locally.
+	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
@@ -91,8 +91,8 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
-	TeleportTracking,
+	// Teleports disabled for the Relay Chain. DOT issuance tracking happens on AH.
+	NoTeleportTracking,
 >;
 
 /// The means that we convert an XCM origin `Location` into the runtime's `Origin` type for
@@ -130,21 +130,14 @@ parameter_types! {
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. Use [`XcmRouter`] instead.
-pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
-	// Only one router so far - use DMP to communicate with child parachains.
-	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
-)>;
-
 /// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
 /// individual routers.
 ///
 /// This router does not route to the Asset Hub if the migration is ongoing.
-pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
-	XcmRouterWithoutException,
-	FromContains<Equals<AssetHubLocation>, Everything>,
-	crate::RcMigrator,
->;
+pub(crate) type XcmRouter = WithUniqueTopic<(
+	// Only one router so far - use DMP to communicate with child parachains.
+	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
+)>;
 
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
@@ -159,6 +152,8 @@ parameter_types! {
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub People: Location = Parachain(PEOPLE_ID).into_location();
 	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
+	pub BulletinLocation: Location = Parachain(BULLETIN_ID).into_location();
+	pub DotForBulletin: (AssetFilter, Location) = (Dot::get(), BulletinLocation::get());
 }
 
 /// Polkadot Relay recognizes/respects System Parachains as teleporters.
@@ -168,6 +163,7 @@ pub type TrustedTeleporters = (
 	Case<DotForBridgeHub>,
 	Case<DotForCoretime>,
 	Case<DotForPeople>,
+	Case<DotForBulletin>,
 );
 
 pub type Fellows = IsFellowshipVoice<CollectivesLocation>;
@@ -230,8 +226,7 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter =
-		pallet_rc_migrator::xcm_config::FalseIfMigrating<crate::RcMigrator, TrustedTeleporters>;
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -246,7 +241,6 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTrap = XcmPallet;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type AssetClaims = XcmPallet;
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;

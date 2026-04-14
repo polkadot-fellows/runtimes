@@ -124,6 +124,12 @@ pub mod pallet {
 		/// The post-migration treasury account address.
 		type TreasuryPostMigrationAccount: Get<Self::AccountId>;
 
+		/// The block number when the migration started.
+		type MigrationStartBlock: Get<BlockNumberFor<Self>>;
+
+		/// The block number when the migration ended.
+		type MigrationEndBlock: Get<BlockNumberFor<Self>>;
+
 		/// The Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 	}
@@ -487,7 +493,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// TODO: @ggwpez Test this
 		fn contributions_withdrawn(block: BlockNumberFor<T>, para_id: ParaId) -> bool {
 			let mut contrib_iter = RcCrowdloanContribution::<T>::iter_prefix((block, para_id));
 			contrib_iter.next().is_none()

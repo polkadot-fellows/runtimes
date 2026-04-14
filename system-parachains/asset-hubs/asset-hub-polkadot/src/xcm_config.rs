@@ -26,9 +26,8 @@ use super::{
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
 	matching::{
-		FromNetwork, FromSiblingParachain, IsForeignConcreteAsset,
-		NonTeleportableAssetFromTrustedReserve, ParentLocation,
-		TeleportableAssetWithTrustedReserve,
+		FromNetwork, IsForeignConcreteAsset, NonTeleportableAssetFromTrustedReserve,
+		ParentLocation, TeleportableAssetWithTrustedReserve,
 	},
 	TrustBackedAssetsAsLocation,
 };
@@ -39,8 +38,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Equals, Everything, FromContains, LinearStoragePrice,
-		PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, LinearStoragePrice, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -92,26 +90,25 @@ parameter_types! {
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub PostMigrationTreasuryAccount: AccountId = treasury::TreasuryAccount::get();
+	/// The Checking Account along with the indication that the local chain is able to mint tokens.
+	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
+	/// The Checking Account along with the indication that the local chain is able to mint tokens.
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = Some((CheckingAccount::get(), MintLocation::Local));
+	pub const Here: Location = Location::here();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
 	// Account address: `14xmwinmCEz6oRrFdczHKqHgWNMiCysE2KrA4jXXAAM1Eogk`
 	pub PreMigrationRelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(treasury::TreasuryAccount::get());
-	pub PostMigrationTreasuryAccount: AccountId = treasury::TreasuryAccount::get();
-	/// The Checking Account along with the indication that the local chain is able to mint tokens.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
-	pub const Here: Location = Location::here();
-	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
 
+// TODO: replace this with DAP account (for collecting fees) #1137
 /// Treasury account that changes once migration ends.
-pub type TreasuryAccount = pallet_ah_migrator::xcm_config::TreasuryAccount<
-	crate::AhMigrator,
-	PreMigrationRelayTreasuryPalletAccount,
-	PostMigrationTreasuryAccount,
->;
+pub type TreasuryAccount = PostMigrationTreasuryAccount;
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
 ///
@@ -443,12 +440,6 @@ pub type TrustedTeleporters = (
 	IsForeignConcreteAsset<TeleportableAssetWithTrustedReserve<SelfParaId, crate::ForeignAssets>>,
 );
 
-/// During migration we only allow teleports of foreign assets (not DOT).
-///
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
-pub type TrustedTeleportersWhileMigrating =
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>;
-
 /// Defines all global consensus locations that Kusama Asset Hub is allowed to alias into.
 pub struct KusamaGlobalConsensus;
 impl Contains<Location> for KusamaGlobalConsensus {
@@ -479,11 +470,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = TrustedReserves;
-	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
-		crate::AhMigrator,
-		TrustedTeleportersWhileMigrating,
-		TrustedTeleporters,
-	>;
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -516,7 +503,6 @@ impl xcm_executor::Config for XcmConfig {
 	);
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
@@ -585,26 +571,12 @@ pub type LocalPalletOrSignedOriginToLocation = (
 );
 
 /// For routing XCM messages which do not cross local consensus boundary.
-/// Use [`LocalXcmRouter`] instead.
-pub(crate) type LocalXcmRouterWithoutException = (
+pub(crate) type LocalXcmRouter = (
 	// Two routers - use UMP to communicate with the relay chain:
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, PriceForParentDelivery>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 );
-
-/// For routing XCM messages which do not cross local consensus boundary.
-type LocalXcmRouter = pallet_ah_migrator::RouteInnerWithException<
-	LocalXcmRouterWithoutException,
-	// Exception: query responses to Relay Chain (`ParentLocation`) which initiated (`Querier`) by
-	// the Relay Chain (`Here`, since from the perspective of the receiver).
-	// See: https://github.com/paritytech/polkadot-sdk/blob/28b7c7770e9e7abf5b561fc42cfe565baf076cb7/polkadot/xcm/xcm-executor/src/lib.rs#L728
-	//
-	// This exception is required for the migration flow-control system to send query responses
-	// to the Relay Chain, confirming that data messages have been received.
-	FromContains<Equals<ParentLocation>, pallet_ah_migrator::ExceptResponseFor<Equals<Here>>>,
-	crate::AhMigrator,
->;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
