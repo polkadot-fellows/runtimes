@@ -91,8 +91,8 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// Bulletin uses 6s slot duration (same as block time).
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+/// Bulletin uses 24s slot duration (4 blocks per slot).
+pub const SLOT_DURATION: u64 = 4 * MILLISECS_PER_BLOCK;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
