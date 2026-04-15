@@ -152,6 +152,8 @@ parameter_types! {
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub People: Location = Parachain(PEOPLE_ID).into_location();
 	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
+	pub BulletinLocation: Location = Parachain(BULLETIN_ID).into_location();
+	pub DotForBulletin: (AssetFilter, Location) = (Dot::get(), BulletinLocation::get());
 }
 
 /// Polkadot Relay recognizes/respects System Parachains as teleporters.
@@ -161,6 +163,7 @@ pub type TrustedTeleporters = (
 	Case<DotForBridgeHub>,
 	Case<DotForCoretime>,
 	Case<DotForPeople>,
+	Case<DotForBulletin>,
 );
 
 pub type Fellows = IsFellowshipVoice<CollectivesLocation>;
@@ -238,7 +241,6 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTrap = XcmPallet;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type AssetClaims = XcmPallet;
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;

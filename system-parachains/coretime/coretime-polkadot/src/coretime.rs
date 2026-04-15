@@ -98,9 +98,7 @@ fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
 	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
 
-	let parent_assets = Into::<Assets>::into(withdrawn)
-		.reanchored(&dest, &Here)
-		.defensive_map_err(|_| XcmError::ReanchorFailed)?;
+	let parent_assets = withdrawn.reanchored_assets(&dest, &Here);
 
 	PolkadotXcm::send_xcm(
 		Here,
@@ -309,7 +307,7 @@ impl pallet_broker::Config for Runtime {
 	type OnRevenue = BurnCoretimeRevenue;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<55>;
-	type MaxReservedCores = ConstU32<10>;
+	type MaxReservedCores = ConstU32<50>;
 	type Coretime = CoretimeAllocator;
 	type ConvertBalance = sp_runtime::traits::Identity;
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
