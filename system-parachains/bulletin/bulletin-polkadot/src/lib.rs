@@ -68,9 +68,7 @@ use sp_runtime::{
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
-	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MILLISECS_PER_BLOCK,
-	},
+	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT},
 	polkadot::{
 		consensus::{
 			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
@@ -91,8 +89,8 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// Bulletin uses 6s slot duration (same as block time).
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+/// Bulletin uses 24s slot duration.
+pub const SLOT_DURATION: u64 = 24_000;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;

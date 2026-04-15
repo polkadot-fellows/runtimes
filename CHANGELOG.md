@@ -12,9 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add Bulletin Polkadot live chain spec and genesis preset ([#1146](https://github.com/polkadot-fellows/runtimes/pull/1146)).
 
 ### Changed
+
 - Polkadot and Kusama AH: reduce `DepositPerChildTrieItem` config of pallet-revive by factor of 10 ([1113](https://github.com/polkadot-fellows/runtimes/pull/1113))
 - Bump maximum number of reserved cores to 50 on Polkadot and Kusama Coretime chains ([#1147](https://github.com/polkadot-fellows/runtimes/pull/1147))
 - Update dependencies to stable2603-1 ([#1148](https://github.com/polkadot-fellows/runtimes/pull/1148)).
+- Bulletin Polkadot: switch to 24s Aura slot duration ([#1149](https://github.com/polkadot-fellows/runtimes/pull/1149))
 
 ## [2.2.0] 10.04.2026
 
