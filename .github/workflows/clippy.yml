@@ -2,7 +2,7 @@ name: "Clippy"
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["main", "*release-*"]
   pull_request:
   workflow_dispatch:
 

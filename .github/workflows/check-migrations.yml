@@ -5,7 +5,7 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["release-*"]
+    branches: ["*release-*"]
   pull_request:
     # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
     types: [opened, synchronize, reopened, ready_for_review]
