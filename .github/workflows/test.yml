@@ -159,7 +159,7 @@ jobs:
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
           RUSTFLAGS: "-C debug-assertions"
-          RUNTIME_LOG: "off"
+          RUNTIME_LOG: "error"
 
   # Job required by "confirmTestPassed"
   integration-test:
