@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- [[#1143](https://github.com/polkadot-fellows/runtimes/pull/1143)] All runtimes now support the transaction extension `AuthorizeCall`.
+
 ### Changed
 - Polkadot and Kusama AH: reduce `DepositPerChildTrieItem` config of pallet-revive by factor of 10 ([1113](https://github.com/polkadot-fellows/runtimes/pull/1113))
 - Bump maximum number of reserved cores to 50 on Polkadot and Kusama Coretime chains ([#1147](https://github.com/polkadot-fellows/runtimes/pull/1147))
