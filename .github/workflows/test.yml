@@ -10,6 +10,15 @@ on:
     # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      run_zombienet_smoke:
+        description: "Run zombienet-smoke"
+        type: boolean
+        default: true
+      run_ecosystem_tests:
+        description: "Run ecosystem-tests (PET)"
+        type: boolean
+        default: true
 
 # cancel previous runs
 concurrency:
@@ -256,7 +265,9 @@ jobs:
   # Job required by "confirmTestPassed"
   zombienet-smoke:
     needs: [check-release-pr]
-    if: needs.check-release-pr.outputs.is-release-pr == '1'
+    if: |
+      (github.event_name != 'workflow_dispatch' && needs.check-release-pr.outputs.is-release-pr == '1') ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_zombienet_smoke)
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -444,7 +455,9 @@ jobs:
     needs: [build-runtimes, check-release-pr]
     runs-on: self-hosted
     timeout-minutes: 120
-    if: needs.check-release-pr.outputs.is-release-pr == '1'
+    if: |
+      (github.event_name != 'workflow_dispatch' && needs.check-release-pr.outputs.is-release-pr == '1') ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_ecosystem_tests)
     strategy:
       fail-fast: false
       matrix:
