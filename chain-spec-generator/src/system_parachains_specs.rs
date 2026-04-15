@@ -376,7 +376,6 @@ pub fn bulletin_polkadot_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, S
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-	// TODO: Add post-launch.
 	let boot_nodes: [&str; 0] = [];
 
 	Ok(Box::new(
