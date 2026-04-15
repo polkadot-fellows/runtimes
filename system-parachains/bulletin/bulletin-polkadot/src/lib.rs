@@ -69,7 +69,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{
-		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MILLISECS_PER_BLOCK,
+		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT,
 	},
 	polkadot::{
 		consensus::{
@@ -92,7 +92,7 @@ use xcm_runtime_apis::{
 };
 
 /// Bulletin uses 24s slot duration.
-pub const SLOT_DURATION: u64 = 4 * MILLISECS_PER_BLOCK;
+pub const SLOT_DURATION: u64 = 24_000;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
