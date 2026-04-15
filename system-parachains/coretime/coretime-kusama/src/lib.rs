@@ -101,6 +101,7 @@ pub type BlockId = generic::BlockId<Block>;
 pub type TxExtensions = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
+		frame_system::AuthorizeCall<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -152,7 +153,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("coretime-kusama"),
 	impl_name: Cow::Borrowed("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_002_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,

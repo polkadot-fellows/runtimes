@@ -149,7 +149,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_002_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -1221,7 +1221,7 @@ impl pallet_remote_proxy::Config for Runtime {
 
 parameter_types! {
 	pub const DepositPerItem: Balance = system_para_deposit(1, 0);
-	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 10;
+	pub const DepositPerChildTrieItem: Balance = system_para_deposit(1, 0) / 100;
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(5, 10);
@@ -2143,7 +2143,6 @@ mod benches {
 			PeopleLocation::get(),
 			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocation::get()) },
 		));
-		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubKusama trusts AssetHubPolkadot as reserve for DOTs
 		pub TrustedReserve: Option<(Location, Asset)> = Some({
 			use frame_support::traits::tokens::fungible::{Inspect, Mutate};
@@ -2177,7 +2176,7 @@ mod benches {
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 		type TransactAsset = Balances;
 
-		type CheckedAccount = CheckedAccount;
+		type CheckedAccount = xcm_config::TeleportTracking;
 		type TrustedTeleporter = TrustedTeleporter;
 		type TrustedReserve = TrustedReserve;
 
