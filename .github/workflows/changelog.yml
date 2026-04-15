@@ -5,7 +5,7 @@ name: Verify Changelog
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["main", "*release-*"]
   pull_request:
     types: [opened, reopened, synchronize, edited]
   workflow_dispatch:
