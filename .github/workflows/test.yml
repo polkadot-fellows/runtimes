@@ -37,7 +37,9 @@ jobs:
       - name: Check if release PR or on release branch
         id: check
         run: |
-          if [[ "${{ github.ref }}" == refs/heads/release-* ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "is-release-pr=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/heads/release-* ]]; then
             echo "is-release-pr=1" >> $GITHUB_OUTPUT
           elif [ "${{ steps.changed.outputs.any_changed }}" != "true" ]; then
             echo "is-release-pr=0" >> $GITHUB_OUTPUT
