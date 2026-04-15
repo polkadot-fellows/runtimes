@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - [[#1143](https://github.com/polkadot-fellows/runtimes/pull/1143)] All runtimes now support the transaction extension `AuthorizeCall`.
+- Add Bulletin Polkadot live chain spec and genesis preset ([#1146](https://github.com/polkadot-fellows/runtimes/pull/1146)).
 
 ### Changed
 
