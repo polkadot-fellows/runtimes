@@ -55,6 +55,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Remove any stale snapshot from self-hosted runner
+        run: rm -f snapshot.raw
+
       - name: Check if snapshot exists in cache
         id: cache-restore
         if: github.event_name != 'schedule'
@@ -68,7 +71,7 @@ jobs:
       - name: Install try-runtime-cli
         if: steps.cache-restore.outputs.cache-matched-key == ''
         run: |
-          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.1/try-runtime-x86_64-unknown-linux-musl -o try-runtime
           chmod +x try-runtime
           sudo mv try-runtime /usr/local/bin/
 
@@ -130,6 +133,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Remove any stale snapshot from self-hosted runner
+        run: rm -f snapshot.raw
 
       - name: "Fetch upstream tags"
         run: |
@@ -196,7 +202,7 @@ jobs:
 
       - name: Install try-runtime-cli
         run: |
-          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.10.1/try-runtime-x86_64-unknown-linux-musl -o try-runtime
           chmod +x try-runtime
           sudo mv try-runtime /usr/local/bin/
 
@@ -220,6 +226,7 @@ jobs:
             echo "::error::snapshot.raw not found from cache or artifact"
             exit 1
           fi
+          echo "snapshot.raw sha256: $(sha256sum snapshot.raw | awk '{print $1}')"
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         env:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
