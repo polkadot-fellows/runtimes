@@ -133,8 +133,13 @@ jobs:
 
       - name: "Fetch upstream tags"
         run: |
-          git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
-          git fetch upstream --tags
+          if [[ -n "${{ github.event.pull_request.base.repo.full_name }}" ]]; then
+            git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
+            git fetch upstream --tags
+          else
+            # Push event — we are already on the upstream repo, just fetch tags from origin.
+            git fetch origin --tags
+          fi
 
       - name: Install updates and dependencies
         run: .github/install-deps.sh
