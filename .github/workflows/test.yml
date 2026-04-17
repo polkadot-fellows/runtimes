@@ -655,6 +655,7 @@ jobs:
   confirmTestPassed:
     runs-on: ubuntu-24.04
     name: All tests passed
+    if: always()
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
@@ -665,4 +666,8 @@ jobs:
       #- zombienet-smoke
       #- ecosystem-tests
     steps:
+      # Branch protection treats `skipped` as passing, so fail explicitly.
+      - name: Fail if any dependency did not succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
