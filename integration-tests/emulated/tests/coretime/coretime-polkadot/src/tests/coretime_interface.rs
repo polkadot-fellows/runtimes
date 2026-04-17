@@ -135,7 +135,8 @@ fn broker_transacts_are_processed_by_relay() {
 	let mut found_core_assigned = false;
 	let mut found_upward_message = false;
 	while !(found_sale_initialized && found_core_assigned && found_upward_message) &&
-		block_number_cursor < TIMESLICE_PERIOD * 100 // against infinite loop
+		block_number_cursor < TIMESLICE_PERIOD * 100
+	// against infinite loop
 	{
 		CoretimePolkadot::execute_with(|| {
 			// Hooks don't run in emulated tests - workaround.
