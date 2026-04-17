@@ -15,7 +15,7 @@
 
 use crate::*;
 use frame_support::traits::OnInitialize;
-use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
+use pallet_broker::{ConfigRecord, CoreAssignment, CoreMask, ScheduleItem};
 use polkadot_runtime::Dmp;
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use sp_runtime::Perbill;
@@ -126,17 +126,17 @@ fn broker_transacts_are_processed_by_relay() {
 	// right block.
 	let mut block_number_cursor = Polkadot::ext_wrapper(<Polkadot as Chain>::System::block_number);
 
-	let config = CoretimePolkadot::ext_wrapper(|| {
-		Configuration::<<CoretimePolkadot as Chain>::Runtime>::get()
-			.expect("Pallet was configured earlier.")
-	});
-
 	// Run blocks until the sale is initialized and a core is assigned. The broker triggers these
-	// events when it detects the relay chain approaching the next timeslice boundary.
+	// events when it detects the relay chain approaching the next timeslice boundary. Exact
+	// timing depends on how many relay blocks each para block advances in the emulator, which can
+	// shift when other parachains' slot durations change, so loop until the events are observed
+	// (with a safety bound).
 	let mut found_sale_initialized = false;
 	let mut found_core_assigned = false;
 	let mut found_upward_message = false;
-	while block_number_cursor < TIMESLICE_PERIOD - config.advance_notice - 1 {
+	while !(found_sale_initialized && found_core_assigned && found_upward_message) &&
+		block_number_cursor < 2 * TIMESLICE_PERIOD
+	{
 		CoretimePolkadot::execute_with(|| {
 			// Hooks don't run in emulated tests - workaround.
 			<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
