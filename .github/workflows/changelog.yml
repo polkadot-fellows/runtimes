@@ -24,13 +24,14 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Get Changed Files
+        if: github.event_name == 'pull_request'
         id: changed
         uses: tj-actions/changed-files@v44
         with:
           files: |
             CHANGELOG.md
       - name: Set error
-        if: steps.changed.outputs.any_changed != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
+        if: github.event_name == 'pull_request' && steps.changed.outputs.any_changed != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
         run: echo "::error::CHANGELOG.md has not been modified. Either modify the file or check the checkbox in the body" && exit 1
 
   # Job required by "confirmChangelogChecksPassed"
@@ -44,10 +45,14 @@ jobs:
         uses: actions/checkout@v4
 
       # We need to fetch the upstream tags, as they are used to determine the latest release
-      - name: “Fetch upstream tags”
+      - name: "Fetch upstream tags"
         run: |
-          git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
-          git fetch upstream --tags
+          if [[ -n "${{ github.event.pull_request.base.repo.full_name }}" ]]; then
+            git remote add upstream https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git
+            git fetch upstream --tags
+          else
+            git fetch origin --tags
+          fi
 
       - name: Verify
         run: |

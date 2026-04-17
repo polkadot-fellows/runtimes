@@ -18,33 +18,44 @@ concurrency:
 
 jobs:
   check-release-pr:
-    # Detect whether this is a release PR or a push on a release branch. Used to determine whether
-    # to run PET tests.
+    # Produces two outputs:
+    #   is-release: whether this should trigger a GitHub Release or the runtimes
+    #   run-extended-checks: whether extended CI checks should run
     name: Check if release PR
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-24.04
     outputs:
-      is-release-pr: ${{ steps.check.outputs.is-release-pr }}
+      is-release: ${{ steps.check.outputs.is-release }}
+      run-extended-checks: ${{ steps.check.outputs.run-extended-checks }}
     steps:
+      - uses: actions/checkout@v4
       - name: Check if CHANGELOG.md changed
+        if: github.event_name == 'pull_request'
         id: changed
         uses: tj-actions/changed-files@v44
         with:
           files: |
             CHANGELOG.md
-      - uses: actions/checkout@v4
-        if: steps.changed.outputs.any_changed == 'true'
-      - name: Check if release PR or on release branch
+      - name: Determine release status
         id: check
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "is-release-pr=1" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == refs/heads/*release-* ]]; then
-            echo "is-release-pr=1" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.changed.outputs.any_changed }}" != "true" ]; then
-            echo "is-release-pr=0" >> $GITHUB_OUTPUT
+          # is-release: purely changelog-driven
+          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ steps.changed.outputs.any_changed }}" != "true" ]]; then
+            IS_RELEASE=0
           else
-            echo "is-release-pr=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
+            IS_RELEASE=$(.github/changelog-processor.py CHANGELOG.md --should-release)
+          fi
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+
+          # run-extended-checks: either is-release, or a workflow_dispatch, or a release branch push
+          if [[ "$IS_RELEASE" == "1" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/heads/*release-* ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          else
+            echo "run-extended-checks=0" >> $GITHUB_OUTPUT
           fi
 
   # This generates a matrix with all the required jobs which will be run in the next step
@@ -256,7 +267,7 @@ jobs:
   # Job required by "confirmTestPassed"
   zombienet-smoke:
     needs: [check-release-pr]
-    if: needs.check-release-pr.outputs.is-release-pr == '1'
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -444,7 +455,7 @@ jobs:
     needs: [build-runtimes, check-release-pr]
     runs-on: self-hosted
     timeout-minutes: 120
-    if: needs.check-release-pr.outputs.is-release-pr == '1'
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
     strategy:
       fail-fast: false
       matrix:
@@ -644,6 +655,7 @@ jobs:
   confirmTestPassed:
     runs-on: ubuntu-24.04
     name: All tests passed
+    if: always()
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
@@ -654,4 +666,8 @@ jobs:
       #- zombienet-smoke
       #- ecosystem-tests
     steps:
+      # Branch protection treats `skipped` as passing, so fail explicitly.
+      - name: Fail if any dependency did not succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
