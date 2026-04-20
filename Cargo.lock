@@ -1438,6 +1438,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "primitive-types 0.13.1",
+ "relay-common",
  "scale-info",
  "serde_json",
  "snowbridge-inbound-queue-primitives",
