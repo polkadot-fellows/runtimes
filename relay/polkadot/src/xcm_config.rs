@@ -244,7 +244,6 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	// TODO(#1144): move accumulated funds from the TreasuryAccount to DapSatelliteAccount.
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
 		SendXcmFeeToAccount<Self::AssetTransactor, DapSatelliteAccount>,
