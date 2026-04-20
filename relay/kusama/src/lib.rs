@@ -43,7 +43,6 @@ use frame_election_provider_support::{
 	SequentialPhragmen,
 };
 use frame_support::{
-	construct_runtime,
 	dispatch::RawOrigin,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
