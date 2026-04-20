@@ -55,7 +55,7 @@ use alloc::{borrow::Cow, boxed::Box, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Architects, Fellows};
-use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
+use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp};
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
 };
@@ -63,7 +63,7 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill,
 };
@@ -101,8 +101,8 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	AssetHubLocation, LocationToAccountId, RelayChainLocation, SelfParaId, StakingPot,
-	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, RelayChainLocation, SelfParaId, StakingPot, TreasurerBodyId,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -636,7 +636,6 @@ pub const MAX_ALLIES: u32 = 100;
 
 parameter_types! {
 	pub const AllyDeposit: Balance = 1_000 * UNITS; // 1,000 DOT bond to join as an Ally
-	pub PolkadotTreasuryAccount: AccountId = POLKADOT_TREASURY_PALLET_ID.into_account_truncating();
 	// The number of blocks a member must wait between giving a retirement notice and retiring.
 	// Supposed to be greater than time required to `kick_member` with alliance motion.
 	pub const AllianceRetirementPeriod: BlockNumber = (90 * DAYS) + ALLIANCE_MOTION_DURATION;
@@ -649,9 +648,9 @@ impl pallet_alliance::Config for Runtime {
 	type MembershipManager = RootOrAllianceTwoThirdsMajority;
 	type AnnouncementOrigin = RootOrAllianceTwoThirdsMajority;
 	type Currency = Balances;
-	// TODO(#1137, SDK#11704): redirect to DapSatellite once it supports NegativeImbalance.
-	// Needs SDK2604 which contains the related fix (SDK#11716).
-	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
+	// TODO: once we bump to SDK2604 crates, swap this for
+	// `pallet_dap_satellite::DapSatelliteLegacyAdapter<Runtime, Balances>` and drop the shim.
+	type Slashed = relay_common::dap_satellite_shim::DapSatelliteLegacyAdapter<Runtime, Balances>;
 	type InitializeMembers = AllianceMotion;
 	type MembershipChanged = AllianceMotion;
 	type RetirementPeriod = AllianceRetirementPeriod;

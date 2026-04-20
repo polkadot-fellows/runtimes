@@ -17,12 +17,10 @@ use super::*;
 use core::{cmp::Ordering, marker::PhantomData};
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
-	traits::{Currency, Get, Imbalance, OnUnbalanced, OriginTrait, PrivilegeCmp},
+	traits::{Currency, Get, PrivilegeCmp},
 };
 use pallet_alliance::{ProposalIndex, ProposalProvider};
-use parachains_common::impls::NegativeImbalance;
 use sp_runtime::DispatchError;
-use xcm_executor::traits::ConvertLocation;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -33,60 +31,6 @@ type HashOf<T> = <T as frame_system::Config>::Hash;
 /// Type alias to conveniently refer to the `Currency::Balance` associated type.
 pub type BalanceOf<T> =
 	<pallet_balances::Pallet<T> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-/// Implements `OnUnbalanced::on_unbalanced` to teleport slashed assets to relay chain treasury
-/// account.
-pub struct ToParentTreasury<TreasuryAccount, AccountIdConverter, T>(
-	PhantomData<(TreasuryAccount, AccountIdConverter, T)>,
-);
-
-impl<TreasuryAccount, AccountIdConverter, T> OnUnbalanced<NegativeImbalance<T>>
-	for ToParentTreasury<TreasuryAccount, AccountIdConverter, T>
-where
-	T: pallet_balances::Config + pallet_xcm::Config + frame_system::Config,
-	<<T as frame_system::Config>::RuntimeOrigin as OriginTrait>::AccountId: From<AccountIdOf<T>>,
-	[u8; 32]: From<<T as frame_system::Config>::AccountId>,
-	TreasuryAccount: Get<AccountIdOf<T>>,
-	BalanceOf<T>: Into<Fungibility>,
-	AccountIdConverter: ConvertLocation<AccountIdOf<T>>,
-{
-	fn on_unbalanced(amount: NegativeImbalance<T>) {
-		let amount = match amount.drop_zero() {
-			Ok(..) => return,
-			Err(amount) => amount,
-		};
-		let imbalance = amount.peek();
-		let root_location: Location = Here.into();
-		let root_account: AccountIdOf<T> =
-			match AccountIdConverter::convert_location(&root_location) {
-				Some(a) => a,
-				None => {
-					log::warn!("Failed to convert root origin into account id");
-					return
-				},
-			};
-		let treasury_account: AccountIdOf<T> = TreasuryAccount::get();
-
-		<pallet_balances::Pallet<T>>::resolve_creating(&root_account, amount);
-
-		let result = <pallet_xcm::Pallet<T>>::limited_teleport_assets(
-			<<T as frame_system::Config>::RuntimeOrigin>::root(),
-			Box::new(Parent.into()),
-			Box::new(
-				Junction::AccountId32 { network: None, id: treasury_account.into() }
-					.into_location()
-					.into(),
-			),
-			Box::new((Parent, imbalance).into()),
-			0,
-			WeightLimit::Unlimited,
-		);
-
-		if let Err(err) = result {
-			log::warn!("Failed to teleport slashed assets: {err:?}");
-		}
-	}
-}
 
 /// Proposal provider for alliance pallet.
 /// Adapter from collective pallet to alliance proposal provider trait.
