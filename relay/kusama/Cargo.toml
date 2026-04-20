@@ -342,6 +342,8 @@ try-runtime = [
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	# TODO: drop this entry once the dap shim in `relay-common` is deleted at SDK2604 bump time
+	# and `relay-common` no longer gates `try-runtime`.
 	"relay-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",

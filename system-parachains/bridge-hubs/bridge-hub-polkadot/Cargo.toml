@@ -207,6 +207,7 @@ std = [
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
+	# TODO: drop this entry when the `relay-common` dep is removed at SDK2604 bump time.
 	"relay-common/std",
 	"scale-info/std",
 	"serde",
@@ -292,6 +293,7 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	# TODO: drop this entry when the `relay-common` dep is removed at SDK2604 bump time.
 	"relay-common/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
@@ -349,6 +351,7 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	# TODO: drop this entry when the `relay-common` dep is removed at SDK2604 bump time.
 	"relay-common/try-runtime",
 	"snowbridge-inbound-queue-primitives/try-runtime",
 	"snowbridge-pallet-ethereum-client/try-runtime",
