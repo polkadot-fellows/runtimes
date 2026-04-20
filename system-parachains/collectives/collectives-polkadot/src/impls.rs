@@ -17,7 +17,7 @@ use super::*;
 use core::{cmp::Ordering, marker::PhantomData};
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
-	traits::{Currency, Get, PrivilegeCmp},
+	traits::{Currency, PrivilegeCmp},
 };
 use pallet_alliance::{ProposalIndex, ProposalProvider};
 use sp_runtime::DispatchError;
@@ -107,6 +107,7 @@ pub mod benchmarks {
 	use frame_support::traits::{
 		fungible,
 		tokens::{Pay, PaymentStatus},
+		Get,
 	};
 	use pallet_ranked_collective::Rank;
 	use sp_runtime::traits::Convert;
