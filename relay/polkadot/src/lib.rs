@@ -1607,6 +1607,8 @@ impl pallet_delegated_staking::Config for Runtime {
 }
 
 parameter_types! {
+	// TODO: once we bump to SDK2604 crates, replace this literal with
+	// `sp_dap::DAP_SATELLITE_PALLET_ID`.
 	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
 }
 
