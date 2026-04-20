@@ -1801,6 +1801,7 @@ mod runtime {
 
 	#[runtime::pallet_index(0)]
 	pub type System = frame_system::Pallet<Runtime>;
+
 	#[runtime::pallet_index(1)]
 	pub type Scheduler = pallet_scheduler::Pallet<Runtime>;
 
