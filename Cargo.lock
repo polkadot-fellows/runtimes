@@ -13496,7 +13496,12 @@ checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 name = "relay-common"
 version = "1.0.0"
 dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-dap-satellite",
  "pallet-staking-reward-fn",
+ "parity-scale-codec",
  "polkadot-primitives",
  "sp-runtime 46.0.0",
 ]

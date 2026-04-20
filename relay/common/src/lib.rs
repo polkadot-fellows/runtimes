@@ -17,6 +17,13 @@
 //! Shared code between the Kusama nd Polkadot RC Runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// TODO: `dap_satellite_shim` + `dap_shim` are dev scaffolding for the py/trsry wind-down PR.
+// The PR is not merged until the workspace is bumped to `pallet-dap-satellite >= 0.3.0` + the
+// SDK2604 release of `pallet-dap`. At that point, delete both modules and let callers import
+// directly from `pallet_dap_satellite` / `pallet_dap`.
+pub mod dap_satellite_shim;
+pub mod dap_shim;
+
 use polkadot_primitives::Balance;
 use sp_runtime::{Perquintill, Saturating};
 
