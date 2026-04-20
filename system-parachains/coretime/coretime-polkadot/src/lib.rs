@@ -126,7 +126,14 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
+	pub type Unreleased = (
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		// Drain residual legacy `py/trsry` balance into the DAP satellite buffer. Idempotent.
+		// TODO: once we bump to SDK2604 crates, swap this for
+		// `pallet_dap_satellite::migrations::DrainLegacyTreasuryToDapSatellite<Runtime>` and
+		// drop the shim.
+		relay_common::dap_satellite_shim::DrainLegacyTreasuryToDapSatellite<Runtime>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;

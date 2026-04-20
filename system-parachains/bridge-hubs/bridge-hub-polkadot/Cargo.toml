@@ -69,6 +69,9 @@ pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+# TODO: dev scaffolding — drop `relay-common` dep when the shim modules it hosts are deleted at
+# SDK2604 bump time.
+relay-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
@@ -204,6 +207,7 @@ std = [
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
+	"relay-common/std",
 	"scale-info/std",
 	"serde",
 	"serde_json/std",
@@ -288,6 +292,7 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"relay-common/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
@@ -344,6 +349,7 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"relay-common/try-runtime",
 	"snowbridge-inbound-queue-primitives/try-runtime",
 	"snowbridge-pallet-ethereum-client/try-runtime",
 	"snowbridge-pallet-inbound-queue-v2/try-runtime",

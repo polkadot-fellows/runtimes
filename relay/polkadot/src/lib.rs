@@ -1956,6 +1956,11 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		// Drain residual legacy `py/trsry` balance into the DAP satellite buffer. Idempotent.
+		// TODO: once we bump to SDK2604 crates, swap this for
+		// `pallet_dap_satellite::migrations::DrainLegacyTreasuryToDapSatellite<Runtime>` and
+		// drop the shim.
+		relay_common::dap_satellite_shim::DrainLegacyTreasuryToDapSatellite<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
