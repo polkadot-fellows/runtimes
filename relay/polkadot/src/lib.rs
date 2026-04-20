@@ -39,7 +39,6 @@ use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
 };
 use frame_support::{
-	construct_runtime,
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
@@ -1781,117 +1780,232 @@ impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Currency = Balances;
 }
+#[frame_support::runtime]
+mod runtime {
+	use super::*;
 
-construct_runtime! {
-	pub enum Runtime
-		{
-		// Basic stuff; balances is uncallable initially.
-		System: frame_system = 0,
-		Scheduler: pallet_scheduler = 1,
-		Preimage: pallet_preimage = 10,
+	#[runtime::runtime]
+	#[runtime::derive(
+		RuntimeCall,
+		RuntimeEvent,
+		RuntimeError,
+		RuntimeOrigin,
+		RuntimeFreezeReason,
+		RuntimeHoldReason,
+		RuntimeSlashReason,
+		RuntimeLockId,
+		RuntimeTask,
+		RuntimeViewFunction
+	)]
+	pub struct Runtime;
 
-		// Babe must be before session.
-		Babe: pallet_babe = 2,
+	#[runtime::pallet_index(0)]
+	pub type System = frame_system::Pallet<Runtime>;
+	#[runtime::pallet_index(1)]
+	pub type Scheduler = pallet_scheduler::Pallet<Runtime>;
 
-		Timestamp: pallet_timestamp = 3,
-		Indices: pallet_indices = 4,
-		Balances: pallet_balances = 5,
-		TransactionPayment: pallet_transaction_payment = 32,
+	// Babe must be before session.
+	#[runtime::pallet_index(2)]
+	pub type Babe = pallet_babe::Pallet<Runtime>;
 
-		// Consensus support.
-		// Authorship must be before session in order to note author in the correct session and era
-		// for staking.
-		Authorship: pallet_authorship = 6,
-		Staking: pallet_staking = 7,
-		Offences: pallet_offences = 8,
-		Historical: session_historical = 33,
+	#[runtime::pallet_index(3)]
+	pub type Timestamp = pallet_timestamp::Pallet<Runtime>;
 
-		Session: pallet_session = 9,
-		Grandpa: pallet_grandpa = 11,
-		AuthorityDiscovery: pallet_authority_discovery = 13,
+	#[runtime::pallet_index(4)]
+	pub type Indices = pallet_indices::Pallet<Runtime>;
 
-		// OpenGov stuff.
-		Treasury: pallet_treasury = 19,
-		ConvictionVoting: pallet_conviction_voting = 20,
-		Referenda: pallet_referenda = 21,
-		Origins: pallet_custom_origins = 22,
-		Whitelist: pallet_whitelist = 23,
+	#[runtime::pallet_index(5)]
+	pub type Balances = pallet_balances::Pallet<Runtime>;
 
-		// Claims. Usable initially.
-		Claims: claims = 24,
-		// Vesting. Usable initially, but removed once all vesting is finished.
-		Vesting: pallet_vesting = 25,
-		// Cunning utilities. Usable initially.
-		Utility: pallet_utility = 26,
+	// Consensus support.
+	// Authorship must be before session in order to note author in the correct session and era
+	// for staking.
+	#[runtime::pallet_index(6)]
+	pub type Authorship = pallet_authorship::Pallet<Runtime>;
 
-		// Identity: pallet_identity = 28, (removed post 1.2.8)
+	#[runtime::pallet_index(7)]
+	pub type Staking = pallet_staking::Pallet<Runtime>;
 
-		// Proxy module. Late addition.
-		Proxy: pallet_proxy = 29,
+	#[runtime::pallet_index(8)]
+	pub type Offences = pallet_offences::Pallet<Runtime>;
 
-		// Multisig dispatch. Late addition.
-		Multisig: pallet_multisig = 30,
+	#[runtime::pallet_index(9)]
+	pub type Session = pallet_session::Pallet<Runtime>;
 
-		// Bounties modules.
-		Bounties: pallet_bounties = 34,
-		ChildBounties: pallet_child_bounties = 38,
+	#[runtime::pallet_index(10)]
+	pub type Preimage = pallet_preimage::Pallet<Runtime>;
 
-		// Staking 36-40s, see also Staking, Offences, Historical and Session
-		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 36,
-		VoterList: pallet_bags_list::<Instance1> = 37,
-		NominationPools: pallet_nomination_pools = 39,
-		FastUnstake: pallet_fast_unstake = 40,
-		DelegatedStaking: pallet_delegated_staking = 41,
-		StakingAhClient: pallet_staking_async_ah_client = 42,
+	#[runtime::pallet_index(11)]
+	pub type Grandpa = pallet_grandpa::Pallet<Runtime>;
 
-		// Parachains pallets. Start indices at 50 to leave room.
-		ParachainsOrigin: parachains_origin = 50,
-		Configuration: parachains_configuration = 51,
-		ParasShared: parachains_shared = 52,
-		ParaInclusion: parachains_inclusion = 53,
-		ParaInherent: parachains_paras_inherent = 54,
-		ParaScheduler: parachains_scheduler = 55,
-		Paras: parachains_paras = 56,
-		Initializer: parachains_initializer = 57,
-		Dmp: parachains_dmp = 58,
-		// Ump 59
-		Hrmp: parachains_hrmp = 60,
-		ParaSessionInfo: parachains_session_info = 61,
-		ParasDisputes: parachains_disputes = 62,
-		ParasSlashing: parachains_slashing = 63,
-		OnDemand: parachains_on_demand = 64,
+	#[runtime::pallet_index(13)]
+	pub type AuthorityDiscovery = pallet_authority_discovery::Pallet<Runtime>;
 
-		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
-		Registrar: paras_registrar = 70,
-		Slots: slots = 71,
-		Auctions: auctions = 72,
-		Crowdloan: crowdloan = 73,
-		Coretime: coretime = 74,
+	// OpenGov stuff.
+	#[runtime::pallet_index(19)]
+	pub type Treasury = pallet_treasury::Pallet<Runtime>;
 
-		// State trie migration pallet, only temporary.
-		StateTrieMigration: pallet_state_trie_migration = 98,
+	#[runtime::pallet_index(20)]
+	pub type ConvictionVoting = pallet_conviction_voting::Pallet<Runtime>;
 
-		// Pallet for sending XCM.
-		XcmPallet: pallet_xcm = 99,
+	#[runtime::pallet_index(21)]
+	pub type Referenda = pallet_referenda::Pallet<Runtime>;
 
-		// Generalized message queue
-		MessageQueue: pallet_message_queue = 100,
+	#[runtime::pallet_index(22)]
+	pub type Origins = pallet_custom_origins::Pallet<Runtime>;
 
-		// Asset rate.
-		AssetRate: pallet_asset_rate = 101,
+	#[runtime::pallet_index(23)]
+	pub type Whitelist = pallet_whitelist::Pallet<Runtime>;
 
-		// BEEFY Bridges support.
-		Beefy: pallet_beefy = 200,
-		// MMR leaf construction must be after session in order to have a leaf's next_auth_set
-		// refer to block<N>. See issue #160 for details.
-		Mmr: pallet_mmr = 201,
-		BeefyMmrLeaf: pallet_beefy_mmr = 202,
+	// Claims. Usable initially.
+	#[runtime::pallet_index(24)]
+	pub type Claims = claims::Pallet<Runtime>;
 
-		// Relay Chain Migrator
-		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
-		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
-		RcMigrator: pallet_rc_migrator = 255,
-	}
+	// Vesting. Usable initially, but removed once all vesting is finished.
+	#[runtime::pallet_index(25)]
+	pub type Vesting = pallet_vesting::Pallet<Runtime>;
+
+	// Cunning utilities. Usable initially.
+	#[runtime::pallet_index(26)]
+	pub type Utility = pallet_utility::Pallet<Runtime>;
+
+	// Identity: pallet_identity = 28, (removed post 1.2.8)
+
+	// Proxy module. Late addition.
+	#[runtime::pallet_index(29)]
+	pub type Proxy = pallet_proxy::Pallet<Runtime>;
+
+	// Multisig dispatch. Late addition.
+	#[runtime::pallet_index(30)]
+	pub type Multisig = pallet_multisig::Pallet<Runtime>;
+
+	#[runtime::pallet_index(32)]
+	pub type TransactionPayment = pallet_transaction_payment::Pallet<Runtime>;
+
+	#[runtime::pallet_index(33)]
+	pub type Historical = session_historical::Pallet<Runtime>;
+
+	// Bounties modules.
+	#[runtime::pallet_index(34)]
+	pub type Bounties = pallet_bounties::Pallet<Runtime>;
+
+	// Staking 36-40s, see also Staking, Offences, Historical and Session
+	#[runtime::pallet_index(36)]
+	pub type ElectionProviderMultiPhase = pallet_election_provider_multi_phase::Pallet<Runtime>;
+
+	#[runtime::pallet_index(37)]
+	pub type VoterList = pallet_bags_list::Pallet<Runtime, Instance1>;
+
+	#[runtime::pallet_index(38)]
+	pub type ChildBounties = pallet_child_bounties::Pallet<Runtime>;
+
+	#[runtime::pallet_index(39)]
+	pub type NominationPools = pallet_nomination_pools::Pallet<Runtime>;
+
+	#[runtime::pallet_index(40)]
+	pub type FastUnstake = pallet_fast_unstake::Pallet<Runtime>;
+
+	#[runtime::pallet_index(41)]
+	pub type DelegatedStaking = pallet_delegated_staking::Pallet<Runtime>;
+
+	#[runtime::pallet_index(42)]
+	pub type StakingAhClient = pallet_staking_async_ah_client::Pallet<Runtime>;
+
+	// Parachains pallets. Start indices at 50 to leave room.
+	#[runtime::pallet_index(50)]
+	pub type ParachainsOrigin = parachains_origin::Pallet<Runtime>;
+
+	#[runtime::pallet_index(51)]
+	pub type Configuration = parachains_configuration::Pallet<Runtime>;
+
+	#[runtime::pallet_index(52)]
+	pub type ParasShared = parachains_shared::Pallet<Runtime>;
+
+	#[runtime::pallet_index(53)]
+	pub type ParaInclusion = parachains_inclusion::Pallet<Runtime>;
+
+	#[runtime::pallet_index(54)]
+	pub type ParaInherent = parachains_paras_inherent::Pallet<Runtime>;
+
+	#[runtime::pallet_index(55)]
+	pub type ParaScheduler = parachains_scheduler::Pallet<Runtime>;
+
+	#[runtime::pallet_index(56)]
+	pub type Paras = parachains_paras::Pallet<Runtime>;
+
+	#[runtime::pallet_index(57)]
+	pub type Initializer = parachains_initializer::Pallet<Runtime>;
+
+	#[runtime::pallet_index(58)]
+	pub type Dmp = parachains_dmp::Pallet<Runtime>;
+
+	// #[runtime::pallet_index(59)]
+	// pub type Ump = parachains_ump::Pallet<Runtime>;
+
+	#[runtime::pallet_index(60)]
+	pub type Hrmp = parachains_hrmp::Pallet<Runtime>;
+
+	#[runtime::pallet_index(61)]
+	pub type ParaSessionInfo = parachains_session_info::Pallet<Runtime>;
+
+	#[runtime::pallet_index(62)]
+	pub type ParasDisputes = parachains_disputes::Pallet<Runtime>;
+
+	#[runtime::pallet_index(63)]
+	pub type ParasSlashing = parachains_slashing::Pallet<Runtime>;
+
+	#[runtime::pallet_index(64)]
+	pub type OnDemand = parachains_on_demand::Pallet<Runtime>;
+
+	// Parachain Onboarding Pallets. Start indices at 70 to leave room.
+	#[runtime::pallet_index(70)]
+	pub type Registrar = paras_registrar::Pallet<Runtime>;
+
+	#[runtime::pallet_index(71)]
+	pub type Slots = slots::Pallet<Runtime>;
+
+	#[runtime::pallet_index(72)]
+	pub type Auctions = auctions::Pallet<Runtime>;
+
+	#[runtime::pallet_index(73)]
+	pub type Crowdloan = crowdloan::Pallet<Runtime>;
+
+	#[runtime::pallet_index(74)]
+	pub type Coretime = coretime::Pallet<Runtime>;
+
+	// State trie migration pallet, only temporary.
+	#[runtime::pallet_index(98)]
+	pub type StateTrieMigration = pallet_state_trie_migration::Pallet<Runtime>;
+
+	// Pallet for sending XCM.
+	#[runtime::pallet_index(99)]
+	pub type XcmPallet = pallet_xcm::Pallet<Runtime>;
+
+	// Generalized message queue
+	#[runtime::pallet_index(100)]
+	pub type MessageQueue = pallet_message_queue::Pallet<Runtime>;
+
+	// Asset rate.
+	#[runtime::pallet_index(101)]
+	pub type AssetRate = pallet_asset_rate::Pallet<Runtime>;
+
+	// BEEFY Bridges support.
+	#[runtime::pallet_index(200)]
+	pub type Beefy = pallet_beefy::Pallet<Runtime>;
+
+	// MMR leaf construction must be after session in order to have a leaf's next_auth_set
+	// refer to block<N>. See issue #160 for details.
+	#[runtime::pallet_index(201)]
+	pub type Mmr = pallet_mmr::Pallet<Runtime>;
+
+	#[runtime::pallet_index(202)]
+	pub type BeefyMmrLeaf = pallet_beefy_mmr::Pallet<Runtime>;
+
+	// Relay Chain Migrator
+	// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
+	// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
+	#[runtime::pallet_index(255)]
+	pub type RcMigrator = pallet_rc_migrator::Pallet<Runtime>;
 }
 
 impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
