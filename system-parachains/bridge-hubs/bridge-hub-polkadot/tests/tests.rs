@@ -65,7 +65,6 @@ use system_parachains_constants::polkadot::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
 };
 use xcm::{latest::prelude::*, VersionedLocation};
-use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 // Para id of sibling chain used in tests.
