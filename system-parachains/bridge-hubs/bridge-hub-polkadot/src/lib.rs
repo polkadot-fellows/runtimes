@@ -675,6 +675,9 @@ parameter_types! {
 	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
 }
 
+// TODO: once we bump to SDK2604 crates, populate the associated types added upstream
+// (`SendToDap` via `xcm_builder::SendToDapViaTeleport`, `TransferPeriod`, `MinTransferAmount`,
+// `BlockNumberProvider`, `WeightInfo`). Mirror Westend system-chain wiring.
 impl pallet_dap_satellite::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = DapSatellitePalletId;
