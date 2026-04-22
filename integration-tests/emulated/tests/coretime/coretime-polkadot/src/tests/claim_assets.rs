@@ -17,16 +17,17 @@
 
 use crate::*;
 
+use coretime_polkadot_runtime::xcm_config::XcmConfig as CoretimePolkadotXcmConfig;
 use integration_tests_helpers::test_chain_can_claim_assets;
 
 #[test]
 fn assets_can_be_claimed() {
 	let amount = CoretimeExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
+	let assets: Asset = (Parent, amount).into();
 
 	test_chain_can_claim_assets!(
 		CoretimePolkadot,
-		RuntimeCall,
+		CoretimePolkadotXcmConfig,
 		NetworkId::Polkadot,
 		assets,
 		amount

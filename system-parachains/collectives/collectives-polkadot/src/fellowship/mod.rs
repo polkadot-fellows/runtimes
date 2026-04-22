@@ -252,7 +252,7 @@ pub const USDT_UNITS: u128 = 1_000_000;
 /// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in USDT.
 pub type FellowshipSalaryPaymaster = PayOverXcm<
 	FellowshipSalaryInteriorLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
@@ -304,7 +304,7 @@ parameter_types! {
 /// [`PayOverXcm`] setup to pay the Fellowship Treasury.
 pub type FellowshipTreasuryPaymaster = PayOverXcm<
 	FellowshipTreasuryInteriorLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
 	VersionedLocation,

@@ -382,7 +382,7 @@ fn transfer_relay_token_from_ah() {
 		assert!(
 			events.iter().any(|event| matches!(
 				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount})
+				RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, amount})
 					if *who == ethereum_sovereign.clone() && *amount == TOKEN_AMOUNT,
 			)),
 			"native token reserved to Ethereum sovereign account."
@@ -759,7 +759,7 @@ fn register_token_from_penpal() {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		assert_expected_events!(
 			AssetHubPolkadot,
-			vec![RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { .. }) => {},]
+			vec![RuntimeEvent::ForeignAssets(pallet_assets::Event::Withdrawn { .. }) => {},]
 		);
 	});
 
@@ -907,7 +907,7 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 		);
 		assert_expected_events!(
 			AssetHubPolkadot,
-			vec![RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},]
+			vec![RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { .. }) => {},]
 		);
 	});
 

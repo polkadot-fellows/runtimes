@@ -49,7 +49,7 @@ pub const LOCAL_FEE_AMOUNT_IN_DOT: u128 = 80_000_000_000_000;
 /// Execution weight provided as limited for XCM execute.
 pub const EXECUTION_WEIGHT: u64 = 800_000_000_000;
 /// The execution fee (in Ether) for execution on AssetHub.
-pub const EXECUTION_IN_ETHER: u128 = 1_500_000_000_000;
+pub const EXECUTION_IN_ETHER: u128 = 12_500_000_000_000;
 /// The reward allocated to the relayer for relaying the message.
 pub const RELAYER_REWARD_IN_ETHER: u128 = 1_500_000_000_000;
 /// The base cost for transfers to Ethereum, for Snowbridge V2.

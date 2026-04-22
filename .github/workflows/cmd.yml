@@ -294,9 +294,18 @@ jobs:
           components: "rust-src, rustfmt"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
+      - name: Download frame-omni-bencher
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
+        run: |
+          curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
+          chmod +x ./frame-omni-bencher
+          sudo mv ./frame-omni-bencher /usr/local/bin/frame-omni-bencher
+          frame-omni-bencher --version
+        shell: bash
+
       - name: Install dependencies for bench
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
-        run: cargo install subweight frame-omni-bencher --locked
+        run: cargo install subweight --locked
 
       - name: Install dependencies for fmt
         if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')

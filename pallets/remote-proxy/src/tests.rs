@@ -71,6 +71,7 @@ impl pallet_utility::Config for Test {
 	Copy,
 	Clone,
 	Eq,
+	Default,
 	PartialEq,
 	Ord,
 	PartialOrd,
@@ -78,7 +79,6 @@ impl pallet_utility::Config for Test {
 	Decode,
 	DecodeWithMemTracking,
 	Debug,
-	Default,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]
@@ -88,6 +88,7 @@ pub enum ProxyType {
 	JustTransfer,
 	JustUtility,
 }
+
 impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {

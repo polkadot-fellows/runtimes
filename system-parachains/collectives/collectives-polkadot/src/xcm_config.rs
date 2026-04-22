@@ -20,6 +20,7 @@ use super::{
 };
 use cumulus_primitives_core::ParaId;
 use frame_support::{
+	pallet_prelude::PalletInfoAccess,
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
@@ -67,8 +68,10 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	// Test [`treasury_pallet_account_not_none`] ensures that the result of location conversion is
 	// not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -79,6 +82,7 @@ parameter_types! {
 		location: AssetHubLocation::get(),
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
 	};
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
@@ -195,6 +199,19 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
+parameter_types! {
+	pub FellowshipTreasuryLocation: Location =
+		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
+	pub FellowshipSalaryLocation: Location =
+		PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	pub SecretarySalaryLocation: Location =
+		PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
+	pub AmbassadorSalaryLocation: Location =
+		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
+	pub AmbassadorTreasuryLocation: Location =
+		PalletInstance(<crate::AmbassadorTreasury as PalletInfoAccess>::index() as u8).into();
+}
+
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
@@ -202,6 +219,11 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
+	Equals<FellowshipTreasuryLocation>,
+	Equals<FellowshipSalaryLocation>,
+	Equals<SecretarySalaryLocation>,
+	Equals<AmbassadorSalaryLocation>,
+	Equals<AmbassadorTreasuryLocation>,
 	LocalPlurality,
 );
 
@@ -249,7 +271,6 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;

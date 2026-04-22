@@ -42,6 +42,7 @@ decl_test_parachains! {
 			LocationToAccountId: asset_hub_polkadot_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: asset_hub_polkadot_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			native_total_supply_tracker: true,
 		},
 		pallets = {
 			PolkadotXcm: asset_hub_polkadot_runtime::PolkadotXcm,
@@ -52,6 +53,8 @@ decl_test_parachains! {
 			AssetConversion: asset_hub_polkadot_runtime::AssetConversion,
 			SnowbridgeSystemFrontend: asset_hub_polkadot_runtime::SnowbridgeSystemFrontend,
 			Preimage: asset_hub_polkadot_runtime::Preimage,
+			Treasury: asset_hub_polkadot_runtime::Treasury,
+			AssetRate: asset_hub_polkadot_runtime::AssetRate,
 		}
 	},
 }

@@ -21,9 +21,10 @@ use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, Sched
 use sp_runtime::Perbill;
 
 #[test]
-fn transact_hardcoded_weights_are_sane() {
-	// There are three transacts with hardcoded weights sent from the Coretime Chain to the Relay
-	// Chain across the CoretimeInterface which are triggered at various points in the sales cycle.
+fn broker_transacts_are_processed_by_relay() {
+	// Verify that the three UMP transacts sent from the Coretime Chain to the Relay Chain across
+	// the CoretimeInterface are processed successfully. This serves as a smoke test for the
+	// relay call encoding (pallet index 74, call indices 1-4) and confirms:
 	// - Request core count - triggered directly by `start_sales` or `request_core_count`
 	//   extrinsics.
 	// - Request revenue info - triggered when each timeslice is committed.
@@ -106,8 +107,8 @@ fn transact_hardcoded_weights_are_sane() {
 		);
 	});
 
-	// Check that the request_core_count message was processed successfully. This will fail if the
-	// weights are misconfigured.
+	// Check that the request_core_count message was processed successfully on the relay. This
+	// will fail if the relay call encoding (pallet/call indices) is wrong.
 	Kusama::execute_with(|| {
 		Kusama::assert_ump_queue_processed(true, Some(CoretimeKusama::para_id()), None);
 
@@ -185,7 +186,7 @@ fn transact_hardcoded_weights_are_sane() {
 	});
 
 	// Check that the assign_core and request_revenue_info_at messages were processed successfully.
-	// This will fail if the weights are misconfigured.
+	// This will fail if the relay call encoding (pallet/call indices) is wrong.
 	Kusama::execute_with(|| {
 		Kusama::assert_ump_queue_processed(true, Some(CoretimeKusama::para_id()), None);
 

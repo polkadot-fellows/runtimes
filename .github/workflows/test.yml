@@ -5,12 +5,11 @@ name: "Tests"
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["main", "*release-*"]
   pull_request:
+    # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
-
-env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2506
 
 # cancel previous runs
 concurrency:
@@ -18,8 +17,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-release-pr:
+    # Produces two outputs:
+    #   is-release: whether this should trigger a GitHub Release or the runtimes
+    #   run-extended-checks: whether extended CI checks should run
+    name: Check if release PR
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-24.04
+    outputs:
+      is-release: ${{ steps.check.outputs.is-release }}
+      run-extended-checks: ${{ steps.check.outputs.run-extended-checks }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if CHANGELOG.md changed
+        if: github.event_name == 'pull_request'
+        id: changed
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            CHANGELOG.md
+      - name: Determine release status
+        id: check
+        run: |
+          # is-release: purely changelog-driven
+          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ steps.changed.outputs.any_changed }}" != "true" ]]; then
+            IS_RELEASE=0
+          else
+            IS_RELEASE=$(.github/changelog-processor.py CHANGELOG.md --should-release)
+          fi
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+
+          # run-extended-checks: either is-release, or a workflow_dispatch, or a release branch push
+          if [[ "$IS_RELEASE" == "1" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/heads/*release-* ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          else
+            echo "run-extended-checks=0" >> $GITHUB_OUTPUT
+          fi
+
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -33,6 +74,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
@@ -96,12 +138,12 @@ jobs:
             cargo test -p ${{ matrix.runtime.package }} --release --locked -q
           fi
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
 
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uris[0] }}
           RUST_LOG: "remote-ext=info"
@@ -127,9 +169,10 @@ jobs:
             EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
+          RUNTIME_LOG: "error"
 
   # Job required by "confirmTestPassed"
   integration-test:
@@ -175,10 +218,11 @@ jobs:
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
+    if: github.event.pull_request.draft != true
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -217,11 +261,13 @@ jobs:
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
+    needs: [check-release-pr]
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -259,7 +305,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot --release --locked --quiet
 
       - name: Wait for Docker to Start
         run: |
@@ -271,7 +317,7 @@ jobs:
         run: |
           # Since we are running the runner in a dind environment we need to find the ip
           # of the proxy where the ports will be exposed.
-          # In the current infra there are 2 containes, the `dind` and the runner.
+          # In the current infra there are 2 containers, the `dind` and the runner.
           export ZOMBIE_LOCAL_IP=$(hostname -i | awk -F"." '{printf "%d.%d.%d.%d", $1, $2, $3, $4 - 1}')
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
@@ -406,10 +452,10 @@ jobs:
 
   ecosystem-tests:
     name: "PET (${{ matrix.network.name }})"
-    needs: [build-runtimes]
+    needs: [build-runtimes, check-release-pr]
     runs-on: self-hosted
     timeout-minutes: 120
-    if: github.event_name == 'pull_request'
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
     strategy:
       fail-fast: false
       matrix:
@@ -609,16 +655,19 @@ jobs:
   confirmTestPassed:
     runs-on: ubuntu-24.04
     name: All tests passed
+    if: always()
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - zombienet-smoke
       - check-runtimes
-      # PET tests are *still* run and can still provide a degree of confidence, but they are not required.
-      # If the runtimes being tested against have breaking changes (removed extrinsics, added/changed/removed call
-      # params), false negatives will occur. See #1078 .
+      # These jobs only run on release PRs/branches, so they are not required for the gate.
+      #- zombienet-smoke
       #- ecosystem-tests
     steps:
+      # Branch protection treats `skipped` as passing, so fail explicitly.
+      - name: Fail if any dependency did not succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

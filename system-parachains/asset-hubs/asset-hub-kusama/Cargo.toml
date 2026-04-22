@@ -10,7 +10,6 @@ version.workspace = true
 
 [dependencies]
 pallet-rc-migrator = { workspace = true }
-pallet-ah-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -159,7 +158,6 @@ substrate-wasm-builder = { optional = true, workspace = true }
 default = ["std"]
 kusama-ahm = [
 	"kusama-runtime/kusama-ahm",
-	"pallet-ah-migrator/kusama-ahm",
 	"pallet-rc-migrator/kusama-ahm",
 ]
 runtime-benchmarks = [
@@ -181,7 +179,6 @@ runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
-	"pallet-ah-migrator/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
@@ -259,7 +256,6 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"kusama-runtime/try-runtime",
-	"pallet-ah-migrator/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
@@ -348,7 +344,6 @@ std = [
 	"grandpa-primitives/std",
 	"kusama-runtime-constants/std",
 	"log/std",
-	"pallet-ah-migrator/std",
 	"pallet-ah-ops/std",
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",

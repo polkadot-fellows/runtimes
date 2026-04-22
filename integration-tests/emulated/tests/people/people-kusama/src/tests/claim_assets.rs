@@ -17,11 +17,18 @@
 
 use crate::*;
 use integration_tests_helpers::test_chain_can_claim_assets;
+use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
 
 #[test]
 fn assets_can_be_claimed() {
 	let amount = PeopleKusamaExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
+	let assets: Asset = (Parent, amount).into();
 
-	test_chain_can_claim_assets!(PeopleKusama, RuntimeCall, NetworkId::Kusama, assets, amount);
+	test_chain_can_claim_assets!(
+		PeopleKusama,
+		PeopleKusamaXcmConfig,
+		NetworkId::Kusama,
+		assets,
+		amount
+	);
 }
