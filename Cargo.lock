@@ -20872,6 +20872,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "serde_json",
  "subxt 0.43.1",
  "tokio",
  "tracing-subscriber 0.3.22",
