@@ -11,7 +11,7 @@ use zombienet_sdk::subxt::{OnlineClient, PolkadotConfig};
 use zombienet_sdk_tests::{
 	elastic_scaling_network,
 	environment::{get_provider_from_env, get_spawn_fn},
-	helpers::{assign_cores, assert_para_throughput},
+	helpers::{assert_para_throughput, assign_cores},
 	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATOR_0,
 };
 
@@ -22,8 +22,7 @@ const COLLATORS: &[&str] =
 async fn elastic_scaling_asset_hub_polkadot() -> Result<(), anyhow::Error> {
 	tracing_subscriber::fmt()
 		.with_env_filter(
-			tracing_subscriber::EnvFilter::try_from_default_env()
-				.unwrap_or_else(|_| "info".into()),
+			tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
 		)
 		.init();
 
@@ -60,7 +59,7 @@ async fn elastic_scaling_asset_hub_polkadot() -> Result<(), anyhow::Error> {
 	// Scale up to 3 cores.
 	assign_cores(&relay_client, ASSET_HUB_POLKADOT_PARA_ID, vec![0, 1]).await?;
 
-	// With 3 cores, expect close to 3 candidates per 6s relay slot — ~60 
+	// With 3 cores, expect close to 3 candidates per 6s relay slot — ~60
 	// over 20 relay blocks.
 	log::info!("Measuring throughput after scaling up to 3 cores");
 	assert_para_throughput(

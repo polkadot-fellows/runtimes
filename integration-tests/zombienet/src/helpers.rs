@@ -81,9 +81,9 @@ where
 					log::info!("Extrinsic finalized in {:?}", tx_in_block.block_hash());
 					return Ok::<(), anyhow::Error>(());
 				},
-				TxStatus::Error { message }
-				| TxStatus::Invalid { message }
-				| TxStatus::Dropped { message } => {
+				TxStatus::Error { message } |
+				TxStatus::Invalid { message } |
+				TxStatus::Dropped { message } => {
 					return Err(anyhow!("tx failed: {message}"));
 				},
 				_ => continue,
