@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.2] 23.04.2026
+
+### Changed
+
+- people-polkadot: Allow multiple blocks per slot ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
+
 ## [2.2.1] 16.04.2026
 
 ### Added
