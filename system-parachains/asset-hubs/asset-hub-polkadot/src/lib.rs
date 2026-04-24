@@ -1462,6 +1462,7 @@ impl pallet_revive::Config for Runtime {
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
+	type AutoMap = ConstBool<false>;
 	type GasScale = ConstU32<80_000>;
 	type OnBurn = Dap;
 }
