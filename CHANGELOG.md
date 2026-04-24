@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
 
+### Changed
+
+- Polkadot & Kusama relay: increase maximum block length from 5 MiB to 10 MiB ([#1157](https://github.com/polkadot-fellows/runtimes/pull/1157))
+
 ## [2.2.2] 23.04.2026
 
 ### Changed

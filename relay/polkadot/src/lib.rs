@@ -83,7 +83,7 @@ use polkadot_runtime_common::{
 	},
 	paras_registrar, prod_or_fast, slots,
 	traits::OnSwap,
-	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
+	BlockHashCount, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
 use sp_runtime::traits::Convert;
 
@@ -190,6 +190,13 @@ pub fn native_version() -> NativeVersion {
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub const SS58Prefix: u8 = 0;
+	/// Maximum length of block. Up to 10MiB.
+	pub BlockLength: limits::BlockLength = limits::BlockLength::builder()
+		.max_length(10 * 1024 * 1024)
+		.modify_max_length_for_class(DispatchClass::Normal, |m| {
+			*m = NORMAL_DISPATCH_RATIO * *m
+		})
+		.build();
 }
 
 /// Pallets that are blocked for user calls after the AHM.
