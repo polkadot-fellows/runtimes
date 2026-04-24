@@ -14,11 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-	coretime::{BrokerPalletId, CoretimeBurnAccount},
-	xcm_config::LocationToAccountId,
-	*,
-};
+use crate::{coretime::BrokerPalletId, xcm_config::LocationToAccountId, *};
 use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
@@ -64,7 +60,7 @@ fn advance_to(b: BlockNumber) {
 }
 
 #[test]
-fn bulk_revenue_is_burnt() {
+fn bulk_revenue_goes_to_dap_satellite() {
 	ExtBuilder::<Runtime>::default()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
@@ -93,13 +89,12 @@ fn bulk_revenue_is_burnt() {
 
 			// Check and set initial balances.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
-			let coretime_burn_account = CoretimeBurnAccount::get();
-			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
+			let dap_satellite_account: AccountId =
+				DapSatellitePalletId::get().into_account_truncating();
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
-			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
-			let burn_balance_before = Balances::balance(&coretime_burn_account);
+			let dap_balance_before = Balances::balance(&dap_satellite_account);
 
 			// Purchase coretime.
 			assert_ok!(Broker::purchase(
@@ -107,17 +102,12 @@ fn bulk_revenue_is_burnt() {
 				100 * UNITS
 			));
 
-			// Alice decreases.
-			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
-			// Treasury balance does not increase.
-			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
+			let alice_paid = alice_balance_before - Balances::balance(&AccountId::from(ALICE));
+			assert!(alice_paid > 0);
 			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
-			// Coretime burn pot gets the funds.
-			assert!(Balances::balance(&coretime_burn_account) > burn_balance_before);
-
-			// They're burnt when a day has passed on chain.
-			// This needs to be asserted in an emulated test.
+			// DAP satellite gets exactly the revenue Alice paid.
+			assert_eq!(Balances::balance(&dap_satellite_account), dap_balance_before + alice_paid);
 		});
 }
 

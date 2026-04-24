@@ -18,24 +18,16 @@ use crate::*;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use cumulus_primitives_core::relay_chain;
-use frame_support::{
-	parameter_types,
-	traits::{
-		fungible::{Balanced, Credit, Inspect},
-		tokens::{Fortitude, Preservation},
-		DefensiveResult, OnUnbalanced,
-	},
-};
-use frame_system::Pallet as System;
+use frame_support::parameter_types;
 use pallet_broker::{
 	CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf, TaskId,
 };
 use parachains_common::{AccountId, Balance};
-use polkadot_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
-use sp_runtime::traits::{AccountIdConversion, MaybeConvert};
+use polkadot_runtime_constants::system_parachain::coretime;
+use sp_runtime::traits::MaybeConvert;
 use xcm::latest::prelude::*;
 use xcm_config::LocationToAccountId;
-use xcm_executor::traits::{ConvertLocation, TransactAsset};
+use xcm_executor::traits::ConvertLocation;
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
 /// construct any remote calls. The codec index must correspond to the index of `Coretime` in the
@@ -62,60 +54,6 @@ enum CoretimeProviderCalls {
 		Vec<(CoreAssignment, PartsOf57600)>,
 		Option<relay_chain::BlockNumber>,
 	),
-}
-
-parameter_types! {
-	/// The holding account into which burnt funds will be moved at the point of sale. This will be
-	/// burnt periodically.
-	pub CoretimeBurnAccount: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-}
-
-/// Burn revenue from coretime sales. See
-/// [RFC-010](https://polkadot-fellows.github.io/RFCs/approved/0010-burn-coretime-revenue.html).
-pub struct BurnCoretimeRevenue;
-impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
-	fn on_nonzero_unbalanced(amount: Credit<AccountId, Balances>) {
-		let acc = CoretimeBurnAccount::get();
-		if !System::<Runtime>::account_exists(&acc) {
-			// The account doesn't require ED to survive.
-			System::<Runtime>::inc_providers(&acc);
-		}
-		Balances::resolve(&acc, amount).defensive_ok();
-	}
-}
-
-type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
-
-fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
-	let dest = Location::parent();
-	let stash_location =
-		Junction::AccountId32 { network: None, id: stash.clone().into() }.into_location();
-	let asset = Asset { id: AssetId(Location::parent()), fun: Fungible(value) };
-	let dummy_xcm_context = XcmContext { origin: None, message_id: [0; 32], topic: None };
-
-	let withdrawn = AssetTransactor::withdraw_asset(&asset, &stash_location, None)?;
-
-	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
-	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
-
-	let parent_assets = withdrawn.reanchored_assets(&dest, &Here);
-
-	PolkadotXcm::send_xcm(
-		Here,
-		Location::parent(),
-		Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			ReceiveTeleportedAsset(parent_assets.clone()),
-			BurnAsset(parent_assets),
-		]),
-	)?;
-
-	AssetTransactor::check_out(&dest, &asset, &dummy_xcm_context);
-
-	Ok(())
 }
 
 parameter_types! {
@@ -257,33 +195,6 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 		}
 	}
-
-	fn on_new_timeslice(t: pallet_broker::Timeslice) {
-		// Burn roughly once per day. TIMESLICE_PERIOD tested to be != 0.
-		const BURN_PERIOD: pallet_broker::Timeslice =
-			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
-		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
-		// have bigger issues with the chain, but we still want to burn.
-		if t.checked_rem(BURN_PERIOD).is_some_and(|r| r != 0) {
-			return;
-		}
-
-		let stash = CoretimeBurnAccount::get();
-		let value =
-			Balances::reducible_balance(&stash, Preservation::Expendable, Fortitude::Polite);
-
-		if value > 0 {
-			log::debug!(target: "runtime::coretime", "Going to burn {value} stashed tokens at RC");
-			match burn_at_relay(&stash, value) {
-				Ok(()) => {
-					log::debug!(target: "runtime::coretime", "Succesfully burnt {value} tokens");
-				},
-				Err(err) => {
-					log::error!(target: "runtime::coretime", "burn_at_relay failed: {err:?}");
-				},
-			}
-		}
-	}
 }
 
 parameter_types! {
@@ -304,7 +215,7 @@ impl MaybeConvert<TaskId, AccountId> for SovereignAccountOf {
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type OnRevenue = BurnCoretimeRevenue;
+	type OnRevenue = DapSatellite;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<55>;
 	type MaxReservedCores = ConstU32<50>;

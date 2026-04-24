@@ -14,17 +14,13 @@
 // limitations under the License.
 
 use super::*;
-use crate::xcm_config::LocationToAccountId;
 use codec::{Decode, Encode, MaxEncodedLen};
 use enumflags2::{bitflags, BitFlags};
 use frame_support::{parameter_types, CloneNoBound, DebugNoBound, EqNoBound, PartialEqNoBound};
 use pallet_identity::{Data, IdentityInformationProvider};
-use parachains_common::{impls::ToParentTreasury, DAYS};
+use parachains_common::DAYS;
 use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{AccountIdConversion, Verify},
-	Debug,
-};
+use sp_runtime::{traits::Verify, Debug};
 use xcm::latest::prelude::BodyId;
 
 parameter_types! {
@@ -36,8 +32,6 @@ parameter_types! {
 	pub const ByteDeposit: Balance = system_para_deposit(0, 1);
 	pub const UsernameDeposit: Balance = system_para_deposit(0, 32);
 	pub const SubAccountDeposit: Balance = system_para_deposit(1, 53);
-	pub RelayTreasuryAccount: AccountId =
-		parachains_common::TREASURY_PALLET_ID.into_account_truncating();
 	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
 }
 
@@ -59,7 +53,9 @@ impl pallet_identity::Config for Runtime {
 	type MaxSubAccounts = ConstU32<100>;
 	type IdentityInformation = IdentityInfo;
 	type MaxRegistrars = ConstU32<20>;
-	type Slashed = ToParentTreasury<RelayTreasuryAccount, LocationToAccountId, Runtime>;
+	// TODO: once we bump to SDK2604 crates, swap this for
+	// `pallet_dap_satellite::DapSatelliteLegacyAdapter<Runtime, Balances>` and drop the shim.
+	type Slashed = relay_common::dap_satellite_shim::DapSatelliteLegacyAdapter<Runtime, Balances>;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type RegistrarOrigin = IdentityAdminOrigin;
 	type OffchainSignature = Signature;

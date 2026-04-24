@@ -116,6 +116,8 @@ impl pallet_bounties::Config for Runtime {
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
+	// TODO(#1137, SDK#11704): redirect to Dap once it supports NegativeImbalance.
+	// Needs SDK2604 which contains the related fix (SDK#11716).
 	type OnSlash = Treasury;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 	type TransferAllAssets = TransferAllFungibles<AccountId, NativeAndAssets, BountyRelevantAssets>;
