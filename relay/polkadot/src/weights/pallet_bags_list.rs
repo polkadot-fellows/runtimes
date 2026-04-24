@@ -135,7 +135,7 @@ impl<T: frame_system::Config> pallet_bags_list::WeightInfo for WeightInfo<T> {
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:9 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
-	fn on_idle() -> Weight {
+	fn on_idle_rebag() -> Weight { // TODO @ggwpez rerun
 		// Proof Size summary in bytes:
 		//  Measured:  `4734`
 		//  Estimated: `509833`
