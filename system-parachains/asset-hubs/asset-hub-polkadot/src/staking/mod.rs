@@ -116,6 +116,10 @@ parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
 	pub const DapPalletId: PalletId = PalletId(*b"dap/buff");
+	/// Minimum time (ms) between issuance drips. 60s = drip at most once per minute.
+	pub const DapIssuanceCadence: u64 = 60_000;
+	/// Safety ceiling (ms) for elapsed time in a single drip. Prevents over-minting after stalls.
+	pub const DapMaxElapsedPerDrip: u64 = 600_000;
 }
 
 impl pallet_delegated_staking::Config for Runtime {
@@ -131,6 +135,14 @@ impl pallet_delegated_staking::Config for Runtime {
 impl pallet_dap::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = DapPalletId;
+	/// Noop — DAP does not mint until budget drip is enabled.
+	type IssuanceCurve = ();
+	type BudgetRecipients = (pallet_dap::Pallet<Runtime>,);
+	type Time = pallet_timestamp::Pallet<Runtime>;
+	type IssuanceCadence = DapIssuanceCadence;
+	type MaxElapsedPerDrip = DapMaxElapsedPerDrip;
+	type BudgetOrigin = frame_system::EnsureRoot<AccountId>;
+	type WeightInfo = ();
 }
 
 #[cfg(feature = "runtime-benchmarks")]
