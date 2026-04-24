@@ -1171,6 +1171,7 @@ impl pallet_xcm_bridge_hub_router::Config<ToPolkadotXcmRouterInstance> for Runti
 
 	type ByteFee = xcm_config::bridging::XcmBridgeHubRouterByteFee;
 	type FeeAsset = xcm_config::bridging::XcmBridgeHubRouterFeeAssetId;
+	type UnpaidExport = frame_support::traits::ConstBool<true>;
 	type LocalXcmChannelManager =
 		cumulus_pallet_xcmp_queue::bridging::InAndOutXcmpChannelStatusProvider<Runtime>;
 }

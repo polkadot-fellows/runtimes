@@ -1072,6 +1072,7 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type FeeAsset = xcm_config::bridging::XcmBridgeHubRouterFeeAssetId;
 	type LocalXcmChannelManager =
 		cumulus_pallet_xcmp_queue::bridging::InAndOutXcmpChannelStatusProvider<Runtime>;
+	type UnpaidExport = frame_support::traits::ConstBool<true>;
 }
 
 pub type PoolAssetsInstance = pallet_assets::Instance3;
