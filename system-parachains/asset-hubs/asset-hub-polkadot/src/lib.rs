@@ -135,6 +135,7 @@ use frame_system::{
 	pallet_prelude::BlockNumberFor,
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
+use pallet_asset_conversion_precompiles::AssetConversion as AssetConversionPrecompile;
 use pallet_assets_precompiles::{ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
@@ -1443,6 +1444,7 @@ impl pallet_revive::Config for Runtime {
 		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
 		ERC20<Self, ForeignIdConfig<0x220, Self, ForeignAssetsInstance>, ForeignAssetsInstance>,
 		XcmPrecompile<Self>,
+		AssetConversionPrecompile<{ ASSET_CONVERSION_PRECOMPILE }, Self>,
 		VestingPrecompile<Self>,
 	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
@@ -1479,6 +1481,9 @@ impl pallet_assets_precompiles::PermitConfig for Runtime {
 impl pallet_vesting_precompiles::pallet::Config for Runtime {
 	type WeightInfo = pallet_vesting_precompiles::weights::SubstrateWeight<Runtime>;
 }
+
+/// Precompile address identifier (embedded at bytes [16..18] of the H160 address).
+pub const ASSET_CONVERSION_PRECOMPILE: u16 = 0x0420;
 
 impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
