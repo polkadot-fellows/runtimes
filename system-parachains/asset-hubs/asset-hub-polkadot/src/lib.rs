@@ -1785,6 +1785,7 @@ mod benches {
 		[pallet_staking_async, Staking]
 		[pallet_staking_async_rc_client, StakingRcClientBench::<Runtime>]
 		[pallet_bags_list, VoterList]
+		[pallet_dap, Dap]
 		// DelegatedStaking has no calls
 		[pallet_election_provider_multi_block, MultiBlockElection]
 		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]

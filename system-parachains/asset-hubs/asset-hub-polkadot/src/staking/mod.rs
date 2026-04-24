@@ -116,6 +116,7 @@ parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
 	pub const DapPalletId: PalletId = PalletId(*b"dap/buff");
+	pub const StakingPotsPalletId: PalletId = PalletId(*b"py/stkng");
 	/// Minimum time (ms) between issuance drips. 60s = drip at most once per minute.
 	pub const DapIssuanceCadence: u64 = 60_000;
 	/// Safety ceiling (ms) for elapsed time in a single drip. Prevents over-minting after stalls.
@@ -135,9 +136,13 @@ impl pallet_delegated_staking::Config for Runtime {
 impl pallet_dap::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = DapPalletId;
-	/// Noop — DAP does not mint until budget drip is enabled.
-	type IssuanceCurve = ();
-	type BudgetRecipients = (pallet_dap::Pallet<Runtime>,);
+	type IssuanceCurve = EraPayout;
+	type BudgetRecipients = (
+		pallet_dap::Pallet<Runtime>,
+		pallet_staking_async::StakerRewardRecipient<
+			pallet_staking_async::Seed<StakingPotsPalletId>,
+		>,
+	);
 	type Time = pallet_timestamp::Pallet<Runtime>;
 	type IssuanceCadence = DapIssuanceCadence;
 	type MaxElapsedPerDrip = DapMaxElapsedPerDrip;
@@ -407,6 +412,28 @@ impl pallet_staking_async::EraPayout<Balance> for EraPayout {
 	}
 }
 
+/// DAP issuance curve: total emission for a given elapsed period.
+///
+/// Same computation as the legacy `EraPayout` but returns the combined emission
+/// (no 85/15 split). The staker/treasury split is now handled by pallet-dap
+/// via `BudgetAllocation`.
+impl sp_staking::budget::IssuanceCurve<Balance> for EraPayout {
+	fn issue(_total_issuance: Balance, elapsed_millis: u64) -> Balance {
+		let relative_period = FixedU128::from_rational(
+			elapsed_millis.into(),
+			Self::MILLISECONDS_PER_YEAR.into(),
+		);
+
+		let relay_block_num =
+			<RelaychainDataProvider<Runtime> as BlockNumberProvider>::current_block_number();
+		let yearly_emission = Self::yearly_after_hard_cap(relay_block_num);
+
+		let emission =
+			relative_period.saturating_mul_int(yearly_emission).min(Self::MAX_ERA_EMISSION);
+		emission.saturated_into()
+	}
+}
+
 parameter_types! {
 	pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
 	pub const RelaySessionDuration: BlockNumber = prod_or_fast!(4 * RC_HOURS, RC_MINUTES);
@@ -433,6 +460,7 @@ impl pallet_staking_async::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
+	// Non-minting mode: `RewardRemainder` is unused (kept for compile / legacy path).
 	type RewardRemainder = ResolveTo<xcm_config::TreasuryAccount, Balances>;
 	type Slash = Dap;
 	type Reward = ();
@@ -441,7 +469,9 @@ impl pallet_staking_async::Config for Runtime {
 	type NominatorFastUnbondDuration = NominatorFastUnbondDuration;
 	type SlashDeferDuration = SlashDeferDuration;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type EraPayout = EraPayout;
+	// Non-minting mode: `EraPayout` is unused. Inflation is driven by pallet-dap via
+	// `IssuanceCurve` (implemented on `EraPayout` above).
+	type EraPayout = ();
 	type MaxExposurePageSize = MaxExposurePageSize;
 	type ElectionProvider = MultiBlockElection;
 	type VoterList = VoterList;
@@ -455,7 +485,13 @@ impl pallet_staking_async::Config for Runtime {
 	// This will start election for the next era as soon as an era starts.
 	type PlanningEraOffset = ConstU32<6>;
 	type RcClientInterface = StakingRcClient;
+	// Non-minting mode: `MaxEraDuration` is unused (legacy path only). Kept for compile.
 	type MaxEraDuration = MaxEraDuration;
+	type DisableMinting = ConstBool<true>;
+	type UnclaimedRewardHandler = Dap;
+	type RewardPots = pallet_staking_async::Seed<StakingPotsPalletId>;
+	type StakerRewardCalculator =
+		pallet_staking_async::reward::DefaultStakerRewardCalculator<Runtime>;
 	type MaxPruningItems = MaxPruningItems;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
 }

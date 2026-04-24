@@ -1049,4 +1049,14 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().writes(48))
 			.saturating_add(Weight::from_parts(0, 177).saturating_mul(v.into()))
 	}
+	/// Storage: `Staking::MinCommission` (r:1 w:0)
+	/// Proof: `Staking::MinCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::MaxCommission` (r:0 w:1)
+	/// Proof: `Staking::MaxCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	fn set_max_commission() -> Weight {
+		// Placeholder: will be replaced by running benchmarks.
+		Weight::from_parts(9_000_000, 1489)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
 }
