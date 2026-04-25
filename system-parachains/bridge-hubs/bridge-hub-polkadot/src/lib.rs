@@ -1098,7 +1098,7 @@ mod benches {
 			Weight,
 		) {
 			use cumulus_primitives_core::XcmpMessageSource;
-			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
+			assert!(XcmpQueue::take_outbound_messages(usize::MAX, &[]).is_empty());
 			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
 			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
@@ -1149,7 +1149,7 @@ mod benches {
 
 		fn is_message_successfully_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
 			use cumulus_primitives_core::XcmpMessageSource;
-			!XcmpQueue::take_outbound_messages(usize::MAX).is_empty()
+			!XcmpQueue::take_outbound_messages(usize::MAX, &[]).is_empty()
 		}
 	}
 
