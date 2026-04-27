@@ -43,7 +43,6 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     env:
       PROD_FEATURES: "--features on-chain-release-build"
-      TRY_RUNTIME_LOGGING_FEATURES: "--features try-runtime,metadata-hash"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -56,6 +55,26 @@ jobs:
           restore-keys: |
             srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-
             srtool-target-${{ matrix.runtime.path }}-
+
+      - name: Detect supported features
+        id: features
+        run: |
+          CARGO_TOML="${{ matrix.runtime.path }}/Cargo.toml"
+          has_feature() { sed -n '/^\[features\]/,/^\[/{ /^\[/d; p; }' "$CARGO_TOML" | grep -q "^$1 *="; }
+
+          METADATA_HASH=""
+          if has_feature "metadata-hash"; then
+            METADATA_HASH=",metadata-hash"
+          fi
+
+          echo "try_runtime=--features try-runtime${METADATA_HASH}" >> $GITHUB_OUTPUT
+
+          if has_feature "fast-runtime"; then
+            echo "fast_runtime=--features fast-runtime${METADATA_HASH}" >> $GITHUB_OUTPUT
+            echo "has_fast_runtime=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_fast_runtime=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
@@ -84,12 +103,12 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
-            
+
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
         uses: paritytech/srtool-actions@v0.9.4
         env:
-          BUILD_OPTS: ${{ env.TRY_RUNTIME_LOGGING_FEATURES }}
+          BUILD_OPTS: ${{ steps.features.outputs.try_runtime }}
         with:
           chain:   ${{ matrix.runtime.name }}
           package: ${{ matrix.runtime.package }}
@@ -101,6 +120,25 @@ jobs:
         with:
           name: ${{ matrix.runtime.name }}-compact
           path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
+
+      - name: Build ${{ matrix.runtime.name }} (fast-runtime & logging)
+        if: steps.features.outputs.has_fast_runtime == 'true'
+        id: srtool_fast
+        uses: paritytech/srtool-actions@v0.9.4
+        env:
+          BUILD_OPTS: ${{ steps.features.outputs.fast_runtime }}
+        with:
+          chain: ${{ matrix.runtime.name }}
+          package: ${{ matrix.runtime.package }}
+          runtime_dir: ${{ matrix.runtime.path }}
+          profile: "release"
+
+      - name: Upload ${{ matrix.runtime.name }} Wasm (fast-runtime & logging)
+        if: steps.features.outputs.has_fast_runtime == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}-fast
+          path: ${{ steps.srtool_fast.outputs.wasm_compressed }}
 
   publish-release:
     runs-on: self-hosted
@@ -237,4 +275,32 @@ jobs:
           upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
           asset_path: runtimes-with-try-runtime-and-logging.zip
           asset_name: runtimes-with-try-runtime-and-logging.zip
+          asset_content_type: application/zip
+
+  package-fast-runtime-wasms:
+    needs: [ build-runtimes, publish-release ]
+    runs-on: self-hosted
+    steps:
+      - name: Clean workspace
+        run: rm -rf fast-runtime-artifacts
+
+      - name: Download fast-runtime artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-fast'
+          path: fast-runtime-artifacts
+
+      - name: Create fast-runtime runtimes archive
+        run: find fast-runtime-artifacts -name '*.compact.compressed.wasm' -exec zip -j runtimes-with-fast-runtime.zip {} +
+
+      - name: Upload archive to GitHub Release
+        if: hashFiles('runtimes-with-fast-runtime.zip') != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
+          asset_path: runtimes-with-fast-runtime.zip
+          asset_name: runtimes-with-fast-runtime.zip
           asset_content_type: application/zip
