@@ -88,6 +88,7 @@ system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
 parachains-runtimes-test-utils = { workspace = true }
+pallet-bulletin-transaction-storage = { workspace = true, features = ["std"] }
 sp-io = { workspace = true }
 sp-keyring = { workspace = true }
 

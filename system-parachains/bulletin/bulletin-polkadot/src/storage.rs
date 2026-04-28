@@ -17,7 +17,7 @@
 //! Storage-specific configurations.
 
 use super::{
-	xcm_config::PeopleLocation, AccountId, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
+	xcm_config::PeopleLocation, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
 };
 use alloc::vec::Vec;
 use bulletin_pallets_common::inspect_utility_wrapper;
@@ -41,10 +41,10 @@ parameter_types! {
 	pub const RemoveExpiredAuthorizationPriority: TransactionPriority =
 		SetPurgeKeysPriority::get() - 1;
 	pub const RemoveExpiredAuthorizationLongevity: TransactionLongevity =
-		crate::DAYS as TransactionLongevity;
+		DAYS as TransactionLongevity;
 	pub const StoreRenewPriority: TransactionPriority =
 		RemoveExpiredAuthorizationPriority::get() - 1;
-	pub const StoreRenewLongevity: TransactionLongevity = crate::DAYS as TransactionLongevity;
+	pub const StoreRenewLongevity: TransactionLongevity = DAYS as TransactionLongevity;
 }
 
 /// Tells [`pallet_bulletin_transaction_storage::extension::ValidateStorageCalls`] how to find

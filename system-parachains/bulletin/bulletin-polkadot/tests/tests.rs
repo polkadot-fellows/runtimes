@@ -17,13 +17,16 @@
 #![cfg(test)]
 
 use bulletin_polkadot_runtime::{
-	xcm_config::{GovernanceLocation, LocationToAccountId},
-	Block, Runtime, RuntimeCall, RuntimeOrigin,
+	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
+	Block, Runtime, RuntimeCall, RuntimeOrigin, TransactionStorage,
 };
-use frame_support::{assert_err, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use parachains_common::AccountId;
 use parachains_runtimes_test_utils::GovernanceOrigin;
+use pallet_bulletin_transaction_storage::AuthorizationExtent;
 use sp_core::crypto::Ss58Codec;
+use sp_io::TestExternalities;
+use sp_keyring::Sr25519Keyring;
 use sp_runtime::Either;
 use system_parachains_constants::polkadot::fee::WeightToFee;
 use xcm::latest::prelude::*;
@@ -199,4 +202,112 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(GovernanceLocation::get())));
+}
+
+fn new_test_ext() -> TestExternalities {
+	use bulletin_polkadot_runtime::{BuildStorage, RuntimeGenesisConfig};
+	let genesis = RuntimeGenesisConfig {
+		transaction_storage: pallet_bulletin_transaction_storage::GenesisConfig {
+			retention_period: 10,
+			byte_fee: 0,
+			entry_fee: 0,
+			..Default::default()
+		},
+		..Default::default()
+	};
+	sp_io::TestExternalities::new(genesis.build_storage().unwrap())
+}
+
+#[test]
+fn authorize_account_via_root_works() {
+	new_test_ext().execute_with(|| {
+		let who: AccountId = Sr25519Keyring::Alice.to_account_id();
+		assert_ok!(TransactionStorage::authorize_account(
+			RuntimeOrigin::root(),
+			who.clone(),
+			5,
+			1024 * 1024,
+		));
+		assert_eq!(
+			TransactionStorage::account_authorization_extent(who),
+			AuthorizationExtent { transactions: 5, bytes: 1024 * 1024 },
+		);
+	});
+}
+
+#[test]
+fn authorize_account_rejects_unsigned() {
+	new_test_ext().execute_with(|| {
+		let who: AccountId = Sr25519Keyring::Alice.to_account_id();
+		assert_noop!(
+			TransactionStorage::authorize_account(RuntimeOrigin::none(), who, 1, 100),
+			sp_runtime::DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn authorize_account_rejects_signed_non_authorizer() {
+	new_test_ext().execute_with(|| {
+		let who: AccountId = Sr25519Keyring::Alice.to_account_id();
+		assert_noop!(
+			TransactionStorage::authorize_account(
+				RuntimeOrigin::signed(who.clone()),
+				who,
+				1,
+				100,
+			),
+			sp_runtime::DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn xcm_from_people_chain_is_accepted_as_authorizer() {
+	// Construct the XCM origin as it would arrive from the People chain (a sibling parachain).
+	// `EnsureXcm<Equals<PeopleLocation>>` accepts origins whose location equals PeopleLocation.
+	let people_origin = RuntimeOrigin::from(pallet_xcm::Origin::Xcm(PeopleLocation::get()));
+	new_test_ext().execute_with(|| {
+		let who: AccountId = Sr25519Keyring::Bob.to_account_id();
+		assert_ok!(TransactionStorage::authorize_account(
+			people_origin,
+			who.clone(),
+			3,
+			512 * 1024,
+		));
+		assert_eq!(
+			TransactionStorage::account_authorization_extent(who),
+			AuthorizationExtent { transactions: 3, bytes: 512 * 1024 },
+		);
+	});
+}
+
+#[test]
+fn xcm_from_non_people_sibling_is_rejected_as_authorizer() {
+	use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
+	let asset_hub_location = Location::new(1, [Parachain(ASSET_HUB_ID)]);
+	let non_people_origin = RuntimeOrigin::from(pallet_xcm::Origin::Xcm(asset_hub_location));
+	new_test_ext().execute_with(|| {
+		let who: AccountId = Sr25519Keyring::Bob.to_account_id();
+		assert_noop!(
+			TransactionStorage::authorize_account(non_people_origin, who, 1, 100),
+			sp_runtime::DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn authorize_preimage_via_root_works() {
+	new_test_ext().execute_with(|| {
+		let content_hash = [42u8; 32];
+		assert_ok!(TransactionStorage::authorize_preimage(
+			RuntimeOrigin::root(),
+			content_hash,
+			8 * 1024 * 1024,
+		));
+		assert_eq!(
+			TransactionStorage::preimage_authorization_extent(content_hash),
+			AuthorizationExtent { transactions: 1, bytes: 8 * 1024 * 1024 },
+		);
+	});
 }
