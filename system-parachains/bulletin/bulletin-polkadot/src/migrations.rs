@@ -18,7 +18,15 @@
 use super::*;
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = ();
+pub type Unreleased = (
+	// Initialize TransactionStorage retention period on first upgrade.
+	pallet_bulletin_transaction_storage::migrations::SetRetentionPeriodIfZero<
+		Runtime,
+		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,
+	>,
+	// Migrate TransactionInfo from v0 to v1 (adds hashing and cid_codec fields).
+	pallet_bulletin_transaction_storage::migrations::v1::MigrateV0ToV1<Runtime>,
+);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);

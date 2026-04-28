@@ -552,4 +552,10 @@ impl_runtime_apis! {
 			ParachainInfo::parachain_id()
 		}
 	}
+
+	impl sp_transaction_storage_proof::runtime_api::TransactionStorageApi<Block> for Runtime {
+		fn retention_period() -> sp_runtime::traits::NumberFor<Block> {
+			TransactionStorage::retention_period()
+		}
+	}
 }

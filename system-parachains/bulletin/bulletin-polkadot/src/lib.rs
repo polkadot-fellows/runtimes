@@ -26,6 +26,7 @@ mod apis;
 mod benchmarks;
 mod genesis_config_presets;
 pub mod migrations;
+pub mod storage;
 mod weights;
 pub mod xcm_config;
 
@@ -121,6 +122,10 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 		>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+		pallet_bulletin_transaction_storage::extension::ValidateStorageCalls<
+			Runtime,
+			storage::StorageCallInspector,
+		>,
 	),
 >;
 
@@ -505,6 +510,10 @@ mod runtime {
 	pub type Aura = pallet_aura;
 	#[runtime::pallet_index(24)]
 	pub type AuraExt = cumulus_pallet_aura_ext;
+
+	// The main business of the Bulletin chain.
+	#[runtime::pallet_index(40)]
+	pub type TransactionStorage = pallet_bulletin_transaction_storage;
 
 	// XCM & related
 	#[runtime::pallet_index(30)]
