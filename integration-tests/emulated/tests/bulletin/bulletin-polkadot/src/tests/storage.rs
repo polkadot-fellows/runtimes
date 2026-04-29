@@ -39,7 +39,7 @@ fn people_chain_can_authorize_account_on_bulletin() {
 		type BulletinRuntimeCall = <BulletinPolkadot as Chain>::RuntimeCall;
 		BulletinRuntimeCall::TransactionStorage(
 			pallet_bulletin_transaction_storage::Call::<BulletinRuntime>::authorize_account {
-				who: who.clone().into(),
+				who: who.clone(),
 				transactions,
 				bytes,
 			},
