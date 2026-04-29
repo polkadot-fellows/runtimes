@@ -1,0 +1,45 @@
+[package]
+name = "pallet-bulletin-transaction-storage"
+version = "0.1.0-draft"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+repository.workspace = true
+description = "Storage chain pallet for the Bulletin parachain"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+array-bytes = { version = "9.3.0", optional = true }
+codec = { workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+tracing = { version = "0.1", default-features = false }
+bulletin-transaction-storage-primitives = { workspace = true }
+
+polkadot-sdk-frame = { workspace = true, features = ["runtime"] }
+sp-transaction-storage-proof = { version = "41.0.0", default-features = false }
+
+[dev-dependencies]
+bulletin-pallets-common = { workspace = true }
+
+[features]
+default = ["std"]
+runtime-benchmarks = [
+	"array-bytes",
+	"bulletin-pallets-common/runtime-benchmarks",
+	"polkadot-sdk-frame/runtime-benchmarks",
+]
+std = [
+	"bulletin-pallets-common/std",
+	"bulletin-transaction-storage-primitives/std",
+	"codec/std",
+	"polkadot-sdk-frame/std",
+	"scale-info/std",
+	"sp-transaction-storage-proof/std",
+	"tracing/std",
+]
+try-runtime = [
+	"bulletin-pallets-common/try-runtime",
+	"polkadot-sdk-frame/try-runtime",
+]
