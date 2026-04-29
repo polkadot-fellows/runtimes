@@ -39,10 +39,10 @@ bp-relayers = { version = "0.26.0", default-features = false }
 bp-runtime = { version = "0.26.0", default-features = false }
 bp-xcm-bridge-hub = { version = "0.12.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.23.0", default-features = false }
-bulletin-pallets-common = { path = "pallets/bulletin-common", default-features = false }
+bulletin-pallets-common = { version = "0.1.0-draft", default-features = false }
 bulletin-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot" }
 bulletin-polkadot-runtime = { path = "system-parachains/bulletin/bulletin-polkadot" }
-bulletin-transaction-storage-primitives = { path = "pallets/bulletin-transaction-storage/primitives", default-features = false }
+bulletin-transaction-storage-primitives = { version = "0.1.0-draft", default-features = false }
 bridge-hub-common = { version = "0.19.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
@@ -116,7 +116,7 @@ pallet-bridge-messages = { version = "0.26.0", default-features = false }
 pallet-bridge-parachains = { version = "0.26.0", default-features = false }
 pallet-bridge-relayers = { version = "0.26.0", default-features = false }
 pallet-broker = { version = "0.25.0", default-features = false }
-pallet-bulletin-transaction-storage = { path = "pallets/bulletin-transaction-storage", default-features = false }
+pallet-bulletin-transaction-storage = { version = "0.1.0-draft", default-features = false }
 pallet-child-bounties = { version = "45.0.0", default-features = false }
 pallet-collator-selection = { version = "27.0.0", default-features = false }
 pallet-collective = { version = "46.0.0", default-features = false }
@@ -331,9 +331,6 @@ members = [
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
-	"pallets/bulletin-common",
-	"pallets/bulletin-transaction-storage",
-	"pallets/bulletin-transaction-storage/primitives",
 	"pallets/rc-migrator",
 	"pallets/remote-proxy",
 	"relay/common",

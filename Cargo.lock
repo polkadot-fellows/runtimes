@@ -2784,6 +2784,8 @@ dependencies = [
 [[package]]
 name = "bulletin-pallets-common"
 version = "0.1.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0cf2811f658c12660c6101f6d7409b2eac85b31d1262456d386c6654a77a552"
 dependencies = [
  "pallet-proxy",
  "pallet-sudo",
@@ -2896,6 +2898,8 @@ dependencies = [
 [[package]]
 name = "bulletin-transaction-storage-primitives"
 version = "0.1.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0e52d8d106ef9b8cd904b349c5e43276bf9e98b78182f61ef578f4074af9f41"
 dependencies = [
  "cid 0.11.1",
  "parity-scale-codec",
@@ -9754,9 +9758,10 @@ dependencies = [
 [[package]]
 name = "pallet-bulletin-transaction-storage"
 version = "0.1.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5470a24a287110afb2ce47537f27df2fefd38299135086ee910339c5f102073"
 dependencies = [
- "array-bytes 9.3.0",
- "bulletin-pallets-common",
+ "array-bytes 6.2.3",
  "bulletin-transaction-storage-primitives",
  "parity-scale-codec",
  "polkadot-sdk-frame",

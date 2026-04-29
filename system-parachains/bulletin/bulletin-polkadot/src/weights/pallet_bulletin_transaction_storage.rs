@@ -77,14 +77,6 @@ impl<T: frame_system::Config> pallet_bulletin_transaction_storage::WeightInfo fo
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	// TODO: update weights
-	fn renew_content_hash() -> Weight {
-		// Same as renew() + 1 extra read for content hash lookup + 1 extra write for content hash update
-		Weight::from_parts(29_090_000, 0)
-			.saturating_add(Weight::from_parts(0, 40351))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
 	/// Storage: `TransactionStorage::ProofChecked` (r:1 w:1)
 	/// Proof: `TransactionStorage::ProofChecked` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
 	/// Storage: `TransactionStorage::RetentionPeriod` (r:1 w:0)
@@ -174,27 +166,6 @@ impl<T: frame_system::Config> pallet_bulletin_transaction_storage::WeightInfo fo
 			.saturating_add(Weight::from_parts(0, 3530))
 		.saturating_add(T::DbWeight::get().reads(1))
 		.saturating_add(T::DbWeight::get().writes(1))
-	}
-	// TODO: update weights
-	fn process_auto_renewals(n: u32) -> Weight {
-		Weight::from_parts(100_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 40351))
-			.saturating_add(T::DbWeight::get().reads(5).saturating_mul(n as u64))
-			.saturating_add(T::DbWeight::get().writes(3).saturating_mul(n as u64))
-	}
-	// TODO: update weights
-	fn enable_auto_renew() -> Weight {
-		Weight::from_parts(10_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 1000))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	// TODO: update weights
-	fn disable_auto_renew() -> Weight {
-		Weight::from_parts(10_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 1000))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `TransactionStorage::BlockTransactions` (r:1 w:0)
 	/// Proof: `TransactionStorage::BlockTransactions` (`max_values`: Some(1), `max_size`: Some(41474), added: 41969, mode: `MaxEncodedLen`)
