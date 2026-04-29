@@ -2814,6 +2814,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "integration-tests-helpers",
+ "pallet-bulletin-transaction-storage",
  "parachains-common",
  "polkadot-system-emulated-network",
  "staging-xcm",

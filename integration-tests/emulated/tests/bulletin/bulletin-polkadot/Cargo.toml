@@ -22,6 +22,7 @@ emulated-integration-tests-common = { workspace = true }
 # Local
 integration-tests-helpers = { workspace = true }
 bulletin-polkadot-runtime = { workspace = true }
+pallet-bulletin-transaction-storage = { workspace = true, default-features = true }
 polkadot-system-emulated-network = { workspace = true }
 
 [features]
