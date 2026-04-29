@@ -106,7 +106,7 @@ const PROOF: &str = "\
 	43cb811044010000\
 ";
 fn proof() -> Vec<u8> {
-	array_bytes::hex2bytes_unchecked(PROOF)
+	array_bytes::dehexify_vec_then_into::<_, Vec<u8>>(PROOF).expect("valid hex")
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
