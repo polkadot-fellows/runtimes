@@ -11,7 +11,7 @@ description = "Storage chain pallet for the Bulletin parachain"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-array-bytes = { optional = true , workspace = true }
+array-bytes = { optional = true, workspace = true }
 codec = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 tracing = { workspace = true }
