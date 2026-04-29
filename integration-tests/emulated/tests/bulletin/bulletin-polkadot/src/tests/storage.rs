@@ -17,10 +17,10 @@
 
 use crate::*;
 use emulated_integration_tests_common::{
+	accounts::BOB,
 	impls::{assert_expected_events, bx, Encode},
 	macros::{pallet_message_queue, pallet_xcm, Dispatchable},
 };
-use emulated_integration_tests_common::accounts::BOB;
 use pallet_bulletin_transaction_storage::AuthorizationExtent;
 
 /// The People chain authorizes an account on the Bulletin chain via XCM Transact.
@@ -37,13 +37,13 @@ fn people_chain_can_authorize_account_on_bulletin() {
 	let authorize_call = {
 		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
 		type BulletinRuntimeCall = <BulletinPolkadot as Chain>::RuntimeCall;
-		BulletinRuntimeCall::TransactionStorage(
-			pallet_bulletin_transaction_storage::Call::<BulletinRuntime>::authorize_account {
-				who: who.clone(),
-				transactions,
-				bytes,
-			},
-		)
+		BulletinRuntimeCall::TransactionStorage(pallet_bulletin_transaction_storage::Call::<
+			BulletinRuntime,
+		>::authorize_account {
+			who: who.clone(),
+			transactions,
+			bytes,
+		})
 		.encode()
 	};
 

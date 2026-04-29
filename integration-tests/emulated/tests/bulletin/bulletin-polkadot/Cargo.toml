@@ -30,6 +30,7 @@ runtime-benchmarks = [
 	"bulletin-polkadot-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
+	"pallet-bulletin-transaction-storage/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",

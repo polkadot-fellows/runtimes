@@ -29,6 +29,7 @@ use super::{
 	DEFAULT_MAX_TRANSACTION_SIZE,
 };
 use crate::migrations::v1::OldTransactionInfo;
+use bulletin_transaction_storage_primitives::cids::{CidConfig, HashingAlgorithm};
 use codec::Encode;
 use polkadot_sdk_frame::{
 	deps::frame_support::{
@@ -42,7 +43,6 @@ use polkadot_sdk_frame::{
 	traits::StorageVersion,
 };
 use sp_transaction_storage_proof::{random_chunk, registration::build_proof, CHUNK_SIZE};
-use bulletin_transaction_storage_primitives::cids::{CidConfig, HashingAlgorithm};
 
 type Call = super::Call<Test>;
 type Error = super::Error<Test>;

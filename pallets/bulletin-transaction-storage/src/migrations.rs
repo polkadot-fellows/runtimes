@@ -76,6 +76,10 @@ pub mod v1 {
 		pallet::{Pallet, Transactions},
 		TransactionInfo,
 	};
+	use bulletin_transaction_storage_primitives::{
+		cids::{CidCodec, HashingAlgorithm, RAW_CODEC},
+		ContentHash,
+	};
 	use polkadot_sdk_frame::deps::{
 		frame_support::{
 			migrations::VersionedMigration,
@@ -87,10 +91,6 @@ pub mod v1 {
 		sp_runtime::traits::{BlakeTwo256, Hash},
 	};
 	use sp_transaction_storage_proof::ChunkIndex;
-	use bulletin_transaction_storage_primitives::{
-		cids::{CidCodec, HashingAlgorithm, RAW_CODEC},
-		ContentHash,
-	};
 
 	/// `TransactionInfo` layout before v1 (no CID fields).
 	#[derive(Encode, Decode, Clone, Debug, MaxEncodedLen)]

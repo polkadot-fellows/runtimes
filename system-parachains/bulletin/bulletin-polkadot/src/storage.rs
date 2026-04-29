@@ -16,22 +16,19 @@
 
 //! Storage-specific configurations.
 
-use super::{
-	xcm_config::PeopleLocation, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
-};
+use super::{xcm_config::PeopleLocation, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason};
 use alloc::vec::Vec;
 use bulletin_pallets_common::inspect_utility_wrapper;
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals, EitherOfDiverse},
+	traits::{Contains, EitherOfDiverse, Equals},
 };
 use pallet_bulletin_transaction_storage::CallInspector;
 use pallet_xcm::EnsureXcm;
 use sp_runtime::transaction_validity::{TransactionLongevity, TransactionPriority};
 
 /// Number of blocks per day on the Bulletin chain (24-second slot duration).
-const DAYS: crate::BlockNumber =
-	(86_400_000u64 / crate::SLOT_DURATION) as crate::BlockNumber;
+const DAYS: crate::BlockNumber = (86_400_000u64 / crate::SLOT_DURATION) as crate::BlockNumber;
 
 parameter_types! {
 	pub const AuthorizationPeriod: crate::BlockNumber = 90 * DAYS;
@@ -86,8 +83,7 @@ impl pallet_bulletin_transaction_storage::Config for Runtime {
 	type Currency = bulletin_pallets_common::NoCurrency<Self::AccountId, RuntimeHoldReason>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type FeeDestination = ();
-	type WeightInfo =
-		crate::weights::pallet_bulletin_transaction_storage::WeightInfo<Runtime>;
+	type WeightInfo = crate::weights::pallet_bulletin_transaction_storage::WeightInfo<Runtime>;
 	type MaxBlockTransactions = crate::ConstU32<512>;
 	/// Max transaction size per block needs to be aligned with `BlockLength`.
 	type MaxTransactionSize = crate::ConstU32<{ 8 * 1024 * 1024 }>;

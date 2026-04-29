@@ -37,6 +37,10 @@ mod mock;
 mod tests;
 
 use alloc::vec::Vec;
+use bulletin_transaction_storage_primitives::{
+	cids::{calculate_cid, Cid, CidCodec, CidConfig, HashingAlgorithm, RAW_CODEC},
+	ContentHash,
+};
 use codec::{Decode, Encode, MaxEncodedLen};
 use core::fmt::Debug;
 use polkadot_sdk_frame::{
@@ -50,10 +54,6 @@ use polkadot_sdk_frame::{
 use sp_transaction_storage_proof::{
 	encode_index, num_chunks, random_chunk, ChunkIndex, InherentError, TransactionStorageProof,
 	CHUNK_SIZE, INHERENT_IDENTIFIER,
-};
-use bulletin_transaction_storage_primitives::{
-	cids::{calculate_cid, Cid, CidCodec, CidConfig, HashingAlgorithm, RAW_CODEC},
-	ContentHash,
 };
 
 /// A type alias for the balance type from this pallet's point of view.

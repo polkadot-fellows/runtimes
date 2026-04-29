@@ -11,14 +11,14 @@ description = "Storage chain pallet for the Bulletin parachain"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-array-bytes = { version = "9.3.0", optional = true }
+array-bytes = { optional = true , workspace = true }
 codec = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
-tracing = { version = "0.1", default-features = false }
+tracing = { workspace = true }
 bulletin-transaction-storage-primitives = { workspace = true }
 
 polkadot-sdk-frame = { workspace = true, features = ["runtime"] }
-sp-transaction-storage-proof = { version = "41.0.0", default-features = false }
+sp-transaction-storage-proof = { workspace = true }
 
 [dev-dependencies]
 bulletin-pallets-common = { workspace = true }

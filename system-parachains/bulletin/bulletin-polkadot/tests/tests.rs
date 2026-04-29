@@ -21,9 +21,9 @@ use bulletin_polkadot_runtime::{
 	Block, Runtime, RuntimeCall, RuntimeOrigin, TransactionStorage,
 };
 use frame_support::{assert_err, assert_noop, assert_ok};
+use pallet_bulletin_transaction_storage::AuthorizationExtent;
 use parachains_common::AccountId;
 use parachains_runtimes_test_utils::GovernanceOrigin;
-use pallet_bulletin_transaction_storage::AuthorizationExtent;
 use sp_core::crypto::Ss58Codec;
 use sp_io::TestExternalities;
 use sp_keyring::Sr25519Keyring;
@@ -251,12 +251,7 @@ fn authorize_account_rejects_signed_non_authorizer() {
 	new_test_ext().execute_with(|| {
 		let who: AccountId = Sr25519Keyring::Alice.to_account_id();
 		assert_noop!(
-			TransactionStorage::authorize_account(
-				RuntimeOrigin::signed(who.clone()),
-				who,
-				1,
-				100,
-			),
+			TransactionStorage::authorize_account(RuntimeOrigin::signed(who.clone()), who, 1, 100,),
 			sp_runtime::DispatchError::BadOrigin,
 		);
 	});
