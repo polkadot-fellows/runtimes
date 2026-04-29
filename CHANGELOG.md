@@ -999,4 +999,3 @@ Note: This release only affects the following runtimes and is not a full system 
   ([paritytech/substrate#14443](https://github.com/paritytech/substrate/pull/14443))
 - Update Polkadot Collectives to use `limited_teleport_assets` for automatic slash handling, as
   `teleport_assets` is deprecated and caused a failing integration test. ([polkadot-fellows/runtimes#46](https://github.com/polkadot-fellows/runtimes/pull/46))
-
