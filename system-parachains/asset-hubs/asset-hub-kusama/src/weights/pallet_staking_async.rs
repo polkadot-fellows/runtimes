@@ -1057,4 +1057,29 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+	/// Storage: `Staking::OptimumSelfStake` (r:0 w:1)
+	/// Proof: `Staking::OptimumSelfStake` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::SelfStakeSlopeFactor` (r:0 w:1)
+	/// Proof: `Staking::SelfStakeSlopeFactor` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::HardCapSelfStake` (r:0 w:1)
+	/// Proof: `Staking::HardCapSelfStake` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	fn set_validator_self_stake_incentive_config() -> Weight {
+		// Placeholder: will be replaced by running benchmarks.
+		Weight::from_parts(8_000_000, 0)
+			.saturating_add(T::DbWeight::get().writes(3_u64))
+	}
+	/// Storage: `Staking::EraPruningState` (r:1 w:0)
+	/// Proof: `Staking::EraPruningState` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `Staking::ErasValidatorIncentiveWeight` (r:101 w:100)
+	/// Proof: `Staking::ErasValidatorIncentiveWeight` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `Measured`)
+	/// The range of component `v` is `[1, 1000]`.
+	fn prune_era_validator_incentive_weight(v: u32, ) -> Weight {
+		// Placeholder: will be replaced by running benchmarks.
+		Weight::from_parts(37_348_201, 4337)
+			// Standard Error: 14_006
+			.saturating_add(Weight::from_parts(210_622, 0).saturating_mul(v.into()))
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(Weight::from_parts(0, 254).saturating_mul(v.into()))
+	}
 }

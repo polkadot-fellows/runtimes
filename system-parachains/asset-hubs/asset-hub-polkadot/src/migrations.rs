@@ -31,7 +31,7 @@ impl frame_support::traits::Get<u64> for DapLastIssuanceTimestamp {
 	}
 }
 
-/// Default DAP budget allocation: 15% buffer, 85% staker rewards.
+/// Default DAP budget allocation: 15% buffer, 85% staker rewards, 0% validator incentive.
 ///
 /// Matches the previous `EraPayout` split (15% treasury / 85% stakers), now enforced
 /// at the DAP drip level instead of at era payout time. The 15% share initially
@@ -44,8 +44,9 @@ impl frame_support::traits::Get<pallet_dap::BudgetAllocationMap> for DefaultDapB
 
 		let recipients = <Runtime as pallet_dap::Config>::BudgetRecipients::recipients();
 		// Order matches `pallet_dap::Config::BudgetRecipients`:
-		// [dap (buffer), StakerRewardRecipient]
-		let percentages = [Perbill::from_percent(15), Perbill::from_percent(85)];
+		// [dap (buffer), StakerRewardRecipient, ValidatorIncentiveRecipient]
+		let percentages =
+			[Perbill::from_percent(15), Perbill::from_percent(85), Perbill::from_percent(0)];
 
 		let mut map = pallet_dap::BudgetAllocationMap::new();
 		for ((key, _), perbill) in recipients.into_iter().zip(percentages) {
