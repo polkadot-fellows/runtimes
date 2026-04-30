@@ -92,6 +92,14 @@ pub type Unreleased = (
 		DefaultDapBudget,
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
+	// Relocate already-funded era reward pots after the slot-based rotation (SDK #11930).
+	// Must run after DAP V1->V2 so `DisableMintingGuard` is set. Only StakerRewards needed
+	// — validator-incentive starts at 0% allocation, so no `ValidatorRewards` pots exist yet.
+	pallet_staking_async::migrations::MigrateEraPotsToPool<
+		Runtime,
+		crate::staking::StakingPotsPalletId,
+		crate::staking::StakingStakerRewardKind,
+	>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.

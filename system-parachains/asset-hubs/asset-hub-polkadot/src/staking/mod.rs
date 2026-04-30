@@ -117,6 +117,9 @@ parameter_types! {
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
 	pub const DapPalletId: PalletId = PalletId(*b"dap/buff");
 	pub const StakingPotsPalletId: PalletId = PalletId(*b"py/stkng");
+	// Used for reward pot migration (MigrateEraPotsToPool). Can be removed once executed on-chain.
+	pub const StakingStakerRewardKind: pallet_staking_async::RewardKind =
+		pallet_staking_async::RewardKind::StakerRewards;
 	/// Minimum time (ms) between issuance drips. 60s = drip at most once per minute.
 	pub const DapIssuanceCadence: u64 = 60_000;
 	/// Safety ceiling (ms) for elapsed time in a single drip. Prevents over-minting after stalls.
