@@ -120,6 +120,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+	/// Seed pallet-id for `RewardPots`. Required to compile in legacy minting mode but
+	/// never actually consulted because `DisableMinting = false` means era pots are not
+	/// created or funded. Distinct 8-byte tag to avoid collision with any other pot.
+	pub const UnusedStakingPotsPalletId: PalletId = PalletId(*b"ks/stkng");
 }
 
 impl pallet_delegated_staking::Config for Runtime {
@@ -410,6 +414,13 @@ impl pallet_staking_async::Config for Runtime {
 	type PlanningEraOffset = ConstU32<6>;
 	type RcClientInterface = StakingRcClient;
 	type MaxEraDuration = MaxEraDuration;
+	// Legacy minting mode: Kusama keeps on-the-fly inflation via `EraPayout`.
+	type DisableMinting = ConstBool<false>;
+	// Unused in legacy minting mode (no era pots are created), but required to compile.
+	type UnclaimedRewardHandler = ();
+	type RewardPots = pallet_staking_async::Seed<UnusedStakingPotsPalletId>;
+	type StakerRewardCalculator =
+		pallet_staking_async::reward::DefaultStakerRewardCalculator<Runtime>;
 	type WeightInfo = weights::pallet_staking_async::WeightInfo<Runtime>;
 	type MaxPruningItems = MaxPruningItems;
 	type NominatorFastUnbondDuration = NominatorFastUnbondDuration;

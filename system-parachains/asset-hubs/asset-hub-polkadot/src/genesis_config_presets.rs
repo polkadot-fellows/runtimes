@@ -17,6 +17,7 @@
 //! Genesis configs presets for the AssetHubPolkadot runtime
 
 use crate::{staking::DapPalletId, xcm_config::UniversalLocation, *};
+use pallet_revive::AddressMapper;
 use alloc::vec::Vec;
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use parachains_common::AssetHubPolkadotAuraId;
@@ -107,7 +108,7 @@ fn asset_hub_polkadot_genesis(
 			..Default::default()
 		},
 		"revive": ReviveConfig {
-			mapped_accounts: endowed_accounts.iter().filter(|x| ! pallet_revive::is_eth_derived(x)).cloned().collect(),
+			mapped_accounts: endowed_accounts.iter().filter(|x| !<Runtime as pallet_revive::Config>::AddressMapper::is_mapped(x)).cloned().collect(),
 			accounts: Vec::new(),
 			debug_settings: None,
 		},
