@@ -8,7 +8,8 @@ on:
     branches: ["main", "*release-*"]
   pull_request:
     # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
-    types: [opened, synchronize, reopened, ready_for_review]
+    # labeled is needed to re-trigger when the `ci-extended-checks` label is added.
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 # cancel previous runs
@@ -22,7 +23,7 @@ jobs:
     #   is-release: whether this should trigger a GitHub Release or the runtimes
     #   run-extended-checks: whether extended CI checks should run
     name: Check if release PR
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: ubuntu-24.04
     outputs:
       is-release: ${{ steps.check.outputs.is-release }}
@@ -47,12 +48,14 @@ jobs:
           fi
           echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
 
-          # run-extended-checks: either is-release, or a workflow_dispatch, or a release branch push
+          # run-extended-checks: is-release, workflow_dispatch, release branch push, or PR with `ci-extended-checks` label
           if [[ "$IS_RELEASE" == "1" ]]; then
             echo "run-extended-checks=1" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "run-extended-checks=1" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/heads/*release-* ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ci-extended-checks') }}" == "true" ]]; then
             echo "run-extended-checks=1" >> $GITHUB_OUTPUT
           else
             echo "run-extended-checks=0" >> $GITHUB_OUTPUT
@@ -60,7 +63,7 @@ jobs:
 
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -74,7 +77,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
@@ -222,7 +225,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
