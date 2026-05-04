@@ -23,7 +23,7 @@ jobs:
     #   is-release: whether this should trigger a GitHub Release or the runtimes
     #   run-extended-checks: whether extended CI checks should run
     name: Check if release PR
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: ubuntu-24.04
     outputs:
       is-release: ${{ steps.check.outputs.is-release }}
@@ -63,7 +63,7 @@ jobs:
 
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -77,7 +77,7 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
@@ -225,7 +225,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
