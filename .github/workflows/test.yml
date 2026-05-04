@@ -8,7 +8,8 @@ on:
     branches: ["main", "*release-*"]
   pull_request:
     # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
-    types: [opened, synchronize, reopened, ready_for_review]
+    # labeled is needed to re-trigger when the `ci-extended-checks` label is added.
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 # cancel previous runs
@@ -47,12 +48,14 @@ jobs:
           fi
           echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
 
-          # run-extended-checks: either is-release, or a workflow_dispatch, or a release branch push
+          # run-extended-checks: is-release, workflow_dispatch, release branch push, or PR with `ci-extended-checks` label
           if [[ "$IS_RELEASE" == "1" ]]; then
             echo "run-extended-checks=1" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "run-extended-checks=1" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/heads/*release-* ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ci-extended-checks') }}" == "true" ]]; then
             echo "run-extended-checks=1" >> $GITHUB_OUTPUT
           else
             echo "run-extended-checks=0" >> $GITHUB_OUTPUT
