@@ -1230,6 +1230,7 @@ dependencies = [
  "pallet-nomination-pools-benchmarking",
  "pallet-nomination-pools-runtime-api",
  "pallet-parameters",
+ "pallet-pgas-allowance",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
@@ -1426,6 +1427,7 @@ dependencies = [
  "pallet-nomination-pools-benchmarking",
  "pallet-nomination-pools-runtime-api",
  "pallet-parameters",
+ "pallet-pgas-allowance",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
@@ -10801,6 +10803,22 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-core 41.0.0",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "pallet-pgas-allowance"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be31d147d62235a2b1dfa761edc645989b0ceaa326ecaa30aa8660669ea9f8f9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
  "sp-runtime 47.0.0",
 ]
 

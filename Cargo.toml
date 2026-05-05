@@ -160,6 +160,7 @@ pallet-nomination-pools-runtime-api = { version = "43.0.0", default-features = f
 pallet-offences = { version = "46.0.0", default-features = false }
 pallet-offences-benchmarking = { version = "47.0.0", default-features = false }
 pallet-parameters = { version = "0.18.0", default-features = false }
+pallet-pgas-allowance = { version = "0.2.0", default-features = false }
 pallet-preimage = { version = "47.0.0", default-features = false }
 pallet-proxy = { version = "47.0.0", default-features = false }
 pallet-ranked-collective = { version = "47.0.0", default-features = false }

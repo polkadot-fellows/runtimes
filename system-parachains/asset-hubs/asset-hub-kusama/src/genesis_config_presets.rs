@@ -18,6 +18,7 @@
 
 use crate::{xcm_config::UniversalLocation, *};
 use alloc::vec::Vec;
+use frame_support::sp_runtime::traits::AccountIdConversion;
 use pallet_revive::AddressMapper;
 use sp_genesis_builder::PresetId;
 use system_parachains_constants::genesis_presets::*;
@@ -87,6 +88,15 @@ fn asset_hub_kusama_genesis(
 			mapped_accounts: endowed_accounts.iter().filter(|x| !<Runtime as pallet_revive::Config>::AddressMapper::is_mapped(x)).cloned().collect(),
 			accounts: Vec::new(),
 			debug_settings: None,
+		},
+		"assets": AssetsConfig {
+			assets: vec![(
+				PGASAssetId::get(),
+				PalletId(*b"py/pgasa").into_account_truncating(),
+				true,
+				1,
+			)],
+			..Default::default()
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
