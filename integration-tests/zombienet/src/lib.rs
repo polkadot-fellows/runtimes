@@ -14,14 +14,12 @@ const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
 const ALICE: &str = "alice";
 const BOB: &str = "bob";
 const CHARLIE: &str = "charlie";
-// Collator
+
+// Collators
 pub const COLLATOR_1005: &str = "collator_1005";
 pub const COLLATOR_1010_1: &str = "collator_1010_1";
 pub const COLLATOR_1010_2: &str = "collator_1010_2";
 
-// Para IDs for chains configured with elastic scaling in this workspace
-// (BLOCK_PROCESSING_VELOCITY = 3, 12s slot). See
-// `system-parachains/constants/src/polkadot.rs::consensus::elastic_scaling`.
 pub const ASSET_HUB_POLKADOT_PARA_ID: u32 = 1000;
 pub const PEOPLE_POLKADOT_PARA_ID: u32 = 1004;
 
@@ -91,10 +89,7 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig, Error> {
 	let images = environment::get_images_from_env();
 	let ElasticNetwork { chain, para_id, collators } = net;
-	assert!(
-		!collators.is_empty(),
-		"elastic_scaling_network requires at least one collator name"
-	);
+	assert!(!collators.is_empty(), "elastic_scaling_network requires at least one collator name");
 
 	let config = NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
@@ -116,8 +111,7 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 					}
 				}))
 				.with_validator(|n| n.with_name(ELASTIC_VALIDATOR_0));
-			// 3 validators — enough to cover 3 backing groups at `max_validators_per_core: 1`.
-			(1..3).fold(r, |acc, i| acc.with_validator(|n| n.with_name(&format!("validator-{i}"))))
+			(1..5).fold(r, |acc, i| acc.with_validator(|n| n.with_name(&format!("validator-{i}"))))
 		})
 		.with_parachain(|p| {
 			let (first, rest) = collators.split_first().expect("collators non-empty checked above");
@@ -130,8 +124,6 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 				.with_chain_spec_command(CMD_TPL)
 				.chain_spec_command_is_local(true)
 				.with_chain(chain)
-				// Slot-based authoring is what fans block production across multiple cores
-				// per relay slot.
 				.with_default_args(vec![
 					"-laura=debug,runtime=info,cumulus-consensus=debug,parachain::collation-generation=debug,parachain::collator-protocol=debug,parachain=debug".into(),
 					"--force-authoring".into(),

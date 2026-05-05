@@ -9,9 +9,7 @@ use std::{collections::HashMap, ops::Range};
 use anyhow::anyhow;
 use codec::Decode;
 use polkadot_primitives::{CandidateReceiptV2, Id as ParaId};
-use zombienet_sdk::subxt::{
-	events::Events, utils::H256, OnlineClient, PolkadotConfig,
-};
+use zombienet_sdk::subxt::{events::Events, utils::H256, OnlineClient, PolkadotConfig};
 
 fn is_session_change(events: &Events<PolkadotConfig>) -> bool {
 	events.iter().any(|e| {

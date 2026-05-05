@@ -18,7 +18,7 @@ struct Case {
 	chain: &'static str,
 	para_id: u32,
 	collators: &'static [&'static str],
-	/// Acceptable count of backed candidates over 20 RCBs with velocity-3 elastic scaling.
+	/// Acceptable count of backed candidates over 20 RCBs for paras with 3 cores.
 	expected: std::ops::Range<u32>,
 }
 
@@ -38,7 +38,11 @@ const CASES: &[Case] = &[
 ];
 
 async fn run(case: &Case) -> Result<(), anyhow::Error> {
-	log::info!("running elastic scaling test for chain '{}' (para_id {})", case.chain, case.para_id);
+	log::info!(
+		"running elastic scaling test for chain '{}' (para_id {})",
+		case.chain,
+		case.para_id
+	);
 
 	let config = elastic_scaling_network(ElasticNetwork {
 		chain: case.chain,

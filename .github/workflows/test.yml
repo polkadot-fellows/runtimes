@@ -308,15 +308,15 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot --release --locked --quiet
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot,asset-hub-polkadot,people-polkadot --release --locked --quiet
 
       - name: Wait for Docker to Start
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
           docker --version
 
-      - name: Zombienet smoke test
-        timeout-minutes: 20
+      - name: Zombienet tests
+        timeout-minutes: 30
         run: |
           # Since we are running the runner in a dind environment we need to find the ip
           # of the proxy where the ports will be exposed.
