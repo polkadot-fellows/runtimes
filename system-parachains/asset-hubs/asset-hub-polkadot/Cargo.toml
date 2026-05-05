@@ -65,6 +65,7 @@ pallet-proxy = { workspace = true }
 pallet-psm = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-revive = { workspace = true }
+pallet-safe-mode = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
@@ -78,6 +79,7 @@ pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-tx-pause = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-uniques = { workspace = true }
 pallet-utility = { workspace = true }
@@ -218,6 +220,7 @@ runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-revive/runtime-benchmarks",
+	"pallet-safe-mode/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
@@ -226,6 +229,7 @@ runtime-benchmarks = [
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
+	"pallet-tx-pause/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -299,6 +303,7 @@ try-runtime = [
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-revive/try-runtime",
+	"pallet-safe-mode/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-staking-async-rc-client/try-runtime",
@@ -307,6 +312,7 @@ try-runtime = [
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
+	"pallet-tx-pause/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-uniques/try-runtime",
 	"pallet-utility/try-runtime",
@@ -395,6 +401,7 @@ std = [
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
 	"pallet-revive/std",
+	"pallet-safe-mode/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-staking-async-rc-client/std",
@@ -405,6 +412,7 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-tx-pause/std",
 	"pallet-treasury/std",
 	"pallet-uniques/std",
 	"pallet-utility/std",
