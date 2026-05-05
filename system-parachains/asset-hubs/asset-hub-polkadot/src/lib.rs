@@ -1003,9 +1003,9 @@ impl pallet_pgas_allowance::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type CallFilter = frame_support::traits::Everything;
 
-	// TODO: replace with `weights::pallet_pgas_allowance::WeightInfo<Runtime>` once benchmarked
-	// on AH-Polkadot via `/cmd bench --runtime asset-hub-polkadot --pallet pallet_pgas_allowance`.
-	type WeightInfo = pallet_pgas_allowance::weights::SubstrateWeight<Runtime>;
+	// PLACEHOLDER weights mirrored from AH-Westend; regenerate via
+	// `/cmd bench --runtime asset-hub-polkadot --pallet pallet_pgas_allowance`.
+	type WeightInfo = weights::pallet_pgas_allowance::WeightInfo<Runtime>;
 
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = PGASBenchmarkHelper;
