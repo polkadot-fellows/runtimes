@@ -1,8 +1,4 @@
 //! Elastic scaling integration test for the system parachains.
-//! Each `Case` spawns a `polkadot-local` relay plus the target parachain running
-//! slot-based authoring with 3 collators. `ParachainConfigBuilder::with_num_cores(3)`
-//! seeds 3 cores assigned to the parachain at genesis, sidestepping the runtime
-//! `Coretime::assign_core` path (Polkadot relay has no `pallet_sudo`).
 //!
 //! The test asserts ≈3 backed candidates per 6s relay block (~60 over 20 RCBs).
 
