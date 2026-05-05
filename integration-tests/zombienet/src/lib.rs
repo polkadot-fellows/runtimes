@@ -94,15 +94,13 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 	let ElasticNetwork { chain, para_id, collators } = net;
 	assert!(!collators.is_empty(), "elastic_scaling_network requires at least one collator name");
 
-	let relay_cmd = format!("elastic-relay-spec {{{{chainName}}}} --inject-para-id {para_id}");
-
 	let config = NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			let r = r
 				.with_chain("polkadot-local")
 				.with_default_command("polkadot")
 				.with_default_image(images.polkadot.as_str())
-				.with_chain_spec_command(relay_cmd.as_str())
+				.with_chain_spec_command(CMD_TPL)
 				.chain_spec_command_is_local(true)
 				.with_default_args(vec!["-lparachain=debug,runtime=info".into()])
 				.with_genesis_overrides(json!({
@@ -124,6 +122,8 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 			let (first, rest) = collators.split_first().expect("collators non-empty checked above");
 			let p = p
 				.with_id(para_id)
+				// Assign 3 cores to this parachain at genesis (default is 1).
+				.with_num_cores(3)
 				.with_default_command("polkadot-omni-node")
 				.with_default_image(images.cumulus.as_str())
 				.with_chain_spec_command(CMD_TPL)

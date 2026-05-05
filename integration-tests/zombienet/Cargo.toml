@@ -3,10 +3,6 @@ name = "zombienet-sdk-tests"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "elastic-relay-spec"
-path = "src/bin/elastic_relay_spec.rs"
-
 [dependencies]
 subxt = { features = ["native"], workspace = true }
 tokio = { workspace = true }
