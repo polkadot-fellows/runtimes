@@ -18,17 +18,10 @@
 use crate::{
 	relay_chain_specs::{KusamaChainSpec, PolkadotChainSpec},
 	system_parachains_specs::{
-		AssetHubKusamaChainSpec,
-		AssetHubPolkadotChainSpec,
-		BridgeHubKusamaChainSpec,
-		BridgeHubPolkadotChainSpec,
-		CollectivesPolkadotChainSpec,
-		CoretimeKusamaChainSpec,
-		CoretimePolkadotChainSpec,
-		GluttonKusamaChainSpec,
-		EncointerKusamaChainSpec,
-		PeopleKusamaChainSpec,
-		PeoplePolkadotChainSpec,
+		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
+		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, CoretimeKusamaChainSpec,
+		CoretimePolkadotChainSpec, EncointerKusamaChainSpec, GluttonKusamaChainSpec,
+		PeopleKusamaChainSpec, PeoplePolkadotChainSpec,
 	},
 	ChainSpec,
 };
