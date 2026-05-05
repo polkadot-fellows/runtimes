@@ -88,12 +88,6 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 
 /// Build a zombienet network configuration for exercising elastic scaling on a single
 /// parachain.
-///
-/// The relay (`polkadot-local`) runs with 5 validators and is genesis-configured with
-/// `max_validators_per_core: 1` and `lookahead: 5`. The parachain is registered with
-/// `with_num_cores(3)` (zombienet ≥ 0.4.10), which seeds 3 cores assigned to the
-/// parachain at genesis — sidestepping the runtime `Coretime::assign_core` path
-/// (Polkadot relay has no `pallet_sudo`).
 pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig, Error> {
 	let images = environment::get_images_from_env();
 	let ElasticNetwork { chain, para_id, collators } = net;
@@ -116,9 +110,6 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 						"config": {
 							"scheduler_params": {
 								"max_validators_per_core": 1,
-								// `lookahead: 1` (default) only exposes the current relay
-								// parent in the claim queue, which prevents the slot-based
-								// collator from authoring multiple blocks per slot.
 								"lookahead": 5,
 							},
 						}
@@ -146,9 +137,6 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 					"--force-authoring".into(),
 					("--authoring", "slot-based").into(),
 				])
-				// `invulnerable(true)` makes zombienet inject this collator's session key
-				// into the parachain's `collatorSelection.invulnerables` and `session.keys`,
-				// so aura has authorities and the chain produces blocks.
 				.with_collator(|n| n.with_name(*first).invulnerable(true));
 			rest.iter()
 				.fold(p, |acc, name| acc.with_collator(|n| n.with_name(*name).invulnerable(true)))
