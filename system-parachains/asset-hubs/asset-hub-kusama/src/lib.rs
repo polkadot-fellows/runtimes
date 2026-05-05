@@ -36,6 +36,8 @@ pub mod staking;
 pub mod treasury;
 mod weights;
 pub mod xcm_config;
+pub mod safe_mode;
+pub mod tx_pause;
 
 use crate::governance::WhitelistedCaller;
 use alloc::{borrow::Cow, vec, vec::Vec};
@@ -1672,6 +1674,9 @@ construct_runtime!(
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
+
+		SafeMode: pallet_safe_mode = 100,
+		TxPause: pallet_tx_pause = 101,
 	}
 );
 

@@ -167,6 +167,7 @@ pallet-referenda = { version = "46.0.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
 pallet-revive = { version = "0.13.0", default-features = false }
 pallet-salary = { version = "31.0.0", default-features = false }
+pallet-safe-mode = { version = "27.0.0", default-features = false }
 pallet-scheduler = { version = "47.0.0", default-features = false }
 pallet-session = { version = "46.0.0", default-features = false }
 pallet-session-benchmarking = { version = "46.0.0", default-features = false }
@@ -184,6 +185,7 @@ pallet-sudo = { version = "46.0.0", default-features = false }
 pallet-timestamp = { version = "45.0.0", default-features = false }
 pallet-transaction-payment = { version = "46.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "46.0.0", default-features = false }
+pallet-tx-pause = { version = "27.0.0", default-features = false }
 pallet-treasury = { version = "45.0.0", default-features = false }
 pallet-uniques = { version = "46.0.0", default-features = false }
 pallet-utility = { version = "46.0.0", default-features = false }
