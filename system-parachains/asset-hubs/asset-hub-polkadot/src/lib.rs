@@ -70,12 +70,12 @@ pub mod governance;
 mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
+pub mod safe_mode;
 pub mod staking;
 pub mod treasury;
+pub mod tx_pause;
 mod weights;
 pub mod xcm_config;
-pub mod safe_mode;
-pub mod tx_pause;
 
 use crate::governance::WhitelistedCaller;
 use alloc::{borrow::Cow, vec, vec::Vec};

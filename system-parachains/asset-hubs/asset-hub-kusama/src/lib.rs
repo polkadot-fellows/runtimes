@@ -32,12 +32,12 @@ extern crate alloc;
 pub mod genesis_config_presets;
 pub mod governance;
 mod migrations;
+pub mod safe_mode;
 pub mod staking;
 pub mod treasury;
+pub mod tx_pause;
 mod weights;
 pub mod xcm_config;
-pub mod safe_mode;
-pub mod tx_pause;
 
 use crate::governance::WhitelistedCaller;
 use alloc::{borrow::Cow, vec, vec::Vec};

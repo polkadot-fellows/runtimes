@@ -46,20 +46,19 @@ impl pallet_safe_mode::Config for Runtime {
 	type ExtendDuration = ExtendDuration;
 	type EnterDepositAmount = EnterDepositAmount;
 	type ExtendDepositAmount = ExtendDepositAmount;
-	// ForceEnterOrigin success value must be BlockNumber (duration); use Replace to map () -> EnterDuration
-	type ForceEnterOrigin = MapSuccess<
-		EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>,
-		Replace<EnterDuration>
-	>;
-	// ForceExtendOrigin success value must be BlockNumber (duration); use Replace to map () -> ExtendDuration
-	type ForceExtendOrigin = MapSuccess<
-		EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>,
-		Replace<ExtendDuration>
-	>;
+	// ForceEnterOrigin success value must be BlockNumber (duration); use Replace to map () ->
+	// EnterDuration
+	type ForceEnterOrigin =
+		MapSuccess<EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>, Replace<EnterDuration>>;
+	// ForceExtendOrigin success value must be BlockNumber (duration); use Replace to map () ->
+	// ExtendDuration
+	type ForceExtendOrigin =
+		MapSuccess<EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>, Replace<ExtendDuration>>;
 	type ForceExitOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
 	type ForceDepositOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
 	type Notify = ();
 	type ReleaseDelay = ReleaseDelay;
-	// TODO: we will replace with benchmarked weights once `frame-omni-bencher` has been run on this chain.
+	// TODO: we will replace with benchmarked weights once `frame-omni-bencher` has been run on this
+	// chain.
 	type WeightInfo = pallet_safe_mode::weights::SubstrateWeight<Runtime>;
 }
