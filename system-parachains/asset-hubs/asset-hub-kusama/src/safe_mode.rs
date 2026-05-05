@@ -29,12 +29,10 @@ parameter_types! {
 pub struct SafeModeWhitelist;
 impl Contains<RuntimeCall> for SafeModeWhitelist {
 	fn contains(call: &RuntimeCall) -> bool {
-		match call {
-			RuntimeCall::System(_) |
-			RuntimeCall::Timestamp(_) |
-			RuntimeCall::ParachainSystem(_) => true,
-			_ => false,
-		}
+		matches!(
+			call,
+			RuntimeCall::System(_) | RuntimeCall::Timestamp(_) | RuntimeCall::ParachainSystem(_)
+		)
 	}
 }
 
