@@ -89,15 +89,18 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 /// Build a zombienet network configuration for exercising elastic scaling on a single
 /// parachain.
 ///
-/// The relay chain (`polkadot-local`) is configured with 3 bulk cores and 5 validators
-/// (1 validator per core); the parachain is registered with its collators running the
-/// `slot-based` authoring backend — required to author multiple blocks per relay slot.
-/// The test driver is expected to assign the two extra bulk cores to `net.para_id`
-/// via `Coretime::assign_core` before measuring throughput.
+/// The relay (`polkadot-local`) runs with 5 validators and is genesis-configured with
+/// `max_validators_per_core: 1` and `lookahead: 5`. The parachain is registered with
+/// `with_num_cores(3)` (zombienet ≥ 0.4.10), which seeds 3 cores assigned to the
+/// parachain at genesis — sidestepping the runtime `Coretime::assign_core` path
+/// (Polkadot relay has no `pallet_sudo`).
 pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig, Error> {
 	let images = environment::get_images_from_env();
 	let ElasticNetwork { chain, para_id, collators } = net;
-	let collators: Vec<String> = collators.iter().map(|s| (*s).to_owned()).collect();
+	assert!(
+		!collators.is_empty(),
+		"elastic_scaling_network requires at least one collator name"
+	);
 
 	let config = NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
@@ -108,38 +111,47 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 				.with_chain_spec_command(CMD_TPL)
 				.chain_spec_command_is_local(true)
 				.with_default_args(vec!["-lparachain=debug,runtime=info".into()])
-				// Provision 3 bulk cores so the parachain can scale up to 3 cores total
-				// (the default core plus 2 that we assign at runtime).
 				.with_genesis_overrides(json!({
 					"configuration": {
 						"config": {
 							"scheduler_params": {
-								"num_cores": 3,
 								"max_validators_per_core": 1,
+								// `lookahead: 1` (default) only exposes the current relay
+								// parent in the claim queue, which prevents the slot-based
+								// collator from authoring multiple blocks per slot.
+								"lookahead": 5,
 							},
 						}
 					}
 				}))
 				.with_validator(|n| n.with_name(ELASTIC_VALIDATOR_0));
-			(1..5).fold(r, |acc, i| acc.with_validator(|n| n.with_name(&format!("validator-{i}"))))
+			// 3 validators — enough to cover 3 backing groups at `max_validators_per_core: 1`.
+			(1..3).fold(r, |acc, i| acc.with_validator(|n| n.with_name(&format!("validator-{i}"))))
 		})
 		.with_parachain(|p| {
-			let (first, rest) = collators.split_first().expect("at least one collator required");
+			let (first, rest) = collators.split_first().expect("collators non-empty checked above");
 			let p = p
 				.with_id(para_id)
+				// Assign 3 cores to this parachain at genesis (default is 1).
+				.with_num_cores(3)
 				.with_default_command("polkadot-omni-node")
 				.with_default_image(images.cumulus.as_str())
 				.with_chain_spec_command(CMD_TPL)
 				.chain_spec_command_is_local(true)
 				.with_chain(chain)
-				// Enable slot-based authoring so the collator set can fill multiple cores.
+				// Slot-based authoring is what fans block production across multiple cores
+				// per relay slot.
 				.with_default_args(vec![
 					"-laura=debug,runtime=info,cumulus-consensus=debug,parachain::collation-generation=debug,parachain::collator-protocol=debug,parachain=debug".into(),
 					"--force-authoring".into(),
 					("--authoring", "slot-based").into(),
 				])
-				.with_collator(|n| n.with_name(first));
-			rest.iter().fold(p, |acc, name| acc.with_collator(|n| n.with_name(name)))
+				// `invulnerable(true)` makes zombienet inject this collator's session key
+				// into the parachain's `collatorSelection.invulnerables` and `session.keys`,
+				// so aura has authorities and the chain produces blocks.
+				.with_collator(|n| n.with_name(*first).invulnerable(true));
+			rest.iter()
+				.fold(p, |acc, name| acc.with_collator(|n| n.with_name(*name).invulnerable(true)))
 		});
 
 	let config = if let Ok(local_ip) = std::env::var("ZOMBIE_LOCAL_IP") {
