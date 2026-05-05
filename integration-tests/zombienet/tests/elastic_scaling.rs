@@ -11,7 +11,8 @@ use zombienet_sdk_tests::{
 	elastic_scaling_network,
 	environment::{get_provider_from_env, get_spawn_fn},
 	helpers::assert_para_throughput,
-	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATOR_0, PEOPLE_POLKADOT_PARA_ID,
+	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATOR_0, ELASTIC_VALIDATORS,
+	PEOPLE_POLKADOT_PARA_ID,
 };
 
 struct Case {
@@ -61,6 +62,18 @@ async fn run(case: &Case) -> Result<(), anyhow::Error> {
 		"collator {} failed to come up",
 		case.collators[0]
 	);
+
+	// Wait until every validator has finished preparing the parachain PVF before
+	// counting throughput. PVF preparation is a one-off ~20s wasm compile per
+	// validator and contends for CPU;
+	for v in ELASTIC_VALIDATORS {
+		let node = network.get_node(*v)?;
+		log::info!("Waiting for {v} to finish PVF preparation...");
+		node.wait_metric_with_timeout("polkadot_pvf_prepare_concluded", |c| c >= 1.0, 300u64)
+			.await
+			.map_err(|e| anyhow!("{v}: PVF prepare did not conclude within timeout: {e}"))?;
+	}
+	log::info!("All validators have a prepared PVF artifact; starting throughput measurement");
 
 	assert_para_throughput(
 		&relay_client,
