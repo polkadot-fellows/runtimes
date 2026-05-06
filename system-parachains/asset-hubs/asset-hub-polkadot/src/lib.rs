@@ -98,7 +98,10 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, Get, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
+		IdentityLookup, Verify,
+	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
 };
@@ -204,7 +207,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_002_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 15,
+	transaction_version: 16,
 	system_version: 1,
 };
 
@@ -998,6 +1001,10 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 parameter_types! {
 	/// Asset id of the PGAS gas-allowance asset, registered on AH as a trusted asset.
 	pub const PGASAssetId: AssetIdForTrustBackedAssets = 80_716_583;
+	/// Admin account for the PGAS asset, derived from `PalletId(*b"py/pgasa")`.
+	pub PgasAdmin: AccountId = PalletId(*b"py/pgasa").into_account_truncating();
+	/// Minimum balance of the PGAS asset.
+	pub const PgasMinBalance: Balance = 1;
 	/// Fraction of a PGAS-backed storage deposit refunded when the deposit is released.
 	/// The rest is burned, so contracts cannot mint free PGAS via storage churn.
 	pub const PGasRefundPercent: Perbill = Perbill::from_percent(10);
@@ -1020,7 +1027,7 @@ impl pallet_pgas_allowance::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type CallFilter = frame_support::traits::Everything;
 
-	// PLACEHOLDER weights mirrored from AH-Westend; regenerate via
+	// TODO @ggwpez PLACEHOLDER weights mirrored from AH-Westend; regenerate via
 	// `/cmd bench --runtime asset-hub-polkadot --pallet pallet_pgas_allowance`.
 	type WeightInfo = weights::pallet_pgas_allowance::WeightInfo<Runtime>;
 
