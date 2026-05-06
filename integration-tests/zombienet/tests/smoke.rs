@@ -6,7 +6,8 @@ use zombienet_sdk::subxt::{
 };
 use zombienet_sdk_tests::{
 	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
-	small_network, COLLATOR_1005, COLLATOR_1010_1,
+	helpers::wait_for_pvf_prepared,
+	small_network, COLLATOR_1005, COLLATOR_1010_1, SMOKE_VALIDATORS,
 };
 
 fn dump_provider_and_versions() {
@@ -69,6 +70,10 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	let alice = network.get_node("alice")?;
 	// wait until the subxt client is ready
 	let alice_client: OnlineClient<PolkadotConfig> = alice.wait_client().await?;
+
+	// Two parachains in `small_network` (coretime + bulletin), so each validator
+	// must conclude at least 2 PVF preparations before we start counting blocks.
+	wait_for_pvf_prepared(&network, SMOKE_VALIDATORS, 2, 300).await?;
 
 	// wait 10 blocks
 	let alice_chain_label = chain_label(&alice_client).await?;

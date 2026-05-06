@@ -15,6 +15,10 @@ const ALICE: &str = "alice";
 const BOB: &str = "bob";
 const CHARLIE: &str = "charlie";
 
+/// Names of the relay validators in `small_network` — used by the smoke test to
+/// wait on per-validator metrics before starting block-counting work.
+pub const SMOKE_VALIDATORS: &[&str] = &[ALICE, BOB, CHARLIE];
+
 // Collators
 pub const COLLATOR_1005: &str = "collator_1005";
 pub const COLLATOR_1010_1: &str = "collator_1010_1";

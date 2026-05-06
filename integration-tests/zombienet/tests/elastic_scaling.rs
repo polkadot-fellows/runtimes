@@ -17,7 +17,7 @@ use zombienet_sdk::subxt::{OnlineClient, PolkadotConfig};
 use zombienet_sdk_tests::{
 	elastic_scaling_network,
 	environment::{get_provider_from_env, get_spawn_fn},
-	helpers::assert_para_throughput,
+	helpers::{assert_para_throughput, wait_for_pvf_prepared},
 	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATOR_0, ELASTIC_VALIDATORS,
 	PEOPLE_POLKADOT_PARA_ID,
 };
@@ -55,18 +55,7 @@ async fn run(
 		collators[0]
 	);
 
-	// Wait until every validator has finished preparing the parachain PVF before
-	// counting throughput. PVF preparation is a one-off ~10s wasm compile per
-	// validator and contends for CPU; if it overlaps the measurement window the
-	// provisioner can miss its deadline and inject empty `paras_inherent`.
-	for v in ELASTIC_VALIDATORS {
-		let node = network.get_node(*v)?;
-		log::info!("Waiting for {v} to finish PVF preparation...");
-		node.wait_metric_with_timeout("polkadot_pvf_prepare_concluded", |c| c >= 1.0, 300u64)
-			.await
-			.map_err(|e| anyhow!("{v}: PVF prepare did not conclude within timeout: {e}"))?;
-	}
-	log::info!("All validators have a prepared PVF artifact; starting throughput measurement");
+	wait_for_pvf_prepared(&network, ELASTIC_VALIDATORS, 1, 300).await?;
 
 	let measurement_result = assert_para_throughput(
 		&relay_client,

@@ -9,7 +9,34 @@ use std::{collections::HashMap, ops::Range};
 use anyhow::anyhow;
 use codec::Decode;
 use polkadot_primitives::{CandidateReceiptV2, Id as ParaId};
-use zombienet_sdk::subxt::{events::Events, utils::H256, OnlineClient, PolkadotConfig};
+use zombienet_sdk::{
+	subxt::{events::Events, utils::H256, OnlineClient, PolkadotConfig},
+	LocalFileSystem, Network,
+};
+
+/// Wait until every named validator has prepared at least `min_prepared` PVF
+/// artifacts (i.e. `polkadot_pvf_prepare_concluded >= min_prepared`).
+pub async fn wait_for_pvf_prepared(
+	network: &Network<LocalFileSystem>,
+	validators: &[&str],
+	min_prepared: u64,
+	timeout_secs: u64,
+) -> Result<(), anyhow::Error> {
+	let threshold = min_prepared as f64;
+	for v in validators {
+		let node = network.get_node(*v)?;
+		log::info!("Waiting for {v} to finish PVF preparation...");
+		node.wait_metric_with_timeout(
+			"polkadot_pvf_prepare_concluded",
+			|c| c >= threshold,
+			timeout_secs,
+		)
+		.await
+		.map_err(|e| anyhow!("{v}: PVF prepare did not conclude within timeout: {e}"))?;
+	}
+	log::info!("All validators have prepared at least {min_prepared} PVF artifact(s)");
+	Ok(())
+}
 
 fn is_session_change(events: &Events<PolkadotConfig>) -> bool {
 	events.iter().any(|e| {
