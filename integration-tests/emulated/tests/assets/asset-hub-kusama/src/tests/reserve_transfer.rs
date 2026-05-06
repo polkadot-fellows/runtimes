@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{assets_balance_on, foreign_balance_on, *};
+use crate::{assets_balance_on, *};
 use emulated_integration_tests_common::xcm_helpers::fee_asset;
 use kusama_system_emulated_network::{
 	kusama_emulated_chain::kusama_runtime::Dmp,

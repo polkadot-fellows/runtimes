@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::{
-	asset_exists_on, assets_balance_on, foreign_balance_on,
+	asset_exists_on, assets_balance_on,
 	tests::send::penpal_register_foreign_asset_on_asset_hub, *,
 };
 use xcm::latest::AssetTransferFilter;

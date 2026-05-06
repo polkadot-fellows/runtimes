@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{assets_balance_on, create_pool_with_ksm_on, foreign_balance_on, *};
+use crate::{assets_balance_on, create_pool_with_ksm_on, *};
 use asset_hub_kusama_runtime::{
 	xcm_config::KsmLocation, Balances, ExistentialDeposit, ForeignAssets, PolkadotXcm,
 	RuntimeOrigin,

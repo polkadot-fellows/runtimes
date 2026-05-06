@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{assets_balance_on, create_pool_with_dot_on, foreign_balance_on, *};
+use crate::{assets_balance_on, create_pool_with_dot_on, *};
 use asset_hub_polkadot_runtime::{
 	xcm_config::DotLocation, Balances, ExistentialDeposit, ForeignAssets, PolkadotXcm,
 	RuntimeOrigin,
