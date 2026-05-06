@@ -1198,6 +1198,87 @@ fn pure_proxy_stash_can_delegate_to_staking_operator() {
 }
 
 #[test]
+fn migrate_bounty_account_assets_moves_usdc_from_old_to_new_derivation() {
+	use asset_hub_kusama_runtime::{
+		migrations::MigrateBountyAccountAssets, treasury::TreasuryPalletId,
+	};
+	use frame_support::traits::{
+		tokens::fungibles::Mutate as _, Get as _, OnRuntimeUpgrade, PalletInfoAccess,
+	};
+	use pallet_multi_asset_bounties::{Bounty, BountyStatus};
+	use polkadot_runtime_common::impls::VersionedLocatableAsset;
+	use sp_core::H256;
+	use sp_runtime::traits::AccountIdConversion;
+
+	const BOUNTY_ID: u32 = 42;
+	const USDC_ASSET_ID: u32 = 1337;
+	const USDT_ASSET_ID: u32 = 1984; // present in `BountyRelevantAssets`, must NOT move
+	const USDC_AMOUNT: Balance = 300_000 * 1_000_000; // 300k USDC (6 decimals)
+	const USDT_AMOUNT: Balance = 999 * 1_000_000;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// Insert a `MultiAssetBounties::Bounties` entry so the migration's
+		// `iter_keys()` finds it. We bypass `propose_bounty` since the
+		// migration only iterates keys; the value's contents don't affect it.
+		let bounty = Bounty::<
+			AccountId,
+			Balance,
+			VersionedLocatableAsset,
+			H256,
+			xcm::v5::QueryId,
+			parachains_common::pay::VersionedLocatableAccount,
+		> {
+			asset_kind: VersionedLocatableAsset::V5 {
+				location: Location::new(0, []),
+				asset_id: AssetId(Location::new(
+					0,
+					[
+						PalletInstance(<Assets as PalletInfoAccess>::index() as u8),
+						GeneralIndex(USDC_ASSET_ID.into()),
+					],
+				)),
+			},
+			value: USDC_AMOUNT,
+			metadata: H256::zero(),
+			status: BountyStatus::CuratorUnassigned,
+		};
+		pallet_multi_asset_bounties::Bounties::<Runtime>::insert(BOUNTY_ID, bounty);
+
+		// Old derivation (`&str` prefix, used up to v2.2.2 via the local
+		// wrapper) vs new derivation (`[u8; 3]` prefix, from SDK PR 11052).
+		let pallet_id = TreasuryPalletId::get();
+		let old: AccountId = pallet_id.into_sub_account_truncating(("mbt", BOUNTY_ID));
+		let new: AccountId = pallet_id.into_sub_account_truncating((
+			pallet_multi_asset_bounties::BountyAccountPrefix::get(),
+			BOUNTY_ID,
+		));
+		assert_ne!(old, new);
+
+		// Create USDC and USDT (sufficient) and credit both to the *old* pot account.
+		for id in [USDC_ASSET_ID, USDT_ASSET_ID] {
+			assert_ok!(Assets::force_create(
+				RuntimeHelper::root_origin(),
+				id.into(),
+				AccountId::from(SOME_ASSET_ADMIN).into(),
+				true,
+				1,
+			));
+		}
+		Assets::mint_into(USDC_ASSET_ID, &old, USDC_AMOUNT).unwrap();
+		Assets::mint_into(USDT_ASSET_ID, &old, USDT_AMOUNT).unwrap();
+
+		MigrateBountyAccountAssets::on_runtime_upgrade();
+
+		// USDC moved.
+		assert_eq!(Assets::balance(USDC_ASSET_ID, &old), 0);
+		assert_eq!(Assets::balance(USDC_ASSET_ID, &new), USDC_AMOUNT);
+		// USDT stayed at the old account.
+		assert_eq!(Assets::balance(USDT_ASSET_ID, &old), USDT_AMOUNT);
+		assert_eq!(Assets::balance(USDT_ASSET_ID, &new), 0);
+	});
+}
+
+#[test]
 fn session_keys_are_compatible_between_ah_and_rc() {
 	use asset_hub_kusama_runtime::staking::RelayChainSessionKeys;
 	use sp_runtime::traits::OpaqueKeys;

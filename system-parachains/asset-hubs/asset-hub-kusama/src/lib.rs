@@ -31,7 +31,7 @@ extern crate alloc;
 
 pub mod genesis_config_presets;
 pub mod governance;
-mod migrations;
+pub mod migrations;
 pub mod staking;
 pub mod treasury;
 mod weights;

@@ -66,12 +66,108 @@ parameter_types! {
 
 parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+
+	/// Assets that must be moved from the old to the new bounty pot account by
+	/// [`MigrateBountyAccountAssets`]. Restricted to USDT (1984) and USDC (1337) —
+	/// DOT and other assets in `treasury::BountyRelevantAssets` are intentionally
+	/// left at the old derivation.
+	pub BountyMigrationAssets: alloc::vec::Vec<xcm::latest::Location> = alloc::vec![
+		xcm::latest::Location::new(
+			0,
+			[
+				xcm::latest::Junction::PalletInstance(
+					crate::xcm_config::TrustBackedAssetsPalletIndex::get(),
+				),
+				xcm::latest::Junction::GeneralIndex(1984),
+			],
+		),
+		xcm::latest::Location::new(
+			0,
+			[
+				xcm::latest::Junction::PalletInstance(
+					crate::xcm_config::TrustBackedAssetsPalletIndex::get(),
+				),
+				xcm::latest::Junction::GeneralIndex(1337),
+			],
+		),
+	];
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	AhMigratorPalletName,
 	<Runtime as frame_system::Config>::DbWeight,
 >;
+
+/// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
+/// from the previous account derivation to the new one introduced by
+/// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
+///
+/// Until v2.2.2 the local wrapper in `system-parachains-common` derived the
+/// bounty pot accounts as
+/// `Treasury::PalletId.into_sub_account_truncating(("mbt", id))`, with `"mbt"`
+/// passed as a `&str` (SCALE-encoded as a length-prefixed sequence). Starting
+/// from `pallet-multi-asset-bounties` 0.4.0 the prefix is supplied as a fixed
+/// `[u8; 3]` (`*b"mbt"`), which encodes as 3 raw bytes — a different seed and
+/// therefore a different sub-account. Same story for child bounties (`"mcb"`).
+///
+/// Without this migration, any funds sitting at the old (`&str`-derived)
+/// accounts at the moment of the runtime upgrade would no longer be reachable
+/// by the pallet, which after the upgrade only knows the new (`[u8; 3]`-derived)
+/// accounts.
+pub struct MigrateBountyAccountAssets;
+impl frame_support::traits::OnRuntimeUpgrade for MigrateBountyAccountAssets {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		use frame_support::traits::Get;
+		use pallet_bounties::TransferAllAssets;
+		use sp_runtime::traits::AccountIdConversion;
+
+		let pallet_id = <Runtime as pallet_treasury::Config>::PalletId::get();
+		let assets_per_bounty = BountyMigrationAssets::get().len() as u64;
+
+		type Transferer = pallet_bounties::TransferAllFungibles<
+			crate::AccountId,
+			crate::NativeAndAssets,
+			BountyMigrationAssets,
+		>;
+
+		let db_weight = <Runtime as frame_system::Config>::DbWeight::get();
+		let mut weight = frame_support::weights::Weight::zero();
+
+		for bounty_id in pallet_multi_asset_bounties::Bounties::<Runtime>::iter_keys() {
+			// Old: `&str "mbt"` (length-prefixed encoding).
+			let old: crate::AccountId = pallet_id.into_sub_account_truncating(("mbt", bounty_id));
+			// New: `[u8; 3] *b"mbt"` (raw 3 bytes).
+			let new: crate::AccountId = pallet_id.into_sub_account_truncating((
+				pallet_multi_asset_bounties::BountyAccountPrefix::get(),
+				bounty_id,
+			));
+			let _ = Transferer::force_transfer_all_assets(&old, &new);
+			// `TransferAllFungibles` iterates the relevant assets twice and does at
+			// most one read + one write per asset.
+			weight = weight.saturating_add(
+				db_weight.reads_writes(2 * assets_per_bounty, 2 * assets_per_bounty),
+			);
+		}
+
+		for (parent_id, child_id) in
+			pallet_multi_asset_bounties::ChildBounties::<Runtime>::iter_keys()
+		{
+			let old: crate::AccountId =
+				pallet_id.into_sub_account_truncating(("mcb", parent_id, child_id));
+			let new: crate::AccountId = pallet_id.into_sub_account_truncating((
+				pallet_multi_asset_bounties::ChildBountyAccountPrefix::get(),
+				parent_id,
+				child_id,
+			));
+			let _ = Transferer::force_transfer_all_assets(&old, &new);
+			weight = weight.saturating_add(
+				db_weight.reads_writes(2 * assets_per_bounty, 2 * assets_per_bounty),
+			);
+		}
+
+		weight
+	}
+}
 
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
@@ -92,6 +188,7 @@ pub type Unreleased = (
 		DefaultDapBudget,
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
+	MigrateBountyAccountAssets,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
