@@ -88,7 +88,8 @@ impl frame_support::traits::OnRuntimeUpgrade for CreatePgasAsset {
 				crate::PgasMinBalance::get(),
 			) {
 				Ok(()) => log::info!(target: "runtime::migrations", "PGAS asset created"),
-				Err(e) => log::error!(target: "runtime::migrations", "create PGAS asset failed: {e:?}"),
+				Err(e) =>
+					log::error!(target: "runtime::migrations", "create PGAS asset failed: {e:?}"),
 			}
 		}
 		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 2)
