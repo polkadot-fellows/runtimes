@@ -1182,10 +1182,13 @@ parameter_types! {
 	pub const PsmFeeDestinationPalletId: PalletId = PalletId(*b"dUSD/ins");
 	pub PsmFeeDestination: AccountId =
 		PsmFeeDestinationPalletId::get().into_account_truncating();
+
+	// TODO: remove `DOTUSD` const and use parameters pallet to setup `PsmMinSwapAmount`.
+	// Default: 1_000_000.
 	/// Minimum size of a single mint/redeem swap: 1 dotUSD.
 	pub const PsmMinSwapAmount: Balance = DOTUSD;
 	/// Maximum number of approved external stablecoins.
-	pub const PsmMaxExternalAssets: u32 = 8;
+	pub const PsmMaxExternalAssets: u32 = 4;
 }
 
 /// `TypedGet` impl returning `PsmManagerLevel::Full`. Used to map `Root` to the full
@@ -1210,6 +1213,7 @@ where
 	type Success = pallet_psm::PsmManagerLevel;
 	fn try_origin(o: O) -> Result<Self::Success, O> {
 		o.into().and_then(|o| match o {
+			// TODO: use MonetaryGuard origin from new track
 			pallet_custom_origins::Origin::WhitelistedCaller =>
 				Ok(pallet_psm::PsmManagerLevel::Emergency),
 			r => Err(O::from(r)),
@@ -1280,6 +1284,7 @@ impl pallet_psm::Config for Runtime {
 	type MaximumIssuance = dynamic_params::psm::MaximumIssuance;
 	type ManagerOrigin =
 		EitherOf<EnsureRootWithSuccess<AccountId, PsmFullLevel>, PsmEmergencyOrigin>;
+	// TODO: use actual weight info type
 	type WeightInfo = ();
 	type InternalAsset = PsmInternalAsset;
 	type FeeDestination = PsmFeeDestination;
