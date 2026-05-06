@@ -818,8 +818,7 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 		let remote_fee_asset_on_ethereum =
 			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
-		let pna =
-			Asset { id: AssetId(LocalPen2Asset::get()), fun: Fungible(TOKEN_AMOUNT) };
+		let pna = Asset { id: AssetId(LocalPen2Asset::get()), fun: Fungible(TOKEN_AMOUNT) };
 
 		let ena = Asset { id: AssetId(weth_location()), fun: Fungible(TOKEN_AMOUNT / 2) };
 

@@ -395,8 +395,7 @@ fn transact_using_authorized_alias_from_para_to_asset_hub_and_back_to_para() {
 	});
 
 	let sender_usdt_on_ah_after = assets_balance_on!(AssetHubKusama, USDT_ID, &sender);
-	let sender_usdt_on_penpal_after =
-		assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+	let sender_usdt_on_penpal_after = assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 
 	assert_eq!(
 		sender_usdt_on_penpal_after,
@@ -574,8 +573,7 @@ fn transact_using_sov_account_from_para_to_asset_hub_and_back_to_para() {
 
 	let sender_usdt_on_ah_after =
 		assets_balance_on!(AssetHubKusama, USDT_ID, &sov_of_sender_on_asset_hub);
-	let sender_usdt_on_penpal_after =
-		assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+	let sender_usdt_on_penpal_after = assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 
 	assert_eq!(
 		sender_usdt_on_penpal_after,

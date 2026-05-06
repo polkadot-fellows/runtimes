@@ -1207,7 +1207,11 @@ fn reserve_transfer_usdt_from_asset_hub_to_para() {
 
 	let usdt_from_asset_hub = PenpalUsdtFromAssetHub::get();
 	// Setup the pool so we can swap the custom asset for native asset to pay for fees.
-	create_foreign_pool_with_native_on!(PenpalB, PenpalUsdtFromAssetHub::get(), PenpalAssetOwner::get());
+	create_foreign_pool_with_native_on!(
+		PenpalB,
+		PenpalUsdtFromAssetHub::get(),
+		PenpalAssetOwner::get()
+	);
 
 	let assets: Assets = vec![(
 		[PalletInstance(ASSETS_PALLET_ID), GeneralIndex(usdt_id.into())],
@@ -1309,7 +1313,11 @@ fn reserve_transfer_usdt_from_para_to_para_through_asset_hub() {
 	);
 	create_pool_with_dot_on!(AssetHubPolkadot, usdt, false, AssetHubPolkadotSender::get());
 	// We also need a pool between DOT and USDT on PenpalB.
-	create_foreign_pool_with_native_on!(PenpalB, PenpalUsdtFromAssetHub::get(), PenpalAssetOwner::get());
+	create_foreign_pool_with_native_on!(
+		PenpalB,
+		PenpalUsdtFromAssetHub::get(),
+		PenpalAssetOwner::get()
+	);
 
 	let usdt_from_asset_hub = PenpalUsdtFromAssetHub::get();
 	PenpalA::execute_with(|| {

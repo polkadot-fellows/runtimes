@@ -19,9 +19,9 @@ pub use penpal_runtime::{
 	self,
 	xcm_config::{
 		CustomizableAssetFromSystemAssetHub, LocalPen2Asset, LocalReservableFromAssetHub,
-		LocalTeleportableToAssetHub, PenpalNativeCurrency,
-		RelayNetworkId as PenpalRelayNetworkId, XcmConfig, ASSET_HUB_ASSETS_PALLET_ID,
-		PEN2_TELEPORTABLE_GENERAL_INDEX, PENPAL_ASSETS_PALLET_ID, RESERVABLE_ASSET_ID,
+		LocalTeleportableToAssetHub, PenpalNativeCurrency, RelayNetworkId as PenpalRelayNetworkId,
+		XcmConfig, ASSET_HUB_ASSETS_PALLET_ID, PEN2_TELEPORTABLE_GENERAL_INDEX,
+		PENPAL_ASSETS_PALLET_ID, RESERVABLE_ASSET_ID,
 	},
 };
 
