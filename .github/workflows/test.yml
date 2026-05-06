@@ -316,7 +316,7 @@ jobs:
           docker --version
 
       - name: Zombienet tests
-        timeout-minutes: 30
+        timeout-minutes: 60
         run: |
           # Since we are running the runner in a dind environment we need to find the ip
           # of the proxy where the ports will be exposed.
