@@ -475,7 +475,8 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 	);
 	let dot_in_reserve_on_pah_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
-	let sender_dot_before = assets_balance_on!(PenpalB, dot_at_polkadot_parachains.clone(), &sender);
+	let sender_dot_before =
+		assets_balance_on!(PenpalB, dot_at_polkadot_parachains.clone(), &sender);
 	let receiver_dot_before =
 		foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama.clone(), &receiver);
 
@@ -582,8 +583,10 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama_
 	);
 	let dot_in_reserve_on_pah_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
-	let sender_dot_before = assets_balance_on!(PenpalB, dot_at_polkadot_parachains.clone(), &sender);
-	let receiver_dot_before = assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
+	let sender_dot_before =
+		assets_balance_on!(PenpalB, dot_at_polkadot_parachains.clone(), &sender);
+	let receiver_dot_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
 
 	// Send dot over bridge
 	{
@@ -722,7 +725,8 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 	let dot_in_reserve_on_pah_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
 	let sender_dot_before = <Polkadot as Chain>::account_data_of(sender.clone()).free;
-	let receiver_dot_before = assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
+	let receiver_dot_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
 
 	// Send dot from Polkadot to PAH over bridge to KAH then onto Penpal parachain
 	{
@@ -880,7 +884,8 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	AssetHubKusama::fund_accounts(vec![(sov_pah_on_kah.clone(), amount * 2)]);
 
 	// balances before
-	let sender_ksm_before = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains_latest.clone(), &sender);
+	let sender_ksm_before =
+		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains_latest.clone(), &sender);
 	let receiver_ksm_before = <AssetHubKusama as Chain>::account_data_of(receiver.clone()).free;
 
 	// send KSMs over the bridge, DOTs only used to pay fees on local AH, pay with KSM on remote AH
@@ -1026,8 +1031,10 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	AssetHubKusama::fund_accounts(vec![(sov_pah_on_kah.clone(), amount * 2)]);
 
 	// balances before
-	let sender_ksm_before = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains.clone(), &sender);
-	let receiver_ksm_before = assets_balance_on!(PenpalA, ksm_at_kusama_parachains.clone(), &receiver);
+	let sender_ksm_before =
+		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains.clone(), &sender);
+	let receiver_ksm_before =
+		assets_balance_on!(PenpalA, ksm_at_kusama_parachains.clone(), &receiver);
 
 	// send KSMs over the bridge, all fees paid with KSM along the way
 	{
@@ -1136,7 +1143,8 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	});
 
 	let sender_ksm_after = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains, &sender);
-	let receiver_ksm_after = assets_balance_on!(PenpalA, ksm_at_kusama_parachains.clone(), &receiver);
+	let receiver_ksm_after =
+		assets_balance_on!(PenpalA, ksm_at_kusama_parachains.clone(), &receiver);
 
 	// Sender's balance is reduced by sent "amount"
 	assert_eq!(sender_ksm_after, sender_ksm_before - amount);
@@ -1208,7 +1216,8 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	Kusama::fund_accounts(vec![(<Kusama as KusamaPallet>::XcmPallet::check_account(), amount)]);
 
 	// balances before
-	let sender_ksm_before = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains.clone(), &sender);
+	let sender_ksm_before =
+		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains.clone(), &sender);
 	let receiver_ksm_before = <Kusama as Chain>::account_data_of(receiver.clone()).free;
 
 	// send KSMs over the bridge, all fees paid with KSM along the way

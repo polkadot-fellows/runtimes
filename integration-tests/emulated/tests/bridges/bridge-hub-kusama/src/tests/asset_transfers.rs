@@ -476,7 +476,8 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 	);
 	let ksm_in_reserve_on_kah_before =
 		<AssetHubKusama as Chain>::account_data_of(sov_pah_on_kah.clone()).free;
-	let sender_ksm_before = assets_balance_on!(PenpalA, ksm_at_kusama_parachains_latest.clone(), &sender);
+	let sender_ksm_before =
+		assets_balance_on!(PenpalA, ksm_at_kusama_parachains_latest.clone(), &sender);
 	let receiver_ksm_before =
 		foreign_balance_on_ah_polkadot(ksm_at_asset_hub_polkadot.clone(), &receiver);
 
@@ -592,7 +593,8 @@ fn send_back_dot_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkad
 	AssetHubPolkadot::fund_accounts(vec![(sov_kah_on_pah.clone(), amount * 2)]);
 
 	// balances before
-	let sender_dot_before = assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
+	let sender_dot_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
 	let receiver_dot_before = <AssetHubPolkadot as Chain>::account_data_of(receiver.clone()).free;
 
 	// send DOTs over the bridge, KSMs only used to pay fees on local AH, pay with DOT on remote AH

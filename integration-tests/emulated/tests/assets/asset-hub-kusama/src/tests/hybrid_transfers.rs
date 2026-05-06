@@ -228,8 +228,10 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains.clone(), &sender)
 	});
-	let receiver_assets_before = assets_balance_on!(PenpalA, native_asset_location.clone(), &receiver);
-	let receiver_dots_before = assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalA, native_asset_location.clone(), &receiver);
+	let receiver_dots_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<AssetHubKusama>(system_para_to_para_sender_assertions);
@@ -358,7 +360,8 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 
 	// Query initial balances
 	let sender_native_before = assets_balance_on!(PenpalA, native_asset_location.clone(), &sender);
-	let sender_dots_before = assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
+	let sender_dots_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
 	let receiver_native_before = test.receiver.balance;
 	let receiver_dots_before = AssetHubKusama::execute_with(|| {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
@@ -373,7 +376,8 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 
 	// Query final balances
 	let sender_native_after = assets_balance_on!(PenpalA, native_asset_location, &sender);
-	let sender_dots_after = assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
+	let sender_dots_after =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
 	let receiver_native_after = test.receiver.balance;
 	let receiver_dots_after = AssetHubKusama::execute_with(|| {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
@@ -508,7 +512,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 
 	// Query initial balances
 	let sender_ksms_before = assets_balance_on!(PenpalA, ksm_location.clone(), &sender);
-	let sender_dots_before = assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
+	let sender_dots_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
 	let ksms_in_sender_reserve_on_ahk_before =
 		<AssetHubKusama as Chain>::account_data_of(sov_of_sender_on_ah.clone()).free;
 	let dots_in_sender_reserve_on_ahk_before = AssetHubKusama::execute_with(|| {
@@ -522,7 +527,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		<Assets as Inspect<_>>::balance(dot_at_kusama_parachains.clone(), &sov_of_receiver_on_ah)
 	});
 	let receiver_ksms_before = assets_balance_on!(PenpalB, ksm_location.clone(), &receiver);
-	let receiver_dots_before = assets_balance_on!(PenpalB, dot_at_kusama_parachains_latest.clone(), &receiver);
+	let receiver_dots_before =
+		assets_balance_on!(PenpalB, dot_at_kusama_parachains_latest.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<PenpalA>(para_to_para_through_hop_sender_assertions);
@@ -533,7 +539,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 
 	// Query final balances
 	let sender_ksms_after = assets_balance_on!(PenpalA, ksm_location.clone(), &sender);
-	let sender_dots_after = assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
+	let sender_dots_after =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
 	let dots_in_sender_reserve_on_ahk_after = AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(dot_at_kusama_parachains.clone(), &sov_of_sender_on_ah)
@@ -547,7 +554,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	let ksms_in_receiver_reserve_on_ahk_after =
 		<AssetHubKusama as Chain>::account_data_of(sov_of_receiver_on_ah).free;
 	let receiver_ksms_after = assets_balance_on!(PenpalB, ksm_location, &receiver);
-	let receiver_dots_after = assets_balance_on!(PenpalB, dot_at_kusama_parachains_latest, &receiver);
+	let receiver_dots_after =
+		assets_balance_on!(PenpalB, dot_at_kusama_parachains_latest, &receiver);
 
 	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
 	assert_eq!(sender_ksms_after, sender_ksms_before - ksm_to_send);
@@ -813,7 +821,8 @@ fn transfer_native_asset_from_penpal_to_relay_through_asset_hub() {
 	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ah.clone(), amount_to_send * 2)]);
 
 	// Query initial balances
-	let sender_balance_before = assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
+	let sender_balance_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
 	let sov_penpal_on_ah_before = AssetHubKusama::execute_with(|| {
 		<AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(sov_penpal_on_ah.clone())
 	});
@@ -866,7 +875,8 @@ fn transfer_native_asset_from_penpal_to_relay_through_asset_hub() {
 	test.assert();
 
 	// Query final balances
-	let sender_balance_after = assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
+	let sender_balance_after =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
 	let sov_penpal_on_ah_after = AssetHubKusama::execute_with(|| {
 		<AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(sov_penpal_on_ah.clone())
 	});

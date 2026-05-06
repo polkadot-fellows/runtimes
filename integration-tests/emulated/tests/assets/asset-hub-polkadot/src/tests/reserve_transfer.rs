@@ -617,7 +617,8 @@ fn reserve_transfer_dot_from_relay_to_para() {
 
 	// Query initial balances
 	let sender_balance_before = test.sender.balance;
-	let receiver_assets_before = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &receiver);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<Polkadot>(relay_to_para_sender_assertions);
@@ -682,7 +683,8 @@ fn reserve_transfer_dot_from_para_to_relay() {
 	let mut test = ParaToRelayTest::new(test_args);
 
 	// Query initial balances
-	let sender_assets_before = assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
+	let sender_assets_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
 	let receiver_balance_before = test.receiver.balance;
 
 	// Set assertions and dispatchables
@@ -735,7 +737,8 @@ fn reserve_transfer_dot_from_asset_hub_to_para() {
 
 	// Query initial balances
 	let sender_balance_before = test.sender.balance;
-	let receiver_assets_before = assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<AssetHubPolkadot>(system_para_to_para_sender_assertions);
@@ -745,7 +748,8 @@ fn reserve_transfer_dot_from_asset_hub_to_para() {
 
 	// Query final balances
 	let sender_balance_after = test.sender.balance;
-	let receiver_assets_after = assets_balance_on!(PenpalB, system_para_native_asset_location, &receiver);
+	let receiver_assets_after =
+		assets_balance_on!(PenpalB, system_para_native_asset_location, &receiver);
 
 	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
 	assert!(sender_balance_after < sender_balance_before - amount_to_send);
@@ -802,7 +806,8 @@ fn reserve_transfer_dot_from_para_to_asset_hub() {
 	let mut test = ParaToSystemParaTest::new(test_args);
 
 	// Query initial balances
-	let sender_assets_before = assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &sender);
+	let sender_assets_before =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &sender);
 	let receiver_balance_before = test.receiver.balance;
 
 	// Set assertions and dispatchables
@@ -812,7 +817,8 @@ fn reserve_transfer_dot_from_para_to_asset_hub() {
 	test.assert();
 
 	// Query final balances
-	let sender_assets_after = assets_balance_on!(PenpalB, system_para_native_asset_location, &sender);
+	let sender_assets_after =
+		assets_balance_on!(PenpalB, system_para_native_asset_location, &sender);
 	let receiver_balance_after = test.receiver.balance;
 
 	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
@@ -887,8 +893,10 @@ fn reserve_transfer_multiple_assets_from_asset_hub_to_para() {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
 		<Assets as Inspect<_>>::balance(RESERVABLE_ASSET_ID, &sender)
 	});
-	let receiver_system_native_assets_before = assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
-	let receiver_foreign_assets_before = assets_balance_on!(PenpalB, system_para_foreign_asset_location.clone(), &receiver);
+	let receiver_system_native_assets_before =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
+	let receiver_foreign_assets_before =
+		assets_balance_on!(PenpalB, system_para_foreign_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<AssetHubPolkadot>(system_para_to_para_assets_sender_assertions);
@@ -902,8 +910,10 @@ fn reserve_transfer_multiple_assets_from_asset_hub_to_para() {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
 		<Assets as Inspect<_>>::balance(RESERVABLE_ASSET_ID, &sender)
 	});
-	let receiver_system_native_assets_after = assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
-	let receiver_foreign_assets_after = assets_balance_on!(PenpalB, system_para_foreign_asset_location, &receiver);
+	let receiver_system_native_assets_after =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
+	let receiver_foreign_assets_after =
+		assets_balance_on!(PenpalB, system_para_foreign_asset_location, &receiver);
 	// Sender's balance is reduced
 	assert!(sender_balance_after < sender_balance_before);
 	// Receiver's foreign asset balance is increased
@@ -999,8 +1009,10 @@ fn reserve_transfer_multiple_assets_from_para_to_asset_hub() {
 	let mut test = ParaToSystemParaTest::new(para_test_args);
 
 	// Query initial balances
-	let sender_system_assets_before = assets_balance_on!(PenpalB, system_asset_location_on_penpal.clone(), &sender);
-	let sender_foreign_assets_before = assets_balance_on!(PenpalB, asset_location_on_penpal.clone(), &sender);
+	let sender_system_assets_before =
+		assets_balance_on!(PenpalB, system_asset_location_on_penpal.clone(), &sender);
+	let sender_foreign_assets_before =
+		assets_balance_on!(PenpalB, asset_location_on_penpal.clone(), &sender);
 	let receiver_balance_before = test.receiver.balance;
 	let receiver_assets_before = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
@@ -1014,8 +1026,10 @@ fn reserve_transfer_multiple_assets_from_para_to_asset_hub() {
 	test.assert();
 
 	// Query final balances
-	let sender_system_assets_after = assets_balance_on!(PenpalB, system_asset_location_on_penpal, &sender);
-	let sender_foreign_assets_after = assets_balance_on!(PenpalB, asset_location_on_penpal, &sender);
+	let sender_system_assets_after =
+		assets_balance_on!(PenpalB, system_asset_location_on_penpal, &sender);
+	let sender_foreign_assets_after =
+		assets_balance_on!(PenpalB, asset_location_on_penpal, &sender);
 	let receiver_balance_after = test.receiver.balance;
 	let receiver_assets_after = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
@@ -1072,8 +1086,10 @@ fn reserve_transfer_dot_from_para_to_para_through_relay() {
 	let mut test = ParaToParaThroughRelayTest::new(test_args);
 
 	// Query initial balances
-	let sender_assets_before = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
-	let receiver_assets_before = assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &receiver);
+	let sender_assets_before =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<PenpalB>(para_to_para_through_hop_sender_assertions);
@@ -1083,7 +1099,8 @@ fn reserve_transfer_dot_from_para_to_para_through_relay() {
 	test.assert();
 
 	// Query final balances
-	let sender_assets_after = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let sender_assets_after =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
 	let receiver_assets_after = assets_balance_on!(PenpalA, relay_native_asset_location, &receiver);
 
 	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).

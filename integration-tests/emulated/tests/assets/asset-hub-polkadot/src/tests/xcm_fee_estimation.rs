@@ -190,12 +190,14 @@ fn multi_hop_works() {
 	AssetHubPolkadot::fund_accounts(vec![(sov_of_sender_on_ah, amount_to_send * 2)]);
 
 	// Actually run the extrinsic.
-	let sender_assets_before = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let sender_assets_before =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
 	let sender_balance_before = PenpalB::execute_with(|| {
 		type Balances = <PenpalB as PenpalBPallet>::Balances;
 		<Balances as fungible::Inspect<_>>::balance(&sender)
 	});
-	let receiver_assets_before = assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &beneficiary_id);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &beneficiary_id);
 	let receiver_balance_before = PenpalA::execute_with(|| {
 		type Balances = <PenpalA as PenpalAPallet>::Balances;
 		<Balances as fungible::Inspect<_>>::balance(&beneficiary_id)
@@ -207,12 +209,14 @@ fn multi_hop_works() {
 	test.set_dispatchable::<PenpalB>(transfer_assets_para_to_para_through_ah_dispatchable);
 	test.assert();
 
-	let sender_assets_after = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let sender_assets_after =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
 	let sender_balance_after = PenpalB::execute_with(|| {
 		type Balances = <PenpalB as PenpalBPallet>::Balances;
 		<Balances as fungible::Inspect<_>>::balance(&sender)
 	});
-	let receiver_assets_after = assets_balance_on!(PenpalA, relay_native_asset_location, &beneficiary_id);
+	let receiver_assets_after =
+		assets_balance_on!(PenpalA, relay_native_asset_location, &beneficiary_id);
 	let receiver_balance_after = PenpalA::execute_with(|| {
 		type Balances = <PenpalA as PenpalAPallet>::Balances;
 		<Balances as fungible::Inspect<_>>::balance(&beneficiary_id)
@@ -545,8 +549,10 @@ fn multi_hop_pay_fees_works() {
 	AssetHubPolkadot::fund_accounts(vec![(sov_of_sender_on_ah, amount_to_send * 2)]);
 
 	// Actually run the extrinsic with exact fees.
-	let sender_assets_before = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
-	let receiver_assets_before = assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &beneficiary_id);
+	let sender_assets_before =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &beneficiary_id);
 
 	test.set_assertion::<PenpalB>(pay_fees_sender_assertions);
 	test.set_assertion::<AssetHubPolkadot>(pay_fees_hop_assertions);
@@ -559,8 +565,10 @@ fn multi_hop_pay_fees_works() {
 	test.set_call(call);
 	test.assert();
 
-	let sender_assets_after = assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
-	let receiver_assets_after = assets_balance_on!(PenpalA, relay_native_asset_location, &beneficiary_id);
+	let sender_assets_after =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let receiver_assets_after =
+		assets_balance_on!(PenpalA, relay_native_asset_location, &beneficiary_id);
 
 	// We know the exact fees on every hop.
 	assert_eq!(sender_assets_after, sender_assets_before - amount_to_send);
