@@ -18,7 +18,7 @@
 
 use crate::{xcm_config::UniversalLocation, *};
 use alloc::vec::Vec;
-use frame_support::sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::AccountIdConversion;
 use pallet_revive::AddressMapper;
 use sp_genesis_builder::PresetId;
 use system_parachains_constants::genesis_presets::*;
