@@ -13,3 +13,4 @@ anyhow = { workspace = true }
 codec = { workspace = true, features = ["derive"], default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }
+serial_test = "3"

@@ -1,11 +1,18 @@
-//! Elastic scaling integration test for the system parachains.
+//! Elastic scaling integration tests for the system parachains.
 //!
-//! The test asserts ≈3 backed candidates per 6s relay block (~60 over 20 RCBs).
+//! Each test asserts ≈3 backed candidates per 6s relay block (~60 over 20 RCBs).
+//!
+//! The two cases (Asset Hub Polkadot and People Polkadot) live as **separate**
+//! `#[tokio::test]` functions and are serialised via `#[serial]` so that the
+//! second case starts on a host that has fully released the first case's
+//! validator/collator processes (zombienet's `Network` has no `Drop` impl, so we
+//! call `network.destroy().await` explicitly at the end of each case).
 
 use std::collections::HashMap;
 
 use anyhow::anyhow;
 use polkadot_primitives::Id as ParaId;
+use serial_test::serial;
 use zombienet_sdk::subxt::{OnlineClient, PolkadotConfig};
 use zombienet_sdk_tests::{
 	elastic_scaling_network,
@@ -15,57 +22,43 @@ use zombienet_sdk_tests::{
 	PEOPLE_POLKADOT_PARA_ID,
 };
 
-struct Case {
+fn init_tracing() {
+	// `try_init` so the second test in the same process doesn't panic.
+	let _ = tracing_subscriber::fmt()
+		.with_env_filter(
+			tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+		)
+		.try_init();
+}
+
+async fn run(
 	chain: &'static str,
 	para_id: u32,
 	collators: &'static [&'static str],
-	/// Acceptable count of backed candidates over 20 RCBs for paras with 3 cores.
 	expected: std::ops::Range<u32>,
-}
+) -> Result<(), anyhow::Error> {
+	init_tracing();
+	log::info!("Using zombienet provider: {:?}", get_provider_from_env());
+	log::info!("running elastic scaling test for chain '{chain}' (para_id {para_id})");
 
-const CASES: &[Case] = &[
-	Case {
-		chain: "asset-hub-polkadot-local",
-		para_id: ASSET_HUB_POLKADOT_PARA_ID,
-		collators: &["asset-hub-collator-0", "asset-hub-collator-1", "asset-hub-collator-2"],
-		expected: 45..61,
-	},
-	Case {
-		chain: "people-polkadot-local",
-		para_id: PEOPLE_POLKADOT_PARA_ID,
-		collators: &["people-collator-0", "people-collator-1", "people-collator-2"],
-		expected: 45..61,
-	},
-];
-
-async fn run(case: &Case) -> Result<(), anyhow::Error> {
-	log::info!(
-		"running elastic scaling test for chain '{}' (para_id {})",
-		case.chain,
-		case.para_id
-	);
-
-	let config = elastic_scaling_network(ElasticNetwork {
-		chain: case.chain,
-		para_id: case.para_id,
-		collators: case.collators,
-	})
-	.map_err(|e| anyhow!("{e}"))?;
+	let config = elastic_scaling_network(ElasticNetwork { chain, para_id, collators })
+		.map_err(|e| anyhow!("{e}"))?;
 	let network = (get_spawn_fn())(config).await?;
 
 	let relay_client: OnlineClient<PolkadotConfig> =
 		network.get_node(ELASTIC_VALIDATOR_0)?.wait_client().await?;
 
-	let first_collator = network.get_node(case.collators[0])?;
+	let first_collator = network.get_node(collators[0])?;
 	assert!(
 		first_collator.wait_until_is_up(120u64).await.is_ok(),
 		"collator {} failed to come up",
-		case.collators[0]
+		collators[0]
 	);
 
 	// Wait until every validator has finished preparing the parachain PVF before
-	// counting throughput. PVF preparation is a one-off ~20s wasm compile per
-	// validator and contends for CPU;
+	// counting throughput. PVF preparation is a one-off ~10s wasm compile per
+	// validator and contends for CPU; if it overlaps the measurement window the
+	// provisioner can miss its deadline and inject empty `paras_inherent`.
 	for v in ELASTIC_VALIDATORS {
 		let node = network.get_node(*v)?;
 		log::info!("Waiting for {v} to finish PVF preparation...");
@@ -75,29 +68,45 @@ async fn run(case: &Case) -> Result<(), anyhow::Error> {
 	}
 	log::info!("All validators have a prepared PVF artifact; starting throughput measurement");
 
-	assert_para_throughput(
+	let measurement_result = assert_para_throughput(
 		&relay_client,
 		20,
-		HashMap::from([(ParaId::from(case.para_id), case.expected.clone())]),
+		HashMap::from([(ParaId::from(para_id), expected.clone())]),
 	)
-	.await?;
+	.await;
 
-	log::info!("🚀 elastic scaling test passed for chain '{}'", case.chain);
+	// Explicitly tear down — `Network` has no `Drop` impl, so the spawned
+	// validator/collator processes would otherwise leak and the next test would
+	// inherit the host load.
+	if let Err(e) = network.destroy().await {
+		log::warn!("network.destroy() failed for chain '{chain}': {e}");
+	}
+
+	measurement_result?;
+	log::info!("🚀 elastic scaling test passed for chain '{chain}'");
 	Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn elastic_scaling() -> Result<(), anyhow::Error> {
-	tracing_subscriber::fmt()
-		.with_env_filter(
-			tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-		)
-		.init();
+#[serial]
+async fn elastic_scaling_asset_hub_polkadot() -> Result<(), anyhow::Error> {
+	run(
+		"asset-hub-polkadot-local",
+		ASSET_HUB_POLKADOT_PARA_ID,
+		&["asset-hub-collator-0", "asset-hub-collator-1", "asset-hub-collator-2"],
+		45..61,
+	)
+	.await
+}
 
-	log::info!("Using zombienet provider: {:?}", get_provider_from_env());
-
-	for case in CASES {
-		run(case).await?;
-	}
-	Ok(())
+#[tokio::test(flavor = "multi_thread")]
+#[serial]
+async fn elastic_scaling_people_polkadot() -> Result<(), anyhow::Error> {
+	run(
+		"people-polkadot-local",
+		PEOPLE_POLKADOT_PARA_ID,
+		&["people-collator-0", "people-collator-1", "people-collator-2"],
+		45..61,
+	)
+	.await
 }

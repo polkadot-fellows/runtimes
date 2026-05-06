@@ -114,8 +114,6 @@ pub fn elastic_scaling_network(net: ElasticNetwork<'_>) -> Result<NetworkConfig,
 					}
 				}))
 				.with_validator(|n| n.with_name(ELASTIC_VALIDATOR_0));
-			// 3 validators — exactly covers the 3 singleton backing groups; reduces host
-			// load (5 → 3 polkadot processes) which matters on contended dev machines.
 			(1..3).fold(r, |acc, i| acc.with_validator(|n| n.with_name(&format!("validator-{i}"))))
 		})
 		.with_parachain(|p| {
