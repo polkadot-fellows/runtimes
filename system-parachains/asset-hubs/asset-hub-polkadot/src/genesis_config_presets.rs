@@ -16,9 +16,8 @@
 
 //! Genesis configs presets for the AssetHubPolkadot runtime
 
-use crate::{staking::DapPalletId, xcm_config::UniversalLocation, *};
+use crate::{xcm_config::UniversalLocation, *};
 use alloc::vec::Vec;
-use frame_support::sp_runtime::traits::AccountIdConversion;
 use pallet_revive::AddressMapper;
 use parachains_common::AssetHubPolkadotAuraId;
 use sp_core::sr25519;
@@ -29,10 +28,6 @@ use xcm_builder::GlobalConsensusConvertsFor;
 use xcm_executor::traits::ConvertLocation;
 
 const ASSET_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
-
-fn dap_buffer_account() -> AccountId {
-	DapPalletId::get().into_account_truncating()
-}
 
 /// Invulnerable Collators for the particular case of AssetHubPolkadot
 pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
@@ -60,7 +55,8 @@ fn asset_hub_polkadot_genesis(
 		.cloned()
 		.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
 		.collect();
-	balances.push((dap_buffer_account(), ASSET_HUB_POLKADOT_ED));
+	balances.push((Dap::buffer_account(), ASSET_HUB_POLKADOT_ED));
+	balances.push((Dap::staging_account(), ASSET_HUB_POLKADOT_ED));
 
 	serde_json::json!({
 		"balances": BalancesConfig {
