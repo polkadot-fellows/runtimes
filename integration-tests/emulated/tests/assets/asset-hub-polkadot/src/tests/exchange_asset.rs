@@ -193,7 +193,7 @@ fn exchange_asset_from_penpal_via_asset_hub_back_to_penpal() {
 
 	// Query initial balances
 	let sender_usdt_on_penpal_before =
-		foreign_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+		assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 	let sender_usdt_on_ah_before = assets_balance_on!(AssetHubPolkadot, USDT_ID, &sender);
 
 	let asset_hub_location_penpal_pov = PenpalA::sibling_location_of(AssetHubPolkadot::para_id());
@@ -296,7 +296,7 @@ fn exchange_asset_from_penpal_via_asset_hub_back_to_penpal() {
 	// Query final balances
 	let sender_usdt_on_ah_after = assets_balance_on!(AssetHubPolkadot, USDT_ID, &sender);
 	let sender_usdt_on_penpal_after =
-		foreign_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+		assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 
 	// Receiver's balance is increased by usdt amount we got from exchange
 	assert_eq!(

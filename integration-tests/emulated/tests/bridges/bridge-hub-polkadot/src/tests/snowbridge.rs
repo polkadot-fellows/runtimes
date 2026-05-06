@@ -150,7 +150,7 @@ fn send_token_from_ethereum_to_penpal() {
 			)],
 		));
 
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
+		assert_ok!(<PenpalB as PenpalBPallet>::Assets::force_create(
 			<PenpalB as Chain>::RuntimeOrigin::root(),
 			weth_asset_location.clone(),
 			asset_hub_sovereign.clone().into(),
@@ -158,7 +158,7 @@ fn send_token_from_ethereum_to_penpal() {
 			1000
 		));
 
-		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_location));
+		assert!(<PenpalB as PenpalBPallet>::Assets::asset_exists(weth_asset_location));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -218,7 +218,7 @@ fn send_token_from_ethereum_to_penpal() {
 		assert_expected_events!(
 			PenpalB,
 			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { .. }) => {},
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { .. }) => {},
 			]
 		);
 	});

@@ -15,7 +15,7 @@
 
 use super::reserve_transfer::*;
 use crate::{
-	foreign_balance_on,
+	assets_balance_on, foreign_balance_on,
 	tests::teleport::do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using_xt,
 	*,
 };
@@ -251,11 +251,11 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
 	});
 	let receiver_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(native_asset_location.clone(), &receiver)
 	});
 	let receiver_ksm_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &receiver)
 	});
 
@@ -272,11 +272,11 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
 	});
 	let receiver_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(native_asset_location, &receiver)
 	});
 	let receiver_ksm_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &receiver)
 	});
 
@@ -393,11 +393,11 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 
 	// Query initial balances
 	let sender_native_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(native_asset_location.clone(), &sender)
 	});
 	let sender_ksm_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let receiver_native_before = test.receiver.balance;
@@ -414,11 +414,11 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 
 	// Query final balances
 	let sender_native_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(native_asset_location, &sender)
 	});
 	let sender_ksm_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let receiver_native_after = test.receiver.balance;
@@ -555,11 +555,11 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 
 	// Query initial balances
 	let sender_dot_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(dot_location.clone(), &sender)
 	});
 	let sender_ksm_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let dot_in_sender_reserve_on_ahp_before =
@@ -575,11 +575,11 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		<Assets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sov_of_receiver_on_ah)
 	});
 	let receiver_dot_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(dot_location.clone(), &receiver)
 	});
 	let receiver_ksm_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &receiver)
 	});
 
@@ -592,11 +592,11 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 
 	// Query final balances
 	let sender_dot_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(dot_location.clone(), &sender)
 	});
 	let sender_ksm_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let ksm_in_sender_reserve_on_ahp_after = AssetHubPolkadot::execute_with(|| {
@@ -612,11 +612,11 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	let dot_in_receiver_reserve_on_ahp_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_of_receiver_on_ah).free;
 	let receiver_dot_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(dot_location, &receiver)
 	});
 	let receiver_ksm_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &receiver)
 	});
 
@@ -715,14 +715,14 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 
 	// PenpalB has a pool between USDT and DOT so fees can be paid with USDT by automatically
 	// swapping them for DOT.
-	create_pool_with_dot_on!(PenpalB, usdt_location.clone(), true, PenpalAssetOwner::get());
+	create_foreign_pool_with_native_on!(PenpalB, usdt_location.clone(), PenpalAssetOwner::get());
 
 	// Sender starts with a lot of USDT.
-	let sender_balance_before = foreign_balance_on!(PenpalA, usdt_location.clone(), &sender);
+	let sender_balance_before = assets_balance_on!(PenpalA, usdt_location.clone(), &sender);
 	assert_eq!(sender_balance_before, 10_000_000_000_000);
 
 	// Receiver has no USDT.
-	let receiver_balance_before = foreign_balance_on!(PenpalB, usdt_location.clone(), &receiver);
+	let receiver_balance_before = assets_balance_on!(PenpalB, usdt_location.clone(), &receiver);
 	assert_eq!(receiver_balance_before, 0);
 
 	let test_args = TestContext {
@@ -750,7 +750,7 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 		assert_expected_events!(
 			PenpalA,
 			vec![
-				Event::ForeignAssets(
+				Event::Assets(
 					pallet_assets::Event::Withdrawn { asset_id, amount, .. }
 				) => {
 					asset_id: *asset_id == usdt_location.clone(),
@@ -801,7 +801,7 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 			PenpalB,
 			vec![
 				// Final amount gets deposited to receiver.
-				Event::ForeignAssets(
+				Event::Assets(
 					pallet_assets::Event::Deposited { asset_id, who, .. }
 				) => {
 					asset_id: *asset_id == usdt_location,
@@ -823,11 +823,11 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 	test.assert();
 
 	// Sender has less USDT after the transfer.
-	let sender_balance_after = foreign_balance_on!(PenpalA, usdt_location.clone(), &sender);
+	let sender_balance_after = assets_balance_on!(PenpalA, usdt_location.clone(), &sender);
 	assert_eq!(sender_balance_after, 9_000_000_000_000);
 
 	// Receiver gets `transfer_amount` minus fees.
-	let receiver_balance_after = foreign_balance_on!(PenpalB, usdt_location.clone(), &receiver);
+	let receiver_balance_after = assets_balance_on!(PenpalB, usdt_location.clone(), &receiver);
 	assert!(receiver_balance_after > receiver_balance_before);
 }
 
@@ -887,7 +887,7 @@ fn transfer_native_asset_from_penpal_to_relay_through_asset_hub() {
 
 	// Query initial balances
 	let sender_balance_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
 	});
 	let sov_penpal_on_ah_before = AssetHubPolkadot::execute_with(|| {
@@ -946,7 +946,7 @@ fn transfer_native_asset_from_penpal_to_relay_through_asset_hub() {
 
 	// Query final balances
 	let sender_balance_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalB as PenpalBPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
 	});
 	let sov_penpal_on_ah_after = AssetHubPolkadot::execute_with(|| {

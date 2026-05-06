@@ -477,7 +477,7 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 	let ksm_in_reserve_on_kah_before =
 		<AssetHubKusama as Chain>::account_data_of(sov_pah_on_kah.clone()).free;
 	let sender_ksm_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_kusama_parachains_latest.clone(), &sender)
 	});
 	let receiver_ksm_before =
@@ -537,7 +537,7 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 	});
 
 	let sender_ksm_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_kusama_parachains_latest, &sender)
 	});
 	let receiver_ksm_after = foreign_balance_on_ah_polkadot(ksm_at_asset_hub_polkadot, &receiver);
@@ -599,7 +599,7 @@ fn send_back_dot_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkad
 
 	// balances before
 	let sender_dot_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains_latest.clone(), &sender)
 	});
 	let receiver_dot_before = <AssetHubPolkadot as Chain>::account_data_of(receiver.clone()).free;
@@ -679,7 +679,7 @@ fn send_back_dot_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkad
 	});
 
 	let sender_dot_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		type ForeignAssets = <PenpalA as PenpalAPallet>::Assets;
 		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains_latest, &sender)
 	});
 	let receiver_dot_after = <AssetHubPolkadot as Chain>::account_data_of(receiver).free;
