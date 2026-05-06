@@ -162,6 +162,7 @@ pallet-offences-benchmarking = { version = "47.0.0", default-features = false }
 pallet-parameters = { version = "0.18.0", default-features = false }
 pallet-preimage = { version = "47.0.0", default-features = false }
 pallet-proxy = { version = "47.0.0", default-features = false }
+pallet-psm = { version = "0.2.0", default-features = false }
 pallet-ranked-collective = { version = "47.0.0", default-features = false }
 pallet-recovery = { version = "47.0.0", default-features = false }
 pallet-referenda = { version = "47.0.0", default-features = false }

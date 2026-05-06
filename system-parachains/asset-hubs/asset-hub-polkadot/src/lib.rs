@@ -98,7 +98,10 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, Get, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
+		IdentityLookup, Verify,
+	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
 };
@@ -133,7 +136,7 @@ use frame_support::{
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	pallet_prelude::BlockNumberFor,
-	EnsureRoot, EnsureSigned, EnsureSignedBy,
+	EnsureRoot, EnsureRootWithSuccess, EnsureSigned, EnsureSignedBy,
 };
 use pallet_asset_conversion_precompiles::AssetConversion as AssetConversionPrecompile;
 use pallet_assets_precompiles::{ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20};
@@ -1168,6 +1171,125 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 }
 
+/// One whole dotUSD in base units (6 decimals).
+pub const DOTUSD: Balance = 1_000_000;
+
+parameter_types! {
+	/// PalletId for deriving the PSM system account that custodies external collateral.
+	pub const PsmPalletId: PalletId = PalletId(*b"py/pegsm");
+	/// PalletId for deriving the PSM fee-destination (dotUSD insurance fund) account.
+	/// Spec name `dotUSD/ins` is 10 bytes; truncated to 8 bytes to fit `PalletId`.
+	pub const PsmFeeDestinationPalletId: PalletId = PalletId(*b"dUSD/ins");
+	pub PsmFeeDestination: AccountId =
+		PsmFeeDestinationPalletId::get().into_account_truncating();
+	/// Minimum size of a single mint/redeem swap: 1 dotUSD.
+	pub const PsmMinSwapAmount: Balance = DOTUSD;
+	/// Maximum number of approved external stablecoins.
+	pub const PsmMaxExternalAssets: u32 = 8;
+}
+
+/// `TypedGet` impl returning `PsmManagerLevel::Full`. Used to map `Root` to the full
+/// management privilege of `pallet_psm` via `EnsureRootWithSuccess`.
+pub struct PsmFullLevel;
+impl sp_core::TypedGet for PsmFullLevel {
+	type Type = pallet_psm::PsmManagerLevel;
+	fn get() -> Self::Type {
+		pallet_psm::PsmManagerLevel::Full
+	}
+}
+
+/// Maps the `WhitelistedCaller` origin to `PsmManagerLevel::Emergency` for the PSM
+/// circuit-breaker. Re-using the existing whitelisted-caller track keeps the PR free of
+/// new governance plumbing while still distinguishing emergency calls from full
+/// management ones at the pallet level.
+pub struct PsmEmergencyOrigin;
+impl<O> EnsureOrigin<O> for PsmEmergencyOrigin
+where
+	O: Into<Result<pallet_custom_origins::Origin, O>> + From<pallet_custom_origins::Origin>,
+{
+	type Success = pallet_psm::PsmManagerLevel;
+	fn try_origin(o: O) -> Result<Self::Success, O> {
+		o.into().and_then(|o| match o {
+			pallet_custom_origins::Origin::WhitelistedCaller =>
+				Ok(pallet_psm::PsmManagerLevel::Emergency),
+			r => Err(O::from(r)),
+		})
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<O, ()> {
+		Ok(O::from(pallet_custom_origins::Origin::WhitelistedCaller))
+	}
+}
+
+/// Single-asset `fungible` wrapper that the PSM uses to mint/burn the internal stablecoin.
+///
+/// The TrustBacked asset id is configurable at runtime via the `Parameters` pallet
+/// (`dynamic_params::psm::StablecoinAssetId`), so the dotUSD asset id can be set after
+/// deployment without a runtime upgrade. The asset itself must still be pre-registered
+/// with the PSM-derived account (`PsmPalletId::into_account_truncating()`) as
+/// owner/issuer for mint/burn to succeed.
+pub type PsmInternalAsset =
+	fungible::ItemOf<Assets, dynamic_params::psm::StablecoinAssetId, AccountId>;
+
+/// Benchmark helper for `pallet_psm`. Generates unique foreign-asset `Location`s and
+/// creates them in `ForeignAssets` with metadata so the PSM benchmarks can drive
+/// mint/redeem flows.
+#[cfg(feature = "runtime-benchmarks")]
+pub struct PsmBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_psm::BenchmarkHelper<Location, AccountId> for PsmBenchmarkHelper {
+	fn get_asset_id(asset_index: u32) -> Location {
+		// Each index maps to a unique sibling-parachain Location, ensuring routing
+		// through `ForeignAssets` rather than the local TrustBacked instance.
+		Location::new(
+			1,
+			[Junction::Parachain(3_000 + asset_index), Junction::GeneralIndex(asset_index as u128)],
+		)
+	}
+	fn create_asset(asset_id: Location, owner: &AccountId, decimals: u8) {
+		use frame_support::traits::fungibles::{
+			metadata::Mutate as MetadataMutate, Create, Inspect,
+		};
+		if !<ForeignAssets as Inspect<AccountId>>::asset_exists(asset_id.clone()) {
+			let _ = <ForeignAssets as Create<AccountId>>::create(
+				asset_id.clone(),
+				owner.clone(),
+				true,
+				1,
+			);
+		}
+		// Fund the owner so they can pay the metadata deposit.
+		let _ = pallet_balances::Pallet::<Runtime>::force_set_balance(
+			RuntimeOrigin::root(),
+			sp_runtime::MultiAddress::Id(owner.clone()),
+			Balance::MAX / 2,
+		);
+		let _ = <ForeignAssets as MetadataMutate<AccountId>>::set(
+			asset_id,
+			owner,
+			b"Benchmark".to_vec(),
+			b"BNC".to_vec(),
+			decimals,
+		);
+	}
+}
+
+impl pallet_psm::Config for Runtime {
+	type Fungibles = LocalAndForeignAssets;
+	type AssetId = Location;
+	type MaximumIssuance = dynamic_params::psm::MaximumIssuance;
+	type ManagerOrigin =
+		EitherOf<EnsureRootWithSuccess<AccountId, PsmFullLevel>, PsmEmergencyOrigin>;
+	type WeightInfo = ();
+	type InternalAsset = PsmInternalAsset;
+	type FeeDestination = PsmFeeDestination;
+	type PalletId = PsmPalletId;
+	type MinSwapAmount = PsmMinSwapAmount;
+	type MaxExternalAssets = PsmMaxExternalAssets;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = PsmBenchmarkHelper;
+}
+
 parameter_types! {
 	pub const PreimageBaseDeposit: Balance = system_para_deposit(2, 64);
 	pub const PreimageByteDeposit: Balance = system_para_deposit(0, 1);
@@ -1247,6 +1369,11 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 				WhitelistedCaller,
 			>::ensure_origin(origin.clone())
 			.map(|_success| ()),
+			// PSM params (e.g. dotUSD asset id) — Root only.
+			Psm(_) => <EnsureRoot<AccountId> as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1333,6 +1460,23 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static MaxOnIdleWeight: Option<Weight> =
 			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
+	}
+
+	/// Parameters about the PSM pallet.
+	#[dynamic_pallet_params]
+	#[codec(index = 3)]
+	pub mod psm {
+		/// TrustBacked asset id of the internal stablecoin (dotUSD).
+		///
+		/// Configurable so the on-chain asset id can be assigned after dotUSD is
+		/// registered, without requiring a runtime upgrade. Defaults to the
+		/// pre-allocated id; update via `Parameters::set_parameter` once dotUSD is live.
+		#[codec(index = 0)]
+		pub static StablecoinAssetId: AssetIdForTrustBackedAssets = 50_000_413;
+
+		/// Hard cap on total internal-asset (dotUSD) issuance.
+		#[codec(index = 1)]
+		pub static MaximumIssuance: Balance = 50_000_000 * DOTUSD;
 	}
 }
 
@@ -1545,6 +1689,7 @@ construct_runtime!(
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+		Psm: pallet_psm = 56,
 
 		// OpenGov stuff
 		Treasury: pallet_treasury = 60,
@@ -1739,6 +1884,7 @@ mod benches {
 		[pallet_assets_precompiles, AssetsPrecompiles]
 		[pallet_asset_conversion, AssetConversion]
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]
+		[pallet_psm, Psm]
 		[pallet_balances, Balances]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]

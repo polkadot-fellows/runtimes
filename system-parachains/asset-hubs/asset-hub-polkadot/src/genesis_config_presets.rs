@@ -17,7 +17,7 @@
 //! Genesis configs presets for the AssetHubPolkadot runtime
 
 use crate::{staking::DapPalletId, xcm_config::UniversalLocation, *};
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use pallet_revive::AddressMapper;
 use parachains_common::AssetHubPolkadotAuraId;
@@ -112,9 +112,49 @@ fn asset_hub_polkadot_genesis(
 			accounts: Vec::new(),
 			debug_settings: None,
 		},
+		"psm": psm_genesis_config(),
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
+}
+
+/// Genesis configuration for `pallet_psm`.
+///
+/// - `max_psm_debt_of_total = 10%` of `MaximumIssuance`.
+/// - Two external assets: USDT (TrustBacked id 1984) and Hollar (Hydration paraId 2034,
+///   asset id 222). Both at `(minting_fee = 0%, redemption_fee = 0.01%, ceiling_weight =
+///   100%)` — weights are normalized across all assets.
+fn psm_genesis_config() -> pallet_psm::GenesisConfig<Runtime> {
+	let mut asset_configs: BTreeMap<Location, (Permill, Permill, Permill)> = BTreeMap::new();
+
+	// (minting_fee, redemption_fee, ceiling_weight) shared by all approved externals.
+	let default_external_config: (Permill, Permill, Permill) = (
+		Permill::zero(),
+		Permill::from_rational(1u32, 10_000u32),
+		Permill::from_percent(100),
+	);
+
+	// USDT — local TrustBacked asset id 1984.
+	let usdt = Location::new(
+		0,
+		[
+			PalletInstance(
+				<crate::Assets as frame_support::pallet_prelude::PalletInfoAccess>::index() as u8,
+			),
+			GeneralIndex(1984u128),
+		],
+	);
+	asset_configs.insert(usdt, default_external_config);
+
+	// Hollar: Hydration's stablecoin (paraId 2034, asset 222).
+	let hollar = Location::new(1, [Parachain(2034), GeneralIndex(222u128)]);
+	asset_configs.insert(hollar, default_external_config);
+
+	pallet_psm::GenesisConfig::<Runtime> {
+		max_psm_debt_of_total: Permill::from_percent(10),
+		asset_configs,
+		_marker: Default::default(),
+	}
 }
 
 pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
