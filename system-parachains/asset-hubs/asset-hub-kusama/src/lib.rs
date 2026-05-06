@@ -1060,6 +1060,10 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 parameter_types! {
 	/// Asset id of the PGAS gas-allowance asset, registered on AH as a trusted asset.
 	pub const PGASAssetId: AssetIdForTrustBackedAssets = 80_716_583;
+	/// Admin account for the PGAS asset, derived from `PalletId(*b"py/pgasa")`.
+	pub PgasAdmin: AccountId = PalletId(*b"py/pgasa").into_account_truncating();
+	/// Minimum balance of the PGAS asset.
+	pub const PgasMinBalance: Balance = 1;
 }
 
 /// Calls eligible to be paid for with PGAS.
