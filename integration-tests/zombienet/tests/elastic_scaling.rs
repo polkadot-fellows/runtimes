@@ -1,13 +1,6 @@
 //! Elastic scaling integration tests for the system parachains.
 //!
 //! Each test asserts ≈3 backed candidates per 6s relay block (~60 over 20 RCBs).
-//!
-//! The two cases (Asset Hub Polkadot and People Polkadot) live as **separate**
-//! `#[tokio::test]` functions and are serialised via `#[serial]` so that the
-//! second case starts on a host that has fully released the first case's
-//! validator/collator processes (zombienet's `Network` has no `Drop` impl, so we
-//! call `network.destroy().await` explicitly at the end of each case).
-
 use std::collections::HashMap;
 
 use anyhow::anyhow;
@@ -18,7 +11,7 @@ use zombienet_sdk_tests::{
 	elastic_scaling_network,
 	environment::{get_provider_from_env, get_spawn_fn},
 	helpers::{assert_para_throughput, wait_for_pvf_prepared},
-	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATOR_0, ELASTIC_VALIDATORS,
+	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATORS, ELASTIC_VALIDATOR_0,
 	PEOPLE_POLKADOT_PARA_ID,
 };
 
