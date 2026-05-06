@@ -280,7 +280,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &receiver)
 	});
 
-	// Sender's balance is reduced by amount sent plus delivery fees
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
 	assert!(sender_balance_after < sender_balance_before - native_amount_to_send);
 	// Sender's balance is reduced by foreign amount sent
 	assert_eq!(sender_ksm_after, sender_ksm_before - foreign_amount_to_send);
@@ -427,8 +427,8 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &receiver)
 	});
 
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_native_after < sender_native_before - native_amount_to_send);
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	assert_eq!(sender_native_after, sender_native_before - native_amount_to_send);
 	// Sender's balance is reduced by foreign amount sent
 	assert_eq!(sender_ksm_after, sender_ksm_before - foreign_amount_to_send);
 	// Receiver's balance is increased
@@ -620,8 +620,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &receiver)
 	});
 
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_dot_after < sender_dot_before - dot_to_send);
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	assert_eq!(sender_dot_after, sender_dot_before - dot_to_send);
 	assert_eq!(sender_ksm_after, sender_ksm_before - ksm_to_send);
 	// Sovereign accounts on reserve are changed accordingly
 	assert_eq!(
@@ -958,8 +958,8 @@ fn transfer_native_asset_from_penpal_to_relay_through_asset_hub() {
 		<Polkadot as PolkadotPallet>::Balances::free_balance(receiver.clone())
 	});
 
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_balance_after < sender_balance_before - amount_to_send);
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	assert_eq!(sender_balance_after, sender_balance_before - amount_to_send);
 	// Sovereign account on AH is reduced by amount sent
 	assert_eq!(sov_penpal_on_ah_after, sov_penpal_on_ah_before - amount_to_send);
 	// Receiver's balance is increased
