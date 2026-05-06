@@ -248,7 +248,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let receiver_assets_after = assets_balance_on!(PenpalA, native_asset_location, &receiver);
 	let receiver_dots_after = assets_balance_on!(PenpalA, dot_at_kusama_parachains, &receiver);
 
-	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	// Sender's balance is reduced by amount sent plus delivery fees
 	assert!(sender_balance_after < sender_balance_before - native_amount_to_send);
 	// Sender's balance is reduced by foreign amount sent
 	assert_eq!(sender_dots_after, sender_dots_before - foreign_amount_to_send);

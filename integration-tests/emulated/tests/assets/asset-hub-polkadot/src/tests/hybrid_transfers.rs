@@ -271,7 +271,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let receiver_ksm_after =
 		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains_latest, &receiver);
 
-	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	// Sender's balance is reduced by amount sent plus delivery fees
 	assert!(sender_balance_after < sender_balance_before - native_amount_to_send);
 	// Sender's balance is reduced by foreign amount sent
 	assert_eq!(sender_ksm_after, sender_ksm_before - foreign_amount_to_send);

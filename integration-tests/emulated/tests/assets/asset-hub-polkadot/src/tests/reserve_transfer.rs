@@ -630,7 +630,7 @@ fn reserve_transfer_dot_from_relay_to_para() {
 	let sender_balance_after = test.sender.balance;
 	let receiver_assets_after = assets_balance_on!(PenpalB, relay_native_asset_location, &receiver);
 
-	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	// Sender's balance is reduced by amount sent plus delivery fees
 	assert!(sender_balance_after < sender_balance_before - amount_to_send);
 	// Receiver's asset balance is increased
 	assert!(receiver_assets_after > receiver_assets_before);
@@ -751,7 +751,7 @@ fn reserve_transfer_dot_from_asset_hub_to_para() {
 	let receiver_assets_after =
 		assets_balance_on!(PenpalB, system_para_native_asset_location, &receiver);
 
-	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	// Sender's balance is reduced by amount sent plus delivery fees
 	assert!(sender_balance_after < sender_balance_before - amount_to_send);
 	// Receiver's assets is increased
 	assert!(receiver_assets_after > receiver_assets_before);
