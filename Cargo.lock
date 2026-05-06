@@ -1207,6 +1207,8 @@ dependencies = [
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
  "pallet-assets",
+ "pallet-assets-freezer",
+ "pallet-assets-holder",
  "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
@@ -1404,6 +1406,8 @@ dependencies = [
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
  "pallet-assets",
+ "pallet-assets-freezer",
+ "pallet-assets-holder",
  "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
@@ -9610,6 +9614,19 @@ dependencies = [
  "scale-info",
  "sp-core 41.0.0",
  "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "pallet-assets-freezer"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89c60f82574de1d8bf7c40e585323d503845e151801280a44a74b1420385f790"
+dependencies = [
+ "log",
+ "pallet-assets",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
 ]
 
 [[package]]

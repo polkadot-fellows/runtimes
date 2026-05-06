@@ -361,8 +361,8 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
-	type Freezer = ();
-	type Holder = ();
+	type Freezer = AssetsFreezer;
+	type Holder = AssetsHolder;
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -371,6 +371,20 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+}
+
+// Allow Freezes for the `Assets` pallet (Instance1).
+pub type AssetsFreezerInstance = pallet_assets_freezer::Instance1;
+impl pallet_assets_freezer::Config<AssetsFreezerInstance> for Runtime {
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type RuntimeEvent = RuntimeEvent;
+}
+
+// Allow Holds for the `Assets` pallet (Instance1).
+pub type AssetsHolderInstance = pallet_assets_holder::Instance1;
+impl pallet_assets_holder::Config<AssetsHolderInstance> for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1060,6 +1074,9 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 parameter_types! {
 	/// Asset id of the PGAS gas-allowance asset, registered on AH as a trusted asset.
 	pub const PGASAssetId: AssetIdForTrustBackedAssets = 80_716_583;
+	/// Fraction of a PGAS-backed storage deposit refunded when the deposit is released.
+	/// The rest is burned, so contracts cannot mint free PGAS via storage churn.
+	pub const PGasRefundPercent: Perbill = Perbill::from_percent(10);
 }
 
 /// Calls eligible to be paid for with PGAS.
@@ -1305,7 +1322,14 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 	type AllowEVMBytecode = ConstBool<true>;
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
-	type Deposit = ();
+	type Deposit = pallet_revive::PGasDeposit<
+		Runtime,
+		Assets,
+		AssetsHolder,
+		AssetsFreezer,
+		PGASAssetId,
+		PGasRefundPercent,
+	>;
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
@@ -1726,6 +1750,8 @@ construct_runtime!(
 		AssetsPrecompiles: pallet_assets_precompiles::pallet = 61,
 		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 62,
 		VestingPrecompiles: pallet_vesting_precompiles::pallet = 63,
+		AssetsFreezer: pallet_assets_freezer::<Instance1> = 64,
+		AssetsHolder: pallet_assets_holder::<Instance1> = 65,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,

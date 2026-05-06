@@ -99,6 +99,7 @@ pallet-asset-conversion-precompiles = { version = "0.2.0", default-features = fa
 pallet-asset-rate = { version = "26.0.0", default-features = false }
 pallet-asset-tx-payment = { version = "47.0.0", default-features = false }
 pallet-assets = { version = "50.0.0", default-features = false }
+pallet-assets-freezer = { version = "0.15.0", default-features = false }
 pallet-assets-holder = { version = "0.10.0", default-features = false }
 pallet-assets-precompiles = { version = "0.6.0", default-features = false }
 pallet-aura = { version = "46.0.0", default-features = false }
