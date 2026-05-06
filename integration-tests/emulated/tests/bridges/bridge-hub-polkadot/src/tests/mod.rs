@@ -32,18 +32,6 @@ mod snowbridge_v2_outbound_from_kusama;
 mod snowbridge_v2_rewards;
 mod teleport;
 
-#[macro_export]
-macro_rules! assets_balance_on {
-	( $chain:ident, $id:expr, $who:expr ) => {
-		emulated_integration_tests_common::impls::paste::paste! {
-			<$chain>::execute_with(|| {
-				type Assets = <$chain as [<$chain Pallet>]>::Assets;
-				<Assets as Inspect<_>>::balance($id, $who)
-			})
-		}
-	};
-}
-
 pub(crate) fn asset_hub_kusama_location() -> Location {
 	Location::new(2, [GlobalConsensus(Kusama), Parachain(AssetHubKusama::para_id().into())])
 }

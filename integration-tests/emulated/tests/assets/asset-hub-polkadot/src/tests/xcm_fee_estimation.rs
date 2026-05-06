@@ -30,7 +30,7 @@ use frame_support::{
 	assert_ok,
 	dispatch::RawOrigin,
 	sp_runtime::{traits::Dispatchable, DispatchResult},
-	traits::{fungible, fungibles::Inspect},
+	traits::fungible,
 	BoundedVec,
 };
 use xcm::{latest::AssetTransferFilter, prelude::*};
@@ -177,6 +177,7 @@ fn multi_hop_works() {
 	// Note: We need to do this after resetting the externalities to get an accurate value here.
 	// This is because the dry-run on Asset Hub does affect the liquidity pool distribution on
 	// PenpalA which affects the assets amount we have to pay.
+	// See side-effects: https://github.com/paritytech/polkadot-sdk/issues/11486.
 	let mut final_execution_fees = 0;
 	<PenpalA as TestExt>::execute_with(|| {
 		type Runtime = <PenpalA as Chain>::Runtime;

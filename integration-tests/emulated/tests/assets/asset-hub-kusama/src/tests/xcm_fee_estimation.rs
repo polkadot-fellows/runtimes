@@ -24,7 +24,7 @@ use emulated_integration_tests_common::impls::{Parachain, TestExt};
 use frame_support::{
 	dispatch::RawOrigin,
 	sp_runtime::{traits::Dispatchable, DispatchResult},
-	traits::{fungible, fungibles::Inspect},
+	traits::fungible,
 };
 use xcm::prelude::*;
 use xcm_runtime_apis::{
@@ -169,6 +169,7 @@ fn multi_hop_works() {
 	// Note: We need to do this after resetting the externalities to get an accurate value here.
 	// This is because the dry-run on Asset Hub does affect the liquidity pool distribution on
 	// PenpalB which affects the assets amount we have to pay.
+	// See side-effects: https://github.com/paritytech/polkadot-sdk/issues/11486.
 	let mut final_execution_fees = 0;
 	<PenpalB as TestExt>::execute_with(|| {
 		type Runtime = <PenpalB as Chain>::Runtime;
