@@ -16,9 +16,6 @@
 use crate::{assets_balance_on, tests::*};
 
 fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
-	// fund the KAH's SA on BHR for paying bridge transport fees
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
-
 	// set XCM versions
 	let local_asset_hub = PenpalA::sibling_location_of(AssetHubKusama::para_id());
 	PenpalA::force_xcm_version(local_asset_hub.clone(), XCM_VERSION);

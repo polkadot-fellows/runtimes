@@ -1389,8 +1389,6 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		assert_expected_events!(
 			BridgeHubKusama,
 			vec![
-				// pay for bridge fees
-				RuntimeEvent::Balances(pallet_balances::Event::Withdraw { .. }) => {},
 				// message exported
 				RuntimeEvent::BridgePolkadotMessages(
 					pallet_bridge_messages::Event::MessageAccepted { .. }
