@@ -129,13 +129,7 @@ use xcm_runtime_apis::{
 
 /// Constant values used within the runtime.
 use polkadot_runtime_constants::{
-	accumulate_forward::{AccumulateForwardPalletId, ForwardPeriod, MinForwardAmount},
-	currency::*,
-	dap::DapStagingLocation,
-	fee::*,
-	proxy::ProxyType,
-	system_parachain,
-	time::*,
+	currency::*, dap::DapStagingLocation, fee::*, proxy::ProxyType, system_parachain, time::*,
 	TREASURY_PALLET_ID,
 };
 
@@ -1615,6 +1609,15 @@ impl pallet_delegated_staking::Config for Runtime {
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
+}
+
+parameter_types! {
+	/// The pallet ID used to derive the accumulation account.
+	pub const AccumulateForwardPalletId: PalletId = PalletId(*b"acf/dott");
+	/// How often the accumulation account forwards to the destination.
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	/// Minimum balance required to trigger a forward.
+	pub const MinForwardAmount: Balance = 10 * UNITS;
 }
 
 impl pallet_accumulate_and_forward::Config for Runtime {

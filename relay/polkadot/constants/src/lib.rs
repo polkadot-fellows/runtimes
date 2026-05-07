@@ -206,6 +206,10 @@ pub mod system_parachain {
 pub const TREASURY_PALLET_ID: u8 = 19;
 
 /// DAP constants.
+///
+/// `DapStagingLocation` is the destination location of the DAP staging account on Asset Hub.
+/// Lives here (and not in each runtime) because every chain forwarding to DAP must construct
+/// the same location.
 pub mod dap {
 	use frame_support::parameter_types;
 	use sp_runtime::traits::AccountIdConversion;
@@ -219,21 +223,6 @@ pub mod dap {
 				.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
 		}
 		.into();
-	}
-}
-
-/// Accumulate-and-forward constants.
-pub mod accumulate_forward {
-	use frame_support::{parameter_types, PalletId};
-	use polkadot_primitives::{Balance, BlockNumber};
-
-	parameter_types! {
-		/// The pallet ID used to derive the accumulation account.
-		pub const AccumulateForwardPalletId: PalletId = PalletId(*b"acf/dott");
-		/// How often the accumulation account forwards to the destination.
-		pub const ForwardPeriod: BlockNumber = super::time::HOURS;
-		/// Minimum balance required to trigger a forward.
-		pub const MinForwardAmount: Balance = 10 * super::currency::UNITS;
 	}
 }
 
