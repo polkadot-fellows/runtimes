@@ -43,11 +43,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration,
-		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, Contains, EitherOf, EitherOfDiverse, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstU32, ConstU8, ConstUint,
+		Contains, EitherOf, EitherOfDiverse, FromContains, Get, InstanceFilter,
+		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -64,7 +63,6 @@ use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
-use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
@@ -78,12 +76,12 @@ use polkadot_primitives::{
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
-		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
-		VersionedLocatableAsset, VersionedLocationConverter,
+		ContainsParts as ContainsLocationParts, LocatableAssetConverter, VersionedLocatableAsset,
+		VersionedLocationConverter,
 	},
 	paras_registrar, prod_or_fast, slots,
 	traits::OnSwap,
-	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
+	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate, ToAuthor,
 };
 use sp_runtime::traits::Convert;
 
@@ -131,7 +129,14 @@ use xcm_runtime_apis::{
 
 /// Constant values used within the runtime.
 use polkadot_runtime_constants::{
-	currency::*, fee::*, proxy::ProxyType, system_parachain, time::*, TREASURY_PALLET_ID,
+	accumulate_forward::{AccumulateForwardPalletId, ForwardPeriod, MinForwardAmount},
+	currency::*,
+	dap::DapStagingLocation,
+	fee::*,
+	proxy::ProxyType,
+	system_parachain,
+	time::*,
+	TREASURY_PALLET_ID,
 };
 
 // Weights used in the runtime.
@@ -381,7 +386,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -489,11 +494,21 @@ parameter_types! {
 	/// This value increases the priority of `Operational` transactions by adding
 	/// a "virtual tip" that's equal to the `OperationalFeeMultiplier * final_fee`.
 	pub const OperationalFeeMultiplier: u8 = 5;
+	/// Percentage of fees that go to the accumulation account.
+	/// The remainder goes to block author. Tips always go 100% to author.
+	pub const AccumulateForwardFeePercent: Percent = Percent::from_percent(100);
 }
+
+/// Fee handler that splits fees between the accumulation account and block author.
+type DealWithFeesAccumulate = pallet_accumulate_and_forward::DealWithFeesSplit<
+	Runtime,
+	AccumulateForwardFeePercent,
+	ToAuthor<Runtime>,
+>;
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFeesAccumulate>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -772,9 +787,9 @@ impl pallet_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
+	type RewardRemainder = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = ResolveTo<TreasuryAccount, Balances>;
+	type Slash = AccumulateForward;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -922,7 +937,9 @@ impl pallet_bounties::Config for Runtime {
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
-	type OnSlash = Treasury;
+	// Bounties is blocked post-AHM via PostAhmFilter.
+	// No new bounty calls can be executed, so setting to `()` is fine.
+	type OnSlash = ();
 	type TransferAllAssets = (); // not used on the relay
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
@@ -1594,11 +1611,25 @@ impl pallet_delegated_staking::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = DelegatedStakingPalletId;
 	type Currency = Balances;
-	// slashes are sent to the treasury.
-	type OnSlash = ResolveTo<TreasuryAccountId<Self>, Balances>;
+	type OnSlash = AccumulateForward;
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		xcm_config::TokenLocation,
+		DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = frame_system::Pallet<Runtime>;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 impl ah_client::Config for Runtime {
@@ -1880,6 +1911,9 @@ construct_runtime! {
 		// Asset rate.
 		AssetRate: pallet_asset_rate = 101,
 
+		// Accumulate-and-forward: collects funds for periodic forwarding to DAP on Asset Hub.
+		AccumulateForward: pallet_accumulate_and_forward = 106,
+
 		// BEEFY Bridges support.
 		Beefy: pallet_beefy = 200,
 		// MMR leaf construction must be after session in order to have a leaf's next_auth_set
@@ -1939,6 +1973,10 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		// Drain residual legacy `py/trsry` balance into the accumulation account. Idempotent.
+		pallet_accumulate_and_forward::migrations::DrainLegacyTreasuryToAccumulationAccount<
+			Runtime,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2014,6 +2052,7 @@ mod benches {
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]

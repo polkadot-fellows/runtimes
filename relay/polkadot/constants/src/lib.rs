@@ -205,6 +205,38 @@ pub mod system_parachain {
 /// Polkadot Treasury pallet instance.
 pub const TREASURY_PALLET_ID: u8 = 19;
 
+/// DAP constants.
+pub mod dap {
+	use frame_support::parameter_types;
+	use sp_runtime::traits::AccountIdConversion;
+	use xcm::latest::{InteriorLocation, Junction};
+
+	parameter_types! {
+		/// The interior location of the DAP staging account on Asset Hub.
+		pub DapStagingLocation: InteriorLocation = Junction::AccountId32 {
+			network: None,
+			id: sp_dap::DAP_PALLET_ID
+				.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
+		}
+		.into();
+	}
+}
+
+/// Accumulate-and-forward constants.
+pub mod accumulate_forward {
+	use frame_support::{parameter_types, PalletId};
+	use polkadot_primitives::{Balance, BlockNumber};
+
+	parameter_types! {
+		/// The pallet ID used to derive the accumulation account.
+		pub const AccumulateForwardPalletId: PalletId = PalletId(*b"acf/dott");
+		/// How often the accumulation account forwards to the destination.
+		pub const ForwardPeriod: BlockNumber = super::time::HOURS;
+		/// Minimum balance required to trigger a forward.
+		pub const MinForwardAmount: Balance = 10 * super::currency::UNITS;
+	}
+}
+
 pub mod proxy {
 	use pallet_remote_proxy::ProxyDefinition;
 	use polkadot_primitives::{AccountId, BlakeTwo256, BlockNumber, Hash};

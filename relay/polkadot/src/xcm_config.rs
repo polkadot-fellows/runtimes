@@ -21,6 +21,7 @@ use super::{
 	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
 	TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
 };
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Disabled, Equals, Everything, Nothing},
@@ -63,6 +64,9 @@ parameter_types! {
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// Accumulation account: XCM delivery fees and slashes are sent here for periodic forwarding
+	/// to DAP on Asset Hub.
+	pub AccumulateAccount: AccountId = AccumulateForwardPallet::<Runtime>::accumulation_account();
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -246,9 +250,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
-		// of the new AH Treasury.
-		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, AccumulateAccount>,
 	>;
 	// No bridges on the Relay Chain
 	type MessageExporter = ();
