@@ -19,41 +19,7 @@
 pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
-	CreatePgasAsset,
 );
-
-/// One-shot migration that creates the PGAS asset on-chain if it does not already exist.
-pub struct CreatePgasAsset;
-impl frame_support::traits::OnRuntimeUpgrade for CreatePgasAsset {
-	fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		use frame_support::traits::tokens::fungibles::{Create, Inspect};
-
-		let asset_id = crate::PGASAssetId::get();
-		if !<crate::Assets as Inspect<crate::AccountId>>::asset_exists(asset_id) {
-			match <crate::Assets as Create<crate::AccountId>>::create(
-				asset_id,
-				crate::PgasAdmin::get(),
-				true,
-				crate::PgasMinBalance::get(),
-			) {
-				Ok(()) => log::info!(target: "runtime::migrations", "PGAS asset created"),
-				Err(e) =>
-					log::error!(target: "runtime::migrations", "create PGAS asset failed: {e:?}"),
-			}
-		}
-		<crate::Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 2)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(_: alloc::vec::Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		use frame_support::traits::tokens::fungibles::Inspect;
-		frame_support::ensure!(
-			<crate::Assets as Inspect<crate::AccountId>>::asset_exists(crate::PGASAssetId::get()),
-			"PGAS asset must exist after migration"
-		);
-		Ok(())
-	}
-}
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
