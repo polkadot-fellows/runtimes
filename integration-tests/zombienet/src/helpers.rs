@@ -9,6 +9,7 @@ use std::{collections::HashMap, ops::Range};
 use anyhow::anyhow;
 use codec::Decode;
 use polkadot_primitives::{CandidateReceiptV2, Id as ParaId};
+use tokio::join;
 use zombienet_sdk::{
 	subxt::{events::Events, utils::H256, OnlineClient, PolkadotConfig},
 	LocalFileSystem, Network,
@@ -35,6 +36,29 @@ pub async fn wait_for_pvf_prepared(
 		.map_err(|e| anyhow!("{v}: PVF prepare did not conclude within timeout: {e}"))?;
 	}
 	log::info!("All validators have prepared at least {min_prepared} PVF artifact(s)");
+	Ok(())
+}
+
+/// Assert that the relay's finality lag (best − finalized) is within `maximum_lag`
+/// blocks at the moment of the call. Mirrors `cumulus-zombienet-sdk-helpers`.
+pub async fn assert_finality_lag(
+	client: &OnlineClient<PolkadotConfig>,
+	maximum_lag: u32,
+) -> Result<(), anyhow::Error> {
+	let mut best_stream = client.blocks().subscribe_best().await?;
+	let mut fin_stream = client.blocks().subscribe_finalized().await?;
+	let (Some(Ok(best)), Some(Ok(finalized))) = join!(best_stream.next(), fin_stream.next()) else {
+		return Err(anyhow!("unable to fetch best and finalized blocks"));
+	};
+	let lag = best.number().saturating_sub(finalized.number());
+	log::info!("Finality lag: {lag} blocks (max allowed: {maximum_lag})");
+	if lag > maximum_lag {
+		return Err(anyhow!(
+			"finality lag {lag} exceeds maximum {maximum_lag}: best #{}, finalized #{}",
+			best.number(),
+			finalized.number(),
+		));
+	}
 	Ok(())
 }
 

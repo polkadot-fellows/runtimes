@@ -6,7 +6,7 @@ use zombienet_sdk::subxt::{
 };
 use zombienet_sdk_tests::{
 	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
-	helpers::wait_for_pvf_prepared,
+	helpers::{assert_finality_lag, wait_for_pvf_prepared},
 	small_network, COLLATOR_1005, COLLATOR_1010_1, SMOKE_VALIDATORS,
 };
 
@@ -74,6 +74,9 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	// Two parachains in `small_network` (coretime + bulletin), so each validator
 	// must conclude at least 2 PVF preparations before we start counting blocks.
 	wait_for_pvf_prepared(&network, SMOKE_VALIDATORS, 2, 300).await?;
+
+	// Sanity-check that the relay's finality lag is at most 3.
+	assert_finality_lag(&alice_client, 3).await?;
 
 	// wait 10 blocks
 	let alice_chain_label = chain_label(&alice_client).await?;

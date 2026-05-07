@@ -10,7 +10,7 @@ use zombienet_sdk::subxt::{OnlineClient, PolkadotConfig};
 use zombienet_sdk_tests::{
 	elastic_scaling_network,
 	environment::{get_provider_from_env, get_spawn_fn},
-	helpers::{assert_para_throughput, wait_for_pvf_prepared},
+	helpers::{assert_finality_lag, assert_para_throughput, wait_for_pvf_prepared},
 	ElasticNetwork, ASSET_HUB_POLKADOT_PARA_ID, ELASTIC_VALIDATORS, ELASTIC_VALIDATOR_0,
 	PEOPLE_POLKADOT_PARA_ID,
 };
@@ -57,6 +57,9 @@ async fn run(
 	)
 	.await;
 
+	// Sanity-check that the relay finality is at most 3.
+	let finality_result = assert_finality_lag(&relay_client, 3).await;
+
 	// Explicitly tear down — `Network` has no `Drop` impl, so the spawned
 	// validator/collator processes would otherwise leak and the next test would
 	// inherit the host load.
@@ -65,6 +68,7 @@ async fn run(
 	}
 
 	measurement_result?;
+	finality_result?;
 	log::info!("🚀 elastic scaling test passed for chain '{chain}'");
 	Ok(())
 }
