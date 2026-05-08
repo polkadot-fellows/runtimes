@@ -488,9 +488,9 @@ parameter_types! {
 	/// This value increases the priority of `Operational` transactions by adding
 	/// a "virtual tip" that's equal to the `OperationalFeeMultiplier * final_fee`.
 	pub const OperationalFeeMultiplier: u8 = 5;
-	/// Percentage of fees that go to the accumulation account.
-	/// The remainder goes to block author. Tips always go 100% to author.
-	pub const AccumulateForwardFeePercent: Percent = Percent::from_percent(100);
+	/// 80% of tx fees go to the accumulation account, 20% to block author. Tips always go 100% to
+	/// author.
+	pub const AccumulateForwardFeePercent: Percent = Percent::from_percent(80);
 }
 
 /// Fee handler that splits fees between the accumulation account and block author.
