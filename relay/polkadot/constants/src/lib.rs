@@ -205,6 +205,27 @@ pub mod system_parachain {
 /// Polkadot Treasury pallet instance.
 pub const TREASURY_PALLET_ID: u8 = 19;
 
+/// DAP constants.
+///
+/// `DapStagingLocation` is the destination location of the DAP staging account on Asset Hub.
+/// Lives here (and not in each runtime) because every chain forwarding to DAP must construct
+/// the same location.
+pub mod dap {
+	use frame_support::parameter_types;
+	use sp_runtime::traits::AccountIdConversion;
+	use xcm::latest::{InteriorLocation, Junction};
+
+	parameter_types! {
+		/// The interior location of the DAP staging account on Asset Hub.
+		pub DapStagingLocation: InteriorLocation = Junction::AccountId32 {
+			network: None,
+			id: sp_dap::DAP_PALLET_ID
+				.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
+		}
+		.into();
+	}
+}
+
 pub mod proxy {
 	use pallet_remote_proxy::ProxyDefinition;
 	use polkadot_primitives::{AccountId, BlakeTwo256, BlockNumber, Hash};

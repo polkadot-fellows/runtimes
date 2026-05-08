@@ -29,18 +29,16 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
-use parachains_common::{
-	xcm_config::{
-		AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
-		AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
-		ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
-	},
-	TREASURY_PALLET_ID,
+use parachains_common::xcm_config::{
+	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
+	AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
+	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-use sp_runtime::traits::{AccountIdConversion, ConvertInto};
+use sp_runtime::traits::ConvertInto;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -54,7 +52,7 @@ use xcm_builder::{
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -74,17 +72,12 @@ parameter_types! {
 	pub FeeAssetId: AssetId = AssetId(RelayLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub RelayTreasuryLocation: Location =
-		(Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub AccumulateAccount: AccountId = AccumulateForwardPallet::<Runtime>::accumulation_account();
+	pub AccumulateForwardLocation: Location = {
+		AccountId32 { network: None, id: AccumulateAccount::get().into() }.into()
+	};
 }
 
 pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
@@ -208,9 +201,9 @@ pub type Barrier = TrailingSetTopicAsId<
 						(
 							ParentOrParentsPlurality,
 							FellowsPlurality,
-							Equals<RelayTreasuryLocation>,
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
+							Equals<AccumulateForwardLocation>,
 						),
 						TrustedAliasers,
 					>,
@@ -229,9 +222,9 @@ pub type Barrier = TrailingSetTopicAsId<
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
 	LocalPlurality,
+	Equals<AccumulateForwardLocation>,
 );
 
 /// Defines origin aliasing rules for this chain.
@@ -283,7 +276,7 @@ pub type Traders = (
 		RelayLocation,
 		AccountId,
 		Balances,
-		ResolveTo<StakingPot, Balances>,
+		pallet_accumulate_and_forward::Pallet<Runtime>,
 	>,
 	UsingComponents<
 		WeightToStableFee,
@@ -322,7 +315,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<FungibleTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<FungibleTransactor, AccumulateAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
@@ -409,12 +402,4 @@ impl pallet_assets::BenchmarkHelper<Location, ()> for XcmBenchmarkHelper {
 		Location::new(1, Parachain(id))
 	}
 	fn create_reserve_id_parameter(_id: u32) {}
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
 }

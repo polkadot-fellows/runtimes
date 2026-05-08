@@ -195,7 +195,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote among all Head Ambassadors.
 	type KillOrigin = OpenGovOrHeadAmbassadors;
-	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
+	type Slash = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type Votes = Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, AmbassadorCollectiveInstance>;
 	type SubmissionDeposit = SubmissionDeposit;

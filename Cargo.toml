@@ -92,6 +92,7 @@ kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }
 kusama-runtime-constants = { path = "relay/kusama/constants", default-features = false }
 kusama-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-system" }
 log = { version = "0.4.22", default-features = false }
+pallet-accumulate-and-forward = { version = "0.2.0", default-features = false }
 pallet-alliance = { version = "46.0.0", default-features = false }
 pallet-asset-conversion = { version = "29.0.0", default-features = false }
 pallet-asset-conversion-tx-payment = { version = "29.0.0", default-features = false }
@@ -254,6 +255,7 @@ sp-block-builder = { version = "42.0.0", default-features = false }
 sp-consensus-aura = { version = "0.48.0", default-features = false }
 sp-core = { version = "41.0.0", default-features = false }
 sp-debug-derive = { version = "15.0.0", default-features = false }
+sp-dap = { version = "0.2.0", default-features = false }
 sp-genesis-builder = { version = "0.23.0", default-features = false }
 sp-inherents = { version = "42.0.0", default-features = false }
 sp-io = { version = "46.0.0", default-features = false }
