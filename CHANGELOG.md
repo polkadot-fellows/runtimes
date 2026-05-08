@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Asset Hub Polkadot & Kusama, People Polkadot & Kusama: switch to 24s Aura slot duration.
+- Asset Hub Polkadot & Kusama, People Polkadot & Kusama: switch to 24s Aura slot duration. Longer Aura slots improve elastic scaling throughput and censorship resistance, while keeping the parachain block time unchanged.
 
 ## [2.2.2] 23.04.2026
 
