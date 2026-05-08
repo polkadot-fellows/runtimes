@@ -672,8 +672,7 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 parameter_types! {
 	/// The pallet ID used to derive the accumulation account.
 	pub const AccumulateForwardPalletId: PalletId = PalletId(*b"acf/dott");
-	/// How often the accumulation account forwards to the destination. Expressed in relay blocks
-	/// because `BlockNumberProvider` is the `RelaychainDataProvider`.
+	/// How often the accumulation account forwards to the destination, in relay blocks.
 	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
 	/// Minimum balance required to trigger a forward.
 	pub const MinForwardAmount: Balance = 10 * UNITS;

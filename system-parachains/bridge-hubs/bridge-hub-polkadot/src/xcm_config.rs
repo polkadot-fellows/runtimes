@@ -70,9 +70,10 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub StakingPot: AccountId = CollatorSelection::account_id();
-	/// Accumulation account: XCM delivery fees are sent here for periodic forwarding to DAP on
-	/// Asset Hub.
 	pub AccumulateAccount: AccountId = AccumulateForwardPallet::<Runtime>::accumulation_account();
+	pub AccumulateForwardLocation: Location = {
+		AccountId32 { network: None, id: AccumulateAccount::get().into() }.into()
+	};
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -192,6 +193,7 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	FellowsPlurality,
+	Equals<AccumulateForwardLocation>,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
