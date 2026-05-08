@@ -59,9 +59,9 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains,
-		EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, Everything,
-		InstanceFilter, LinearStoragePrice, PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, EitherOf,
+		EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, Everything, InstanceFilter,
+		LinearStoragePrice, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -213,8 +213,8 @@ impl frame_system::Config for Runtime {
 	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
+	type OnNewAccount = pallet_revive::AutoMapper<Runtime>;
+	type OnKilledAccount = pallet_revive::AutoMapper<Runtime>;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
@@ -361,8 +361,8 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
-	type Freezer = AssetsFreezer;
-	type Holder = AssetsHolder;
+	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -371,20 +371,6 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
-}
-
-// Allow Freezes for the `Assets` pallet (Instance1).
-pub type AssetsFreezerInstance = pallet_assets_freezer::Instance1;
-impl pallet_assets_freezer::Config<AssetsFreezerInstance> for Runtime {
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type RuntimeEvent = RuntimeEvent;
-}
-
-// Allow Holds for the `Assets` pallet (Instance1).
-pub type AssetsHolderInstance = pallet_assets_holder::Instance1;
-impl pallet_assets_holder::Config<AssetsHolderInstance> for Runtime {
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1072,55 +1058,6 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 }
 
 parameter_types! {
-	/// Asset id of the PGAS gas-allowance asset, registered on AH as a trusted asset.
-	pub const PGASAssetId: AssetIdForTrustBackedAssets = 80_716_583;
-	/// Admin account for the PGAS asset, derived from `PalletId(*b"py/pgasa")`.
-	pub PgasAdmin: AccountId = PalletId(*b"py/pgasa").into_account_truncating();
-	/// Minimum balance of the PGAS asset.
-	pub const PgasMinBalance: Balance = 1;
-	/// Fraction of a PGAS-backed storage deposit refunded when the deposit is released.
-	/// The rest is burned, so contracts cannot mint free PGAS via storage churn.
-	pub const PGasRefundPercent: Perbill = Perbill::from_percent(10);
-}
-
-/// Calls eligible to be paid for with PGAS.
-pub struct PGASCallFilter;
-impl Contains<RuntimeCall> for PGASCallFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		matches!(call, RuntimeCall::Revive(..))
-	}
-}
-
-impl pallet_pgas_allowance::Config for Runtime {
-	type Assets = Assets;
-	type PGASAssetId = PGASAssetId;
-
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type CallFilter = PGASCallFilter;
-	#[cfg(feature = "runtime-benchmarks")]
-	type CallFilter = frame_support::traits::Everything;
-
-	// TODO @ggwpez PLACEHOLDER weights mirrored from AH-Westend; regenerate via
-	// `/cmd bench --runtime asset-hub-kusama --pallet pallet_pgas_allowance`.
-	type WeightInfo = weights::pallet_pgas_allowance::WeightInfo<Runtime>;
-
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = PGASBenchmarkHelper;
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-pub struct PGASBenchmarkHelper;
-#[cfg(feature = "runtime-benchmarks")]
-impl pallet_pgas_allowance::BenchmarkHelperTrait<AccountId, AssetIdForTrustBackedAssets, Balance>
-	for PGASBenchmarkHelper
-{
-	fn mint_pgas(who: &AccountId, asset_id: AssetIdForTrustBackedAssets, amount: Balance) {
-		use frame_support::traits::tokens::fungibles::Mutate;
-		<Assets as Mutate<AccountId>>::mint_into(asset_id, who, amount).unwrap();
-	}
-}
-
-parameter_types! {
 	pub const UniquesCollectionDeposit: Balance = UNITS / 10; // 1 / 10 UNIT deposit to create a collection
 	pub const UniquesItemDeposit: Balance = UNITS / 1_000; // 1 / 1000 UNIT deposit to mint an item
 	pub const UniquesMetadataDepositBase: Balance = system_para_deposit(1, 129);
@@ -1326,18 +1263,11 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 	type AllowEVMBytecode = ConstBool<true>;
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
-	type Deposit = pallet_revive::PGasDeposit<
-		Runtime,
-		Assets,
-		AssetsHolder,
-		AssetsFreezer,
-		PGASAssetId,
-		PGasRefundPercent,
-	>;
+	type Deposit = ();
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
-	type AutoMap = ConstBool<false>;
+	type AutoMap = ConstBool<true>;
 	type GasScale = ConstU32<100_000>;
 	type OnBurn = ();
 }
@@ -1710,7 +1640,6 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
-		PgasAllowance: pallet_pgas_allowance = 12,
 		AssetTxPayment: pallet_asset_conversion_tx_payment = 13,
 		Vesting: pallet_vesting = 14,
 		Claims: pallet_claims = 15,
@@ -1754,8 +1683,6 @@ construct_runtime!(
 		AssetsPrecompiles: pallet_assets_precompiles::pallet = 61,
 		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 62,
 		VestingPrecompiles: pallet_vesting_precompiles::pallet = 63,
-		AssetsFreezer: pallet_assets_freezer::<Instance1> = 64,
-		AssetsHolder: pallet_assets_holder::<Instance1> = 65,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
@@ -1807,10 +1734,7 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckEra<Runtime>,
 		frame_system::CheckNonce<Runtime>,
 		frame_system::CheckWeight<Runtime>,
-		pallet_pgas_allowance::ChargePGAS<
-			Runtime,
-			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-		>,
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 		pallet_claims::PrevalidateAttests<Runtime>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 		pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
@@ -1836,14 +1760,7 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 			frame_system::CheckMortality::from(generic::Era::Immortal),
 			frame_system::CheckNonce::<Runtime>::from(nonce),
 			frame_system::CheckWeight::<Runtime>::new(),
-			pallet_pgas_allowance::ChargePGAS::<
-				Runtime,
-				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-			>::new_skip_pgas(
-				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
-					tip, None,
-				),
-			),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None),
 			pallet_claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
@@ -1954,7 +1871,6 @@ mod benches {
 		[pallet_asset_conversion, AssetConversion]
 		// TODO: Somehow, benchmarks for this pallet are not visible outside the pallet
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]
-		[pallet_pgas_allowance, PgasAllowance]
 		[pallet_balances, Balances]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]

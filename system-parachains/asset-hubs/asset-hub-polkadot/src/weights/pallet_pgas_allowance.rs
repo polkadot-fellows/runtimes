@@ -17,7 +17,7 @@
 //!
 //! NOTE: PLACEHOLDER copied from the polkadot-sdk AH-Westend reference. Regenerate on
 //! Polkadot/Kusama collator hardware via the PR comment:
-//!   `/cmd bench --runtime asset-hub-polkadot asset-hub-kusama --pallet pallet_pgas_allowance`
+//!   `/cmd bench --runtime asset-hub-polkadot --pallet pallet_pgas_allowance`
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 32.0.0
 //! DATE: 2026-04-20, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`

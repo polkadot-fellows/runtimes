@@ -22,7 +22,7 @@ use bridge_hub_polkadot_runtime::{
 };
 use emulated_integration_tests_common::{impls::Decode, PenpalBPen2TeleportableAssetLocation};
 use frame_support::{assert_err_ignore_postinfo, pallet_prelude::TypeInfo, BoundedVec};
-use polkadot_system_emulated_network::penpal_emulated_chain::penpal_runtime::xcm_config::LocalTeleportableToAssetHub;
+use polkadot_system_emulated_network::penpal_emulated_chain::penpal_runtime::xcm_config::LocalPen2Asset;
 use snowbridge_core::{reward::MessageId, AssetMetadata, BasicOperatingMode};
 use snowbridge_outbound_queue_primitives::v2::{ContractCall, DeliveryReceipt};
 use snowbridge_pallet_outbound_queue_v2::Error;
@@ -818,8 +818,7 @@ fn send_message_from_penpal_to_ethereum(sudo: bool) {
 		let remote_fee_asset_on_ethereum =
 			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
 
-		let pna =
-			Asset { id: AssetId(LocalTeleportableToAssetHub::get()), fun: Fungible(TOKEN_AMOUNT) };
+		let pna = Asset { id: AssetId(LocalPen2Asset::get()), fun: Fungible(TOKEN_AMOUNT) };
 
 		let ena = Asset { id: AssetId(weth_location()), fun: Fungible(TOKEN_AMOUNT / 2) };
 

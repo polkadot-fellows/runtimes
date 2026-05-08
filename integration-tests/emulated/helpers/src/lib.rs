@@ -30,3 +30,21 @@ pub use emulated_integration_tests_common::*;
 pub use xcm_emulator::Chain;
 
 pub mod common;
+
+/// Read the balance of an `Assets`-pallet asset on a chain.
+///
+/// Centralised here so the asset-hub-{kusama,polkadot} and bridge-hub-{kusama,polkadot}
+/// test crates share one definition. The polkadot-sdk emulated tests define the same
+/// macro per-test-crate (it is not exported from `emulated-integration-tests-common`),
+/// so we cannot pull it from upstream and instead host it here.
+#[macro_export]
+macro_rules! assets_balance_on {
+	( $chain:ident, $id:expr, $who:expr ) => {
+		$crate::paste::paste! {
+			<$chain>::execute_with(|| {
+				type Assets = <$chain as [<$chain Pallet>]>::Assets;
+				<Assets as frame_support::traits::fungibles::Inspect<_>>::balance($id, $who)
+			})
+		}
+	};
+}

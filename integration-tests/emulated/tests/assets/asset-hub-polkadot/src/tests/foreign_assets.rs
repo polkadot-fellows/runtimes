@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{tests::send::penpal_register_foreign_asset_on_asset_hub, *};
+use crate::{
+	asset_exists_on, assets_balance_on, tests::send::penpal_register_foreign_asset_on_asset_hub, *,
+};
 use xcm::latest::AssetTransferFilter;
 
 // Registers a new asset on Penpal, then registers it over XCM as foreign asset on Asset Hub.
@@ -22,44 +24,34 @@ use xcm::latest::AssetTransferFilter;
 // between Penpal and AH.
 pub fn set_up_foreign_asset(
 	sender: sp_runtime::AccountId32,
-	asset_id_on_penpal: u32,
+	asset_location_on_penpal: Location,
 	asset_amount_to_send: u128,
 	teleportable: bool,
 ) -> (Location, Location) {
 	let asset_owner = PenpalAssetOwner::get();
 
 	// Give the sender enough native
-	PenpalA::mint_foreign_asset(
-		<PenpalA as Chain>::RuntimeOrigin::signed(asset_owner.clone()),
-		DotLocation::get(),
-		sender.clone(),
-		asset_amount_to_send,
-	);
+	PenpalA::fund_accounts(vec![(sender.clone(), asset_amount_to_send)]);
 
 	// Create the asset on Penpal
 	let to_fund = asset_amount_to_send * 2;
-	PenpalA::force_create_asset(
-		asset_id_on_penpal,
+	PenpalA::force_create_foreign_asset(
+		asset_location_on_penpal.clone(),
 		asset_owner.clone(),
 		true,
 		ASSET_MIN_BALANCE,
 		vec![(sender.clone(), to_fund)],
 	);
-	PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::Assets;
-		assert!(Assets::asset_exists(asset_id_on_penpal));
-	});
-	let asset_location_on_penpal = Location::new(
-		0,
-		[
-			Junction::PalletInstance(ASSETS_PALLET_ID),
-			Junction::GeneralIndex(asset_id_on_penpal.into()),
-		],
-	);
+
+	asset_exists_on!(PenpalA, asset_location_on_penpal.clone());
 
 	// Setup a pool on Penpal between native asset and newly created asset, so we can pay fees using
 	// new asset directly.
-	create_pool_with_dot_on!(PenpalA, asset_location_on_penpal.clone(), false, asset_owner.clone());
+	create_foreign_pool_with_native_on!(
+		PenpalA,
+		asset_location_on_penpal.clone(),
+		asset_owner.clone()
+	);
 
 	// Register asset on Asset Hub using XCM
 	let penpal_sovereign_account = AssetHubPolkadot::sovereign_account_id_of(
@@ -73,10 +65,9 @@ pub fn set_up_foreign_asset(
 
 	// Setup a pool on Asset Hub between native asset and newly created asset, so we can pay fees
 	// using new asset directly.
-	create_pool_with_dot_on!(
+	create_foreign_pool_with_parent_native_on!(
 		AssetHubPolkadot,
 		foreign_asset_at_asset_hub.clone(),
-		true,
 		penpal_sovereign_account.clone()
 	);
 
@@ -146,16 +137,16 @@ pub fn penpal_set_foreign_asset_reserves_on_asset_hub(
 fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 	let sender = PenpalASender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
-	let new_asset_id = 42;
+	let new_asset_id = local_penpal_asset(42);
 	let asset_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000;
 	let (asset_location_on_penpal, foreign_asset_location_on_ah) =
-		set_up_foreign_asset(sender.clone(), new_asset_id, asset_amount_to_send, true);
+		set_up_foreign_asset(sender.clone(), new_asset_id.clone(), asset_amount_to_send, true);
 
 	////////////////////////////////
 	// Teleport it from Penpal to AH
 	////////////////////////////////
 
-	let penpal_sender_balance_before = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_sender_balance_before = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 	let ah_receiver_balance_before =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah.clone(), &receiver);
 
@@ -192,7 +183,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 		.unwrap();
 	});
 
-	let penpal_sender_balance_after = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_sender_balance_after = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 	let ah_receiver_balance_after =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah.clone(), &receiver);
 
@@ -243,7 +234,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 	let asset_amount_to_send = ah_receiver_balance_after;
 	let ah_sender_balance_before =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah.clone(), &receiver);
-	let penpal_receiver_balance_before = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_receiver_balance_before = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 
 	let dest = AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
 	// execute xcm from asset hub to penpal
@@ -300,7 +291,7 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 
 	let ah_sender_balance_after =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah, &receiver);
-	let penpal_receiver_balance_after = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_receiver_balance_after = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 
 	assert!(ah_sender_balance_after < ah_sender_balance_before);
 	assert!(penpal_receiver_balance_after > penpal_receiver_balance_before);
@@ -316,16 +307,16 @@ fn bidirectional_teleport_foreign_asset_between_penpal_and_asset_hub() {
 fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 	let sender = PenpalASender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
-	let new_asset_id = 42;
+	let new_asset_id = local_penpal_asset(42);
 	let asset_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000;
 	let (asset_location_on_penpal, foreign_asset_location_on_ah) =
-		set_up_foreign_asset(sender.clone(), new_asset_id, asset_amount_to_send, false);
+		set_up_foreign_asset(sender.clone(), new_asset_id.clone(), asset_amount_to_send, false);
 
 	////////////////////////////////////////
 	// Reserve-transfer it from Penpal to AH
 	////////////////////////////////////////
 
-	let penpal_sender_balance_before = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_sender_balance_before = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 	let ah_receiver_balance_before =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah.clone(), &receiver);
 
@@ -381,7 +372,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 		));
 	});
 
-	let penpal_sender_balance_after = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_sender_balance_after = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 	let ah_receiver_balance_after =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah.clone(), &receiver);
 
@@ -395,7 +386,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 	let asset_amount_to_send = ah_receiver_balance_after;
 	let ah_sender_balance_before =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah.clone(), &receiver);
-	let penpal_receiver_balance_before = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_receiver_balance_before = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 
 	let dest = AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
 	// execute xcm from asset hub to penpal
@@ -451,7 +442,7 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 
 	let ah_sender_balance_after =
 		foreign_balance_on!(AssetHubPolkadot, foreign_asset_location_on_ah, &receiver);
-	let penpal_receiver_balance_after = assets_balance_on!(PenpalA, new_asset_id, &sender);
+	let penpal_receiver_balance_after = assets_balance_on!(PenpalA, new_asset_id.clone(), &sender);
 
 	assert!(ah_sender_balance_after < ah_sender_balance_before);
 	assert!(penpal_receiver_balance_after > penpal_receiver_balance_before);
@@ -462,10 +453,10 @@ fn bidirectional_reserve_transfer_foreign_asset_between_penpal_and_asset_hub() {
 #[test]
 fn verify_foreign_asset_origin_checks() {
 	let sender = PenpalASender::get();
-	let new_asset_id = 42;
+	let new_asset_id = local_penpal_asset(42);
 	let asset_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000;
 	let (_, foreign_asset_location_on_ah) =
-		set_up_foreign_asset(sender.clone(), new_asset_id, asset_amount_to_send, false);
+		set_up_foreign_asset(sender.clone(), new_asset_id.clone(), asset_amount_to_send, false);
 
 	let penpal_sovereign = AssetHubPolkadot::sovereign_account_id_of(
 		AssetHubPolkadot::sibling_location_of(PenpalA::para_id()),

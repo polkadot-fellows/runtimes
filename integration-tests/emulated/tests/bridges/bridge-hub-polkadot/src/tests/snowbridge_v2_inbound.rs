@@ -612,12 +612,12 @@ fn send_token_to_penpal_v2() {
 					pallet_message_queue::Event::Processed { success: true, .. }
 				) => {},
 				// Token was issued to beneficiary
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == token_location,
 					who: *who == beneficiary_acc_bytes.into(),
 				},
 				// Leftover fees was deposited to beneficiary
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == eth_location(),
 					who: *who == beneficiary_acc_bytes.into(),
 				},
