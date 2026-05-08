@@ -88,10 +88,6 @@ fn asset_hub_kusama_genesis(
 			accounts: Vec::new(),
 			debug_settings: None,
 		},
-		"assets": AssetsConfig {
-			assets: vec![(PGASAssetId::get(), PgasAdmin::get(), true, PgasMinBalance::get())],
-			..Default::default()
-		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
