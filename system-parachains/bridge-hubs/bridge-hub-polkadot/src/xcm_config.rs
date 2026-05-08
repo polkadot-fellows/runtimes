@@ -26,8 +26,8 @@ use crate::bridge_to_ethereum_config::SnowbridgeFrontendLocation;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, EverythingBut, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, ConstU32, Contains, Equals, Everything, EverythingBut,
+		LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -226,7 +226,7 @@ impl xcm_executor::Config for XcmConfig {
 		DotRelayLocation,
 		AccountId,
 		Balances,
-		ResolveTo<StakingPot, Balances>,
+		pallet_accumulate_and_forward::Pallet<Runtime>,
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
