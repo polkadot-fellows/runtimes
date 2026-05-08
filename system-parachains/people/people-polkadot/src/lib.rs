@@ -181,7 +181,7 @@ pub fn native_version() -> NativeVersion {
 	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
 }
 
-/// People Polkadot uses a 24s Aura slot duration. 
+/// People Polkadot uses a 24s Aura slot duration.
 pub const SLOT_DURATION: u64 = 24_000;
 
 parameter_types! {
