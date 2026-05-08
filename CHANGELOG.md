@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - people-polkadot: Allow multiple blocks per slot ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
 
+- collectives-polkadot-runtime: Increase the Secretary Collective salary budget ([#1172](https://github.com/polkadot-fellows/runtimes/pull/1172))
+
 ## [2.2.1] 16.04.2026
 
 ### Added
