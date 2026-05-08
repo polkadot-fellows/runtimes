@@ -1001,9 +1001,8 @@ impl Contains<RuntimeCall> for PGASCallFilter {
 			RuntimeCall::Revive(..) => true,
 			RuntimeCall::Utility(pallet_utility::Call::batch { calls }) |
 			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) |
-			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) => {
-				calls.iter().all(|inner_call| matches!(inner_call, RuntimeCall::Revive(..)))
-			},
+			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) =>
+				calls.iter().all(|inner_call| matches!(inner_call, RuntimeCall::Revive(..))),
 			_ => false,
 		}
 	}
