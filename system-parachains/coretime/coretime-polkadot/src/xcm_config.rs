@@ -23,7 +23,7 @@ use frame_support::{
 	pallet_prelude::PalletInfoAccess,
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
+		fungible::HoldConsideration, ConstU32, Contains, Equals,
 		Everything, LinearStoragePrice, Nothing,
 	},
 };
@@ -33,10 +33,9 @@ use parachains_common::xcm_config::{
 	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains, ConcreteAssetFromSystem,
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -50,7 +49,7 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -68,8 +67,11 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub AccumulateAccount: AccountId = AccumulateForwardPallet::<Runtime>::accumulation_account();
+	pub AccumulateForwardLocation: Location = {
+		AccountId32 { network: None, id: AccumulateAccount::get().into() }.into()
+	};
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -174,7 +176,6 @@ pub type Barrier = TrailingSetTopicAsId<
 						(
 							ParentOrParentsPlurality,
 							FellowsPlurality,
-							Equals<RelayTreasuryLocation>,
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
 						),
@@ -190,25 +191,13 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
-parameter_types! {
-	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
-	// conversion is not `None`.
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
-}
-
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
+	Equals<AccumulateForwardLocation>,
 );
 
 /// Defines origin aliasing rules for this chain.
@@ -248,7 +237,7 @@ impl xcm_executor::Config for XcmConfig {
 		DotRelayLocation,
 		AccountId,
 		Balances,
-		ResolveTo<StakingPot, Balances>,
+		pallet_accumulate_and_forward::Pallet<Runtime>,
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
@@ -259,7 +248,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, AccumulateAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
@@ -337,11 +326,3 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-#[cfg(test)]
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
-}
