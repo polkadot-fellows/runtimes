@@ -63,9 +63,7 @@ parameter_types! {
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub UniversalLocation: InteriorLocation =
 	[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = parachains_common::TREASURY_PALLET_ID.into_account_truncating();
 }
 
