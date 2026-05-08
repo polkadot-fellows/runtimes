@@ -116,7 +116,7 @@ impl pallet_bounties::Config for Runtime {
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
-	type OnSlash = Treasury;
+	type OnSlash = pallet_dap::DapLegacyAdapter<Runtime, Balances>;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 	type TransferAllAssets = TransferAllFungibles<AccountId, NativeAndAssets, BountyRelevantAssets>;
 }

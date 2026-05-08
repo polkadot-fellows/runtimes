@@ -39,8 +39,8 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf,
-		EitherOfDiverse, Everything, InstanceFilter, TransformOrigin,
+		ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, Everything,
+		InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -56,7 +56,7 @@ use parachains_common::{
 	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
+use polkadot_runtime_constants::{dap::DapStagingLocation, fellowship::IsFellowshipVoice};
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -135,7 +135,13 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
+	pub type Unreleased = (
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		// Drain residual legacy `py/trsry` balance into the accumulation account. Idempotent.
+		pallet_accumulate_and_forward::migrations::DrainLegacyTreasuryToAccumulationAccount<
+			Runtime,
+		>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -251,7 +257,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -273,8 +279,10 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
+	type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<
+		Balances,
+		pallet_accumulate_and_forward::Pallet<Runtime>,
+	>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightToFee = DotWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -618,6 +626,30 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	/// The pallet ID used to derive the accumulation account.
+	pub const AccumulateForwardPalletId: PalletId = PalletId(*b"acf/dott");
+	/// How often the accumulation account forwards to the destination, in relay blocks.
+	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
+	/// Minimum balance required to trigger a forward.
+	pub const MinForwardAmount: Balance = 10 * UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		xcm_config::AssetHubLocation,
+		xcm_config::RelayLocation,
+		DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -637,6 +669,7 @@ construct_runtime!(
 		AssetRate: pallet_asset_rate = 13,
 		AssetTxPayment: pallet_asset_tx_payment = 14,
 		AssetsHolder: pallet_assets_holder = 15,
+		AccumulateForward: pallet_accumulate_and_forward = 16,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -677,6 +710,7 @@ mod benches {
 		// Substrate
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_asset_tx_payment, AssetTxPayment]
 		[pallet_asset_rate, AssetRate]
 		[pallet_assets, Assets]

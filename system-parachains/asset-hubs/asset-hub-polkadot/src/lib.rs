@@ -122,7 +122,7 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::imbalance::{ResolveAssetTo, ResolveTo},
+		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
 		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
 		TransformOrigin, WithdrawReasons,
@@ -363,7 +363,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
+		pallet_transaction_payment::FungibleAdapter<Balances, pallet_dap::Pallet<Runtime>>;
 	type WeightToFee = DotWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;

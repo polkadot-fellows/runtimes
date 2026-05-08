@@ -37,7 +37,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
-		tokens::imbalance::{ResolveAssetTo, ResolveTo},
+		tokens::imbalance::ResolveAssetTo,
 		ConstU32, Contains, ContainsPair, Equals, Everything, LinearStoragePrice, PalletInfoAccess,
 	},
 };
@@ -485,7 +485,7 @@ impl xcm_executor::Config for XcmConfig {
 			DotLocation,
 			AccountId,
 			Balances,
-			ResolveTo<StakingPot, Balances>,
+			pallet_dap::Pallet<Runtime>,
 		>,
 		// This trader allows to pay with any assets exchangeable to DOT with
 		// [`AssetConversion`].
