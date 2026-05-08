@@ -21,12 +21,12 @@ use super::{
 	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
 	TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
 };
-use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},

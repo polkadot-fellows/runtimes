@@ -16,7 +16,7 @@
 
 use crate::{
 	bridge_common_config::BridgeReward,
-	xcm_config::{self, RelayNetwork, AccumulateAccount, RootLocation, UniversalLocation},
+	xcm_config::{self, AccumulateAccount, RelayNetwork, RootLocation, UniversalLocation},
 	AggregateMessageOrigin, Balances, BridgeRelayers, EthereumBeaconClient, EthereumInboundQueue,
 	EthereumInboundQueueV2, EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem,
 	EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
@@ -315,9 +315,9 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
 	use super::{
-		CreateAssetCall, EthereumGatewayAddress, EthereumNetwork, EthereumSystem,
-		InboundQueueV2Location, InboundXcmMessageProcessor, MessageV2ToXcm, RelayNetwork,
-		AccumulateAccount, Runtime, TargetLocation,
+		AccumulateAccount, CreateAssetCall, EthereumGatewayAddress, EthereumNetwork,
+		EthereumSystem, InboundQueueV2Location, InboundXcmMessageProcessor, MessageV2ToXcm,
+		RelayNetwork, Runtime, TargetLocation,
 	};
 	use crate::{xcm_config, Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;

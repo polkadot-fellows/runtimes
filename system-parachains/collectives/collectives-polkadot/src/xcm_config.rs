@@ -23,11 +23,12 @@ use frame_support::{
 	pallet_prelude::PalletInfoAccess,
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains,
-		EnsureOrigin, Equals, Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, ConstU32, Contains, EnsureOrigin, Equals, Everything,
+		LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains, ConcreteAssetFromSystem,
@@ -38,7 +39,6 @@ use polkadot_runtime_constants::{
 	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
-use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use sp_runtime::traits::TryConvert;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -384,4 +384,3 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
-

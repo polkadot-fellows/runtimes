@@ -80,10 +80,9 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration,
-		tokens::UnityOrOuterConversion,
-		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, FromContains,
-		InstanceFilter, LinearStoragePrice, TransformOrigin,
+		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstBool, ConstU16, ConstU32,
+		ConstU64, ConstU8, EitherOf, EitherOfDiverse, FromContains, InstanceFilter,
+		LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,

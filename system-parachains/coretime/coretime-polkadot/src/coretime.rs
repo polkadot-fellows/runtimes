@@ -195,7 +195,6 @@ impl CoretimeInterface for CoretimeAllocator {
 			),
 		}
 	}
-
 }
 
 parameter_types! {

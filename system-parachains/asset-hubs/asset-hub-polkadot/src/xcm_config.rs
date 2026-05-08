@@ -36,9 +36,8 @@ use frame_support::{
 	pallet_prelude::Get,
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration,
-		tokens::imbalance::ResolveAssetTo,
-		ConstU32, Contains, ContainsPair, Equals, Everything, LinearStoragePrice, PalletInfoAccess,
+		fungible::HoldConsideration, tokens::imbalance::ResolveAssetTo, ConstU32, Contains,
+		ContainsPair, Equals, Everything, LinearStoragePrice, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;

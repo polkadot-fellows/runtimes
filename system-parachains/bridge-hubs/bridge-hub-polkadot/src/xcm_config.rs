@@ -31,13 +31,13 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
 use system_parachains_constants::polkadot::locations::EthereumNetwork;
 use xcm::latest::prelude::*;

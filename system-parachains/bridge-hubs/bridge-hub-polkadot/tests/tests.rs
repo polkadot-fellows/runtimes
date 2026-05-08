@@ -465,7 +465,6 @@ pub fn can_calculate_fee_for_standalone_message_confirmation_transaction() {
 	)
 }
 
-
 #[test]
 fn location_conversion_works() {
 	let alice_32 = xcm::prelude::AccountId32 {

@@ -29,8 +29,8 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
-use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
+use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
 	AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
@@ -403,4 +403,3 @@ impl pallet_assets::BenchmarkHelper<Location, ()> for XcmBenchmarkHelper {
 	}
 	fn create_reserve_id_parameter(_id: u32) {}
 }
-

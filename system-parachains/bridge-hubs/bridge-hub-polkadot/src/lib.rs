@@ -56,6 +56,7 @@ use sp_runtime::{
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -73,7 +74,6 @@ use frame_system::{
 	EnsureRoot,
 };
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use polkadot_runtime_constants::{dap::DapStagingLocation, fellowship::IsFellowshipVoice};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};

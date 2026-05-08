@@ -34,7 +34,7 @@ pub mod xcm_config;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
-use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{
 	construct_runtime, derive_impl,
@@ -57,7 +57,6 @@ use parachains_common::{
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
 	AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use polkadot_runtime_constants::{dap::DapStagingLocation, fellowship::IsFellowshipVoice};
 use sp_api::impl_runtime_apis;
