@@ -37,7 +37,8 @@ pub use xcm_executor::traits::TransferType;
 pub use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
-	test_parachain_is_trusted_teleporter,
+	create_foreign_pool_with_native_on, create_foreign_pool_with_parent_native_on,
+	local_penpal_asset, test_parachain_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
@@ -46,7 +47,8 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, RESERVABLE_ASSET_ID, XCM_V5,
 };
 pub use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+	assets_balance_on, test_parachain_is_trusted_teleporter_for_relay,
+	test_relay_is_trusted_teleporter,
 };
 pub use kusama_runtime::{xcm_config::UniversalLocation as KusamaUniversalLocation, Dmp};
 pub use kusama_system_emulated_network::{
@@ -59,6 +61,7 @@ pub use kusama_system_emulated_network::{
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	penpal_emulated_chain::{
 		penpal_runtime::xcm_config::{
+			LocalPen2Asset as PenpalLocalPen2Asset,
 			LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
 			LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub,
 			UniversalLocation as PenpalUniversalLocation,
@@ -88,10 +91,10 @@ pub type RelayToSystemParaTest = Test<Kusama, AssetHubKusama>;
 pub type RelayToParaTest = Test<Kusama, PenpalA>;
 pub type ParaToRelayTest = Test<PenpalA, Kusama>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
-pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
-pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
-pub type ParaToParaThroughRelayTest = Test<PenpalA, PenpalB, Kusama>;
-pub type ParaToParaThroughAHTest = Test<PenpalA, PenpalB, AssetHubKusama>;
+pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA, (), TestArgs<Location>>;
+pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama, (), TestArgs<Location>>;
+pub type ParaToParaThroughRelayTest = Test<PenpalA, PenpalB, Kusama, TestArgs<Location>>;
+pub type ParaToParaThroughAHTest = Test<PenpalA, PenpalB, AssetHubKusama, TestArgs<Location>>;
 pub type RelayToParaThroughAHTest = Test<Kusama, PenpalA, AssetHubKusama>;
 pub type PenpalToRelayThroughAHTest = Test<PenpalA, Kusama, AssetHubKusama>;
 

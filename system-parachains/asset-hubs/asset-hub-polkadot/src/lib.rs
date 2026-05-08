@@ -266,8 +266,8 @@ impl frame_system::Config for Runtime {
 	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
+	type OnNewAccount = pallet_revive::AutoMapper<Runtime>;
+	type OnKilledAccount = pallet_revive::AutoMapper<Runtime>;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
@@ -1514,7 +1514,7 @@ impl pallet_revive::Config for Runtime {
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
-	type AutoMap = ConstBool<false>;
+	type AutoMap = ConstBool<true>;
 	type GasScale = ConstU32<80_000>;
 	type OnBurn = Dap;
 }

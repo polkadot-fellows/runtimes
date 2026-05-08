@@ -58,9 +58,6 @@ fn register_kusama_asset_on_pah_from_kah() {
 
 	let destination = asset_hub_polkadot_location();
 
-	// fund the KAH's SA on KBH for paying bridge transport fees
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
-
 	// set XCM versions
 	AssetHubKusama::force_xcm_version(destination.clone(), XCM_VERSION);
 	BridgeHubKusama::force_xcm_version(bridge_hub_polkadot_location(), XCM_VERSION);
