@@ -37,9 +37,9 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
+use pallet_accumulate_and_forward::Pallet as AccumulateForwardPallet;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::{polkadot::locations::EthereumNetwork, TREASURY_PALLET_ID};
+use system_parachains_constants::polkadot::locations::EthereumNetwork;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AllowExplicitUnpaidExecutionFrom,
@@ -53,7 +53,7 @@ use xcm_builder::{
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -69,17 +69,10 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
-	// conversion is not `None`.
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	/// Accumulation account: XCM delivery fees are sent here for periodic forwarding to DAP on
+	/// Asset Hub.
+	pub AccumulateAccount: AccountId = AccumulateForwardPallet::<Runtime>::accumulation_account();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -174,7 +167,6 @@ pub type Barrier = TrailingSetTopicAsId<
 						(
 							ParentOrParentsPlurality,
 							FellowsPlurality,
-							Equals<RelayTreasuryLocation>,
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
 							Equals<SnowbridgeFrontendLocation>,
@@ -199,7 +191,6 @@ pub type Barrier = TrailingSetTopicAsId<
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
 );
 
@@ -246,7 +237,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, AccumulateAccount>,
 	>;
 	type MessageExporter = (
 		XcmOverBridgeHubKusama,

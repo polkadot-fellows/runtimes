@@ -16,7 +16,7 @@
 
 use crate::{
 	bridge_common_config::BridgeReward,
-	xcm_config::{self, RelayNetwork, RelayTreasuryPalletAccount, RootLocation, UniversalLocation},
+	xcm_config::{self, RelayNetwork, AccumulateAccount, RootLocation, UniversalLocation},
 	AggregateMessageOrigin, Balances, BridgeRelayers, EthereumBeaconClient, EthereumInboundQueue,
 	EthereumInboundQueueV2, EthereumOutboundQueue, EthereumOutboundQueueV2, EthereumSystem,
 	EthereumSystemV2, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
@@ -278,7 +278,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 	type OutboundQueue = EthereumOutboundQueue;
 	type SiblingOrigin = EnsureXcm<AllowSiblingsOnly>;
 	type AgentIdOf = snowbridge_core::AgentIdOf;
-	type TreasuryAccount = RelayTreasuryPalletAccount;
+	type TreasuryAccount = AccumulateAccount;
 	type Token = Balances;
 	type WeightInfo = crate::weights::snowbridge_pallet_system::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -317,7 +317,7 @@ pub mod benchmark_helpers {
 	use super::{
 		CreateAssetCall, EthereumGatewayAddress, EthereumNetwork, EthereumSystem,
 		InboundQueueV2Location, InboundXcmMessageProcessor, MessageV2ToXcm, RelayNetwork,
-		RelayTreasuryPalletAccount, Runtime, TargetLocation,
+		AccumulateAccount, Runtime, TargetLocation,
 	};
 	use crate::{xcm_config, Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;
@@ -416,7 +416,7 @@ pub mod benchmark_helpers {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
 			// Drip ED to the `TreasuryAccount`
 			<Balances as fungible::Mutate<_>>::set_balance(
-				&RelayTreasuryPalletAccount::get(),
+				&AccumulateAccount::get(),
 				ExistentialDeposit::get(),
 			);
 
