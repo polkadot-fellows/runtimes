@@ -54,7 +54,7 @@ use polkadot_runtime_constants::{
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
-use sp_runtime::traits::{AccountIdConversion, TryConvertInto};
+use sp_runtime::traits::TryConvertInto;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -90,9 +90,7 @@ parameter_types! {
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
-	pub DapBufferAccount: AccountId = crate::staking::DapPalletId::get().into_account_truncating();
 	pub PostMigrationTreasuryAccount: AccountId = treasury::TreasuryAccount::get();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
@@ -107,7 +105,6 @@ parameter_types! {
 			.unwrap_or(treasury::TreasuryAccount::get());
 }
 
-// TODO: replace this with DAP account (for collecting fees) #1137
 /// Treasury account that changes once migration ends.
 pub type TreasuryAccount = PostMigrationTreasuryAccount;
 
@@ -498,7 +495,7 @@ impl xcm_executor::Config for XcmConfig {
 				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
-			ResolveAssetTo<StakingPot, NativeAndAssets>,
+			ResolveAssetTo<crate::staking::DapStagingAccount, NativeAndAssets>,
 			AccountId,
 		>,
 	);
@@ -511,7 +508,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = PoolAssetsExchanger;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, DapBufferAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, crate::staking::DapStagingAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases =

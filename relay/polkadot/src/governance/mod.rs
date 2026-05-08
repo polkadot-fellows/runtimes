@@ -81,9 +81,8 @@ impl pallet_referenda::Config for Runtime {
 	type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
 	type CancelOrigin = EitherOf<EnsureRoot<AccountId>, ReferendumCanceller>;
 	type KillOrigin = EitherOf<EnsureRoot<AccountId>, ReferendumKiller>;
-	// Referenda is blocked post-AHM via PostAhmFilter.
-	// No slashing will occur, so setting to `()` is fine.
-	type Slash = ();
+	// Calls are filtered post-AHM; defensive in case the filter is ever lifted.
+	type Slash = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type Votes = pallet_conviction_voting::VotesOf<Runtime>;
 	type Tally = pallet_conviction_voting::TallyOf<Runtime>;
 	type SubmissionDeposit = SubmissionDeposit;

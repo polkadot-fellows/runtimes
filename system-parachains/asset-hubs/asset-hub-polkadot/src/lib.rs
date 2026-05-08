@@ -322,7 +322,7 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
-	type DustRemoval = ();
+	type DustRemoval = pallet_dap::Pallet<Runtime>;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
@@ -974,7 +974,7 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 		DotLocation,
 		NativeAndAssets,
 		AssetConversion,
-		ResolveAssetTo<StakingPot, NativeAndAssets>,
+		ResolveAssetTo<staking::DapStagingAccount, NativeAndAssets>,
 	>;
 	type WeightInfo = weights::pallet_asset_conversion_tx_payment::WeightInfo<Self>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -1152,7 +1152,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
 	type PoolSetupFeeAsset = DotLocation;
-	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
+	type PoolSetupFeeTarget = ResolveAssetTo<staking::DapStagingAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = LpFee;
 	type PalletId = AssetConversionPalletId;

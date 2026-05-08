@@ -171,6 +171,7 @@ pub type Barrier = TrailingSetTopicAsId<
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
 							Equals<SnowbridgeFrontendLocation>,
+							Equals<AccumulateForwardLocation>,
 						),
 						TrustedAliasers,
 					>,

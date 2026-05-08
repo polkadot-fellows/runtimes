@@ -116,6 +116,7 @@ parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
 	pub const DapPalletId: PalletId = sp_dap::DAP_PALLET_ID;
+	pub DapStagingAccount: AccountId = pallet_dap::Pallet::<Runtime>::staging_account();
 	pub const StakingPotsPalletId: PalletId = PalletId(*b"py/stkng");
 	/// Minimum time (ms) between issuance drips. 60s = drip at most once per minute.
 	pub const DapIssuanceCadence: u64 = 60_000;

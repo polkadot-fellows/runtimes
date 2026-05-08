@@ -931,9 +931,8 @@ impl pallet_bounties::Config for Runtime {
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
-	// Bounties is blocked post-AHM via PostAhmFilter.
-	// No new bounty calls can be executed, so setting to `()` is fine.
-	type OnSlash = ();
+	// Calls are filtered post-AHM; defensive in case the filter is ever lifted.
+	type OnSlash = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type TransferAllAssets = (); // not used on the relay
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }

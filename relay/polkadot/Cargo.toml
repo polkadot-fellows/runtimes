@@ -39,10 +39,10 @@ sp-storage = { workspace = true }
 sp-version = { workspace = true }
 sp-npos-elections = { workspace = true }
 
+pallet-accumulate-and-forward = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-authority-discovery = { workspace = true }
 pallet-authorship = { workspace = true }
-pallet-accumulate-and-forward = { workspace = true }
 pallet-babe = { workspace = true }
 pallet-bags-list = { workspace = true }
 pallet-balances = { workspace = true }

@@ -203,6 +203,7 @@ pub type Barrier = TrailingSetTopicAsId<
 							FellowsPlurality,
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
+							Equals<AccumulateForwardLocation>,
 						),
 						TrustedAliasers,
 					>,
