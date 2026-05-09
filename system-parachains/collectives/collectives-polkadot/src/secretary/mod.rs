@@ -112,5 +112,5 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = ConstU128<{ 6666 * USDT_UNITS * 2 }>;
+	type Budget = ConstU128<{ 6666 * 2 * USDT_UNITS }>;
 }
