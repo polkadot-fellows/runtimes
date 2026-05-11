@@ -23,7 +23,7 @@ parameter_types! {
 	pub const ExtendDepositAmount: Option<Balance> = Some(100_000 * UNITS);
 	pub const EnterDuration: BlockNumber = 24 * RC_HOURS; // 1 day
 	pub const ExtendDuration: BlockNumber = 24 * RC_HOURS; // 1 day
-	pub const ReleaseDelay: Option<BlockNumber> = Some(30 * RC_DAYS); // 30 days
+	pub const ReleaseDelay: Option<BlockNumber> = Some(60 * RC_DAYS); // 60 days
 }
 
 pub struct SafeModeWhitelist;
@@ -34,9 +34,7 @@ impl Contains<RuntimeCall> for SafeModeWhitelist {
 			RuntimeCall::System(_) |
 				RuntimeCall::Timestamp(_) |
 				RuntimeCall::ParachainSystem(_) |
-				RuntimeCall::Referenda(_) |
-				RuntimeCall::FellowshipReferenda(_) |
-				RuntimeCall::FellowshipCollective(_)
+				RuntimeCall::Referenda(_)
 		)
 	}
 }
