@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- All runtimes: align `MaxFreezes` to `frame_support::traits::VariantCountOf<RuntimeFreezeReason>` (replacing hardcoded `ConstU32`), and source `TransactionByteFee` from `system_parachains_constants::{polkadot,kusama}::fee::TRANSACTION_BYTE_FEE` on Coretime and People runtimes. On Polkadot this halves the per-byte fee on Coretime and People to match Asset Hub; on Kusama the value is unchanged. Also cleans up `# Substrate` / `# Polkadot` / `# Cumulus` section-delimiter comments from system-parachain crate manifests ([#1175](https://github.com/polkadot-fellows/runtimes/pull/1175)).
+- Align all runtimes to use the same values for e.g. `TransactionByteFee` and some other clean ups. ([#1175](https://github.com/polkadot-fellows/runtimes/pull/1175)).
 
 ## [2.2.2] 23.04.2026
 
