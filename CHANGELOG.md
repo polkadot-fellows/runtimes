@@ -9,8 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
-- Asset Hub Polkadot & Kusama: deploy `pallet-safe-mode` and `pallet-tx-pause` to enable emergency lockdown of chain functionality ([#1089](https://github.com/polkadot-fellows/runtimes/issues/1089)). Safe-mode can be entered by any signed account with a 100K token deposit (3-day duration), or force-entered by Root/FellowshipAdmin. Inherents (`System`, `Timestamp`, `ParachainSystem`) are always whitelisted to prevent chain stalls. Tx-pause allows Root/FellowshipAdmin to pause individual calls.
-
+- Zombienet SDK integration tests for elastic scaling on Asset Hub Polkadot and People Polkadot.
 ## [2.2.2] 23.04.2026
 
 ### Changed
