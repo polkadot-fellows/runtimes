@@ -84,7 +84,24 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
-            
+
+      - name: Check ${{ matrix.runtime.name }} wasm size
+        if: always() && steps.srtool_build.outcome == 'success'
+        run: |
+          mkdir -p size-status
+          .github/scripts/check-runtime-size.sh \
+            "${{ matrix.runtime.name }}" \
+            "${{ matrix.runtime.name }}_srtool_output.json" \
+            "size-status/${{ matrix.runtime.name }}.json" \
+            "${{ matrix.runtime.max_code_size || '5242880' }}"
+
+      - name: Upload ${{ matrix.runtime.name }} size status
+        if: always() && steps.srtool_build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}-size-status
+          path: size-status/${{ matrix.runtime.name }}.json
+
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
         uses: paritytech/srtool-actions@v0.9.4
@@ -102,9 +119,41 @@ jobs:
           name: ${{ matrix.runtime.name }}-compact
           path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
 
+  check-runtime-sizes:
+    needs: [ build-runtimes, collect-release-information ]
+    if: always() && needs.collect-release-information.outputs.should-release == '1'
+    runs-on: self-hosted
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Download size status artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-size-status'
+          path: size-status
+
+      - name: Aggregate runtime size results
+        id: aggregate
+        run: .github/scripts/aggregate-runtime-sizes.sh size-status
+
+      - name: Create or update size-breach issue
+        if: steps.aggregate.outputs.has_violations == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.collect-release-information.outputs.version }}
+          SUMMARY_PATH: violations.md
+        run: .github/scripts/create-size-issue.sh
+
+      - name: Fail on error threshold breach
+        if: steps.aggregate.outputs.has_errors == 'true'
+        run: |
+          echo "::error title=Runtime WASM size::One or more runtimes exceeded the error size threshold; blocking release."
+          exit 1
+
   publish-release:
     runs-on: self-hosted
-    needs: [ build-runtimes, collect-release-information ]
+    needs: [ build-runtimes, collect-release-information, check-runtime-sizes ]
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
