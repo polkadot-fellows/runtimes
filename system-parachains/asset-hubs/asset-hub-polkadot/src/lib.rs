@@ -1000,11 +1000,11 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 
 parameter_types! {
 	/// Asset id of the PGAS gas-allowance asset, registered on AH as a trusted asset.
-	pub const PGASAssetId: AssetIdForTrustBackedAssets = 80_716_583;
-	/// Admin account for the PGAS asset, derived from `PalletId(*b"py/pgasa")`.
-	pub PgasAdmin: AccountId = PalletId(*b"py/pgasa").into_account_truncating();
+	pub const PGASAssetId: AssetIdForTrustBackedAssets = 50_000_512;
+	/// Admin account for the PGAS asset, derived from `PalletId(*b"py/pgas ")`.
+	pub PgasAdmin: AccountId = PalletId(*b"py/pgas ").into_account_truncating();
 	/// Minimum balance of the PGAS asset.
-	pub const PgasMinBalance: Balance = 1;
+	pub const PgasMinBalance: Balance = ExistentialDeposit::get() / 100;
 	/// Fraction of a PGAS-backed storage deposit refunded when the deposit is released.
 	/// The rest is burned, so contracts cannot mint free PGAS via storage churn.
 	pub const PGasRefundPercent: Perbill = Perbill::from_percent(10);
