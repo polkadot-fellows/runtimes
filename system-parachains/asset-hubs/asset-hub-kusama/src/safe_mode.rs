@@ -14,9 +14,12 @@
 // limitations under the License.
 
 use super::*;
-use frame_support::traits::{Contains, EitherOf, MapSuccess};
+use frame_support::traits::{Contains, EitherOfDiverse, MapSuccess};
+use frame_system::EnsureRoot;
 use kusama_runtime_constants::currency::UNITS;
+use pallet_xcm::EnsureXcm;
 use sp_runtime::traits::Replace;
+use system_parachains_constants::kusama::fellowship::IsFellowshipVoice;
 
 parameter_types! {
 	pub const EnterDepositAmount: Option<Balance> = Some(100_000 * UNITS);
@@ -34,7 +37,10 @@ impl Contains<RuntimeCall> for SafeModeWhitelist {
 			RuntimeCall::System(_) |
 				RuntimeCall::Timestamp(_) |
 				RuntimeCall::ParachainSystem(_) |
-				RuntimeCall::Referenda(_)
+				RuntimeCall::Referenda(_) |
+				RuntimeCall::ConvictionVoting(_) |
+				RuntimeCall::Preimage(_) |
+				RuntimeCall::TxPause(_)
 		)
 	}
 }
@@ -50,14 +56,18 @@ impl pallet_safe_mode::Config for Runtime {
 	type ExtendDepositAmount = ExtendDepositAmount;
 	// ForceEnterOrigin success value must be BlockNumber (duration); use Replace to map () ->
 	// EnterDuration
-	type ForceEnterOrigin =
-		MapSuccess<EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>, Replace<EnterDuration>>;
+	type ForceEnterOrigin = MapSuccess<
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>,
+		Replace<EnterDuration>,
+	>;
 	// ForceExtendOrigin success value must be BlockNumber (duration); use Replace to map () ->
 	// ExtendDuration
-	type ForceExtendOrigin =
-		MapSuccess<EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>, Replace<ExtendDuration>>;
-	type ForceExitOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
-	type ForceDepositOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
+	type ForceExtendOrigin = MapSuccess<
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>,
+		Replace<ExtendDuration>,
+	>;
+	type ForceExitOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
+	type ForceDepositOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
 	type Notify = ();
 	type ReleaseDelay = ReleaseDelay;
 	// TODO: we will replace with benchmarked weights once `frame-omni-bencher` has been run on this

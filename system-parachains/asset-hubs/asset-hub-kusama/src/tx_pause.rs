@@ -14,7 +14,10 @@
 // limitations under the License.
 
 use super::*;
-use frame_support::traits::Everything;
+use frame_support::traits::{EitherOfDiverse, Nothing};
+use frame_system::EnsureRoot;
+use pallet_xcm::EnsureXcm;
+use system_parachains_constants::kusama::fellowship::IsFellowshipVoice;
 
 parameter_types! {
 	pub const MaxNameLen: u32 = 256;
@@ -23,9 +26,9 @@ parameter_types! {
 impl pallet_tx_pause::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
-	type PauseOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
-	type UnpauseOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
-	type WhitelistedCalls = Everything;
+	type PauseOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
+	type UnpauseOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
+	type WhitelistedCalls = Nothing;
 	type MaxNameLen = MaxNameLen;
 	// TODO: replace with benchmarked weights once `frame-omni-bencher` has been run on this chain.
 	type WeightInfo = pallet_tx_pause::weights::SubstrateWeight<Runtime>;

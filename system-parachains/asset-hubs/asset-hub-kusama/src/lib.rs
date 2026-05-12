@@ -62,7 +62,7 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, EitherOf,
-		EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, Everything, InstanceFilter,
+		EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, InstanceFilter,
 		LinearStoragePrice, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
@@ -196,7 +196,7 @@ parameter_types! {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = (SafeMode, TxPause);
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
