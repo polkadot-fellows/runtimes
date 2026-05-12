@@ -14,7 +14,11 @@
 // limitations under the License.
 
 use super::*;
-use frame_support::traits::{Contains, EitherOf, MapSuccess};
+use crate::xcm_config::FellowshipLocation;
+use frame_support::traits::{Contains, EitherOfDiverse, MapSuccess};
+use frame_system::EnsureRoot;
+use pallet_xcm::EnsureXcm;
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 use sp_runtime::traits::Replace;
 
 parameter_types! {
@@ -33,7 +37,10 @@ impl Contains<RuntimeCall> for SafeModeWhitelist {
 			RuntimeCall::System(_) |
 				RuntimeCall::Timestamp(_) |
 				RuntimeCall::ParachainSystem(_) |
-				RuntimeCall::Referenda(_)
+				RuntimeCall::Referenda(_) |
+				RuntimeCall::ConvictionVoting(_) |
+				RuntimeCall::Preimage(_) |
+				RuntimeCall::TxPause(_)
 		)
 	}
 }
@@ -49,14 +56,20 @@ impl pallet_safe_mode::Config for Runtime {
 	type ExtendDepositAmount = ExtendDepositAmount;
 	// ForceEnterOrigin success value must be BlockNumber (duration); use Replace to map () ->
 	// EnterDuration
-	type ForceEnterOrigin =
-		MapSuccess<EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>, Replace<EnterDuration>>;
+	type ForceEnterOrigin = MapSuccess<
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>,
+		Replace<EnterDuration>,
+	>;
 	// ForceExtendOrigin success value must be BlockNumber (duration); use Replace to map () ->
 	// ExtendDuration
-	type ForceExtendOrigin =
-		MapSuccess<EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>, Replace<ExtendDuration>>;
-	type ForceExitOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
-	type ForceDepositOrigin = EitherOf<EnsureRoot<AccountId>, FellowshipAdmin>;
+	type ForceExtendOrigin = MapSuccess<
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>,
+		Replace<ExtendDuration>,
+	>;
+	type ForceExitOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
+	type ForceDepositOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 	type Notify = ();
 	type ReleaseDelay = ReleaseDelay;
 	// TODO: we will replace with benchmarked weights once `frame-omni-bencher` has been run on this

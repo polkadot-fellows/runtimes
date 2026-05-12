@@ -128,8 +128,8 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, ConstantStoragePrice,
-		Contains, EitherOf, EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice,
-		NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		Contains, EitherOf, EitherOfDiverse, Equals, InsideBoth, InstanceFilter,
+		LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -266,7 +266,7 @@ impl Contains<RuntimeCall> for AllExceptReapStash {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = AllExceptReapStash;
+	type BaseCallFilter = InsideBoth<AllExceptReapStash, InsideBoth<SafeMode, TxPause>>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
