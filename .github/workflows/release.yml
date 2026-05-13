@@ -93,7 +93,7 @@ jobs:
             "${{ matrix.runtime.name }}" \
             "${{ matrix.runtime.name }}_srtool_output.json" \
             "size-status/${{ matrix.runtime.name }}.json" \
-            "${{ matrix.runtime.max_code_size || '5242880' }}"
+            "${{ matrix.runtime.max_code_size }}"
 
       - name: Upload ${{ matrix.runtime.name }} size status
         if: always()
@@ -154,7 +154,7 @@ jobs:
   publish-release:
     runs-on: self-hosted
     needs: [ build-runtimes, collect-release-information, check-runtime-sizes ]
-    if: needs.check-runtime-sizes.result == 'success'
+    if: needs.collect-release-information.outputs.should-release == '1' && needs.check-runtime-sizes.result == 'success'
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
