@@ -145,15 +145,16 @@ jobs:
           SUMMARY_PATH: violations.md
         run: .github/scripts/create-size-issue.sh
 
-      - name: Fail on error threshold breach
+      - name: Fail release on error threshold breach
         if: steps.aggregate.outputs.has_errors == 'true'
         run: |
-          echo "::error title=Runtime WASM size::One or more runtimes exceeded the error size threshold; blocking release."
+          echo "::error title=Runtime WASM size::One or more runtimes exceeded the error size threshold; failing this job to block publish-release and stop the release from being generated."
           exit 1
 
   publish-release:
     runs-on: self-hosted
     needs: [ build-runtimes, collect-release-information, check-runtime-sizes ]
+    if: needs.check-runtime-sizes.result == 'success'
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
