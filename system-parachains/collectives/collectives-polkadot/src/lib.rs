@@ -76,17 +76,17 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, FromContains,
-		InstanceFilter, LinearStoragePrice, TransformOrigin, EnsureOriginWithArg, EnsureOrigin
+		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, EnsureOrigin,
+		EnsureOriginWithArg, FromContains, InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
-    dynamic_params::{dynamic_pallet_params, dynamic_params}
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -105,6 +105,8 @@ use xcm_config::{
 	AssetHubLocation, LocationToAccountId, RelayChainLocation, SelfParaId, StakingPot,
 	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
+
+use fellowship::USDT_UNITS;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -129,43 +131,51 @@ impl_opaque_keys! {
 // 1. This macro runs first and generates RuntimeParametersKey
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
-    use super::*;
+	use super::*;
 
-    #[dynamic_pallet_params]
-    #[codec(index = 0)]
-    pub mod secretary_salary {
-        use super::*;
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod secretary_salary {
+		use super::*;
 
-        #[codec(index = 0)]
-        pub static Budget: Balance = 6_666 * crate::fellowship::USDT_UNITS;
-    }
+		#[codec(index = 0)]
+		pub static Budget: Balance = 6_666 * crate::fellowship::USDT_UNITS;
+	}
 }
 
 // 2. Now RuntimeParametersKey exists, so this compiles
 pub struct DynamicParameterOrigin;
 impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
-    type Success = ();
+	type Success = ();
 
-    fn try_origin(
-        origin: RuntimeOrigin,
-        key: &RuntimeParametersKey,
-    ) -> Result<Self::Success, RuntimeOrigin> {
-        use RuntimeParametersKey::*;  // no `crate::` needed, we're already in lib.rs
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use RuntimeParametersKey::*; // no `crate::` needed, we're already in lib.rs
 
-        match key {
-            SecretarySalary(_) => EitherOfDiverse::<
-                EnsureRoot<AccountId>,
-                Fellows,
-            >::ensure_origin(origin.clone())
-            .map(|_| ()),
-        }
-        .map_err(|_| origin)
-    }
+		match key {
+			SecretarySalary(_) =>
+				EitherOfDiverse::<EnsureRoot<AccountId>, Fellows>::ensure_origin(origin.clone())
+					.map(|_| ()),
+		}
+		.map_err(|_| origin)
+	}
 
-    #[cfg(feature = "runtime-benchmarks")]
-    fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
-        Ok(RuntimeOrigin::root())
-    }
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::SecretarySalary(dynamic_params::secretary_salary::Parameters::Budget(
+			dynamic_params::secretary_salary::Budget,
+			Some(6_666 * USDT_UNITS),
+		))
+	}
 }
 
 #[sp_version::runtime_version]
@@ -864,7 +874,7 @@ construct_runtime!(
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
 		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
 		SecretarySalary: pallet_salary::<Instance3> = 81,
-        Parameters: pallet_parameters = 82,
+		Parameters: pallet_parameters = 82,
 	}
 );
 
@@ -962,7 +972,7 @@ mod benches {
 		[pallet_treasury, AmbassadorTreasury]
 		[pallet_ranked_collective, SecretaryCollective]
 		[pallet_salary, SecretarySalary]
-        [pallet_parameters, Parameters]
+		[pallet_parameters, Parameters]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, XcmBalances]

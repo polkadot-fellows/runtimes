@@ -20,8 +20,8 @@ use crate::{
 	fellowship::{FellowshipAdminBodyId, FellowshipSalaryPaymaster, USDT_UNITS},
 	*,
 };
-use frame_support::{traits::{tokens::GetSalary, EitherOf, MapSuccess, NoOpPoll}};
-use frame_system::{ pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
+use frame_support::traits::{tokens::GetSalary, EitherOf, MapSuccess, NoOpPoll};
+use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use sp_core::ConstU32;
 use sp_runtime::traits::{ConstU16, Identity, Replace};
@@ -76,10 +76,10 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 }
 
 impl pallet_parameters::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeParameters = RuntimeParameters;
-    type AdminOrigin = crate::DynamicParameterOrigin;
-    type WeightInfo = (); // TODO: replace with weights::pallet_parameters::WeightInfo<Runtime>
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = crate::DynamicParameterOrigin;
+	type WeightInfo = (); // TODO: replace with weights::pallet_parameters::WeightInfo<Runtime>
 }
 
 pub type SecretarySalaryInstance = pallet_salary::Instance3;
@@ -121,5 +121,3 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	// Total monthly salary budget.
 	type Budget = crate::dynamic_params::secretary_salary::Budget;
 }
-
-
