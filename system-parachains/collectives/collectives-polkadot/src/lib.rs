@@ -128,7 +128,6 @@ impl_opaque_keys! {
 	}
 }
 
-// 1. This macro runs first and generates RuntimeParametersKey
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
 	use super::*;
@@ -143,7 +142,6 @@ pub mod dynamic_params {
 	}
 }
 
-// 2. Now RuntimeParametersKey exists, so this compiles
 pub struct DynamicParameterOrigin;
 impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
 	type Success = ();
@@ -152,7 +150,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		origin: RuntimeOrigin,
 		key: &RuntimeParametersKey,
 	) -> Result<Self::Success, RuntimeOrigin> {
-		use RuntimeParametersKey::*; // no `crate::` needed, we're already in lib.rs
+		use RuntimeParametersKey::*;
 
 		match key {
 			SecretarySalary(_) =>
