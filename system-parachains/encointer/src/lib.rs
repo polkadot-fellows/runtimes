@@ -953,11 +953,44 @@ pub type UncheckedExtrinsic =
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+
+	/// DNM hack: post-#10477 `PoVMessages` adds `hrmp_outbound_recipients: Vec<ParaId>` but no
+	/// SDK-side migration was written. On-chain values from stable2603 are 42 bytes; the new
+	/// decoder expects 43. Append a single 0x00 (empty `Vec` compact length) so existing values
+	/// decode under the new shape.
+	pub struct FixPoVMessagesTracker;
+	impl OnRuntimeUpgrade for FixPoVMessagesTracker {
+		fn on_runtime_upgrade() -> Weight {
+			const KEY: [u8; 32] = hex_literal::hex!(
+				"45323df7cc47150b3930e2666b0aa31322f3096ef79c4c691c3a9210667dbadc"
+			);
+			if let Some(raw) = frame_support::storage::unhashed::get_raw(&KEY) {
+				if raw.len() == 42 {
+					let mut patched = raw;
+					patched.push(0);
+					frame_support::storage::unhashed::put_raw(&KEY, &patched);
+					log::info!(
+						target: "runtime::parachain-system",
+						"FixPoVMessagesTracker: appended empty Vec<ParaId> tail to 42-byte value",
+					);
+				} else {
+					log::info!(
+						target: "runtime::parachain-system",
+						"FixPoVMessagesTracker: skipped, value is {} bytes (not 42)",
+						raw.len(),
+					);
+				}
+			}
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 1)
+		}
+	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		FixPoVMessagesTracker,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
