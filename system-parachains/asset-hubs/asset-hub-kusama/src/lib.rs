@@ -1426,6 +1426,10 @@ impl pallet_recovery::Config for Runtime {
 	type WeightInfo = weights::pallet_recovery::WeightInfo<Runtime>;
 }
 
+impl pallet_recovery::migrations::v0::MigrationConfig for Runtime {
+	type Currency = Balances;
+}
+
 /// Defines what origin can modify which dynamic parameters.
 pub struct DynamicParameterOrigin;
 impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {

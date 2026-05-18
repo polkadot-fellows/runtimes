@@ -67,6 +67,7 @@ mod multiblock_migrations {
 			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
 		>,
 		pallet_revive::migrations::v3::Migration<Runtime>,
+		pallet_recovery::migrations::v1::MigrateV0ToV1<crate::Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
