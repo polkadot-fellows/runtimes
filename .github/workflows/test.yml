@@ -454,14 +454,15 @@ jobs:
           exit 1
 
   ecosystem-tests:
-    name: "PET (${{ matrix.network.name }})"
+    name: "PET (${{ matrix.network.name }}, shard ${{ matrix.shard }}/3)"
     needs: [build-runtimes, check-release-pr]
     runs-on: self-hosted
-    timeout-minutes: 120
+    timeout-minutes: 60
     if: needs.check-release-pr.outputs.run-extended-checks == '1'
     strategy:
       fail-fast: false
       matrix:
+        shard: [1, 2, 3]
         network:
           - name: "polkadot"
             test_dir: "packages/polkadot"
@@ -605,7 +606,7 @@ jobs:
         run: |
           yarn update-known-good ${{ matrix.network.name }}
 
-      - name: Run ${{ matrix.network.name }} ecosystem tests
+      - name: Run ${{ matrix.network.name }} ecosystem tests (shard ${{ matrix.shard }}/3)
         working-directory: ecosystem-tests
         run: |
           echo "Finding Fellowship runtime test files in ${{ matrix.network.test_dir }}..."
@@ -624,16 +625,14 @@ jobs:
             exit 0
           fi
 
-          echo "Running tests with limited parallelism..."
-          # Notes on flags below:
-          # 1. `-u` updates snapshots so that they don't fail spuriously e.g. proof size/ref time changes
-          # 2. `--pool=threads` runs test files from `$TEST_FILES` in parallel using worker threads. Default
-          #    is `--pool=forks`, which uses child processes - heavier.
-          # 3. `--maxWorkers=3` combined with the above means at most 3 test files running concurrently, each in its
-          #    own thread
-          # 4. `--retry=3` attempts a failing test 3 times. This operates at the level of individual tests, not modules,
-          #    or the whole test suite; one failure will *not* require a full rerun.
-          yarn test -u $TEST_FILES --pool=threads --maxWorkers=3 --retry=3
+          # Flags:
+          #   -u                       update snapshots (proof size / ref time drift)
+          #   --pool=forks             child-process isolation; required for shared-client
+          #                            refactor (#609) to avoid retry-induced state leaks
+          #   --maxWorkers=8           up to 8 test files in parallel per shard
+          #   --retry=2                per-test retry (#616 cut endpoint flakiness)
+          #   --shard=${i}/3           static partition of TEST_FILES across 3 parallel jobs
+          yarn test -u $TEST_FILES --pool=forks --maxWorkers=8 --retry=2 --shard=${{ matrix.shard }}/3
 
       - name: Cleanup all Subway instances
         if: always()
