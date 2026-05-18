@@ -49,10 +49,13 @@ pub mod apis {
 		pub issuance: sp_runtime::Perquintill,
 		/// Next amount that we anticipate to mint in an era.
 		///
-		/// Note: In Polkadot, the second amount is always zero. The inflation amount is split up
-		/// by pallet-dap based on budget recipients and portion setup for them. Mints are
-		/// dripped every minute (or as configured). This returns expected mint over a full era.
-		/// For DAP based split, look at `budget_recipients` view function in pallet-dap.
+		/// On Kusama, the first item is the amount that goes to stakers and the second is the
+		/// leftover that is usually forwarded to the treasury.
+		///
+		/// On Polkadot, the first item is the total era emission and the second is always zero.
+		/// The staker/treasury split is performed downstream by pallet-dap based on its budget
+		/// recipients and configured portions; mints are dripped every minute (or as configured).
+		/// For the DAP split, see the `budget_recipients` view function in pallet-dap.
 		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
 	}
 
