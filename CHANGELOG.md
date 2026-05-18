@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 
+### Removed
+
+- KAH: remove `pallet_recovery` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+
 ## [2.2.2] 23.04.2026
 
 ### Changed
