@@ -72,8 +72,8 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
-pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
 use crate::staking::DapStagingAccount;
+pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();

@@ -253,6 +253,7 @@ sp-arithmetic = { version = "28.0.1", default-features = false }
 sp-block-builder = { version = "42.0.0", default-features = false }
 sp-consensus-aura = { version = "0.48.0", default-features = false }
 sp-core = { version = "41.0.0", default-features = false }
+sp-dap = { version = "0.2.0", default-features = false }
 sp-debug-derive = { version = "15.0.0", default-features = false }
 sp-genesis-builder = { version = "0.23.0", default-features = false }
 sp-inherents = { version = "42.0.0", default-features = false }

@@ -170,9 +170,8 @@ use xcm::{
 };
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId, LocationToAccountId,
-	PoolAssetsConvertedConcreteId, RelayChainLocation,
-	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
-	XcmOriginToTransactDispatchOrigin,
+	PoolAssetsConvertedConcreteId, RelayChainLocation, TrustBackedAssetsConvertedConcreteId,
+	TrustBackedAssetsPalletLocation, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -362,8 +361,10 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<staking::DapStagingAccount, Balances>>;
+	type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<
+		Balances,
+		ResolveTo<staking::DapStagingAccount, Balances>,
+	>;
 	type WeightToFee = DotWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;

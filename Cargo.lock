@@ -1476,6 +1476,7 @@ dependencies = [
  "sp-consensus-beefy",
  "sp-consensus-grandpa",
  "sp-core 41.0.0",
+ "sp-dap",
  "sp-genesis-builder 0.23.0",
  "sp-inherents 42.0.0",
  "sp-io 46.0.0",
