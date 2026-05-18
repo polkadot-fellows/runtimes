@@ -151,7 +151,7 @@ impl pallet_dap::Config for Runtime {
 	type IssuanceCadence = DapIssuanceCadence;
 	type MaxElapsedPerDrip = DapMaxElapsedPerDrip;
 	type BudgetOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_dap::WeightInfo<Runtime>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
