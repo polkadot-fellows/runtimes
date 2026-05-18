@@ -463,7 +463,7 @@ impl pallet_staking_async::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
 	// Non-minting mode: `RewardRemainder` is unused (kept for compile / legacy path).
-	type RewardRemainder = ResolveTo<xcm_config::TreasuryAccount, Balances>;
+	type RewardRemainder = ResolveTo<DapStagingAccount, Balances>;
 	type Slash = Dap;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
