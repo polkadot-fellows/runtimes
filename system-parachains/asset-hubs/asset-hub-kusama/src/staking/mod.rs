@@ -418,6 +418,7 @@ impl pallet_staking_async::Config for Runtime {
 	type DisableMinting = ConstBool<false>;
 	// Unused in legacy minting mode (no era pots are created), but required to compile.
 	type UnclaimedRewardHandler = ();
+	// Unused in legacy minting mode
 	type RewardPots = pallet_staking_async::Seed<UnusedStakingPotsPalletId>;
 	type StakerRewardCalculator =
 		pallet_staking_async::reward::DefaultStakerRewardCalculator<Runtime>;

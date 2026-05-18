@@ -115,7 +115,8 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
-	pub const DapPalletId: PalletId = PalletId(*b"dap/buff");
+	pub const DapPalletId: PalletId = sp_dap::DAP_PALLET_ID;
+	pub DapStagingAccount: AccountId = pallet_dap::Pallet::<Runtime>::staging_account();
 	pub const StakingPotsPalletId: PalletId = PalletId(*b"py/stkng");
 	/// Minimum time (ms) between issuance drips. 60s = drip at most once per minute.
 	pub const DapIssuanceCadence: u64 = 60_000;
@@ -150,7 +151,7 @@ impl pallet_dap::Config for Runtime {
 	type IssuanceCadence = DapIssuanceCadence;
 	type MaxElapsedPerDrip = DapMaxElapsedPerDrip;
 	type BudgetOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_dap::WeightInfo<Runtime>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -462,7 +463,7 @@ impl pallet_staking_async::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
 	// Non-minting mode: `RewardRemainder` is unused (kept for compile / legacy path).
-	type RewardRemainder = ResolveTo<xcm_config::TreasuryAccount, Balances>;
+	type RewardRemainder = ResolveTo<DapStagingAccount, Balances>;
 	type Slash = Dap;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
