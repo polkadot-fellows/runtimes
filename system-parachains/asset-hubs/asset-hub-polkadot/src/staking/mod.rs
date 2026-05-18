@@ -150,7 +150,7 @@ impl pallet_dap::Config for Runtime {
 	type Time = pallet_timestamp::Pallet<Runtime>;
 	type IssuanceCadence = DapIssuanceCadence;
 	type MaxElapsedPerDrip = DapMaxElapsedPerDrip;
-	type BudgetOrigin = EitherOfDiverse<EnsureRoot<AccountId>, StakingAdmin>;
+	type BudgetOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::pallet_dap::WeightInfo<Runtime>;
 }
 
@@ -387,32 +387,6 @@ impl EraPayout {
 		let issuance = Perquintill::from_rational(annual_issuance, ti);
 
 		InflationInfo { issuance, next_mint }
-	}
-}
-
-impl pallet_staking_async::EraPayout<Balance> for EraPayout {
-	fn era_payout(
-		_total_staked: Balance,
-		_total_issuance: Balance,
-		era_duration_millis: u64,
-	) -> (Balance, Balance) {
-		// A normal-sized era will have 1 / 365.25 here, though the value wobbles a bit:
-		let relative_era_len = FixedU128::from_rational(
-			era_duration_millis.into(),
-			Self::MILLISECONDS_PER_YEAR.into(),
-		);
-
-		let relay_block_num =
-			<RelaychainDataProvider<Runtime> as BlockNumberProvider>::current_block_number();
-		let yearly_emission = Self::yearly_after_hard_cap(relay_block_num);
-
-		let era_emission =
-			relative_era_len.saturating_mul_int(yearly_emission).min(Self::MAX_ERA_EMISSION);
-		// 15% to treasury, as per Polkadot ref 1139.
-		let to_treasury = FixedU128::from_rational(15, 100).saturating_mul_int(era_emission);
-		let to_stakers = era_emission.saturating_sub(to_treasury);
-
-		(to_stakers.saturated_into(), to_treasury.saturated_into())
 	}
 }
 
