@@ -73,6 +73,7 @@ use xcm_builder::{
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
+use crate::staking::DapStagingAccount;
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -484,7 +485,7 @@ impl xcm_executor::Config for XcmConfig {
 			DotLocation,
 			AccountId,
 			Balances,
-			ResolveTo<StakingPot, Balances>,
+			ResolveTo<DapStagingAccount, Balances>,
 		>,
 		// This trader allows to pay with any assets exchangeable to DOT with
 		// [`AssetConversion`].
@@ -497,7 +498,7 @@ impl xcm_executor::Config for XcmConfig {
 				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
-			ResolveAssetTo<StakingPot, NativeAndAssets>,
+			ResolveAssetTo<DapStagingAccount, NativeAndAssets>,
 			AccountId,
 		>,
 	);
@@ -510,7 +511,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = PoolAssetsExchanger;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, DapStagingAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases =
