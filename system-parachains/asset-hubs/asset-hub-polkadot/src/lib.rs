@@ -170,8 +170,9 @@ use xcm::{
 };
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId, LocationToAccountId,
-	PoolAssetsConvertedConcreteId, RelayChainLocation, TrustBackedAssetsConvertedConcreteId,
-	TrustBackedAssetsPalletLocation, XcmOriginToTransactDispatchOrigin,
+	PoolAssetsConvertedConcreteId, RelayChainLocation, StakingPot,
+	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
