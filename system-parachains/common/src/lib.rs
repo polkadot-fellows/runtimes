@@ -47,10 +47,12 @@ pub mod apis {
 	pub struct InflationInfo {
 		/// The rate of issuance estimated per annum, represented as a `Perquintill`.
 		pub issuance: sp_runtime::Perquintill,
-		/// Next amount that we anticipate to mint.
+		/// Next amount that we anticipate to mint in an era.
 		///
-		/// First item is the amount that goes to stakers, second is the leftover that is usually
-		/// forwarded to the treasury.
+		/// Note: In Polkadot, the second amount is always zero. The inflation amount is split up by
+		/// pallet-dap based on budget recipients and portion setup for them. Mints are dripped
+		/// every minute (or as configured). This returns expected mint over a full era. For DAP
+		/// based split, look at `budget_recipients` view function in pallet-dap.
 		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
 	}
 
