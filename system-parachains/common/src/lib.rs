@@ -49,10 +49,10 @@ pub mod apis {
 		pub issuance: sp_runtime::Perquintill,
 		/// Next amount that we anticipate to mint in an era.
 		///
-		/// Note: In Polkadot, the second amount is always zero. The inflation amount is split up by
-		/// pallet-dap based on budget recipients and portion setup for them. Mints are dripped
-		/// every minute (or as configured). This returns expected mint over a full era. For DAP
-		/// based split, look at `budget_recipients` view function in pallet-dap.
+		/// Note: In Polkadot, the second amount is always zero. The inflation amount is split up
+		/// by pallet-dap based on budget recipients and portion setup for them. Mints are
+		/// dripped every minute (or as configured). This returns expected mint over a full era.
+		/// For DAP based split, look at `budget_recipients` view function in pallet-dap.
 		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
 	}
 
