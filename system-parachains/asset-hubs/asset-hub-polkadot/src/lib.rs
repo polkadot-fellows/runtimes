@@ -2794,6 +2794,16 @@ mod tests {
 
 	type WeightToFee = DotWeightToFee<Runtime>;
 
+	#[test]
+	fn pov_migration_key_sane() {
+		assert_eq!(
+			cumulus_pallet_parachain_system::PoVMessagesTracker::<Runtime>::hashed_key(),
+			system_parachains_common::migrations::FixPoVMessagesTracker::<
+				<Runtime as frame_system::Config>::DbWeight,
+			>::storage_key(),
+		);
+	}
+
 	/// We can fit at least 1000 transfers in a block.
 	#[test]
 	fn sane_block_weight() {

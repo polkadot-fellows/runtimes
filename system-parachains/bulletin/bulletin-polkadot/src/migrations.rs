@@ -18,7 +18,11 @@
 use super::*;
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = ();
+pub type Unreleased = (
+	system_parachains_common::migrations::FixPoVMessagesTracker<
+		<Runtime as frame_system::Config>::DbWeight,
+	>,
+);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
