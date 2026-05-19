@@ -504,6 +504,16 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
+      - name: Get Subway commit hash
+        id: subway-commit
+        run: echo "hash=$(git ls-remote https://github.com/AcalaNetwork/subway HEAD | cut -f1)" >> $GITHUB_OUTPUT
+
+      - name: Cache Subway binary
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: subway-binary-${{ steps.subway-commit.outputs.hash }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - name: Install Subway
         run: cargo install --git https://github.com/AcalaNetwork/subway
 
