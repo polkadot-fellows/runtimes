@@ -16,7 +16,7 @@
 //! Tests for `WeighTrader` type of XCM Executor.
 
 use asset_hub_polkadot_runtime::{
-	xcm_config::{DotLocation, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig},
+	xcm_config::{DotLocation, TrustBackedAssetsPalletLocation, XcmConfig},
 	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
 	SessionKeys,
 };
@@ -54,12 +54,12 @@ fn test_buy_and_refund_weight_with_native() {
 		.build()
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
-			let staking_pot = StakingPot::get();
+			let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 			let native_location = DotLocation::get();
 			let initial_balance = 200 * UNITS;
 
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
-			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
+			assert_ok!(Balances::mint_into(&dap_staging_account, initial_balance));
 
 			// keep initial total issuance to assert later.
 			let total_issuance = Balances::total_issuance();
@@ -95,11 +95,11 @@ fn test_buy_and_refund_weight_with_native() {
 			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
-			assert_eq!(Balances::balance(&staking_pot), initial_balance);
-			// only after `trader` is dropped we expect the fee to be resolved into the treasury
-			// account.
+			assert_eq!(Balances::balance(&dap_staging_account), initial_balance);
+			// only after `trader` is dropped we expect the fee to be resolved into the DAP
+			// staging account.
 			drop(trader);
-			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
+			assert_eq!(Balances::balance(&dap_staging_account), initial_balance + fee - refund);
 			// Balanced operations: fee is transferred, not minted, so total issuance
 			// stays the same.
 			assert_eq!(Balances::total_issuance(), total_issuance);
@@ -118,7 +118,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 		.build()
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
-			let staking_pot = StakingPot::get();
+			let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 			let asset_1: u32 = 1;
 			let native_location = DotLocation::get();
 			let asset_1_location = AssetIdForTrustBackedAssetsConvert::<
@@ -136,7 +136,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 
 			assert_ok!(Assets::mint_into(asset_1, &bob, initial_balance));
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
-			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
+			assert_ok!(Balances::mint_into(&dap_staging_account, initial_balance));
 
 			assert_ok!(AssetConversion::create_pool(
 				RuntimeHelper::origin_of(bob.clone()),
@@ -158,6 +158,10 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			// keep initial total issuance to assert later.
 			let asset_total_issuance = Assets::total_issuance(asset_1);
 			let native_total_issuance = Balances::total_issuance();
+			// snapshot the DAP staging account *after* pool setup (the pool setup fee is
+			// resolved there) so that subsequent assertions check the delta caused by the
+			// trader alone.
+			let dap_staging_after_pool_setup = Balances::balance(&dap_staging_account);
 
 			// prepare input to buy weight.
 			let weight = Weight::from_parts(4_000_000_000, 0);
@@ -197,11 +201,14 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
-			assert_eq!(Balances::balance(&staking_pot), initial_balance);
-			// only after `trader` is dropped we expect the fee to be resolved into the treasury
-			// account.
+			assert_eq!(Balances::balance(&dap_staging_account), dap_staging_after_pool_setup);
+			// only after `trader` is dropped we expect the fee to be resolved into the DAP
+			// staging account.
 			drop(trader);
-			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
+			assert_eq!(
+				Balances::balance(&dap_staging_account),
+				dap_staging_after_pool_setup + fee - refund
+			);
 			// Balanced operations: swap doesn't change total issuance.
 			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
@@ -220,7 +227,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 		.build()
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
-			let staking_pot = StakingPot::get();
+			let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 			let native_location = DotLocation::get();
 			let foreign_location =
 				Location { parents: 1, interior: (Parachain(1234), GeneralIndex(12345)).into() };
@@ -239,7 +246,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			assert_ok!(ForeignAssets::mint_into(foreign_location.clone(), &bob, initial_balance));
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
-			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
+			assert_ok!(Balances::mint_into(&dap_staging_account, initial_balance));
 
 			assert_ok!(AssetConversion::create_pool(
 				RuntimeHelper::origin_of(bob.clone()),
@@ -261,6 +268,10 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			// keep initial total issuance to assert later.
 			let asset_total_issuance = ForeignAssets::total_issuance(foreign_location.clone());
 			let native_total_issuance = Balances::total_issuance();
+			// snapshot the DAP staging account *after* pool setup (the pool setup fee is
+			// resolved there) so that subsequent assertions check the delta caused by the
+			// trader alone.
+			let dap_staging_after_pool_setup = Balances::balance(&dap_staging_account);
 
 			// prepare input to buy weight.
 			let weight = Weight::from_parts(4_000_000_000, 0);
@@ -302,11 +313,14 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
-			assert_eq!(Balances::balance(&staking_pot), initial_balance);
-			// only after `trader` is dropped we expect the fee to be resolved into the treasury
-			// account.
+			assert_eq!(Balances::balance(&dap_staging_account), dap_staging_after_pool_setup);
+			// only after `trader` is dropped we expect the fee to be resolved into the DAP
+			// staging account.
 			drop(trader);
-			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
+			assert_eq!(
+				Balances::balance(&dap_staging_account),
+				dap_staging_after_pool_setup + fee - refund
+			);
 			// Balanced operations: swap doesn't change total issuance.
 			assert_eq!(ForeignAssets::total_issuance(foreign_location), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
