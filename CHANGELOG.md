@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Enable multiple blocks per slot for all remaining system parachains (BridgeHub Polkadot/Kusama, Coretime Polkadot/Kusama, Collectives Polkadot) ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
 - Update all runtimes to `polkadot-sdk` `unstable2604` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: K↔P bridge router exports unpaid (`UnpaidExport = true`) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
