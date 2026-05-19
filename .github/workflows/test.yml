@@ -494,28 +494,12 @@ jobs:
       - name: Install updates and dependencies
         run: .github/install-deps.sh
 
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32v1-none"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Get Subway commit hash
-        id: subway-commit
-        run: echo "hash=$(git ls-remote https://github.com/AcalaNetwork/subway HEAD | cut -f1)" >> $GITHUB_OUTPUT
-
-      - name: Cache Subway binary
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: subway-binary-${{ steps.subway-commit.outputs.hash }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Install Subway
-        run: cargo install --git https://github.com/AcalaNetwork/subway
+        run: |
+          curl -sSL https://github.com/AcalaNetwork/subway/releases/download/v0.1.0/subway-v0.1.0-x86_64-unknown-linux-musl.tar.gz \
+            | sudo tar -xz -C /usr/local/bin
+          sudo chmod +x /usr/local/bin/subway
+          subway --version
 
       - name: Start all Subway instances
         run: |
