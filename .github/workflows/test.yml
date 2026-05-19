@@ -467,20 +467,20 @@ jobs:
           - name: "polkadot"
             test_dir: "packages/polkadot"
             chains:
-              - { chain: "polkadot", port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
-              - { chain: "asset-hub-polkadot", port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
-              - { chain: "bridge-hub-polkadot", port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
-              - { chain: "collectives-polkadot", port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
-              - { chain: "coretime-polkadot", port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
-              - { chain: "people-polkadot", port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "polkadot",             pet_key: "polkadot",             port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
+              - { chain: "asset-hub-polkadot",   pet_key: "assetHubPolkadot",     port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
+              - { chain: "bridge-hub-polkadot",  pet_key: "bridgeHubPolkadot",    port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
+              - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
+              - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
+              - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:
-              - { chain: "kusama", port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
-              - { chain: "asset-hub-kusama", port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
-              - { chain: "bridge-hub-kusama", port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
-              - { chain: "coretime-kusama", port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
-              - { chain: "people-kusama", port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
+              - { chain: "kusama",               pet_key: "kusama",               port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
+              - { chain: "asset-hub-kusama",     pet_key: "assetHubKusama",       port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
+              - { chain: "bridge-hub-kusama",    pet_key: "bridgeHubKusama",      port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
+              - { chain: "coretime-kusama",      pet_key: "coretimeKusama",       port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
+              - { chain: "people-kusama",        pet_key: "peopleKusama",         port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -521,14 +521,25 @@ jobs:
         run: |
           echo "Starting all Subway instances for ${{ matrix.network.name }}..."
 
-          # Start each subway instance
+          # Subway endpoints come from PET's curated list, not runtimes-matrix.json.
+          # Both lists need archive endpoints (chopsticks forks from an old pinned
+          # block; runtimes-matrix.json feeds try-runtime), but only PET's list is
+          # actively probed and ranked for state availability at those pinned blocks
+          # by an endpoint-ranking workflow that runs daily. runtimes-matrix.json is
+          # hand-maintained and tends to drift, which is why CI has been hitting
+          # "UnknownBlock: State already discarded" on chains whose first-ranked
+          # endpoint has since pruned the relevant state.
+          curl -sSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/packages/networks/src/pet-chain-endpoints.json \
+            -o /tmp/pet-chain-endpoints.json
+
           echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
             CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
+            PET_KEY=$(echo "$chain" | jq -r '.pet_key')
             PORT=$(echo "$chain" | jq -r '.port')
 
-            ENDPOINTS=$(jq -c --arg chain "$CHAIN_NAME" '.[] | select(.name == $chain) | .uris' .github/workflows/runtimes-matrix.json)
+            ENDPOINTS=$(jq -c --arg k "$PET_KEY" '.[$k]' /tmp/pet-chain-endpoints.json)
             if [ -z "$ENDPOINTS" ] || [ "$ENDPOINTS" = "null" ]; then
-              echo "ERROR: No endpoints found for $CHAIN_NAME in runtimes-matrix.json"
+              echo "ERROR: No endpoints for $CHAIN_NAME (pet_key=$PET_KEY) in PET's pet-chain-endpoints.json"
               exit 1
             fi
 
