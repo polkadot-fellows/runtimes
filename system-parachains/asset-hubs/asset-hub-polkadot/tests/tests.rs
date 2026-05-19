@@ -20,7 +20,7 @@
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
 		bridging, CheckingAccount, DotLocation, LocationToAccountId, RelayChainLocation,
-		RelayTreasuryPalletAccount, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
+		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, Dap, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
@@ -391,7 +391,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		None,
-		Some(RelayTreasuryPalletAccount::get()),
+		Some(pallet_dap::Pallet::<Runtime>::staging_account()),
 	)
 }
 
@@ -399,7 +399,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_swap_works() {
 	const BLOCK_AUTHOR_ACCOUNT: [u8; 32] = [13; 32];
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
-	let staking_pot = StakingPot::get();
+	let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 
 	let foreign_asset_id_location_v5 = Location::new(2, [GlobalConsensus(NetworkId::Kusama)]);
 	let reserve_location = Location::new(2, [GlobalConsensus(NetworkId::Kusama), Parachain(1000)]);
@@ -439,10 +439,10 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 				Runtime,
 				RuntimeOrigin,
 			>(ExistentialDeposit::get(), pool_params);
-			// staking pot account for collecting local native fees from `BuyExecution`
+			// DAP staging account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
-				StakingPot::get().into(),
+				pallet_dap::Pallet::<Runtime>::staging_account().into(),
 				ExistentialDeposit::get(),
 			);
 			// prepare bridge configuration
@@ -457,20 +457,21 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 			[Parachain(1000)].into(),
 		),
 		|| {
-			// check staking pot for ED
-			assert_eq!(Balances::free_balance(&staking_pot), ExistentialDeposit::get());
-			// check now foreign asset for staking pot
+			// check DAP staging account for ED
+			assert_eq!(Balances::free_balance(&dap_staging_account), ExistentialDeposit::get());
+			// check now foreign asset for DAP staging account
 			assert_eq!(
-				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &staking_pot),
+				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &dap_staging_account),
 				0
 			);
 		},
 		|| {
-			// `SwapFirstAssetTrader` - staking pot receives xcm fees in KSMs
-			assert!(Balances::free_balance(&staking_pot) > ExistentialDeposit::get());
-			// staking pot receives no foreign assets
+			// `SwapFirstAssetTrader` - DAP staging account receives xcm fees in KSMs (swapped
+			// to DOT)
+			assert!(Balances::free_balance(&dap_staging_account) > ExistentialDeposit::get());
+			// DAP staging account receives no foreign assets
 			assert_eq!(
-				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &staking_pot),
+				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &dap_staging_account),
 				0
 			);
 		},
