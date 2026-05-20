@@ -512,16 +512,20 @@ jobs:
         run: |
           echo "Starting all Subway instances for ${{ matrix.network.name }}..."
 
-          # Subway endpoints come from PET's curated list, not runtimes-matrix.json.
-          # Both lists need archive endpoints (chopsticks forks from an old pinned
-          # block; runtimes-matrix.json feeds try-runtime), but only PET's list is
-          # actively probed and ranked for state availability at those pinned blocks
-          # by an endpoint-ranking workflow that runs daily. runtimes-matrix.json is
-          # hand-maintained and tends to drift, which is why CI has been hitting
-          # "UnknownBlock: State already discarded" on chains whose first-ranked
-          # endpoint has since pruned the relevant state.
+          # Both the endpoint list and the Subway config template come from
+          # PET at run time, not from this repo. PET's endpoint list is the
+          # only one actively probed and ranked for state availability at the
+          # pinned blocks chopsticks needs; PET's Subway template is the only
+          # one set up to honor that ranking (`shuffle_endpoints: false`) and
+          # configured for heavy-storage queries (`request_timeout_seconds:
+          # 90`). Maintaining a local snapshot of either is a recipe for
+          # drift, exactly the kind that surfaced "UnknownBlock: State
+          # already discarded" and the per-upstream timeout cycling we just
+          # fixed.
           curl -sSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/packages/networks/src/pet-chain-endpoints.json \
             -o /tmp/pet-chain-endpoints.json
+          curl -sSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/.github/subway-template.yml \
+            -o /tmp/subway-template.yml
 
           echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
             CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
@@ -535,7 +539,7 @@ jobs:
             fi
 
             echo "Starting Subway for $CHAIN_NAME on port $PORT..."
-            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" .github/subway-configs/template.yml > /tmp/subway-$PORT.yml
+            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" /tmp/subway-template.yml > /tmp/subway-$PORT.yml
             subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
             echo $! >> /tmp/subway.pids
           done
