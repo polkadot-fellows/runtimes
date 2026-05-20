@@ -2,6 +2,10 @@ extensions:
   client:
     endpoints: {{ENDPOINTS}}
     shuffle_endpoints: true
+    # Heavy upstream queries (e.g. Acala storage at the pinned block) can take
+    # longer than Subway's default 30s per-upstream timeout. Requires Subway
+    # >= v0.1.1 (AcalaNetwork/subway#203).
+    request_timeout_seconds: 90
   event_bus:
   substrate_api:
     stale_timeout_seconds: 180
