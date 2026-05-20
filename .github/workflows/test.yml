@@ -496,8 +496,9 @@ jobs:
 
       - name: Install Subway
         run: |
-          curl -sSL https://github.com/AcalaNetwork/subway/releases/download/v0.1.0/subway-v0.1.0-x86_64-unknown-linux-musl.tar.gz \
-            | sudo tar -xz -C /usr/local/bin
+          docker create --name subway-extract acala/subway:v0.1.1
+          sudo docker cp subway-extract:/usr/local/bin/subway /usr/local/bin/subway
+          docker rm subway-extract
           sudo chmod +x /usr/local/bin/subway
           subway --version
 
