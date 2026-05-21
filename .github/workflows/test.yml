@@ -496,7 +496,7 @@ jobs:
 
       - name: Install Subway
         run: |
-          docker create --name subway-extract acala/subway:v0.1.1
+          docker create --name subway-extract acala/subway:v0.1.2
           # `docker cp` writes to a user-owned tmp path because the daemon
           # socket isn't accessible to root on these self-hosted runners
           # (so `sudo docker cp` straight to /usr/local/bin/ fails). Then
