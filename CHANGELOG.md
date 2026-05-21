@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
 - Zombienet SDK integration tests for elastic scaling on Asset Hub Polkadot and People Polkadot.
+
+### Changed
+
+- Asset Hub Kusama & Polkadot: wire `pallet_revive` to its native runtime-benchmarked weights instead of `SubstrateWeight` (kitchensink). Resolves [#840](https://github.com/polkadot-fellows/runtimes/issues/840).
 ## [2.2.2] 23.04.2026
 
 ### Changed
