@@ -32,7 +32,6 @@ pallet-balances = { workspace = true }
 pallet-collective = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-multisig = { workspace = true }
-pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -121,7 +120,6 @@ runtime-benchmarks = [
 	"pallet-ranked-collective/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-salary/runtime-benchmarks",
-    "pallet-parameters/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
