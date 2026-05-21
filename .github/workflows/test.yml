@@ -496,14 +496,8 @@ jobs:
 
       - name: Install Subway
         run: |
-          docker create --name subway-extract acala/subway:v0.1.2
-          # `docker cp` writes to a user-owned tmp path because the daemon
-          # socket isn't accessible to root on these self-hosted runners
-          # (so `sudo docker cp` straight to /usr/local/bin/ fails). Then
-          # `install` moves the binary into place with the executable bit
-          # set, under sudo for the privileged write only.
-          docker cp subway-extract:/usr/local/bin/subway /tmp/subway
-          docker rm subway-extract
+          curl -fsSL https://github.com/AcalaNetwork/subway/releases/download/v0.1.2/subway-v0.1.2-x86_64-unknown-linux-musl.tar.gz \
+            | tar -xz -C /tmp
           sudo install -m 0755 /tmp/subway /usr/local/bin/subway
           rm /tmp/subway
           subway --version
