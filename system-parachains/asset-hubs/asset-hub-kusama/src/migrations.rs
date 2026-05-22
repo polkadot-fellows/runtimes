@@ -19,6 +19,7 @@
 pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
+	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
