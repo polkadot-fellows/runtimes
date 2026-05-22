@@ -18,11 +18,17 @@
 use crate::{
 	relay_chain_specs::{KusamaChainSpec, PolkadotChainSpec},
 	system_parachains_specs::{
-		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
-		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, CoretimeKusamaChainSpec,
-		CoretimePolkadotChainSpec, GluttonKusamaChainSpec,
+		AssetHubKusamaChainSpec,
+		AssetHubPolkadotChainSpec,
+		BridgeHubKusamaChainSpec,
+		BridgeHubPolkadotChainSpec,
+		CollectivesPolkadotChainSpec,
+		CoretimeKusamaChainSpec,
+		CoretimePolkadotChainSpec,
+		GluttonKusamaChainSpec,
 		// TODO @ggwpez EncointerKusamaChainSpec,
-		PeopleKusamaChainSpec, PeoplePolkadotChainSpec,
+		PeopleKusamaChainSpec,
+		PeoplePolkadotChainSpec,
 	},
 	ChainSpec,
 };
@@ -60,7 +66,7 @@ pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn Chain
 		x if x.starts_with("glutton-kusama") =>
 			Ok(Box::new(GluttonKusamaChainSpec::from_json_file(path)?)),
 		/* TODO @ggwpez x if x.starts_with("encointer-kusama") =>
-			Ok(Box::new(EncointerKusamaChainSpec::from_json_file(path)?)), */
+		Ok(Box::new(EncointerKusamaChainSpec::from_json_file(path)?)), */
 		x if x.starts_with("people-kusama") =>
 			Ok(Box::new(PeopleKusamaChainSpec::from_json_file(path)?)),
 		x if x.starts_with("people-polkadot") =>
