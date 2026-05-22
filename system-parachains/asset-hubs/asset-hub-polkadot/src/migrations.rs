@@ -92,9 +92,6 @@ pub type Unreleased = (
 		DefaultDapBudget,
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
-	system_parachains_common::migrations::FixPoVMessagesTracker<
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.

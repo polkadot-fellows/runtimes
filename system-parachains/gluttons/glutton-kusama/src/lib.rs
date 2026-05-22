@@ -176,11 +176,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = (
-		system_parachains_common::migrations::FixPoVMessagesTracker<
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-	);
+	type SingleBlockMigrations = ();
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();

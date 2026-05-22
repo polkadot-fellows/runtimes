@@ -148,12 +148,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
-		system_parachains_common::migrations::FixPoVMessagesTracker<
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-	);
+	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
