@@ -561,9 +561,9 @@ jobs:
           # drift, exactly the kind that surfaced "UnknownBlock: State
           # already discarded" and the per-upstream timeout cycling we just
           # fixed.
-          curl -sSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/packages/networks/src/pet-chain-endpoints.json \
+          curl -fsSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/packages/networks/src/pet-chain-endpoints.json \
             -o /tmp/pet-chain-endpoints.json
-          curl -sSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/.github/subway-template.yml \
+          curl -fsSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/.github/subway-template.yml \
             -o /tmp/subway-template.yml
 
           echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
