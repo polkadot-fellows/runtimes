@@ -954,11 +954,10 @@ mod benches {
 		}
 
 		fn prepare_rewards_account(
-			account_params: bp_relayers::RewardsAccountParams<
-				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
-			>,
-			reward: Balance,
-		) -> Option<AccountId> {
+			_relayer: &AccountId,
+			account_params: Self::Reward,
+			reward: Self::RewardBalance,
+		) -> Option<(bp_relayers::RewardsAccountParams<bp_messages::LegacyLaneId>, AccountId)> {
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
@@ -966,7 +965,7 @@ mod benches {
 				Balance,
 			>::rewards_account(account_params);
 			Self::deposit_account(rewards_account.clone(), reward);
-			Some(rewards_account)
+			Some((account_params, rewards_account))
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {

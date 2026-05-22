@@ -997,15 +997,18 @@ mod benches {
 		}
 
 		fn prepare_rewards_account(
+			_relayer: &AccountId,
 			reward_kind: Self::Reward,
-			reward: Balance,
-		) -> Option<
+			reward: Self::RewardBalance,
+		) -> Option<(
+			Self::Reward,
 			pallet_bridge_relayers::BeneficiaryOf<
 				Runtime,
 				bridge_common_config::BridgeRelayersInstance,
 			>,
-		> {
-			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(reward_kind) = reward_kind
+		)> {
+			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(inner_reward_kind) =
+				reward_kind
 			else {
 				panic!(
 					"Unexpected reward_kind: {reward_kind:?} - not compatible with `bench_reward`!"
@@ -1016,10 +1019,13 @@ mod benches {
 				AccountId,
 				bp_messages::LegacyLaneId,
 				Balance,
-			>::rewards_account(reward_kind);
+			>::rewards_account(inner_reward_kind);
 			Self::deposit_account(rewards_account.clone(), reward);
 
-			Some(bridge_common_config::BridgeRewardBeneficiaries::LocalAccount(rewards_account))
+			Some((
+				reward_kind,
+				bridge_common_config::BridgeRewardBeneficiaries::LocalAccount(rewards_account),
+			))
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
