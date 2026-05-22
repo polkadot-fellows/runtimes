@@ -648,6 +648,13 @@ jobs:
           npm install --global corepack
           corepack enable
 
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
+          path: ecosystem-tests
+
       - name: Install test dependencies
         working-directory: ecosystem-tests
         run: yarn install --immutable
