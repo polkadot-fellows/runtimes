@@ -23,7 +23,7 @@ bulletin-polkadot-runtime = { workspace = true, optional = true }
 collectives-polkadot-runtime = { workspace = true, optional = true }
 bridge-hub-polkadot-runtime = { workspace = true, optional = true }
 bridge-hub-kusama-runtime = { workspace = true, optional = true }
-encointer-kusama-runtime = { workspace = true, optional = true }
+# TODO @ggwpez encointer-kusama-runtime = { workspace = true, optional = true }
 glutton-kusama-runtime = { workspace = true, optional = true }
 coretime-kusama-runtime = { workspace = true, optional = true }
 coretime-polkadot-runtime = { workspace = true, optional = true }
@@ -42,7 +42,7 @@ runtime-benchmarks = [
 	"collectives-polkadot-runtime?/runtime-benchmarks",
 	"coretime-kusama-runtime?/runtime-benchmarks",
 	"coretime-polkadot-runtime?/runtime-benchmarks",
-	"encointer-kusama-runtime?/runtime-benchmarks",
+	# TODO @ggwpez "encointer-kusama-runtime?/runtime-benchmarks",
 	"glutton-kusama-runtime?/runtime-benchmarks",
 	"kusama-runtime?/runtime-benchmarks",
 	"people-kusama-runtime?/runtime-benchmarks",
@@ -59,7 +59,7 @@ on-chain-release-build = [
 	"collectives-polkadot-runtime?/on-chain-release-build",
 	"coretime-kusama-runtime?/on-chain-release-build",
 	"coretime-polkadot-runtime?/on-chain-release-build",
-	"encointer-kusama-runtime?/on-chain-release-build",
+	# TODO @ggwpez "encointer-kusama-runtime?/on-chain-release-build",
 	"glutton-kusama-runtime?/on-chain-release-build",
 	"kusama-runtime?/on-chain-release-build",
 	"people-kusama-runtime?/on-chain-release-build",
@@ -78,7 +78,7 @@ collectives-polkadot = ["collectives-polkadot-runtime"]
 bridge-hub-polkadot = ["bridge-hub-polkadot-runtime"]
 bridge-hub-kusama = ["bridge-hub-kusama-runtime"]
 bulletin-polkadot = ["bulletin-polkadot-runtime"]
-encointer-kusama = ["encointer-kusama-runtime"]
+# TODO @ggwpez encointer-kusama = ["encointer-kusama-runtime"]
 glutton-kusama = ["glutton-kusama-runtime"]
 coretime-kusama = ["coretime-kusama-runtime"]
 coretime-polkadot = ["coretime-polkadot-runtime"]
@@ -98,7 +98,7 @@ all-kusama = [
 	"asset-hub-kusama",
 	"bridge-hub-kusama",
 	"coretime-kusama",
-	"encointer-kusama",
+	# TODO @ggwpez "encointer-kusama",
 	"glutton-kusama",
 	"kusama",
 	"people-kusama",
