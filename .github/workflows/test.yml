@@ -454,19 +454,17 @@ jobs:
           exit 1
 
   pet-block-numbers:
-    # Resolve KNOWN_GOOD_BLOCK_NUMBERS_<NETWORK>.env once per network and
-    # share with all shards via an artifact. Previously each shard ran
+    # Resolve KNOWN_GOOD_BLOCK_NUMBERS_{POLKADOT,KUSAMA}.env once and share
+    # with all shards via an artifact. Previously each shard ran
     # `yarn update-known-good` separately (6x redundant lookups, and shards
     # within one run could see different blocks if a finalized block landed
-    # mid-lookup).
-    name: "PET block numbers (${{ matrix.network }})"
+    # mid-lookup). `yarn update-known-good` ignores its CLI argument and
+    # always refreshes polkadot + kusama (+ unused westend) in one pass, so
+    # a single job suffices.
+    name: "PET block numbers"
     needs: [check-release-pr]
     runs-on: ubuntu-latest
     if: needs.check-release-pr.outputs.run-extended-checks == '1'
-    strategy:
-      fail-fast: false
-      matrix:
-        network: [polkadot, kusama]
     steps:
       - name: Checkout polkadot-ecosystem-tests
         uses: actions/checkout@v4
@@ -488,13 +486,15 @@ jobs:
         run: yarn install --immutable
 
       - name: Resolve block numbers
-        run: yarn update-known-good ${{ matrix.network }}
+        run: yarn update-known-good
 
-      - name: Upload env file
+      - name: Upload env files
         uses: actions/upload-artifact@v4
         with:
-          name: pet-block-numbers-${{ matrix.network }}
-          path: KNOWN_GOOD_BLOCK_NUMBERS_*.env
+          name: pet-block-numbers
+          path: |
+            KNOWN_GOOD_BLOCK_NUMBERS_POLKADOT.env
+            KNOWN_GOOD_BLOCK_NUMBERS_KUSAMA.env
           if-no-files-found: error
           retention-days: 1
 
@@ -659,7 +659,7 @@ jobs:
       - name: Download resolved block numbers
         uses: actions/download-artifact@v4
         with:
-          name: pet-block-numbers-${{ matrix.network.name }}
+          name: pet-block-numbers
           path: ecosystem-tests
 
       - name: Run ${{ matrix.network.name }} ecosystem tests (shard ${{ matrix.shard }}/3)
