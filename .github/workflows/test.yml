@@ -453,9 +453,54 @@ jobs:
           echo "::error::No reachable RPC for $RUNTIME_NAME"
           exit 1
 
+  pet-block-numbers:
+    # Resolve KNOWN_GOOD_BLOCK_NUMBERS_<NETWORK>.env once per network and
+    # share with all shards via an artifact. Previously each shard ran
+    # `yarn update-known-good` separately (6x redundant lookups, and shards
+    # within one run could see different blocks if a finalized block landed
+    # mid-lookup).
+    name: "PET block numbers (${{ matrix.network }})"
+    needs: [check-release-pr]
+    runs-on: ubuntu-latest
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
+    strategy:
+      fail-fast: false
+      matrix:
+        network: [polkadot, kusama]
+    steps:
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
+
+      - name: Use latest Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+
+      - name: Enable Corepack for Yarn Berry
+        run: |
+          npm install --global corepack
+          corepack enable
+
+      - name: Install test dependencies
+        run: yarn install --immutable
+
+      - name: Resolve block numbers
+        run: yarn update-known-good ${{ matrix.network }}
+
+      - name: Upload env file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pet-block-numbers-${{ matrix.network }}
+          path: KNOWN_GOOD_BLOCK_NUMBERS_*.env
+          if-no-files-found: error
+          retention-days: 1
+
   ecosystem-tests:
     name: "PET (${{ matrix.network.name }}, shard ${{ matrix.shard }}/3)"
-    needs: [build-runtimes, check-release-pr]
+    needs: [build-runtimes, check-release-pr, pet-block-numbers]
     runs-on: self-hosted
     timeout-minutes: 60
     if: needs.check-release-pr.outputs.run-extended-checks == '1'
@@ -611,10 +656,11 @@ jobs:
           env | grep -E "ENDPOINT=|_WASM=" | sort || true
           echo "======================================"
 
-      - name: Update known good block numbers
-        working-directory: ecosystem-tests
-        run: |
-          yarn update-known-good ${{ matrix.network.name }}
+      - name: Download resolved block numbers
+        uses: actions/download-artifact@v4
+        with:
+          name: pet-block-numbers-${{ matrix.network.name }}
+          path: ecosystem-tests
 
       - name: Run ${{ matrix.network.name }} ecosystem tests (shard ${{ matrix.shard }}/3)
         working-directory: ecosystem-tests
