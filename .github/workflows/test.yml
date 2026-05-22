@@ -407,7 +407,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
 
       - name: Download ${{ matrix.runtime.name }} WASM artifact
         uses: actions/download-artifact@v4
@@ -472,10 +475,13 @@ jobs:
           repository: open-web3-stack/polkadot-ecosystem-tests
           ref: runtimes-master
 
-      - name: Use latest Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
 
       - name: Enable Corepack for Yarn Berry
         run: |
@@ -629,22 +635,18 @@ jobs:
             echo "${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}" >> $GITHUB_ENV
           done
 
-      - name: Use latest Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
 
       - name: Enable Corepack for Yarn Berry
         run: |
           npm install --global corepack
           corepack enable
-
-      - name: Checkout polkadot-ecosystem-tests
-        uses: actions/checkout@v4
-        with:
-          repository: open-web3-stack/polkadot-ecosystem-tests
-          ref: runtimes-master
-          path: ecosystem-tests
 
       - name: Install test dependencies
         working-directory: ecosystem-tests
