@@ -252,8 +252,8 @@ parameter_types! {
 ///
 /// The filter is intended to be removed once the transition completes and all active set validators
 /// are consistently above the new minimum. Other staking calls remain permitted.
-pub struct CallFilter;
-impl Contains<RuntimeCall> for CallFilter {
+pub struct AllExceptReapStash;
+impl Contains<RuntimeCall> for AllExceptReapStash {
 	fn contains(call: &RuntimeCall) -> bool {
 		!matches!(call, RuntimeCall::Staking(pallet_staking_async::Call::reap_stash { .. }))
 	}
@@ -261,7 +261,7 @@ impl Contains<RuntimeCall> for CallFilter {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = CallFilter;
+	type BaseCallFilter = AllExceptReapStash;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -3144,7 +3144,7 @@ mod tests {
 			stash: AccountId::from([0u8; 32]),
 			num_slashing_spans: 0,
 		});
-		assert_eq!(CallFilter::contains(&call), false);
+		assert_eq!(AllExceptReapStash::contains(&call), false);
 	}
 
 	#[test]
@@ -3161,9 +3161,9 @@ mod tests {
 			stash: AccountId::from([0u8; 32]),
 		});
 
-		assert!(CallFilter::contains(&bond));
-		assert!(CallFilter::contains(&validate));
-		assert!(CallFilter::contains(&chill));
-		assert!(CallFilter::contains(&chill_other));
+		assert!(AllExceptReapStash::contains(&bond));
+		assert!(AllExceptReapStash::contains(&validate));
+		assert!(AllExceptReapStash::contains(&chill));
+		assert!(AllExceptReapStash::contains(&chill_other));
 	}
 }

@@ -17,11 +17,11 @@ use cumulus_primitives_core::ParaId;
 pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
-	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CallFilter, CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets,
-	GeneralAdmin, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
+	treasury, AccountId, AllExceptReapStash, AllPalletsWithSystem, AssetConversion, Assets,
+	Balance, Balances, CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin,
+	ForeignAssets, GeneralAdmin, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm,
+	PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
+	RuntimeOrigin, StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -515,7 +515,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = CallFilter;
+	type SafeCallFilter = AllExceptReapStash;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
