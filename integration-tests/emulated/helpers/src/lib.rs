@@ -37,13 +37,55 @@ pub mod common;
 /// test crates share one definition. The polkadot-sdk emulated tests define the same
 /// macro per-test-crate (it is not exported from `emulated-integration-tests-common`),
 /// so we cannot pull it from upstream and instead host it here.
+// TODO: remove on `stable2606` bump — upstream exports these from
+// `emulated-integration-tests-common` (see paritytech/polkadot-sdk#12003).
 #[macro_export]
 macro_rules! assets_balance_on {
 	( $chain:ident, $id:expr, $who:expr ) => {
 		$crate::paste::paste! {
-			<$chain>::execute_with(|| {
+			<$chain>::ext_wrapper(|| {
 				type Assets = <$chain as [<$chain Pallet>]>::Assets;
 				<Assets as frame_support::traits::fungibles::Inspect<_>>::balance($id, $who)
+			})
+		}
+	};
+}
+
+/// Read the balance of a `ForeignAssets`-pallet asset on a chain.
+///
+/// Centralised here so the asset-hub-{kusama,polkadot} and bridge-hub-{kusama,polkadot}
+/// test crates share one definition. The polkadot-sdk emulated tests define the same
+/// macro per-test-crate (it is not exported from `emulated-integration-tests-common`),
+/// so we cannot pull it from upstream and instead host it here.
+// TODO: remove on `stable2606` bump — upstream exports these from
+// `emulated-integration-tests-common` (see paritytech/polkadot-sdk#12003).
+#[macro_export]
+macro_rules! foreign_balance_on {
+	( $chain:ident, $id:expr, $who:expr ) => {
+		$crate::paste::paste! {
+			<$chain>::ext_wrapper(|| {
+				type ForeignAssets = <$chain as [<$chain Pallet>]>::ForeignAssets;
+				<ForeignAssets as frame_support::traits::fungibles::Inspect<_>>::balance($id, $who)
+			})
+		}
+	};
+}
+
+/// Whether an `Assets`-pallet asset exists on a chain.
+///
+/// Centralised here so the asset-hub-{kusama,polkadot} and bridge-hub-{kusama,polkadot}
+/// test crates share one definition. The polkadot-sdk emulated tests define the same
+/// macro per-test-crate (it is not exported from `emulated-integration-tests-common`),
+/// so we cannot pull it from upstream and instead host it here.
+// TODO: remove on `stable2606` bump — upstream exports these from
+// `emulated-integration-tests-common` (see paritytech/polkadot-sdk#12003).
+#[macro_export]
+macro_rules! asset_exists_on {
+	( $chain:ident, $id:expr ) => {
+		$crate::paste::paste! {
+			<$chain>::ext_wrapper(|| {
+				type Assets = <$chain as [<$chain Pallet>]>::Assets;
+				<Assets as frame_support::traits::fungibles::Inspect<_>>::asset_exists($id)
 			})
 		}
 	};

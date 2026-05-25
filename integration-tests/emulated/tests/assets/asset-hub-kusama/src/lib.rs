@@ -47,8 +47,8 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, RESERVABLE_ASSET_ID, XCM_V5,
 };
 pub use integration_tests_helpers::{
-	assets_balance_on, test_parachain_is_trusted_teleporter_for_relay,
-	test_relay_is_trusted_teleporter,
+	asset_exists_on, assets_balance_on, foreign_balance_on,
+	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 pub use kusama_runtime::{xcm_config::UniversalLocation as KusamaUniversalLocation, Dmp};
 pub use kusama_system_emulated_network::{
