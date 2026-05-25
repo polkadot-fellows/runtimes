@@ -3144,7 +3144,7 @@ mod tests {
 			stash: AccountId::from([0u8; 32]),
 			num_slashing_spans: 0,
 		});
-		assert_eq!(AllExceptReapStash::contains(&call), false);
+		assert!(!AllExceptReapStash::contains(&call));
 	}
 
 	#[test]
