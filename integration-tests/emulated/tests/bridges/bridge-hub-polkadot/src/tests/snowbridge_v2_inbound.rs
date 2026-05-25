@@ -624,9 +624,12 @@ fn send_token_to_penpal_v2() {
 			]
 		);
 
-		// Beneficiary received the token transfer value
+		// Beneficiary received the token transfer value.
 		assert_eq!(
-			ForeignAssets::balance(token_location, AccountId::from(beneficiary_acc_bytes)),
+			<PenpalB as PenpalBPallet>::Assets::balance(
+				token_location,
+				AccountId::from(beneficiary_acc_bytes),
+			),
 			TOKEN_AMOUNT
 		);
 	});

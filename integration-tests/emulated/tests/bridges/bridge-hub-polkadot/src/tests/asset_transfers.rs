@@ -19,9 +19,6 @@ use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
 
 fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
-	// fund the PAH's SA on PBH for paying bridge transport fees
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 10_000_000_000_000u128);
-
 	// set XCM versions
 	let local_asset_hub = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
 	PenpalB::force_xcm_version(local_asset_hub.clone(), XCM_VERSION);

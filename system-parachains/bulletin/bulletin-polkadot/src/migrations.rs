@@ -26,6 +26,7 @@ pub type Unreleased = (
 	>,
 	// Migrate TransactionInfo from v0 to v1 (adds hashing and cid_codec fields).
 	pallet_bulletin_transaction_storage::migrations::v1::MigrateV0ToV1<Runtime>,
+	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.

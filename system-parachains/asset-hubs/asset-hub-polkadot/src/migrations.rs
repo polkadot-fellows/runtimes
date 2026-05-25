@@ -84,6 +84,7 @@ pub type Unreleased = (
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	// DAP V1->V2: seed `BudgetAllocation` and `LastIssuanceTimestamp`, credit a one-shot
 	// catch-up drip. Required when moving staking to non-minting mode (see SDK PR #11616).
 	pallet_dap::migrations::MigrateV1ToV2<
@@ -133,6 +134,8 @@ mod multiblock_migrations {
 			ForeignAssetsInstance,
 			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
 		>,
+		// Not added: we do it with a manual TX
+		//pallet_revive::migrations::v3::Migration<Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

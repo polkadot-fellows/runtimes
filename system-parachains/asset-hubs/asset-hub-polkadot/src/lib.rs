@@ -263,8 +263,8 @@ impl frame_system::Config for Runtime {
 	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
+	type OnNewAccount = pallet_revive::AutoMapper<Runtime>;
+	type OnKilledAccount = pallet_revive::AutoMapper<Runtime>;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
@@ -362,8 +362,10 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
+	type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<
+		Balances,
+		ResolveTo<staking::DapStagingAccount, Balances>,
+	>;
 	type WeightToFee = DotWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -974,7 +976,7 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 		DotLocation,
 		NativeAndAssets,
 		AssetConversion,
-		ResolveAssetTo<StakingPot, NativeAndAssets>,
+		ResolveAssetTo<staking::DapStagingAccount, NativeAndAssets>,
 	>;
 	type WeightInfo = weights::pallet_asset_conversion_tx_payment::WeightInfo<Self>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -1152,7 +1154,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
 	type PoolSetupFeeAsset = DotLocation;
-	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
+	type PoolSetupFeeTarget = ResolveAssetTo<staking::DapStagingAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = LpFee;
 	type PalletId = AssetConversionPalletId;
@@ -1465,7 +1467,7 @@ impl pallet_revive::Config for Runtime {
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
-	type AutoMap = ConstBool<false>;
+	type AutoMap = ConstBool<true>;
 	type GasScale = ConstU32<80_000>;
 	type OnBurn = Dap;
 }
