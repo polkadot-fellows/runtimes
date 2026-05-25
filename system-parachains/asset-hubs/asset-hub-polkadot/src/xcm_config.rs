@@ -18,8 +18,8 @@ pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
 	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
-	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
+	CallFilter, CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets,
+	GeneralAdmin, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
 	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
 };
@@ -515,7 +515,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = Everything;
+	type SafeCallFilter = CallFilter;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();

@@ -123,9 +123,9 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
-		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
-		TransformOrigin, WithdrawReasons,
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
+		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
+		PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -244,9 +244,24 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+/// Calls that are temporarily disabled at the runtime level.
+///
+/// The network is transitioning to a higher validator self-stake requirement
+/// (`MinValidatorBond`). During this transition, `reap_stash` is filtered out to protect
+/// previously-safe validators from getting permissionlessly reaped during the transition period.
+///
+/// The filter is intended to be removed once the transition completes and all active set validators
+/// are consistently above the new minimum. Other staking calls remain permitted.
+pub struct CallFilter;
+impl Contains<RuntimeCall> for CallFilter {
+	fn contains(call: &RuntimeCall) -> bool {
+		!matches!(call, RuntimeCall::Staking(pallet_staking_async::Call::reap_stash { .. }))
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = CallFilter;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -3121,5 +3136,34 @@ mod tests {
 			ProxyType::NonTransfer.filter(&call),
 			"NonTransfer proxy must allow MultiAssetBounties::propose_curator",
 		);
+	}
+
+	#[test]
+	fn call_filter_blocks_reap_stash() {
+		let call = RuntimeCall::Staking(pallet_staking_async::Call::reap_stash {
+			stash: AccountId::from([0u8; 32]),
+			num_slashing_spans: 0,
+		});
+		assert_eq!(CallFilter::contains(&call), false);
+	}
+
+	#[test]
+	fn call_filter_permits_other_staking_calls() {
+		let bond = RuntimeCall::Staking(pallet_staking_async::Call::bond {
+			value: 1_000_000_000_000,
+			payee: pallet_staking_async::RewardDestination::Stash,
+		});
+		let validate = RuntimeCall::Staking(pallet_staking_async::Call::validate {
+			prefs: pallet_staking_async::ValidatorPrefs::default(),
+		});
+		let chill = RuntimeCall::Staking(pallet_staking_async::Call::chill {});
+		let chill_other = RuntimeCall::Staking(pallet_staking_async::Call::chill_other {
+			stash: AccountId::from([0u8; 32]),
+		});
+
+		assert!(CallFilter::contains(&bond));
+		assert!(CallFilter::contains(&validate));
+		assert!(CallFilter::contains(&chill));
+		assert!(CallFilter::contains(&chill_other));
 	}
 }
