@@ -25,7 +25,8 @@ use frame_support::{
 	traits::{Contains, EitherOfDiverse, Equals},
 };
 use pallet_bulletin_transaction_storage::{
-	CallInspector, DEFAULT_MAX_BLOCK_TRANSACTIONS, DEFAULT_MAX_TRANSACTION_SIZE,
+	CallInspector, EnsureAllowedAuthorizers, DEFAULT_MAX_BLOCK_TRANSACTIONS,
+	DEFAULT_MAX_TRANSACTION_SIZE,
 };
 use pallet_xcm::EnsureXcm;
 use sp_runtime::transaction_validity::{TransactionLongevity, TransactionPriority};
@@ -97,11 +98,17 @@ impl pallet_bulletin_transaction_storage::Config for Runtime {
 	type MaxTransactionSize = crate::ConstU32<{ DEFAULT_MAX_TRANSACTION_SIZE }>;
 	type MaxPermanentStorageSize = MaxPermanentStorageSize;
 	type AuthorizationPeriod = AuthorizationPeriod;
+	type AuthorizerRegistrarOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Authorizer = EitherOfDiverse<
-		// Root can do whatever.
-		frame_system::EnsureRoot<Self::AccountId>,
-		// The People Chain can authorize for storage allowances.
-		EnsureXcm<Equals<PeopleLocation>>,
+		EitherOfDiverse<
+			// Root can do whatever.
+			frame_system::EnsureRoot<Self::AccountId>,
+			// The People Chain can authorize for storage allowances.
+			EnsureXcm<Equals<PeopleLocation>>,
+		>,
+		// Accounts registered in `AllowedAuthorizers` storage (managed via
+		// `add_authorizer` / `remove_authorizer`).
+		EnsureAllowedAuthorizers<Runtime>,
 	>;
 	type StoreRenewPriority = StoreRenewPriority;
 	type StoreRenewLongevity = StoreRenewLongevity;

@@ -25,6 +25,7 @@ bulletin-pallets-common = { workspace = true }
 bulletin-transaction-storage-primitives = { workspace = true }
 pallet-bulletin-hop-promotion = { workspace = true }
 pallet-bulletin-transaction-storage = { workspace = true }
+pallet-bulletin-transaction-storage-runtime-api = { workspace = true }
 sp-hop = { workspace = true }
 
 # Substrate
@@ -125,6 +126,7 @@ std = [
 	"pallet-authorship/std",
 	"pallet-balances/std",
 	"pallet-bulletin-hop-promotion/std",
+	"pallet-bulletin-transaction-storage-runtime-api/std",
 	"pallet-bulletin-transaction-storage/std",
 	"pallet-collator-selection/std",
 	"pallet-message-queue/std",

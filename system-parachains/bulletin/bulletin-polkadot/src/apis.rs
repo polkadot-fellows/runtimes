@@ -579,6 +579,25 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl pallet_bulletin_transaction_storage_runtime_api::BulletinTransactionStorageApi<Block, AccountId, BlockNumber> for Runtime {
+		fn account_authorization(
+			account: AccountId,
+		) -> Option<pallet_bulletin_transaction_storage_runtime_api::AccountAuthorization<BlockNumber>> {
+			pallet_bulletin_transaction_storage::Pallet::<Runtime>::account_authorization(account)
+		}
+
+		fn can_store(account: AccountId, data_len: u32) -> bool {
+			pallet_bulletin_transaction_storage::Pallet::<Runtime>::can_store(&account, data_len)
+		}
+
+		fn can_renew(
+			account: AccountId,
+			entry: pallet_bulletin_transaction_storage::TransactionRef<BlockNumber>,
+		) -> bool {
+			pallet_bulletin_transaction_storage::Pallet::<Runtime>::can_renew(&account, &entry)
+		}
+	}
+
 	impl sp_hop::HopRuntimeApi<Block, AccountId> for Runtime {
 		fn can_account_promote(who: AccountId, data_len: u32) -> bool {
 			pallet_bulletin_hop_promotion::Pallet::<Runtime>::can_account_promote(&who, data_len)
