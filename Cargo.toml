@@ -39,10 +39,10 @@ bp-relayers = { version = "0.28.0", default-features = false }
 bp-runtime = { version = "0.27.1", default-features = false }
 bp-xcm-bridge-hub = { version = "0.13.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.24.0", default-features = false }
-bulletin-pallets-common = { version = "0.3.0-draft", default-features = false }
+bulletin-pallets-common = { version = "0.4.0-draft", default-features = false }
 bulletin-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot" }
 bulletin-polkadot-runtime = { path = "system-parachains/bulletin/bulletin-polkadot" }
-bulletin-transaction-storage-primitives = { version = "0.3.0-draft", default-features = false }
+bulletin-transaction-storage-primitives = { version = "0.4.0-draft", default-features = false }
 bridge-hub-common = { version = "0.21.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
@@ -117,9 +117,9 @@ pallet-bridge-messages = { version = "0.28.0", default-features = false }
 pallet-bridge-parachains = { version = "0.28.0", default-features = false }
 pallet-bridge-relayers = { version = "0.28.0", default-features = false }
 pallet-broker = { version = "0.27.0", default-features = false }
-pallet-bulletin-hop-promotion = { version = "0.3.0-draft", default-features = false }
-pallet-bulletin-transaction-storage = { version = "0.3.0-draft", default-features = false }
-pallet-bulletin-transaction-storage-runtime-api = { version = "0.3.0-draft", default-features = false }
+pallet-bulletin-hop-promotion = { version = "0.4.0-draft", default-features = false }
+pallet-bulletin-transaction-storage = { version = "0.4.0-draft", default-features = false }
+pallet-bulletin-transaction-storage-runtime-api = { version = "0.4.0-draft", default-features = false }
 pallet-child-bounties = { version = "47.0.0", default-features = false }
 pallet-collator-selection = { version = "29.0.0", default-features = false }
 pallet-collective = { version = "48.0.0", default-features = false }
