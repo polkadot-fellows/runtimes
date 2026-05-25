@@ -226,8 +226,7 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			Slots(..) |
 			Auctions(..) |
 			AssetRate(..) |
-			Society(..) |
-			Recovery(..) => false,
+			Society(..) => false,
 
 			// Crowdloan: only dissolve, refund, and withdraw are allowed.
 			Crowdloan(
@@ -1248,24 +1247,6 @@ impl pallet_multisig::Config for Runtime {
 }
 
 parameter_types! {
-	pub const RecoverySecurityDeposit: Balance = 500 * CENTS;
-}
-
-impl pallet_recovery::Config for Runtime {
-	type RuntimeCall = RuntimeCall;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type BlockNumberProvider = frame_system::Pallet<Runtime>;
-	type Currency = Balances;
-	type FriendGroupsConsideration = ();
-	type AttemptConsideration = ();
-	type InheritorConsideration = ();
-	type SecurityDeposit = RecoverySecurityDeposit;
-	type Slash = (); // burn
-	type MaxFriendsPerConfig = ConstU32<9>;
-	type WeightInfo = ();
-}
-
-parameter_types! {
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
 
@@ -1377,13 +1358,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::Claims(..) |
 				RuntimeCall::Utility(..) |
 				RuntimeCall::Society(..) |
-				RuntimeCall::Recovery(pallet_recovery::Call::set_friend_groups {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::initiate_attempt {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::approve_attempt {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::finish_attempt {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::cancel_attempt {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::slash_attempt {..}) |
-				// Specifically omitting Recovery `control_inherited_account`, `revoke_inheritor`
 				RuntimeCall::Vesting(pallet_vesting::Call::vest {..}) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest_other {..}) |
 				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
@@ -2001,9 +1975,6 @@ construct_runtime! {
 		// Society module.
 		Society: pallet_society = 26,
 
-		// Social recovery module.
-		Recovery: pallet_recovery = 27,
-
 		// Vesting. Usable initially, but removed once all vesting is finished.
 		Vesting: pallet_vesting = 28,
 
@@ -2129,12 +2100,22 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
+	parameter_types! {
+		pub const RecoveryPalletName: &'static str = "Recovery";
+	}
+
+	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
+		RecoveryPalletName,
+		<crate::Runtime as frame_system::Config>::DbWeight,
+	>;
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		RemoveRecoveryPallet,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2199,7 +2180,6 @@ mod benches {
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_ranked_collective, FellowshipCollective]
-		[pallet_recovery, Recovery]
 		[pallet_referenda, Referenda]
 		[pallet_referenda, FellowshipReferenda]
 		[pallet_scheduler, Scheduler]

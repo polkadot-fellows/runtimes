@@ -20,6 +20,7 @@ pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
 	MigrateBountyAccountAssets,
+	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -160,6 +161,9 @@ mod multiblock_migrations {
 			ForeignAssetsInstance,
 			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
 		>,
+		// Not added: we do it with a manual TX
+		//pallet_revive::migrations::v3::Migration<Runtime>,
+		pallet_recovery::migrations::v1::MigrateV0ToV1<crate::Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

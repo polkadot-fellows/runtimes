@@ -18,10 +18,10 @@ pub use genesis::{genesis, PenpalAssetOwner, ED, PARA_ID_A, PARA_ID_B};
 pub use penpal_runtime::{
 	self,
 	xcm_config::{
-		CustomizableAssetFromSystemAssetHub, LocalReservableFromAssetHub,
-		LocalTeleportableToAssetHub, RelayNetworkId as PenpalRelayNetworkId, XcmConfig,
-		ASSET_HUB_ASSETS_PALLET_ID as ASSETS_PALLET_ID,
-		PEN2_TELEPORTABLE_GENERAL_INDEX as TELEPORTABLE_ASSET_ID, RESERVABLE_ASSET_ID,
+		CustomizableAssetFromSystemAssetHub, LocalPen2Asset, LocalReservableFromAssetHub,
+		LocalTeleportableToAssetHub, PenpalNativeCurrency, RelayNetworkId as PenpalRelayNetworkId,
+		XcmConfig, ASSET_HUB_ASSETS_PALLET_ID, PEN2_TELEPORTABLE_GENERAL_INDEX,
+		PENPAL_ASSETS_PALLET_ID, RESERVABLE_ASSET_ID,
 	},
 };
 
@@ -58,7 +58,6 @@ decl_test_parachains! {
 		pallets = {
 			PolkadotXcm: penpal_runtime::PolkadotXcm,
 			Assets: penpal_runtime::Assets,
-			ForeignAssets: penpal_runtime::Assets,
 			AssetConversion: penpal_runtime::AssetConversion,
 			Balances: penpal_runtime::Balances,
 		}
@@ -82,7 +81,6 @@ decl_test_parachains! {
 		pallets = {
 			PolkadotXcm: penpal_runtime::PolkadotXcm,
 			Assets: penpal_runtime::Assets,
-			ForeignAssets: penpal_runtime::Assets,
 			AssetConversion: penpal_runtime::AssetConversion,
 			Balances: penpal_runtime::Balances,
 		}

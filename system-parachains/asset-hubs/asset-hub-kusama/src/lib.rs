@@ -213,8 +213,8 @@ impl frame_system::Config for Runtime {
 	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
+	type OnNewAccount = pallet_revive::AutoMapper<Runtime>;
+	type OnKilledAccount = pallet_revive::AutoMapper<Runtime>;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
@@ -1267,7 +1267,7 @@ impl pallet_revive::Config for Runtime {
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
-	type AutoMap = ConstBool<false>;
+	type AutoMap = ConstBool<true>;
 	type GasScale = ConstU32<100_000>;
 	type OnBurn = ();
 }
@@ -1400,7 +1400,14 @@ parameter_types! {
 impl pallet_recovery::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	// Benchmarks for `finish_attempt` / `cancel_attempt` advance `frame_system`'s block number,
+	// which does not move `RelaychainDataProvider`, causing `NotYetInheritable` /
+	// `NotYetCancelable`. Use `frame_system` under the benchmarking feature so the time-delay
+	// guards can be satisfied.
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BlockNumberProvider = frame_system::Pallet<Runtime>;
 	type Currency = Balances;
 	type FriendGroupsConsideration = HoldConsideration<
 		AccountId,
@@ -1424,6 +1431,10 @@ impl pallet_recovery::Config for Runtime {
 	type Slash = (); // burn
 	type MaxFriendsPerConfig = ConstU32<9>;
 	type WeightInfo = weights::pallet_recovery::WeightInfo<Runtime>;
+}
+
+impl pallet_recovery::migrations::v0::MigrationConfig for Runtime {
+	type Currency = Balances;
 }
 
 /// Defines what origin can modify which dynamic parameters.

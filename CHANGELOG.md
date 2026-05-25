@@ -8,7 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+- PAH: staking switched to non-minting; emission via `pallet-dap` drips ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: `DapStagingAccount` is the sink for fees, slashes and `RewardRemainder` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- KAH: `pallet_recovery` modernized ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: add asset-conversion and vesting precompiles ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+
+### Changed
+
+- Enable multiple blocks per slot for all remaining system parachains (BridgeHub Polkadot/Kusama, Coretime Polkadot/Kusama, Collectives Polkadot) ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
+- Update all runtimes to `polkadot-sdk` `unstable2604` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: K↔P bridge router exports unpaid (`UnpaidExport = true`) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: redirect XCM trader fees (native and swap) to `DapStagingAccount` instead of `StakingPot` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+
+### Removed
+
+- KAH: remove `pallet_recovery` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 
 ## [2.2.2] 23.04.2026
 
