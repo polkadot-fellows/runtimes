@@ -246,6 +246,8 @@ parameter_types! {
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
 	// pallet instance. This sovereign account will need funding.
 	pub FellowshipSalaryInteriorLocation: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	// The budget for the Fellowship salary.
+	pub FellowshipSalaryBudget: u128 = crate::dynamic_params::fellowship_salary::SalaryConfig::get().budget;
 }
 
 /// Reads the Fellowship salary asset from the runtime parameters pallet and
@@ -253,7 +255,7 @@ parameter_types! {
 pub struct SalaryAssetId;
 impl TryConvert<(), LocatableAssetId> for SalaryAssetId {
 	fn try_convert(_: ()) -> Result<LocatableAssetId, ()> {
-		let versioned_asset = *crate::dynamic_params::fellowship_salary::Asset::get();
+		let versioned_asset = *crate::dynamic_params::fellowship_salary::SalaryConfig::get().asset;
 		LocatableAssetConverter::try_convert(versioned_asset).map_err(|_| {
 			frame_support::defensive!("FellowshipSalary asset conversion failed");
 		})
@@ -294,7 +296,7 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = crate::dynamic_params::fellowship_salary::Budget;
+	type Budget = FellowshipSalaryBudget;
 }
 
 parameter_types! {

@@ -26,42 +26,42 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
 	pub mod fellowship_salary {
-		/// Fellowship Salary Asset.
+		/// Fellowship Salary Configuration.
 		///
-		/// Defaults to USDT on Asset Hub (`PalletInstance(50)/GeneralIndex(1984)`).
+		/// Defaults to USDT on Asset Hub (`PalletInstance(50)/GeneralIndex(1984)`) asset with 6
+		/// decimals and budget value of 250,000 USDT (i.e., `250_000_000_000` means
+		/// 250,000.000000 USDT).
 		#[codec(index = 0)]
-		pub static Asset: Box<VersionedLocatableAsset> = Box::new(VersionedLocatableAsset::V5 {
-			location: AssetHubLocation::get(),
-			asset_id: AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
-		});
-
-		/// Salary budget for a single period (i.e., `RegistrationPeriod` + `PayoutPeriod`),
-		/// expressed as the raw value of the asset.
-		///
-		/// The current value is for USDT (6 decimals), so a value of `250_000_000_000` means
-		/// 250,000.000000 USDT, i.e. 250,000 USDT in human terms.
-		#[codec(index = 1)]
-		pub static Budget: u128 = 250_000 * 1_000_000;
+		pub static SalaryConfig: crate::parameters::FellowshipSalaryConfig =
+			crate::parameters::FellowshipSalaryConfig {
+				asset: Box::new(VersionedLocatableAsset::V5 {
+					location: AssetHubLocation::get(),
+					asset_id: AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
+				}),
+				budget: 250_000 * 1_000_000,
+			};
 	}
 
 	/// Secretary Salary Parameters.
 	#[dynamic_pallet_params]
 	#[codec(index = 1)]
 	pub mod secretary_salary {
-		/// Secretary Salary for rank 1 in [super::fellowship_salary::Asset], expressed in the raw
-		/// value of the asset (e.g., USDT on Asset Hub with 6 decimals).
+		/// Secretary Salary Configuration.
 		///
-		/// Defaults to 6,666 USDT (6,666_000000) per period.
+		/// Defaults to USDT on Asset Hub (`PalletInstance(50)/GeneralIndex(1984)`) asset with 6
+		/// decimals and budget value of 13,332 USDT (i.e., `13_332_000_000` means
+		/// 13,332.000000 USDT) and salary for rank 1 of 6,666 USDT (i.e., `6666_000000` means
+		/// 6,666.000000 USDT).
 		#[codec(index = 0)]
-		pub static SalaryRank1: u128 = 6666 * 1_000_000;
-
-		/// Salary budget in [super::fellowship_salary::Asset] for a single period (i.e.,
-		/// `RegistrationPeriod` + `PayoutPeriod`), expressed as the raw value of the asset.
-		///
-		/// The current value is for USDT (6 decimals), so a value of `13_332_000_000` means
-		/// 13,332.000000 USDT, i.e. 13,332 USDT in human terms.
-		#[codec(index = 1)]
-		pub static Budget: u128 = 13_332 * 1_000_000;
+		pub static SalaryConfig: crate::parameters::SecretarySalaryConfig =
+			crate::parameters::SecretarySalaryConfig {
+				asset: Box::new(VersionedLocatableAsset::V5 {
+					location: AssetHubLocation::get(),
+					asset_id: AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
+				}),
+				budget: 13_332 * 1_000_000,
+				salary_rank1: 6666 * 1_000_000,
+			};
 	}
 }
 
@@ -114,4 +114,49 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
 		Ok(RuntimeOrigin::root())
 	}
+}
+
+/// Fellowship Salary Configuration.
+#[derive(
+	Encode,
+	Decode,
+	scale_info::TypeInfo,
+	DecodeWithMemTracking,
+	MaxEncodedLen,
+	Clone,
+	PartialEq,
+	Eq,
+	Debug,
+)]
+pub struct FellowshipSalaryConfig {
+	/// Fellowship Salary Asset.
+	pub asset: Box<VersionedLocatableAsset>,
+	/// Fellowship salary budget for a single period (i.e., `RegistrationPeriod` +
+	/// `PayoutPeriod`), expressed as the raw value of the `asset` (e.g., USDT on Asset Hub with 6
+	/// decimals).
+	pub budget: u128,
+}
+
+/// Secretary Salary Configuration.
+#[derive(
+	Encode,
+	Decode,
+	scale_info::TypeInfo,
+	DecodeWithMemTracking,
+	MaxEncodedLen,
+	Clone,
+	PartialEq,
+	Eq,
+	Debug,
+)]
+pub struct SecretarySalaryConfig {
+	/// Secretary Salary Asset.
+	pub asset: Box<VersionedLocatableAsset>,
+	/// Secretary salary budget for a single period (i.e., `RegistrationPeriod` +
+	/// `PayoutPeriod`), expressed as the raw value of the `asset` (e.g., USDT on Asset Hub with 6
+	/// decimals).
+	pub budget: u128,
+	/// Secretary salary for rank 1 in `asset`, expressed in the raw
+	/// value of the asset (e.g., USDT on Asset Hub with 6 decimals).
+	pub salary_rank1: u128,
 }
