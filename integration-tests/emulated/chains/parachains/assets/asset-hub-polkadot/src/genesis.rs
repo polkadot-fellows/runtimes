@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use asset_hub_polkadot_runtime::{
-	xcm_config::{CheckingAccount, StakingPot, TreasuryAccount},
+	xcm_config::{CheckingAccount, TreasuryAccount},
 	Dap,
 };
 use emulated_integration_tests_common::{
@@ -64,7 +64,6 @@ pub fn genesis() -> sp_core::storage::Storage {
 				.into_iter()
 				.chain([
 					TreasuryAccount::get(),
-					StakingPot::get(),
 					Dap::buffer_account(),
 					Dap::staging_account(),
 				])
