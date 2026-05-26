@@ -17,13 +17,13 @@
 //! The Polkadot Secretary Collective.
 
 use crate::{
-	fellowship::{FellowshipAdminBodyId, FellowshipSalaryPaymaster, USDT_UNITS},
+	fellowship::{FellowshipAdminBodyId, FellowshipSalaryPaymaster},
 	*,
 };
-use frame_support::traits::{tokens::GetSalary, EitherOf, MapSuccess, NoOpPoll};
+use frame_support::traits::{tokens::GetSalary, EitherOf, Get, MapSuccess, NoOpPoll};
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use sp_core::{ConstU128, ConstU32};
+use sp_core::ConstU32;
 use sp_runtime::traits::{ConstU16, Identity, Replace};
 
 /// The Secretary members' ranks.
@@ -81,7 +81,7 @@ pub struct SalaryForRank;
 impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
 	fn get_salary(rank: u16, _who: &AccountId) -> Balance {
 		if rank == 1 {
-			6666 * USDT_UNITS
+			crate::dynamic_params::secretary_salary::SalaryRank1::get()
 		} else {
 			0
 		}
@@ -112,5 +112,5 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = ConstU128<{ 13_332 * USDT_UNITS }>;
+	type Budget = crate::dynamic_params::secretary_salary::Budget;
 }

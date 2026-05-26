@@ -22,7 +22,7 @@ use crate::{
 	fellowship::origins::EnsureCanFastPromoteTo,
 	impls::ToParentTreasury,
 	weights,
-	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
+	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetHubLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
 	PolkadotTreasuryAccount, Preimage, RelayChainLocation, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
@@ -30,7 +30,8 @@ use crate::{
 use frame_support::{
 	parameter_types,
 	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+		EitherOf, EitherOfDiverse, Get, MapSuccess, OriginTrait, PalletInfoAccess,
+		TryWithMorphedArg,
 	},
 	PalletId,
 };
@@ -48,9 +49,9 @@ use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOW
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{
-	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst,
+	ConstU16, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst, TryConvert,
 };
-use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
+use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
@@ -247,9 +248,20 @@ parameter_types! {
 	pub FellowshipSalaryInteriorLocation: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
 }
 
-pub const USDT_UNITS: u128 = 1_000_000;
+/// Reads the Fellowship salary asset from the runtime parameters pallet and
+/// resolves it to a [`LocatableAssetId`].
+pub struct SalaryAssetId;
+impl TryConvert<(), LocatableAssetId> for SalaryAssetId {
+	fn try_convert(_: ()) -> Result<LocatableAssetId, ()> {
+		let versioned_asset = *crate::dynamic_params::fellowship_salary::Asset::get();
+		LocatableAssetConverter::try_convert(versioned_asset).map_err(|_| {
+			frame_support::defensive!("FellowshipSalary asset conversion failed");
+		})
+	}
+}
 
-/// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in USDT.
+/// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in the
+/// asset configured via [`crate::dynamic_params::fellowship_salary::Asset`].
 pub type FellowshipSalaryPaymaster = PayOverXcm<
 	FellowshipSalaryInteriorLocation,
 	crate::xcm_config::XcmConfig,
@@ -257,7 +269,7 @@ pub type FellowshipSalaryPaymaster = PayOverXcm<
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	ConvertToValue<AssetHubUsdt>,
+	SalaryAssetId,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
@@ -282,7 +294,7 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = ConstU128<{ 250_000 * USDT_UNITS }>;
+	type Budget = crate::dynamic_params::fellowship_salary::Budget;
 }
 
 parameter_types! {
@@ -385,5 +397,21 @@ mod tests {
 			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
 			assert!(limit.is_none(), "Fellowship has no member limit");
 		}
+	}
+
+	#[test]
+	fn salary_asset_id_defaults_to_usdt_on_asset_hub() {
+		use sp_io::TestExternalities;
+
+		// Provide minimal externalities, as some runtime storage access may occur.
+		let mut ext = TestExternalities::default();
+		ext.execute_with(|| {
+			let asset = SalaryAssetId::try_convert(()).expect("default salary asset is locatable");
+			assert_eq!(asset.location, Location::new(1, [Parachain(1000)]));
+			assert_eq!(
+				asset.asset_id,
+				AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
+			);
+		});
 	}
 }
