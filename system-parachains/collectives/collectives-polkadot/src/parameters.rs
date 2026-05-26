@@ -75,10 +75,12 @@ impl pallet_parameters::Config for Runtime {
 #[cfg(feature = "runtime-benchmarks")]
 impl Default for RuntimeParameters {
 	fn default() -> Self {
-		RuntimeParameters::FellowshipSalary(dynamic_params::fellowship_salary::Parameters::Asset(
-			dynamic_params::fellowship_salary::Asset,
-			None,
-		))
+		RuntimeParameters::FellowshipSalary(
+			dynamic_params::fellowship_salary::Parameters::SalaryConfig(
+				dynamic_params::fellowship_salary::SalaryConfig,
+				None,
+			),
+		)
 	}
 }
 
