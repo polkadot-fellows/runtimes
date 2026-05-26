@@ -18,10 +18,10 @@ pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
 	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
-	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
+	DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin, NativeAndAssets,
+	ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, StakingAdmin, ToKusamaXcmRouter,
+	Treasurer, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -91,7 +91,6 @@ parameter_types! {
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
-	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub PostMigrationTreasuryAccount: AccountId = treasury::TreasuryAccount::get();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
