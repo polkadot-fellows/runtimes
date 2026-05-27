@@ -581,7 +581,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 1_387_000 picoseconds.
-		Weight::from_parts(1_632_055, 0)
+		Weight::from_parts(2_299_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			// Standard Error: 1
 			.saturating_add(Weight::from_parts(351, 0).saturating_mul(n.into()))
