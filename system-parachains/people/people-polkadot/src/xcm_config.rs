@@ -30,13 +30,10 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
-use parachains_common::{
-	xcm_config::{
-		AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
-		AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
-		ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
-	},
-	TREASURY_PALLET_ID,
+use parachains_common::xcm_config::{
+	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains,
+	AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
+	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
@@ -54,7 +51,7 @@ use xcm_builder::{
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -74,17 +71,9 @@ parameter_types! {
 	pub FeeAssetId: AssetId = AssetId(RelayLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub RelayTreasuryLocation: Location =
-		(Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
-	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub DapSatelliteAccount: AccountId = crate::DapSatellitePalletId::get().into_account_truncating();
 }
 
 pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
@@ -208,7 +197,6 @@ pub type Barrier = TrailingSetTopicAsId<
 						(
 							ParentOrParentsPlurality,
 							FellowsPlurality,
-							Equals<RelayTreasuryLocation>,
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
 						),
@@ -229,7 +217,6 @@ pub type Barrier = TrailingSetTopicAsId<
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
 	LocalPlurality,
 );
@@ -277,6 +264,8 @@ impl frame_support::weights::WeightToFee for WeightToStableFee {
 pub type FungibleHollar = ItemOf<AssetsPallet, HollarLocation, AccountId>;
 
 /// All ways of paying for execution fees via XCM.
+// TODO(#1137, SDK#11409): redirect XCM execution fees to DAP satellite once DAP
+// allocates collator budgets
 pub type Traders = (
 	UsingComponents<
 		WeightToNativeFee,
@@ -322,7 +311,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<FungibleTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<FungibleTransactor, DapSatelliteAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
@@ -409,12 +398,4 @@ impl pallet_assets::BenchmarkHelper<Location, ()> for XcmBenchmarkHelper {
 		Location::new(1, Parachain(id))
 	}
 	fn create_reserve_id_parameter(_id: u32) {}
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
 }

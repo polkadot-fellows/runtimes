@@ -115,6 +115,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+	// TODO: once we bump to SDK2604 crates, replace this literal with `sp_dap::DAP_PALLET_ID`.
 	pub const DapPalletId: PalletId = PalletId(*b"dap/buff");
 }
 
@@ -128,6 +129,9 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
+// TODO: once we bump to SDK2604 crates, populate the associated types added upstream
+// (`IssuanceCurve`, `BudgetRecipients`, `Time`, `IssuanceCadence`, `MaxElapsedPerDrip`,
+// `BudgetOrigin`, `WeightInfo`). Mirror AH-Westend wiring.
 impl pallet_dap::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = DapPalletId;

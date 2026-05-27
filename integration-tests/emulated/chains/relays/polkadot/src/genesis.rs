@@ -27,6 +27,7 @@ use polkadot_primitives::{AssignmentId, ValidatorId};
 // Cumulus
 use emulated_integration_tests_common::{accounts, build_genesis_storage, get_host_config};
 use parachains_common::Balance;
+use polkadot_runtime::xcm_config::DapSatelliteAccount;
 use polkadot_runtime_constants::currency::UNITS as DOT;
 
 pub const ED: Balance = polkadot_runtime::ExistentialDeposit::get();
@@ -55,7 +56,12 @@ pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = polkadot_runtime::RuntimeGenesisConfig {
 		system: polkadot_runtime::SystemConfig::default(),
 		balances: polkadot_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+			balances: accounts::init_balances()
+				.iter()
+				.cloned()
+				.chain([DapSatelliteAccount::get()])
+				.map(|k| (k, ENDOWMENT))
+				.collect(),
 			dev_accounts: None,
 		},
 		session: polkadot_runtime::SessionConfig {

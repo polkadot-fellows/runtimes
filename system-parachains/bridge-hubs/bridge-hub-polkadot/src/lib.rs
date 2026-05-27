@@ -160,7 +160,14 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
+	pub type Unreleased = (
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		// Drain residual legacy `py/trsry` balance into the DAP satellite buffer. Idempotent.
+		// TODO: once we bump to SDK2604 crates, swap this for
+		// `pallet_dap_satellite::migrations::DrainLegacyTreasuryToDapSatellite<Runtime>` and
+		// drop the shim.
+		relay_common::dap_satellite_shim::DrainLegacyTreasuryToDapSatellite<Runtime>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -312,7 +319,7 @@ parameter_types! {
 impl pallet_balances::Config for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = DapSatellite;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
@@ -335,6 +342,8 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	// TODO(#1137, SDK#11409): redirect tx fees and XCM execution fees to DAP satellite
+	// once DAP allocates collator budgets
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
@@ -660,6 +669,20 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	// TODO: once we bump to SDK2604 crates, replace this literal with
+	// `sp_dap::DAP_SATELLITE_PALLET_ID`.
+	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
+}
+
+// TODO: once we bump to SDK2604 crates, populate the associated types added upstream
+// (`SendToDap` via `xcm_builder::SendToDapViaTeleport`, `TransferPeriod`, `MinTransferAmount`,
+// `BlockNumberProvider`, `WeightInfo`). Mirror Westend system-chain wiring.
+impl pallet_dap_satellite::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = DapSatellitePalletId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -674,6 +697,7 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		DapSatellite: pallet_dap_satellite = 12,
 
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship = 20,

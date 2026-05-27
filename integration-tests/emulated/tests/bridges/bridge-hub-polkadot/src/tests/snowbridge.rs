@@ -25,7 +25,7 @@ use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
 };
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
-	bridge_to_ethereum_config::EthereumGatewayAddress, xcm_config::RelayTreasuryPalletAccount,
+	bridge_to_ethereum_config::EthereumGatewayAddress, xcm_config::DapSatelliteAccount,
 	EthereumBeaconClient, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
 use codec::Encode;
@@ -309,7 +309,7 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 
 	BridgeHubPolkadot::fund_accounts(vec![
 		(assethub_sovereign.clone(), INITIAL_FUND),
-		(RelayTreasuryPalletAccount::get(), INITIAL_FUND),
+		(DapSatelliteAccount::get(), INITIAL_FUND),
 	]);
 	AssetHubPolkadot::fund_accounts(vec![
 		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),
@@ -1131,7 +1131,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 
 	BridgeHubPolkadot::fund_accounts(vec![
 		(assethub_sovereign.clone(), INITIAL_FUND),
-		(RelayTreasuryPalletAccount::get(), INITIAL_FUND),
+		(DapSatelliteAccount::get(), INITIAL_FUND),
 	]);
 	AssetHubPolkadot::fund_accounts(vec![
 		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),

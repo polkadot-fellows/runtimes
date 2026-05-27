@@ -31,6 +31,7 @@ frame-try-runtime = { optional = true, workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-dap-satellite = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-broker = { workspace = true }
 pallet-multisig = { workspace = true }
@@ -59,6 +60,9 @@ pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+# TODO: dev scaffolding — drop `relay-common` dep when the shim modules it hosts are deleted at
+# SDK2604 bump time.
+relay-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
@@ -110,6 +114,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-broker/std",
 	"pallet-collator-selection/std",
+	"pallet-dap-satellite/std",
 	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-proxy/std",
@@ -126,6 +131,8 @@ std = [
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
+	# TODO: drop this entry when the `relay-common` dep is removed at SDK2604 bump time.
+	"relay-common/std",
 	"scale-info/std",
 	"serde",
 	"serde_json/std",
@@ -164,6 +171,7 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-broker/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
+	"pallet-dap-satellite/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
@@ -177,6 +185,8 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	# TODO: drop this entry when the `relay-common` dep is removed at SDK2604 bump time.
+	"relay-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
@@ -200,6 +210,7 @@ try-runtime = [
 	"pallet-balances/try-runtime",
 	"pallet-broker/try-runtime",
 	"pallet-collator-selection/try-runtime",
+	"pallet-dap-satellite/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-proxy/try-runtime",
@@ -211,6 +222,8 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	# TODO: drop this entry when the `relay-common` dep is removed at SDK2604 bump time.
+	"relay-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-constants/try-runtime",
 ]

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use coretime_polkadot_runtime::xcm_config::{RelayTreasuryPalletAccount, StakingPot};
+use coretime_polkadot_runtime::xcm_config::{DapSatelliteAccount, StakingPot};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
@@ -30,7 +30,7 @@ pub fn genesis() -> Storage {
 		balances: coretime_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
+				.chain([DapSatelliteAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096))
 				.collect(),
 			dev_accounts: None,

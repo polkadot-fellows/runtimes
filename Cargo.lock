@@ -1438,6 +1438,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "primitive-types 0.13.1",
+ "relay-common",
  "scale-info",
  "serde_json",
  "snowbridge-inbound-queue-primitives",
@@ -2620,6 +2621,7 @@ dependencies = [
  "pallet-bridge-parachains",
  "pallet-bridge-relayers",
  "pallet-collator-selection",
+ "pallet-dap-satellite",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
@@ -2638,6 +2640,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
+ "relay-common",
  "scale-info",
  "serde",
  "serde_json",
@@ -3274,6 +3277,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-core-fellowship",
+ "pallet-dap-satellite",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-preimage",
@@ -3297,6 +3301,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
+ "relay-common",
  "scale-info",
  "serde_json",
  "sp-api 41.0.0",
@@ -3691,6 +3696,7 @@ dependencies = [
  "pallet-balances",
  "pallet-broker",
  "pallet-collator-selection",
+ "pallet-dap-satellite",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
@@ -3708,6 +3714,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
+ "relay-common",
  "scale-info",
  "serde",
  "serde_json",
@@ -9833,6 +9840,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-dap-satellite"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5704b02cc2ef3f13b70cb8ad73aa3e8e8dacfeca6917d2d64080e32b64ca4d07"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 46.0.0",
+]
+
+[[package]]
 name = "pallet-delegated-staking"
 version = "13.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11862,6 +11884,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
+ "pallet-dap-satellite",
  "pallet-identity",
  "pallet-message-queue",
  "pallet-migrations",
@@ -11880,6 +11903,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
+ "relay-common",
  "scale-info",
  "serde",
  "serde_json",
@@ -12199,6 +12223,7 @@ dependencies = [
  "pallet-broker",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-dap-satellite",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
@@ -13476,7 +13501,12 @@ checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 name = "relay-common"
 version = "1.0.0"
 dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-dap-satellite",
  "pallet-staking-reward-fn",
+ "parity-scale-codec",
  "polkadot-primitives",
  "sp-runtime 46.0.0",
 ]
