@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the Parity tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629))
 
 ### Changed
 

@@ -30,7 +30,8 @@ use crate::{
 use frame_support::{
 	parameter_types,
 	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+		EitherOf, EitherOfDiverse, EnsureOriginWithArg, Get, MapSuccess, OriginTrait,
+		PalletInfoAccess, TryWithMorphedArg,
 	},
 	PalletId,
 };
@@ -84,9 +85,15 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
 	type Currency = Balances;
-	// Fellows can submit proposals.
+	// Proposals can be submitted by any of:
+	// - a Fellow (rank 3 and above);
+	// - an account in the governance-managed allow-list (e.g. the Parity tip bot);
+	// - the voice of any rank, mapped to the corresponding member account.
 	type SubmitOrigin = EitherOf<
-		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
+		EitherOf<
+			pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
+			EnsureAllowedProposer,
+		>,
 		MapSuccess<
 			TryWithMorphedArg<
 				RuntimeOrigin,
@@ -110,6 +117,41 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
 	type BlockNumberProvider = crate::System;
+}
+
+/// Passes a signed origin whose account is in the [`AllowedProposers`] allow-list.
+///
+/// Lets non-members (e.g. the Parity tip bot) open Fellowship referenda. The allow-list lives in
+/// the [`AllowedProposers`] dynamic parameter (empty by default, managed via the `Parameters`
+/// pallet). See <https://github.com/polkadot-fellows/runtimes/issues/629>.
+///
+/// [`AllowedProposers`]: crate::dynamic_params::fellowship::AllowedProposers
+pub struct EnsureAllowedProposer;
+impl EnsureOriginWithArg<RuntimeOrigin, <RuntimeOrigin as OriginTrait>::PalletsOrigin>
+	for EnsureAllowedProposer
+{
+	type Success = AccountId;
+
+	fn try_origin(
+		o: RuntimeOrigin,
+		_proposal_origin: &<RuntimeOrigin as OriginTrait>::PalletsOrigin,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		match frame_system::ensure_signed(o.clone()) {
+			Ok(who)
+				if crate::dynamic_params::fellowship::AllowedProposers::get().contains(&who) =>
+				Ok(who),
+			_ => Err(o),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(
+		_proposal_origin: &<RuntimeOrigin as OriginTrait>::PalletsOrigin,
+	) -> Result<RuntimeOrigin, ()> {
+		// The allow-list can be empty, so no valid origin can be produced here. Referenda
+		// benchmarks satisfy `SubmitOrigin` through the ranked-member branch instead.
+		Err(())
+	}
 }
 
 pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
@@ -374,6 +416,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use frame_support::assert_ok;
 	use sp_runtime::traits::MaybeConvert;
 
 	type MaxMemberCount =
@@ -385,5 +428,41 @@ mod tests {
 			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
 			assert!(limit.is_none(), "Fellowship has no member limit");
 		}
+	}
+
+	/// Accounts in the governance-managed allow-list can submit Fellowship referenda without being
+	/// ranked members, see <https://github.com/polkadot-fellows/runtimes/issues/629>.
+	#[test]
+	fn allowed_proposers_can_submit_fellowship_referenda() {
+		type SubmitOrigin =
+			<Runtime as pallet_referenda::Config<FellowshipReferendaInstance>>::SubmitOrigin;
+
+		sp_io::TestExternalities::default().execute_with(|| {
+			let bot = AccountId::from([1u8; 32]);
+			// The proposal-origin argument is ignored by the ranked-member and allow-list branches.
+			let proposal_origin = RuntimeOrigin::root().into_caller();
+
+			// The allow-list is empty by default, so a non-member signed account is rejected.
+			assert!(crate::dynamic_params::fellowship::AllowedProposers::get().is_empty());
+			assert!(SubmitOrigin::try_origin(RuntimeOrigin::signed(bot.clone()), &proposal_origin)
+				.is_err());
+
+			// Governance adds the bot to the allow-list through the `Parameters` pallet.
+			assert_ok!(crate::Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				crate::RuntimeParameters::Fellowship(
+					crate::dynamic_params::fellowship::Parameters::AllowedProposers(
+						crate::dynamic_params::fellowship::AllowedProposers,
+						Some(alloc::vec![bot.clone()].try_into().unwrap()),
+					),
+				),
+			));
+
+			// The bot can now submit, and its account is returned as the submitter.
+			assert_eq!(
+				SubmitOrigin::try_origin(RuntimeOrigin::signed(bot.clone()), &proposal_origin).ok(),
+				Some(bot),
+			);
+		});
 	}
 }
