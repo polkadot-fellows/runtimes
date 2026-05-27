@@ -28,7 +28,6 @@ system-parachains-constants = { workspace = true }
 system-parachains-common = { workspace = true, features = ["multi-asset-bounties"] }
 pallet-remote-proxy = { workspace = true }
 
-# Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
 frame-executive = { workspace = true }
@@ -113,7 +112,6 @@ primitive-types = { features = [
 	"scale-info",
 ], workspace = true }
 
-# Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-precompiles = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
@@ -125,7 +123,6 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
-# Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
