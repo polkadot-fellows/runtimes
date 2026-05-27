@@ -27,10 +27,19 @@ parameter_types! {
 
 parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+	pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	AhMigratorPalletName,
+	<Runtime as frame_system::Config>::DbWeight,
+>;
+
+/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Asset Hub
+/// Polkadot is complete and the pallet has been removed from the runtime, see
+/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+	StateTrieMigrationName,
 	<Runtime as frame_system::Config>::DbWeight,
 >;
 
@@ -42,6 +51,7 @@ pub type Unreleased = (
 		TrappedBalanceMember,
 	>,
 	RemoveAhMigratorPallet,
+	RemoveStateTrieMigrationPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
