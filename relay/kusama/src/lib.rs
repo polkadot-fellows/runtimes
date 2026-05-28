@@ -832,8 +832,12 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
-			AhClient(_) =>
-				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
+			AhClient(_) => EitherOfDiverse::<
+				// either local root or StakingAdmin, or same from OpenGov on AH
+				EitherOf<EnsureRoot<AccountId>, StakingAdmin>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
