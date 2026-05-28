@@ -68,6 +68,17 @@ jobs:
           runtime_dir: ${{ matrix.runtime.path }}
           profile: "production"
 
+      - name: Check ${{ matrix.runtime.name }} uncompressed wasm size
+        env:
+          WASM: ${{ steps.srtool_build.outputs.wasm_compressed }}
+          MAX_MIB: ${{ matrix.runtime.max_uncompressed_size_mib }}
+        run: |
+          if [ -z "$MAX_MIB" ]; then
+            echo "::error::No max_uncompressed_size_mib configured for ${{ matrix.runtime.name }} in .github/workflows/runtimes-matrix.json"
+            exit 1
+          fi
+          .github/scripts/check-runtime-size.sh "$WASM" "$MAX_MIB"
+
       - name: Store ${{ matrix.runtime.name }} srtool digest to disk
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime.name }}_srtool_output.json
