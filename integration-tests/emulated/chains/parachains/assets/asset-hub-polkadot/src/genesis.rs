@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use asset_hub_polkadot_runtime::{
-	xcm_config::{CheckingAccount, StakingPot, TreasuryAccount},
+	xcm_config::{CheckingAccount, TreasuryAccount},
 	Dap,
 };
 use emulated_integration_tests_common::{
@@ -62,12 +62,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([
-					TreasuryAccount::get(),
-					StakingPot::get(),
-					Dap::buffer_account(),
-					Dap::staging_account(),
-				])
+				.chain([TreasuryAccount::get(), Dap::buffer_account(), Dap::staging_account()])
 				.map(|k| (k, ED * 4096 * 4096))
 				// pre-fund checking account to avoid pre-funding for every test scenario
 				// teleporting funds to asset hub
