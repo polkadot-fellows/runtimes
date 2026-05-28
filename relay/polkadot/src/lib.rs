@@ -1643,7 +1643,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				// either local root or StakingAdmin, or same from OpenGov on AH
 				EitherOf<EnsureRoot<AccountId>, StakingAdmin>,
 				EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
-			>::ensure_origin(origin.clone()).map(|_success| ()),
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
