@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 - KAH: remove `pallet_recovery` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: filter `staking.reap_stash` from both `BaseCallFilter` and the XCM `SafeCallFilter` while the validator self-stake transition to higher bond. See Ref: [#1890](https://polkadot.subsquare.io/referenda/1890) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Collectives Polkadot: Increase the Secretary Collective salary budget ([#1172](https://github.com/polkadot-fellows/runtimes/pull/1172))
 
 ## [2.2.2] 23.04.2026
 

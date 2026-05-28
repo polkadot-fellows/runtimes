@@ -143,10 +143,7 @@ pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::
 fn asset_hub_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	asset_hub_polkadot_genesis(
 		invulnerables_asset_hub_polkadot(),
-		testnet_accounts_with([
-			// Make sure `StakingPot` is funded for benchmarking purposes.
-			StakingPot::get(),
-		]),
+		testnet_accounts(),
 		para_id,
 		vec![],
 		vec![],

@@ -99,11 +99,6 @@ fn main() -> Result<(), String> {
 			),
 			#[cfg(feature = "coretime-polkadot")]
 			(
-				"coretime-polkadot",
-				Box::new(system_parachains_specs::coretime_polkadot_config) as Box<_>,
-			),
-			#[cfg(feature = "coretime-polkadot")]
-			(
 				"coretime-polkadot-local",
 				Box::new(system_parachains_specs::coretime_polkadot_local_testnet_config) as Box<_>,
 			),
@@ -116,11 +111,6 @@ fn main() -> Result<(), String> {
 			(
 				"people-polkadot-local",
 				Box::new(system_parachains_specs::people_polkadot_local_testnet_config) as Box<_>,
-			),
-			#[cfg(feature = "bulletin-polkadot")]
-			(
-				"bulletin-polkadot",
-				Box::new(system_parachains_specs::bulletin_polkadot_config) as Box<_>,
 			),
 			#[cfg(feature = "bulletin-polkadot")]
 			(
