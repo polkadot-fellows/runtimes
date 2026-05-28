@@ -25,6 +25,8 @@ pub mod extrinsic_weights;
 pub mod frame_system;
 pub mod frame_system_extensions;
 pub mod pallet_balances;
+pub mod pallet_bulletin_hop_promotion;
+pub mod pallet_bulletin_transaction_storage;
 pub mod pallet_collator_selection;
 pub mod pallet_message_queue;
 pub mod pallet_session;

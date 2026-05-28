@@ -22,6 +22,7 @@ emulated-integration-tests-common = { workspace = true }
 # Local
 integration-tests-helpers = { workspace = true }
 bulletin-polkadot-runtime = { workspace = true }
+pallet-bulletin-transaction-storage = { workspace = true, default-features = true }
 polkadot-system-emulated-network = { workspace = true }
 
 [features]
@@ -29,6 +30,7 @@ runtime-benchmarks = [
 	"bulletin-polkadot-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
+	"pallet-bulletin-transaction-storage/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",

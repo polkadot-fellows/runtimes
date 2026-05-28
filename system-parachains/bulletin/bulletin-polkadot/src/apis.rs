@@ -552,4 +552,82 @@ impl_runtime_apis! {
 			ParachainInfo::parachain_id()
 		}
 	}
+
+	impl sp_transaction_storage_proof::runtime_api::TransactionStorageApi<Block> for Runtime {
+		fn retention_period() -> sp_runtime::traits::NumberFor<Block> {
+			TransactionStorage::retention_period()
+		}
+
+		fn indexed_transactions(
+			block: sp_runtime::traits::NumberFor<Block>,
+		) -> alloc::vec::Vec<sp_transaction_storage_proof::IndexedTransactionInfo> {
+			use sp_transaction_storage_proof::IndexedTransactionInfo;
+
+			TransactionStorage::transactions_at(block)
+				.map(|txs| {
+					txs.into_iter()
+						.map(|tx| IndexedTransactionInfo {
+							content_hash: tx.content_hash,
+							size: tx.size,
+							hashing: tx.hashing.into(),
+							cid_codec: tx.cid_codec,
+							extrinsic_index: tx.extrinsic_index,
+						})
+						.collect()
+				})
+				.unwrap_or_default()
+		}
+	}
+
+	impl pallet_bulletin_transaction_storage_runtime_api::BulletinTransactionStorageApi<Block, AccountId, BlockNumber> for Runtime {
+		fn account_authorization(
+			account: AccountId,
+		) -> Option<pallet_bulletin_transaction_storage_runtime_api::AccountAuthorization<BlockNumber>> {
+			pallet_bulletin_transaction_storage::Pallet::<Runtime>::account_authorization(account)
+		}
+
+		fn can_store(account: AccountId, data_len: u32) -> bool {
+			pallet_bulletin_transaction_storage::Pallet::<Runtime>::can_store(&account, data_len)
+		}
+
+		fn can_renew(
+			account: AccountId,
+			entry: pallet_bulletin_transaction_storage::TransactionRef<BlockNumber>,
+		) -> bool {
+			pallet_bulletin_transaction_storage::Pallet::<Runtime>::can_renew(&account, &entry)
+		}
+	}
+
+	impl sp_hop::HopRuntimeApi<Block, AccountId> for Runtime {
+		fn can_account_promote(who: AccountId, data_len: u32) -> bool {
+			pallet_bulletin_hop_promotion::Pallet::<Runtime>::can_account_promote(&who, data_len)
+		}
+
+		fn create_promotion_extrinsic(
+			data: alloc::vec::Vec<u8>,
+			signer: sp_runtime::MultiSigner,
+			signature: sp_runtime::MultiSignature,
+			submit_timestamp: u64,
+		) -> <Block as BlockT>::Extrinsic {
+			use frame_system::offchain::CreateAuthorizedTransaction;
+			<Runtime as CreateAuthorizedTransaction<pallet_bulletin_hop_promotion::Call<Runtime>>>::create_authorized_transaction(
+				pallet_bulletin_hop_promotion::Call::<Runtime>::promote {
+					data,
+					signer,
+					signature,
+					submit_timestamp,
+				}
+				.into(),
+			)
+		}
+
+		fn max_promotion_size() -> u32 {
+			use frame_support::traits::Get;
+			<Runtime as pallet_bulletin_transaction_storage::Config>::MaxTransactionSize::get()
+		}
+
+		fn is_promoted_on_chain(hash: [u8; 32]) -> bool {
+			pallet_bulletin_hop_promotion::Pallet::<Runtime>::is_promoted_on_chain(hash)
+		}
+	}
 }

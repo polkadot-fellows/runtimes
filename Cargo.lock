@@ -2806,6 +2806,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bulletin-pallets-common"
+version = "0.5.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8af5532f1825e0da4c301a7bb1ab18471b28de8f0330553bc673d1c7b77485b1"
+dependencies = [
+ "pallet-proxy",
+ "pallet-sudo",
+ "pallet-utility",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
 name = "bulletin-polkadot-emulated-chain"
 version = "1.0.0"
 dependencies = [
@@ -2826,6 +2840,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "integration-tests-helpers",
+ "pallet-bulletin-transaction-storage",
  "parachains-common",
  "polkadot-system-emulated-network",
  "staging-xcm",
@@ -2836,6 +2851,8 @@ dependencies = [
 name = "bulletin-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "bulletin-pallets-common",
+ "bulletin-transaction-storage-primitives",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -2857,6 +2874,9 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bulletin-hop-promotion",
+ "pallet-bulletin-transaction-storage",
+ "pallet-bulletin-transaction-storage-runtime-api",
  "pallet-collator-selection",
  "pallet-message-queue",
  "pallet-session",
@@ -2881,6 +2901,7 @@ dependencies = [
  "sp-consensus-aura",
  "sp-core 41.0.0",
  "sp-genesis-builder 0.23.0",
+ "sp-hop",
  "sp-inherents 42.0.0",
  "sp-io 46.0.0",
  "sp-keyring",
@@ -2889,6 +2910,7 @@ dependencies = [
  "sp-session",
  "sp-storage 23.0.0",
  "sp-transaction-pool",
+ "sp-transaction-storage-proof",
  "sp-version 45.0.0",
  "sp-weights 34.0.0",
  "staging-parachain-info",
@@ -2898,6 +2920,20 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "xcm-runtime-apis",
+]
+
+[[package]]
+name = "bulletin-transaction-storage-primitives"
+version = "0.5.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc7330ccd3c13364145d8aef13f5a6f18dab71c398542ca86b4c74b937f1422c"
+dependencies = [
+ "cid 0.11.1",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io 46.0.0",
+ "sp-transaction-storage-proof",
+ "tracing",
 ]
 
 [[package]]
@@ -9926,6 +9962,52 @@ dependencies = [
  "sp-arithmetic",
  "sp-core 41.0.0",
  "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "pallet-bulletin-hop-promotion"
+version = "0.5.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b17858fc30bd3ed5d4b6f521eb4eb1d383919fa3c1b0436d998b60d6752d572"
+dependencies = [
+ "bulletin-transaction-storage-primitives",
+ "frame-support",
+ "frame-system",
+ "pallet-bulletin-transaction-storage",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "pallet-bulletin-transaction-storage"
+version = "0.5.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff080fcd90dbff5fe9d88455013f50a8de48d7589cff0bf5edb40a57e51f3f4e"
+dependencies = [
+ "array-bytes 6.2.3",
+ "bulletin-transaction-storage-primitives",
+ "pallet-bulletin-transaction-storage-runtime-api",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+ "sp-transaction-storage-proof",
+ "tracing",
+]
+
+[[package]]
+name = "pallet-bulletin-transaction-storage-runtime-api"
+version = "0.5.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2454ab47cabfad10b0a8fc929030c80bce1016eb816df1bcb3b1146c090bd10"
+dependencies = [
+ "bulletin-transaction-storage-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 42.0.0",
 ]
 
 [[package]]
@@ -17162,6 +17244,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sp-hop"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fca325b1970c01a8ba3b085cba67f6cb507dbb128e11a8ed248d6684edcd162a"
+dependencies = [
+ "parity-scale-codec",
+ "sp-api 42.0.0",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
 name = "sp-inherents"
 version = "39.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17679,6 +17772,22 @@ checksum = "bd9caa506f1b9865e6f79b8d24401fe687aa323151f252d62b1b79ebd4084e91"
 dependencies = [
  "sp-api 42.0.0",
  "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "sp-transaction-storage-proof"
+version = "42.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce86ffe8a02bf8363dea6836438f96dfd0812ef0dc35324fef1827592b921f1f"
+dependencies = [
+ "async-trait",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 42.0.0",
+ "sp-core 41.0.0",
+ "sp-inherents 42.0.0",
+ "sp-runtime 47.0.0",
+ "sp-trie 44.0.0",
 ]
 
 [[package]]

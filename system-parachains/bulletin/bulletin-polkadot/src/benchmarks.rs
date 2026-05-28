@@ -28,4 +28,6 @@ frame_benchmarking::define_benchmarks!(
 	[pallet_xcm_benchmarks::generic, XcmGeneric]
 	[cumulus_pallet_weight_reclaim, WeightReclaim]
 	[pallet_utility, Utility]
+	[pallet_bulletin_transaction_storage, TransactionStorage]
+	[pallet_bulletin_hop_promotion, HopPromotion]
 );
