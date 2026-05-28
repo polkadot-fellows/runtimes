@@ -22,7 +22,6 @@ fi
 LIMIT_BYTES=$((LIMIT_MIB * 1024 * 1024))
 
 # Substrate's compressed-blob magic prefix (8 bytes) precedes the zstd payload.
-# Source: polkadot-sdk substrate/primitives/maybe-compressed-blob/src/lib.rs
 ZSTD_PREFIX_HEX="52bc537646db8e05"
 
 COMPRESSED_BYTES=$(wc -c < "$WASM")
