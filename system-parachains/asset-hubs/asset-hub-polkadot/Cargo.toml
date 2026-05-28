@@ -9,7 +9,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-pallet-ah-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -29,7 +28,6 @@ polkadot-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
 system-parachains-common = { workspace = true, features = ["multi-asset-bounties"] }
 
-# Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
 frame-executive = { workspace = true }
@@ -113,7 +111,6 @@ primitive-types = { features = [
 pallet-dap = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 
-# Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 pallet-xcm-precompiles = { workspace = true }
@@ -126,7 +123,6 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
-# Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
@@ -166,7 +162,6 @@ substrate-wasm-builder = { optional = true, workspace = true }
 default = ["std"]
 
 polkadot-ahm = [
-	"pallet-ah-migrator/polkadot-ahm",
 	"pallet-rc-migrator/polkadot-ahm",
 	"polkadot-runtime/polkadot-ahm",
 ]
@@ -188,7 +183,6 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
-	"pallet-ah-migrator/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
@@ -266,7 +260,6 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-ah-migrator/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
@@ -325,7 +318,6 @@ try-runtime = [
 	"system-parachains-constants/try-runtime",
 ]
 std = [
-	"pallet-ah-migrator/std",
 
 	"assets-common/std",
 	"authority-discovery-primitives/std",

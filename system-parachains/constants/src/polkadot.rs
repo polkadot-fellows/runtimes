@@ -101,8 +101,8 @@ pub mod currency {
 
 /// Constants related to Polkadot fee payment.
 pub mod fee {
-	use frame_support::weights::constants::ExtrinsicBaseWeight;
 	use polkadot_core_primitives::Balance;
+	use polkadot_runtime_constants::weights::ExtrinsicBaseWeight;
 	pub use sp_runtime::Perbill;
 
 	/// The block saturation level. Fees will be updates based on this value.

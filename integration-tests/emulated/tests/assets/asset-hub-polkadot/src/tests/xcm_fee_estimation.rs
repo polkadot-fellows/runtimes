@@ -235,11 +235,11 @@ fn sender_assertions(test: ParaToParaThroughAHTest) {
 		PenpalB,
 		vec![
 			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Burned { asset_id, owner, balance }
+				pallet_assets::Event::Withdrawn { asset_id, who, amount }
 			) => {
 				asset_id: *asset_id == Location::parent(),
-				owner: *owner == test.sender.account_id,
-				balance: *balance == test.args.amount,
+				who: *who == test.sender.account_id,
+				amount: *amount == test.args.amount,
 			},
 		]
 	);
@@ -253,7 +253,7 @@ fn hop_assertions(test: ParaToParaThroughAHTest) {
 		AssetHubPolkadot,
 		vec![
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { amount, .. }
+				pallet_balances::Event::Withdraw { amount, .. }
 			) => {
 				amount: *amount == test.args.amount,
 			},
@@ -269,10 +269,10 @@ fn receiver_assertions(test: ParaToParaThroughAHTest) {
 		PenpalA,
 		vec![
 			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Issued { asset_id, owner, .. }
+				pallet_assets::Event::Deposited { asset_id, who, .. }
 			) => {
 				asset_id: *asset_id == Location::parent(),
-				owner: *owner == test.receiver.account_id,
+				who: *who == test.receiver.account_id,
 			},
 		]
 	);
@@ -317,10 +317,10 @@ fn pay_fees_sender_assertions(test: ParaToParaThroughAHTest) {
 		PenpalB,
 		vec![
 			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Burned { asset_id, owner, .. }
+				pallet_assets::Event::Withdrawn { asset_id, who, .. }
 			) => {
 				asset_id: *asset_id == Location::parent(),
-				owner: *owner == test.sender.account_id,
+				who: *who == test.sender.account_id,
 			},
 		]
 	);
@@ -334,7 +334,7 @@ fn pay_fees_hop_assertions(_test: ParaToParaThroughAHTest) {
 		AssetHubPolkadot,
 		vec![
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { .. }
+				pallet_balances::Event::Withdraw { .. }
 			) => {},
 		]
 	);
@@ -348,10 +348,10 @@ fn pay_fees_receiver_assertions(test: ParaToParaThroughAHTest) {
 		PenpalA,
 		vec![
 			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Issued { asset_id, owner, .. }
+				pallet_assets::Event::Deposited { asset_id, who, .. }
 			) => {
 				asset_id: *asset_id == Location::parent(),
-				owner: *owner == test.receiver.account_id,
+				who: *who == test.receiver.account_id,
 			},
 		]
 	);

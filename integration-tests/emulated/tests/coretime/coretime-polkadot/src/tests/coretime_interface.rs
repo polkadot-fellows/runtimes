@@ -15,15 +15,16 @@
 
 use crate::*;
 use frame_support::traits::OnInitialize;
-use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
+use pallet_broker::{ConfigRecord, CoreAssignment, CoreMask, ScheduleItem};
 use polkadot_runtime::Dmp;
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use sp_runtime::Perbill;
 
 #[test]
-fn transact_hardcoded_weights_are_sane() {
-	// There are three transacts with hardcoded weights sent from the Coretime Chain to the Relay
-	// Chain across the CoretimeInterface which are triggered at various points in the sales cycle.
+fn broker_transacts_are_processed_by_relay() {
+	// Verify that the three UMP transacts sent from the Coretime Chain to the Relay Chain across
+	// the CoretimeInterface are processed successfully. This serves as a smoke test for the
+	// relay call encoding (pallet index 74, call indices 1-4) and confirms:
 	// - Request core count - triggered directly by `start_sales` or `request_core_count`
 	//   extrinsics.
 	// - Request revenue info - triggered when each timeslice is committed.
@@ -106,8 +107,8 @@ fn transact_hardcoded_weights_are_sane() {
 		);
 	});
 
-	// Check that the request_core_count message was processed successfully. This will fail if the
-	// weights are misconfigured.
+	// Check that the request_core_count message was processed successfully on the relay. This
+	// will fail if the relay call encoding (pallet/call indices) is wrong.
 	Polkadot::execute_with(|| {
 		Polkadot::assert_ump_queue_processed(true, Some(CoretimePolkadot::para_id()), None);
 
@@ -125,47 +126,50 @@ fn transact_hardcoded_weights_are_sane() {
 	// right block.
 	let mut block_number_cursor = Polkadot::ext_wrapper(<Polkadot as Chain>::System::block_number);
 
-	let config = CoretimePolkadot::ext_wrapper(|| {
-		Configuration::<<CoretimePolkadot as Chain>::Runtime>::get()
-			.expect("Pallet was configured earlier.")
-	});
-
-	// Now run up to the block before the sale is rotated.
-	while block_number_cursor < TIMESLICE_PERIOD - config.advance_notice - 1 {
+	// Run blocks until the sale is initialized and a core is assigned. The broker triggers these
+	// events when it detects the relay chain approaching the next timeslice boundary. Exact
+	// timing depends on how many relay blocks each para block advances in the emulator, which can
+	// shift when other parachains' slot durations change, so loop until the events are observed
+	// (with a safety bound).
+	let mut found_sale_initialized = false;
+	let mut found_core_assigned = false;
+	let mut found_upward_message = false;
+	while !(found_sale_initialized && found_core_assigned && found_upward_message) &&
+		block_number_cursor < TIMESLICE_PERIOD * 100
+	// against infinite loop
+	{
 		CoretimePolkadot::execute_with(|| {
 			// Hooks don't run in emulated tests - workaround.
 			<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
 				<CoretimePolkadot as Chain>::System::block_number(),
 			);
+
+			let events = <CoretimePolkadot as Chain>::System::events();
+			for event in &events {
+				match &event.event {
+					CoretimeEvent::Broker(pallet_broker::Event::SaleInitialized { .. }) => {
+						found_sale_initialized = true;
+					},
+					CoretimeEvent::Broker(pallet_broker::Event::CoreAssigned { .. }) => {
+						found_core_assigned = true;
+					},
+					CoretimeEvent::ParachainSystem(
+						cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. },
+					) => {
+						found_upward_message = true;
+					},
+					_ => {},
+				}
+			}
 		});
 
 		Polkadot::ext_wrapper(|| {
 			block_number_cursor = <Polkadot as Chain>::System::block_number();
 		});
 	}
-
-	// In this block we trigger assign core.
-	CoretimePolkadot::execute_with(|| {
-		// Hooks don't run in emulated tests - workaround.
-		<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
-			<CoretimePolkadot as Chain>::System::block_number(),
-		);
-
-		assert_expected_events!(
-			CoretimePolkadot,
-			vec![
-				CoretimeEvent::Broker(
-					pallet_broker::Event::SaleInitialized { .. }
-				) => {},
-				CoretimeEvent::Broker(
-					pallet_broker::Event::CoreAssigned { .. }
-				) => {},
-				CoretimeEvent::ParachainSystem(
-					cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }
-				) => {},
-			]
-		);
-	});
+	assert!(found_sale_initialized);
+	assert!(found_core_assigned);
+	assert!(found_upward_message);
 
 	// In this block we trigger request revenue.
 	CoretimePolkadot::execute_with(|| {
@@ -185,7 +189,7 @@ fn transact_hardcoded_weights_are_sane() {
 	});
 
 	// Check that the assign_core and request_revenue_info_at messages were processed successfully.
-	// This will fail if the weights are misconfigured.
+	// This will fail if the relay call encoding (pallet/call indices) is wrong.
 	Polkadot::execute_with(|| {
 		Polkadot::assert_ump_queue_processed(true, Some(CoretimePolkadot::para_id()), None);
 

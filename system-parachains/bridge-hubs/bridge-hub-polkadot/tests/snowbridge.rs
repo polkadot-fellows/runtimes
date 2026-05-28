@@ -50,7 +50,10 @@ use sp_runtime::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{HandleFee, XcmFeeManagerFromComponents};
-use xcm_executor::traits::{ConvertLocation, FeeManager, FeeReason};
+use xcm_executor::{
+	traits::{ConvertLocation, FeeManager, FeeReason},
+	AssetsInHolding,
+};
 
 parameter_types! {
 	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
@@ -177,7 +180,11 @@ impl Contains<Location> for MockWaivedLocations {
 
 struct MockFeeHandler;
 impl HandleFee for MockFeeHandler {
-	fn handle_fee(fee: Assets, _context: Option<&XcmContext>, _reason: FeeReason) -> Assets {
+	fn handle_fee(
+		fee: AssetsInHolding,
+		_context: Option<&XcmContext>,
+		_reason: FeeReason,
+	) -> AssetsInHolding {
 		fee
 	}
 }
@@ -380,6 +387,7 @@ fn construct_extrinsic(
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
 	let extra: TxExtension = (
+		frame_system::AuthorizeCall::<Runtime>::new(),
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),
@@ -421,7 +429,7 @@ fn check_compatibility_for_token_id_stored_on_ethereum() {
 		/// Output: Stable hash of reanchored location
 		pub foreign: TokenId,
 	}
-	let test_cases = vec![
+	let test_cases = [
 		// DOT
 		RegisterTokenTestCase {
 			native: Location::parent(),

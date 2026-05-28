@@ -17,13 +17,21 @@
 
 use crate::*;
 
-use bridge_hub_kusama_runtime::ExistentialDeposit;
+use bridge_hub_kusama_runtime::{
+	xcm_config::XcmConfig as BridgeHubKusamaXcmConfig, ExistentialDeposit,
+};
 use integration_tests_helpers::test_chain_can_claim_assets;
 
 #[test]
 fn assets_can_be_claimed() {
 	let amount = ExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
+	let assets: Asset = (Parent, amount).into();
 
-	test_chain_can_claim_assets!(AssetHubKusama, RuntimeCall, NetworkId::Kusama, assets, amount);
+	test_chain_can_claim_assets!(
+		BridgeHubKusama,
+		BridgeHubKusamaXcmConfig,
+		NetworkId::Kusama,
+		assets,
+		amount
+	);
 }

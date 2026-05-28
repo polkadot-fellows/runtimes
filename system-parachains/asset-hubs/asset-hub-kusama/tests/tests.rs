@@ -24,8 +24,7 @@ use asset_hub_kusama_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
 		CheckingAccount, KsmLocation, LocationToAccountId, RelayChainLocation,
-		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		RelayTreasuryPalletAccount, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
@@ -44,7 +43,7 @@ use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
 use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
-	traits::{fungibles::InspectEnumerable, ContainsPair, Get},
+	traits::{fungibles::InspectEnumerable, ContainsPair},
 };
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
@@ -227,8 +226,7 @@ asset_test_utils::include_teleports_for_native_asset_works!(
 	Runtime,
 	AllPalletsWithoutSystem,
 	XcmConfig,
-	// TODO: after AHM change this from `()` to `CheckingAccount`
-	(),
+	CheckingAccount,
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
@@ -611,17 +609,6 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 			}
 		},
 	)
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		let relay_treasury_account: AccountId = RelayTreasuryPalletAccount::get();
-		assert_eq!(
-			relay_treasury_account,
-			LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-		)
-	});
 }
 
 #[test]

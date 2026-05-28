@@ -94,7 +94,7 @@ use frame_system::{
 use parachains_common::{
 	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use sp_runtime::RuntimeDebug;
+use sp_runtime::Debug;
 use system_parachains_constants::{
 	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
@@ -130,7 +130,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_002_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -152,7 +152,12 @@ pub type RootOrAllianceTwoThirdsMajority = EitherOfDiverse<
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub RuntimeBlockLength: BlockLength =
-		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+		BlockLength::builder()
+			.max_length(5 * 1024 * 1024)
+			.modify_max_length_for_class(DispatchClass::Normal, |m| {
+				*m = NORMAL_DISPATCH_RATIO * *m
+			})
+			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
@@ -239,7 +244,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxFreezes = ConstU32<0>;
+	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -258,6 +263,9 @@ impl pallet_transaction_payment::Config for Runtime {
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_transaction_payment::BenchmarkConfig for Runtime {}
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
@@ -305,12 +313,14 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Default,
+	Debug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds.
 	NonTransfer,
@@ -327,11 +337,7 @@ pub enum ProxyType {
 	/// Secretary proxy. Allows calls related to the Secretary collective
 	Secretary,
 }
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
-}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
@@ -831,6 +837,7 @@ pub type BlockId = generic::BlockId<Block>;
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
+		frame_system::AuthorizeCall<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -852,7 +859,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -932,7 +939,12 @@ mod benches {
 		}
 	}
 
-	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+	impl cumulus_pallet_session_benchmarking::Config for Runtime {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			let keys = SessionKeys::generate(&owner.encode(), None);
+			(keys.keys, keys.proof.encode())
+		}
+	}
 
 	use xcm_config::DotLocation;
 
@@ -998,11 +1010,15 @@ mod benches {
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
 		}
-		fn worst_case_holding(_depositable_count: u32) -> Assets {
+		fn worst_case_holding(_depositable_count: u32) -> xcm_executor::AssetsInHolding {
+			use pallet_xcm_benchmarks::MockCredit;
 			// just concrete assets according to relay chain.
-			let assets: Vec<Asset> =
-				vec![Asset { id: AssetId(DotLocation::get()), fun: Fungible(1_000_000 * UNITS) }];
-			assets.into()
+			let mut holding = xcm_executor::AssetsInHolding::new();
+			holding.fungible.insert(
+				AssetId(DotLocation::get()),
+				alloc::boxed::Box::new(MockCredit(1_000_000 * UNITS)),
+			);
+			holding
 		}
 	}
 
@@ -1196,8 +1212,8 @@ impl_runtime_apis! {
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(seed)
+		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			SessionKeys::generate(&owner, seed).into()
 		}
 
 		fn decode_session_keys(

@@ -8,6 +8,10 @@
     "package": "asset-hub-polkadot-integration-tests"
   },
   {
+    "name": "bulletin-polkadot",
+    "package": "bulletin-polkadot-integration-tests"
+  },
+  {
     "name": "bridge-hub-kusama",
     "package": "bridge-hub-kusama-integration-tests"
   },

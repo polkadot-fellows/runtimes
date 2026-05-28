@@ -30,7 +30,7 @@ use frame_support::BoundedVec;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
 	EthereumAsset::{ForeignTokenERC20, NativeTokenERC20},
-	Message, XcmPayload,
+	Message, Payload as XcmPayload,
 };
 use sp_core::{H160, H256};
 use xcm::opaque::latest::AssetTransferFilter::{ReserveDeposit, ReserveWithdraw};
@@ -146,7 +146,7 @@ fn send_token_to_kusama_v2() {
 			nonce: 1,
 			origin,
 			assets,
-			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
+			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 3,
@@ -199,14 +199,14 @@ fn send_token_to_kusama_v2() {
 					pallet_message_queue::Event::Processed { success: true, .. }
 				) => {},
 				// Token was issued to beneficiary
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == token_location,
-					owner: *owner == beneficiary_acc_bytes.into(),
+					who: *who == beneficiary_acc_bytes.into(),
 				},
 				// Leftover fees was deposited to beneficiary
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == eth_location(),
-					owner: *owner == beneficiary_acc_bytes.into(),
+					who: *who == beneficiary_acc_bytes.into(),
 				},
 			]
 		);
@@ -284,7 +284,7 @@ fn send_ether_to_kusama_v2() {
 			nonce: 1,
 			origin,
 			assets: vec![],
-			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
+			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 2,
@@ -337,9 +337,9 @@ fn send_ether_to_kusama_v2() {
 					pallet_message_queue::Event::Processed { success: true, .. }
 				) => {},
 				// Ether was deposited to beneficiary
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == eth_location(),
-					owner: *owner == beneficiary_acc_bytes.into(),
+					who: *who == beneficiary_acc_bytes.into(),
 				},
 			]
 		);
@@ -382,7 +382,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 	BridgeHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
-	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE).into();
+	let eth_fee_kusama_ah: Asset = (eth_location(), MIN_ETHER_BALANCE * 2).into();
 
 	let ksm = Location::new(1, [GlobalConsensus(Kusama)]);
 	let token_id = TokenIdOf::convert_location(&ksm).unwrap();
@@ -448,7 +448,7 @@ fn send_ksm_from_ethereum_to_kusama() {
 			nonce: 1,
 			origin,
 			assets,
-			xcm: XcmPayload::Raw(versioned_message_xcm.encode()),
+			payload: XcmPayload::Raw(versioned_message_xcm.encode()),
 			claimer: Some(claimer_bytes),
 			value: TOKEN_AMOUNT,
 			execution_fee: MIN_ETHER_BALANCE * 2,
@@ -470,6 +470,8 @@ fn send_ksm_from_ethereum_to_kusama() {
 			]
 		);
 	});
+	// Flush stale XcmpQueue outbound index to ensure the message is delivered to AHP
+	BridgeHubPolkadot::execute_with(|| {});
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -488,6 +490,8 @@ fn send_ksm_from_ethereum_to_kusama() {
 	ensure_no_assets_trapped_on_pah();
 	assert_bridge_hub_polkadot_message_accepted(true);
 	assert_bridge_hub_kusama_message_received();
+	// Extra BHK block to flush stale XcmpQueue outbound index
+	BridgeHubKusama::execute_with(|| {});
 
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
@@ -497,13 +501,13 @@ fn send_ksm_from_ethereum_to_kusama() {
 			vec![
 				// ROC is withdrawn from AHW's SA on AHR
 				RuntimeEvent::Balances(
-					pallet_balances::Event::Burned { who, amount }
+					pallet_balances::Event::Withdraw { who, amount }
 				) => {
 					who: *who == sov_ahw_on_ahr,
 					amount: *amount == TOKEN_AMOUNT,
 				},
 				// ROCs deposited to beneficiary
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
 					who: *who == AssetHubKusamaReceiver::get(),
 				},
 				// message processed successfully

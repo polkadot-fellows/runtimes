@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Substrate
-
-// Cumulus
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
-use encointer_kusama_runtime::{BalanceType, CeremonyPhaseType};
+use encointer_kusama_runtime::{
+	xcm_config::{StakingPot, TreasuryAccount},
+	BalanceType, CeremonyPhaseType,
+};
 use parachains_common::Balance;
 use xcm::prelude::*;
 
@@ -35,8 +35,8 @@ pub fn genesis() -> sp_core::storage::Storage {
 		system: encointer_kusama_runtime::SystemConfig::default(),
 		balances: encointer_kusama_runtime::BalancesConfig {
 			balances: accounts::init_balances()
-				.iter()
-				.cloned()
+				.into_iter()
+				.chain([TreasuryAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096 * 4096))
 				.collect(),
 			dev_accounts: None,

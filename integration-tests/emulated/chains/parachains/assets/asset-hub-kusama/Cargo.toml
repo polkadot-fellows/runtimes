@@ -16,7 +16,6 @@ sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
 
 # Pallets
-pallet-ah-migrator = { workspace = true, default-features = true }
 
 # Cumulus
 assets-common = { workspace = true, default-features = true }
@@ -44,7 +43,6 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-emulated-chain/runtime-benchmarks",
-	"pallet-ah-migrator/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",

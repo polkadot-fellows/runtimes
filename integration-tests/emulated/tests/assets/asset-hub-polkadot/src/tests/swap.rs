@@ -275,7 +275,6 @@ fn cannot_create_pool_from_pool_assets() {
 }
 
 #[test]
-#[ignore]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	use frame_support::traits::fungible::Mutate;
 

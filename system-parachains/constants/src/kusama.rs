@@ -77,7 +77,7 @@ pub mod currency {
 
 /// Constants related to Kusama fee payment.
 pub mod fee {
-	use frame_support::weights::constants::ExtrinsicBaseWeight;
+	use kusama_runtime_constants::weights::ExtrinsicBaseWeight;
 	use polkadot_core_primitives::Balance;
 	pub use sp_runtime::Perbill;
 

@@ -235,7 +235,7 @@ pub(crate) fn assert_bridge_hub_kusama_message_accepted(expected_processed: bool
 				BridgeHubKusama,
 				vec![
 					// pay for bridge fees
-					RuntimeEvent::Balances(pallet_balances::Event::Burned { .. }) => {},
+					RuntimeEvent::Balances(pallet_balances::Event::Withdraw { .. }) => {},
 					// message exported
 					RuntimeEvent::BridgePolkadotMessages(
 						pallet_bridge_messages::Event::MessageAccepted { .. }

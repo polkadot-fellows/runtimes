@@ -31,7 +31,7 @@ pub mod xcm_config;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
-use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{
 	construct_runtime, derive_impl,
@@ -66,14 +66,21 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, RuntimeDebug,
+	ApplyExtrinsicResult, Debug,
 };
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::polkadot::{
-	consensus::*, currency::*, fee::WeightToFee as DotWeightToFee,
+	consensus::{
+		elastic_scaling::{
+			BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
+		},
+		RELAY_CHAIN_SLOT_DURATION_MILLIS,
+	},
+	currency::*,
+	fee::WeightToFee as DotWeightToFee,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
@@ -106,6 +113,7 @@ pub type BlockId = generic::BlockId<Block>;
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
+		frame_system::AuthorizeCall<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -127,7 +135,7 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -159,7 +167,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("people-polkadot"),
 	impl_name: Cow::Borrowed("people-polkadot"),
 	authoring_version: 1,
-	spec_version: 2_001_001,
+	spec_version: 2_002_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -175,7 +183,12 @@ pub fn native_version() -> NativeVersion {
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub RuntimeBlockLength: BlockLength =
-		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+		BlockLength::builder()
+			.max_length(5 * 1024 * 1024)
+			.modify_max_length_for_class(DispatchClass::Normal, |m| {
+				*m = NORMAL_DISPATCH_RATIO * *m
+			})
+			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
@@ -223,7 +236,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -249,13 +262,13 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = ();
-	type MaxFreezes = ConstU32<0>;
+	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10.
-	pub const TransactionByteFee: Balance = MILLICENTS;
+	pub const TransactionByteFee: Balance = system_parachains_constants::polkadot::fee::TRANSACTION_BYTE_FEE;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -268,6 +281,9 @@ impl pallet_transaction_payment::Config for Runtime {
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_transaction_payment::BenchmarkConfig for Runtime {}
 
 parameter_types! {
 	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
@@ -287,7 +303,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
-	type RelayParentOffset = ConstU32<0>;
+	type RelayParentOffset = ConstU32<RELAY_PARENT_OFFSET>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -378,7 +394,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -437,18 +453,20 @@ impl pallet_multisig::Config for Runtime {
 	Copy,
 	Clone,
 	Eq,
+	Default,
 	PartialEq,
 	Ord,
 	PartialOrd,
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds or assets.
 	NonTransfer,
@@ -460,11 +478,6 @@ pub enum ProxyType {
 	IdentityJudgement,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
-}
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -572,7 +585,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -656,6 +669,7 @@ mod benches {
 		PriceForSiblingParachainDelivery, Runtime, RuntimeCall, System, XcmConfig, UNITS,
 	};
 	use alloc::{boxed::Box, vec::Vec};
+	use codec::Encode;
 	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use system_parachains_constants::polkadot::locations::AssetHubLocation;
 
@@ -700,7 +714,12 @@ mod benches {
 		}
 	}
 
-	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+	impl cumulus_pallet_session_benchmarking::Config for Runtime {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			let keys = crate::SessionKeys::generate(&owner.encode(), None);
+			(keys.keys, keys.proof.encode())
+		}
+	}
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
 		type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
@@ -765,11 +784,15 @@ mod benches {
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
 		}
-		fn worst_case_holding(_depositable_count: u32) -> Assets {
+		fn worst_case_holding(_depositable_count: u32) -> xcm_executor::AssetsInHolding {
+			use pallet_xcm_benchmarks::MockCredit;
 			// just concrete assets according to relay chain.
-			let assets: Vec<Asset> =
-				vec![Asset { id: AssetId(RelayLocation::get()), fun: Fungible(1_000_000 * UNITS) }];
-			assets.into()
+			let mut holding = xcm_executor::AssetsInHolding::new();
+			holding.fungible.insert(
+				AssetId(RelayLocation::get()),
+				alloc::boxed::Box::new(MockCredit(1_000_000 * UNITS)),
+			);
+			holding
 		}
 	}
 
@@ -884,7 +907,7 @@ impl_runtime_apis! {
 
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
-			0
+			RELAY_PARENT_OFFSET
 		}
 	}
 
@@ -963,8 +986,8 @@ impl_runtime_apis! {
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(seed)
+		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			SessionKeys::generate(&owner, seed).into()
 		}
 
 		fn decode_session_keys(
