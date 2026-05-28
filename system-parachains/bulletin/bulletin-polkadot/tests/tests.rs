@@ -477,8 +477,10 @@ fn allowance_based_priority_works() {
 		// `renew` carries `Origin::Authorized` too, but must not be boosted: only fresh
 		// `store`/`store_with_cid_config` submissions compete for the boost slots.
 		let renew = RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::renew {
-			block: 1,
-			index: 0,
+			entry: bulletin_transaction_storage_primitives::TransactionRef::Position {
+				block: 1,
+				index: 0,
+			},
 		});
 		assert_eq!(priority(origin, &renew), 0);
 	});

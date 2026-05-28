@@ -22,10 +22,10 @@ use alloc::vec::Vec;
 use bulletin_pallets_common::inspect_utility_wrapper;
 use frame_support::{
 	parameter_types,
-	traits::{Contains, EitherOfDiverse, Equals},
+	traits::{Contains, EitherOf, Equals},
 };
 use pallet_bulletin_transaction_storage::{
-	CallInspector, EnsureAllowedAuthorizers, DEFAULT_MAX_BLOCK_TRANSACTIONS,
+	AsAuthorizer, CallInspector, EnsureAllowedAuthorizers, DEFAULT_MAX_BLOCK_TRANSACTIONS,
 	DEFAULT_MAX_TRANSACTION_SIZE,
 };
 use pallet_xcm::EnsureXcm;
@@ -99,12 +99,20 @@ impl pallet_bulletin_transaction_storage::Config for Runtime {
 	type MaxPermanentStorageSize = MaxPermanentStorageSize;
 	type AuthorizationPeriod = AuthorizationPeriod;
 	type AuthorizerRegistrarOrigin = frame_system::EnsureRoot<Self::AccountId>;
-	type Authorizer = EitherOfDiverse<
-		EitherOfDiverse<
+	type Authorizer = EitherOf<
+		EitherOf<
 			// Root can do whatever.
-			frame_system::EnsureRoot<Self::AccountId>,
+			AsAuthorizer<
+				frame_system::EnsureRoot<Self::AccountId>,
+				Self::AccountId,
+				crate::BlockNumber,
+			>,
 			// The People Chain can authorize for storage allowances.
-			EnsureXcm<Equals<PeopleLocation>>,
+			AsAuthorizer<
+				EnsureXcm<Equals<PeopleLocation>>,
+				Self::AccountId,
+				crate::BlockNumber,
+			>,
 		>,
 		// Accounts registered in `AllowedAuthorizers` storage (managed via
 		// `add_authorizer` / `remove_authorizer`).
@@ -114,6 +122,8 @@ impl pallet_bulletin_transaction_storage::Config for Runtime {
 	type StoreRenewLongevity = StoreRenewLongevity;
 	type RemoveExpiredAuthorizationPriority = RemoveExpiredAuthorizationPriority;
 	type RemoveExpiredAuthorizationLongevity = RemoveExpiredAuthorizationLongevity;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = pallet_bulletin_transaction_storage::benchmarking::DefaultCheckProofHelper;
 }
 
 parameter_types! {

@@ -2807,9 +2807,9 @@ dependencies = [
 
 [[package]]
 name = "bulletin-pallets-common"
-version = "0.4.0-draft"
+version = "0.5.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf94183728c94cceda0674a6b0df34d77f3fed1fc00ce532f02cabea4a0f464"
+checksum = "8af5532f1825e0da4c301a7bb1ab18471b28de8f0330553bc673d1c7b77485b1"
 dependencies = [
  "pallet-proxy",
  "pallet-sudo",
@@ -2924,9 +2924,9 @@ dependencies = [
 
 [[package]]
 name = "bulletin-transaction-storage-primitives"
-version = "0.4.0-draft"
+version = "0.5.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c04057e93b70ddadab3b8dc461c7d43c958b32dd54e77196b913f551c629daa"
+checksum = "cc7330ccd3c13364145d8aef13f5a6f18dab71c398542ca86b4c74b937f1422c"
 dependencies = [
  "cid 0.11.1",
  "parity-scale-codec",
@@ -9966,9 +9966,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-hop-promotion"
-version = "0.4.0-draft"
+version = "0.5.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca035e4ff8052ca91b06ff77c3fd550c449854109cd1a591740a05a0c0547990"
+checksum = "2b17858fc30bd3ed5d4b6f521eb4eb1d383919fa3c1b0436d998b60d6752d572"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "frame-support",
@@ -9984,9 +9984,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-transaction-storage"
-version = "0.4.0-draft"
+version = "0.5.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd701cd592922c1d63bc8b99e02209dedef3895d5c8cec41972f43022b93a70b"
+checksum = "ff080fcd90dbff5fe9d88455013f50a8de48d7589cff0bf5edb40a57e51f3f4e"
 dependencies = [
  "array-bytes 6.2.3",
  "bulletin-transaction-storage-primitives",
@@ -10000,9 +10000,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-transaction-storage-runtime-api"
-version = "0.4.0-draft"
+version = "0.5.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a6ba37bb00d23ee1894e70a0d04948919215ea28fb128caa917b1451175ae72"
+checksum = "b2454ab47cabfad10b0a8fc929030c80bce1016eb816df1bcb3b1146c090bd10"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "parity-scale-codec",
