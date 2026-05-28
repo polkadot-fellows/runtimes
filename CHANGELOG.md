@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: redirect XCM trader fees (native and swap) to `DapStagingAccount` instead of `StakingPot` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: switch `pallet_multi_asset_bounties` source types to the upstream `BountySourceFromPalletId` / `ChildBountySourceFromPalletId` and migrate bounty/child-bounty pot funds to the new `[u8; 3]`-prefix account derivation ([#1168](https://github.com/polkadot-fellows/runtimes/pull/1168))
 
 ### Removed
 
