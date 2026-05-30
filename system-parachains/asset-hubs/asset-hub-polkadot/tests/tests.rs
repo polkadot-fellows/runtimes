@@ -19,8 +19,7 @@
 
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		bridging, bridging::XcmBridgeHubRouterFeeAssetId, CheckingAccount, DotLocation,
-		LocationToAccountId, RelayChainLocation, RelayTreasuryPalletAccount, StakingPot,
+		bridging, CheckingAccount, DotLocation, LocationToAccountId, RelayChainLocation,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, Dap, ExistentialDeposit,
@@ -41,6 +40,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{fungibles::InspectEnumerable, ContainsPair},
+	weights::Weight,
 };
 use parachains_common::{
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance,
@@ -390,8 +390,8 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		}),
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
-		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		Some(RelayTreasuryPalletAccount::get()),
+		None,
+		Some(pallet_dap::Pallet::<Runtime>::staging_account()),
 	)
 }
 
@@ -399,7 +399,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_swap_works() {
 	const BLOCK_AUTHOR_ACCOUNT: [u8; 32] = [13; 32];
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
-	let staking_pot = StakingPot::get();
+	let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 
 	let foreign_asset_id_location_v5 = Location::new(2, [GlobalConsensus(NetworkId::Kusama)]);
 	let reserve_location = Location::new(2, [GlobalConsensus(NetworkId::Kusama), Parachain(1000)]);
@@ -439,10 +439,10 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 				Runtime,
 				RuntimeOrigin,
 			>(ExistentialDeposit::get(), pool_params);
-			// staking pot account for collecting local native fees from `BuyExecution`
+			// DAP staging account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
-				StakingPot::get().into(),
+				pallet_dap::Pallet::<Runtime>::staging_account().into(),
 				ExistentialDeposit::get(),
 			);
 			// prepare bridge configuration
@@ -457,20 +457,21 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 			[Parachain(1000)].into(),
 		),
 		|| {
-			// check staking pot for ED
-			assert_eq!(Balances::free_balance(&staking_pot), ExistentialDeposit::get());
-			// check now foreign asset for staking pot
+			// check DAP staging account for ED
+			assert_eq!(Balances::free_balance(&dap_staging_account), ExistentialDeposit::get());
+			// check now foreign asset for DAP staging account
 			assert_eq!(
-				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &staking_pot),
+				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &dap_staging_account),
 				0
 			);
 		},
 		|| {
-			// `SwapFirstAssetTrader` - staking pot receives xcm fees in KSMs
-			assert!(Balances::free_balance(&staking_pot) > ExistentialDeposit::get());
-			// staking pot receives no foreign assets
+			// `SwapFirstAssetTrader` - DAP staging account receives xcm fees in KSMs (swapped
+			// to DOT)
+			assert!(Balances::free_balance(&dap_staging_account) > ExistentialDeposit::get());
+			// DAP staging account receives no foreign assets
 			assert_eq!(
-				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &staking_pot),
+				ForeignAssets::balance(foreign_asset_id_location_v5.clone(), &dap_staging_account),
 				0
 			);
 		},
@@ -1256,23 +1257,22 @@ fn pure_proxy_stash_can_delegate_to_staking_operator() {
 
 #[test]
 fn slash_goes_to_dap_buffer_account() {
-	use asset_hub_polkadot_runtime::staking::DapPalletId;
-	use frame_support::{
-		sp_runtime::traits::AccountIdConversion,
-		traits::{
-			fungible::{Balanced, Inspect},
-			OnUnbalanced,
-		},
+	use frame_support::traits::{
+		fungible::{Balanced, Inspect},
+		Hooks, OnUnbalanced,
 	};
 	use sp_runtime::BuildStorage;
 
-	let dap_buffer: AccountId = DapPalletId::get().into_account_truncating();
+	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
 
 	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![
 			(AccountId::from(ALICE), 1_000 * UNITS),
-			(dap_buffer.clone(), ExistentialDeposit::get()),
+			(dap_buffer.clone(), ed),
+			(dap_staging.clone(), ed),
 		],
 		..Default::default()
 	}
@@ -1280,28 +1280,51 @@ fn slash_goes_to_dap_buffer_account() {
 	.unwrap();
 
 	sp_io::TestExternalities::from(t).execute_with(|| {
-		let buffer = dap_buffer.clone();
-		let ed = <Balances as Inspect<_>>::minimum_balance();
-
-		// Given: buffer account exists and has ED
-		assert!(frame_system::Pallet::<Runtime>::account_exists(&buffer));
-		assert_eq!(Balances::free_balance(&buffer), ed);
+		let dap_buffer_before = <Balances as Inspect<_>>::balance(&dap_buffer);
+		let dap_staging_before = <Balances as Inspect<_>>::balance(&dap_staging);
 
 		// When: a slash occurs (simulating staking slash via OnUnbalanced)
 		let slash_amount = 100 * UNITS;
 		let credit = <Balances as Balanced<AccountId>>::issue(slash_amount);
 		Dap::on_unbalanced(credit);
 
-		// Then: buffer has ED + slash amount
-		assert_eq!(Balances::free_balance(&buffer), ed + slash_amount);
+		// Slash lands in staging first, not directly in the buffer.
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&dap_staging),
+			dap_staging_before + slash_amount
+		);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_buffer), dap_buffer_before);
+
+		// on_idle drains staging into buffer and deactivates.
+		pallet_dap::Pallet::<Runtime>::on_idle(1, Weight::MAX);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), dap_staging_before);
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&dap_buffer),
+			dap_buffer_before + slash_amount
+		);
 
 		// When: another slash occurs
 		let slash_amount_2 = 50 * UNITS;
 		let credit2 = <Balances as Balanced<AccountId>>::issue(slash_amount_2);
 		Dap::on_unbalanced(credit2);
 
-		// Then: buffer accumulates both slashes
-		assert_eq!(Balances::free_balance(&buffer), ed + slash_amount + slash_amount_2);
+		// Lands in staging again.
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&dap_staging),
+			dap_staging_before + slash_amount_2
+		);
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&dap_buffer),
+			dap_buffer_before + slash_amount
+		);
+
+		// After on_idle: staging drains into buffer and deactivates.
+		pallet_dap::Pallet::<Runtime>::on_idle(2, Weight::MAX);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), dap_staging_before);
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&dap_buffer),
+			dap_buffer_before + slash_amount + slash_amount_2
+		);
 	});
 }
 

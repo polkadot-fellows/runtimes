@@ -22,8 +22,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use asset_hub_kusama_runtime::{
 	xcm_config::{
-		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, KsmLocation, LocationToAccountId, RelayChainLocation,
+		bridging, CheckingAccount, KsmLocation, LocationToAccountId, RelayChainLocation,
 		RelayTreasuryPalletAccount, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
@@ -394,7 +393,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works(
 		}),
 		bridging_to_asset_hub_polkadot,
 		WeightLimit::Unlimited,
-		Some(XcmBridgeHubRouterFeeAssetId::get()),
+		None,
 		Some(RelayTreasuryPalletAccount::get()),
 		)
 	});

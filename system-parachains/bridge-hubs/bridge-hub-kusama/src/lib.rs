@@ -148,7 +148,10 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
+	pub type Unreleased = (
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -284,7 +287,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -477,7 +480,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -949,11 +952,10 @@ mod benches {
 		}
 
 		fn prepare_rewards_account(
-			account_params: bp_relayers::RewardsAccountParams<
-				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
-			>,
-			reward: Balance,
-		) -> Option<AccountId> {
+			_relayer: &AccountId,
+			account_params: Self::Reward,
+			reward: Self::RewardBalance,
+		) -> Option<(bp_relayers::RewardsAccountParams<bp_messages::LegacyLaneId>, AccountId)> {
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
@@ -961,7 +963,7 @@ mod benches {
 				Balance,
 			>::rewards_account(account_params);
 			Self::deposit_account(rewards_account.clone(), reward);
-			Some(rewards_account)
+			Some((account_params, rewards_account))
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
@@ -1045,7 +1047,7 @@ mod benches {
 			Weight,
 		) {
 			use cumulus_primitives_core::XcmpMessageSource;
-			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
+			assert!(XcmpQueue::take_outbound_messages(usize::MAX, &[]).is_empty());
 			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
 			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
@@ -1096,7 +1098,7 @@ mod benches {
 
 		fn is_message_successfully_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
 			use cumulus_primitives_core::XcmpMessageSource;
-			!XcmpQueue::take_outbound_messages(usize::MAX).is_empty()
+			!XcmpQueue::take_outbound_messages(usize::MAX, &[]).is_empty()
 		}
 	}
 
