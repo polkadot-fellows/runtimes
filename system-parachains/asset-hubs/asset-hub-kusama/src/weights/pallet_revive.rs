@@ -53,32 +53,60 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 	/// Storage: `Revive::DeletionQueueCounter` (r:1 w:0)
 	/// Proof: `Revive::DeletionQueueCounter` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `Measured`)
-	fn on_process_deletion_queue_batch() -> Weight {
+	fn deletion_queue_batch() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `279`
-		//  Estimated: `1764`
-		// Minimum execution time: 2_373_000 picoseconds.
-		Weight::from_parts(2_705_000, 0)
-			.saturating_add(Weight::from_parts(0, 1764))
-			.saturating_add(T::DbWeight::get().reads(1))
+		//  Measured:  `213`
+		//  Estimated: `1698`
+		// Minimum execution time: 3_000_000 picoseconds.
+		Weight::from_parts(3_295_000, 1698)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+	}
+	/// Storage: `Revive::DeletionQueueCounter` (r:1 w:1)
+	/// Proof: `Revive::DeletionQueueCounter` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `Measured`)
+	/// Storage: `Revive::DeletionQueue` (r:1 w:1)
+	/// Proof: `Revive::DeletionQueue` (`max_values`: None, `max_size`: Some(174), added: 2649, mode: `Measured`)
+	fn deletion_queue_per_entry() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `390`
+		//  Estimated: `3855`
+		// Minimum execution time: 17_130_000 picoseconds.
+		Weight::from_parts(18_517_000, 3855)
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	/// Storage: `Skipped::Metadata` (r:0 w:0)
 	/// Proof: `Skipped::Metadata` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `k` is `[0, 1024]`.
-	fn on_initialize_per_trie_key(k: u32, ) -> Weight {
+	fn deletion_queue_per_trie_key(k: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `562 + k * (69 ±0)`
-		//  Estimated: `552 + k * (70 ±0)`
-		// Minimum execution time: 12_227_000 picoseconds.
-		Weight::from_parts(10_764_415, 0)
-			.saturating_add(Weight::from_parts(0, 552))
-			// Standard Error: 734
-			.saturating_add(Weight::from_parts(904_386, 0).saturating_mul(k.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
+		//  Measured:  `524 + k * (69 ±0)`
+		//  Estimated: `514 + k * (70 ±0)`
+		// Minimum execution time: 18_017_000 picoseconds.
+		Weight::from_parts(18_481_000, 514)
+			// Standard Error: 1_362
+			.saturating_add(Weight::from_parts(1_267_761, 0).saturating_mul(k.into()))
+			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(k.into())))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(k.into())))
 			.saturating_add(Weight::from_parts(0, 70).saturating_mul(k.into()))
+	}
+	/// Storage: `Skipped::Metadata` (r:0 w:0)
+	/// Proof: `Skipped::Metadata` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `k` is `[0, 1024]`.
+	fn deletion_queue_per_native_deposit_key(k: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `493 + k * (70 ±0)`
+		//  Estimated: `488 + k * (71 ±0)`
+		// Minimum execution time: 17_766_000 picoseconds.
+		Weight::from_parts(18_450_000, 488)
+			// Standard Error: 1_067
+			.saturating_add(Weight::from_parts(1_233_698, 0).saturating_mul(k.into()))
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(k.into())))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(k.into())))
+			.saturating_add(Weight::from_parts(0, 71).saturating_mul(k.into()))
 	}
 	/// Storage: `Revive::AccountInfoOf` (r:2 w:1)
 	/// Proof: `Revive::AccountInfoOf` (`max_values`: None, `max_size`: Some(247), added: 2722, mode: `Measured`)
@@ -413,6 +441,28 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 5197))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	/// Storage: `Revive::AccountInfoOf` (r:1 w:0)
+	/// Proof: `Revive::AccountInfoOf` (`max_values`: None, `max_size`: Some(247), added: 2722, mode: `Measured`)
+	/// Storage: `Revive::OriginalAccount` (r:1024 w:1024)
+	/// Proof: `Revive::OriginalAccount` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `Measured`)
+	/// Storage: `Balances::Holds` (r:1024 w:1024)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(535), added: 3010, mode: `Measured`)
+	/// Storage: `System::Account` (r:1024 w:1024)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `Measured`)
+	/// The range of component `a` is `[0, 1024]`.
+	fn batch_map_accounts(a: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `563 + a * (209 ±0)`
+		//  Estimated: `4008 + a * (2684 ±0)`
+		// Minimum execution time: 10_707_000 picoseconds.
+		Weight::from_parts(10_852_000, 4008)
+			// Standard Error: 52_179
+			.saturating_add(Weight::from_parts(46_800_988, 0).saturating_mul(a.into()))
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().reads((3_u64).saturating_mul(a.into())))
+			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(a.into())))
+			.saturating_add(Weight::from_parts(0, 2684).saturating_mul(a.into()))
 	}
 	/// Storage: `Revive::AccountInfoOf` (r:1 w:0)
 	/// Proof: `Revive::AccountInfoOf` (`max_values`: None, `max_size`: Some(247), added: 2722, mode: `Measured`)
@@ -1331,6 +1381,59 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 6542))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
+	}
+	/// Storage: `System::Account` (r:2 w:1)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `Revive::OriginalAccount` (r:1 w:1)
+	/// Proof: `Revive::OriginalAccount` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `Balances::Holds` (r:1 w:1)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(463), added: 2938, mode: `MaxEncodedLen`)
+	fn v3_migration_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `629`
+		//  Estimated: `6196`
+		// Minimum execution time: 38_119_000 picoseconds.
+		Weight::from_parts(40_982_000, 6196)
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+			.saturating_add(T::DbWeight::get().writes(3_u64))
+	}
+	/// Storage: `Revive::CodeInfoOf` (r:2 w:0)
+	/// Proof: `Revive::CodeInfoOf` (`max_values`: None, `max_size`: Some(97), added: 2572, mode: `MaxEncodedLen`)
+	/// Storage: `Revive::NativeDepositOf` (r:1 w:1)
+	/// Proof: `Revive::NativeDepositOf` (`max_values`: None, `max_size`: Some(96), added: 2571, mode: `MaxEncodedLen`)
+	fn v4_code_upload_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `514`
+		//  Estimated: `6134`
+		// Minimum execution time: 16_308_000 picoseconds.
+		Weight::from_parts(17_547_000, 6134)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Revive::AccountInfoOf` (r:2 w:0)
+	/// Proof: `Revive::AccountInfoOf` (`max_values`: None, `max_size`: Some(247), added: 2722, mode: `MaxEncodedLen`)
+	/// Storage: `Revive::OriginalAccount` (r:1 w:0)
+	/// Proof: `Revive::OriginalAccount` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `Balances::Holds` (r:1 w:0)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(463), added: 2938, mode: `MaxEncodedLen`)
+	fn v4_contract_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `909`
+		//  Estimated: `6434`
+		// Minimum execution time: 22_408_000 picoseconds.
+		Weight::from_parts(24_019_000, 6434)
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+	}
+	/// Storage: `Revive::DeletionQueue` (r:2 w:1)
+	/// Proof: `Revive::DeletionQueue` (`max_values`: None, `max_size`: Some(174), added: 2649, mode: `MaxEncodedLen`)
+	fn v4_deletion_queue_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `313`
+		//  Estimated: `6288`
+		// Minimum execution time: 9_589_000 picoseconds.
+		Weight::from_parts(10_444_000, 6288)
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `Revive::EthBlockBuilderIR` (r:1 w:1)
 	/// Proof: `Revive::EthBlockBuilderIR` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
