@@ -17,6 +17,45 @@
 use crate::Runtime;
 use frame_support::parameter_types;
 
+/// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
+///
+/// Uses the start of the active era (ms since unix epoch) so the catch-up drip covers
+/// the gap between the last era boundary and the migration. Falls back to 0 (no catch-up)
+/// if no era is active.
+pub struct DapLastIssuanceTimestamp;
+impl frame_support::traits::Get<u64> for DapLastIssuanceTimestamp {
+	fn get() -> u64 {
+		pallet_staking_async::ActiveEra::<Runtime>::get()
+			.and_then(|era| era.start)
+			.unwrap_or(0)
+	}
+}
+
+/// Default DAP budget allocation: 15% buffer, 85% staker rewards, 0% validator incentive.
+///
+/// Matches the previous `EraPayout` split (15% treasury / 85% stakers), now enforced
+/// at the DAP drip level instead of at era payout time. The 15% share initially
+/// accumulates in the DAP buffer and can be redirected by governance.
+pub struct DefaultDapBudget;
+impl frame_support::traits::Get<pallet_dap::BudgetAllocationMap> for DefaultDapBudget {
+	fn get() -> pallet_dap::BudgetAllocationMap {
+		use sp_runtime::Perbill;
+		use sp_staking::budget::BudgetRecipientList;
+
+		let recipients = <Runtime as pallet_dap::Config>::BudgetRecipients::recipients();
+		// Order matches `pallet_dap::Config::BudgetRecipients`:
+		// [dap (buffer), StakerRewardRecipient, ValidatorIncentiveRecipient]
+		let percentages =
+			[Perbill::from_percent(15), Perbill::from_percent(85), Perbill::from_percent(0)];
+
+		let mut map = pallet_dap::BudgetAllocationMap::new();
+		for ((key, _), perbill) in recipients.into_iter().zip(percentages) {
+			let _ = map.try_insert(key, perbill);
+		}
+		map
+	}
+}
+
 parameter_types! {
 	// Account `15jAYzPdLorBGAj4LLGaqohpzpw4mEohVkzszNpaBPbnDaXn` (Nomination Pool #296)
 	// has trapped funds on PAH. See issue: https://github.com/paritytech/polkadot-sdk/issues/10993.
@@ -45,6 +84,15 @@ pub type Unreleased = (
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+	// DAP V1->V2: seed `BudgetAllocation` and `LastIssuanceTimestamp`, credit a one-shot
+	// catch-up drip. Required when moving staking to non-minting mode (see SDK PR #11616).
+	pallet_dap::migrations::MigrateV1ToV2<
+		Runtime,
+		DapLastIssuanceTimestamp,
+		DefaultDapBudget,
+		crate::dynamic_params::staking_election::MaxEraDuration,
+	>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -86,6 +134,8 @@ mod multiblock_migrations {
 			ForeignAssetsInstance,
 			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
 		>,
+		// Not added: we do it with a manual TX
+		//pallet_revive::migrations::v3::Migration<Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
