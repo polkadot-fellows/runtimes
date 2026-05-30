@@ -13,18 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(deprecated, missing_docs)]
 
-use super::*;
+#![cfg_attr(rustfmt, rustfmt_skip)]
+#![allow(unused_parens)]
+#![allow(unused_imports)]
+#![allow(missing_docs)]
 
-/// Unreleased migrations. Add new ones here:
-pub type Unreleased = (cumulus_pallet_parachain_system::migration::Migration<Runtime>,);
+use frame_support::{traits::Get, weights::Weight};
+use core::marker::PhantomData;
 
-/// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
-
-/// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-/// MBM migrations to apply on runtime upgrade.
-pub type MbmMigrations = ();
+/// Weight functions for `pallet_dap`.
+pub struct WeightInfo<T>(PhantomData<T>);
+impl<T: frame_system::Config> pallet_dap::weights::WeightInfo for WeightInfo<T> {
+    fn set_budget_allocation() -> Weight {
+        Weight::default()
+    }
+    fn drip_issuance() -> Weight {
+        Weight::default()
+    }
+}

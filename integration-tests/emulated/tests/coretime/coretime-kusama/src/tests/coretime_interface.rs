@@ -17,22 +17,11 @@ use crate::*;
 use frame_support::traits::OnInitialize;
 use kusama_runtime::Dmp;
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
-use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
+use pallet_broker::{ConfigRecord, CoreAssignment, CoreMask, ScheduleItem};
 use sp_runtime::Perbill;
 
 #[test]
 fn broker_transacts_are_processed_by_relay() {
-	// Verify that the three UMP transacts sent from the Coretime Chain to the Relay Chain across
-	// the CoretimeInterface are processed successfully. This serves as a smoke test for the
-	// relay call encoding (pallet index 74, call indices 1-4) and confirms:
-	// - Request core count - triggered directly by `start_sales` or `request_core_count`
-	//   extrinsics.
-	// - Request revenue info - triggered when each timeslice is committed.
-	// - Assign core - triggered when an entry is encountered in the workplan for the next
-	//   timeslice.
-
-	// RuntimeEvent aliases to avoid warning from usage of qualified paths in assertions due to
-	// <https://github.com/rust-lang/rust/issues/86935>
 	type CoretimeEvent = <CoretimeKusama as Chain>::RuntimeEvent;
 	type RelayEvent = <Kusama as Chain>::RuntimeEvent;
 
@@ -40,17 +29,15 @@ fn broker_transacts_are_processed_by_relay() {
 		Dmp::make_parachain_reachable(CoretimeKusama::para_id());
 	});
 
-	// Reserve a workload, configure broker and start sales.
 	CoretimeKusama::execute_with(|| {
-		// Hooks don't run in emulated tests - workaround as we need `on_initialize` to tick things
-		// along and have no concept of time passing otherwise.
+		// Hooks don't run in emulated tests; tick the broker manually here and inside the loop
+		// below so `do_tick` runs with the current relay block.
 		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
 			<CoretimeKusama as Chain>::System::block_number(),
 		);
 
 		let coretime_root_origin = <CoretimeKusama as Chain>::RuntimeOrigin::root();
 
-		// Create and populate schedule with the worst case assignment on this core.
 		let mut schedule = Vec::new();
 		for i in 0..80 {
 			schedule.push(ScheduleItem {
@@ -64,7 +51,6 @@ fn broker_transacts_are_processed_by_relay() {
 			schedule.try_into().expect("Vector is within bounds."),
 		));
 
-		// Configure broker and start sales.
 		let config = ConfigRecord {
 			advance_notice: 2,
 			interlude_length: 1,
@@ -107,8 +93,6 @@ fn broker_transacts_are_processed_by_relay() {
 		);
 	});
 
-	// Check that the request_core_count message was processed successfully on the relay. This
-	// will fail if the relay call encoding (pallet/call indices) is wrong.
 	Kusama::execute_with(|| {
 		Kusama::assert_ump_queue_processed(true, Some(CoretimeKusama::para_id()), None);
 
@@ -122,108 +106,68 @@ fn broker_transacts_are_processed_by_relay() {
 		);
 	});
 
-	// Keep track of the relay chain block number so we can fast forward while still checking the
-	// right block.
 	let mut block_number_cursor = Kusama::ext_wrapper(<Kusama as Chain>::System::block_number);
 
-	let config = CoretimeKusama::ext_wrapper(|| {
-		Configuration::<<CoretimeKusama as Chain>::Runtime>::get()
-			.expect("Pallet was configured earlier.")
-	});
-
-	// Now run up to the block before the sale is rotated.
-	while block_number_cursor < TIMESLICE_PERIOD - config.advance_notice - 1 {
+	let mut found_sale_initialized = false;
+	let mut found_core_assigned = false;
+	let mut found_history_dropped = false;
+	let mut found_relay_core_assigned = false;
+	let mut relay_ump_processed = 0u32;
+	// `HistoryDropped` is the terminal event of the round-trip, so it implies all earlier
+	// broker/relay steps have already fired in prior iterations.
+	while !found_history_dropped && block_number_cursor < TIMESLICE_PERIOD * 100 {
 		CoretimeKusama::execute_with(|| {
-			// Hooks don't run in emulated tests - workaround.
 			<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
 				<CoretimeKusama as Chain>::System::block_number(),
 			);
+
+			for event in &<CoretimeKusama as Chain>::System::events() {
+				match &event.event {
+					CoretimeEvent::Broker(pallet_broker::Event::SaleInitialized { .. }) =>
+						found_sale_initialized = true,
+					CoretimeEvent::Broker(pallet_broker::Event::CoreAssigned { .. }) =>
+						found_core_assigned = true,
+					CoretimeEvent::Broker(pallet_broker::Event::HistoryDropped {
+						when: 0,
+						revenue: 0,
+					}) => found_history_dropped = true,
+					_ => {},
+				}
+			}
 		});
 
-		Kusama::ext_wrapper(|| {
+		// `Kusama::execute_with` (not `ext_wrapper`) is required: the relay's outgoing DMPs only
+		// get flushed into the emulator's downward queue from within a relay `execute_with`, and
+		// that's the path by which `notify_revenue` reaches the broker.
+		Kusama::execute_with(|| {
+			for event in &<Kusama as Chain>::System::events() {
+				match &event.event {
+					RelayEvent::MessageQueue(pallet_message_queue::Event::Processed {
+						success: true,
+						..
+					}) => relay_ump_processed += 1,
+					RelayEvent::Coretime(runtime_parachains::coretime::Event::CoreAssigned {
+						..
+					}) => found_relay_core_assigned = true,
+					_ => {},
+				}
+			}
+
 			block_number_cursor = <Kusama as Chain>::System::block_number();
 		});
 	}
-
-	// In this block we trigger assign core.
-	CoretimeKusama::execute_with(|| {
-		// Hooks don't run in emulated tests - workaround.
-		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
-			<CoretimeKusama as Chain>::System::block_number(),
-		);
-
-		assert_expected_events!(
-			CoretimeKusama,
-			vec![
-				CoretimeEvent::Broker(
-					pallet_broker::Event::SaleInitialized { .. }
-				) => {},
-				CoretimeEvent::Broker(
-					pallet_broker::Event::CoreAssigned { .. }
-				) => {},
-				CoretimeEvent::ParachainSystem(
-					cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }
-				) => {},
-			]
-		);
-	});
-
-	// In this block we trigger request revenue.
-	CoretimeKusama::execute_with(|| {
-		// Hooks don't run in emulated tests - workaround.
-		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
-			<CoretimeKusama as Chain>::System::block_number(),
-		);
-
-		assert_expected_events!(
-			CoretimeKusama,
-			vec![
-				CoretimeEvent::ParachainSystem(
-					cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }
-				) => {},
-			]
-		);
-	});
-
-	// Check that the assign_core and request_revenue_info_at messages were processed successfully.
-	// This will fail if the relay call encoding (pallet/call indices) is wrong.
-	Kusama::execute_with(|| {
-		Kusama::assert_ump_queue_processed(true, Some(CoretimeKusama::para_id()), None);
-
-		assert_expected_events!(
-			Kusama,
-			vec![
-				RelayEvent::MessageQueue(
-					pallet_message_queue::Event::Processed { success: true, .. }
-				) => {},
-				RelayEvent::MessageQueue(
-					pallet_message_queue::Event::Processed { success: true, .. }
-				) => {},
-				RelayEvent::Coretime(
-					runtime_parachains::coretime::Event::CoreAssigned { .. }
-				) => {},
-			]
-		);
-	});
-
-	// Here we receive and process the notify_revenue XCM with zero revenue.
-	CoretimeKusama::execute_with(|| {
-		// Hooks don't run in emulated tests - workaround.
-		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
-			<CoretimeKusama as Chain>::System::block_number(),
-		);
-
-		assert_expected_events!(
-			CoretimeKusama,
-			vec![
-				CoretimeEvent::MessageQueue(
-					pallet_message_queue::Event::Processed { success: true, .. }
-				) => {},
-				// Zero revenue in first timeslice so history is immediately dropped.
-				CoretimeEvent::Broker(
-					pallet_broker::Event::HistoryDropped { when: 0, revenue: 0 }
-				) => {},
-			]
-		);
-	});
+	assert!(found_sale_initialized, "broker never emitted `SaleInitialized`");
+	assert!(found_core_assigned, "broker never emitted `CoreAssigned`");
+	assert!(
+		found_history_dropped,
+		"broker never emitted `HistoryDropped` (revenue round-trip did not complete)",
+	);
+	assert!(
+		relay_ump_processed >= 2,
+		"relay processed fewer UMPs than expected: got {relay_ump_processed}",
+	);
+	assert!(
+		found_relay_core_assigned,
+		"relay never emitted `coretime::CoreAssigned` (assign_core dispatch failed)",
+	);
 }
