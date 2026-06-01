@@ -184,19 +184,13 @@ impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `ForeignAssets::Asset` (r:1 w:0)
+	/// Storage: `ForeignAssets::Asset` (r:2 w:0)
 	/// Proof: `ForeignAssets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
-	/// Storage: `ForeignAssets::Account` (r:1 w:0)
+	/// Storage: `ForeignAssets::Account` (r:2 w:0)
 	/// Proof: `ForeignAssets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:1 w:0)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	fn get_reserves() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `1679`
-		//  Estimated: `4273`
-		// Minimum execution time: 17_908_000 picoseconds.
-		Weight::from_parts(18_735_000, 0)
-			.saturating_add(Weight::from_parts(0, 4273))
-			.saturating_add(T::DbWeight::get().reads(3))
+		// Placeholder: will be replaced by running benchmarks.
+		Weight::from_parts(16_000_000, 6566)
+			.saturating_add(T::DbWeight::get().reads(4))
 	}
 }
