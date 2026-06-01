@@ -23,7 +23,7 @@ use crate::{
 	*,
 };
 use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
-use emulated_integration_tests_common::PenpalATeleportableAssetLocation;
+use emulated_integration_tests_common::PenpalAPen2TeleportableAssetLocation;
 use frame_support::{assert_noop, BoundedVec};
 use snowbridge_core::AssetMetadata;
 use sp_runtime::DispatchError::BadOrigin;
@@ -44,7 +44,7 @@ fn register_penpal_a_asset_from_penpal_b_will_fail() {
 			AccountId32 { network: Some(Polkadot), id: PenpalBSender::get().into() },
 		],
 	);
-	let asset_location_on_penpal = PenpalATeleportableAssetLocation::get();
+	let asset_location_on_penpal = PenpalAPen2TeleportableAssetLocation::get();
 	let penpal_a_asset_at_asset_hub = Location::new(1, [Parachain(PenpalA::para_id().into())])
 		.appended_with(asset_location_on_penpal)
 		.unwrap();

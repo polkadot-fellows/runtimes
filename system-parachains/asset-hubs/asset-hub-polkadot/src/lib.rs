@@ -123,9 +123,9 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
-		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
-		TransformOrigin, WithdrawReasons,
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
+		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
+		PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -135,9 +135,11 @@ use frame_system::{
 	pallet_prelude::BlockNumberFor,
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
+use pallet_asset_conversion_precompiles::AssetConversion as AssetConversionPrecompile;
 use pallet_assets_precompiles::{ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
+use pallet_vesting_precompiles::Vesting as VestingPrecompile;
 use pallet_xcm_precompiles::XcmPrecompile;
 use parachains_common::{
 	message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets,
@@ -168,9 +170,8 @@ use xcm::{
 };
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId, LocationToAccountId,
-	PoolAssetsConvertedConcreteId, RelayChainLocation, StakingPot,
-	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
-	XcmOriginToTransactDispatchOrigin,
+	PoolAssetsConvertedConcreteId, RelayChainLocation, TrustBackedAssetsConvertedConcreteId,
+	TrustBackedAssetsPalletLocation, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -242,9 +243,24 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+/// Calls that are temporarily disabled at the runtime level.
+///
+/// The network is transitioning to a higher validator self-stake requirement
+/// (`MinValidatorBond`). During this transition, `reap_stash` is filtered out to protect
+/// previously-safe validators from getting permissionlessly reaped during the transition period.
+///
+/// The filter is intended to be removed once the transition completes and all active set validators
+/// are consistently above the new minimum. Other staking calls remain permitted.
+pub struct AllExceptReapStash;
+impl Contains<RuntimeCall> for AllExceptReapStash {
+	fn contains(call: &RuntimeCall) -> bool {
+		!matches!(call, RuntimeCall::Staking(pallet_staking_async::Call::reap_stash { .. }))
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = AllExceptReapStash;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -261,8 +277,8 @@ impl frame_system::Config for Runtime {
 	type DbWeight = InMemoryDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
+	type OnNewAccount = pallet_revive::AutoMapper<Runtime>;
+	type OnKilledAccount = pallet_revive::AutoMapper<Runtime>;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
@@ -360,8 +376,10 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
+	type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<
+		Balances,
+		ResolveTo<staking::DapStagingAccount, Balances>,
+	>;
 	type WeightToFee = DotWeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -972,7 +990,7 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 		DotLocation,
 		NativeAndAssets,
 		AssetConversion,
-		ResolveAssetTo<StakingPot, NativeAndAssets>,
+		ResolveAssetTo<staking::DapStagingAccount, NativeAndAssets>,
 	>;
 	type WeightInfo = weights::pallet_asset_conversion_tx_payment::WeightInfo<Self>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -1070,6 +1088,7 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type FeeAsset = xcm_config::bridging::XcmBridgeHubRouterFeeAssetId;
 	type LocalXcmChannelManager =
 		cumulus_pallet_xcmp_queue::bridging::InAndOutXcmpChannelStatusProvider<Runtime>;
+	type UnpaidExport = frame_support::traits::ConstBool<true>;
 }
 
 pub type PoolAssetsInstance = pallet_assets::Instance3;
@@ -1123,6 +1142,7 @@ pub type NativeAndAssets = fungible::UnionOf<
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
 	// Storage deposit for pool setup within asset conversion pallet
 	// and pool's lp token creation within assets pallet.
 	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
@@ -1148,9 +1168,9 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
 	type PoolSetupFeeAsset = DotLocation;
-	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
+	type PoolSetupFeeTarget = ResolveAssetTo<staking::DapStagingAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
-	type LPFee = ConstU32<3>;
+	type LPFee = LpFee;
 	type PalletId = AssetConversionPalletId;
 	type MaxSwapPathLength = ConstU32<3>;
 	type MintMinLiquidity = ConstU128<100>;
@@ -1442,6 +1462,8 @@ impl pallet_revive::Config for Runtime {
 		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
 		ERC20<Self, ForeignIdConfig<0x220, Self, ForeignAssetsInstance>, ForeignAssetsInstance>,
 		XcmPrecompile<Self>,
+		AssetConversionPrecompile<{ ASSET_CONVERSION_PRECOMPILE }, Self>,
+		VestingPrecompile<Self>,
 	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
@@ -1455,9 +1477,11 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 	type AllowEVMBytecode = ConstBool<true>;
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
+	type Deposit = ();
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
+	type AutoMap = ConstBool<true>;
 	type GasScale = ConstU32<80_000>;
 	type OnBurn = Dap;
 }
@@ -1471,8 +1495,15 @@ impl pallet_assets_precompiles::ForeignAssetsConfig for Runtime {
 
 impl pallet_assets_precompiles::PermitConfig for Runtime {
 	type ChainId = <Runtime as pallet_revive::Config>::ChainId;
-	type WeightInfo = pallet_assets_precompiles::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::pallet_assets_precompiles::WeightInfo<Runtime>;
 }
+
+impl pallet_vesting_precompiles::pallet::Config for Runtime {
+	type WeightInfo = weights::pallet_vesting_precompiles::WeightInfo<Runtime>;
+}
+
+/// Precompile address identifier (embedded at bytes [16..18] of the H160 address).
+pub const ASSET_CONVERSION_PRECOMPILE: u16 = 0x0420;
 
 impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
@@ -1561,6 +1592,7 @@ construct_runtime!(
 
 		AssetsPrecompiles: pallet_assets_precompiles::pallet = 91,
 		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 92,
+		VestingPrecompiles: pallet_vesting_precompiles::pallet = 93,
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
@@ -1600,9 +1632,10 @@ pub struct EthExtraImpl;
 
 impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 	type Config = Runtime;
-	type Extension = TxExtension;
+	type ExtensionV0 = TxExtension;
+	type ExtensionOtherVersions = sp_runtime::traits::InvalidVersion;
 
-	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
+	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::ExtensionV0 {
 		(
 			frame_system::AuthorizeCall::<Runtime>::new(),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
@@ -1736,6 +1769,7 @@ mod benches {
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
+		[pallet_vesting_precompiles, VestingPrecompiles]
 		[pallet_timestamp, Timestamp]
 		[pallet_treasury, Treasury]
 		[pallet_transaction_payment, TransactionPayment]
@@ -1769,6 +1803,7 @@ mod benches {
 		[pallet_staking_async, Staking]
 		[pallet_staking_async_rc_client, StakingRcClientBench::<Runtime>]
 		[pallet_bags_list, VoterList]
+		[pallet_dap, Dap]
 		// DelegatedStaking has no calls
 		[pallet_election_provider_multi_block, MultiBlockElection]
 		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
@@ -3100,5 +3135,34 @@ mod tests {
 			ProxyType::NonTransfer.filter(&call),
 			"NonTransfer proxy must allow MultiAssetBounties::propose_curator",
 		);
+	}
+
+	#[test]
+	fn call_filter_blocks_reap_stash() {
+		let call = RuntimeCall::Staking(pallet_staking_async::Call::reap_stash {
+			stash: AccountId::from([0u8; 32]),
+			num_slashing_spans: 0,
+		});
+		assert!(!AllExceptReapStash::contains(&call));
+	}
+
+	#[test]
+	fn call_filter_permits_other_staking_calls() {
+		let bond = RuntimeCall::Staking(pallet_staking_async::Call::bond {
+			value: 1_000_000_000_000,
+			payee: pallet_staking_async::RewardDestination::Stash,
+		});
+		let validate = RuntimeCall::Staking(pallet_staking_async::Call::validate {
+			prefs: pallet_staking_async::ValidatorPrefs::default(),
+		});
+		let chill = RuntimeCall::Staking(pallet_staking_async::Call::chill {});
+		let chill_other = RuntimeCall::Staking(pallet_staking_async::Call::chill_other {
+			stash: AccountId::from([0u8; 32]),
+		});
+
+		assert!(AllExceptReapStash::contains(&bond));
+		assert!(AllExceptReapStash::contains(&validate));
+		assert!(AllExceptReapStash::contains(&chill));
+		assert!(AllExceptReapStash::contains(&chill_other));
 	}
 }
