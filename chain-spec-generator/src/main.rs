@@ -82,11 +82,11 @@ fn main() -> Result<(), String> {
 				"glutton-kusama-local",
 				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config) as Box<_>,
 			),
-			/* TODO @ggwpez #[cfg(feature = "encointer-kusama")]
+			#[cfg(feature = "encointer-kusama")]
 			(
 				"encointer-kusama-local",
 				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
-			), */
+			),
 			#[cfg(feature = "coretime-kusama")]
 			(
 				"coretime-kusama",
@@ -96,11 +96,6 @@ fn main() -> Result<(), String> {
 			(
 				"coretime-kusama-local",
 				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,
-			),
-			#[cfg(feature = "coretime-polkadot")]
-			(
-				"coretime-polkadot",
-				Box::new(system_parachains_specs::coretime_polkadot_config) as Box<_>,
 			),
 			#[cfg(feature = "coretime-polkadot")]
 			(
@@ -116,11 +111,6 @@ fn main() -> Result<(), String> {
 			(
 				"people-polkadot-local",
 				Box::new(system_parachains_specs::people_polkadot_local_testnet_config) as Box<_>,
-			),
-			#[cfg(feature = "bulletin-polkadot")]
-			(
-				"bulletin-polkadot",
-				Box::new(system_parachains_specs::bulletin_polkadot_config) as Box<_>,
 			),
 			#[cfg(feature = "bulletin-polkadot")]
 			(

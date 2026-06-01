@@ -308,15 +308,15 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot --release --locked --quiet
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot,asset-hub-polkadot,people-polkadot --release --locked --quiet
 
       - name: Wait for Docker to Start
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
           docker --version
 
-      - name: Zombienet smoke test
-        timeout-minutes: 20
+      - name: Zombienet tests
+        timeout-minutes: 60
         run: |
           # Since we are running the runner in a dind environment we need to find the ip
           # of the proxy where the ports will be exposed.
@@ -407,7 +407,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
 
       - name: Download ${{ matrix.runtime.name }} WASM artifact
         uses: actions/download-artifact@v4
@@ -453,33 +456,82 @@ jobs:
           echo "::error::No reachable RPC for $RUNTIME_NAME"
           exit 1
 
+  pet-block-numbers:
+    # Resolve KNOWN_GOOD_BLOCK_NUMBERS_{POLKADOT,KUSAMA}.env once and share
+    # with all shards via an artifact. Previously each shard ran
+    # `yarn update-known-good` separately (6x redundant lookups, and shards
+    # within one run could see different blocks if a finalized block landed
+    # mid-lookup). `yarn update-known-good` ignores its CLI argument and
+    # always refreshes polkadot + kusama (+ unused westend) in one pass, so
+    # a single job suffices.
+    name: "PET block numbers"
+    needs: [check-release-pr]
+    runs-on: ubuntu-latest
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
+    steps:
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
+
+      - name: Enable Corepack for Yarn Berry
+        run: |
+          npm install --global corepack
+          corepack enable
+
+      - name: Install test dependencies
+        run: yarn install --immutable
+
+      - name: Resolve block numbers
+        run: yarn update-known-good
+
+      - name: Upload env files
+        uses: actions/upload-artifact@v4
+        with:
+          name: pet-block-numbers
+          path: |
+            KNOWN_GOOD_BLOCK_NUMBERS_POLKADOT.env
+            KNOWN_GOOD_BLOCK_NUMBERS_KUSAMA.env
+          if-no-files-found: error
+          retention-days: 1
+
   ecosystem-tests:
-    name: "PET (${{ matrix.network.name }})"
-    needs: [build-runtimes, check-release-pr]
+    name: "PET (${{ matrix.network.name }}, shard ${{ matrix.shard }}/3)"
+    needs: [build-runtimes, check-release-pr, pet-block-numbers]
     runs-on: self-hosted
-    timeout-minutes: 120
+    timeout-minutes: 60
     if: needs.check-release-pr.outputs.run-extended-checks == '1'
     strategy:
       fail-fast: false
       matrix:
+        shard: [1, 2, 3]
         network:
           - name: "polkadot"
             test_dir: "packages/polkadot"
             chains:
-              - { chain: "polkadot", port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
-              - { chain: "asset-hub-polkadot", port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
-              - { chain: "bridge-hub-polkadot", port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
-              - { chain: "collectives-polkadot", port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
-              - { chain: "coretime-polkadot", port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
-              - { chain: "people-polkadot", port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "polkadot",             pet_key: "polkadot",             port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
+              - { chain: "asset-hub-polkadot",   pet_key: "assetHubPolkadot",     port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
+              - { chain: "bridge-hub-polkadot",  pet_key: "bridgeHubPolkadot",    port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
+              - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
+              - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
+              - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:
-              - { chain: "kusama", port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
-              - { chain: "asset-hub-kusama", port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
-              - { chain: "bridge-hub-kusama", port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
-              - { chain: "coretime-kusama", port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
-              - { chain: "people-kusama", port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
+              - { chain: "kusama",               pet_key: "kusama",               port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
+              - { chain: "asset-hub-kusama",     pet_key: "assetHubKusama",       port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
+              - { chain: "bridge-hub-kusama",    pet_key: "bridgeHubKusama",      port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
+              - { chain: "coretime-kusama",      pet_key: "coretimeKusama",       port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
+              - { chain: "people-kusama",        pet_key: "peopleKusama",         port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -493,36 +545,46 @@ jobs:
       - name: Install updates and dependencies
         run: .github/install-deps.sh
 
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32v1-none"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
       - name: Install Subway
-        run: cargo install --git https://github.com/AcalaNetwork/subway
+        run: |
+          curl -fsSL https://github.com/AcalaNetwork/subway/releases/download/v0.1.2/subway-v0.1.2-x86_64-unknown-linux-musl.tar.gz \
+            | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/subway /usr/local/bin/subway
+          rm /tmp/subway
+          subway --version
 
       - name: Start all Subway instances
         run: |
           echo "Starting all Subway instances for ${{ matrix.network.name }}..."
 
-          # Start each subway instance
+          # Both the endpoint list and the Subway config template come from
+          # PET at run time, not from this repo. PET's endpoint list is the
+          # only one actively probed and ranked for state availability at the
+          # pinned blocks chopsticks needs; PET's Subway template is the only
+          # one set up to honor that ranking (`shuffle_endpoints: false`) and
+          # configured for heavy-storage queries (`request_timeout_seconds:
+          # 90`). Maintaining a local snapshot of either is a recipe for
+          # drift, exactly the kind that surfaced "UnknownBlock: State
+          # already discarded" and the per-upstream timeout cycling we just
+          # fixed.
+          curl -fsSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/packages/networks/src/pet-chain-endpoints.json \
+            -o /tmp/pet-chain-endpoints.json
+          curl -fsSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/.github/subway-template.yml \
+            -o /tmp/subway-template.yml
+
           echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
             CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
+            PET_KEY=$(echo "$chain" | jq -r '.pet_key')
             PORT=$(echo "$chain" | jq -r '.port')
 
-            ENDPOINTS=$(jq -c --arg chain "$CHAIN_NAME" '.[] | select(.name == $chain) | .uris' .github/workflows/runtimes-matrix.json)
+            ENDPOINTS=$(jq -c --arg k "$PET_KEY" '.[$k]' /tmp/pet-chain-endpoints.json)
             if [ -z "$ENDPOINTS" ] || [ "$ENDPOINTS" = "null" ]; then
-              echo "ERROR: No endpoints found for $CHAIN_NAME in runtimes-matrix.json"
+              echo "ERROR: No endpoints for $CHAIN_NAME (pet_key=$PET_KEY) in PET's pet-chain-endpoints.json"
               exit 1
             fi
 
             echo "Starting Subway for $CHAIN_NAME on port $PORT..."
-            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" .github/subway-configs/template.yml > /tmp/subway-$PORT.yml
+            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" /tmp/subway-template.yml > /tmp/subway-$PORT.yml
             subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
             echo $! >> /tmp/subway.pids
           done
@@ -573,10 +635,13 @@ jobs:
             echo "${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}" >> $GITHUB_ENV
           done
 
-      - name: Use latest Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
 
       - name: Enable Corepack for Yarn Berry
         run: |
@@ -600,12 +665,13 @@ jobs:
           env | grep -E "ENDPOINT=|_WASM=" | sort || true
           echo "======================================"
 
-      - name: Update known good block numbers
-        working-directory: ecosystem-tests
-        run: |
-          yarn update-known-good ${{ matrix.network.name }}
+      - name: Download resolved block numbers
+        uses: actions/download-artifact@v4
+        with:
+          name: pet-block-numbers
+          path: ecosystem-tests
 
-      - name: Run ${{ matrix.network.name }} ecosystem tests
+      - name: Run ${{ matrix.network.name }} ecosystem tests (shard ${{ matrix.shard }}/3)
         working-directory: ecosystem-tests
         run: |
           echo "Finding Fellowship runtime test files in ${{ matrix.network.test_dir }}..."
@@ -624,16 +690,14 @@ jobs:
             exit 0
           fi
 
-          echo "Running tests with limited parallelism..."
-          # Notes on flags below:
-          # 1. `-u` updates snapshots so that they don't fail spuriously e.g. proof size/ref time changes
-          # 2. `--pool=threads` runs test files from `$TEST_FILES` in parallel using worker threads. Default
-          #    is `--pool=forks`, which uses child processes - heavier.
-          # 3. `--maxWorkers=3` combined with the above means at most 3 test files running concurrently, each in its
-          #    own thread
-          # 4. `--retry=3` attempts a failing test 3 times. This operates at the level of individual tests, not modules,
-          #    or the whole test suite; one failure will *not* require a full rerun.
-          yarn test -u $TEST_FILES --pool=threads --maxWorkers=3 --retry=3
+          # Flags:
+          #   -u                       update snapshots (proof size / ref time drift)
+          #   --pool=forks             child-process isolation; required for shared-client
+          #                            refactor (#609) to avoid retry-induced state leaks
+          #   --maxWorkers=8           up to 8 test files in parallel per shard
+          #   --retry=2                per-test retry (#616 cut endpoint flakiness)
+          #   --shard=${i}/3           static partition of TEST_FILES across 3 parallel jobs
+          yarn test -u $TEST_FILES --pool=forks --maxWorkers=8 --retry=2 --shard=${{ matrix.shard }}/3
 
       - name: Cleanup all Subway instances
         if: always()

@@ -28,7 +28,6 @@ polkadot-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
 system-parachains-common = { workspace = true, features = ["multi-asset-bounties"] }
 
-# Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
 frame-executive = { workspace = true }
@@ -94,6 +93,7 @@ grandpa-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
+sp-dap = { workspace = true }
 sp-genesis-builder = { workspace = true }
 sp-io = { workspace = true }
 sp-inherents = { workspace = true }
@@ -114,7 +114,6 @@ primitive-types = { features = [
 pallet-dap = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 
-# Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 pallet-xcm-precompiles = { workspace = true }
@@ -127,7 +126,6 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
-# Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
@@ -432,6 +430,7 @@ std = [
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
+	"sp-dap/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
 	"sp-io/std",

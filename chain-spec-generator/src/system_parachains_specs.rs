@@ -40,7 +40,7 @@ pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-// TODO @ggwpez pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
@@ -183,7 +183,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::Ch
 	))
 }
 
-/* TODO @ggwpez #[cfg(feature = "encointer-kusama")]
+#[cfg(feature = "encointer-kusama")]
 pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
 {
 	let mut properties = sc_chain_spec::Properties::new();
@@ -203,7 +203,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::
 		.with_properties(properties)
 		.build(),
 	))
-}*/
+}
 
 #[cfg(feature = "coretime-kusama")]
 pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
@@ -286,47 +286,6 @@ pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec:
 	))
 }
 
-#[cfg(feature = "coretime-polkadot")]
-pub fn coretime_polkadot_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
-	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("ss58Format".into(), 0.into());
-	properties.insert("tokenSymbol".into(), "DOT".into());
-	properties.insert("tokenDecimals".into(), 10.into());
-
-	let boot_nodes = [
-		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
-		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
-		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
-		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/443/wss/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
-		"/dns4/coretime-polkadot.boot.stake.plus/tcp/30332/wss/p2p/12D3KooWFJ2yBTKFKYwgKUjfY3F7XfaxHV8hY6fbJu5oMkpP7wZ9",
-		"/dns4/coretime-polkadot.boot.stake.plus/tcp/31332/wss/p2p/12D3KooWCy5pToLafcQzPHn5kadxAftmF6Eh8ZJGPXhSeXSUDfjv",
-
-	];
-
-	Ok(Box::new(
-		CoretimePolkadotChainSpec::builder(
-			coretime_polkadot_runtime::WASM_BINARY.expect("Polkadot Coretime wasm not available!"),
-			Extensions { relay_chain: "polkadot".into(), para_id: 1005 },
-		)
-		.with_name("Polkadot Coretime")
-		.with_id("coretime-polkadot")
-		.with_chain_type(sc_chain_spec::ChainType::Live)
-		.with_genesis_config_preset_name("live")
-		.with_properties(properties)
-		.with_boot_nodes(
-			boot_nodes
-				.iter()
-				.map(|addr| {
-					use std::str::FromStr;
-					sc_network::config::MultiaddrWithPeerId::from_str(addr)
-						.expect("Boot node address is incorrect.")
-				})
-				.collect(),
-		)
-		.build(),
-	))
-}
-
 #[cfg(feature = "people-kusama")]
 pub fn people_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
@@ -365,39 +324,6 @@ pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::C
 		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
-		.build(),
-	))
-}
-
-#[cfg(feature = "bulletin-polkadot")]
-pub fn bulletin_polkadot_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
-	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("ss58Format".into(), 0.into());
-	properties.insert("tokenSymbol".into(), "DOT".into());
-	properties.insert("tokenDecimals".into(), 10.into());
-
-	let boot_nodes: [&str; 0] = [];
-
-	Ok(Box::new(
-		BulletinPolkadotChainSpec::builder(
-			bulletin_polkadot_runtime::WASM_BINARY.expect("BulletinPolkadot wasm not available!"),
-			Extensions { relay_chain: "polkadot".into(), para_id: 1010 },
-		)
-		.with_name("Polkadot Bulletin")
-		.with_id("bulletin-polkadot")
-		.with_chain_type(sc_chain_spec::ChainType::Live)
-		.with_genesis_config_preset_name("live")
-		.with_properties(properties)
-		.with_boot_nodes(
-			boot_nodes
-				.iter()
-				.map(|addr| {
-					use std::str::FromStr;
-					sc_network::config::MultiaddrWithPeerId::from_str(addr)
-						.expect("Boot node address is incorrect.")
-				})
-				.collect(),
-		)
 		.build(),
 	))
 }
