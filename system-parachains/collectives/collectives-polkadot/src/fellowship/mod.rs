@@ -87,7 +87,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type Currency = Balances;
 	// Proposals can be submitted by any of:
 	// - a Fellow (rank 3 and above);
-	// - an account in the governance-managed allow-list (e.g. the Parity tip bot);
+	// - an account in the governance-managed allow-list;
 	// - the voice of any rank, mapped to the corresponding member account.
 	type SubmitOrigin = EitherOf<
 		EitherOf<
@@ -121,9 +121,9 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 
 /// Passes a signed origin whose account is in the [`AllowedProposers`] allow-list.
 ///
-/// Lets non-members (e.g. the Parity tip bot) open Fellowship referenda. The allow-list lives in
+/// Lets non-members (e.g. the RFC or tip bot) open Fellowship referenda. The allow-list lives in
 /// the [`AllowedProposers`] dynamic parameter (empty by default, managed via the `Parameters`
-/// pallet). See <https://github.com/polkadot-fellows/runtimes/issues/629>.
+/// pallet).
 ///
 /// [`AllowedProposers`]: crate::dynamic_params::fellowship::AllowedProposers
 pub struct EnsureAllowedProposer;

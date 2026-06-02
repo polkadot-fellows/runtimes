@@ -8,20 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
-- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the Parity tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629))
-
-### Changed
-
-- Zombienet SDK integration tests for elastic scaling on Asset Hub Polkadot and People Polkadot.
-
-### Changed
-
-- Align all runtimes to use the same values for e.g. `TransactionByteFee` and some other clean ups. ([#1175](https://github.com/polkadot-fellows/runtimes/pull/1175)).
-
-### Changed
-
-- collectives-polkadot-runtime: Increase the Secretary Collective salary budget ([#1172](https://github.com/polkadot-fellows/runtimes/pull/1172))
 - PAH: staking switched to non-minting; emission via `pallet-dap` drips ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: `DapStagingAccount` is the sink for fees, slashes and `RewardRemainder` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - KAH: `pallet_recovery` modernized ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
@@ -29,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the RFC or tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629))
 
 ### Changed
 

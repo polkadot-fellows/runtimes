@@ -763,10 +763,9 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
 	pub mod fellowship {
-		/// Non-member accounts allowed to submit Fellowship referenda (e.g. the Parity tip bot).
+		/// Non-member accounts allowed to submit Fellowship referenda (e.g. RFC of tip bot).
 		///
 		/// Empty by default: until governance populates it, only Fellows (rank 3+) may submit.
-		/// See <https://github.com/polkadot-fellows/runtimes/issues/629>.
 		#[codec(index = 0)]
 		pub static AllowedProposers: BoundedVec<AccountId, ConstU32<16>> = Default::default();
 	}
