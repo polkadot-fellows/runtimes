@@ -94,7 +94,7 @@ use frame_system::{
 use parachains_common::{
 	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use sp_runtime::Debug;
+use sp_runtime::{Debug, FixedU128};
 use system_parachains_constants::{
 	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
@@ -612,6 +612,16 @@ parameter_types! {
 pub const ALLIANCE_MAX_PROPOSALS: u32 = 100;
 pub const ALLIANCE_MAX_MEMBERS: u32 = 100;
 
+parameter_types! {
+	// This configuration causes the deposit amount to increase with the number of active proposals.
+	// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780
+	pub const AllianceProposalDepositGrowthFactor: FixedU128 = FixedU128::from_rational(11, 10);
+	pub const AllianceBaseProposalDeposit: Balance = 1 * UNITS;
+	pub const AllianceProposalRoundPrecision: u32 = 10;
+	pub const AllianceProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::AllianceMotion(pallet_collective::HoldReason::ProposalSubmission);
+}
+
 type AllianceCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
@@ -626,7 +636,19 @@ impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type MaxProposalWeight = MaxProposalWeight;
 	type DisapproveOrigin = EnsureRoot<AccountId>;
 	type KillOrigin = EnsureRoot<AccountId>;
-	type Consideration = ();
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		AllianceProposalHoldReason,
+		pallet_collective::deposit::Round<
+			AllianceProposalRoundPrecision,
+			pallet_collective::deposit::Geometric<
+				AllianceProposalDepositGrowthFactor,
+				AllianceBaseProposalDeposit,
+			>,
+		>,
+		u32,
+	>;
 }
 
 pub const MAX_FELLOWS: u32 = ALLIANCE_MAX_MEMBERS;

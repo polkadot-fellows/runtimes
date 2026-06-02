@@ -66,6 +66,7 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
+		fungible::HoldConsideration,
 		fungibles::{Balanced, Credit},
 		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
 		ConstBool, ConstU128, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
@@ -104,7 +105,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Debug, Perbill,
+	ApplyExtrinsicResult, Debug, FixedU128, Perbill,
 };
 
 #[cfg(feature = "std")]
@@ -688,6 +689,16 @@ type MoreThanHalfCouncil = EitherOfDiverse<
 	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
 >;
 
+parameter_types! {
+	// This configuration causes the deposit amount to increase with the number of active proposals.
+	// 1 proposal = 1 KSM, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780
+	pub const CouncilProposalDepositGrowthFactor: FixedU128 = FixedU128::from_rational(11, 10);
+	pub const CouncilBaseProposalDeposit: Balance = 1 * UNITS;
+	pub const CouncilProposalRoundPrecision: u32 = 12;
+	pub const CouncilProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Collective(pallet_collective::HoldReason::ProposalSubmission);
+}
+
 pub type CouncilCollective = pallet_collective::Instance1;
 
 impl pallet_collective::Config<CouncilCollective> for Runtime {
@@ -703,7 +714,19 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type MaxProposalWeight = MaxProposalWeight;
 	type DisapproveOrigin = MoreThanHalfCouncil;
 	type KillOrigin = MoreThanHalfCouncil;
-	type Consideration = ();
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		CouncilProposalHoldReason,
+		pallet_collective::deposit::Round<
+			CouncilProposalRoundPrecision,
+			pallet_collective::deposit::Geometric<
+				CouncilProposalDepositGrowthFactor,
+				CouncilBaseProposalDeposit,
+			>,
+		>,
+		u32,
+	>;
 }
 
 // support for collective pallet
