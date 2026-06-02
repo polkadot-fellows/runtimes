@@ -1522,7 +1522,7 @@ fn alliance_deposit_matches_documented_curve() {
 		(25, 10 * UNITS),
 		(50, 117 * UNITS),
 		(75, 1271 * UNITS),
-		(100, 13780 * UNITS),
+		(ALLIANCE_MAX_PROPOSALS, 13780 * UNITS),
 	];
 
 	for (proposals, expected) in cases {
