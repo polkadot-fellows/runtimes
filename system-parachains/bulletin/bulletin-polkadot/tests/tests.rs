@@ -18,28 +18,34 @@
 
 use bulletin_polkadot_runtime::{
 	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
-	Block, Runtime, RuntimeCall, RuntimeOrigin, System, TransactionStorage,
+	Balances, Block, Executive, Runtime, RuntimeCall, RuntimeOrigin, System, TransactionStorage,
+	TxExtension, UncheckedExtrinsic,
 };
 use bulletin_transaction_storage_primitives::cids::{
 	calculate_cid, CidConfig, HashingAlgorithm, RAW_CODEC,
 };
+use codec::Encode;
 use frame_support::{
-	assert_err, assert_noop, assert_ok, dispatch::GetDispatchInfo, traits::Hooks,
+	assert_err, assert_noop, assert_ok,
+	dispatch::GetDispatchInfo,
+	traits::{fungible::Mutate, Hooks},
 };
 use pallet_bulletin_transaction_storage::{
 	extension::{AllowanceBasedPriority, ALLOWANCE_PRIORITY_BOOST},
-	AuthorizationExtent, AuthorizationScope, Call as TxStorageCall, DEFAULT_MAX_TRANSACTION_SIZE,
-	Origin as TxStorageOrigin,
+	AllowedAuthorizers, AuthorizationExtent, AuthorizationScope, AuthorizerBudget,
+	Call as TxStorageCall, Origin as TxStorageOrigin, Quota, DEFAULT_MAX_TRANSACTION_SIZE,
 };
-use parachains_common::AccountId;
+use parachains_common::{AccountId, BlockNumber, Signature};
 use parachains_runtimes_test_utils::GovernanceOrigin;
-use sp_core::crypto::Ss58Codec;
+use sp_core::{crypto::Ss58Codec, Pair};
 use sp_io::TestExternalities;
 use sp_keyring::Sr25519Keyring;
 use sp_runtime::{
 	traits::{TransactionExtension, TxBaseImplication},
-	transaction_validity::{TransactionPriority, TransactionSource},
-	Either,
+	transaction_validity::{
+		InvalidTransaction, TransactionPriority, TransactionSource, TransactionValidityError,
+	},
+	ApplyExtrinsicResult, Either,
 };
 use std::collections::HashMap;
 use system_parachains_constants::polkadot::fee::WeightToFee;
@@ -392,10 +398,12 @@ fn store_with_cid_config_works() {
 
 		assert_eq!(stored_txs.len(), 3);
 
-		let default_hash =
-			calculate_cid(&data, CidConfig { codec: RAW_CODEC, hashing: HashingAlgorithm::Blake2b256 })
-				.unwrap()
-				.content_hash;
+		let default_hash = calculate_cid(
+			&data,
+			CidConfig { codec: RAW_CODEC, hashing: HashingAlgorithm::Blake2b256 },
+		)
+		.unwrap()
+		.content_hash;
 		assert_eq!(stored_txs[&0].content_hash, default_hash);
 		// Explicit Blake2b256 matches the plain-store default.
 		assert_eq!(stored_txs[&0].content_hash, stored_txs[&1].content_hash);
@@ -483,5 +491,237 @@ fn allowance_based_priority_works() {
 			},
 		});
 		assert_eq!(priority(origin, &renew), 0);
+	});
+}
+
+/// An [`AuthorizerBudget`] with a finite quota, no expiry and fees charged.
+fn authorizer_budget(transactions: u32, bytes: u64) -> AuthorizerBudget<BlockNumber> {
+	AuthorizerBudget {
+		quota: Some(Quota { transactions, bytes }),
+		valid_until: None,
+		feeless: false,
+	}
+}
+
+/// Build and sign an `UncheckedExtrinsic` for `sender`, mirroring the runtime's
+/// [`bulletin_polkadot_runtime::TxExtension`] (and its order) exactly.
+fn construct_extrinsic(sender: sp_core::sr25519::Pair, call: RuntimeCall) -> UncheckedExtrinsic {
+	// Provide a known genesis block hash for the immortal era check.
+	frame_system::BlockHash::<Runtime>::insert(0, sp_core::H256::default());
+	let account_id = AccountId::from(sender.public());
+	let nonce = frame_system::Pallet::<Runtime>::account(&account_id).nonce;
+	let tx_ext: TxExtension =
+		cumulus_pallet_weight_reclaim::StorageWeightReclaim::<Runtime, _>::new((
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(sp_runtime::generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(nonce),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
+				pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
+			),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			pallet_bulletin_transaction_storage::extension::ValidateStorageCalls::<
+				Runtime,
+				bulletin_polkadot_runtime::storage::StorageCallInspector,
+			>::default(),
+			pallet_bulletin_transaction_storage::extension::AllowanceBasedPriority::<
+				Runtime,
+				pallet_bulletin_transaction_storage::extension::FlatBoost,
+			>::default(),
+		));
+	let payload = sp_runtime::generic::SignedPayload::new(call.clone(), tx_ext.clone())
+		.expect("signed payload should be valid");
+	let signature = payload.using_encoded(|e| sender.sign(e));
+	UncheckedExtrinsic::new_signed(call, account_id.into(), Signature::Sr25519(signature), tx_ext)
+}
+
+/// Sign `call` as `sender` and run it through `Executive`, exercising the full
+/// transaction-extension pipeline (notably the fee path).
+fn construct_and_apply_extrinsic(
+	sender: sp_core::sr25519::Pair,
+	call: RuntimeCall,
+) -> ApplyExtrinsicResult {
+	Executive::apply_extrinsic(construct_extrinsic(sender, call))
+}
+
+#[test]
+fn account_authorizer_consumes_quota() {
+	new_test_ext().execute_with(|| {
+		let authorizer: AccountId = Sr25519Keyring::Charlie.to_account_id();
+		let target: AccountId = Sr25519Keyring::Dave.to_account_id();
+
+		// Root registers Charlie as an account-based authorizer with a finite quota.
+		assert_ok!(TransactionStorage::add_authorizer(
+			RuntimeOrigin::root(),
+			authorizer.clone(),
+			authorizer_budget(10, 8192),
+		));
+
+		// Charlie (a signed `AllowedAuthorizers` entry) authorizes Dave.
+		assert_ok!(TransactionStorage::authorize_account(
+			RuntimeOrigin::signed(authorizer.clone()),
+			target.clone(),
+			3,
+			1024,
+		));
+
+		// Dave received exactly the granted allowance.
+		assert_eq!(
+			TransactionStorage::account_authorization_extent(target),
+			AuthorizationExtent {
+				transactions: 0,
+				transactions_allowance: 3,
+				bytes: 0,
+				bytes_permanent: 0,
+				bytes_allowance: 1024,
+			},
+		);
+
+		// Charlie's authorizer quota was decremented by the granted amounts.
+		let remaining = AllowedAuthorizers::<Runtime>::get(&authorizer).expect("still registered");
+		assert_eq!(remaining.quota, Some(Quota { transactions: 7, bytes: 7168 }));
+	});
+}
+
+#[test]
+fn valid_until_clamps_granted_authorization_expiry() {
+	// `AuthorizationPeriod` on this runtime is 14 days; an authorizer with a short
+	// `valid_until` must clamp the grants it issues — a grant cannot outlive its
+	// grantor. Expiry after a handful of blocks (rather than 14 days) proves clamping.
+	new_test_ext().execute_with(|| {
+		advance_block(); // move to block 1 so `valid_until = 4 > now` is accepted.
+
+		let authorizer: AccountId = Sr25519Keyring::Charlie.to_account_id();
+		let target: AccountId = Sr25519Keyring::Dave.to_account_id();
+		assert_ok!(TransactionStorage::add_authorizer(
+			RuntimeOrigin::root(),
+			authorizer.clone(),
+			AuthorizerBudget { valid_until: Some(4), ..authorizer_budget(10, 100_000) },
+		));
+		assert_ok!(TransactionStorage::authorize_account(
+			RuntimeOrigin::signed(authorizer),
+			target.clone(),
+			1,
+			1024,
+		));
+
+		// Still valid before `valid_until`.
+		advance_block(); // block 2
+		advance_block(); // block 3
+		assert_eq!(
+			TransactionStorage::account_authorization_extent(target.clone()),
+			AuthorizationExtent {
+				transactions: 0,
+				transactions_allowance: 1,
+				bytes: 0,
+				bytes_permanent: 0,
+				bytes_allowance: 1024,
+			},
+		);
+
+		// At `valid_until` (block 4) the grant has expired — clamped, not 14 days out.
+		advance_block(); // block 4
+		assert_eq!(
+			TransactionStorage::account_authorization_extent(target),
+			AuthorizationExtent::default(),
+		);
+	});
+}
+
+#[test]
+fn add_remove_authorizer_manages_system_providers() {
+	// Registering an authorizer holds a System provider reference (so a `feeless`
+	// authorizer with no balance is not reaped); removing it releases the reference.
+	new_test_ext().execute_with(|| {
+		let who: AccountId = Sr25519Keyring::Charlie.to_account_id();
+		let providers_of = |a: &AccountId| frame_system::Account::<Runtime>::get(a).providers;
+		assert_eq!(providers_of(&who), 0);
+
+		assert_ok!(TransactionStorage::add_authorizer(
+			RuntimeOrigin::root(),
+			who.clone(),
+			authorizer_budget(100, 1024),
+		));
+		assert_eq!(providers_of(&who), 1);
+
+		// Re-adding must not double-bump the provider reference.
+		assert_ok!(TransactionStorage::add_authorizer(
+			RuntimeOrigin::root(),
+			who.clone(),
+			authorizer_budget(200, 2048),
+		));
+		assert_eq!(providers_of(&who), 1);
+
+		assert_ok!(TransactionStorage::remove_authorizer(RuntimeOrigin::root(), who.clone()));
+		assert_eq!(providers_of(&who), 0);
+
+		// Re-removing must not underflow.
+		assert_ok!(TransactionStorage::remove_authorizer(RuntimeOrigin::root(), who.clone()));
+		assert_eq!(providers_of(&who), 0);
+	});
+}
+
+#[test]
+fn authorize_account_fee_path_follows_feeless_flag() {
+	// `feeless: false` → fee charged, so an unfunded authorizer is rejected with
+	// `Payment`. `feeless: true` → `SkipCheckIfFeeless` skips the charge, so the
+	// same unfunded authorizer succeeds.
+	let authorizer = Sr25519Keyring::Charlie;
+	let call = RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::authorize_account {
+		who: Sr25519Keyring::Dave.to_account_id(),
+		transactions: 0,
+		bytes: 1024,
+	});
+
+	let attempt = |feeless: bool, funded: bool| -> ApplyExtrinsicResult {
+		new_test_ext().execute_with(|| {
+			// Root registers Charlie as an authorizer (this also holds a provider ref,
+			// so the account exists even while unfunded).
+			assert_ok!(TransactionStorage::add_authorizer(
+				RuntimeOrigin::root(),
+				authorizer.to_account_id(),
+				AuthorizerBudget { feeless, ..authorizer_budget(10, 1024 * 1024) },
+			));
+			if funded {
+				Balances::mint_into(&authorizer.to_account_id(), 1_000_000_000_000_000).unwrap();
+			}
+			construct_and_apply_extrinsic(authorizer.pair(), call.clone())
+		})
+	};
+
+	// Charged + funded → dispatched successfully.
+	assert_ok!(attempt(false, true).expect("valid"));
+	// Charged + unfunded → rejected at the fee check.
+	assert_eq!(
+		attempt(false, false),
+		Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)),
+	);
+	// Feeless + unfunded → fee skipped, dispatched successfully.
+	assert_ok!(attempt(true, false).expect("valid"));
+}
+
+#[test]
+fn non_authorizer_cannot_sign_authorize_account_extrinsic() {
+	// A signer that is not an accepted authorizer is rejected at validation with
+	// `BadSigner` (via `ValidateStorageCalls` -> `check_signed`), even when funded.
+	new_test_ext().execute_with(|| {
+		let eve = Sr25519Keyring::Eve;
+		// Fund Eve so the fee check (which runs before the signer check) passes.
+		Balances::mint_into(&eve.to_account_id(), 1_000_000_000_000).unwrap();
+
+		let call = RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::authorize_account {
+			who: Sr25519Keyring::Ferdie.to_account_id(),
+			transactions: 0,
+			bytes: 1024,
+		});
+
+		assert_eq!(
+			construct_and_apply_extrinsic(eve.pair(), call),
+			Err(TransactionValidityError::Invalid(InvalidTransaction::BadSigner)),
+		);
 	});
 }
