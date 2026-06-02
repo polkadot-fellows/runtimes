@@ -40,7 +40,7 @@ use bridge_to_kusama_config::bp_kusama;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
-use snowbridge_core::{AgentId, PricingParameters};
+use snowbridge_core::{sparse_bitmap::SparseBitmap, AgentId, PricingParameters};
 use snowbridge_outbound_queue_primitives::v1::{Command, Fee};
 
 use sp_api::impl_runtime_apis;
@@ -160,7 +160,10 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,);
+	pub type Unreleased = (
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
@@ -296,7 +299,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -324,7 +327,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxFreezes = ConstU32<0>;
+	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -492,7 +495,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -992,15 +995,18 @@ mod benches {
 		}
 
 		fn prepare_rewards_account(
+			_relayer: &AccountId,
 			reward_kind: Self::Reward,
-			reward: Balance,
-		) -> Option<
+			reward: Self::RewardBalance,
+		) -> Option<(
+			Self::Reward,
 			pallet_bridge_relayers::BeneficiaryOf<
 				Runtime,
 				bridge_common_config::BridgeRelayersInstance,
 			>,
-		> {
-			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(reward_kind) = reward_kind
+		)> {
+			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(inner_reward_kind) =
+				reward_kind
 			else {
 				panic!(
 					"Unexpected reward_kind: {reward_kind:?} - not compatible with `bench_reward`!"
@@ -1011,10 +1017,13 @@ mod benches {
 				AccountId,
 				bp_messages::LegacyLaneId,
 				Balance,
-			>::rewards_account(reward_kind);
+			>::rewards_account(inner_reward_kind);
 			Self::deposit_account(rewards_account.clone(), reward);
 
-			Some(bridge_common_config::BridgeRewardBeneficiaries::LocalAccount(rewards_account))
+			Some((
+				reward_kind,
+				bridge_common_config::BridgeRewardBeneficiaries::LocalAccount(rewards_account),
+			))
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
@@ -1098,7 +1107,7 @@ mod benches {
 			Weight,
 		) {
 			use cumulus_primitives_core::XcmpMessageSource;
-			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
+			assert!(XcmpQueue::take_outbound_messages(usize::MAX, &[]).is_empty());
 			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
 			PolkadotXcm::force_xcm_version(
 				RuntimeOrigin::root(),
@@ -1149,7 +1158,7 @@ mod benches {
 
 		fn is_message_successfully_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
 			use cumulus_primitives_core::XcmpMessageSource;
-			!XcmpQueue::take_outbound_messages(usize::MAX).is_empty()
+			!XcmpQueue::take_outbound_messages(usize::MAX, &[]).is_empty()
 		}
 	}
 
@@ -1497,6 +1506,12 @@ impl_runtime_apis! {
 	impl snowbridge_outbound_queue_v2_runtime_api::OutboundQueueV2Api<Block, Balance> for Runtime {
 		fn prove_message(leaf_index: u64) -> Option<snowbridge_merkle_tree::MerkleProof> {
 			snowbridge_pallet_outbound_queue_v2::api::prove_message::<Runtime>(leaf_index)
+		}
+	}
+
+	impl snowbridge_pallet_inbound_queue_v2::InboundQueueV2Api<Block> for Runtime {
+		fn is_message_relayed(nonce: u64) -> bool {
+			snowbridge_pallet_inbound_queue_v2::Nonce::<Runtime>::get(nonce)
 		}
 	}
 
