@@ -795,6 +795,15 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static BurnDestination: BurnDestinationAccount = Default::default();
 	}
+
+	/// Parameters used by `pallet-staking-async-ah-client`.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod ah_client {
+		/// Minimum size of the validator set that the relay chain will accept from Asset Hub.
+		#[codec(index = 0)]
+		pub static MinimumValidatorSetSize: u32 = 100;
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -822,6 +831,12 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+			AhClient(_) => EitherOfDiverse::<
+				// either local root or StakingAdmin, or same from OpenGov on AH
+				EitherOf<EnsureRoot<AccountId>, StakingAdmin>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1760,8 +1775,6 @@ impl pallet_nomination_pools::Config for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
-	// Kusama always wants 1000 validators, we reject anything smaller than that.
-	pub storage MinimumValidatorSetSize: u32 = 1000;
 }
 
 impl pallet_delegated_staking::Config for Runtime {
@@ -1782,7 +1795,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Session;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = MinimumValidatorSetSize;
+	type MinimumValidatorSetSize = dynamic_params::ah_client::MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
