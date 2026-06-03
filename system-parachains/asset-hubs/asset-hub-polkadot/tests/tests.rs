@@ -1329,6 +1329,93 @@ fn slash_goes_to_dap_buffer_account() {
 }
 
 #[test]
+fn migrate_bounty_account_assets_moves_dot_usdt_and_usdc() {
+	use asset_hub_polkadot_runtime::{
+		migrations::MigrateBountyAccountAssets, treasury::TreasuryPalletId,
+	};
+	use frame_support::traits::{
+		fungible::Mutate as _, tokens::fungibles::Mutate as _, Get as _, OnRuntimeUpgrade,
+		PalletInfoAccess,
+	};
+	use pallet_multi_asset_bounties::{Bounty, BountyStatus};
+	use polkadot_runtime_common::impls::VersionedLocatableAsset;
+	use sp_core::H256;
+	use sp_runtime::traits::AccountIdConversion;
+
+	const BOUNTY_ID: u32 = 7;
+	const USDT_ASSET_ID: u32 = 1984;
+	const USDC_ASSET_ID: u32 = 1337;
+	const UNRELATED_ASSET_ID: u32 = 99; // NOT used by multi-asset bounties, must NOT move
+	const DOT_AMOUNT: Balance = 100 * UNITS;
+	const USDT_AMOUNT: Balance = 250_000 * 1_000_000; // 6 decimals
+	const USDC_AMOUNT: Balance = 100_000 * 1_000_000; // 6 decimals
+	const UNRELATED_AMOUNT: Balance = 999 * 1_000_000;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		let bounty = Bounty::<
+			AccountId,
+			Balance,
+			VersionedLocatableAsset,
+			H256,
+			xcm::v5::QueryId,
+			parachains_common::pay::VersionedLocatableAccount,
+		> {
+			asset_kind: VersionedLocatableAsset::V5 {
+				location: Location::new(0, []),
+				asset_id: AssetId(Location::new(
+					0,
+					[
+						PalletInstance(<Assets as PalletInfoAccess>::index() as u8),
+						GeneralIndex(USDT_ASSET_ID.into()),
+					],
+				)),
+			},
+			value: USDT_AMOUNT,
+			metadata: H256::zero(),
+			status: BountyStatus::CuratorUnassigned,
+		};
+		pallet_multi_asset_bounties::Bounties::<Runtime>::insert(BOUNTY_ID, bounty);
+
+		let pallet_id = TreasuryPalletId::get();
+		let old: AccountId = pallet_id.into_sub_account_truncating(("mbt", BOUNTY_ID));
+		let new: AccountId = pallet_id.into_sub_account_truncating((
+			pallet_multi_asset_bounties::BountyAccountPrefix::get(),
+			BOUNTY_ID,
+		));
+		assert_ne!(old, new);
+
+		// Native DOT (Balances).
+		Balances::mint_into(&old, DOT_AMOUNT).unwrap();
+		// Trust-backed assets the multi-asset bounties pallet supports.
+		for id in [USDT_ASSET_ID, USDC_ASSET_ID, UNRELATED_ASSET_ID] {
+			assert_ok!(Assets::force_create(
+				RuntimeHelper::root_origin(),
+				id.into(),
+				AccountId::from(SOME_ASSET_ADMIN).into(),
+				true,
+				1,
+			));
+		}
+		Assets::mint_into(USDT_ASSET_ID, &old, USDT_AMOUNT).unwrap();
+		Assets::mint_into(USDC_ASSET_ID, &old, USDC_AMOUNT).unwrap();
+		Assets::mint_into(UNRELATED_ASSET_ID, &old, UNRELATED_AMOUNT).unwrap();
+
+		MigrateBountyAccountAssets::on_runtime_upgrade();
+
+		// DOT (native), USDT and USDC moved.
+		assert_eq!(Balances::free_balance(&old), 0);
+		assert_eq!(Balances::free_balance(&new), DOT_AMOUNT);
+		assert_eq!(Assets::balance(USDT_ASSET_ID, &old), 0);
+		assert_eq!(Assets::balance(USDT_ASSET_ID, &new), USDT_AMOUNT);
+		assert_eq!(Assets::balance(USDC_ASSET_ID, &old), 0);
+		assert_eq!(Assets::balance(USDC_ASSET_ID, &new), USDC_AMOUNT);
+		// An asset not used by the multi-asset bounties pallet stays at the old account.
+		assert_eq!(Assets::balance(UNRELATED_ASSET_ID, &old), UNRELATED_AMOUNT);
+		assert_eq!(Assets::balance(UNRELATED_ASSET_ID, &new), 0);
+	});
+}
+
+#[test]
 fn session_keys_are_compatible_between_ah_and_rc() {
 	use asset_hub_polkadot_runtime::staking::RelayChainSessionKeys;
 	use sp_runtime::traits::OpaqueKeys;

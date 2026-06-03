@@ -100,10 +100,8 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// The Kusama People Chain slot duration.
-// Async backing was launched with a 6 second slot duration for Kusama People Chain. We maintain
-// this value rather than inheriting the 12 second duration defined in the common constants.
-pub const SLOT_DURATION: u64 = 6_000;
+/// People Kusama uses a 24s Aura slot duration.
+pub const SLOT_DURATION: u64 = 24_000;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
