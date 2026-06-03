@@ -25,7 +25,7 @@ bp-bridge-hub-kusama = { workspace = true }
 bp-bridge-hub-polkadot = { workspace = true }
 kusama-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
-system-parachains-common = { workspace = true, features = ["multi-asset-bounties"] }
+system-parachains-common = { workspace = true }
 pallet-remote-proxy = { workspace = true }
 
 frame-benchmarking = { optional = true, workspace = true }

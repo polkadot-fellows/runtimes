@@ -67,7 +67,7 @@ extern crate alloc;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
-mod migrations;
+pub mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
 pub mod staking;
