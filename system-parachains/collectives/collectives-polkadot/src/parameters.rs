@@ -132,6 +132,9 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 )]
 pub struct FellowshipSalaryConfig {
 	/// Fellowship Salary Asset.
+	///
+	/// WARNING: Changing this asset may require updating [`Self::budget`] and the per-rank
+	/// salaries configured in the core-fellowship pallet to account for the new asset's decimals.
 	pub asset: Box<VersionedLocatableAsset>,
 	/// Fellowship salary budget for a single period (i.e., `RegistrationPeriod` +
 	/// `PayoutPeriod`), expressed as the raw value of the `asset` (e.g., USDT on Asset Hub with 6
@@ -153,6 +156,9 @@ pub struct FellowshipSalaryConfig {
 )]
 pub struct SecretarySalaryConfig {
 	/// Secretary Salary Asset.
+	///
+	/// WARNING: Changing this asset may require updating [`Self::budget`] and
+	/// [`Self::salary_rank1`] to account for the new asset's decimals.
 	pub asset: Box<VersionedLocatableAsset>,
 	/// Secretary salary budget for a single period (i.e., `RegistrationPeriod` +
 	/// `PayoutPeriod`), expressed as the raw value of the `asset` (e.g., USDT on Asset Hub with 6
