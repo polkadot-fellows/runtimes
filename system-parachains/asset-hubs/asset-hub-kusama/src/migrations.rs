@@ -20,6 +20,7 @@ pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	RemoveStateTrieMigrationPallet,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
+	MigrateBountyAccountAssets,
 	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
 );
 
@@ -32,6 +33,20 @@ pub type SingleBlockMigrations = (Unreleased, Permanent);
 frame_support::parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
 	pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
+
+	/// Assets that the multi-asset bounty migration must sweep from the old
+	/// derivation to the new one. Extends `treasury::BountyRelevantAssets`
+	/// (the legacy bounties' sweep set: KSM, USDT) with DOT, since
+	/// multi-asset bounties on KAH are also funded in DOT — a foreign asset
+	/// the legacy bounties pallet does not need to handle.
+	///
+	/// Kept local to the migration so the legacy `BountyRelevantAssets`
+	/// stays focused on the legacy bounties pallet's needs.
+	pub BountyMigrationAssets: alloc::vec::Vec<xcm::latest::Location> = {
+		let mut assets = crate::treasury::BountyRelevantAssets::get();
+		assets.push(crate::xcm_config::bridging::to_polkadot::DotLocation::get());
+		assets
+	};
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
@@ -46,6 +61,84 @@ pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePalle
 	StateTrieMigrationName,
 	<crate::Runtime as frame_system::Config>::DbWeight,
 >;
+/// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
+/// from the previous account derivation to the new one introduced by
+/// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
+///
+/// Until v2.2.2 the local wrapper in `system-parachains-common` derived the
+/// bounty pot accounts as
+/// `Treasury::PalletId.into_sub_account_truncating(("mbt", id))`, with `"mbt"`
+/// passed as a `&str` (SCALE-encoded as a length-prefixed sequence). Starting
+/// from `pallet-multi-asset-bounties` 0.4.0 the prefix is supplied as a fixed
+/// `[u8; 3]` (`*b"mbt"`), which encodes as 3 raw bytes — a different seed and
+/// therefore a different sub-account. Same story for child bounties (`"mcb"`).
+///
+/// Without this migration, any funds sitting at the old (`&str`-derived)
+/// accounts at the moment of the runtime upgrade would no longer be reachable
+/// by the pallet, which after the upgrade only knows the new (`[u8; 3]`-derived)
+/// accounts. This is not theoretical: Kusama referenda funding multi-asset
+/// bounties on KAH (some with DOT, some with USDT) are expected to enact
+/// shortly before this runtime ships.
+///
+/// Sweeps every asset listed in [`BountyMigrationAssets`] (the legacy
+/// `BountyRelevantAssets` plus DOT) from the old to the new account. Native
+/// account collisions with the legacy bounties pallet are not possible —
+/// legacy uses `"bt"`/`"cb"` prefixes, multi-asset uses `"mbt"`/`"mcb"`, so
+/// the derived accounts are disjoint.
+pub struct MigrateBountyAccountAssets;
+impl frame_support::traits::OnRuntimeUpgrade for MigrateBountyAccountAssets {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		use frame_support::traits::Get;
+		use pallet_bounties::TransferAllAssets;
+		use sp_runtime::traits::AccountIdConversion;
+
+		let pallet_id = <crate::Runtime as pallet_treasury::Config>::PalletId::get();
+		let assets_per_bounty = BountyMigrationAssets::get().len() as u64;
+
+		type Transferer = pallet_bounties::TransferAllFungibles<
+			crate::AccountId,
+			crate::NativeAndAssets,
+			BountyMigrationAssets,
+		>;
+
+		let db_weight = <crate::Runtime as frame_system::Config>::DbWeight::get();
+		let mut weight = frame_support::weights::Weight::zero();
+
+		for bounty_id in pallet_multi_asset_bounties::Bounties::<crate::Runtime>::iter_keys() {
+			// Old: `&str "mbt"` (length-prefixed encoding).
+			let old: crate::AccountId = pallet_id.into_sub_account_truncating(("mbt", bounty_id));
+			// New: `[u8; 3] *b"mbt"` (raw 3 bytes).
+			let new: crate::AccountId = pallet_id.into_sub_account_truncating((
+				pallet_multi_asset_bounties::BountyAccountPrefix::get(),
+				bounty_id,
+			));
+			let _ = Transferer::force_transfer_all_assets(&old, &new);
+			// `TransferAllFungibles` iterates the relevant assets twice and does at
+			// most one read + one write per asset.
+			weight = weight.saturating_add(
+				db_weight.reads_writes(2 * assets_per_bounty, 2 * assets_per_bounty),
+			);
+		}
+
+		for (parent_id, child_id) in
+			pallet_multi_asset_bounties::ChildBounties::<crate::Runtime>::iter_keys()
+		{
+			let old: crate::AccountId =
+				pallet_id.into_sub_account_truncating(("mcb", parent_id, child_id));
+			let new: crate::AccountId = pallet_id.into_sub_account_truncating((
+				pallet_multi_asset_bounties::ChildBountyAccountPrefix::get(),
+				parent_id,
+				child_id,
+			));
+			let _ = Transferer::force_transfer_all_assets(&old, &new);
+			weight = weight.saturating_add(
+				db_weight.reads_writes(2 * assets_per_bounty, 2 * assets_per_bounty),
+			);
+		}
+
+		weight
+	}
+}
 
 #[cfg(not(feature = "runtime-benchmarks"))]
 pub use multiblock_migrations::MbmMigrations;
