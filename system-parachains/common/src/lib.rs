@@ -21,9 +21,6 @@ use frame_support::migrations::FailedMigrationHandling;
 
 pub mod randomness;
 
-#[cfg(feature = "multi-asset-bounties")]
-pub mod multi_asset_bounty_sources;
-
 /// Ignore any MBM errors and unlock all calls that were locked during migration.
 ///
 /// This implies that any storage invariants that were violated by a faulty MBM could now be exposed
@@ -47,10 +44,15 @@ pub mod apis {
 	pub struct InflationInfo {
 		/// The rate of issuance estimated per annum, represented as a `Perquintill`.
 		pub issuance: sp_runtime::Perquintill,
-		/// Next amount that we anticipate to mint.
+		/// Next amount that we anticipate to mint in an era.
 		///
-		/// First item is the amount that goes to stakers, second is the leftover that is usually
-		/// forwarded to the treasury.
+		/// On Kusama, the first item is the amount that goes to stakers and the second is the
+		/// leftover that is usually forwarded to the treasury.
+		///
+		/// On Polkadot, the first item is the total era emission and the second is always zero.
+		/// The staker/treasury split is performed downstream by pallet-dap based on its budget
+		/// recipients and configured portions; mints are dripped every minute (or as configured).
+		/// For the DAP split, see the `budget_recipients` view function in pallet-dap.
 		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
 	}
 
