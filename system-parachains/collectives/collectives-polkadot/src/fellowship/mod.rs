@@ -21,6 +21,7 @@ mod tracks;
 use crate::{
 	fellowship::origins::EnsureCanFastPromoteTo,
 	impls::ToParentTreasury,
+	parameters::{FellowshipSalaryAsset, SalaryAssetId},
 	weights,
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetHubLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
@@ -48,10 +49,8 @@ use polkadot_runtime_common::impls::{
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{
-	ConstU16, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst, TryConvert,
-};
-use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+use sp_runtime::traits::{ConstU16, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst};
+use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
@@ -250,20 +249,8 @@ parameter_types! {
 	pub FellowshipSalaryBudget: u128 = crate::dynamic_params::fellowship_salary::SalaryConfig::get().budget;
 }
 
-/// Reads the Fellowship salary asset from the runtime parameters pallet and
-/// resolves it to a [`LocatableAssetId`].
-pub struct SalaryAssetId;
-impl TryConvert<(), LocatableAssetId> for SalaryAssetId {
-	fn try_convert(_: ()) -> Result<LocatableAssetId, ()> {
-		let versioned_asset = *crate::dynamic_params::fellowship_salary::SalaryConfig::get().asset;
-		LocatableAssetConverter::try_convert(versioned_asset).map_err(|_| {
-			frame_support::defensive!("FellowshipSalary asset conversion failed");
-		})
-	}
-}
-
 /// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in the
-/// asset configured via [`crate::dynamic_params::fellowship_salary::Asset`].
+/// asset configured via [`crate::dynamic_params::fellowship_salary::SalaryConfig`].
 pub type FellowshipSalaryPaymaster = PayOverXcm<
 	FellowshipSalaryInteriorLocation,
 	crate::xcm_config::XcmConfig,
@@ -271,7 +258,7 @@ pub type FellowshipSalaryPaymaster = PayOverXcm<
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	SalaryAssetId,
+	SalaryAssetId<FellowshipSalaryAsset>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
@@ -388,7 +375,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::traits::MaybeConvert;
+	use sp_runtime::traits::{MaybeConvert, TryConvert};
 
 	type MaxMemberCount =
 		<Runtime as pallet_ranked_collective::Config<FellowshipCollectiveInstance>>::MaxMemberCount;
@@ -408,7 +395,8 @@ mod tests {
 		// Provide minimal externalities, as some runtime storage access may occur.
 		let mut ext = TestExternalities::default();
 		ext.execute_with(|| {
-			let asset = SalaryAssetId::try_convert(()).expect("default salary asset is locatable");
+			let asset = SalaryAssetId::<FellowshipSalaryAsset>::try_convert(())
+				.expect("default salary asset is locatable");
 			assert_eq!(asset.location, Location::new(1, [Parachain(1000)]));
 			assert_eq!(
 				asset.asset_id,
