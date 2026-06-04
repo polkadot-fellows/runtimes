@@ -1339,7 +1339,7 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
 
-/// The function is dedicated to the `chain-spec-generator`. Yes, it contains some duplicated code,
+/// The function is dedicated to `chain-spec-builder`. Yes, it contains some duplicated code,
 /// but it avoids potential collisions caused by different versions of crates.
 #[cfg(feature = "std")]
 pub fn aura_config_for_chain_spec(seeds: &[&str]) -> AuraConfig {

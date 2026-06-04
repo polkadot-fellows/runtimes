@@ -6,24 +6,27 @@ pub mod environment;
 
 pub type Error = Box<dyn std::error::Error>;
 
-// Chain generator command template
-const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
-
 // Relaychain nodes
 const ALICE: &str = "alice";
 const BOB: &str = "bob";
 // Collator
 const COLLATOR: &str = "collator";
 
+// Path to a pre-generated polkadot-local chain spec file.
+// Generate with: chain-spec-builder --chain-spec-path polkadot-local.json create
+//   -n "Polkadot Local Testnet" -i polkadot-local -t local -r <wasm> named-preset local_testnet
+const CHAIN_SPEC_ENV: &str = "POLKADOT_LOCAL_SPEC";
+
 pub fn small_network() -> Result<NetworkConfig, Error> {
 	let images = environment::get_images_from_env();
+	let chain_spec = std::env::var(CHAIN_SPEC_ENV)
+		.unwrap_or_else(|_| "./polkadot-local.json".to_string());
 	let config = NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			r.with_chain("polkadot-local")
 				.with_default_command("polkadot")
 				.with_default_image(images.polkadot.as_str())
-				.with_chain_spec_command(CMD_TPL)
-				.chain_spec_command_is_local(true)
+				.with_chain_spec_path(chain_spec.as_str())
 				.with_node(|node| node.with_name(ALICE))
 				.with_node(|node| node.with_name(BOB))
 		})

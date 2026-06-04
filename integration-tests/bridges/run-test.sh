@@ -34,8 +34,14 @@ echo
 export ZOMBIENET_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/zombienet
 export POLKADOT_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/polkadot
 export POLKADOT_PARACHAIN_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/polkadot-parachain
-export CHAIN_SPEC_GEN_BINARY_FOR_KUSAMA=$LOCAL_BRIDGE_TESTING_PATH/bin/chain-spec-generator-kusama
-export CHAIN_SPEC_GEN_BINARY_FOR_POLKADOT=$LOCAL_BRIDGE_TESTING_PATH/bin/chain-spec-generator-polkadot
+export KUSAMA_WASM=$LOCAL_BRIDGE_TESTING_PATH/staging_kusama_runtime.compact.compressed.wasm
+export POLKADOT_WASM=$LOCAL_BRIDGE_TESTING_PATH/polkadot_runtime.compact.compressed.wasm
+export ASSET_HUB_KUSAMA_WASM=$LOCAL_BRIDGE_TESTING_PATH/asset_hub_kusama_runtime.compact.compressed.wasm
+export ASSET_HUB_POLKADOT_WASM=$LOCAL_BRIDGE_TESTING_PATH/asset_hub_polkadot_runtime.compact.compressed.wasm
+export BRIDGE_HUB_KUSAMA_WASM=$LOCAL_BRIDGE_TESTING_PATH/bridge_hub_kusama_runtime.compact.compressed.wasm
+export BRIDGE_HUB_POLKADOT_WASM=$LOCAL_BRIDGE_TESTING_PATH/bridge_hub_polkadot_runtime.compact.compressed.wasm
+export CHAIN_SPEC_GEN_BINARY_FOR_KUSAMA=${BASH_SOURCE%/*}/environments/polkadot-kusama/chain-spec-builder-kusama.sh
+export CHAIN_SPEC_GEN_BINARY_FOR_POLKADOT=${BASH_SOURCE%/*}/environments/polkadot-kusama/chain-spec-builder-polkadot.sh
 export SUBSTRATE_RELAY_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/substrate-relay
 
 export TEST_DIR=`mktemp -d /tmp/bridges-tests-run-XXXXX`
