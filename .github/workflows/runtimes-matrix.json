@@ -82,7 +82,7 @@
       "wss://ksm-rpc.stakeworld.io/assethub"
     ],
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "try_runtime_args": "--overwrite-state-version 1",
     "build_extra_features": "kusama-ahm",
     "max_uncompressed_size_mib": 30,
@@ -110,7 +110,7 @@
       "wss://dot-rpc.stakeworld.io/assethub"
     ],
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "try_runtime_args": "--overwrite-state-version 1",
     "build_extra_features": "polkadot-ahm",
     "max_uncompressed_size_mib": 30,
