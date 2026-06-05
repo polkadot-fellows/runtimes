@@ -21,9 +21,6 @@ use frame_support::migrations::FailedMigrationHandling;
 
 pub mod randomness;
 
-#[cfg(feature = "multi-asset-bounties")]
-pub mod multi_asset_bounty_sources;
-
 /// Ignore any MBM errors and unlock all calls that were locked during migration.
 ///
 /// This implies that any storage invariants that were violated by a faulty MBM could now be exposed

@@ -18800,7 +18800,6 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "log",
- "pallet-multi-asset-bounties",
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",

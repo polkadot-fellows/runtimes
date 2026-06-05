@@ -39,6 +39,16 @@
 // --min-duration
 // 1
 // --quiet
+//! Hand-tuned weights for `pallet_parameters`.
+//!
+//! `ref_time` is carried over from the Asset Hub Polkadot `set_parameter` benchmark.
+//! `proof_size` is derived from `Value::max_encoded_len() = 1240` (largest variant is
+//! `SecretarySalaryConfig` = `Box<VersionedLocatableAsset>` + 2 × `u128`, plus 2 enum
+//! discriminator bytes). Using the benchmarking convention:
+//!   `added`     = max_size + 2475 = 3715
+//!   `Estimated` = added    +  990 = 4705
+//!
+//! Should be regenerated with the benchmarking pipeline once the runtime is built.
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
@@ -60,6 +70,14 @@ impl<T: frame_system::Config> pallet_parameters::WeightInfo for WeightInfo<T> {
 		// Minimum execution time: 6_496_000 picoseconds.
 		Weight::from_parts(7_005_000, 0)
 			.saturating_add(Weight::from_parts(0, 4016))
+	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(1240), added: 3715, mode: `MaxEncodedLen`)
+	fn set_parameter() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `4`
+		//  Estimated: `4705`
+		// Minimum execution time: 6_720_000 picoseconds.
+		Weight::from_parts(7_164_000, 0)
+			.saturating_add(Weight::from_parts(0, 4705))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

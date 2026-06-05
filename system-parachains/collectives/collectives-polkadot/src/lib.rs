@@ -46,6 +46,7 @@ mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub mod parameters;
 pub use ambassador::pallet_ambassador_origins;
 
 // Secretary Configuration
@@ -56,6 +57,7 @@ use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Architects, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
+use parameters::dynamic_params;
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
 };
@@ -102,8 +104,8 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	AssetHubLocation, LocationToAccountId, RelayChainLocation, SelfParaId, StakingPot,
-	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, FellowshipAdminBodyId, LocationToAccountId, RelayChainLocation, SelfParaId,
+	StakingPot, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -980,6 +982,7 @@ mod benches {
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_alliance, Alliance]
 		[pallet_collective, AllianceMotion]
+		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_scheduler, Scheduler]
 		[pallet_referenda, FellowshipReferenda]
