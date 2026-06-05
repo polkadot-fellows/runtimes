@@ -16,14 +16,17 @@
 
 //! The Polkadot Secretary Collective.
 
-use crate::{fellowship::FellowshipAdminBodyId, *};
+use crate::{
+	fellowship::FellowshipAdminBodyId,
+	parameters::{SalaryAssetId, SecretarySalaryAsset},
+	*,
+};
 use frame_support::traits::{tokens::GetSalary, EitherOf, Get, MapSuccess, NoOpPoll};
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::impls::LocatableAssetConverter;
 use sp_core::ConstU32;
-use sp_runtime::traits::{ConstU16, Identity, Replace, TryConvert};
-use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+use sp_runtime::traits::{ConstU16, Identity, Replace};
+use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 /// The Secretary members' ranks.
 pub mod ranks {
@@ -87,18 +90,6 @@ impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
 	}
 }
 
-/// Reads the Fellowship salary asset from the runtime parameters pallet and
-/// resolves it to a [`LocatableAssetId`].
-pub struct SalaryAssetId;
-impl TryConvert<(), LocatableAssetId> for SalaryAssetId {
-	fn try_convert(_: ()) -> Result<LocatableAssetId, ()> {
-		let versioned_asset = *crate::dynamic_params::secretary_salary::SalaryConfig::get().asset;
-		LocatableAssetConverter::try_convert(versioned_asset).map_err(|_| {
-			frame_support::defensive!("SecretarySalary asset conversion failed");
-		})
-	}
-}
-
 /// [`PayOverXcm`] setup to pay the Secretary salary on the AssetHub in the
 /// asset configured via [`crate::dynamic_params::secretary_salary::SalaryConfig`].
 pub type SecretarySalaryPaymaster = PayOverXcm<
@@ -108,7 +99,7 @@ pub type SecretarySalaryPaymaster = PayOverXcm<
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	SalaryAssetId,
+	SalaryAssetId<SecretarySalaryAsset>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 

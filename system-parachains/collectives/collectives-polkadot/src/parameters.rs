@@ -16,6 +16,11 @@
 //! Dynamic parameters.
 
 use super::*;
+use core::marker::PhantomData;
+use frame_support::traits::Get;
+use polkadot_runtime_common::impls::LocatableAssetConverter;
+use sp_runtime::traits::TryConvert;
+use xcm_builder::LocatableAssetId;
 
 /// Dynamic runtime parameters configurable on-chain through [`pallet_parameters`].
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
@@ -35,8 +40,8 @@ pub mod dynamic_params {
 		pub static SalaryConfig: crate::parameters::FellowshipSalaryConfig =
 			crate::parameters::FellowshipSalaryConfig {
 				asset: Box::new(VersionedLocatableAsset::V5 {
-					location: AssetHubLocation::get(),
-					asset_id: AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
+					location: crate::xcm_config::AssetHubUsdt::get().location,
+					asset_id: crate::xcm_config::AssetHubUsdt::get().asset_id,
 				}),
 				budget: 250_000 * 1_000_000,
 			};
@@ -56,12 +61,39 @@ pub mod dynamic_params {
 		pub static SalaryConfig: crate::parameters::SecretarySalaryConfig =
 			crate::parameters::SecretarySalaryConfig {
 				asset: Box::new(VersionedLocatableAsset::V5 {
-					location: AssetHubLocation::get(),
-					asset_id: AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
+					location: crate::xcm_config::AssetHubUsdt::get().location,
+					asset_id: crate::xcm_config::AssetHubUsdt::get().asset_id,
 				}),
 				budget: 13_332 * 1_000_000,
 				salary_rank1: 6666 * 1_000_000,
 			};
+	}
+}
+
+parameter_types! {
+	/// The Fellowship salary asset, read from the [`dynamic_params::fellowship_salary::SalaryConfig`]
+	/// parameter.
+	pub FellowshipSalaryAsset: VersionedLocatableAsset =
+		*dynamic_params::fellowship_salary::SalaryConfig::get().asset;
+	/// The Secretary salary asset, read from the [`dynamic_params::secretary_salary::SalaryConfig`]
+	/// parameter.
+	pub SecretarySalaryAsset: VersionedLocatableAsset =
+		*dynamic_params::secretary_salary::SalaryConfig::get().asset;
+}
+
+/// Resolves a configured [`VersionedLocatableAsset`] to a [`LocatableAssetId`] for use as the
+/// `AssetKind` of a salary [`xcm_builder::PayOverXcm`] paymaster.
+///
+/// `Asset` supplies the configured salary asset (e.g. [`FellowshipSalaryAsset`] or
+/// [`SecretarySalaryAsset`]).
+pub struct SalaryAssetId<Asset>(PhantomData<Asset>);
+impl<Asset: Get<VersionedLocatableAsset>> TryConvert<(), LocatableAssetId>
+	for SalaryAssetId<Asset>
+{
+	fn try_convert(_: ()) -> Result<LocatableAssetId, ()> {
+		LocatableAssetConverter::try_convert(Asset::get()).map_err(|_| {
+			frame_support::defensive!("Salary asset conversion failed");
+		})
 	}
 }
 
