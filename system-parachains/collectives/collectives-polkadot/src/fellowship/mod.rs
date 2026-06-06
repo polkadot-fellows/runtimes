@@ -450,7 +450,7 @@ mod tests {
 			// Governance adds the bot to the allow-list through the `Parameters` pallet.
 			assert_ok!(crate::Parameters::set_parameter(
 				RuntimeOrigin::root(),
-				crate::RuntimeParameters::Fellowship(
+				crate::parameters::RuntimeParameters::Fellowship(
 					crate::dynamic_params::fellowship::Parameters::AllowedProposers(
 						crate::dynamic_params::fellowship::AllowedProposers,
 						Some(alloc::vec![bot.clone()].try_into().unwrap()),
