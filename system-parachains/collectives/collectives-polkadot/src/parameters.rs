@@ -17,7 +17,7 @@
 
 use super::*;
 use core::marker::PhantomData;
-use frame_support::traits::Get;
+use frame_support::{traits::Get, BoundedVec};
 use polkadot_runtime_common::impls::LocatableAssetConverter;
 use sp_runtime::traits::TryConvert;
 use xcm_builder::LocatableAssetId;
@@ -67,6 +67,17 @@ pub mod dynamic_params {
 				budget: 13_332 * 1_000_000,
 				salary_rank1: 6666 * 1_000_000,
 			};
+	}
+
+	/// Parameters of the Polkadot Technical Fellowship.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod fellowship {
+		/// Non-member accounts allowed to submit Fellowship referenda (e.g. the RFC or tip bot).
+		///
+		/// Empty by default: until governance populates it, only Fellows (rank 3+) may submit.
+		#[codec(index = 0)]
+		pub static AllowedProposers: BoundedVec<AccountId, ConstU32<16>> = Default::default();
 	}
 }
 
@@ -136,6 +147,20 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				EnsureRoot<AccountId>,
 				EitherOfDiverse<
 					EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+					Fellows,
+				>,
+			>::ensure_origin(origin.clone())
+			.map(|_| ())
+			.map_err(|_| origin),
+			// The Fellowship referenda allow-list can be set by Root (relay-chain or Asset Hub
+			// governance), the FellowshipAdmin track, or by a vote among all Fellows.
+			RuntimeParametersKey::Fellowship(_) => EitherOfDiverse::<
+				EnsureRoot<AccountId>,
+				EitherOfDiverse<
+					EitherOf<
+						EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+						EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+					>,
 					Fellows,
 				>,
 			>::ensure_origin(origin.clone())

@@ -33,8 +33,6 @@ use frame_support::{
 	traits::{
 		EitherOf, EitherOfDiverse, EnsureOriginWithArg, Get, MapSuccess, OriginTrait,
 		PalletInfoAccess, TryWithMorphedArg,
-		EitherOf, EitherOfDiverse, Get, MapSuccess, OriginTrait, PalletInfoAccess,
-		TryWithMorphedArg,
 	},
 	PalletId,
 };
@@ -419,7 +417,6 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 mod tests {
 	use super::*;
 	use frame_support::assert_ok;
-	use sp_runtime::traits::MaybeConvert;
 	use sp_runtime::traits::{MaybeConvert, TryConvert};
 
 	type MaxMemberCount =
@@ -465,6 +462,10 @@ mod tests {
 			assert_eq!(
 				SubmitOrigin::try_origin(RuntimeOrigin::signed(bot.clone()), &proposal_origin).ok(),
 				Some(bot),
+			);
+		});
+	}
+
 	#[test]
 	fn salary_asset_id_defaults_to_usdt_on_asset_hub() {
 		use sp_io::TestExternalities;

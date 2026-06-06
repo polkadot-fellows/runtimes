@@ -70,14 +70,6 @@ impl<T: frame_system::Config> pallet_parameters::WeightInfo for WeightInfo<T> {
 		// Minimum execution time: 6_496_000 picoseconds.
 		Weight::from_parts(7_005_000, 0)
 			.saturating_add(Weight::from_parts(0, 4016))
-	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(1240), added: 3715, mode: `MaxEncodedLen`)
-	fn set_parameter() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `4`
-		//  Estimated: `4705`
-		// Minimum execution time: 6_720_000 picoseconds.
-		Weight::from_parts(7_164_000, 0)
-			.saturating_add(Weight::from_parts(0, 4705))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

@@ -88,7 +88,7 @@ use frame_support::{
 		EnsureOriginWithArg, FromContains, InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
-	BoundedVec, PalletId,
+	PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -755,78 +755,6 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
-/// Dynamic parameters that can be changed at runtime through the `Parameters` pallet, without
-/// requiring a runtime upgrade.
-#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
-pub mod dynamic_params {
-	use super::*;
-
-	/// Parameters of the Polkadot Technical Fellowship.
-	#[dynamic_pallet_params]
-	#[codec(index = 0)]
-	pub mod fellowship {
-		/// Non-member accounts allowed to submit Fellowship referenda (e.g. RFC of tip bot).
-		///
-		/// Empty by default: until governance populates it, only Fellows (rank 3+) may submit.
-		#[codec(index = 0)]
-		pub static AllowedProposers: BoundedVec<AccountId, ConstU32<16>> = Default::default();
-	}
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-impl Default for RuntimeParameters {
-	fn default() -> Self {
-		RuntimeParameters::Fellowship(dynamic_params::fellowship::Parameters::AllowedProposers(
-			dynamic_params::fellowship::AllowedProposers,
-			Some(Default::default()),
-		))
-	}
-}
-
-/// The origins permitted to update the Fellowship dynamic parameters: relay-chain or Asset Hub
-/// governance (`Root`), the `FellowshipAdmin` track, or a vote of all Fellows.
-type FellowshipParametersAdmin = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EitherOfDiverse<
-		EitherOf<
-			EnsureXcm<IsVoiceOfBody<RelayChainLocation, fellowship::FellowshipAdminBodyId>>,
-			EnsureXcm<IsVoiceOfBody<AssetHubLocation, fellowship::FellowshipAdminBodyId>>,
-		>,
-		Fellows,
-	>,
->;
-
-/// Defines what origin can modify which dynamic parameter.
-pub struct DynamicParameterOrigin;
-impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
-	type Success = ();
-
-	fn try_origin(
-		origin: RuntimeOrigin,
-		key: &RuntimeParametersKey,
-	) -> Result<Self::Success, RuntimeOrigin> {
-		use crate::RuntimeParametersKey::*;
-
-		match key {
-			Fellowship(_) =>
-				<FellowshipParametersAdmin as EnsureOrigin<_>>::try_origin(origin).map(|_| ()),
-		}
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
-		// Provide the origin for the parameter returned by `Default`:
-		Ok(RuntimeOrigin::root())
-	}
-}
-
-impl pallet_parameters::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeParameters = RuntimeParameters;
-	type AdminOrigin = DynamicParameterOrigin;
-	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
-}
-
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -982,7 +910,6 @@ mod benches {
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_alliance, Alliance]
 		[pallet_collective, AllianceMotion]
-		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_scheduler, Scheduler]
 		[pallet_referenda, FellowshipReferenda]
