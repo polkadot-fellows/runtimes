@@ -8,23 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
-
-### Changed
-
-- Zombienet SDK integration tests for elastic scaling on Asset Hub Polkadot and People Polkadot.
-
-### Changed
-
-- Asset Hub Kusama & Polkadot: wire `pallet_revive` to its native runtime-benchmarked weights instead of `SubstrateWeight` (kitchensink). Resolves [#840](https://github.com/polkadot-fellows/runtimes/issues/840).
-
-### Changed
-
-- Align all runtimes to use the same values for e.g. `TransactionByteFee` and some other clean ups. ([#1175](https://github.com/polkadot-fellows/runtimes/pull/1175)).
-
-### Changed
-
-- collectives-polkadot-runtime: Increase the Secretary Collective salary budget ([#1172](https://github.com/polkadot-fellows/runtimes/pull/1172))
 - PAH: staking switched to non-minting; emission via `pallet-dap` drips ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: `DapStagingAccount` is the sink for fees, slashes and `RewardRemainder` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - KAH: `pallet_recovery` modernized ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
@@ -39,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update all runtimes to `polkadot-sdk` `unstable2604` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: K↔P bridge router exports unpaid (`UnpaidExport = true`) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Asset Hub Kusama & Polkadot: wire `pallet_revive` to its native runtime-benchmarked weights instead of `SubstrateWeight` (kitchensink). Resolves [#840](https://github.com/polkadot-fellows/runtimes/issues/840) ([#1182](https://github.com/polkadot-fellows/runtimes/pull/1182))
 - PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: redirect XCM trader fees (native and swap) to `DapStagingAccount` instead of `StakingPot` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: filter `staking.reap_stash` from both `BaseCallFilter` and the XCM `SafeCallFilter` while the validator self-stake transition to higher bond. See Ref: [#1890](https://polkadot.subsquare.io/referenda/1890) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
