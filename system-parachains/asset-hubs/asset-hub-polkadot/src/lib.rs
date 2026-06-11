@@ -3185,9 +3185,10 @@ mod tests {
 					<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get()
 			};
 
-			// Pre-flip: nominators slashable (storage default), so the nominator bonding duration
-			// is the full `BondingDuration` and the post-unbonding window is the legacy 4.
-			assert!(pallet_staking_async::AreNominatorsSlashable::<Runtime>::get());
+			// Pre-flip: nominators slashable, so the nominator bonding duration is the full
+			// `BondingDuration` and the post-unbonding window is the legacy 4. Set explicitly rather
+			// than relying on the storage default so the test pins both flag states itself.
+			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(true);
 			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 28);
 			assert_eq!(
 				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
