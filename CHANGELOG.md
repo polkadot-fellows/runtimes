@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- PAH: pin the nomination-pools `TotalUnbondingPools` bound at its historical maximum (32) so lowering the nominator bonding duration via the `AreNominatorsSlashable` fast-unbond flip cannot shrink the bound (32 -> 6) and make oversized `SubPools::with_era` maps undecodable.
+
 ## [2.3.0] 04.06.2026
 
 ### Added
