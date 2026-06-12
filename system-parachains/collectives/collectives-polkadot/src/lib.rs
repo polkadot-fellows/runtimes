@@ -99,14 +99,27 @@ use parachains_common::{
 };
 use sp_runtime::Debug;
 use system_parachains_constants::{
-	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
-	SLOT_DURATION,
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES,
+		NORMAL_DISPATCH_RATIO,
+	},
+	polkadot::{
+		account::*,
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
 };
 use xcm_config::{
 	AssetHubLocation, FellowshipAdminBodyId, LocationToAccountId, RelayChainLocation, SelfParaId,
 	StakingPot, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
+
+/// Collectives Polkadot uses a 24s Aura slot duration.
+pub const SLOT_DURATION: u64 = 24_000;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

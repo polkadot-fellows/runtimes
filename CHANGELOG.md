@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Enable async backing (6s block time) for Bridge Hub Polkadot/Kusama, Coretime Polkadot/Kusama and Collectives Polkadot, and switch them to a 24s Aura slot duration ([#460](https://github.com/polkadot-fellows/runtimes/issues/460))
+
 ## [2.3.0] 04.06.2026
 
 ### Added
