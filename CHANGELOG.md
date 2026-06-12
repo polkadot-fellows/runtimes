@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Polkadot: refund reserves that were wrongfully dusted by the `currency -> fungible` migration. The affected accounts get the missing amount minted and re-reserved so the funds are restored ahead of the Asset Hub Migration ([#583](https://github.com/polkadot-fellows/runtimes/issues/583))
+
 ## [2.3.0] 04.06.2026
 
 ### Added

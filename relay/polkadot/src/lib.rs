@@ -147,6 +147,7 @@ use governance::{
 	Treasurer, TreasurySpender,
 };
 pub mod impls;
+pub mod refund_dusted_deposit;
 pub mod xcm_config;
 
 /// Default logging target.
@@ -2002,6 +2003,7 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		crate::refund_dusted_deposit::RefundDustedReserves,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
