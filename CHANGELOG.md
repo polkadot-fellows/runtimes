@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Polkadot: correct the `Balances::TotalIssuance` over-count of `19,999.998 DOT` introduced at block `313222`, where a `sudo` -> `system.killStorage` call deleted an account's storage without decrementing total issuance. A one-off, idempotent migration realigns `TotalIssuance` via `force_adjust_total_issuance(Decrease, ..)` ([#147](https://github.com/polkadot-fellows/runtimes/issues/147))
+
 ## [2.3.0] 04.06.2026
 
 ### Added

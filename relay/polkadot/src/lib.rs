@@ -146,6 +146,7 @@ use governance::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin, StakingAdmin,
 	Treasurer, TreasurySpender,
 };
+pub mod correct_total_issuance_313222;
 pub mod impls;
 pub mod xcm_config;
 
@@ -2002,6 +2003,7 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		crate::correct_total_issuance_313222::CorrectBlock313222TotalIssuance,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
