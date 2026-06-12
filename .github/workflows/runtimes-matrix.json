@@ -139,7 +139,7 @@
       "wss://ksm-rpc.stakeworld.io/bridgehub"
     ],
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -163,7 +163,7 @@
       "wss://dot-rpc.stakeworld.io/bridgehub"
     ],
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -187,7 +187,7 @@
       "wss://dot-rpc.stakeworld.io/collectives"
     ],
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -209,7 +209,7 @@
       "wss://ksm-rpc.stakeworld.io/coretime"
     ],
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -222,7 +222,7 @@
     "path": "system-parachains/coretime/coretime-polkadot",
     "max_code_size": 3145728,
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 24000,
     "uris": [
       "wss://polkadot-coretime-rpc.polkadot.io:443",
       "wss://coretime-polkadot-rpc.n.dwellir.com",
