@@ -241,7 +241,7 @@ thread_local! {
 }
 pub fn assets(who: impl Into<Location>) -> AssetsInHolding {
 	ASSETS
-		.with(|a| a.borrow().get(&who.into()).map(clone_assets_in_holding))
+		.with(|a| a.borrow().get(&who.into()).map(|a| a.unsafe_clone_for_tests()))
 		.unwrap_or_else(AssetsInHolding::new)
 }
 pub fn asset_list(who: impl Into<Location>) -> Vec<Asset> {
@@ -692,7 +692,7 @@ impl AssetExchange for TestAssetExchange {
 		want: &Assets,
 		maximal: bool,
 	) -> Result<AssetsInHolding, AssetsInHolding> {
-		let mut have = EXCHANGE_ASSETS.with(|l| clone_assets_in_holding(&l.borrow()));
+		let mut have = EXCHANGE_ASSETS.with(|l| l.borrow().unsafe_clone_for_tests());
 		ensure!(have.contains_assets(want), give);
 		let get = if maximal {
 			std::mem::replace(&mut have, AssetsInHolding::new())
@@ -705,7 +705,7 @@ impl AssetExchange for TestAssetExchange {
 	}
 
 	fn quote_exchange_price(give: &Assets, want: &Assets, maximal: bool) -> Option<Assets> {
-		let mut have = EXCHANGE_ASSETS.with(|l| clone_assets_in_holding(&l.borrow()));
+		let mut have = EXCHANGE_ASSETS.with(|l| l.borrow().unsafe_clone_for_tests());
 		if !have.contains_assets(want) {
 			return None;
 		}
@@ -716,17 +716,6 @@ impl AssetExchange for TestAssetExchange {
 		};
 		let result: Vec<Asset> = get.fungible_assets_iter().collect();
 		Some(result.into())
-	}
-}
-
-fn clone_assets_in_holding(assets: &AssetsInHolding) -> AssetsInHolding {
-	AssetsInHolding {
-		fungible: assets
-			.fungible
-			.iter()
-			.map(|(id, accounting)| (id.clone(), accounting.unsafe_clone()))
-			.collect(),
-		non_fungible: assets.non_fungible.clone(),
 	}
 }
 

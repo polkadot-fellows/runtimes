@@ -18,9 +18,10 @@ pub use genesis::{genesis, PenpalAssetOwner, ED, PARA_ID_A, PARA_ID_B};
 pub use penpal_runtime::{
 	self,
 	xcm_config::{
-		CustomizableAssetFromSystemAssetHub, LocalReservableFromAssetHub,
-		LocalTeleportableToAssetHub, RelayNetworkId as PenpalRelayNetworkId, XcmConfig,
-		ASSETS_PALLET_ID, RESERVABLE_ASSET_ID, TELEPORTABLE_ASSET_ID,
+		CustomizableAssetFromSystemAssetHub, LocalPen2Asset, LocalReservableFromAssetHub,
+		LocalTeleportableToAssetHub, PenpalNativeCurrency, RelayNetworkId as PenpalRelayNetworkId,
+		XcmConfig, ASSET_HUB_ASSETS_PALLET_ID, PEN2_TELEPORTABLE_GENERAL_INDEX,
+		PENPAL_ASSETS_PALLET_ID, RESERVABLE_ASSET_ID,
 	},
 };
 
@@ -31,8 +32,7 @@ use sp_core::Encode;
 // Cumulus
 use emulated_integration_tests_common::{
 	impl_accounts_helpers_for_parachain, impl_assert_events_helpers_for_parachain,
-	impl_assets_helpers_for_parachain, impl_foreign_assets_helpers_for_parachain,
-	impl_xcm_helpers_for_parachain,
+	impl_foreign_assets_helpers_for_parachain, impl_xcm_helpers_for_parachain,
 	impls::{NetworkId, Parachain},
 	xcm_emulator::decl_test_parachains,
 };
@@ -58,7 +58,6 @@ decl_test_parachains! {
 		pallets = {
 			PolkadotXcm: penpal_runtime::PolkadotXcm,
 			Assets: penpal_runtime::Assets,
-			ForeignAssets: penpal_runtime::ForeignAssets,
 			AssetConversion: penpal_runtime::AssetConversion,
 			Balances: penpal_runtime::Balances,
 		}
@@ -82,7 +81,6 @@ decl_test_parachains! {
 		pallets = {
 			PolkadotXcm: penpal_runtime::PolkadotXcm,
 			Assets: penpal_runtime::Assets,
-			ForeignAssets: penpal_runtime::ForeignAssets,
 			AssetConversion: penpal_runtime::AssetConversion,
 			Balances: penpal_runtime::Balances,
 		}
@@ -94,17 +92,17 @@ impl_accounts_helpers_for_parachain!(PenpalA);
 impl_accounts_helpers_for_parachain!(PenpalB);
 impl_assert_events_helpers_for_parachain!(PenpalA);
 impl_assert_events_helpers_for_parachain!(PenpalB);
-impl_assets_helpers_for_parachain!(PenpalA);
-impl_assets_helpers_for_parachain!(PenpalB);
 impl_foreign_assets_helpers_for_parachain!(
 	PenpalA,
 	xcm::latest::Location,
-	penpal_runtime::ForeignAssetReserveData
+	penpal_runtime::ForeignAssetReserveData,
+	Assets
 );
 impl_foreign_assets_helpers_for_parachain!(
 	PenpalB,
 	xcm::latest::Location,
-	penpal_runtime::ForeignAssetReserveData
+	penpal_runtime::ForeignAssetReserveData,
+	Assets
 );
 impl_xcm_helpers_for_parachain!(PenpalA);
 impl_xcm_helpers_for_parachain!(PenpalB);

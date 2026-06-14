@@ -17,6 +17,45 @@
 use crate::Runtime;
 use frame_support::parameter_types;
 
+/// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
+///
+/// Uses the start of the active era (ms since unix epoch) so the catch-up drip covers
+/// the gap between the last era boundary and the migration. Falls back to 0 (no catch-up)
+/// if no era is active.
+pub struct DapLastIssuanceTimestamp;
+impl frame_support::traits::Get<u64> for DapLastIssuanceTimestamp {
+	fn get() -> u64 {
+		pallet_staking_async::ActiveEra::<Runtime>::get()
+			.and_then(|era| era.start)
+			.unwrap_or(0)
+	}
+}
+
+/// Default DAP budget allocation: 15% buffer, 85% staker rewards, 0% validator incentive.
+///
+/// Matches the previous `EraPayout` split (15% treasury / 85% stakers), now enforced
+/// at the DAP drip level instead of at era payout time. The 15% share initially
+/// accumulates in the DAP buffer and can be redirected by governance.
+pub struct DefaultDapBudget;
+impl frame_support::traits::Get<pallet_dap::BudgetAllocationMap> for DefaultDapBudget {
+	fn get() -> pallet_dap::BudgetAllocationMap {
+		use sp_runtime::Perbill;
+		use sp_staking::budget::BudgetRecipientList;
+
+		let recipients = <Runtime as pallet_dap::Config>::BudgetRecipients::recipients();
+		// Order matches `pallet_dap::Config::BudgetRecipients`:
+		// [dap (buffer), StakerRewardRecipient, ValidatorIncentiveRecipient]
+		let percentages =
+			[Perbill::from_percent(15), Perbill::from_percent(85), Perbill::from_percent(0)];
+
+		let mut map = pallet_dap::BudgetAllocationMap::new();
+		for ((key, _), perbill) in recipients.into_iter().zip(percentages) {
+			let _ = map.try_insert(key, perbill);
+		}
+		map
+	}
+}
+
 parameter_types! {
 	// Account `15jAYzPdLorBGAj4LLGaqohpzpw4mEohVkzszNpaBPbnDaXn` (Nomination Pool #296)
 	// has trapped funds on PAH. See issue: https://github.com/paritytech/polkadot-sdk/issues/10993.
@@ -34,6 +73,79 @@ pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	<Runtime as frame_system::Config>::DbWeight,
 >;
 
+/// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
+/// from the previous account derivation to the new one introduced by
+/// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
+///
+/// Until v2.2.2 the local wrapper in `system-parachains-common` derived the
+/// bounty pot accounts as
+/// `Treasury::PalletId.into_sub_account_truncating(("mbt", id))`, with `"mbt"`
+/// passed as a `&str` (SCALE-encoded as a length-prefixed sequence). Starting
+/// from `pallet-multi-asset-bounties` 0.4.0 the prefix is supplied as a fixed
+/// `[u8; 3]` (`*b"mbt"`), which encodes as 3 raw bytes — a different seed and
+/// therefore a different sub-account. Same story for child bounties (`"mcb"`).
+///
+/// Without this migration, any funds sitting at the old (`&str`-derived)
+/// accounts at the moment of the runtime upgrade would no longer be reachable
+/// by the pallet, which after the upgrade only knows the new (`[u8; 3]`-derived)
+/// accounts.
+///
+/// Reuses the runtime's `pallet_bounties::Config::TransferAllAssets`, which
+/// sweeps every asset listed in `treasury::BountyRelevantAssets` (DOT, USDT,
+/// USDC, on PAH). Native account collisions with the legacy bounties
+/// pallet are not possible — legacy uses `"bt"`/`"cb"` prefixes, multi-asset
+/// uses `"mbt"`/`"mcb"`, so the derived accounts are disjoint.
+pub struct MigrateBountyAccountAssets;
+impl frame_support::traits::OnRuntimeUpgrade for MigrateBountyAccountAssets {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		use frame_support::traits::Get;
+		use pallet_bounties::TransferAllAssets;
+		use sp_runtime::traits::AccountIdConversion;
+
+		let pallet_id = <Runtime as pallet_treasury::Config>::PalletId::get();
+		let assets_per_bounty = crate::treasury::BountyRelevantAssets::get().len() as u64;
+
+		type Transferer = <Runtime as pallet_bounties::Config>::TransferAllAssets;
+
+		let db_weight = <Runtime as frame_system::Config>::DbWeight::get();
+		let mut weight = frame_support::weights::Weight::zero();
+
+		for bounty_id in pallet_multi_asset_bounties::Bounties::<Runtime>::iter_keys() {
+			// Old: `&str "mbt"` (length-prefixed encoding).
+			let old: crate::AccountId = pallet_id.into_sub_account_truncating(("mbt", bounty_id));
+			// New: `[u8; 3] *b"mbt"` (raw 3 bytes).
+			let new: crate::AccountId = pallet_id.into_sub_account_truncating((
+				pallet_multi_asset_bounties::BountyAccountPrefix::get(),
+				bounty_id,
+			));
+			let _ = Transferer::force_transfer_all_assets(&old, &new);
+			// `TransferAllFungibles` iterates the relevant assets twice and does at
+			// most one read + one write per asset.
+			weight = weight.saturating_add(
+				db_weight.reads_writes(2 * assets_per_bounty, 2 * assets_per_bounty),
+			);
+		}
+
+		for (parent_id, child_id) in
+			pallet_multi_asset_bounties::ChildBounties::<Runtime>::iter_keys()
+		{
+			let old: crate::AccountId =
+				pallet_id.into_sub_account_truncating(("mcb", parent_id, child_id));
+			let new: crate::AccountId = pallet_id.into_sub_account_truncating((
+				pallet_multi_asset_bounties::ChildBountyAccountPrefix::get(),
+				parent_id,
+				child_id,
+			));
+			let _ = Transferer::force_transfer_all_assets(&old, &new);
+			weight = weight.saturating_add(
+				db_weight.reads_writes(2 * assets_per_bounty, 2 * assets_per_bounty),
+			);
+		}
+
+		weight
+	}
+}
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
@@ -45,6 +157,16 @@ pub type Unreleased = (
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+	// DAP V1->V2: seed `BudgetAllocation` and `LastIssuanceTimestamp`, credit a one-shot
+	// catch-up drip. Required when moving staking to non-minting mode (see SDK PR #11616).
+	pallet_dap::migrations::MigrateV1ToV2<
+		Runtime,
+		DapLastIssuanceTimestamp,
+		DefaultDapBudget,
+		crate::dynamic_params::staking_election::MaxEraDuration,
+	>,
+	MigrateBountyAccountAssets,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -86,6 +208,8 @@ mod multiblock_migrations {
 			ForeignAssetsInstance,
 			pallet_assets_precompiles::weights::SubstrateWeight<Runtime>,
 		>,
+		// Not added: we do it with a manual TX
+		//pallet_revive::migrations::v3::Migration<Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

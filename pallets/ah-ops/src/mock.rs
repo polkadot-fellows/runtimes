@@ -17,7 +17,7 @@
 use crate as pallet_ah_ops;
 use crate::*;
 use frame_election_provider_support::BoundedSupportsOf;
-use frame_support::derive_impl;
+use frame_support::{derive_impl, traits::ConstBool, PalletId};
 use frame_system::{EnsureRoot, EnsureSigned};
 use pallet_election_provider_multi_block::PageIndex;
 use sp_core::H256;
@@ -116,7 +116,16 @@ impl pallet_staking_async::Config for Runtime {
 	type RcClientInterface = Self;
 	type MaxEraDuration = ();
 	type MaxPruningItems = ConstU32<100>;
+	type DisableMinting = ConstBool<false>;
+	type UnclaimedRewardHandler = ();
+	type RewardPots = pallet_staking_async::Seed<MockStakingPotsPalletId>;
+	type StakerRewardCalculator =
+		pallet_staking_async::reward::DefaultStakerRewardCalculator<Runtime>;
 	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const MockStakingPotsPalletId: PalletId = PalletId(*b"mk/stkng");
 }
 
 impl pallet_staking_async_rc_client::RcClientInterface for Runtime {

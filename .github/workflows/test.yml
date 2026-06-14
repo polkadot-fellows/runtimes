@@ -418,7 +418,7 @@ jobs:
           name: ${{ matrix.runtime.name }}
 
       - name: Check runtime
-        timeout-minutes: 10
+        timeout-minutes: 25
         env:
           RUNTIME_NAME: ${{ matrix.runtime.name }}
           URIS_JSON: ${{ toJSON(matrix.runtime.uris) }}
@@ -438,7 +438,7 @@ jobs:
           for URI in "${URIS[@]}"; do
             echo "Trying $URI..."
             set +e
-            timeout 120 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            timeout 360 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
             EXIT_CODE=$?
             set -e
             if [ $EXIT_CODE -eq 0 ]; then

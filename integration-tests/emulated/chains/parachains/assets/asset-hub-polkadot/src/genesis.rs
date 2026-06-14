@@ -13,11 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use asset_hub_polkadot_runtime::xcm_config::{CheckingAccount, StakingPot, TreasuryAccount};
+use asset_hub_polkadot_runtime::{
+	xcm_config::{CheckingAccount, TreasuryAccount},
+	Dap,
+};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
-	PenpalASiblingSovereignAccount, PenpalATeleportableAssetLocation, PenpalBLocation,
-	PenpalBSiblingSovereignAccount, PenpalBTeleportableAssetLocation, RESERVABLE_ASSET_ID,
+	PenpalAPen2TeleportableAssetLocation, PenpalASiblingSovereignAccount, PenpalBLocation,
+	PenpalBPen2TeleportableAssetLocation, PenpalBSiblingSovereignAccount, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
 use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
@@ -59,7 +62,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([TreasuryAccount::get(), StakingPot::get()])
+				.chain([TreasuryAccount::get(), Dap::buffer_account(), Dap::staging_account()])
 				.map(|k| (k, ED * 4096 * 4096))
 				// pre-fund checking account to avoid pre-funding for every test scenario
 				// teleporting funds to asset hub
@@ -104,13 +107,13 @@ pub fn genesis() -> sp_core::storage::Storage {
 			assets: vec![
 				// Penpal's teleportable asset representation
 				(
-					PenpalATeleportableAssetLocation::get(),
+					PenpalAPen2TeleportableAssetLocation::get(),
 					PenpalASiblingSovereignAccount::get(),
 					false,
 					ED,
 				),
 				(
-					PenpalBTeleportableAssetLocation::get(),
+					PenpalBPen2TeleportableAssetLocation::get(),
 					PenpalBSiblingSovereignAccount::get(),
 					false,
 					ED,
@@ -122,11 +125,11 @@ pub fn genesis() -> sp_core::storage::Storage {
 			],
 			reserves: vec![
 				(
-					PenpalATeleportableAssetLocation::get(),
+					PenpalAPen2TeleportableAssetLocation::get(),
 					vec![(PenpalALocation::get(), true).into()],
 				),
 				(
-					PenpalBTeleportableAssetLocation::get(),
+					PenpalBPen2TeleportableAssetLocation::get(),
 					vec![(PenpalBLocation::get(), true).into()],
 				),
 				(EthLocation::get(), vec![(EthLocation::get(), false).into()]),

@@ -13,12 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::tests::*;
+use crate::{assets_balance_on, tests::*};
 
 fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
-	// fund the KAH's SA on BHR for paying bridge transport fees
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
-
 	// set XCM versions
 	let local_asset_hub = PenpalA::sibling_location_of(AssetHubKusama::para_id());
 	PenpalA::force_xcm_version(local_asset_hub.clone(), XCM_VERSION);
@@ -476,10 +473,8 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 	);
 	let ksm_in_reserve_on_kah_before =
 		<AssetHubKusama as Chain>::account_data_of(sov_pah_on_kah.clone()).free;
-	let sender_ksm_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_kusama_parachains_latest.clone(), &sender)
-	});
+	let sender_ksm_before =
+		assets_balance_on!(PenpalA, ksm_at_kusama_parachains_latest.clone(), &sender);
 	let receiver_ksm_before =
 		foreign_balance_on_ah_polkadot(ksm_at_asset_hub_polkadot.clone(), &receiver);
 
@@ -536,10 +531,7 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 		);
 	});
 
-	let sender_ksm_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_kusama_parachains_latest, &sender)
-	});
+	let sender_ksm_after = assets_balance_on!(PenpalA, ksm_at_kusama_parachains_latest, &sender);
 	let receiver_ksm_after = foreign_balance_on_ah_polkadot(ksm_at_asset_hub_polkadot, &receiver);
 	let ksm_in_reserve_on_kah_after =
 		<AssetHubKusama as Chain>::account_data_of(sov_pah_on_kah.clone()).free;
@@ -598,10 +590,8 @@ fn send_back_dot_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkad
 	AssetHubPolkadot::fund_accounts(vec![(sov_kah_on_pah.clone(), amount * 2)]);
 
 	// balances before
-	let sender_dot_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains_latest.clone(), &sender)
-	});
+	let sender_dot_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest.clone(), &sender);
 	let receiver_dot_before = <AssetHubPolkadot as Chain>::account_data_of(receiver.clone()).free;
 
 	// send DOTs over the bridge, KSMs only used to pay fees on local AH, pay with DOT on remote AH
@@ -678,10 +668,7 @@ fn send_back_dot_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkad
 		);
 	});
 
-	let sender_dot_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains_latest, &sender)
-	});
+	let sender_dot_after = assets_balance_on!(PenpalA, dot_at_kusama_parachains_latest, &sender);
 	let receiver_dot_after = <AssetHubPolkadot as Chain>::account_data_of(receiver).free;
 
 	// Sender's balance is reduced by sent "amount"

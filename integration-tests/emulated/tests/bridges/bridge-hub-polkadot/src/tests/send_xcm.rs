@@ -75,8 +75,6 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	let native_token = Location::parent();
 	let amount = ASSET_HUB_POLKADOT_ED * 1_000;
 
-	// fund the AHK's SA on BHK for paying bridge transport fees
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 10_000_000_000_000u128);
 	// fund sender
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotSender::get(), amount * 10)]);
 

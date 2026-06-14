@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{assets_balance_on, create_pool_with_ksm_on, foreign_balance_on, *};
+use crate::{assets_balance_on, create_pool_with_ksm_on, *};
 use asset_hub_kusama_runtime::xcm_config::KsmLocation;
 use frame_support::traits::tokens::fungibles::Mutate;
 use xcm::latest::AssetTransferFilter;
@@ -112,18 +112,24 @@ fn transact_from_para_to_para_through_asset_hub() {
 		1_000_000_000_000,
 		20_000_000_000
 	);
-	create_pool_with_ksm_on!(PenpalA, PenpalUsdtFromAssetHub::get(), true, PenpalAssetOwner::get());
-	create_pool_with_ksm_on!(PenpalB, PenpalUsdtFromAssetHub::get(), true, PenpalAssetOwner::get());
+	create_foreign_pool_with_native_on!(
+		PenpalA,
+		PenpalUsdtFromAssetHub::get(),
+		PenpalAssetOwner::get()
+	);
+	create_foreign_pool_with_native_on!(
+		PenpalB,
+		PenpalUsdtFromAssetHub::get(),
+		PenpalAssetOwner::get()
+	);
 
 	let usdt_from_asset_hub = PenpalUsdtFromAssetHub::get();
-	PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		assert_ok!(<ForeignAssets as Mutate<_>>::mint_into(
-			usdt_from_asset_hub.clone(),
-			&sender,
-			fee_amount_to_send,
-		));
-	});
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
+		usdt_from_asset_hub.clone(),
+		sender.clone(),
+		fee_amount_to_send,
+	);
 
 	PenpalA::mint_foreign_asset(
 		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
@@ -134,9 +140,9 @@ fn transact_from_para_to_para_through_asset_hub() {
 
 	let receiver = PenpalBReceiver::get();
 
-	let sender_assets_before = foreign_balance_on!(PenpalA, usdt_from_asset_hub.clone(), &sender);
+	let sender_assets_before = assets_balance_on!(PenpalA, usdt_from_asset_hub.clone(), &sender);
 	let receiver_assets_before =
-		foreign_balance_on!(PenpalB, usdt_from_asset_hub.clone(), &receiver);
+		assets_balance_on!(PenpalB, usdt_from_asset_hub.clone(), &receiver);
 
 	let usdt_to_send: Asset = (usdt_from_asset_hub.clone(), fee_amount_to_send).into();
 	let asset_location_on_penpal_a =
@@ -170,8 +176,8 @@ fn transact_from_para_to_para_through_asset_hub() {
 		penpal_b_assertions(foreign_asset_at_penpal_b, expected_creator, receiver.clone());
 	});
 
-	let sender_assets_after = foreign_balance_on!(PenpalA, usdt_from_asset_hub.clone(), &sender);
-	let receiver_assets_after = foreign_balance_on!(PenpalB, usdt_from_asset_hub, &receiver);
+	let sender_assets_after = assets_balance_on!(PenpalA, usdt_from_asset_hub.clone(), &sender);
+	let receiver_assets_after = assets_balance_on!(PenpalB, usdt_from_asset_hub, &receiver);
 
 	assert_eq!(sender_assets_after, sender_assets_before - fee_amount_to_send);
 	assert!(receiver_assets_after > receiver_assets_before);
@@ -204,7 +210,7 @@ fn penpal_b_assertions(
 	assert_expected_events!(
 		PenpalB,
 		vec![
-			RuntimeEvent::ForeignAssets(
+			RuntimeEvent::Assets(
 				pallet_assets::Event::Created { asset_id, creator, owner }
 			) => {
 				asset_id: *asset_id == expected_asset,
@@ -265,7 +271,7 @@ fn transact_using_authorized_alias_from_para_to_asset_hub_and_back_to_para() {
 	});
 
 	let sender_usdt_on_penpal_before =
-		foreign_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+		assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 	let sender_usdt_on_ah_before = assets_balance_on!(AssetHubKusama, USDT_ID, &sender);
 
 	let call = <AssetHubKusama as Chain>::RuntimeCall::AssetConversion(
@@ -387,8 +393,7 @@ fn transact_using_authorized_alias_from_para_to_asset_hub_and_back_to_para() {
 	});
 
 	let sender_usdt_on_ah_after = assets_balance_on!(AssetHubKusama, USDT_ID, &sender);
-	let sender_usdt_on_penpal_after =
-		foreign_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+	let sender_usdt_on_penpal_after = assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 
 	assert_eq!(
 		sender_usdt_on_penpal_after,
@@ -443,7 +448,7 @@ fn transact_using_sov_account_from_para_to_asset_hub_and_back_to_para() {
 	);
 
 	let sender_usdt_on_penpal_before =
-		foreign_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+		assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 	let sender_usdt_on_ah_before =
 		assets_balance_on!(AssetHubKusama, USDT_ID, &sov_of_sender_on_asset_hub);
 
@@ -566,8 +571,7 @@ fn transact_using_sov_account_from_para_to_asset_hub_and_back_to_para() {
 
 	let sender_usdt_on_ah_after =
 		assets_balance_on!(AssetHubKusama, USDT_ID, &sov_of_sender_on_asset_hub);
-	let sender_usdt_on_penpal_after =
-		foreign_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
+	let sender_usdt_on_penpal_after = assets_balance_on!(PenpalA, usdt_penpal_pov.clone(), &sender);
 
 	assert_eq!(
 		sender_usdt_on_penpal_after,

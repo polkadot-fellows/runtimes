@@ -178,8 +178,6 @@ pub(crate) fn assert_bridge_hub_polkadot_message_accepted(expected_processed: bo
 			assert_expected_events!(
 				BridgeHubPolkadot,
 				vec![
-					// pay for bridge fees
-					RuntimeEvent::Balances(pallet_balances::Event::Withdraw { .. }) => {},
 					// message exported
 					RuntimeEvent::BridgeKusamaMessages(
 						pallet_bridge_messages::Event::MessageAccepted { .. }

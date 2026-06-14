@@ -41,3 +41,4 @@ target/
 *.snap
 *.json
 *.lz4
+.claude/

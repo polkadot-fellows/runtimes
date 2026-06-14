@@ -15,7 +15,6 @@
 
 use crate::*;
 use emulated_integration_tests_common::test_xcm_fee_querying_apis_work_for_asset_hub;
-use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use sp_runtime::ModuleError;
 use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
@@ -115,8 +114,7 @@ fn swap_locally_on_chain_using_local_assets() {
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
-	let asset_location_on_penpal: Location =
-		PenpalA::execute_with(PenpalLocalTeleportableToAssetHub::get);
+	let asset_location_on_penpal: Location = PenpalA::execute_with(PenpalLocalPen2Asset::get);
 	let foreign_asset_at_asset_hub_kusama =
 		Location::new(1, [Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)

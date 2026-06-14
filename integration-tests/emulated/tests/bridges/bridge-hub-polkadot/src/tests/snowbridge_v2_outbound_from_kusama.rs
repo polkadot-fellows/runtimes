@@ -95,8 +95,6 @@ pub(crate) fn assert_bridge_hub_kusama_message_accepted(expected_processed: bool
 			assert_expected_events!(
 				BridgeHubKusama,
 				vec![
-					// pay for bridge fees
-					RuntimeEvent::Balances(pallet_balances::Event::Withdraw { .. }) => {},
 					// message exported
 					RuntimeEvent::BridgePolkadotMessages(
 						pallet_bridge_messages::Event::MessageAccepted { .. }
@@ -343,9 +341,6 @@ fn register_kusama_asset_on_ethereum_from_rah() {
 	});
 
 	let destination = asset_hub_polkadot_location();
-
-	// fund the RAH's SA on RBH for paying bridge delivery fees
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
 
 	// set XCM versions
 	AssetHubKusama::force_xcm_version(destination.clone(), XCM_VERSION);

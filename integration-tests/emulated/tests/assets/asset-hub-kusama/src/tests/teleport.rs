@@ -13,12 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::*;
+use crate::{assets_balance_on, *};
 use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
-use kusama_system_emulated_network::{
-	kusama_emulated_chain::kusama_runtime::Dmp,
-	penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub,
-};
+use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 
 fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
@@ -31,7 +28,7 @@ fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 	assert_expected_events!(
 		PenpalA,
 		vec![
-			RuntimeEvent::ForeignAssets(
+			RuntimeEvent::Assets(
 				pallet_assets::Event::Withdrawn { asset_id, who, .. }
 			) => {
 				asset_id: *asset_id == system_para_native_asset_location,
@@ -99,7 +96,7 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 				amount: *amount == expected_asset_amount,
 			},
 			// native asset for fee is deposited to receiver
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
+			RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 				asset_id: *asset_id == Location::parent(),
 				who: *who == t.receiver.account_id,
 			},
@@ -224,11 +221,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 ) {
 	// Init values for Parachain
 	let fee_amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 100000;
-	let asset_location_on_penpal = PenpalA::execute_with(PenpalLocalTeleportableToAssetHub::get);
-	let asset_id_on_penpal = match asset_location_on_penpal.last() {
-		Some(Junction::GeneralIndex(id)) => *id as u32,
-		_ => unreachable!(),
-	};
+	let asset_location_on_penpal = PenpalA::execute_with(PenpalLocalPen2Asset::get);
 	let asset_amount_to_send = ASSET_HUB_KUSAMA_ED * 1000;
 	let asset_owner = PenpalAssetOwner::get();
 	let system_para_native_asset_location = KsmLocation::get();
@@ -254,9 +247,9 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		fee_amount_to_send * 2,
 	);
 	// No need to create the asset (only mint) as it exists in genesis.
-	PenpalA::mint_asset(
+	PenpalA::mint_foreign_asset(
 		<PenpalA as Chain>::RuntimeOrigin::signed(asset_owner.clone()),
-		asset_id_on_penpal,
+		asset_location_on_penpal.clone(),
 		sender.clone(),
 		asset_amount_to_send,
 	);
@@ -274,7 +267,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	// Init values for System Parachain
 	let foreign_asset_at_asset_hub_kusama =
 		Location::new(1, [Parachain(PenpalA::para_id().into())])
-			.appended_with(asset_location_on_penpal)
+			.appended_with(asset_location_on_penpal.clone())
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubKusamaReceiver::get();
 
@@ -287,25 +280,21 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 			penpal_to_ah_beneficiary_id,
 			asset_amount_to_send,
 			penpal_assets,
-			Some(asset_id_on_penpal),
+			Some(asset_location_on_penpal.clone()),
 			fee_asset_index,
 		),
 	};
 	let mut penpal_to_ah = ParaToSystemParaTest::new(penpal_to_ah_test_args);
-	let penpal_sender_balance_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			system_para_native_asset_location.clone(),
-			&PenpalASender::get(),
-		)
-	});
+	let penpal_sender_balance_before = assets_balance_on!(
+		PenpalA,
+		system_para_native_asset_location.clone(),
+		&PenpalASender::get()
+	);
 
 	let ah_receiver_balance_before = penpal_to_ah.receiver.balance;
 
-	let penpal_sender_assets_before = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::Assets;
-		<Assets as Inspect<_>>::balance(asset_id_on_penpal, &PenpalASender::get())
-	});
+	let penpal_sender_assets_before =
+		assets_balance_on!(PenpalA, asset_location_on_penpal.clone(), &PenpalASender::get());
 	let ah_receiver_assets_before = AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(
@@ -319,20 +308,16 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	penpal_to_ah.set_dispatchable::<PenpalA>(para_to_ah_dispatchable);
 	penpal_to_ah.assert();
 
-	let penpal_sender_balance_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			system_para_native_asset_location.clone(),
-			&PenpalASender::get(),
-		)
-	});
+	let penpal_sender_balance_after = assets_balance_on!(
+		PenpalA,
+		system_para_native_asset_location.clone(),
+		&PenpalASender::get()
+	);
 
 	let ah_receiver_balance_after = penpal_to_ah.receiver.balance;
 
-	let penpal_sender_assets_after = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::Assets;
-		<Assets as Inspect<_>>::balance(asset_id_on_penpal, &PenpalASender::get())
-	});
+	let penpal_sender_assets_after =
+		assets_balance_on!(PenpalA, asset_location_on_penpal.clone(), &PenpalASender::get());
 	let ah_receiver_assets_after = AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(
@@ -394,20 +379,18 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 			ah_to_penpal_beneficiary_id,
 			asset_amount_to_send,
 			ah_assets,
-			Some(asset_id_on_penpal),
+			Some(asset_location_on_penpal.clone()),
 			fee_asset_index,
 		),
 	};
 	let mut ah_to_penpal = SystemParaToParaTest::new(ah_to_penpal_test_args);
 
 	let ah_sender_balance_before = ah_to_penpal.sender.balance;
-	let penpal_receiver_balance_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			system_para_native_asset_location.clone(),
-			&PenpalAReceiver::get(),
-		)
-	});
+	let penpal_receiver_balance_before = assets_balance_on!(
+		PenpalA,
+		system_para_native_asset_location.clone(),
+		&PenpalAReceiver::get()
+	);
 
 	let ah_sender_assets_before = AssetHubKusama::execute_with(|| {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
@@ -416,10 +399,8 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 			&AssetHubKusamaSender::get(),
 		)
 	});
-	let penpal_receiver_assets_before = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::Assets;
-		<Assets as Inspect<_>>::balance(asset_id_on_penpal, &PenpalAReceiver::get())
-	});
+	let penpal_receiver_assets_before =
+		assets_balance_on!(PenpalA, asset_location_on_penpal.clone(), &PenpalAReceiver::get());
 
 	ah_to_penpal.set_assertion::<AssetHubKusama>(ah_to_penpal_foreign_assets_sender_assertions);
 	ah_to_penpal.set_assertion::<PenpalA>(ah_to_penpal_foreign_assets_receiver_assertions);
@@ -427,13 +408,8 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	ah_to_penpal.assert();
 
 	let ah_sender_balance_after = ah_to_penpal.sender.balance;
-	let penpal_receiver_balance_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			system_para_native_asset_location,
-			&PenpalAReceiver::get(),
-		)
-	});
+	let penpal_receiver_balance_after =
+		assets_balance_on!(PenpalA, system_para_native_asset_location, &PenpalAReceiver::get());
 
 	let ah_sender_assets_after = AssetHubKusama::execute_with(|| {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
@@ -442,10 +418,8 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 			&AssetHubKusamaSender::get(),
 		)
 	});
-	let penpal_receiver_assets_after = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::Assets;
-		<Assets as Inspect<_>>::balance(asset_id_on_penpal, &PenpalAReceiver::get())
-	});
+	let penpal_receiver_assets_after =
+		assets_balance_on!(PenpalA, asset_location_on_penpal.clone(), &PenpalAReceiver::get());
 
 	// Sender's balance is reduced
 	assert!(ah_sender_balance_after < ah_sender_balance_before);

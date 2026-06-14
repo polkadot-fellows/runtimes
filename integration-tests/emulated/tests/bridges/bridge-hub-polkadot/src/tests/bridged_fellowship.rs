@@ -65,9 +65,6 @@ fn fellowship_whitelist_on_kah() {
 		},
 	]));
 
-	// Fund AHP's SA on BHP for bridge transport fees
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 10_000_000_000_000u128);
-
 	// Set XCM versions
 	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 	BridgeHubPolkadot::force_xcm_version(bridge_hub_kusama_location(), XCM_VERSION);
