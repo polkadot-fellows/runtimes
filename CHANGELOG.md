@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. It is now closer to Asset Hub Polkadot config.
 
+### Fixed
+
+- Polkadot & Kusama Relay Chains: repair historic `Proxy.Proxies` entries that were never migrated to the post-`delay` `ProxyDefinition` storage layout and had been undecodable since spec version 23. The migration losslessly re-encodes each affected entry (setting `delay = 0`, preserving delegates, proxy types and the reserved deposit). ([#453](https://github.com/polkadot-fellows/runtimes/issues/453))
+
 ## [2.3.2] 23.07.2026
 
 ### Added
