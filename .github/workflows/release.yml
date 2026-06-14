@@ -77,7 +77,7 @@ jobs:
             echo "::error::No max_uncompressed_size_mib configured for ${{ matrix.runtime.name }} in .github/workflows/runtimes-matrix.json"
             exit 1
           fi
-          .github/scripts/check-runtime-size.sh "$WASM" "$MAX_MIB"
+          .github/scripts/check-uncompressed-size.sh "$WASM" "$MAX_MIB"
 
       - name: Store ${{ matrix.runtime.name }} srtool digest to disk
         run: |
