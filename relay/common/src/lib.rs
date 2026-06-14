@@ -17,6 +17,8 @@
 //! Shared code between the Kusama nd Polkadot RC Runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod proxy;
+
 use polkadot_primitives::Balance;
 use sp_runtime::{Perquintill, Saturating};
 

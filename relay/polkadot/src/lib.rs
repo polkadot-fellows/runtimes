@@ -2002,6 +2002,7 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		relay_common::proxy::MigrateLegacyProxies<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.

@@ -2129,6 +2129,10 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		// Repairs any historic `Proxy.Proxies` entry that was never migrated to the
+		// post-`delay` `ProxyDefinition` layout and would otherwise be undecodable.
+		// See <https://github.com/polkadot-fellows/runtimes/issues/453>.
+		relay_common::proxy::MigrateLegacyProxies<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.

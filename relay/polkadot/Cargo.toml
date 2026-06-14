@@ -347,6 +347,7 @@ try-runtime = [
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"relay-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
