@@ -3,6 +3,7 @@
     "name": "polkadot",
     "package": "polkadot-runtime",
     "path": "relay/polkadot",
+    "max_code_size": 5242880,
     "uris": [
       "wss://polkadot.ibp.network",
       "wss://polkadot.dotters.network",
@@ -33,6 +34,7 @@
     "name": "kusama",
     "package": "staging-kusama-runtime",
     "path": "relay/kusama",
+    "max_code_size": 5242880,
     "uris": [
       "wss://try-runtime-kusama.polkadot.io:443",
       "wss://kusama-rpc.publicnode.com",
@@ -61,6 +63,7 @@
     "name": "glutton-kusama",
     "package": "glutton-kusama-runtime",
     "path": "system-parachains/gluttons/glutton-kusama",
+    "max_code_size": 3145728,
     "is_relay": false,
     "blocktime": 12000,
     "extra_args": "--disable-mbm-checks",
@@ -70,6 +73,7 @@
     "name": "asset-hub-kusama",
     "package": "asset-hub-kusama-runtime",
     "path": "system-parachains/asset-hubs/asset-hub-kusama",
+    "max_code_size": 3145728,
     "uris": [
       "wss://kusama-asset-hub-rpc.polkadot.io:443",
       "wss://asset-hub-kusama-rpc.n.dwellir.com",
@@ -98,6 +102,7 @@
     "name": "asset-hub-polkadot",
     "package": "asset-hub-polkadot-runtime",
     "path": "system-parachains/asset-hubs/asset-hub-polkadot",
+    "max_code_size": 3145728,
     "uris": [
       "wss://polkadot-asset-hub-rpc.polkadot.io:443",
       "wss://asset-hub-polkadot-rpc.n.dwellir.com",
@@ -126,6 +131,7 @@
     "name": "bridge-hub-kusama",
     "package": "bridge-hub-kusama-runtime",
     "path": "system-parachains/bridge-hubs/bridge-hub-kusama",
+    "max_code_size": 3145728,
     "uris": [
       "wss://kusama-bridge-hub-rpc.polkadot.io:443",
       "wss://bridge-hub-kusama-rpc.n.dwellir.com",
@@ -150,6 +156,7 @@
     "name": "bridge-hub-polkadot",
     "package": "bridge-hub-polkadot-runtime",
     "path": "system-parachains/bridge-hubs/bridge-hub-polkadot",
+    "max_code_size": 3145728,
     "uris": [
       "wss://polkadot-bridge-hub-rpc.polkadot.io:443",
       "wss://bridge-hub-polkadot-rpc.n.dwellir.com",
@@ -174,6 +181,7 @@
     "name": "collectives-polkadot",
     "package": "collectives-polkadot-runtime",
     "path": "system-parachains/collectives/collectives-polkadot",
+    "max_code_size": 3145728,
     "uris": [
       "wss://polkadot-collectives-rpc.polkadot.io:443",
       "wss://collectives-polkadot-rpc.n.dwellir.com",
@@ -198,6 +206,7 @@
     "name": "coretime-kusama",
     "package": "coretime-kusama-runtime",
     "path": "system-parachains/coretime/coretime-kusama",
+    "max_code_size": 3145728,
     "uris": [
       "wss://kusama-coretime-rpc.polkadot.io:443",
       "wss://coretime-kusama-rpc.n.dwellir.com",
@@ -220,6 +229,7 @@
     "name": "coretime-polkadot",
     "package": "coretime-polkadot-runtime",
     "path": "system-parachains/coretime/coretime-polkadot",
+    "max_code_size": 3145728,
     "is_relay": false,
     "blocktime": 12000,
     "uris": [
@@ -242,6 +252,7 @@
     "name": "people-kusama",
     "package": "people-kusama-runtime",
     "path": "system-parachains/people/people-kusama",
+    "max_code_size": 3145728,
     "uris": [
       "wss://kusama-people-rpc.polkadot.io:443",
       "wss://people-kusama-rpc.n.dwellir.com",
@@ -264,6 +275,7 @@
     "name": "people-polkadot",
     "package": "people-polkadot-runtime",
     "path": "system-parachains/people/people-polkadot",
+    "max_code_size": 3145728,
     "uris": [
       "wss://polkadot-people-rpc.polkadot.io:443",
       "wss://people-polkadot-rpc.n.dwellir.com",
@@ -285,6 +297,7 @@
     "name": "encointer-kusama",
     "package": "encointer-kusama-runtime",
     "path": "system-parachains/encointer",
+    "max_code_size": 3145728,
     "uris": [
       "wss://kusama.api.encointer.org:443",
       "wss://encointer-kusama-rpc.n.dwellir.com",
@@ -305,6 +318,7 @@
     "name": "bulletin-polkadot",
     "package": "bulletin-polkadot-runtime",
     "path": "system-parachains/bulletin/bulletin-polkadot",
+    "max_code_size": 3145728,
     "is_relay": false,
     "blocktime": 6000,
     "max_uncompressed_size_mib": 30,
