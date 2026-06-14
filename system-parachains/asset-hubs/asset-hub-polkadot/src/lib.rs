@@ -3165,4 +3165,45 @@ mod tests {
 		assert!(AllExceptReapStash::contains(&chill));
 		assert!(AllExceptReapStash::contains(&chill_other));
 	}
+
+	/// The nomination-pools `with_era` bound (`TotalUnbondingPools`) must stay pinned at its
+	/// historical maximum (32) across the `AreNominatorsSlashable` fast-unbond flip. Otherwise the
+	/// lowered nominator bonding duration would shrink the bound (32 -> 6), making oversized
+	/// historical sub-pools undecodable and destroying per-era unbonding accounting on the next
+	/// `unbond`.
+	#[test]
+	fn nomination_pools_bound_survives_nominator_unslashable_flip() {
+		use frame_support::traits::Get;
+		use sp_staking::StakingInterface;
+
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// The bound the pallet actually uses for `SubPools::with_era`.
+			let total_unbonding_pools = || {
+				<Staking as StakingInterface>::nominator_bonding_duration() +
+					<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get()
+			};
+
+			// Pre-flip: nominators slashable, so the nominator bonding duration is the full
+			// `BondingDuration` and the post-unbonding window is the legacy 4. Set explicitly
+			// rather than relying on the storage default so the test pins both flag states
+			// itself.
+			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(true);
+			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 28);
+			assert_eq!(
+				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
+				4
+			);
+			assert_eq!(total_unbonding_pools(), 32);
+
+			// The flip: nominators become non-slashable, so the nominator bonding duration drops to
+			// `NominatorFastUnbondDuration` (2). The window must widen to 30 so the bound stays 32.
+			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(false);
+			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 2);
+			assert_eq!(
+				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
+				30
+			);
+			assert_eq!(total_unbonding_pools(), 32);
+		});
+	}
 }
