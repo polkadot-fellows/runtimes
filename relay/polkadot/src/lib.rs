@@ -203,8 +203,6 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			Indices(..) |
 			Staking(..) |
 			Treasury(..) |
-			ConvictionVoting(..) |
-			Referenda(..) |
 			Claims(..) |
 			Vesting(..) |
 			Bounties(..) |
@@ -1179,8 +1177,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				RuntimeCall::Treasury(..) |
 				RuntimeCall::Bounties(..) |
 				RuntimeCall::ChildBounties(..) |
-				RuntimeCall::ConvictionVoting(..) |
-				RuntimeCall::Referenda(..) |
 				RuntimeCall::Whitelist(..) |
 				RuntimeCall::Claims(..) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest{..}) |
@@ -1206,8 +1202,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 					RuntimeCall::Bounties(..) |
 					RuntimeCall::Utility(..) |
 					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
 					RuntimeCall::Whitelist(..)
 			),
 			ProxyType::Staking => matches!(
@@ -1871,9 +1865,12 @@ construct_runtime! {
 		AuthorityDiscovery: pallet_authority_discovery = 13,
 
 		// OpenGov stuff.
+		// `ConvictionVoting` (20) and `Referenda` (21) were removed post-AHM, as the
+		// referendum lifecycle now lives on Asset Hub. Their indices remain permanently unused.
+		// `Origins` and `Whitelist` are intentionally kept: the custom origins are still used
+		// across the runtime (and provide `WhitelistedCaller`), and `Whitelist` is still required
+		// for Fellowship-authorized calls dispatched on the relay (e.g. runtime upgrades).
 		Treasury: pallet_treasury = 19,
-		ConvictionVoting: pallet_conviction_voting = 20,
-		Referenda: pallet_referenda = 21,
 		Origins: pallet_custom_origins = 22,
 		Whitelist: pallet_whitelist = 23,
 
@@ -1996,12 +1993,27 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
+	parameter_types! {
+		pub const ConvictionVotingPalletName: &'static str = "ConvictionVoting";
+		pub const ReferendaPalletName: &'static str = "Referenda";
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		// Clear the orphaned storage of the OpenGov voting pallets removed from the relay
+		// post-AHM (the referendum lifecycle now lives on Asset Hub).
+		frame_support::migrations::RemovePallet<
+			ConvictionVotingPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			ReferendaPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2074,8 +2086,6 @@ mod benches {
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
-		[pallet_conviction_voting, ConvictionVoting]
-		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		// XCM
@@ -3516,52 +3526,6 @@ mod remote_tests {
 				log::warn!(target: "runtime", "validator {v:?} cannot pay a deposit of {amount:?}")
 			}
 		})
-	}
-
-	#[tokio::test]
-	async fn dispatch_all_proposals() {
-		if var("RUN_OPENGOV_TEST").is_err() {
-			return;
-		}
-
-		sp_tracing::try_init_simple();
-		let mut ext = remote_ext_test_setup().await;
-		ext.execute_with(|| {
-			type Ref = pallet_referenda::ReferendumInfoOf<Runtime, ()>;
-			type RefStatus = pallet_referenda::ReferendumStatusOf<Runtime, ()>;
-			use sp_runtime::traits::Dispatchable;
-			let all_refs: Vec<(u32, RefStatus)> =
-				pallet_referenda::ReferendumInfoFor::<Runtime>::iter()
-					.filter_map(|(idx, reff): (_, Ref)| {
-						if let Ref::Ongoing(ref_status) = reff {
-							Some((idx, ref_status))
-						} else {
-							None
-						}
-					})
-					.collect::<Vec<_>>();
-
-			for (ref_index, referenda) in all_refs {
-				log::info!(target: LOG_TARGET, "🚀 executing referenda #{ref_index}");
-				let RefStatus { origin, proposal, .. } = referenda;
-				// we do more or less what the scheduler will do under the hood, as best as we can
-				// imitate:
-				let (call, _len) = match <
-					<Runtime as pallet_scheduler::Config>::Preimages
-					as
-					frame_support::traits::QueryPreimage
-				>::peek(&proposal) {
-					Ok(x) => x,
-					Err(e) => {
-						log::error!(target: LOG_TARGET, "failed to get preimage: {e:?}");
-						continue;
-					}
-				};
-
-				let dispatch_result = call.dispatch(origin.clone().into());
-				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {origin:?}: {dispatch_result:?}");
-			}
-		});
 	}
 
 	#[tokio::test]
