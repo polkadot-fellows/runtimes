@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Polkadot & Kusama relay: Wire the existing `KeyDeposit` parameter into `pallet_session::Config` (previously `type KeyDeposit = ()`), so `session.set_keys` now reserves a deposit sized to the stored bytes and `purge_keys` releases it. This closes a post-AHM storage-spam vector where `SessionKeys` entries could be created for free ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
+- Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
 
 ## [2.3.1] 12.06.2026
 
