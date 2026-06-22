@@ -17989,7 +17989,6 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-session-benchmarking",
- "pallet-society",
  "pallet-staking",
  "pallet-staking-async-ah-client",
  "pallet-staking-async-rc-client",
