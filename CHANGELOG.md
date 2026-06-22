@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Removed
+
+- Polkadot & Kusama relay: Remove the `Indices`, `Claims` and `Vesting` pallets (and `StateTrieMigration` on Polkadot), as their state now lives on Asset Hub post-AHM. Their orphaned storage is cleared via `RemovePallet` migrations and their former pallet indices are left permanently unused. On Polkadot the `claims::PrevalidateAttests` transaction extension is dropped from the `TxExtension` and `transaction_version` is bumped to `27` ([#1198](https://github.com/polkadot-fellows/runtimes/issues/1198)).
+
 ## [2.3.1] 12.06.2026
 
 ### Fixed

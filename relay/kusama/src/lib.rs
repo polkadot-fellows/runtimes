@@ -53,7 +53,7 @@ use frame_support::{
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Contains, Currency, EitherOf, EitherOfDiverse, EnsureOrigin,
 		EnsureOriginWithArg, FromContains, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice,
-		OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		OnUnbalanced, PrivilegeCmp, ProcessMessage, ProcessMessageError,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -75,15 +75,15 @@ use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInf
 use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
-	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
-	BlockNumber, CandidateEvent, CandidateHash, CommittedCandidateReceiptV2, CoreIndex, CoreState,
-	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
+	async_backing::Constraints, slashing, AccountId, ApprovalVotingParams, Balance, BlockNumber,
+	CandidateEvent, CandidateHash, CommittedCandidateReceiptV2, CoreIndex, CoreState, DisputeState,
+	ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
 	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
 	PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature, ValidationCode,
 	ValidationCodeHash, ValidatorId, ValidatorIndex, LOWEST_PUBLIC_ID, PARACHAIN_KEY_TYPE_ID,
 };
 use polkadot_runtime_common::{
-	auctions, claims, crowdloan, impl_runtime_weights,
+	auctions, crowdloan, impl_runtime_weights,
 	impls::{
 		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
 		VersionedLocatableAsset, VersionedLocationConverter,
@@ -210,13 +210,10 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 		use RuntimeCall::*;
 		match call {
 			Scheduler(..) |
-			Indices(..) |
 			Staking(..) |
 			Treasury(..) |
 			ConvictionVoting(..) |
 			Referenda(..) |
-			Claims(..) |
-			Vesting(..) |
 			Bounties(..) |
 			ChildBounties(..) |
 			ElectionProviderMultiPhase(..) |
@@ -373,18 +370,6 @@ impl pallet_babe::Config for Runtime {
 
 	type MaxAuthorities = MaxAuthorities;
 	type MaxNominators = MaxNominators;
-}
-
-parameter_types! {
-	pub const IndexDeposit: Balance = 100 * CENTS;
-}
-
-impl pallet_indices::Config for Runtime {
-	type AccountIndex = AccountIndex;
-	type Currency = Balances;
-	type Deposit = IndexDeposit;
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1223,18 +1208,6 @@ where
 	}
 }
 
-parameter_types! {
-	pub Prefix: &'static [u8] = b"Pay KSMs to the Kusama account:";
-}
-
-impl claims::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type VestingSchedule = Vesting;
-	type Prefix = Prefix;
-	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
-}
-
 impl pallet_utility::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
@@ -1281,23 +1254,6 @@ impl pallet_society::Config for Runtime {
 	type PalletId = SocietyPalletId;
 	type WeightInfo = weights::pallet_society::WeightInfo<Runtime>;
 	type BlockNumberProvider = System;
-}
-
-parameter_types! {
-	pub const MinVestedTransfer: Balance = 100 * CENTS;
-	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
-		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
-}
-
-impl pallet_vesting::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type BlockNumberToBalance = ConvertInto;
-	type MinVestedTransfer = MinVestedTransfer;
-	type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
-	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
-	type BlockNumberProvider = System;
-	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
 parameter_types! {
@@ -1354,10 +1310,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::System(..) |
 				RuntimeCall::Babe(..) |
 				RuntimeCall::Timestamp(..) |
-				RuntimeCall::Indices(pallet_indices::Call::claim {..}) |
-				RuntimeCall::Indices(pallet_indices::Call::free {..}) |
-				RuntimeCall::Indices(pallet_indices::Call::freeze {..}) |
-				// Specifically omitting Indices `transfer`, `force_transfer`
 				// Specifically omitting the entire Balances pallet
 				RuntimeCall::Staking(..) |
 				RuntimeCall::Session(..) |
@@ -1370,12 +1322,8 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::FellowshipCollective(..) |
 				RuntimeCall::FellowshipReferenda(..) |
 				RuntimeCall::Whitelist(..) |
-				RuntimeCall::Claims(..) |
 				RuntimeCall::Utility(..) |
 				RuntimeCall::Society(..) |
-				RuntimeCall::Vesting(pallet_vesting::Call::vest {..}) |
-				RuntimeCall::Vesting(pallet_vesting::Call::vest_other {..}) |
-				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
 				RuntimeCall::Scheduler(..) |
 				RuntimeCall::Proxy(..) |
 				RuntimeCall::Multisig(..) |
@@ -1949,7 +1897,8 @@ construct_runtime! {
 		Babe: pallet_babe = 1,
 
 		Timestamp: pallet_timestamp = 2,
-		Indices: pallet_indices = 3,
+		// `Indices` (3) was removed post-AHM; its state now lives on Asset Hub. The index
+		// remains permanently unused to keep pallet encodings stable.
 		Balances: pallet_balances = 4,
 		TransactionPayment: pallet_transaction_payment = 33,
 
@@ -1977,8 +1926,8 @@ construct_runtime! {
 		Whitelist: pallet_whitelist = 44,
 		Parameters: pallet_parameters = 46,
 
-		// Claims. Usable initially.
-		Claims: claims = 19,
+		// `Claims` (19) was removed post-AHM; its state now lives on Asset Hub. The index
+		// remains permanently unused to keep pallet encodings stable.
 
 		// Utility module.
 		Utility: pallet_utility = 24,
@@ -1988,8 +1937,8 @@ construct_runtime! {
 		// Society module.
 		Society: pallet_society = 26,
 
-		// Vesting. Usable initially, but removed once all vesting is finished.
-		Vesting: pallet_vesting = 28,
+		// `Vesting` (28) was removed post-AHM; its state now lives on Asset Hub. The index
+		// remains permanently unused to keep pallet encodings stable.
 
 		// System scheduler.
 		Scheduler: pallet_scheduler = 29,
@@ -2115,12 +2064,32 @@ pub mod migrations {
 
 	parameter_types! {
 		pub const RecoveryPalletName: &'static str = "Recovery";
+		pub const IndicesPalletName: &'static str = "Indices";
+		pub const ClaimsPalletName: &'static str = "Claims";
+		pub const VestingPalletName: &'static str = "Vesting";
 	}
 
 	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
 		RecoveryPalletName,
 		<crate::Runtime as frame_system::Config>::DbWeight,
 	>;
+
+	/// Clear the orphaned storage of the pallets removed from the relay post-AHM (their state now
+	/// lives on Asset Hub).
+	pub type RemoveMigratedPallets = (
+		frame_support::migrations::RemovePallet<
+			IndicesPalletName,
+			<crate::Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			ClaimsPalletName,
+			<crate::Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			VestingPalletName,
+			<crate::Runtime as frame_system::Config>::DbWeight,
+		>,
+	);
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
@@ -2129,6 +2098,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		RemoveMigratedPallets,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2161,7 +2131,6 @@ mod benches {
 		// Polkadot
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
-		[polkadot_runtime_common::claims, Claims]
 		[polkadot_runtime_common::slots, Slots]
 		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
@@ -2185,7 +2154,6 @@ mod benches {
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
-		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
@@ -2204,7 +2172,6 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_utility, Utility]
-		[pallet_vesting, Vesting]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		[pallet_parameters, Parameters]
