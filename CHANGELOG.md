@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Polkadot & Kusama relay: Migrate the `ParachainHost` runtime API off the deprecated `candidate_pending_availability` and `async_backing_params` helpers (now implemented via `candidates_pending_availability` and a direct configuration read respectively) and drop the corresponding `#[allow(deprecated)]`. `para_backing_state` still delegates to the deprecated `backing_state` helper, as the full `BackingState` cannot be reconstructed from public runtime APIs; clients should use the already-exposed `backing_constraints` and `candidates_pending_availability` instead ([#1199](https://github.com/polkadot-fellows/runtimes/issues/1199)).
+
 ## [2.3.1] 12.06.2026
 
 ### Fixed

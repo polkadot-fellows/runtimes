@@ -2466,8 +2466,12 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn candidate_pending_availability(para_id: ParaId) -> Option<CommittedCandidateReceipt<Hash>> {
-			#[allow(deprecated)]
-			parachains_runtime_api_impl::candidate_pending_availability::<Runtime>(para_id)
+			// `candidate_pending_availability` is deprecated upstream in favour of
+			// `candidates_pending_availability` (which supports elastic scaling). Return the first
+			// pending candidate to preserve the original single-candidate semantics.
+			parachains_runtime_api_impl::candidates_pending_availability::<Runtime>(para_id)
+				.into_iter()
+				.next()
 		}
 
 		fn candidate_events() -> Vec<CandidateEvent<Hash>> {
@@ -2563,13 +2567,23 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::async_backing::BackingState> {
+			// `backing_state`/`para_backing_state` are deprecated upstream in favour of
+			// `backing_constraints` + `candidates_pending_availability` (both implemented below).
+			// The full `BackingState` cannot be reconstructed from public runtime APIs because each
+			// pending candidate's `relay_parent_number` is only exposed via a `pub(crate)` accessor
+			// in the SDK, so we keep delegating to the deprecated helper until the trait method
+			// itself is removed (it will be dropped together with the helper, by bumping past the
+			// `ParachainHost` API version that defines it).
 			#[allow(deprecated)]
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
 
 		fn async_backing_params() -> polkadot_primitives::AsyncBackingParams {
-			#[allow(deprecated)]
-			parachains_runtime_api_impl::async_backing_params::<Runtime>()
+			// `async_backing_params` is deprecated upstream (validators now derive these values
+			// dynamically from the claim queue). Read the value straight from the configuration
+			// instead of the deprecated helper; this preserves the previous behaviour for any
+			// clients still querying it.
+			parachains_configuration::ActiveConfig::<Runtime>::get().async_backing_params
 		}
 
 		fn disabled_validators() -> Vec<ValidatorIndex> {
