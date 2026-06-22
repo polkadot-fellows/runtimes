@@ -213,8 +213,6 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			Indices(..) |
 			Staking(..) |
 			Treasury(..) |
-			ConvictionVoting(..) |
-			Referenda(..) |
 			Claims(..) |
 			Vesting(..) |
 			Bounties(..) |
@@ -1365,8 +1363,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::Treasury(..) |
 				RuntimeCall::Bounties(..) |
 				RuntimeCall::ChildBounties(..) |
-				RuntimeCall::ConvictionVoting(..) |
-				RuntimeCall::Referenda(..) |
 				RuntimeCall::FellowshipCollective(..) |
 				RuntimeCall::FellowshipReferenda(..) |
 				RuntimeCall::Whitelist(..) |
@@ -1396,9 +1392,7 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 					RuntimeCall::Bounties(..) |
 					RuntimeCall::Utility(..) |
 					RuntimeCall::ChildBounties(..) |
-					// OpenGov calls
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
+					// OpenGov Fellowship calls
 					RuntimeCall::FellowshipCollective(..) |
 					RuntimeCall::FellowshipReferenda(..) |
 					RuntimeCall::Whitelist(..)
@@ -1967,8 +1961,10 @@ construct_runtime! {
 
 		// Governance stuff.
 		Treasury: pallet_treasury = 18,
-		ConvictionVoting: pallet_conviction_voting = 20,
-		Referenda: pallet_referenda = 21,
+		// `ConvictionVoting` (20) and `Referenda` (21) were removed post-AHM, as the OpenGov
+		// referendum lifecycle now lives on Asset Hub. Their indices remain permanently unused.
+		// The Fellowship pallets below (`FellowshipCollective`/`FellowshipReferenda`) are a
+		// separate `pallet_referenda` instance and are intentionally kept.
 //		pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
 		FellowshipCollective: pallet_ranked_collective::<Instance1> = 22,
 //		pub type FellowshipReferendaInstance = pallet_referenda::Instance2;
@@ -2115,12 +2111,28 @@ pub mod migrations {
 
 	parameter_types! {
 		pub const RecoveryPalletName: &'static str = "Recovery";
+		pub const ConvictionVotingPalletName: &'static str = "ConvictionVoting";
+		pub const ReferendaPalletName: &'static str = "Referenda";
 	}
 
 	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
 		RecoveryPalletName,
 		<crate::Runtime as frame_system::Config>::DbWeight,
 	>;
+
+	/// Clear the orphaned storage of the OpenGov voting pallets removed from the relay post-AHM
+	/// (the referendum lifecycle now lives on Asset Hub). Only the OpenGov `Referenda` instance is
+	/// affected; the Fellowship `pallet_referenda` instance (`FellowshipReferenda`) is retained.
+	pub type RemoveOpenGovVotingPallets = (
+		frame_support::migrations::RemovePallet<
+			ConvictionVotingPalletName,
+			<crate::Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			ReferendaPalletName,
+			<crate::Runtime as frame_system::Config>::DbWeight,
+		>,
+	);
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
@@ -2129,6 +2141,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		RemoveOpenGovVotingPallets,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2181,7 +2194,6 @@ mod benches {
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
-		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
@@ -2193,7 +2205,6 @@ mod benches {
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_ranked_collective, FellowshipCollective]
-		[pallet_referenda, Referenda]
 		[pallet_referenda, FellowshipReferenda]
 		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]

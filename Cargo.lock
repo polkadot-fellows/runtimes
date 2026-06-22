@@ -17963,7 +17963,6 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bounties",
  "pallet-child-bounties",
- "pallet-conviction-voting",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",

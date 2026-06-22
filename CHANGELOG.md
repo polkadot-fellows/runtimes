@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Removed
+
+- Kusama relay: Remove the `ConvictionVoting` and `Referenda` pallets, as the OpenGov referendum lifecycle now lives on Asset Hub post-AHM. Their orphaned storage is cleared via `RemovePallet` migrations and their former pallet indices (20 and 21) are left permanently unused. The Fellowship pallets (`FellowshipCollective` and `FellowshipReferenda`) are intentionally retained ([#1198](https://github.com/polkadot-fellows/runtimes/issues/1198)).
+
 ## [2.3.1] 12.06.2026
 
 ### Fixed
