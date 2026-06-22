@@ -548,8 +548,7 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
-	// TODO: we will set this post-AHM
-	type KeyDeposit = ();
+	type KeyDeposit = KeyDeposit;
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -3215,6 +3214,58 @@ mod test {
 		let path = xcm::VersionedXcm::<()>::type_info().path;
 		// Ensure that the name doesn't include `staging` (from the pallet name)
 		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
+	}
+}
+
+#[cfg(test)]
+mod session_key_deposit_tests {
+	use super::*;
+	use frame_support::{
+		assert_ok,
+		traits::fungible::{InspectHold, Mutate},
+	};
+	use sp_core::Encode;
+	use std::sync::Arc;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		let mut ext: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
+			.unwrap()
+			.into();
+		// `set_keys` generates real session keys and an ownership proof via the keystore.
+		ext.register_extension(sp_keystore::KeystoreExt(Arc::new(
+			sp_keystore::testing::MemoryKeystore::new(),
+		)));
+		ext
+	}
+
+	/// `set_keys` must hold a deposit and `purge_keys` must release it, so that registering
+	/// session keys is no longer free (post-AHM storage-spam vector).
+	#[test]
+	fn set_keys_holds_deposit_and_purge_keys_releases_it() {
+		new_test_ext().execute_with(|| {
+			let who: AccountId = AccountId::from([1u8; 32]);
+			let deposit = <Runtime as pallet_session::Config>::KeyDeposit::get();
+			assert!(deposit > 0, "KeyDeposit must be wired to a non-zero value");
+
+			// Fund the account with the deposit plus a margin above the existential deposit so the
+			// hold can be placed.
+			Balances::mint_into(&who, deposit + ExistentialDeposit::get() * 2).unwrap();
+
+			let reason: RuntimeHoldReason = pallet_session::HoldReason::Keys.into();
+			assert_eq!(Balances::balance_on_hold(&reason, &who), 0);
+
+			let generated = SessionKeys::generate(&who.encode(), None);
+			assert_ok!(Session::set_keys(
+				RuntimeOrigin::signed(who.clone()),
+				generated.keys,
+				generated.proof.encode(),
+			));
+			assert_eq!(Balances::balance_on_hold(&reason, &who), deposit);
+
+			assert_ok!(Session::purge_keys(RuntimeOrigin::signed(who.clone())));
+			assert_eq!(Balances::balance_on_hold(&reason, &who), 0);
+		});
 	}
 }
 

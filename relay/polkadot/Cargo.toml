@@ -119,6 +119,7 @@ polkadot-parachain-primitives = { workspace = true }
 [dev-dependencies]
 approx = { workspace = true }
 sp-keyring = { workspace = true }
+sp-keystore = { workspace = true }
 sp-trie = { workspace = true }
 separator = { workspace = true }
 remote-externalities = { workspace = true }
