@@ -109,7 +109,7 @@ use runtime_parachains::{
 	shared as parachains_shared,
 };
 use scale_info::TypeInfo;
-use sp_core::{ConstBool, ConstU128, OpaqueMetadata, H256};
+use sp_core::{ConstBool, OpaqueMetadata, H256};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -149,9 +149,6 @@ mod weights;
 
 // Voter bag threshold definitions.
 mod bag_thresholds;
-
-// Historical information of society finances.
-mod past_payouts;
 
 // XCM configurations.
 pub mod xcm_config;
@@ -225,8 +222,7 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			FastUnstake(..) |
 			Slots(..) |
 			Auctions(..) |
-			AssetRate(..) |
-			Society(..) => false,
+			AssetRate(..) => false,
 
 			// Crowdloan: only dissolve, refund, and withdraw are allowed.
 			Crowdloan(
@@ -1262,28 +1258,6 @@ impl pallet_multisig::Config for Runtime {
 }
 
 parameter_types! {
-	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
-}
-
-impl pallet_society::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
-	type GraceStrikes = ConstU32<10>;
-	type PeriodSpend = ConstU128<{ 500 * QUID }>;
-	type VotingPeriod = ConstU32<{ u32::MAX - 10 * DAYS }>;
-	type ClaimPeriod = ConstU32<{ 2 * DAYS }>;
-	type MaxLockDuration = ConstU32<{ 36 * 30 * DAYS }>;
-	type FounderSetOrigin = EnsureRoot<AccountId>;
-	type ChallengePeriod = ConstU32<{ u32::MAX - 10 * DAYS }>;
-	type MaxPayouts = ConstU32<8>;
-	type MaxBids = ConstU32<512>;
-	type PalletId = SocietyPalletId;
-	type WeightInfo = weights::pallet_society::WeightInfo<Runtime>;
-	type BlockNumberProvider = System;
-}
-
-parameter_types! {
 	pub const MinVestedTransfer: Balance = 100 * CENTS;
 	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
 		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
@@ -1372,7 +1346,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::Whitelist(..) |
 				RuntimeCall::Claims(..) |
 				RuntimeCall::Utility(..) |
-				RuntimeCall::Society(..) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest {..}) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest_other {..}) |
 				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
@@ -1430,7 +1403,10 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 					RuntimeCall::Registrar(..) |
 					RuntimeCall::Slots(..)
 			),
-			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
+			// `Society` was removed from the relay post-AHM (it now lives on Asset Hub). The
+			// `ProxyType::Society` variant is retained for SCALE-encoding stability and for the
+			// Asset Hub remote-proxy mapping, but matches no relay calls.
+			ProxyType::Society => false,
 			ProxyType::Spokesperson => matches!(
 				c,
 				RuntimeCall::System(frame_system::Call::remark { .. }) |
@@ -1985,8 +1961,8 @@ construct_runtime! {
 
 		// pallet_identity = 25 (removed post 1.2.4)
 
-		// Society module.
-		Society: pallet_society = 26,
+		// `Society` (26) was removed post-AHM; it now lives on Asset Hub. The index remains
+		// permanently unused to keep pallet encodings stable.
 
 		// Vesting. Usable initially, but removed once all vesting is finished.
 		Vesting: pallet_vesting = 28,
@@ -2115,10 +2091,18 @@ pub mod migrations {
 
 	parameter_types! {
 		pub const RecoveryPalletName: &'static str = "Recovery";
+		pub const SocietyPalletName: &'static str = "Society";
 	}
 
 	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
 		RecoveryPalletName,
+		<crate::Runtime as frame_system::Config>::DbWeight,
+	>;
+
+	/// Clear the orphaned storage of the `Society` pallet removed from the relay post-AHM (it now
+	/// lives on Asset Hub).
+	pub type RemoveSocietyPallet = frame_support::migrations::RemovePallet<
+		SocietyPalletName,
 		<crate::Runtime as frame_system::Config>::DbWeight,
 	>;
 
@@ -2129,6 +2113,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		RemoveSocietyPallet,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2197,7 +2182,6 @@ mod benches {
 		[pallet_referenda, FellowshipReferenda]
 		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]
-		[pallet_society, Society]
 		[pallet_staking, Staking]
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]

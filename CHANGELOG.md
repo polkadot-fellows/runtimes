@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Removed
+
+- Kusama relay: Remove the `Society` pallet, as it now lives on Asset Hub post-AHM. Its orphaned storage is cleared via a `RemovePallet` migration and its former pallet index (26) is left permanently unused. The `ProxyType::Society` variant is retained for SCALE-encoding stability and the Asset Hub remote-proxy mapping ([#1198](https://github.com/polkadot-fellows/runtimes/issues/1198)).
+
 ## [2.3.1] 12.06.2026
 
 ### Fixed
