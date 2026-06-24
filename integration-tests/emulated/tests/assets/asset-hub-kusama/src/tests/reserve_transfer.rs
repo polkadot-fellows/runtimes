@@ -267,24 +267,22 @@ fn system_para_to_para_assets_receiver_assertions(t: SystemParaToParaTest) {
 
 fn para_to_system_para_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-	// let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(
-	// 	AssetHubKusama::sibling_location_of(PenpalA::para_id()),
-	// );
+	let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(
+		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
+	);
 	AssetHubKusama::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		AssetHubKusama,
 		vec![
-			// Amount to reserve transfer is burned from Parachain's Sovereign account
-			RuntimeEvent::Assets(pallet_assets::Event::Withdrawn { asset_id, .. }) => {
+			// Amount to reserve transfer is withdrawn from Parachain's Sovereign account
+			RuntimeEvent::Assets(pallet_assets::Event::Withdrawn { asset_id, who, amount }) => {
 				asset_id: *asset_id == RESERVABLE_ASSET_ID,
-				// TODO: investigate
-				// who: *who == sov_penpal_on_ahr,
-				// amount: *amount == t.args.amount,
+				who: *who == sov_penpal_on_ahr,
+				amount: *amount == t.args.amount,
 			},
-			// Fee amount is burned from Parachain's Sovereign account
-			RuntimeEvent::Balances(pallet_balances::Event::Withdraw { .. }) => {
-				// TODO: investigate
-				// who: *who == sov_penpal_on_ahr,
+			// Fee amount is withdrawn from Parachain's Sovereign account
+			RuntimeEvent::Balances(pallet_balances::Event::Withdraw { who, .. }) => {
+				who: *who == sov_penpal_on_ahr,
 			},
 			// Amount to reserve transfer is issued for beneficiary
 			RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, amount }) => {
