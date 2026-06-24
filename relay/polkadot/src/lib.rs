@@ -48,7 +48,7 @@ use frame_support::{
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
 		ConstU32, ConstU8, ConstUint, Contains, EitherOf, EitherOfDiverse, EnsureOrigin,
 		EnsureOriginWithArg, FromContains, Get, InstanceFilter, KeyOwnerProofSystem,
-		LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -68,16 +68,15 @@ use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInf
 use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
-	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
-	BlockNumber, CandidateEvent, CandidateHash,
-	CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState,
-	ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
-	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
-	PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature, ValidationCode,
-	ValidationCodeHash, ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
+	async_backing::Constraints, slashing, AccountId, ApprovalVotingParams, Balance, BlockNumber,
+	CandidateEvent, CandidateHash, CommittedCandidateReceiptV2 as CommittedCandidateReceipt,
+	CoreIndex, CoreState, DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId,
+	InboundDownwardMessage, InboundHrmpMessage, Moment, NodeFeatures, Nonce,
+	OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature,
+	ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
 use polkadot_runtime_common::{
-	auctions, claims, crowdloan, impl_runtime_weights,
+	auctions, crowdloan, impl_runtime_weights,
 	impls::{
 		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
 		VersionedLocatableAsset, VersionedLocationConverter,
@@ -171,7 +170,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 26,
+	transaction_version: 27,
 	system_version: 1,
 };
 
@@ -200,13 +199,10 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 		use RuntimeCall::*;
 		match call {
 			Scheduler(..) |
-			Indices(..) |
 			Staking(..) |
 			Treasury(..) |
 			ConvictionVoting(..) |
 			Referenda(..) |
-			Claims(..) |
-			Vesting(..) |
 			Bounties(..) |
 			ChildBounties(..) |
 			ElectionProviderMultiPhase(..) |
@@ -215,7 +211,6 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			FastUnstake(..) |
 			Slots(..) |
 			Auctions(..) |
-			StateTrieMigration(..) |
 			AssetRate(..) => false,
 
 			// Crowdloan: only dissolve, refund, and withdraw are allowed.
@@ -360,18 +355,6 @@ impl pallet_babe::Config for Runtime {
 
 	type EquivocationReportSystem =
 		pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
-}
-
-parameter_types! {
-	pub const IndexDeposit: Balance = 10 * DOLLARS;
-}
-
-impl pallet_indices::Config for Runtime {
-	type AccountIndex = AccountIndex;
-	type Currency = Balances;
-	type Deposit = IndexDeposit;
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1035,7 +1018,6 @@ where
 			frame_system::CheckNonce::<Runtime>::from(nonce),
 			frame_system::CheckWeight::<Runtime>::new(),
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::new(false),
 		);
 		let raw_payload = SignedPayload::new(call, tx_ext)
@@ -1055,36 +1037,6 @@ parameter_types! {
 	// Deposit for a parathread (on-demand parachain)
 	pub const ParathreadDeposit: Balance = 500 * DOLLARS;
 	pub const MaxRetries: u32 = 3;
-}
-
-parameter_types! {
-	pub Prefix: &'static [u8] = b"Pay DOTs to the Polkadot account:";
-}
-
-impl claims::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type VestingSchedule = Vesting;
-	type Prefix = Prefix;
-	/// Only Root can move a claim.
-	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
-}
-
-parameter_types! {
-	pub const MinVestedTransfer: Balance = DOLLARS;
-	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
-		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
-}
-
-impl pallet_vesting::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type BlockNumberToBalance = ConvertInto;
-	type MinVestedTransfer = MinVestedTransfer;
-	type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
-	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
-	type BlockNumberProvider = System;
-	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1168,10 +1120,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				RuntimeCall::Scheduler(..) |
 				RuntimeCall::Babe(..) |
 				RuntimeCall::Timestamp(..) |
-				RuntimeCall::Indices(pallet_indices::Call::claim{..}) |
-				RuntimeCall::Indices(pallet_indices::Call::free{..}) |
-				RuntimeCall::Indices(pallet_indices::Call::freeze{..}) |
-				// Specifically omitting Indices `transfer`, `force_transfer`
 				// Specifically omitting the entire Balances pallet
 				RuntimeCall::Staking(..) |
 				RuntimeCall::Session(..) |
@@ -1182,10 +1130,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				RuntimeCall::ConvictionVoting(..) |
 				RuntimeCall::Referenda(..) |
 				RuntimeCall::Whitelist(..) |
-				RuntimeCall::Claims(..) |
-				RuntimeCall::Vesting(pallet_vesting::Call::vest{..}) |
-				RuntimeCall::Vesting(pallet_vesting::Call::vest_other{..}) |
-				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
 				RuntimeCall::Utility(..) |
 				RuntimeCall::Proxy(..) |
 				RuntimeCall::Multisig(..) |
@@ -1782,27 +1726,6 @@ impl ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	}
 }
 
-parameter_types! {
-	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
-	pub const MigrationSignedDepositPerItem: Balance = CENTS;
-	pub const MigrationSignedDepositBase: Balance = 20 * CENTS * 100;
-	pub const MigrationMaxKeyLen: u32 = 512;
-}
-
-impl pallet_state_trie_migration::Config for Runtime {
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type SignedDepositPerItem = MigrationSignedDepositPerItem;
-	type SignedDepositBase = MigrationSignedDepositBase;
-	type ControlOrigin = EnsureRoot<AccountId>;
-	type SignedFilter = frame_support::traits::NeverEnsureOrigin<AccountId>;
-
-	// Use same weights as substrate ones.
-	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
-	type MaxKeyLen = MigrationMaxKeyLen;
-}
-
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
 /// `AssetRate` pallet instance.
 ///
@@ -1854,7 +1777,8 @@ construct_runtime! {
 		Babe: pallet_babe = 2,
 
 		Timestamp: pallet_timestamp = 3,
-		Indices: pallet_indices = 4,
+		// `Indices` (4) was removed post-AHM; its state now lives on Asset Hub. The index
+		// remains permanently unused to keep pallet encodings stable.
 		Balances: pallet_balances = 5,
 		TransactionPayment: pallet_transaction_payment = 32,
 
@@ -1877,10 +1801,8 @@ construct_runtime! {
 		Origins: pallet_custom_origins = 22,
 		Whitelist: pallet_whitelist = 23,
 
-		// Claims. Usable initially.
-		Claims: claims = 24,
-		// Vesting. Usable initially, but removed once all vesting is finished.
-		Vesting: pallet_vesting = 25,
+		// `Claims` (24) and `Vesting` (25) were removed post-AHM; their state now lives on Asset
+		// Hub. The indices remain permanently unused to keep pallet encodings stable.
 		// Cunning utilities. Usable initially.
 		Utility: pallet_utility = 26,
 
@@ -1931,8 +1853,8 @@ construct_runtime! {
 		Crowdloan: crowdloan = 73,
 		Coretime: coretime = 74,
 
-		// State trie migration pallet, only temporary.
-		StateTrieMigration: pallet_state_trie_migration = 98,
+		// `StateTrieMigration` (98) was removed post-AHM. The index remains permanently unused to
+		// keep pallet encodings stable.
 
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm = 99,
@@ -1987,7 +1909,6 @@ pub type TxExtension = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	claims::PrevalidateAttests<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
@@ -1996,12 +1917,37 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
+	parameter_types! {
+		pub const IndicesPalletName: &'static str = "Indices";
+		pub const ClaimsPalletName: &'static str = "Claims";
+		pub const VestingPalletName: &'static str = "Vesting";
+		pub const StateTrieMigrationPalletName: &'static str = "StateTrieMigration";
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		// Clear the orphaned storage of the pallets removed from the relay post-AHM (their state
+		// now lives on Asset Hub).
+		frame_support::migrations::RemovePallet<
+			IndicesPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			ClaimsPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			VestingPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			StateTrieMigrationPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2033,7 +1979,6 @@ mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
 		[polkadot_runtime_common::auctions, Auctions]
-		[polkadot_runtime_common::claims, Claims]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
 		[polkadot_runtime_common::slots, Slots]
 		[polkadot_runtime_common::paras_registrar, Registrar]
@@ -2057,7 +2002,6 @@ mod benches {
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
-		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
@@ -2073,7 +2017,6 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_utility, Utility]
-		[pallet_vesting, Vesting]
 		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
@@ -3078,7 +3021,6 @@ mod test_fees {
 			frame_system::CheckNonce::<Runtime>::from(1),
 			frame_system::CheckWeight::<Runtime>::new(),
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
-			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		);
 		let uxt = UncheckedExtrinsic::new_signed(
