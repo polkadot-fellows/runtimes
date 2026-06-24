@@ -32,7 +32,7 @@ fn account_on_sibling_syschain_aliases_into_same_local_account() {
 	// origin and target are the same account on different chains
 	let origin: AccountId = [1; 32].into();
 	let target = origin.clone();
-	let fees = POLKADOT_ED * 10;
+	let fees = POLKADOT_ED * 20;
 
 	PenpalA::mint_foreign_asset(
 		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
@@ -66,7 +66,7 @@ fn account_on_sibling_chain_cannot_alias_into_different_local_account() {
 	// origin and target are different accounts on different chains
 	let origin: AccountId = [1; 32].into();
 	let target: AccountId = [2; 32].into();
-	let fees = POLKADOT_ED * 10;
+	let fees = POLKADOT_ED * 20;
 
 	PenpalA::mint_foreign_asset(
 		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
@@ -197,7 +197,7 @@ fn authorized_cross_chain_aliases() {
 	let origin: AccountId = [100; 32].into();
 	let bad_origin: AccountId = [150; 32].into();
 	let target: AccountId = [200; 32].into();
-	let fees = POLKADOT_ED * 10;
+	let fees = POLKADOT_ED * 20;
 
 	let pal_admin = <PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get());
 	PenpalA::mint_foreign_asset(pal_admin.clone(), Location::parent(), origin.clone(), fees * 10);

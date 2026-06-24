@@ -178,7 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 2_002_002,
+	spec_version: 2_003_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -226,8 +226,7 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			Slots(..) |
 			Auctions(..) |
 			AssetRate(..) |
-			Society(..) |
-			Recovery(..) => false,
+			Society(..) => false,
 
 			// Crowdloan: only dissolve, refund, and withdraw are allowed.
 			Crowdloan(
@@ -796,6 +795,15 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static BurnDestination: BurnDestinationAccount = Default::default();
 	}
+
+	/// Parameters used by `pallet-staking-async-ah-client`.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod ah_client {
+		/// Minimum size of the validator set that the relay chain will accept from Asset Hub.
+		#[codec(index = 0)]
+		pub static MinimumValidatorSetSize: u32 = 100;
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -823,6 +831,12 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+			AhClient(_) => EitherOfDiverse::<
+				// either local root or StakingAdmin, or same from OpenGov on AH
+				EitherOf<EnsureRoot<AccountId>, StakingAdmin>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1248,24 +1262,6 @@ impl pallet_multisig::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ConfigDepositBase: Balance = 500 * CENTS;
-	pub const FriendDepositFactor: Balance = 50 * CENTS;
-	pub const RecoveryDeposit: Balance = 500 * CENTS;
-}
-
-impl pallet_recovery::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = weights::pallet_recovery::WeightInfo<Runtime>;
-	type RuntimeCall = RuntimeCall;
-	type Currency = Balances;
-	type ConfigDepositBase = ConfigDepositBase;
-	type FriendDepositFactor = FriendDepositFactor;
-	type MaxFriends = ConstU32<9>;
-	type RecoveryDeposit = RecoveryDeposit;
-	type BlockNumberProvider = System;
-}
-
-parameter_types! {
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
 
@@ -1377,13 +1373,6 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 				RuntimeCall::Claims(..) |
 				RuntimeCall::Utility(..) |
 				RuntimeCall::Society(..) |
-				RuntimeCall::Recovery(pallet_recovery::Call::as_recovered {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::vouch_recovery {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::claim_recovery {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::close_recovery {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::remove_recovery {..}) |
-				RuntimeCall::Recovery(pallet_recovery::Call::cancel_recovered {..}) |
-				// Specifically omitting Recovery `create_recovery`, `initiate_recovery`
 				RuntimeCall::Vesting(pallet_vesting::Call::vest {..}) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest_other {..}) |
 				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
@@ -1786,8 +1775,6 @@ impl pallet_nomination_pools::Config for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
-	// Kusama always wants 1000 validators, we reject anything smaller than that.
-	pub storage MinimumValidatorSetSize: u32 = 1000;
 }
 
 impl pallet_delegated_staking::Config for Runtime {
@@ -1808,7 +1795,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Session;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = MinimumValidatorSetSize;
+	type MinimumValidatorSetSize = dynamic_params::ah_client::MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
@@ -2001,9 +1988,6 @@ construct_runtime! {
 		// Society module.
 		Society: pallet_society = 26,
 
-		// Social recovery module.
-		Recovery: pallet_recovery = 27,
-
 		// Vesting. Usable initially, but removed once all vesting is finished.
 		Vesting: pallet_vesting = 28,
 
@@ -2129,12 +2113,22 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
+	parameter_types! {
+		pub const RecoveryPalletName: &'static str = "Recovery";
+	}
+
+	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
+		RecoveryPalletName,
+		<crate::Runtime as frame_system::Config>::DbWeight,
+	>;
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		RemoveRecoveryPallet,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2199,7 +2193,6 @@ mod benches {
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_ranked_collective, FellowshipCollective]
-		[pallet_recovery, Recovery]
 		[pallet_referenda, Referenda]
 		[pallet_referenda, FellowshipReferenda]
 		[pallet_scheduler, Scheduler]

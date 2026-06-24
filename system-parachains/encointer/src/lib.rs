@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 2_002_002,
+	spec_version: 2_003_001,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -958,6 +958,7 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.

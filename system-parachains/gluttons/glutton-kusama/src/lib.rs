@@ -94,7 +94,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("glutton"),
 	impl_name: Cow::Borrowed("glutton"),
 	authoring_version: 1,
-	spec_version: 2_002_002,
+	spec_version: 2_003_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -176,7 +176,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = ();
+	type SingleBlockMigrations = (cumulus_pallet_parachain_system::migration::Migration<Runtime>,);
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();
