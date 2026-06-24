@@ -884,7 +884,6 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 				None
 			},
 		};
-		log::debug!(target: "runtime::kusama", "params: {params:?}");
 		polkadot_runtime_common::impls::relay_era_payout(params)
 	}
 }
