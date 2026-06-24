@@ -268,7 +268,7 @@ fn system_para_to_para_assets_receiver_assertions(t: SystemParaToParaTest) {
 
 fn para_to_system_para_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-	let penpal_on_ah = AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
+	let penpal_on_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_ah = AssetHubPolkadot::sovereign_account_id_of(penpal_on_ah.clone());
 	AssetHubPolkadot::assert_xcmp_queue_success(None);
 	assert_expected_events!(
