@@ -14,7 +14,9 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_polkadot_runtime::{tx_pause::MaxNameLen, RuntimeCall, RuntimeOrigin, SafeMode, TxPause};
+use asset_hub_polkadot_runtime::{
+	tx_pause::MaxNameLen, RuntimeCall, RuntimeOrigin, SafeMode, TxPause,
+};
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::traits::Contains;
 use sp_runtime::traits::Dispatchable;
@@ -22,20 +24,14 @@ use sp_runtime::traits::Dispatchable;
 type CallName = frame_support::BoundedVec<u8, MaxNameLen>;
 
 fn balances_transfer_name() -> (CallName, CallName) {
-	(
-		b"Balances".to_vec().try_into().unwrap(),
-		b"transfer_allow_death".to_vec().try_into().unwrap(),
-	)
+	(b"Balances".to_vec().try_into().unwrap(), b"transfer_allow_death".to_vec().try_into().unwrap())
 }
 
 fn balances_transfer_call(
 	dest: <AssetHubPolkadot as Chain>::AccountId,
 	value: u128,
 ) -> RuntimeCall {
-	RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
-		dest: dest.into(),
-		value,
-	})
+	RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death { dest: dest.into(), value })
 }
 
 #[test]
@@ -44,7 +40,8 @@ fn safe_mode_blocks_non_whitelisted_calls() {
 	let bob = AssetHubPolkadot::account_id_of(BOB);
 
 	AssetHubPolkadot::execute_with(|| {
-		let signed: RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin::signed(alice.clone());
+		let signed: RuntimeOrigin =
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(alice.clone());
 		let root: RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin::root();
 
 		assert_ok!(balances_transfer_call(bob.clone(), UNITS).dispatch(signed.clone()));
@@ -68,7 +65,8 @@ fn tx_pause_blocks_paused_call() {
 	let bob = AssetHubPolkadot::account_id_of(BOB);
 
 	AssetHubPolkadot::execute_with(|| {
-		let signed: RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin::signed(alice.clone());
+		let signed: RuntimeOrigin =
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(alice.clone());
 		let root: RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin::root();
 		let call_name = balances_transfer_name();
 
