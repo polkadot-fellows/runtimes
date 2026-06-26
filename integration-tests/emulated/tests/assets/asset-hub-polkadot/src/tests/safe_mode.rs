@@ -19,6 +19,7 @@ use asset_hub_polkadot_runtime::{
 };
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::traits::Contains;
+use polkadot_runtime_constants::currency::UNITS;
 use sp_runtime::traits::Dispatchable;
 
 type CallName = frame_support::BoundedVec<u8, MaxNameLen>;
@@ -27,10 +28,7 @@ fn balances_transfer_name() -> (CallName, CallName) {
 	(b"Balances".to_vec().try_into().unwrap(), b"transfer_allow_death".to_vec().try_into().unwrap())
 }
 
-fn balances_transfer_call(
-	dest: <AssetHubPolkadot as Chain>::AccountId,
-	value: u128,
-) -> RuntimeCall {
+fn balances_transfer_call(dest: AccountId, value: u128) -> RuntimeCall {
 	RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death { dest: dest.into(), value })
 }
 

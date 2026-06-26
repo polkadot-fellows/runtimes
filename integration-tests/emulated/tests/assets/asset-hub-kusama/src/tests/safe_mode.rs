@@ -28,7 +28,7 @@ fn balances_transfer_name() -> (CallName, CallName) {
 	(b"Balances".to_vec().try_into().unwrap(), b"transfer_allow_death".to_vec().try_into().unwrap())
 }
 
-fn balances_transfer_call(dest: <AssetHubKusama as Chain>::AccountId, value: u128) -> RuntimeCall {
+fn balances_transfer_call(dest: AccountId, value: u128) -> RuntimeCall {
 	RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death { dest: dest.into(), value })
 }
 
