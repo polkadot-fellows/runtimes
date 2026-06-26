@@ -4,13 +4,42 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [2.3.1] 12.06.2026
+
+### Fixed
+
+- PAH: pin the nomination-pools `TotalUnbondingPools` bound at its historical maximum (32) so lowering the nominator bonding duration via the `AreNominatorsSlashable` fast-unbond flip cannot shrink the bound (32 -> 6) and make oversized `SubPools::with_era` maps undecodable ([#1201](https://github.com/polkadot-fellows/runtimes/pull/1201))
+
+## [2.3.0] 04.06.2026
 
 ### Added
 
-- Asset Hub Polkadot & Kusama: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+- PAH: staking switched to non-minting; emission via `pallet-dap` drips ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: `DapStagingAccount` is the sink for fees, slashes and `RewardRemainder` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- KAH: `pallet_recovery` modernized ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: add asset-conversion and vesting precompiles ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
 - Asset Hub Polkadot & Kusama: deploy `pallet-safe-mode` and `pallet-tx-pause` for emergency chain lockdown ([#1164](https://github.com/polkadot-fellows/runtimes/pull/1164)). Safe mode can be entered permissionlessly with a 100k UNITS deposit (1-day duration, 60-day release delay), or force-controlled by Root/Technical Fellowship. Tx-pause is Root-only. XCM `Transact` respects the same call filters; asset-transfer XCM instructions are unaffected.
-- Zombienet SDK integration tests for elastic scaling on Asset Hub Polkadot and People Polkadot.
+- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the RFC or tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629))
+
+### Changed
+
+- Enable multiple blocks per slot for all remaining system parachains (BridgeHub Polkadot/Kusama, Coretime Polkadot/Kusama, Collectives Polkadot) ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
+- Update all runtimes to `polkadot-sdk` `unstable2604` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: K↔P bridge router exports unpaid (`UnpaidExport = true`) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: redirect XCM trader fees (native and swap) to `DapStagingAccount` instead of `StakingPot` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: filter `staking.reap_stash` from both `BaseCallFilter` and the XCM `SafeCallFilter` while the validator self-stake transition to higher bond. See Ref: [#1890](https://polkadot.subsquare.io/referenda/1890) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Collectives Polkadot: Increase the Secretary Collective salary budget ([#1172](https://github.com/polkadot-fellows/runtimes/pull/1172))
+- Align all runtimes to use the same values for e.g. `TransactionByteFee` and some other clean ups. ([#1175](https://github.com/polkadot-fellows/runtimes/pull/1175))
+- PAH & KAH: switch `pallet_multi_asset_bounties` source types to the upstream `BountySourceFromPalletId` / `ChildBountySourceFromPalletId` and migrate bounty/child-bounty pot funds to the new `[u8; 3]`-prefix account derivation ([#1168](https://github.com/polkadot-fellows/runtimes/pull/1168))
+- Asset Hub Polkadot & Kusama, People Polkadot & Kusama: switch to 24s Aura slot duration. Longer Aura slots improve elastic scaling throughput and censorship resistance, while keeping the parachain block time unchanged. ([#1174](https://github.com/polkadot-fellows/runtimes/pull/1174))
+- Flexible minimum validator set size on rc ([#PR1193](https://github.com/polkadot-fellows/runtimes/pull/1193))
+- Configurable salary parameters for Fellowship and Secretary ([#1186](https://github.com/polkadot-fellows/runtimes/pull/1186))
+
 ## [2.2.2] 23.04.2026
 
 ### Changed
@@ -546,11 +575,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Tx Payment: drop ED requirements for tx payments with exchangeable asset ([SDK `stable2409` #4488](https://github.com/paritytech/polkadot-sdk/pull/4488))
 - Coretime auto-renew ([SDK `stable2409` #4424](https://github.com/paritytech/polkadot-sdk/pull/4424))
 - Initialises pallet-delegated-staking ([SDK `v1.12.0` #3904](https://github.com/paritytech/polkadot-sdk/pull/3904))
-
-### Changed
-
-#### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
-
 - Polkadot Primitives v8 ([SDK v1.16 #5525](https://github.com/paritytech/polkadot-sdk/pull/5525)).
 - Relax `XcmFeeToAccount` trait bound on `AccountId` ([SDK v1.16 #4959](https://github.com/paritytech/polkadot-sdk/pull/4959))
 - Bridges V2 refactoring backport and `pallet_bridge_messages` simplifications ([SDK `stable2407` #4935](https://github.com/paritytech/polkadot-sdk/pull/4935))
@@ -781,14 +805,11 @@ Note: This release only affects the following runtimes and is not a full system 
 ### Changed
 
 - Set max asset ID restriction for the creation of trusted assets ([polkadot-fellows/runtimes#346](https://github.com/polkadot-fellows/runtimes/pull/346))
+- People chain now uses 6-second block times ([polkadot-fellows/runtimes#308](https://github.com/polkadot-fellows/runtimes/pull/308))
 
 ### Fixed
 
 - Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
-
-### Changed
-
-- People chain now uses 6-second block times ([polkadot-fellows/runtimes#308](https://github.com/polkadot-fellows/runtimes/pull/308))
 
 ### Removed
 
@@ -898,6 +919,9 @@ Note: This release only affects the following runtimes and is not a full system 
 - Treasury Spend detects relative locations of the native asset ([polkadot-fellows/runtimes#233](https://github.com/polkadot-fellows/runtimes/pull/233))
 - Increase consumer reference limits for Asset Hubs ([polkadot-fellows/runtimes#258](https://github.com/polkadot-fellows/runtimes/pull/258))
 - Updated Asset Hub asset class creation deposit to use `system_para_deposit()` ([polkadot-fellows/runtimes#259](https://github.com/polkadot-fellows/runtimes/pull/259))
+- Upgrade dependencies to the [polkadot-sdk@1.5.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.5.0) release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
+- Upgrade dependencies to the [polkadot-sdk@1.6.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.6.0) release ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
+- Upgrade dependencies to the [polkadot-sdk@1.7.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.7.0) release ([polkadot-fellows/runtimes#187](https://github.com/polkadot-fellows/runtimes/pull/187))
 
 ### Removed
 
@@ -907,12 +931,6 @@ Note: This release only affects the following runtimes and is not a full system 
 ### Fixed
 
 - Fixed the cost of a single byte, sent over bridge to use the `TransactionByteFee` constant of the bridged chain [polkadot-fellows/runtimes#174](https://github.com/polkadot-fellows/runtimes/pull/174).
-
-### Based on Polkadot-SDK
-
-- Upgrade dependencies to the [polkadot-sdk@1.5.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.5.0) release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
-- Upgrade dependencies to the [polkadot-sdk@1.6.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.6.0) release ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
-- Upgrade dependencies to the [polkadot-sdk@1.7.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.7.0) release ([polkadot-fellows/runtimes#187](https://github.com/polkadot-fellows/runtimes/pull/187))
 
 ## [1.1.1] 25.01.2024
 

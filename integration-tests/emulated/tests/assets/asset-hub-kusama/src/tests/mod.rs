@@ -31,30 +31,6 @@ mod treasury;
 mod xcm_fee_estimation;
 
 #[macro_export]
-macro_rules! foreign_balance_on {
-	( $chain:ident, $id:expr, $who:expr ) => {
-		emulated_integration_tests_common::impls::paste::paste! {
-			<$chain>::execute_with(|| {
-				type ForeignAssets = <$chain as [<$chain Pallet>]>::ForeignAssets;
-				<ForeignAssets as Inspect<_>>::balance($id.try_into().unwrap(), $who)
-			})
-		}
-	};
-}
-
-#[macro_export]
-macro_rules! assets_balance_on {
-	( $chain:ident, $id:expr, $who:expr ) => {
-		emulated_integration_tests_common::impls::paste::paste! {
-			<$chain>::execute_with(|| {
-				type Assets = <$chain as [<$chain Pallet>]>::Assets;
-				<Assets as Inspect<_>>::balance($id, $who)
-			})
-		}
-	};
-}
-
-#[macro_export]
 macro_rules! create_pool_with_ksm_on {
 	// default amounts
 	( $chain:ident, $asset_id:expr, $is_foreign:expr, $asset_owner:expr ) => {

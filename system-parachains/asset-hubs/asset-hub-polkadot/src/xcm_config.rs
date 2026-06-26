@@ -17,8 +17,8 @@ use cumulus_primitives_core::ParaId;
 pub use TreasuryAccount as RelayTreasuryPalletAccount;
 
 use super::{
-	treasury, AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances,
-	CollatorSelection, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
+	treasury, AccountId, AllExceptReapStash, AllPalletsWithSystem, AssetConversion, Assets,
+	Balance, Balances, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
 	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
 	SafeMode, StakingAdmin, ToKusamaXcmRouter, Treasurer, TxPause, XcmpQueue,
@@ -73,6 +73,7 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
+use crate::staking::DapStagingAccount;
 pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
 
 parameter_types! {
@@ -91,8 +92,6 @@ parameter_types! {
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
-	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub PostMigrationTreasuryAccount: AccountId = treasury::TreasuryAccount::get();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
@@ -107,7 +106,6 @@ parameter_types! {
 			.unwrap_or(treasury::TreasuryAccount::get());
 }
 
-// TODO: replace this with DAP account (for collecting fees) #1137
 /// Treasury account that changes once migration ends.
 pub type TreasuryAccount = PostMigrationTreasuryAccount;
 
@@ -485,7 +483,7 @@ impl xcm_executor::Config for XcmConfig {
 			DotLocation,
 			AccountId,
 			Balances,
-			ResolveTo<StakingPot, Balances>,
+			ResolveTo<DapStagingAccount, Balances>,
 		>,
 		// This trader allows to pay with any assets exchangeable to DOT with
 		// [`AssetConversion`].
@@ -498,7 +496,7 @@ impl xcm_executor::Config for XcmConfig {
 				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
-			ResolveAssetTo<StakingPot, NativeAndAssets>,
+			ResolveAssetTo<DapStagingAccount, NativeAndAssets>,
 			AccountId,
 		>,
 	);
@@ -511,14 +509,14 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = PoolAssetsExchanger;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, DapStagingAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
 	// Asset-transfer XCM instructions are not filtered here; only `Transact` dispatch paths.
-	type SafeCallFilter = InsideBoth<SafeMode, TxPause>;
+	type SafeCallFilter = InsideBoth<AllExceptReapStash, InsideBoth<SafeMode, TxPause>>;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
