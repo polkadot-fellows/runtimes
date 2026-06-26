@@ -26,9 +26,9 @@ use frame_support::{
 	assert_err, assert_ok,
 	traits::{fungible::Mutate, Contains},
 };
-use sp_runtime::traits::Dispatchable;
 use kusama_runtime_constants::currency::UNITS;
 use parachains_common::{AccountId, AuraId};
+use sp_runtime::traits::Dispatchable;
 
 const ALICE: [u8; 32] = [1u8; 32];
 const BOB: [u8; 32] = [2u8; 32];
@@ -49,17 +49,11 @@ fn test_ext() -> ExtBuilder<Runtime> {
 type CallName = frame_support::BoundedVec<u8, MaxNameLen>;
 
 fn balances_transfer_name() -> (CallName, CallName) {
-	(
-		b"Balances".to_vec().try_into().unwrap(),
-		b"transfer_allow_death".to_vec().try_into().unwrap(),
-	)
+	(b"Balances".to_vec().try_into().unwrap(), b"transfer_allow_death".to_vec().try_into().unwrap())
 }
 
 fn balances_transfer_call(dest: AccountId, value: u128) -> RuntimeCall {
-	RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
-		dest: dest.into(),
-		value,
-	})
+	RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death { dest: dest.into(), value })
 }
 
 #[test]
