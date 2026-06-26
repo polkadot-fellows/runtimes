@@ -20,7 +20,8 @@ use super::{
 	AccountId, AllPalletsWithSystem, AssetConversion, Assets, Balance, Balances, CollatorSelection,
 	FellowshipAdmin, GeneralAdmin, KsmWeightToFee as WeightToFee, NativeAndAssets, ParachainInfo,
 	ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, StakingAdmin, ToPolkadotXcmRouter, XcmpQueue,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, SafeMode, StakingAdmin, ToPolkadotXcmRouter,
+	TxPause, XcmpQueue,
 };
 use crate::ForeignAssets;
 use alloc::{vec, vec::Vec};
@@ -38,8 +39,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Defensive, Equals, Everything, LinearStoragePrice,
-		PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Defensive, Equals, Everything, InsideBoth,
+		LinearStoragePrice, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -415,7 +416,8 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter = ();
 	type UniversalAliases = (bridging::to_polkadot::UniversalAliases,);
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = Everything;
+	// Asset-transfer XCM instructions are not filtered here; only `Transact` dispatch paths.
+	type SafeCallFilter = InsideBoth<SafeMode, TxPause>;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();

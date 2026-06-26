@@ -19,6 +19,7 @@ mod exchange_asset;
 mod foreign_assets;
 mod hybrid_transfers;
 mod reserve_transfer;
+mod safe_mode;
 mod send;
 mod set_asset_claimer;
 mod set_xcm_versions;
