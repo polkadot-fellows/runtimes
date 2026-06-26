@@ -14,11 +14,8 @@
 // limitations under the License.
 
 use super::*;
-use crate::xcm_config::FellowshipLocation;
-use frame_support::traits::{EitherOfDiverse, Nothing};
+use frame_support::traits::Nothing;
 use frame_system::EnsureRoot;
-use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 
 parameter_types! {
 	pub const MaxNameLen: u32 = 256;
@@ -27,10 +24,8 @@ parameter_types! {
 impl pallet_tx_pause::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
-	type PauseOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
-	type UnpauseOrigin =
-		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
+	type PauseOrigin = EnsureRoot<AccountId>;
+	type UnpauseOrigin = EnsureRoot<AccountId>;
 	type WhitelistedCalls = Nothing;
 	type MaxNameLen = MaxNameLen;
 	// TODO: replace with benchmarked weights once `frame-omni-bencher` has been run on this chain.
