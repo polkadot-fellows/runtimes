@@ -32,8 +32,10 @@ extern crate alloc;
 pub mod genesis_config_presets;
 pub mod governance;
 pub mod migrations;
+pub mod safe_mode;
 pub mod staking;
 pub mod treasury;
+pub mod tx_pause;
 mod weights;
 pub mod xcm_config;
 
@@ -60,7 +62,7 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, EitherOf,
-		EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, Everything, InstanceFilter,
+		EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, Equals, InsideBoth, InstanceFilter,
 		LinearStoragePrice, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
@@ -198,7 +200,7 @@ parameter_types! {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = InsideBoth<SafeMode, TxPause>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -1724,6 +1726,9 @@ construct_runtime!(
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
+
+		SafeMode: pallet_safe_mode = 100,
+		TxPause: pallet_tx_pause = 101,
 	}
 );
 
