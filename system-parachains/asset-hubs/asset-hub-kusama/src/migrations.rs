@@ -18,6 +18,7 @@
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	RemoveAhMigratorPallet,
+	RemoveStateTrieMigrationPallet,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
 	MigrateBountyAccountAssets,
 	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
@@ -31,6 +32,7 @@ pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 frame_support::parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+	pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 
 	/// Assets that the multi-asset bounty migration must sweep from the old
 	/// derivation to the new one. Extends `treasury::BountyRelevantAssets`
@@ -52,6 +54,13 @@ pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	<crate::Runtime as frame_system::Config>::DbWeight,
 >;
 
+/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Asset Hub Kusama
+/// is complete and the pallet has been removed from the runtime, see
+/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+	StateTrieMigrationName,
+	<crate::Runtime as frame_system::Config>::DbWeight,
+>;
 /// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
 /// from the previous account derivation to the new one introduced by
 /// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
