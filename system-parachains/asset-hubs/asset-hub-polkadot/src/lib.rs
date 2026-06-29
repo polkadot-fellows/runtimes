@@ -118,6 +118,7 @@ use frame_support::{
 	dispatch::DispatchClass,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
+	migrations::ForceUnstuckOnFailedMigration,
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible::{self, HoldConsideration},
@@ -146,7 +147,6 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use sp_runtime::Debug;
-use system_parachains_common::ForceUnstuckOnFailedMigration;
 use system_parachains_constants::{
 	async_backing::{
 		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
