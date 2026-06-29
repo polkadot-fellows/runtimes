@@ -16,36 +16,16 @@
 
 //! Storage repair migration for legacy `pallet_proxy::Proxies` entries.
 //!
-//! See <https://github.com/polkadot-fellows/runtimes/issues/453>.
+//! Some historic entries are undecodable under the current value type because of two
+//! breaking changes: the added `delay` field (which grew each proxy and made the value
+//! `(BoundedVec<ProxyDefinition>, Balance)`), and removed `ProxyType` variants (e.g. the
+//! old `SudoBalances` discriminant `4`).
 //!
-//! A historic Polkadot `Proxies` entry has been undecodable since spec version 23 because
-//! the on-chain value was never migrated to keep up with *two* breaking changes to the
-//! value type:
-//!
-//! 1. **The `delay` field.** Before it was introduced the value was encoded as `(Vec<(AccountId,
-//!    ProxyType)>, Balance)`. Adding `delay: BlockNumber` to [`pallet_proxy::ProxyDefinition`] grew
-//!    each proxy by 4 bytes and turned the tuple into a struct, making the value
-//!    `(BoundedVec<ProxyDefinition<_, _, _>>, Balance)`.
-//! 2. **Removed `ProxyType` variants.** The affected entry contains a proxy whose type discriminant
-//!    is `4` — the old `SudoBalances` variant, which has since been removed from the runtime's
-//!    `ProxyType` enum (discriminants `4` and `5` are now gaps). Such a proxy can no longer be
-//!    represented and is non-functional.
-//!
-//! Because of (2) the value cannot be decoded even with the *legacy* value type if that
-//! type uses the runtime's current `ProxyType`. This migration therefore decodes the
-//! legacy value leniently — reading each proxy type as its raw discriminant byte — and
-//! repairs the entry:
-//!
-//! * proxies whose type is still valid are kept, gaining `delay = 0` (the semantics legacy entries
-//!   always had);
-//! * proxies whose type was removed are dropped (they are non-functional);
-//! * the reserved deposit is left untouched when at least one proxy survives (the surplus is fully
-//!   recovered when the owner later removes the remaining proxy);
-//! * if no proxy survives, the entry is removed and its deposit unreserved to the owner so the
-//!   funds are not stranded.
-//!
-//! Entries that already decode under the current type are never touched, so the migration
-//! is a safe, idempotent no-op on chains without legacy entries.
+//! This migration decodes such entries leniently, reading each proxy type as its raw
+//! discriminant byte, and repairs them: valid proxies are kept with `delay = 0`, proxies
+//! of removed types are dropped, and if none survive the entry is removed and its deposit
+//! unreserved. Entries that already decode are left untouched, so this is an idempotent
+//! no-op on chains without legacy entries.
 
 use codec::{Compact, Decode, Input};
 use frame_support::{
@@ -84,7 +64,7 @@ struct LegacyEntry<T: pallet_proxy::Config> {
 	deposit: BalanceOf<T>,
 }
 
-/// Leniently decode a legacy-encoded `Proxies` value, i.e. one of the form
+/// Leniently decode a legacy-encoded `Proxies` value of the form
 /// `(Vec<(AccountId, ProxyType)>, Balance)` where some `ProxyType` discriminants may no
 /// longer be valid.
 ///
@@ -103,8 +83,8 @@ fn decode_legacy<T: pallet_proxy::Config>(raw: &[u8]) -> Option<LegacyEntry<T>> 
 	let mut proxies = Vec::new();
 	for _ in 0..count {
 		let delegate = AccountIdOf::<T>::decode(&mut input).ok()?;
-		// Read the single proxy-type discriminant byte explicitly so that a removed or
-		// unknown variant does not abort the whole decode; such a proxy is simply dropped.
+		// Read the proxy-type as a raw discriminant byte so a removed/unknown variant
+		// doesn't abort the decode; such a proxy is dropped.
 		let mut discriminant = [0u8; 1];
 		input.read(&mut discriminant).ok()?;
 		if let Ok(proxy_type) = ProxyTypeOf::<T>::decode(&mut &discriminant[..]) {
@@ -114,8 +94,8 @@ fn decode_legacy<T: pallet_proxy::Config>(raw: &[u8]) -> Option<LegacyEntry<T>> 
 
 	let deposit = BalanceOf::<T>::decode(&mut input).ok()?;
 
-	// The whole value must have been consumed; otherwise our one-byte proxy-type
-	// assumption was wrong (or the data is corrupt) and we must not touch the entry.
+	// The whole value must be consumed; otherwise our one-byte assumption was wrong
+	// (or the data is corrupt) and we must not touch the entry.
 	if !input.is_empty() {
 		return None;
 	}
@@ -146,9 +126,8 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 		let mut weight = db_weight.reads(1);
 		let (mut scanned, mut repaired) = (0u64, 0u64);
 
-		// `iter_keys` only decodes the (always-decodable) storage keys, never the values,
-		// so it also yields the broken entries. Rewriting/removing values of existing keys
-		// does not invalidate key iteration.
+		// `iter_keys` decodes only the storage keys, never the values, so it also yields
+		// the broken entries; rewriting/removing values doesn't invalidate key iteration.
 		for who in pallet_proxy::Proxies::<T>::iter_keys() {
 			scanned += 1;
 			weight = weight.saturating_add(db_weight.reads(1));
@@ -166,8 +145,7 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 			let entry = match decode_legacy::<T>(&raw) {
 				Some(entry) => entry,
 				None => {
-					// Undecodable under both the current and the legacy layout: there is
-					// nothing we can safely do, so leave it untouched.
+					// Decodable under neither layout: nothing safe to do, leave untouched.
 					log::error!(
 						target: LOG_TARGET,
 						"Proxy entry decodable under neither current nor legacy layout; left untouched",
@@ -177,8 +155,7 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 			};
 
 			if entry.proxies.is_empty() {
-				// No proxy survived (all had removed types): drop the entry and refund the
-				// deposit so the reserved funds are not stranded.
+				// No proxy survived: drop the entry and refund the deposit.
 				pallet_proxy::Proxies::<T>::remove(&who);
 				T::Currency::unreserve(&who, entry.deposit);
 				weight = weight.saturating_add(db_weight.reads_writes(1, 2));
@@ -186,8 +163,8 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 				let bounded = match BoundedVec::<_, T::MaxProxies>::try_from(entry.proxies) {
 					Ok(bounded) => bounded,
 					Err(_) => {
-						// A legacy entry was created under the same `MaxProxies` bound, so
-						// this is unreachable; bail rather than lose proxies by truncating.
+						// Unreachable: legacy entries used the same `MaxProxies` bound. Bail
+						// rather than lose proxies by truncating.
 						log::error!(
 							target: LOG_TARGET,
 							"Legacy proxy entry exceeds MaxProxies; left untouched",
@@ -232,8 +209,7 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 			"pre_upgrade: {undecodable} undecodable proxy entries ({fixable} fixable, {unfixable} unfixable)",
 		);
 		// Carry forward the count we cannot repair; `post_upgrade` requires exactly that
-		// many entries to remain undecodable (i.e. we repair all and only the fixable ones
-		// and introduce no new corruption).
+		// many entries to remain undecodable (we repair all and only the fixable ones).
 		Ok(unfixable.encode())
 	}
 

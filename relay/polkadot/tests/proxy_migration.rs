@@ -15,8 +15,6 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Tests for the legacy `Proxy.Proxies` storage repair migration.
-//!
-//! See <https://github.com/polkadot-fellows/runtimes/issues/453>.
 
 use codec::Encode;
 use frame_support::{
