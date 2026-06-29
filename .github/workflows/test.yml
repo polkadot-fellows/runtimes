@@ -412,10 +412,30 @@ jobs:
       - name: Verify Node.js install
         run: node --version && npm --version
 
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
       - name: Download ${{ matrix.runtime.name }} WASM artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.runtime.name }}
+          path: wasm
+
+      - name: Check runtime size
+        env:
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+          MAX_MIB: ${{ matrix.runtime.max_uncompressed_size_mib }}
+        run: |
+          if [ -z "$MAX_MIB" ]; then
+            echo "::error::No max_uncompressed_size_mib configured for $RUNTIME_NAME in .github/workflows/runtimes-matrix.json"
+            exit 1
+          fi
+          WASM=$(find wasm -name '*.compact.compressed.wasm' -print -quit)
+          if [ -z "$WASM" ]; then
+            echo "::error::No .compact.compressed.wasm artifact found for $RUNTIME_NAME"
+            exit 1
+          fi
+          .github/scripts/check-runtime-size.sh "$WASM" "$MAX_MIB"
 
       - name: Check runtime
         timeout-minutes: 25
