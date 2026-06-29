@@ -64,14 +64,10 @@ struct LegacyEntry<T: pallet_proxy::Config> {
 	deposit: BalanceOf<T>,
 }
 
-/// Leniently decode a legacy-encoded `Proxies` value of the form
-/// `(Vec<(AccountId, ProxyType)>, Balance)` where some `ProxyType` discriminants may no
-/// longer be valid.
-///
-/// On the relay chains `ProxyType` is a field-less enum encoded as exactly one byte, so
-/// each proxy type is read as a single discriminant byte. If the value is not fully
-/// consumed (which would mean that assumption is wrong, or the data is corrupt) this
-/// returns `None` and the caller must leave the entry untouched.
+/// Leniently decode a legacy `(Vec<(AccountId, ProxyType)>, Balance)` value, reading each
+/// `ProxyType` as its one-byte discriminant so removed variants don't abort the decode.
+/// Returns `None` if the value isn't fully consumed (assumption wrong or data corrupt),
+/// in which case the caller must leave the entry untouched.
 fn decode_legacy<T: pallet_proxy::Config>(raw: &[u8]) -> Option<LegacyEntry<T>> {
 	let mut input = raw;
 
