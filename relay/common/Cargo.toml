@@ -8,6 +8,11 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+codec = { workspace = true }
+log = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-proxy = { workspace = true }
 sp-runtime = { workspace = true }
 pallet-staking-reward-fn = { workspace = true }
 polkadot-primitives = { workspace = true }
@@ -15,11 +20,25 @@ polkadot-primitives = { workspace = true }
 [features]
 default = ["std"]
 std = [
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"pallet-proxy/std",
 	"pallet-staking-reward-fn/std",
 	"polkadot-primitives/std",
 	"sp-runtime/std",
 ]
 runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-proxy/try-runtime",
+	"sp-runtime/try-runtime",
 ]

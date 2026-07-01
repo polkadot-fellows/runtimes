@@ -2132,6 +2132,8 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		// Repairs historic `Proxy.Proxies` entries left undecodable by the `delay` field addition.
+		relay_common::proxy::MigrateLegacyProxies<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
