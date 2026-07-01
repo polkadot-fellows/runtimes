@@ -218,6 +218,13 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			StateTrieMigration(..) |
 			AssetRate(..) => false,
 
+			// Session keys are managed via Asset Hub post-AHM (forwarded to the relay through
+			// `ah_client::set_keys_from_ah`); the direct relay extrinsics are disabled.
+			Session(
+				pallet_session::Call::<Runtime>::set_keys { .. } |
+				pallet_session::Call::<Runtime>::purge_keys { .. },
+			) => false,
+
 			// Crowdloan: only dissolve, refund, and withdraw are allowed.
 			Crowdloan(
 				crowdloan::Call::<Runtime>::dissolve { .. } |
@@ -531,11 +538,6 @@ impl_opaque_keys! {
 	}
 }
 
-parameter_types! {
-	// all keys are 32 bytes, except beefy being 33
-	pub KeyDeposit: Balance = deposit(1, 5 * 32 + 33);
-}
-
 impl pallet_session::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
@@ -548,7 +550,8 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
-	// TODO: we will set this post-AHM
+	// `set_keys`/`purge_keys` are disabled on the relay post-AHM via `PostAhmFilter`; session keys
+	// are now managed on Asset Hub, so no deposit is taken here.
 	type KeyDeposit = ();
 }
 
@@ -3497,29 +3500,6 @@ mod remote_tests {
 	}
 
 	#[tokio::test]
-	#[ignore = "this test is meant to be executed manually"]
-	async fn validators_who_cannot_afford_session_key_deposit() {
-		use frame_support::traits::fungible::InspectHold;
-		sp_tracing::try_init_simple();
-		let mut ext = remote_ext_test_setup().await;
-		ext.execute_with(|| {
-			let amount = <Runtime as pallet_session::Config>::KeyDeposit::get();
-			let reason = pallet_session::HoldReason::Keys;
-			let cannot_pay = pallet_staking::Validators::<Runtime>::iter()
-				.map(|(v, _prefs)| v)
-				.filter(|v| {
-					pallet_balances::Pallet::<Runtime>::ensure_can_hold(&reason.into(), v, amount)
-						.is_err()
-				})
-				.collect::<Vec<_>>();
-
-			for v in cannot_pay {
-				log::warn!(target: "runtime", "validator {v:?} cannot pay a deposit of {amount:?}")
-			}
-		})
-	}
-
-	#[tokio::test]
 	async fn dispatch_all_proposals() {
 		if var("RUN_OPENGOV_TEST").is_err() {
 			return;
@@ -3677,6 +3657,33 @@ mod post_ahm_filter_tests {
 				result.unwrap_err().error,
 				frame_system::Error::<Runtime>::CallFiltered.into(),
 			);
+		});
+	}
+
+	/// Session keys are managed via Asset Hub post-AHM, so the direct relay `set_keys`/`purge_keys`
+	/// extrinsics must be rejected by the base call filter (closing the free-registration spam
+	/// vector, #1200).
+	#[test]
+	fn session_set_keys_and_purge_keys_are_blocked() {
+		use codec::Decode;
+		new_test_ext().execute_with(|| {
+			// `SessionKeys` is not `Default`; decode a zero-filled buffer to obtain an instance
+			// (the field values are irrelevant to the filter, which matches on the call variant).
+			let keys = SessionKeys::decode(&mut &[0u8; 512][..]).expect("decodes into SessionKeys");
+			let origin = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+
+			for call in [
+				RuntimeCall::Session(pallet_session::Call::set_keys {
+					keys,
+					proof: Default::default(),
+				}),
+				RuntimeCall::Session(pallet_session::Call::purge_keys {}),
+			] {
+				assert_eq!(
+					call.dispatch(origin.clone()).unwrap_err().error,
+					frame_system::Error::<Runtime>::CallFiltered.into(),
+				);
+			}
 		});
 	}
 
