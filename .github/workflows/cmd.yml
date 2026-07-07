@@ -355,9 +355,7 @@ jobs:
           # PR's (possibly forked) repository. Comparing against `origin/main` would use
           # the fork's `main` as the weight baseline, which may be outdated and produce
           # false diffs (see #714). Always use this repository's `main` as the baseline.
-          git remote add fellowship-base "https://github.com/${{ github.repository }}.git" \
-            || git remote set-url fellowship-base "https://github.com/${{ github.repository }}.git"
-          git fetch fellowship-base main
+          git fetch "https://github.com/${{ github.repository }}.git" main:refs/remotes/fellowship-base/main
           result=$(subweight compare commits \
             --path-pattern "./**/weights/**/*.rs" \
             --method asymptotic \
