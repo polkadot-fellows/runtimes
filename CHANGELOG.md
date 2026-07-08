@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- All Polkadot & Kusama runtimes: configure an explicit `max_header_size` of 100 KiB. ([#1201](https://github.com/polkadot-fellows/runtimes/pull/1201))
+- All Polkadot & Kusama runtimes: configure an explicit `max_header_size` of 100 KiB. ([#1219](https://github.com/polkadot-fellows/runtimes/pull/1219))
 
 ## [2.3.1] 12.06.2026
 
