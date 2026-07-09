@@ -32,6 +32,16 @@ use frame_support::{
 };
 use sp_runtime::{Debug, FixedPointNumber, FixedU128, Saturating, StateVersion};
 
+frame_support::parameter_types! {
+	/// Size limit of the BridgeHubKusama blocks - must stay in sync with the runtime's
+	/// `RuntimeBlockLength` (shadows the `bp_bridge_hub_cumulus::BlockLength` re-export).
+	pub BlockLength: frame_system::limits::BlockLength = {
+		let mut length = bp_bridge_hub_cumulus::BlockLength::get();
+		length.max_header_size = Some(100 * 1024);
+		length
+	};
+}
+
 /// BridgeHubKusama parachain.
 #[derive(Debug)]
 pub struct BridgeHubKusama;
