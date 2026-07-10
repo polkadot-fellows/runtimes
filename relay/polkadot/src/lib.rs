@@ -241,10 +241,24 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 	}
 }
 
+parameter_types! {
+	/// Maximum length of block. Up to 5 MiB.
+	///
+	/// `max_header_size` caps the pre-runtime digest and header overhead checked at block
+	/// initialization.
+	pub RuntimeBlockLength: limits::BlockLength = limits::BlockLength::builder()
+		.max_length(5 * 1024 * 1024)
+		.modify_max_length_for_class(DispatchClass::Normal, |m| {
+			*m = NORMAL_DISPATCH_RATIO * *m
+		})
+		.max_header_size(100 * 1024)
+		.build();
+}
+
 impl frame_system::Config for Runtime {
 	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
-	type BlockLength = BlockLength;
+	type BlockLength = RuntimeBlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	type Nonce = Nonce;
