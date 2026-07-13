@@ -12479,7 +12479,6 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
- "relay-common",
  "scale-info",
  "separator",
  "serde_json",
@@ -13731,15 +13730,6 @@ name = "regex-syntax"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
-
-[[package]]
-name = "relay-common"
-version = "1.0.0"
-dependencies = [
- "pallet-staking-reward-fn",
- "polkadot-primitives",
- "sp-runtime 47.0.0",
-]
 
 [[package]]
 name = "reqwest"
@@ -18009,7 +17999,6 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
- "relay-common",
  "scale-info",
  "separator",
  "serde_json",
