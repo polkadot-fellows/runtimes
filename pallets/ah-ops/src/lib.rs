@@ -58,7 +58,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use sp_application_crypto::ByteArray;
-use sp_core::blake2_256;
+use sp_io::hashing::blake2_256;
 use sp_runtime::{
 	traits::{BlockNumberProvider, TrailingZeroInput},
 	AccountId32,
