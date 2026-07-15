@@ -302,6 +302,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
