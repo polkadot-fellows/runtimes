@@ -6,8 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+<!-- TODO: replace #XXXX below with the SDK stable2606 integration PR number once opened. -->
+
+### Added
+
+- All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
+
 ### Changed
 
+- Update all runtimes to `polkadot-sdk` `stable2606` ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+- All system parachains: run the `cumulus_pallet_xcmp_queue` storage migration to v7 (outbound channel status now stores the queued byte size, avoiding per-page checks) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX), integrates [paritytech/polkadot-sdk#12176](https://github.com/paritytech/polkadot-sdk/pull/12176)).
+- Temporarily disable the Encointer Kusama system parachain until the `encointer-*` pallet crates publish `stable2606`-compatible releases; to be re-enabled in a follow-up (as with the previous SDK bump, [#1159](https://github.com/polkadot-fellows/runtimes/pull/1159) / [#1162](https://github.com/polkadot-fellows/runtimes/pull/1162)) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
 - Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
 
 ### Fixed
