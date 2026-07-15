@@ -16,7 +16,7 @@
 pub use asset_hub_kusama_emulated_chain;
 pub use bridge_hub_kusama_emulated_chain;
 pub use coretime_kusama_emulated_chain;
-pub use encointer_kusama_emulated_chain;
+// TODO(encointer stable2606): pub use encointer_kusama_emulated_chain;
 pub use kusama_emulated_chain;
 pub use penpal_emulated_chain;
 pub use people_kusama_emulated_chain;
@@ -24,7 +24,7 @@ pub use people_kusama_emulated_chain;
 use asset_hub_kusama_emulated_chain::AssetHubKusama;
 use bridge_hub_kusama_emulated_chain::BridgeHubKusama;
 use coretime_kusama_emulated_chain::CoretimeKusama;
-use encointer_kusama_emulated_chain::EncointerKusama;
+// TODO(encointer stable2606): use encointer_kusama_emulated_chain::EncointerKusama;
 use kusama_emulated_chain::Kusama;
 use penpal_emulated_chain::{PenpalA, PenpalB};
 use people_kusama_emulated_chain::PeopleKusama;
@@ -45,7 +45,7 @@ decl_test_networks! {
 			PenpalB,
 			PeopleKusama,
 			CoretimeKusama,
-			EncointerKusama,
+			// TODO(encointer stable2606): EncointerKusama,
 		],
 		bridge = ()
 	},
@@ -59,5 +59,5 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	PenpalBPara { sender: ALICE, receiver: BOB },
 	PeopleKusamaPara { sender: ALICE, receiver: BOB },
 	CoretimeKusamaPara { sender: ALICE, receiver: BOB },
-	EncointerKusamaPara { sender: ALICE, receiver: BOB }
+	// TODO(encointer stable2606): EncointerKusamaPara { sender: ALICE, receiver: BOB }
 }
