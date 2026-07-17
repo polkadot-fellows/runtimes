@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the RFC or tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629), [#1188](https://github.com/polkadot-fellows/runtimes/pull/1188)).
+
 ### Changed
 
 - Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
@@ -31,7 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
-- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the RFC or tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629))
 
 ### Changed
 
