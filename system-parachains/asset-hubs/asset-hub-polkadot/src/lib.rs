@@ -118,6 +118,7 @@ use frame_support::{
 	dispatch::DispatchClass,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
+	migrations::ForceUnstuckOnFailedMigration,
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible::{self, HoldConsideration},
@@ -146,7 +147,6 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use sp_runtime::Debug;
-use system_parachains_common::ForceUnstuckOnFailedMigration;
 use system_parachains_constants::{
 	async_backing::{
 		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
@@ -199,7 +199,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_002_002,
+	spec_version: 2_003_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -223,6 +223,7 @@ parameter_types! {
 			.modify_max_length_for_class(DispatchClass::Normal, |m| {
 				*m = NORMAL_DISPATCH_RATIO * *m
 			})
+			.max_header_size(100 * 1024)
 			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
@@ -3166,5 +3167,46 @@ mod tests {
 		assert!(AllExceptReapStash::contains(&validate));
 		assert!(AllExceptReapStash::contains(&chill));
 		assert!(AllExceptReapStash::contains(&chill_other));
+	}
+
+	/// The nomination-pools `with_era` bound (`TotalUnbondingPools`) must stay pinned at its
+	/// historical maximum (32) across the `AreNominatorsSlashable` fast-unbond flip. Otherwise the
+	/// lowered nominator bonding duration would shrink the bound (32 -> 6), making oversized
+	/// historical sub-pools undecodable and destroying per-era unbonding accounting on the next
+	/// `unbond`.
+	#[test]
+	fn nomination_pools_bound_survives_nominator_unslashable_flip() {
+		use frame_support::traits::Get;
+		use sp_staking::StakingInterface;
+
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// The bound the pallet actually uses for `SubPools::with_era`.
+			let total_unbonding_pools = || {
+				<Staking as StakingInterface>::nominator_bonding_duration() +
+					<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get()
+			};
+
+			// Pre-flip: nominators slashable, so the nominator bonding duration is the full
+			// `BondingDuration` and the post-unbonding window is the legacy 4. Set explicitly
+			// rather than relying on the storage default so the test pins both flag states
+			// itself.
+			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(true);
+			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 28);
+			assert_eq!(
+				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
+				4
+			);
+			assert_eq!(total_unbonding_pools(), 32);
+
+			// The flip: nominators become non-slashable, so the nominator bonding duration drops to
+			// `NominatorFastUnbondDuration` (2). The window must widen to 30 so the bound stays 32.
+			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(false);
+			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 2);
+			assert_eq!(
+				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
+				30
+			);
+			assert_eq!(total_unbonding_pools(), 32);
+		});
 	}
 }
