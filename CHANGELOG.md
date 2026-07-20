@@ -9,9 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Collectives Polkadot: extend the Fellowship referenda `SubmitOrigin` with a governance-managed allow-list (`AllowedProposers` dynamic parameter, empty by default) so approved non-member accounts (e.g. the RFC or tip bot) can open Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629), [#1188](https://github.com/polkadot-fellows/runtimes/pull/1188)).
+- Asset Hub Polkadot & Kusama: add the curator-gated `increase_value` extrinsic to `pallet-multi-asset-bounties`, letting a bounty's curator raise its recorded `value` to recognise funds transferred to the bounty account out-of-band ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226), integrates [paritytech/polkadot-sdk#12409](https://github.com/paritytech/polkadot-sdk/pull/12409)).
 
 ### Changed
 
+- Asset Hub Polkadot & Kusama: bump `pallet-multi-asset-bounties` to 0.7.0 and the `parachains-common` / `assets-common` dependency cluster to the matching snapshot (staying on `frame-support` 47); no storage migration required ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226)).
 - Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
 
 ### Fixed
