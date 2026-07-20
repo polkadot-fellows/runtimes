@@ -351,7 +351,11 @@ jobs:
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         shell: bash
         run: |
-          git fetch
+          # The PR branch is checked out from its own repo, so `origin` points at the
+          # PR's (possibly forked) repository. Comparing against `origin/main` would use
+          # the fork's `main` as the weight baseline, which may be outdated and produce
+          # false diffs (see #714). Always use this repository's `main` as the baseline.
+          git fetch "https://github.com/${{ github.repository }}.git" main:refs/remotes/fellowship-base/main
           result=$(subweight compare commits \
             --path-pattern "./**/weights/**/*.rs" \
             --method asymptotic \
@@ -359,7 +363,7 @@ jobs:
             --no-color \
             --change added changed \
             --ignore-errors \
-            refs/remotes/origin/main refs/heads/${{ needs.get-pr-branch.outputs.pr-branch }})
+            refs/remotes/fellowship-base/main refs/heads/${{ needs.get-pr-branch.outputs.pr-branch }})
           
           # Save the multiline result to the output
           {
