@@ -20,15 +20,15 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "34.0.0" }
-assets-common = { version = "0.32.0", default-features = false }
+asset-test-utils = { version = "36.0.0" }
+assets-common = { version = "0.34.0", default-features = false }
 authority-discovery-primitives = { version = "42.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.48.0", default-features = false, package = "sp-consensus-babe" }
 beefy-primitives = { version = "30.0.0", default-features = false, package = "sp-consensus-beefy" }
 binary-merkle-tree = { version = "16.1.1", default-features = false }
 bp-asset-hub-kusama = { path = "system-parachains/asset-hubs/asset-hub-kusama/primitives", default-features = false }
 bp-asset-hub-polkadot = { path = "system-parachains/asset-hubs/asset-hub-polkadot/primitives", default-features = false }
-bp-bridge-hub-cumulus = { version = "0.31.0", default-features = false }
+bp-bridge-hub-cumulus = { version = "0.33.0", default-features = false }
 bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
 bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
 bp-header-chain = { version = "0.27.0", default-features = false }
@@ -46,7 +46,7 @@ bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/p
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
 bridge-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot" }
 bridge-hub-polkadot-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-test-utils = { version = "0.33.0" }
+bridge-hub-test-utils = { version = "0.35.0" }
 bridge-runtime-common = { version = "0.29.0", default-features = false }
 clap = { version = "4.5.0" }
 codec = { package = "parity-scale-codec", version = "3.7.5", default-features = false }
@@ -66,7 +66,7 @@ cumulus-pallet-xcmp-queue = { version = "0.29.0", default-features = false }
 cumulus-primitives-aura = { version = "0.23.0", default-features = false }
 cumulus-primitives-core = { version = "0.25.0", default-features = false }
 cumulus-primitives-utility = { version = "0.29.0", default-features = false }
-emulated-integration-tests-common = { version = "33.0.0" }
+emulated-integration-tests-common = { version = "35.0.0" }
 encointer-balances-tx-payment = { version = "~22.3.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~22.3.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
@@ -147,7 +147,7 @@ pallet-insecure-randomness-collective-flip = { version = "36.0.0", default-featu
 pallet-membership = { version = "48.0.0", default-features = false }
 pallet-message-queue = { version = "51.0.0", default-features = false }
 pallet-mmr = { version = "48.0.0", default-features = false }
-pallet-multi-asset-bounties = { version = "0.5.0", default-features = false }
+pallet-multi-asset-bounties = { version = "0.7.0", default-features = false }
 pallet-multisig = { version = "48.0.0", default-features = false }
 pallet-nft-fractionalization = { version = "32.0.0", default-features = false }
 pallet-nfts = { version = "42.0.0", default-features = false }
@@ -197,11 +197,11 @@ pallet-xcm-precompiles = { version = "0.8.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.24.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.26.0", default-features = false }
 parachain-info = { version = "0.27.0", default-features = false, package = "staging-parachain-info" }
-parachains-common = { version = "31.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "32.0.0" }
+parachains-common = { version = "33.0.0", default-features = false }
+parachains-runtimes-test-utils = { version = "34.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
-penpal-runtime = { version = "0.40.0" }
+penpal-runtime = { version = "0.42.0" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
 people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
 people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
@@ -232,19 +232,19 @@ snowbridge-outbound-queue-runtime-api = { version = "0.22.0", default-features =
 snowbridge-outbound-queue-v2-runtime-api = { version = "0.9.0", default-features = false }
 snowbridge-outbound-queue-primitives = { version = "0.11.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.22.0", default-features = false }
-snowbridge-pallet-inbound-queue = { version = "0.24.0", default-features = false }
-snowbridge-pallet-inbound-queue-v2 = { version = "0.13.0", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.32.0", default-features = false }
-snowbridge-pallet-inbound-queue-v2-fixtures = { version = "0.13.0", default-features = false }
+snowbridge-pallet-inbound-queue = { version = "0.26.0", default-features = false }
+snowbridge-pallet-inbound-queue-v2 = { version = "0.15.0", default-features = false }
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.34.0", default-features = false }
+snowbridge-pallet-inbound-queue-v2-fixtures = { version = "0.15.0", default-features = false }
 snowbridge-pallet-ethereum-client-fixtures = { version = "0.30.0" }
 snowbridge-pallet-outbound-queue = { version = "0.22.0", default-features = false }
 snowbridge-pallet-outbound-queue-v2 = { version = "0.11.0", default-features = false }
 snowbridge-pallet-system = { version = "0.22.0", default-features = false }
 snowbridge-pallet-system-v2 = { version = "0.11.0", default-features = false }
 snowbridge-pallet-system-frontend = { version = "0.10.0", default-features = false }
-snowbridge-inbound-queue-primitives = { version = "0.13.0", default-features = false }
+snowbridge-inbound-queue-primitives = { version = "0.15.0", default-features = false }
 snowbridge-runtime-common = { version = "0.22.0", default-features = false }
-snowbridge-runtime-test-common = { version = "0.26.0" }
+snowbridge-runtime-test-common = { version = "0.28.0" }
 snowbridge-system-runtime-api = { version = "0.21.0", default-features = false }
 snowbridge-system-v2-runtime-api = { version = "0.10.0", default-features = false }
 sp-api = { version = "42.0.0", default-features = false }
@@ -278,7 +278,7 @@ system-parachains-common = { path = "system-parachains/common", default-features
 tokio = { version = "1.45.0" }
 xcm = { version = "23.0.1", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "28.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.30.0" }
+xcm-emulator = { version = "0.32.0" }
 xcm-executor = { version = "27.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.15.0", default-features = false }
 anyhow = { version = "1.0.82" }

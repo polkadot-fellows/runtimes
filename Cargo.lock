@@ -1503,9 +1503,9 @@ dependencies = [
 
 [[package]]
 name = "asset-test-utils"
-version = "34.0.0"
+version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e6e60950b530316d6bb25fcfb705baf69e7197cb6ec01d5bd09b895f151f15e"
+checksum = "b000fc3779b3990537d231bc80ed5c96c1d4dd736ed1b6bc5b354466d24b865b"
 dependencies = [
  "assets-common",
  "cumulus-pallet-parachain-system",
@@ -1535,9 +1535,9 @@ dependencies = [
 
 [[package]]
 name = "assets-common"
-version = "0.32.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa853caf90af6582089e4dbe72de343f680b90cf1a22090c0373159c5076822d"
+checksum = "12224271ed39567cb7eb771f4e21169d75b417134645bbe1741e9e2e57ad83b5"
 dependencies = [
  "cumulus-primitives-core",
  "ethereum-standards",
@@ -1891,7 +1891,7 @@ version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90dbd31c98227229239363921e60fcf5e558e43ec69094d46fc4996f08d1d5bc"
 dependencies = [
- "bitcoin_hashes 0.14.1",
+ "bitcoin_hashes 0.13.0",
  "rand 0.8.5",
  "rand_core 0.6.4",
  "serde",
@@ -2144,9 +2144,9 @@ dependencies = [
 
 [[package]]
 name = "bp-bridge-hub-cumulus"
-version = "0.31.0"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfb745a73657eaa29a5fa7cf61e2138fdb73805d8b3cbf592aa041e83e653636"
+checksum = "86a993ce5d234a78a0996dedba61d3214686fc89c8c7bc8f97e4fbe5818284fb"
 dependencies = [
  "bp-messages",
  "bp-polkadot-core",
@@ -2714,9 +2714,9 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-test-utils"
-version = "0.33.0"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27f633cc70f0bdf6dae3ca68f34996839b002e3e19236e8360fd07dcddaebedc"
+checksum = "387a22d6a57f0654e717ba41736a317ed956de68d9679d15cbc0e4cc940a7c74"
 dependencies = [
  "asset-test-utils",
  "bp-header-chain",
@@ -5043,9 +5043,9 @@ checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
 name = "emulated-integration-tests-common"
-version = "33.0.0"
+version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2529265f0ff5df9e19e33a2f32063624545e47d3bb8553d9639d8f3bf8ef0e8"
+checksum = "279106d764200bb9721cf54bb1de82fb85b26259573045af92e6a200a410047c"
 dependencies = [
  "asset-test-utils",
  "bp-messages",
@@ -5470,7 +5470,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6945,7 +6945,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "system-configuration 0.7.0",
  "tokio",
  "tower-service",
@@ -9160,7 +9160,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9279,7 +9279,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -10617,9 +10617,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-multi-asset-bounties"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89608a9d14cef8c242fbaeec570a9bcc7e372ca1ef72ca66a8a0225067d3c4a3"
+checksum = "a381beab8ecb7e6e6c09d5618a7f30c1e791792b0f63012432487a39a27d9406"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -11571,9 +11571,9 @@ dependencies = [
 
 [[package]]
 name = "parachains-common"
-version = "31.0.0"
+version = "33.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68d0c0bd00e7ceffc7f39893c324694b14e68921e3443392d1a67119456be3c9"
+checksum = "b2f808ad857b536a75991fd6d06799cae2d9a1cbad37c32dc39d558b869d8861"
 dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
@@ -11616,9 +11616,9 @@ dependencies = [
 
 [[package]]
 name = "parachains-runtimes-test-utils"
-version = "32.0.0"
+version = "34.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "318edf8e7f1d3e47fe559b744e827fb7f9b28c1a8eb5208eaddd835925dce0cf"
+checksum = "4fe8cb6fe8d91e77f7238a9bc7036a270f9a21190e210347b1a48062b5326a8c"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
@@ -11840,9 +11840,9 @@ dependencies = [
 
 [[package]]
 name = "penpal-runtime"
-version = "0.40.0"
+version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d049e6809d39b5d462dcb828e432e92e2ea40a276f3198f12a97673567530c"
+checksum = "47f77aa464f29f9e23a51b0ec0e2aa078c6286cb51ad68a40888994158ee718c"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext",
@@ -13240,8 +13240,8 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.5.0",
- "itertools 0.14.0",
+ "heck 0.4.1",
+ "itertools 0.12.1",
  "log",
  "multimap",
  "once_cell",
@@ -13260,8 +13260,8 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.5.0",
- "itertools 0.14.0",
+ "heck 0.4.1",
+ "itertools 0.12.1",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -13293,7 +13293,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -13306,7 +13306,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -13418,7 +13418,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls 0.23.36",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -13455,9 +13455,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -14195,7 +14195,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -16170,9 +16170,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-inbound-queue-primitives"
-version = "0.13.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "924015353fd1fccf032818f8f840606fd47206da78f1fdb295b731e2e0575539"
+checksum = "316bbebb9d74d8318395ed120f734c2de67932e2bc243d22ae67fa5d78d7c359"
 dependencies = [
  "alloy-core",
  "assets-common",
@@ -16320,9 +16320,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue"
-version = "0.24.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c6290a337fa10d512fab47451e27951dfec0375476091e74a7f913b3dab875b"
+checksum = "2de89479967b368acecb065ef86c4186b4a2c581ed3b154869590fd3aa7e127b"
 dependencies = [
  "alloy-core",
  "frame-benchmarking",
@@ -16347,9 +16347,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-fixtures"
-version = "0.32.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9a51d4b088b7fdefd024908a9fff6cb66765444ea2aefc3cb892451b6b1d147"
+checksum = "fe382883404d44836783c027976f642c895608e2109ceb572f6ab8c587ed003f"
 dependencies = [
  "hex-literal",
  "snowbridge-beacon-primitives",
@@ -16361,9 +16361,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2"
-version = "0.13.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b1cb185ca31e420c6fc855b78e10d13d10ee740135cb84e9d01be1fde6d7d8a"
+checksum = "a02f25424146aae0093344dee9e5f2cc92a1cec848206bd4bf98d2e4da616f07"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -16389,9 +16389,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2-fixtures"
-version = "0.13.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc9e45ad11361f6f7b75a20b83c52efa9a5dc0f07b6e4df7e8310e2e4dc0089"
+checksum = "28dc5752011ba77e1ae3737c2dc6b4d28762cd0367456916218600d1bfa5582e"
 dependencies = [
  "hex-literal",
  "snowbridge-beacon-primitives",
@@ -16543,9 +16543,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-runtime-test-common"
-version = "0.26.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4296e3eda7faa92d18dd2a5c7237e0ef51e124e46de4b2d2c0cc2ecce36f4119"
+checksum = "ad156da0b9b778e6ad38d6627993d808b739078df9ae101553cfdd1adda64333"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "frame-support",
@@ -18867,7 +18867,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -20618,7 +20618,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -21180,9 +21180,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-emulator"
-version = "0.30.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8cf37b4c2e3d9feebadd70e0e7be38cd00a7b3b50558ec126ad7b66499cd9f6"
+checksum = "21607b7a8904ac8b9ea0cfabcebc94e7b23f198c8c8cb3445235676b28813679"
 dependencies = [
  "array-bytes 6.2.3",
  "cumulus-pallet-parachain-system",

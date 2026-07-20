@@ -51,6 +51,18 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_multi_asset_bounties`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_multi_asset_bounties::WeightInfo for WeightInfo<T> {
+	/// `increase_value` was added in `pallet-multi-asset-bounties` 0.7.0.
+	///
+	/// TODO: placeholder using the upstream pallet reference weight — MUST be re-benchmarked on
+	/// this runtime before release.
+	fn increase_value() -> Weight {
+		// Reads: `Bounties`, `AssetRate::ConversionRateToNative`, `CuratorDeposit`.
+		// Writes: `Bounties`, `CuratorDeposit`.
+		Weight::from_parts(30_175_000, 0)
+			.saturating_add(Weight::from_parts(0, 3596))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 	/// Storage: `Preimage::StatusFor` (r:1 w:0)
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
