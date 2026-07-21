@@ -97,7 +97,7 @@ use frame_system::{
 use parachains_common::{
 	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use sp_runtime::Debug;
+use sp_runtime::{Debug, FixedU128};
 use system_parachains_constants::{
 	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
@@ -616,6 +616,24 @@ parameter_types! {
 pub const ALLIANCE_MAX_PROPOSALS: u32 = 100;
 pub const ALLIANCE_MAX_MEMBERS: u32 = 100;
 
+parameter_types! {
+	// This configuration causes the deposit amount to increase with the number of active proposals.
+	// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780
+	pub const AllianceProposalDepositGrowthFactor: FixedU128 = FixedU128::from_rational(11, 10);
+	pub const AllianceBaseProposalDeposit: Balance = UNITS;
+	pub const AllianceProposalRoundPrecision: u32 = 10;
+	pub const AllianceProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::AllianceMotion(pallet_collective::HoldReason::ProposalSubmission);
+}
+
+type AllianceDeposit = pallet_collective::deposit::Round<
+	AllianceProposalRoundPrecision,
+	pallet_collective::deposit::Geometric<
+		AllianceProposalDepositGrowthFactor,
+		AllianceBaseProposalDeposit,
+	>,
+>;
+
 type AllianceCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
@@ -630,7 +648,8 @@ impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type MaxProposalWeight = MaxProposalWeight;
 	type DisapproveOrigin = EnsureRoot<AccountId>;
 	type KillOrigin = EnsureRoot<AccountId>;
-	type Consideration = ();
+	type Consideration =
+		HoldConsideration<AccountId, Balances, AllianceProposalHoldReason, AllianceDeposit, u32>;
 }
 
 pub const MAX_FELLOWS: u32 = ALLIANCE_MAX_MEMBERS;
@@ -1494,4 +1513,30 @@ fn scheduler_weight_is_sane() {
 
 	let large_lookup = lookup_weight(1024 * 1024);
 	assert!(large_lookup.all_lte(limit), "Must be possible to submit a large lookup");
+}
+
+/// Verifies the deposit curve documented on `AllianceProposalDepositGrowthFactor`:
+/// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780.
+#[test]
+fn alliance_deposit_matches_documented_curve() {
+	use sp_runtime::traits::Convert;
+
+	let cases: &[(u32, Balance)] = &[
+		(1, UNITS),
+		(5, UNITS),
+		(10, 2 * UNITS),
+		(25, 10 * UNITS),
+		(50, 117 * UNITS),
+		(75, 1271 * UNITS),
+		(ALLIANCE_MAX_PROPOSALS, 13780 * UNITS),
+	];
+
+	for (proposals, expected) in cases {
+		let actual = <AllianceDeposit as Convert<u32, Balance>>::convert(*proposals);
+		assert_eq!(
+			actual, *expected,
+			"AllianceDeposit at {} proposals: expected {} plancks, got {}",
+			proposals, expected, actual
+		);
+	}
 }
