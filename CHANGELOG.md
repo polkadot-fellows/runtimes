@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
+- Proposal submission deposits for Polkadot Ambassador and Encointer Council Motions ([#1194](https://github.com/polkadot-fellows/runtimes/pull/1194))
 
 ### Fixed
 
