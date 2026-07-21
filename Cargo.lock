@@ -11469,9 +11469,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "28.0.0"
+version = "28.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6bd4996a599499dc6e3b5638020cde72bca0f329279edb678f8e22522645016"
+checksum = "289485d3b66e4467e3f38f7fec5f8a6db17af70e688b80add4343207596dbaf9"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -11556,9 +11556,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-precompiles"
-version = "0.8.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc6bda44054525e0bb89e66d5970c8f4755a3cc9b7a5a2b32467ad88e9d5cb77"
+checksum = "5d4abe754be0ab460ecb1a2474e9efefc600659cc74317e1d1085a964bad3c14"
 dependencies = [
  "frame-support",
  "pallet-revive",
@@ -13240,8 +13240,8 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.5.0",
- "itertools 0.14.0",
+ "heck 0.4.1",
+ "itertools 0.12.1",
  "log",
  "multimap",
  "once_cell",
@@ -13260,8 +13260,8 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.5.0",
- "itertools 0.14.0",
+ "heck 0.4.1",
+ "itertools 0.12.1",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -13293,7 +13293,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -13306,7 +13306,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
