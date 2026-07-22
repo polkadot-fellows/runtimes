@@ -74,28 +74,6 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec
 	))
 }
 
-#[cfg(feature = "asset-hub-kusama")]
-pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
-{
-	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("ss58Format".into(), 2.into());
-	properties.insert("tokenSymbol".into(), "KSM".into());
-	properties.insert("tokenDecimals".into(), 12.into());
-
-	Ok(Box::new(
-		AssetHubKusamaChainSpec::builder(
-			asset_hub_kusama_runtime::WASM_BINARY.expect("AssetHubKusama wasm not available!"),
-			Extensions { relay_chain: "kusama-local".into(), para_id: 1000 },
-		)
-		.with_name("Kusama Asset Hub Local")
-		.with_id("asset-hub-kusama-local")
-		.with_chain_type(sc_chain_spec::ChainType::Local)
-		.with_genesis_config_preset_name("local_testnet")
-		.with_properties(properties)
-		.build(),
-	))
-}
-
 /// Like [`asset_hub_polkadot_local_testnet_config`] but with a large staker set (slow to build).
 #[cfg(feature = "asset-hub-polkadot")]
 pub fn asset_hub_polkadot_local_large_staker_set_config(
@@ -116,6 +94,28 @@ pub fn asset_hub_polkadot_local_large_staker_set_config(
 		.with_genesis_config_preset_name(
 			asset_hub_polkadot_runtime::genesis_config_presets::LOCAL_TESTNET_LARGE_STAKER_SET,
 		)
+		.with_properties(properties)
+		.build(),
+	))
+}
+
+#[cfg(feature = "asset-hub-kusama")]
+pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+	Ok(Box::new(
+		AssetHubKusamaChainSpec::builder(
+			asset_hub_kusama_runtime::WASM_BINARY.expect("AssetHubKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1000 },
+		)
+		.with_name("Kusama Asset Hub Local")
+		.with_id("asset-hub-kusama-local")
+		.with_chain_type(sc_chain_spec::ChainType::Local)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
