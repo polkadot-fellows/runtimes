@@ -154,14 +154,17 @@ pub fn asset_hub_polkadot_local_testnet_genesis(
 	)
 }
 
-fn asset_hub_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
+fn asset_hub_polkadot_development_genesis(
+	para_id: ParaId,
+	dev_stakers: Option<(u32, u32)>,
+) -> serde_json::Value {
 	asset_hub_polkadot_genesis(
 		invulnerables_asset_hub_polkadot(),
 		testnet_accounts(),
 		para_id,
 		vec![],
 		vec![],
-		MINIMAL_DEV_STAKERS,
+		dev_stakers,
 	)
 }
 
@@ -178,7 +181,7 @@ pub fn preset_names() -> Vec<PresetId> {
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
 		sp_genesis_builder::DEV_RUNTIME_PRESET =>
-			asset_hub_polkadot_development_genesis(1000.into()),
+			asset_hub_polkadot_development_genesis(1000.into(), MINIMAL_DEV_STAKERS),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
 			asset_hub_polkadot_local_testnet_genesis(1000.into(), MINIMAL_DEV_STAKERS),
 		LOCAL_TESTNET_LARGE_STAKER_SET =>
