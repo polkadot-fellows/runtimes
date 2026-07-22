@@ -29,6 +29,15 @@ use xcm_executor::traits::ConvertLocation;
 
 const ASSET_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
 
+/// Minimal `(validators, nominators)` dev stakers for `dev`/`local_testnet`: cheap to build.
+const LOCAL_DEV_STAKERS: Option<(u32, u32)> = Some((10, 20));
+
+/// Large dev staker set for staking/election scale testing (`local_testnet_large_staker_set`).
+const LARGE_DEV_STAKERS: Option<(u32, u32)> = Some((2_000, 25_000));
+
+/// Preset id seeding [`LARGE_DEV_STAKERS`]; slow and large to build.
+pub const LOCAL_TESTNET_LARGE_STAKER_SET: &str = "local_testnet_large_staker_set";
+
 /// Invulnerable Collators for the particular case of AssetHubPolkadot
 pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
 	vec![
@@ -49,6 +58,7 @@ fn asset_hub_polkadot_genesis(
 	id: ParaId,
 	foreign_assets: Vec<(Location, AccountId, Balance)>,
 	foreign_assets_endowed_accounts: Vec<(Location, AccountId, Balance)>,
+	dev_stakers: Option<(u32, u32)>,
 ) -> serde_json::Value {
 	let mut balances: Vec<(AccountId, Balance)> = endowed_accounts
 		.iter()
@@ -90,7 +100,7 @@ fn asset_hub_polkadot_genesis(
 		},
 		"staking": {
 			"validatorCount": 600,
-			"devStakers": Some((2_000, 25_000)),
+			"devStakers": dev_stakers,
 		},
 		"foreignAssets": ForeignAssetsConfig {
 			assets: foreign_assets
@@ -113,7 +123,10 @@ fn asset_hub_polkadot_genesis(
 	})
 }
 
-pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
+pub fn asset_hub_polkadot_local_testnet_genesis(
+	para_id: ParaId,
+	dev_stakers: Option<(u32, u32)>,
+) -> serde_json::Value {
 	asset_hub_polkadot_genesis(
 		invulnerables_asset_hub_polkadot(),
 		testnet_accounts(),
@@ -137,6 +150,7 @@ pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::
 				10000000 * 4096 * 4096,
 			),
 		],
+		dev_stakers,
 	)
 }
 
@@ -147,6 +161,7 @@ fn asset_hub_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value 
 		para_id,
 		vec![],
 		vec![],
+		LOCAL_DEV_STAKERS,
 	)
 }
 
@@ -155,6 +170,7 @@ pub fn preset_names() -> Vec<PresetId> {
 	vec![
 		PresetId::from(sp_genesis_builder::DEV_RUNTIME_PRESET),
 		PresetId::from(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET),
+		PresetId::from(LOCAL_TESTNET_LARGE_STAKER_SET),
 	]
 }
 
@@ -164,7 +180,9 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 		sp_genesis_builder::DEV_RUNTIME_PRESET =>
 			asset_hub_polkadot_development_genesis(1000.into()),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
-			asset_hub_polkadot_local_testnet_genesis(1000.into()),
+			asset_hub_polkadot_local_testnet_genesis(1000.into(), LOCAL_DEV_STAKERS),
+		LOCAL_TESTNET_LARGE_STAKER_SET =>
+			asset_hub_polkadot_local_testnet_genesis(1000.into(), LARGE_DEV_STAKERS),
 		_ => return None,
 	};
 	Some(
