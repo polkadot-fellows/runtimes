@@ -29,8 +29,9 @@ use xcm_executor::traits::ConvertLocation;
 
 const ASSET_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
 
-/// Minimal dev stakers `(validators, nominators)`, cheap to build.
-const MINIMAL_DEV_STAKERS: Option<(u32, u32)> = Some((10, 20));
+/// Minimal dev stakers `(validators, nominators)`, sized to fill an election page (required for
+/// benchmarking): `TargetSnapshotPerBlock` validators, `2 * VoterSnapshotPerBlock` nominators.
+const MINIMAL_DEV_STAKERS: Option<(u32, u32)> = Some((2_000, 1_500));
 
 /// Large dev stakers for staking scale testing.
 const LARGE_DEV_STAKERS: Option<(u32, u32)> = Some((2_000, 25_000));
