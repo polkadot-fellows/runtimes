@@ -29,8 +29,11 @@ use xcm_executor::traits::ConvertLocation;
 
 const ASSET_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
 
-/// Minimal dev stakers `(validators, nominators)`, sized to fill an election page (required for
-/// benchmarking): `TargetSnapshotPerBlock` validators, `2 * VoterSnapshotPerBlock` nominators.
+/// Tiny dev stakers `(validators, nominators)` for `local_testnet`, cheap to build.
+const TINY_DEV_STAKERS: Option<(u32, u32)> = Some((10, 20));
+
+/// Minimal dev stakers for `dev`, sized to fill an election page (required for benchmarking):
+/// `TargetSnapshotPerBlock` validators, `2 * VoterSnapshotPerBlock` nominators.
 const MINIMAL_DEV_STAKERS: Option<(u32, u32)> = Some((2_000, 1_500));
 
 /// Large dev stakers for staking scale testing.
@@ -184,7 +187,7 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 		sp_genesis_builder::DEV_RUNTIME_PRESET =>
 			asset_hub_polkadot_development_genesis(1000.into(), MINIMAL_DEV_STAKERS),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
-			asset_hub_polkadot_local_testnet_genesis(1000.into(), MINIMAL_DEV_STAKERS),
+			asset_hub_polkadot_local_testnet_genesis(1000.into(), TINY_DEV_STAKERS),
 		LOCAL_TESTNET_LARGE_STAKER_SET =>
 			asset_hub_polkadot_local_testnet_genesis(1000.into(), LARGE_DEV_STAKERS),
 		_ => return None,
