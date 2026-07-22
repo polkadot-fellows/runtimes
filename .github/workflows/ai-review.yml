@@ -43,9 +43,9 @@ jobs:
           review: true
           config: .config/review.polkacodes.yml
         env:
-          POLKA_API_PROVIDER: openrouter
-          POLKA_MODEL: ~openai/gpt-latest
-          GITHUB_TOKEN: ${{ github.token }}
+          POLKA_API_PROVIDER: openai-compatible
+          POLKA_BASE_URL: ${{ secrets.POLKA_BASE_URL }}
           POLKA_API_KEY: ${{ secrets.POLKA_API_KEY }}
-          POLKA_BUDGET: 5
+          POLKA_MODEL: gpt-5.6-sol
+          GITHUB_TOKEN: ${{ github.token }}
 
