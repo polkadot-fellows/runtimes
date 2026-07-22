@@ -27,13 +27,13 @@ use xcm_executor::traits::ConvertLocation;
 
 const ASSET_HUB_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
-/// Minimal `(validators, nominators)` dev stakers for `dev`/`local_testnet`: cheap to build.
+/// Minimal dev stakers `(validators, nominators)`, cheap to build.
 const MINIMAL_DEV_STAKERS: Option<(u32, u32)> = Some((10, 20));
 
-/// Large dev staker set for staking/election scale testing (`local_testnet_large_staker_set`).
+/// Large dev stakers for staking scale testing.
 const LARGE_DEV_STAKERS: Option<(u32, u32)> = Some((4_000, 15_000));
 
-/// Preset id seeding [`LARGE_DEV_STAKERS`]; slow and large to build.
+/// Preset seeding [`LARGE_DEV_STAKERS`].
 pub const LOCAL_TESTNET_LARGE_STAKER_SET: &str = "local_testnet_large_staker_set";
 
 fn asset_hub_kusama_genesis(

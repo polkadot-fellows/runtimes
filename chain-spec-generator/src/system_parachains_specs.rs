@@ -74,7 +74,7 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec
 	))
 }
 
-/// Like [`asset_hub_polkadot_local_testnet_config`] but with a large staker set (slow to build).
+/// Large-staker-set variant of [`asset_hub_polkadot_local_testnet_config`].
 #[cfg(feature = "asset-hub-polkadot")]
 pub fn asset_hub_polkadot_local_large_staker_set_config(
 ) -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
@@ -121,7 +121,7 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::
 	))
 }
 
-/// Like [`asset_hub_kusama_local_testnet_config`] but with a large staker set (slow to build).
+/// Large-staker-set variant of [`asset_hub_kusama_local_testnet_config`].
 #[cfg(feature = "asset-hub-kusama")]
 pub fn asset_hub_kusama_local_large_staker_set_config(
 ) -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
