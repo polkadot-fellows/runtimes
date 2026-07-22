@@ -1891,7 +1891,7 @@ version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90dbd31c98227229239363921e60fcf5e558e43ec69094d46fc4996f08d1d5bc"
 dependencies = [
- "bitcoin_hashes 0.14.1",
+ "bitcoin_hashes 0.13.0",
  "rand 0.8.5",
  "rand_core 0.6.4",
  "serde",
@@ -5470,7 +5470,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6945,7 +6945,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "system-configuration 0.7.0",
  "tokio",
  "tower-service",
@@ -9160,7 +9160,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9279,7 +9279,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -11469,9 +11469,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "28.0.2"
+version = "28.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "289485d3b66e4467e3f38f7fec5f8a6db17af70e688b80add4343207596dbaf9"
+checksum = "5587a08581a22d2ea873e3e2ff67cdcb9fe1d32b6774bb1cde362d5b60de93cd"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -11556,9 +11556,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-precompiles"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d4abe754be0ab460ecb1a2474e9efefc600659cc74317e1d1085a964bad3c14"
+checksum = "043eeb0e50c4ea93ef839905a8aa8940c31d866f5a56ada9ce26e99cfc6c91f8"
 dependencies = [
  "frame-support",
  "pallet-revive",
@@ -13418,7 +13418,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls 0.23.36",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -13455,9 +13455,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -14195,7 +14195,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -18867,7 +18867,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -20618,7 +20618,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

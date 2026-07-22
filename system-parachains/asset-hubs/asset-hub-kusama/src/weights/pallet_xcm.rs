@@ -392,13 +392,13 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Proof: `Assets::Account` (`max_values`: None, `max_size`: Some(134), added: 2609, mode: `MaxEncodedLen`)
 	fn claim_assets() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `303`
-		//  Estimated: `3768`
-		// Minimum execution time: 45_470_000 picoseconds.
-		Weight::from_parts(51_949_000, 0)
-			.saturating_add(Weight::from_parts(0, 3768))
-			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(T::DbWeight::get().writes(3))
+		//  Measured:  `4549`
+		//  Estimated: `54690`
+		// Minimum execution time: 4_400_380_000 picoseconds.
+		Weight::from_parts(4_400_240_000, 0)
+			.saturating_add(Weight::from_parts(0, 54690))
+			.saturating_add(T::DbWeight::get().reads(42))
+			.saturating_add(T::DbWeight::get().writes(41))
 	}
 	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
