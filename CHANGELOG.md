@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - PAH: pin the nomination-pools `TotalUnbondingPools` bound at its historical maximum (32) so lowering the nominator bonding duration via the `AreNominatorsSlashable` fast-unbond flip cannot shrink the bound (32 -> 6) and make oversized `SubPools::with_era` maps undecodable ([#1201](https://github.com/polkadot-fellows/runtimes/pull/1201))
+- Polkadot & Kusama Relay Chains: repair historic `Proxy.Proxies` entries that were never migrated to the post-`delay` `ProxyDefinition` storage layout and had been undecodable since spec version 23. The migration losslessly re-encodes each affected entry (setting `delay = 0`, preserving delegates, proxy types and the reserved deposit). ([#453](https://github.com/polkadot-fellows/runtimes/issues/453))
 
 ## [2.3.0] 04.06.2026
 
