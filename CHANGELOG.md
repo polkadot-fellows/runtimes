@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Asset Hub Polkadot & Kusama: shrink the `local_testnet` genesis `dev_stakers` to a tiny set so `-local` chain specs build in seconds. The `dev` preset keeps the large set (used by benchmarking to over-estimate election weights), and a new opt-in `local_testnet_large_staker_set` preset exposes the large set for local networks ([#1229](https://github.com/polkadot-fellows/runtimes/pull/1229)).
+
 ## [2.3.2] 23.07.2026
 
 ### Added
