@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Collectives Polkadot: extend the Fellowship referenda `SubmitOrigin` with a governance-managed allow-list (`AllowedProposers` dynamic parameter, empty by default) so approved non-member accounts (e.g. the RFC or tip bot) can open Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629), [#1188](https://github.com/polkadot-fellows/runtimes/pull/1188)).
 - Asset Hub Polkadot & Kusama: add the curator-gated `increase_value` extrinsic to `pallet-multi-asset-bounties`, letting a bounty's curator raise its recorded `value` to recognise funds transferred to the bounty account out-of-band ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226), integrates [paritytech/polkadot-sdk#12409](https://github.com/paritytech/polkadot-sdk/pull/12409)).
 
+### Added
+
+- PAH & KAH: add `pallet-asset-rewards` (permissionless, deposit-backed staking reward pools) with `pallet-assets-freezer` instances on `Assets`, `ForeignAssets` and `PoolAssets` for stake freezes ([#921](https://github.com/polkadot-fellows/runtimes/issues/921))
+
 ### Changed
 
 - Asset Hub Polkadot & Kusama: bump `pallet-multi-asset-bounties` to 0.7.0 and the `parachains-common` / `assets-common` dependency cluster to the matching snapshot (staying on `frame-support` 47); no storage migration required ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226)).

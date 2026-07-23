@@ -97,8 +97,10 @@ pallet-asset-conversion = { version = "30.0.0", default-features = false }
 pallet-asset-conversion-tx-payment = { version = "30.0.0", default-features = false }
 pallet-asset-conversion-precompiles = { version = "0.4.0", default-features = false }
 pallet-asset-rate = { version = "27.0.0", default-features = false }
+pallet-asset-rewards = { version = "0.10.0", default-features = false }
 pallet-asset-tx-payment = { version = "48.0.0", default-features = false }
 pallet-assets = { version = "51.0.0", default-features = false }
+pallet-assets-freezer = { version = "0.16.0", default-features = false }
 pallet-assets-holder = { version = "0.11.0", default-features = false }
 pallet-assets-precompiles = { version = "0.9.0", default-features = false }
 pallet-aura = { version = "47.0.0", default-features = false }
