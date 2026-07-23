@@ -28,13 +28,9 @@ use xcm_executor::traits::ConvertLocation;
 const ASSET_HUB_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
 /// Tiny dev stakers `(validators, nominators)` for `local_testnet`, cheap to build.
-const TINY_DEV_STAKERS: Option<(u32, u32)> = Some((10, 20));
+const TINY_DEV_STAKERS: Option<(u32, u32)> = Some((10, 15));
 
-/// Minimal dev stakers for `dev`, sized to fill an election page (required for benchmarking):
-/// `TargetSnapshotPerBlock` validators, `2 * VoterSnapshotPerBlock` nominators.
-const MINIMAL_DEV_STAKERS: Option<(u32, u32)> = Some((2_500, 1_600));
-
-/// Large dev stakers for staking scale testing.
+/// Large dev stakers, deliberately over-provisioned to over-estimate election weights.
 const LARGE_DEV_STAKERS: Option<(u32, u32)> = Some((4_000, 15_000));
 
 /// Preset seeding [`LARGE_DEV_STAKERS`].
@@ -168,7 +164,7 @@ pub fn preset_names() -> Vec<PresetId> {
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
 		sp_genesis_builder::DEV_RUNTIME_PRESET =>
-			asset_hub_kusama_development_genesis(1000.into(), MINIMAL_DEV_STAKERS),
+			asset_hub_kusama_development_genesis(1000.into(), LARGE_DEV_STAKERS),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET =>
 			asset_hub_kusama_local_testnet_genesis(1000.into(), TINY_DEV_STAKERS),
 		LOCAL_TESTNET_LARGE_STAKER_SET =>
