@@ -167,6 +167,35 @@ pub type Unreleased = (
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
 	MigrateBountyAccountAssets,
+	// Creates the PGAS asset under the pallet-derived admin account. `pallet-pgas` cannot mint
+	// until it exists.
+	//
+	// TODO: this cannot work as-is on Asset Hub Polkadot — resolve before release.
+	//
+	// Creating a trust-backed asset is permissionless (`CreateOrigin` is
+	// `AsEnsureOriginWithArg<EnsureSigned<AccountId>>`), but the *id* is not freely chosen: both
+	// `create` and `force_create` funnel into `do_force_create`, which enforces
+	// `ensure!(id == NextAssetId)` whenever `NextAssetId` is set. Since #414 this chain has
+	// `NextAssetId` set (auto-increment seeded at 50_000_000) and `AutoIncAssetId` bumping it on
+	// every creation.
+	//
+	// Two consequences:
+	//
+	// 1. Nobody can squat `PGAS_ASSET_ID` (2_000_000_000): the guard rejects any id that is not
+	//    the current `NextAssetId`, and the pre-#414 `EnsureLessThanAutoIncrement` origin rejected
+	//    ids >= 50_000_000, so the id has never been reachable by a signed caller. Good — but it
+	//    is the guard, not the size of the id, that provides this. The "sits far above the range
+	//    so it can never collide" reasoning on `PGAS_ASSET_ID` is therefore not the whole story.
+	// 2. That same guard makes this migration fail: `2_000_000_000` is not the current
+	//    `NextAssetId`, so `do_force_create` returns `BadAssetId`. `CreatePgasAsset` only
+	//    `log::error!`s that failure and still reports success, so the runtime upgrade would go
+	//    through with no PGAS asset and every PGAS flow silently dead on arrival.
+	//    `check-migrations` CI should catch it via the migration's `post_upgrade` assertion
+	//    against a live snapshot.
+	//
+	// Fixing this needs a deliberate choice, e.g. temporarily clearing `NextAssetId` around the
+	// creation, or reworking the upstream migration to bypass the guard.
+	indiv_pallet_pgas::migration::CreatePgasAsset<Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -210,6 +239,21 @@ mod multiblock_migrations {
 		>,
 		// Not added: we do it with a manual TX
 		//pallet_revive::migrations::v3::Migration<Runtime>,
+		//
+		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
+		// `PGasDeposit` (see `lib.rs`). It records every existing code-upload deposit in
+		// `NativeDepositOf` and converts each contract's native `StorageDepositReserve` hold into
+		// PGAS. Without it, `refund_on_hold` finds no `NativeDepositOf` credit and no PGAS on hold
+		// for contracts deployed before the switch, so `settle_pgas_refund` caps the refund at
+		// zero: partial storage-deposit refunds would silently return nothing and leave the
+		// native hold stuck. Its phases 1 and 2 are no-ops unless `Deposit` supports PGAS, so it
+		// must not be added before that switch, and both must ship together.
+		//
+		// The `version_from: 3` in its `MigrationId` is only part of the identifier —
+		// `pallet-migrations` gates on whether that id is already in `Historic`, not on a version
+		// chain — so this runs even though revive's v3 MBM above was skipped in favour of a manual
+		// transaction.
+		pallet_revive::migrations::v4::Migration<Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

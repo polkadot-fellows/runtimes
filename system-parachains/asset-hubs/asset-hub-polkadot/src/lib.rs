@@ -67,6 +67,7 @@ extern crate alloc;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
+pub mod individuality;
 pub mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
@@ -98,7 +99,10 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, Get, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
+	traits::{
+		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, PipelineAtVers,
+		Verify,
+	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
 };
@@ -202,6 +206,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
+	// Not bumped: the Individuality pipeline is a *new* extension version (`TxExtensionV1`), and
+	// version 0 is unchanged, so transactions built against the current metadata stay valid.
 	transaction_version: 15,
 	system_version: 1,
 };
@@ -424,8 +430,11 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
-	type Freezer = ();
-	type Holder = ();
+	// Freezes and holds on trust-backed assets are required by `pallet_revive::PGasDeposit`, which
+	// holds PGAS as a contract's storage deposit and freezes the PGAS existential deposit it mints
+	// into each contract account.
+	type Freezer = AssetsFreezer;
+	type Holder = AssetsHolder;
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -434,6 +443,20 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+}
+
+/// Allows freezes on the `Assets` pallet.
+pub type AssetsFreezerInstance = pallet_assets_freezer::Instance1;
+impl pallet_assets_freezer::Config<AssetsFreezerInstance> for Runtime {
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type RuntimeEvent = RuntimeEvent;
+}
+
+/// Allows holds on the `Assets` pallet.
+pub type AssetsHolderInstance = pallet_assets_holder::Instance1;
+impl pallet_assets_holder::Config<AssetsHolderInstance> for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1446,6 +1469,9 @@ parameter_types! {
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(5, 10);
+	/// Fraction of a PGAS-backed storage deposit refunded when the deposit is released. The rest is
+	/// burned, so a contract cannot mint free PGAS by churning storage.
+	pub const PGasRefundPercent: Perbill = Perbill::from_percent(10);
 }
 
 impl pallet_revive::Config for Runtime {
@@ -1466,6 +1492,8 @@ impl pallet_revive::Config for Runtime {
 		XcmPrecompile<Self>,
 		AssetConversionPrecompile<{ ASSET_CONVERSION_PRECOMPILE }, Self>,
 		VestingPrecompile<Self>,
+		// Lets a contract verify a ring-VRF personhood proof without learning who the person is.
+		indiv_precompile_personhood::PersonhoodCheck<Self>,
 	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
@@ -1479,7 +1507,25 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 	type AllowEVMBytecode = ConstBool<true>;
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
-	type Deposit = ();
+	// Storage deposits are denominated in PGAS, so a proven person can deploy and use contracts
+	// from their free PGAS allowance alone — without this, `pallet-pgas-allowance` would let them
+	// pay a contract call's *fee* in PGAS but they would still need DOT for the deposit.
+	//
+	// The backend keeps both currencies working side by side: `charge_and_hold` falls back to the
+	// native currency whenever the payer has too little reducible PGAS and records the amount in
+	// `pallet_revive::NativeDepositOf`, and `refund_on_hold` pays that credit back in native before
+	// touching PGAS. Deposits already held in DOT when this was switched on are *not* covered by
+	// that bookkeeping, though — they predate `NativeDepositOf` — which is what
+	// `pallet_revive::migrations::v4::Migration` in `migrations.rs` exists to fix. That migration
+	// is mandatory: see the comment there.
+	type Deposit = pallet_revive::PGasDeposit<
+		Runtime,
+		Assets,
+		AssetsHolder,
+		AssetsFreezer,
+		individuality::PgasAssetId,
+		PGasRefundPercent,
+	>;
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
@@ -1563,6 +1609,8 @@ construct_runtime!(
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+		AssetsFreezer: pallet_assets_freezer::<Instance1> = 56,
+		AssetsHolder: pallet_assets_holder::<Instance1> = 57,
 
 		// OpenGov stuff
 		Treasury: pallet_treasury = 60,
@@ -1596,6 +1644,15 @@ construct_runtime!(
 		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 92,
 		VestingPrecompiles: pallet_vesting_precompiles::pallet = 93,
 
+		// Individuality. Indices match the `next-asset-hub-paseo` reference runtime of
+		// `paritytech/individuality`.
+		MembersSubscriber: indiv_pallet_members_subscriber = 97,
+		AliasAccounts: indiv_pallet_alias_accounts = 98,
+		Pgas: indiv_pallet_pgas = 99,
+		DotnsGateway: indiv_pallet_dotns_gateway = 152,
+		OriginRestriction: indiv_pallet_origin_restriction = 153,
+		PgasAllowance: pallet_pgas_allowance = 252,
+
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
 	}
@@ -1609,8 +1666,14 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
-/// The `TransactionExtension` to the basic transaction logic.
-pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+/// The `TransactionExtension` to the basic transaction logic, version 0.
+///
+/// **Frozen.** This is byte-for-byte the pipeline this runtime had before the Individuality
+/// deployment, and it must stay that way: legacy signed (extrinsic format v4) transactions and
+/// Ethereum transactions can only ever use version 0, and every already-built signer targets it.
+/// The Individuality extensions live in [`TxExtensionV1`] instead, so nothing here changes and
+/// `transaction_version` does not move.
+pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
 		frame_system::AuthorizeCall<Runtime>,
@@ -1628,14 +1691,66 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
+/// The `TransactionExtension` to the basic transaction logic, version 1: version 0 plus the
+/// Individuality pipeline.
+///
+/// Only *general* (extrinsic format v5) transactions can select this version, by encoding `1` as
+/// their extension version. That is what the Individuality flows use anyway, since they carry no
+/// account signature in the extrinsic envelope.
+///
+/// The leading sub-tuple holds the *origin modifiers*: extensions that replace the transaction's
+/// origin with one authenticated by a ring-VRF personhood proof rather than an account signature.
+/// They must all run before `CheckNonce` (which only applies to signed origins) and before the
+/// payment extension.
+///
+/// Because those origins pay no account fee, `RestrictOrigin` follows immediately after to charge
+/// them against a per-origin allowance instead. `ChargePGAS` wraps the ordinary payment extension
+/// so that eligible calls can settle their fee in PGAS instead of DOT.
+pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		// Origin modifiers.
+		(
+			(),
+			frame_system::AuthorizeCall<Runtime>,
+			indiv_pallet_pgas::AsPgas<Runtime>,
+			indiv_pallet_alias_accounts::AsRingAlias<Runtime>,
+			indiv_pallet_dotns_gateway::AsDotnsGateway<Runtime>,
+		),
+		// General checks and operations.
+		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_pgas_allowance::ChargePGAS<
+			Runtime,
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+		>,
+		pallet_claims::PrevalidateAttests<Runtime>,
+		// Nested only to stay within the 12-element limit of `TransactionExtension`'s tuple impls.
+		// A nested tuple encodes exactly like the flattened one.
+		(
+			frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+			pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+		),
+	),
+>;
+
+/// The transaction extension pipelines a general transaction may select other than version 0.
+pub type TxExtensionOtherVersions = PipelineAtVers<1, TxExtensionV1>;
+
 /// Default extensions applied to Ethereum transactions.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EthExtraImpl;
 
 impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 	type Config = Runtime;
-	type ExtensionV0 = TxExtension;
-	type ExtensionOtherVersions = sp_runtime::traits::InvalidVersion;
+	type ExtensionV0 = TxExtensionV0;
+	type ExtensionOtherVersions = TxExtensionOtherVersions;
 
 	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::ExtensionV0 {
 		(
@@ -1659,6 +1774,38 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
+
+// `pallet-members-subscriber` runs an offchain worker that submits *authorized* transactions:
+// unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall` rather than from a
+// signature. `staking` already supplies the `CreateBare`/`CreateTransaction` half of the plumbing;
+// this fills in the extension such a transaction carries.
+//
+// It submits on extension version 0, not 1: `AuthorizeCall` has been part of version 0 since before
+// the Individuality deployment, and an authorized origin is not one of the anonymous origins
+// `RestrictOrigin` meters, so nothing in version 1 changes how these transactions are validated.
+// Staying on version 0 keeps the submitted payload smaller.
+impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_extension() -> Self::Extension {
+		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+			pallet_claims::PrevalidateAttests::<Runtime>::new(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
+		)
+			.into()
+	}
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1810,6 +1957,14 @@ mod benches {
 		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
 		[pallet_election_provider_multi_block::unsigned, MultiBlockElectionUnsigned]
 		[pallet_election_provider_multi_block::signed, MultiBlockElectionSigned]
+
+		// Individuality
+		[indiv_pallet_alias_accounts, AliasAccounts]
+		[indiv_pallet_dotns_gateway, DotnsGateway]
+		[indiv_pallet_members_subscriber, MembersSubscriber]
+		[indiv_pallet_origin_restriction, OriginRestriction]
+		[indiv_pallet_pgas, Pgas]
+		[pallet_pgas_allowance, PgasAllowance]
 	);
 
 	use frame_benchmarking::BenchmarkError;
@@ -2808,6 +2963,74 @@ mod tests {
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
+
+	/// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
+	/// Individuality deployment and must stay frozen so already-built signers keep working, while
+	/// version 1 carries the Individuality origin modifiers.
+	///
+	/// Freezing version 0 matters more here than on People Polkadot: Ethereum transactions
+	/// (`EthExtraImpl::ExtensionV0`) and legacy signed transactions can only ever use version 0.
+	///
+	/// This pins both: the identifiers of version 0 in order, and the fact that version 1 exists
+	/// and is version 0 plus the Individuality extensions. Any reordering of version 0 breaks live
+	/// signers, so it should only ever change together with `transaction_version`.
+	#[test]
+	fn transaction_extension_versions_are_stable() {
+		use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
+
+		let v0: Vec<&str> = <crate::TxExtensionV0 as TransactionExtension<RuntimeCall>>::metadata()
+			.into_iter()
+			.map(|m| m.identifier)
+			.collect();
+		assert_eq!(
+			v0,
+			vec![
+				"AuthorizeCall",
+				"CheckNonZeroSender",
+				"CheckSpecVersion",
+				"CheckTxVersion",
+				"CheckGenesis",
+				"CheckMortality",
+				"CheckNonce",
+				"CheckWeight",
+				"ChargeAssetTxPayment",
+				"PrevalidateAttests",
+				"CheckMetadataHash",
+				"EthSetOrigin",
+				"StorageWeightReclaim",
+			],
+		);
+
+		// Version 1 must be advertised in the metadata, otherwise no wallet can construct it.
+		let mut builder = PipelineMetadataBuilder::new();
+		<crate::TxExtensionOtherVersions as Pipeline<RuntimeCall>>::build_metadata(&mut builder);
+		let v1_indices =
+			builder.by_version.get(&1).expect("extension version 1 must be advertised");
+		let v1: Vec<&str> =
+			v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
+		assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
+
+		// Version 1 is version 0 plus the Individuality pipeline: same non-Individuality
+		// identifiers, in the same relative order.
+		//
+		// NOTE: `ChargePGAS` is absent from this list because it is metadata-transparent — it
+		// reports only its inner `ChargeAssetTxPayment` identifier. So this test deliberately
+		// cannot tell version 0's bare payment extension apart from version 1's PGAS-wrapped one;
+		// it pins ordering, not the payment wrapper.
+		let indiv = [
+			"UnitTransactionExtension",
+			"AsPgas",
+			"AsRingAlias",
+			"AsDotnsGateway",
+			"RestrictOrigins",
+		];
+		let v1_without_indiv: Vec<&str> =
+			v1.iter().copied().filter(|id| !indiv.contains(id)).collect();
+		assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
+		for id in indiv {
+			assert!(v1.contains(&id), "version 1 must carry `{id}`");
+		}
+	}
 
 	/// We can fit at least 1000 transfers in a block.
 	#[test]

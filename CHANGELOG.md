@@ -4,6 +4,28 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- People Polkadot: deploy the Individuality SDK personhood stack from [`paritytech/individuality`](https://github.com/paritytech/individuality), ported from that repository's `next-people-paseo` reference runtime and configured in the new `individuality` module.
+  - Ring-membership infrastructure: `pallet-chunks-manager` (the Bandersnatch ring-VRF SRS), `pallet-members` (member collections, ring roots, proof verification) and `pallet-members-notifier` (publishes ring roots to subscribing parachains over XCM).
+  - Personhood: `pallet-people` (the registry, `PersonalIdentity`/`PersonalAlias` origins), `pallet-people-lite` (device-attestation personhood) and `pallet-dummy-dim` (governance-driven recognition).
+  - Applications: `pallet-game` + `pallet-score` (the in-person meetup game), `pallet-airdrop` and `pallet-nfts` (prizes and attestations), `pallet-honour` (personhood-weighted voting on calls), `pallet-resources` (per-person off-chain resource rationing) and `pallet-coinage` (stablecoin-backed bearer coins held by ring aliases).
+  - Support: `pallet-origin-restriction` rate-limits the anonymous origins the above produce, `pallet-relay-randomness` surfaces relay chain randomness, and `pallet-verify-signature` enables the general transactions those flows are built on.
+  - The Individuality origin modifiers and `RestrictOrigin` are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged, so existing signers keep working and `transaction_version` does not move; only general (extrinsic format v5) transactions can select version 1.
+  - `indiv-pallet-proof-of-ink`, `indiv-pallet-mob-rule` and `indiv-pallet-storage-initialization` are deliberately **not** deployed. `pallet-mob-rule`'s cases can only be opened by a pallet judging statements through its `StatementOracle` implementation, which is `pallet-proof-of-ink` in the reference runtime, so without it the juror pallet would be inert. `pallet-storage-initialization` is a development-chain bootstrapper that funds hard-coded accounts.
+- Asset Hub Polkadot: deploy the consumer side of the Individuality SDK, ported from that repository's `next-asset-hub-paseo` reference runtime and configured in the new `individuality` module.
+  - `pallet-members-subscriber` mirrors People Polkadot's ring roots over XCM, so ring-VRF personhood proofs verify locally.
+  - `pallet-alias-accounts` binds accounts to context-scoped anonymous aliases, and the `PersonhoodCheck` precompile exposes that check to `pallet-revive` contracts.
+  - `pallet-pgas` lets a proven person claim PGAS (a new non-transferable allowance asset, id `2_000_000_000`); `pallet-pgas-allowance` lets PGAS pay the fees of contract calls, and `pallet_revive::PGasDeposit` makes contract storage deposits PGAS-denominated, so a proven person needs no DOT to use contracts. `pallet-assets-freezer` and `pallet-assets-holder` are added on the `Assets` (trust-backed) instance to support this, and `pallet_revive::migrations::v4::Migration` converts the storage deposits of contracts that already exist — it must ship in the same upgrade.
+  - `pallet-dotns-gateway` is the personhood-gated front door to the dotNS name registry, with `pallet-origin-restriction` rate-limiting the anonymous origins it produces.
+  - The Individuality origin modifiers, `RestrictOrigin` and the `ChargePGAS` payment wrapper are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged — Ethereum transactions and legacy signed transactions keep using it — so `transaction_version` does not move.
+
+### Changed
+
+- People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus, and each block is validated on its own core, so it may use a full core's PVF execution budget — Asset Hub Polkadot runs the identical consensus config and is already configured this way. The old pairing was a leftover from the elastic-scaling switch rather than a conservative choice: at 3 blocks per 6s relay slot it granted 1.5s of compute per 6s, less total throughput than a plain async-backing chain, at triple the block production cost.
+
 ## [2.3.2] 23.07.2026
 
 ### Added

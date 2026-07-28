@@ -25,6 +25,21 @@ frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
+indiv-pallet-airdrop = { workspace = true }
+indiv-pallet-chunks-manager = { workspace = true }
+indiv-pallet-coinage = { workspace = true }
+indiv-pallet-dummy-dim = { workspace = true }
+indiv-pallet-game = { workspace = true }
+indiv-pallet-honour = { workspace = true }
+indiv-pallet-members = { workspace = true }
+indiv-pallet-members-notifier = { workspace = true }
+indiv-pallet-origin-restriction = { workspace = true }
+indiv-pallet-people = { workspace = true }
+indiv-pallet-people-lite = { workspace = true }
+indiv-pallet-relay-randomness = { workspace = true }
+indiv-pallet-resources = { workspace = true }
+indiv-pallet-score = { workspace = true }
+indiv-support = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-assets-holder = { workspace = true }
@@ -35,6 +50,7 @@ pallet-identity = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-nfts = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
@@ -42,18 +58,25 @@ pallet-asset-tx-payment = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-utility = { workspace = true }
+pallet-verify-signature = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
 sp-genesis-builder = { workspace = true }
 sp-inherents = { workspace = true }
+sp-io = { workspace = true }
 sp-offchain = { workspace = true }
 sp-runtime = { workspace = true }
 sp-session = { workspace = true }
+sp-statement-store = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
+# Only needed by the Individuality benchmark helpers, which build ring-VRF SRS chunks and sign
+# messages with keys the runtime cannot otherwise produce.
+ed25519-zebra = { optional = true, workspace = true }
+verifiable = { optional = true, workspace = true }
 
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
@@ -100,6 +123,7 @@ std = [
 	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
+	"ed25519-zebra?/std",
 	"enumflags2/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
@@ -109,6 +133,21 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"indiv-pallet-airdrop/std",
+	"indiv-pallet-chunks-manager/std",
+	"indiv-pallet-coinage/std",
+	"indiv-pallet-dummy-dim/std",
+	"indiv-pallet-game/std",
+	"indiv-pallet-honour/std",
+	"indiv-pallet-members-notifier/std",
+	"indiv-pallet-members/std",
+	"indiv-pallet-origin-restriction/std",
+	"indiv-pallet-people-lite/std",
+	"indiv-pallet-people/std",
+	"indiv-pallet-relay-randomness/std",
+	"indiv-pallet-resources/std",
+	"indiv-pallet-score/std",
+	"indiv-support/std",
 	"log/std",
 	"pallet-asset-rate/std",
 	"pallet-asset-tx-payment/std",
@@ -122,12 +161,14 @@ std = [
 	"pallet-message-queue/std",
 	"pallet-migrations/std",
 	"pallet-multisig/std",
+	"pallet-nfts/std",
 	"pallet-proxy/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
 	"pallet-utility/std",
+	"pallet-verify-signature/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
@@ -144,14 +185,17 @@ std = [
 	"sp-core/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
+	"sp-io/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
+	"sp-statement-store/std",
 	"sp-storage/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
+	"verifiable?/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
@@ -166,10 +210,26 @@ runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
+	"ed25519-zebra",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"indiv-pallet-airdrop/runtime-benchmarks",
+	"indiv-pallet-chunks-manager/runtime-benchmarks",
+	"indiv-pallet-coinage/runtime-benchmarks",
+	"indiv-pallet-dummy-dim/runtime-benchmarks",
+	"indiv-pallet-game/runtime-benchmarks",
+	"indiv-pallet-honour/runtime-benchmarks",
+	"indiv-pallet-members-notifier/runtime-benchmarks",
+	"indiv-pallet-members/runtime-benchmarks",
+	"indiv-pallet-origin-restriction/runtime-benchmarks",
+	"indiv-pallet-people-lite/runtime-benchmarks",
+	"indiv-pallet-people/runtime-benchmarks",
+	"indiv-pallet-relay-randomness/runtime-benchmarks",
+	"indiv-pallet-resources/runtime-benchmarks",
+	"indiv-pallet-score/runtime-benchmarks",
+	"indiv-support/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets-holder/runtime-benchmarks",
@@ -180,11 +240,13 @@ runtime-benchmarks = [
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-migrations/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
+	"pallet-nfts/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
+	"pallet-verify-signature/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
@@ -193,6 +255,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"verifiable",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
@@ -210,6 +273,20 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"indiv-pallet-airdrop/try-runtime",
+	"indiv-pallet-chunks-manager/try-runtime",
+	"indiv-pallet-coinage/try-runtime",
+	"indiv-pallet-dummy-dim/try-runtime",
+	"indiv-pallet-game/try-runtime",
+	"indiv-pallet-honour/try-runtime",
+	"indiv-pallet-members-notifier/try-runtime",
+	"indiv-pallet-members/try-runtime",
+	"indiv-pallet-origin-restriction/try-runtime",
+	"indiv-pallet-people-lite/try-runtime",
+	"indiv-pallet-people/try-runtime",
+	"indiv-pallet-relay-randomness/try-runtime",
+	"indiv-pallet-resources/try-runtime",
+	"indiv-pallet-score/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
 	"pallet-assets-holder/try-runtime",
@@ -222,11 +299,13 @@ try-runtime = [
 	"pallet-message-queue/try-runtime",
 	"pallet-migrations/try-runtime",
 	"pallet-multisig/try-runtime",
+	"pallet-nfts/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-verify-signature/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",

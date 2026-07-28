@@ -193,3 +193,65 @@ fn governance_authorize_upgrade_works() {
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }
+
+/// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
+/// Individuality deployment and must stay frozen so already-built signers keep working, while
+/// version 1 carries the Individuality origin modifiers.
+///
+/// This pins both: the identifiers of version 0 in order, and the fact that version 1 exists and is
+/// version 0 plus the Individuality extensions. Any reordering of version 0 breaks live signers, so
+/// it should only ever change together with `transaction_version`.
+#[test]
+fn transaction_extension_versions_are_stable() {
+	use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
+
+	let v0: Vec<&str> = <crate::TxExtensionV0 as TransactionExtension<RuntimeCall>>::metadata()
+		.into_iter()
+		.map(|m| m.identifier)
+		.collect();
+	assert_eq!(
+		v0,
+		vec![
+			"AuthorizeCall",
+			"CheckNonZeroSender",
+			"CheckSpecVersion",
+			"CheckTxVersion",
+			"CheckGenesis",
+			"CheckMortality",
+			"CheckNonce",
+			"CheckWeight",
+			"ChargeAssetTxPayment",
+			"CheckMetadataHash",
+			"StorageWeightReclaim",
+		],
+	);
+
+	// Version 1 must be advertised in the metadata, otherwise no wallet can construct it.
+	let mut builder = PipelineMetadataBuilder::new();
+	<crate::TxExtensionOtherVersions as Pipeline<RuntimeCall>>::build_metadata(&mut builder);
+	let v1_indices = builder.by_version.get(&1).expect("extension version 1 must be advertised");
+	let v1: Vec<&str> =
+		v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
+	assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
+
+	// Version 1 is version 0 plus the Individuality pipeline: same non-Individuality identifiers,
+	// in the same relative order.
+	let indiv = [
+		"UnitTransactionExtension",
+		"VerifyMultiSignature",
+		"AsPerson",
+		"ScoreAsParticipant",
+		"GameAsInvited",
+		"PeopleLiteAuth",
+		"AsMember",
+		"AsCoinage",
+		"AsResources",
+		"HonourAuth",
+		"RestrictOrigins",
+	];
+	let v1_without_indiv: Vec<&str> = v1.iter().copied().filter(|id| !indiv.contains(id)).collect();
+	assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
+	for id in indiv {
+		assert!(v1.contains(&id), "version 1 must carry `{id}`");
+	}
+}
