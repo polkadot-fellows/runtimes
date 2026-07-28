@@ -21,6 +21,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
 pub mod assets;
+pub mod coinage;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod people;
@@ -111,9 +112,17 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type BlockId = generic::BlockId<Block>;
 
 /// The TransactionExtension to the basic transaction logic.
+///
+/// `AsMember` and `AsCoinage` are origin modifiers: they replace the transaction's origin with a
+/// ring-membership-authenticated one, so they must run before `CheckNonce` (which only applies to
+/// signed origins) and before `ChargeAssetTxPayment`. The latter sees a non-signed origin for
+/// coinage transactions and returns `NoCharge`, leaving coinage to settle fees from the coin or
+/// unload token itself.
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
+		indiv_pallet_members::extension::AsMember<Runtime>,
+		indiv_pallet_coinage::extension::AsCoinage<Runtime>,
 		frame_system::AuthorizeCall<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
@@ -174,7 +183,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 0,
+	// Bumped: `TxExtension` gained the `AsMember` and `AsCoinage` origin modifiers, which changes
+	// the transaction encoding.
+	transaction_version: 1,
 	system_version: 1,
 };
 
@@ -666,6 +677,13 @@ construct_runtime!(
 
 		// The main stage.
 		Identity: pallet_identity = 50,
+
+		// Coinage and its supporting ring-membership infrastructure. Indices match the
+		// individuality reference runtime so that a chain can be migrated between the two
+		// without renumbering pallets.
+		ChunksManager: indiv_pallet_chunks_manager = 64,
+		Members: indiv_pallet_members = 67,
+		Coinage: indiv_pallet_coinage = 68,
 	}
 );
 
@@ -707,6 +725,15 @@ mod benches {
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
+		// Individuality
+		//
+		// NOTE: `as_unload_token_people_tx_ext` and `as_unload_token_lite_people_tx_ext` benchmark
+		// the *free* unload token flows, which are disabled in production. Under
+		// `runtime-benchmarks` `coinage::AnyMembershipProof` and non-zero allowances stand in for
+		// the production config so they still yield a weight; see `coinage.rs`.
+		[indiv_pallet_chunks_manager, ChunksManager]
+		[indiv_pallet_members, Members]
+		[indiv_pallet_coinage, Coinage]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -901,6 +928,61 @@ mod benches {
 
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
+
+// `pallet-members` and `pallet-coinage` run offchain workers that submit *authorized*
+// transactions: unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall`
+// rather than from a signature. These impls tell those workers how to assemble such an
+// extrinsic for this runtime.
+impl<LocalCall> frame_system::offchain::CreateTransactionBase<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type RuntimeCall = RuntimeCall;
+}
+
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_bare(call: Self::RuntimeCall) -> Self::Extrinsic {
+		UncheckedExtrinsic::new_bare(call)
+	}
+}
+
+impl<LocalCall> frame_system::offchain::CreateTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	type Extension = TxExtension;
+
+	fn create_transaction(call: Self::RuntimeCall, extension: Self::Extension) -> Self::Extrinsic {
+		UncheckedExtrinsic::new_transaction(call, extension)
+	}
+}
+
+impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_extension() -> Self::Extension {
+		(
+			indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
+			indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+		)
+			.into()
+	}
+}
 
 impl_runtime_apis! {
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {

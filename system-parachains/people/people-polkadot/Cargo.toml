@@ -25,6 +25,10 @@ frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
+indiv-pallet-chunks-manager = { workspace = true }
+indiv-pallet-coinage = { workspace = true }
+indiv-pallet-members = { workspace = true }
+indiv-support = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-assets-holder = { workspace = true }
@@ -54,6 +58,8 @@ sp-session = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
+# Only needed by the coinage/members benchmark helpers, which build ring-VRF SRS chunks.
+verifiable = { optional = true, workspace = true }
 
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
@@ -109,6 +115,10 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"indiv-pallet-chunks-manager/std",
+	"indiv-pallet-coinage/std",
+	"indiv-pallet-members/std",
+	"indiv-support/std",
 	"log/std",
 	"pallet-asset-rate/std",
 	"pallet-asset-tx-payment/std",
@@ -152,6 +162,7 @@ std = [
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
+	"verifiable?/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
@@ -170,6 +181,10 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"indiv-pallet-chunks-manager/runtime-benchmarks",
+	"indiv-pallet-coinage/runtime-benchmarks",
+	"indiv-pallet-members/runtime-benchmarks",
+	"indiv-support/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets-holder/runtime-benchmarks",
@@ -193,6 +208,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"verifiable",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
@@ -210,6 +226,9 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"indiv-pallet-chunks-manager/try-runtime",
+	"indiv-pallet-coinage/try-runtime",
+	"indiv-pallet-members/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
 	"pallet-assets-holder/try-runtime",

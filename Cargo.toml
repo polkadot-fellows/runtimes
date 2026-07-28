@@ -85,7 +85,15 @@ glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.42.0", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "29.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
+# TODO: move to individuality-community.
+indiv-pallet-chunks-manager = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
+indiv-pallet-coinage = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
+indiv-pallet-members = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
+indiv-support = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
+# Ring-VRF primitives. Pinned to the same revision the individuality crates above depend on so
+# that cargo unifies to a single copy.
+verifiable = { git = "https://github.com/paritytech/verifiable", rev = "1f9f67524acce0d9c46dbbb566f84ce52757b114", version = "*", default-features = false }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
 kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-polkadot-system" }
 kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }

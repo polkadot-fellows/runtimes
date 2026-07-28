@@ -4,6 +4,14 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- People Polkadot: add `pallet-coinage` together with the ring-membership infrastructure it requires, `pallet-members` and `pallet-chunks-manager`, from [`paritytech/individuality`](https://github.com/paritytech/individuality-community).
+  - `TxExtension` gains the `AsMember` and `AsCoinage` origin modifiers, so `transaction_version` is bumped.
+  - The *free* unload token flows are permanently disabled: People Polkadot deploys neither `pallet-people` nor `pallet-people-lite`, so `coinage::NoMembershipProof` rejects every personhood proof and the per-period free allowances are set to zero. The paid unload token flows and the plain `AsCoin` flow are fully functional.
+
 ## [2.3.2] 23.07.2026
 
 ### Added
