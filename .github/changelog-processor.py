@@ -41,31 +41,47 @@ group.add_argument(
 
 args = parser.parse_args()
 
+# Sections allowed under a version header
+ALLOWED_SECTIONS = {"Added", "Changed", "Fixed", "Removed"}
+
 with open(args.changelog, "r") as changelog:
     lines = changelog.readlines()
 
     if args.validate_changelog:
         versions = set()
+        sections = set()  # sub-sections seen under the current version
             
         for line in lines:
-            if line.startswith("##"):
-                if line.startswith("###"):
-                    continue
-                elif not line.startswith("## ["):
-                    print("Line starting with `##` needs to be followed by ` [`, e.g.: `## [Unreleased]`, `## [400.2.1]`")
+            if line.startswith("####"):
+                continue
+            elif line.startswith("### "):
+                section = line.strip().removeprefix("###").strip()
+                if section not in ALLOWED_SECTIONS:
+                    print("Unknown changelog section '" + section + "'. Allowed sections are: " + ", ".join(sorted(ALLOWED_SECTIONS)))
                     print(line)
                     sys.exit(-1)
-                elif line.strip().removeprefix("## [").split("]")[0].count(".") != 2 and not "unreleased" in line.lower():
-                    print("Only Major.Minor.Patch are supported as versioning")
+                elif section in sections:
+                    print("Section '" + section + "' appears more than once under the same version")
                     print(line)
                     sys.exit(-1)
                 else:
-                    version = line.strip().removeprefix("## [").split("]")[0]
-                    if version in versions:
-                        print("Found version '" + version + "' more than once")
-                        sys.exit(-1)
-                    else:
-                        versions.add(version)
+                    sections.add(section)
+            elif line.startswith("## ["):
+                version = line.strip().removeprefix("## [").split("]")[0]
+                if version.count(".") != 2 and not "unreleased" in version.lower():
+                    print("Only Major.Minor.Patch are supported as versioning")
+                    print(line)
+                    sys.exit(-1)
+                elif version in versions:
+                    print("Found version '" + version + "' more than once")
+                    sys.exit(-1)
+                else:
+                    versions.add(version)
+                    sections = set()  # reset sub-section tracking for the new version
+            elif line.startswith("##"):
+                print("Line starting with `##` needs to be followed by ` [`, e.g.: `## [Unreleased]`, `## [400.2.1]`")
+                print(line)
+                sys.exit(-1)
             elif line.startswith("#"):
                 if line.strip() != "# Changelog":
                     print("Line starting with `#` is only allowed for `# Changelog`")

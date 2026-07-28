@@ -21,8 +21,9 @@ mod tracks;
 use crate::{
 	fellowship::origins::EnsureCanFastPromoteTo,
 	impls::ToParentTreasury,
+	parameters::{FellowshipSalaryAsset, SalaryAssetId},
 	weights,
-	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
+	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetHubLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
 	PolkadotTreasuryAccount, Preimage, RelayChainLocation, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
@@ -30,7 +31,8 @@ use crate::{
 use frame_support::{
 	parameter_types,
 	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+		EitherOf, EitherOfDiverse, EnsureOriginWithArg, Get, MapSuccess, OriginTrait,
+		PalletInfoAccess, TryWithMorphedArg,
 	},
 	PalletId,
 };
@@ -47,9 +49,7 @@ use polkadot_runtime_common::impls::{
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{
-	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst,
-};
+use sp_runtime::traits::{ConstU16, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst};
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -84,9 +84,15 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
 	type Currency = Balances;
-	// Fellows can submit proposals.
+	// Proposals can be submitted by any of:
+	// - a Fellow (rank 3 and above);
+	// - an account in the governance-managed allow-list;
+	// - the voice of any rank, mapped to the corresponding member account.
 	type SubmitOrigin = EitherOf<
-		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
+		EitherOf<
+			pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
+			EnsureAllowedProposer,
+		>,
 		MapSuccess<
 			TryWithMorphedArg<
 				RuntimeOrigin,
@@ -110,6 +116,41 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
 	type BlockNumberProvider = crate::System;
+}
+
+/// Passes a signed origin whose account is in the [`AllowedProposers`] allow-list.
+///
+/// Lets non-members (e.g. the RFC or tip bot) open Fellowship referenda. The allow-list lives in
+/// the [`AllowedProposers`] dynamic parameter (empty by default, managed via the `Parameters`
+/// pallet).
+///
+/// [`AllowedProposers`]: crate::dynamic_params::fellowship::AllowedProposers
+pub struct EnsureAllowedProposer;
+impl EnsureOriginWithArg<RuntimeOrigin, <RuntimeOrigin as OriginTrait>::PalletsOrigin>
+	for EnsureAllowedProposer
+{
+	type Success = AccountId;
+
+	fn try_origin(
+		o: RuntimeOrigin,
+		_proposal_origin: &<RuntimeOrigin as OriginTrait>::PalletsOrigin,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		match frame_system::ensure_signed(o.clone()) {
+			Ok(who)
+				if crate::dynamic_params::fellowship::AllowedProposers::get().contains(&who) =>
+				Ok(who),
+			_ => Err(o),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(
+		_proposal_origin: &<RuntimeOrigin as OriginTrait>::PalletsOrigin,
+	) -> Result<RuntimeOrigin, ()> {
+		// The allow-list can be empty, so no valid origin can be produced here. Referenda
+		// benchmarks satisfy `SubmitOrigin` through the ranked-member branch instead.
+		Err(())
+	}
 }
 
 pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
@@ -245,11 +286,12 @@ parameter_types! {
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
 	// pallet instance. This sovereign account will need funding.
 	pub FellowshipSalaryInteriorLocation: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	// The budget for the Fellowship salary.
+	pub FellowshipSalaryBudget: u128 = crate::dynamic_params::fellowship_salary::SalaryConfig::get().budget;
 }
 
-pub const USDT_UNITS: u128 = 1_000_000;
-
-/// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in USDT.
+/// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in the
+/// asset configured via [`crate::dynamic_params::fellowship_salary::SalaryConfig`].
 pub type FellowshipSalaryPaymaster = PayOverXcm<
 	FellowshipSalaryInteriorLocation,
 	crate::xcm_config::XcmConfig,
@@ -257,7 +299,7 @@ pub type FellowshipSalaryPaymaster = PayOverXcm<
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	ConvertToValue<AssetHubUsdt>,
+	SalaryAssetId<FellowshipSalaryAsset>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
@@ -282,7 +324,7 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = ConstU128<{ 250_000 * USDT_UNITS }>;
+	type Budget = FellowshipSalaryBudget;
 }
 
 parameter_types! {
@@ -374,7 +416,8 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::traits::MaybeConvert;
+	use frame_support::assert_ok;
+	use sp_runtime::traits::{MaybeConvert, TryConvert};
 
 	type MaxMemberCount =
 		<Runtime as pallet_ranked_collective::Config<FellowshipCollectiveInstance>>::MaxMemberCount;
@@ -385,5 +428,58 @@ mod tests {
 			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
 			assert!(limit.is_none(), "Fellowship has no member limit");
 		}
+	}
+
+	/// Accounts in the governance-managed allow-list can submit Fellowship referenda without being
+	/// ranked members, see <https://github.com/polkadot-fellows/runtimes/issues/629>.
+	#[test]
+	fn allowed_proposers_can_submit_fellowship_referenda() {
+		type SubmitOrigin =
+			<Runtime as pallet_referenda::Config<FellowshipReferendaInstance>>::SubmitOrigin;
+
+		sp_io::TestExternalities::default().execute_with(|| {
+			let bot = AccountId::from([1u8; 32]);
+			// The proposal-origin argument is ignored by the ranked-member and allow-list branches.
+			let proposal_origin = RuntimeOrigin::root().into_caller();
+
+			// The allow-list is empty by default, so a non-member signed account is rejected.
+			assert!(crate::dynamic_params::fellowship::AllowedProposers::get().is_empty());
+			assert!(SubmitOrigin::try_origin(RuntimeOrigin::signed(bot.clone()), &proposal_origin)
+				.is_err());
+
+			// Governance adds the bot to the allow-list through the `Parameters` pallet.
+			assert_ok!(crate::Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				crate::parameters::RuntimeParameters::Fellowship(
+					crate::dynamic_params::fellowship::Parameters::AllowedProposers(
+						crate::dynamic_params::fellowship::AllowedProposers,
+						Some(alloc::vec![bot.clone()].try_into().unwrap()),
+					),
+				),
+			));
+
+			// The bot can now submit, and its account is returned as the submitter.
+			assert_eq!(
+				SubmitOrigin::try_origin(RuntimeOrigin::signed(bot.clone()), &proposal_origin).ok(),
+				Some(bot),
+			);
+		});
+	}
+
+	#[test]
+	fn salary_asset_id_defaults_to_usdt_on_asset_hub() {
+		use sp_io::TestExternalities;
+
+		// Provide minimal externalities, as some runtime storage access may occur.
+		let mut ext = TestExternalities::default();
+		ext.execute_with(|| {
+			let asset = SalaryAssetId::<FellowshipSalaryAsset>::try_convert(())
+				.expect("default salary asset is locatable");
+			assert_eq!(asset.location, Location::new(1, [Parachain(1000)]));
+			assert_eq!(
+				asset.asset_id,
+				AssetId(Location::new(0, [PalletInstance(50), GeneralIndex(1984)])),
+			);
+		});
 	}
 }

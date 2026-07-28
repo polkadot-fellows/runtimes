@@ -178,7 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 2_002_002,
+	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -228,6 +228,13 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			AssetRate(..) |
 			Society(..) => false,
 
+			// Session keys are managed via Asset Hub post-AHM (forwarded to the relay through
+			// `ah_client::set_keys_from_ah`); the direct relay extrinsics are disabled.
+			Session(
+				pallet_session::Call::<Runtime>::set_keys { .. } |
+				pallet_session::Call::<Runtime>::purge_keys { .. },
+			) => false,
+
 			// Crowdloan: only dissolve, refund, and withdraw are allowed.
 			Crowdloan(
 				crowdloan::Call::<Runtime>::dissolve { .. } |
@@ -248,11 +255,25 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 	}
 }
 
+parameter_types! {
+	/// Maximum length of block. Up to 5 MiB.
+	///
+	/// `max_header_size` caps the pre-runtime digest and header overhead checked at block
+	/// initialization.
+	pub RuntimeBlockLength: limits::BlockLength = limits::BlockLength::builder()
+		.max_length(5 * 1024 * 1024)
+		.modify_max_length_for_class(DispatchClass::Normal, |m| {
+			*m = NORMAL_DISPATCH_RATIO * *m
+		})
+		.max_header_size(100 * 1024)
+		.build();
+}
+
 impl frame_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
-	type BlockLength = BlockLength;
+	type BlockLength = RuntimeBlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeTask = RuntimeTask;
@@ -404,7 +425,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = weights::pallet_balances_native::WeightInfo<Runtime>;
 	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxFreezes = ConstU32<8>;
+	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type DoneSlashHandler = ();
@@ -538,11 +559,6 @@ impl_opaque_keys! {
 	}
 }
 
-parameter_types! {
-	// all keys are 32 bytes, except beefy being 33
-	pub KeyDeposit: Balance = deposit(1, 5 * 32 + 33);
-}
-
 impl pallet_session::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = AccountId;
@@ -557,7 +573,8 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 	type Currency = Balances;
-	// TODO: we will set this post-AHM
+	// `set_keys`/`purge_keys` are disabled on the relay post-AHM via `PostAhmFilter`; session keys
+	// are now managed on Asset Hub, so no deposit is taken here.
 	type KeyDeposit = ();
 }
 
@@ -795,6 +812,15 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static BurnDestination: BurnDestinationAccount = Default::default();
 	}
+
+	/// Parameters used by `pallet-staking-async-ah-client`.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod ah_client {
+		/// Minimum size of the validator set that the relay chain will accept from Asset Hub.
+		#[codec(index = 0)]
+		pub static MinimumValidatorSetSize: u32 = 100;
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -822,6 +848,12 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
 			Treasury(_) =>
 				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
+			AhClient(_) => EitherOfDiverse::<
+				// either local root or StakingAdmin, or same from OpenGov on AH
+				EitherOf<EnsureRoot<AccountId>, StakingAdmin>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
 		}
 		.map_err(|_| origin)
 	}
@@ -1760,8 +1792,6 @@ impl pallet_nomination_pools::Config for Runtime {
 parameter_types! {
 	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
-	// Kusama always wants 1000 validators, we reject anything smaller than that.
-	pub storage MinimumValidatorSetSize: u32 = 1000;
 }
 
 impl pallet_delegated_staking::Config for Runtime {
@@ -1782,7 +1812,7 @@ impl pallet_staking_async_ah_client::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SessionInterface = Session;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	type MinimumValidatorSetSize = MinimumValidatorSetSize;
+	type MinimumValidatorSetSize = dynamic_params::ah_client::MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
@@ -3310,29 +3340,6 @@ mod remote_tests {
 	}
 
 	#[tokio::test]
-	#[ignore = "this test is meant to be executed manually"]
-	async fn validators_who_cannot_afford_session_key_deposit() {
-		use frame_support::traits::fungible::InspectHold;
-		sp_tracing::try_init_simple();
-		let mut ext = remote_ext_test_setup().await;
-		ext.execute_with(|| {
-			let amount = <Runtime as pallet_session::Config>::KeyDeposit::get();
-			let reason = pallet_session::HoldReason::Keys;
-			let cannot_pay = pallet_staking::Validators::<Runtime>::iter()
-				.map(|(v, _prefs)| v)
-				.filter(|v| {
-					pallet_balances::Pallet::<Runtime>::ensure_can_hold(&reason.into(), v, amount)
-						.is_err()
-				})
-				.collect::<Vec<_>>();
-
-			for v in cannot_pay {
-				log::warn!(target: "runtime", "validator {v:?} cannot pay a deposit of {amount:?}")
-			}
-		})
-	}
-
-	#[tokio::test]
 	async fn run_migrations() {
 		if var("RUN_MIGRATION_TESTS").is_err() {
 			return;
@@ -3469,6 +3476,33 @@ mod post_ahm_filter_tests {
 				result.unwrap_err().error,
 				frame_system::Error::<Runtime>::CallFiltered.into(),
 			);
+		});
+	}
+
+	/// Session keys are managed via Asset Hub post-AHM, so the direct relay `set_keys`/`purge_keys`
+	/// extrinsics must be rejected by the base call filter (closing the free-registration spam
+	/// vector, #1200).
+	#[test]
+	fn session_set_keys_and_purge_keys_are_blocked() {
+		use codec::Decode;
+		new_test_ext().execute_with(|| {
+			// `SessionKeys` is not `Default`; decode a zero-filled buffer to obtain an instance
+			// (the field values are irrelevant to the filter, which matches on the call variant).
+			let keys = SessionKeys::decode(&mut &[0u8; 512][..]).expect("decodes into SessionKeys");
+			let origin = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+
+			for call in [
+				RuntimeCall::Session(pallet_session::Call::set_keys {
+					keys,
+					proof: Default::default(),
+				}),
+				RuntimeCall::Session(pallet_session::Call::purge_keys {}),
+			] {
+				assert_eq!(
+					call.dispatch(origin.clone()).unwrap_err().error,
+					frame_system::Error::<Runtime>::CallFiltered.into(),
+				);
+			}
 		});
 	}
 

@@ -84,7 +84,14 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
-            
+
+      - name: Check ${{ matrix.runtime.name }} wasm size
+        run: |
+          .github/scripts/check-runtime-size.sh \
+            "${{ matrix.runtime.name }}" \
+            "${{ matrix.runtime.name }}_srtool_output.json" \
+            "${{ matrix.runtime.max_code_size }}"
+
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
         uses: paritytech/srtool-actions@v0.9.4
