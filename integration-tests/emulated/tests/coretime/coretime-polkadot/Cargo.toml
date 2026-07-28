@@ -13,14 +13,11 @@ codec = { workspace = true, default-features = true }
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
-frame-system = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-broker = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
-scale-info = { workspace = true, default-features = true }
 
 # Polkadot
-polkadot-primitives = { workspace = true, default-features = true }
 polkadot-runtime-common = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 runtime-parachains = { workspace = true, default-features = true }
@@ -40,6 +37,11 @@ polkadot-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 coretime-polkadot-runtime = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }
+
+[dev-dependencies]
+frame-system = { workspace = true }
+polkadot-primitives = { workspace = true }
+scale-info = { workspace = true }
 
 [features]
 runtime-benchmarks = [
