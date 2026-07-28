@@ -165,10 +165,10 @@ fn broker_transacts_are_processed_by_relay() {
 						when,
 						..
 					}) => {
-						found_core_assigned_when = Some(when.clone());
+						found_core_assigned_when = Some(*when);
 						found_core_assignment = Some(
 							assignment
-								.into_iter()
+								.iter()
 								.map(|(assignment, parts)| {
 									(assignment.clone(), PartsOf57600::new_saturating(*parts))
 								})
