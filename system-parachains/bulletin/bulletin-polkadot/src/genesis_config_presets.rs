@@ -56,6 +56,7 @@ fn bulletin_polkadot_live_genesis(id: ParaId) -> serde_json::Value {
 		Vec::new(),
 		0,
 		id,
+		Vec::new(),
 	)
 }
 
@@ -64,6 +65,7 @@ fn bulletin_polkadot_genesis(
 	endowed_accounts: Vec<AccountId>,
 	endowment: Balance,
 	id: ParaId,
+	allowed_authorizers: Vec<(AccountId, u32, u64)>,
 ) -> serde_json::Value {
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		balances: BalancesConfig {
@@ -87,6 +89,10 @@ fn bulletin_polkadot_genesis(
 				.collect(),
 		},
 		polkadot_xcm: PolkadotXcmConfig { safe_xcm_version: Some(SAFE_XCM_VERSION) },
+		transaction_storage: TransactionStorageConfig {
+			allowed_authorizers,
+			..Default::default()
+		},
 	})
 }
 
@@ -100,6 +106,13 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			testnet_accounts(),
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
+			// Local: seed Eve so zombienet tests can authorize without Root/XCM
+			// (bulletin-chain integration tests authorize with //Eve).
+			vec![(
+				get_account_id_from_seed::<sr25519::Public>("Eve"),
+				100_000,
+				100 * 1024 * 1024 * 1024,
+			)],
 		),
 		sp_genesis_builder::DEV_RUNTIME_PRESET => bulletin_polkadot_genesis(
 			// initial collators.
@@ -115,6 +128,7 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			],
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
+			Vec::new(),
 		),
 		_ => return None,
 	};

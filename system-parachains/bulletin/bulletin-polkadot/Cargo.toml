@@ -73,7 +73,7 @@ xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-parachain-system = { workspace = true }
+cumulus-pallet-parachain-system = { features = ["transaction-index"], workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-weight-reclaim = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
