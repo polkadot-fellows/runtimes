@@ -67,6 +67,7 @@ extern crate alloc;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
+pub mod individuality;
 pub mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
@@ -202,7 +203,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 15,
+	// Bumped: `TxExtension` gained the Individuality origin modifiers, `RestrictOrigin` and the
+	// `ChargePGAS` payment wrapper, which changes the transaction encoding.
+	transaction_version: 16,
 	system_version: 1,
 };
 
@@ -424,8 +427,10 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
-	type Freezer = ();
-	type Holder = ();
+	// Freezes and holds on trust-backed assets are needed by `pallet_revive::PGasDeposit`, which
+	// holds PGAS as a contract's storage deposit.
+	type Freezer = AssetsFreezer;
+	type Holder = AssetsHolder;
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -434,6 +439,20 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+}
+
+/// Allows freezes on the `Assets` pallet.
+pub type AssetsFreezerInstance = pallet_assets_freezer::Instance1;
+impl pallet_assets_freezer::Config<AssetsFreezerInstance> for Runtime {
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type RuntimeEvent = RuntimeEvent;
+}
+
+/// Allows holds on the `Assets` pallet.
+pub type AssetsHolderInstance = pallet_assets_holder::Instance1;
+impl pallet_assets_holder::Config<AssetsHolderInstance> for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1446,6 +1465,9 @@ parameter_types! {
 	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
 	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 	pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(5, 10);
+	/// Fraction of a PGAS-backed storage deposit refunded when the deposit is released. The rest is
+	/// burned, so contracts cannot mint free PGAS through storage churn.
+	pub const PGasRefundPercent: Perbill = Perbill::from_percent(10);
 }
 
 impl pallet_revive::Config for Runtime {
@@ -1466,6 +1488,8 @@ impl pallet_revive::Config for Runtime {
 		XcmPrecompile<Self>,
 		AssetConversionPrecompile<{ ASSET_CONVERSION_PRECOMPILE }, Self>,
 		VestingPrecompile<Self>,
+		// Lets a contract verify a ring-VRF personhood proof without learning who the person is.
+		indiv_precompile_personhood::PersonhoodCheck<Self>,
 	);
 	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
 	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
@@ -1479,7 +1503,16 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 	type AllowEVMBytecode = ConstBool<true>;
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
-	type Deposit = ();
+	// Storage deposits are denominated in PGAS rather than DOT, so a proven person can deploy and
+	// use contracts from their free PGAS allowance alone.
+	type Deposit = pallet_revive::PGasDeposit<
+		Runtime,
+		Assets,
+		AssetsHolder,
+		AssetsFreezer,
+		individuality::PgasAssetId,
+		PGasRefundPercent,
+	>;
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	// Must be set to `false` in a live chain
 	type DebugEnabled = ConstBool<false>;
@@ -1563,6 +1596,8 @@ construct_runtime!(
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+		AssetsFreezer: pallet_assets_freezer::<Instance1> = 56,
+		AssetsHolder: pallet_assets_holder::<Instance1> = 57,
 
 		// OpenGov stuff
 		Treasury: pallet_treasury = 60,
@@ -1596,6 +1631,15 @@ construct_runtime!(
 		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 92,
 		VestingPrecompiles: pallet_vesting_precompiles::pallet = 93,
 
+		// Individuality. Indices match the `next-asset-hub-paseo` reference runtime of
+		// `paritytech/individuality`.
+		MembersSubscriber: indiv_pallet_members_subscriber = 97,
+		AliasAccounts: indiv_pallet_alias_accounts = 98,
+		Pgas: indiv_pallet_pgas = 99,
+		DotnsGateway: indiv_pallet_dotns_gateway = 152,
+		OriginRestriction: indiv_pallet_origin_restriction = 153,
+		PgasAllowance: pallet_pgas_allowance = 252,
+
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
 	}
@@ -1610,10 +1654,28 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 /// The `TransactionExtension` to the basic transaction logic.
+///
+/// The leading sub-tuple holds the *origin modifiers*: extensions that replace the transaction's
+/// origin with one authenticated by a ring-VRF personhood proof rather than an account signature.
+/// They must all run before `CheckNonce` (which only applies to signed origins) and before the
+/// payment extension.
+///
+/// Because those origins pay no account fee, `RestrictOrigin` follows immediately after to charge
+/// them against a per-origin allowance instead. `ChargePGAS` wraps the ordinary payment extension
+/// so that eligible calls can settle their fee in PGAS instead of DOT.
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
-		frame_system::AuthorizeCall<Runtime>,
+		// Origin modifiers.
+		(
+			(),
+			frame_system::AuthorizeCall<Runtime>,
+			indiv_pallet_pgas::AsPgas<Runtime>,
+			indiv_pallet_alias_accounts::AsRingAlias<Runtime>,
+			indiv_pallet_dotns_gateway::AsDotnsGateway<Runtime>,
+		),
+		// General checks and operations.
+		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -1621,10 +1683,17 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckEra<Runtime>,
 		frame_system::CheckNonce<Runtime>,
 		frame_system::CheckWeight<Runtime>,
-		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+		pallet_pgas_allowance::ChargePGAS<
+			Runtime,
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+		>,
 		pallet_claims::PrevalidateAttests<Runtime>,
-		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-		pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+		// Nested only to stay within the 12-element limit of `TransactionExtension`'s tuple impls.
+		// A nested tuple encodes exactly like the flattened one.
+		(
+			frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+			pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+		),
 	),
 >;
 
@@ -1639,7 +1708,14 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 
 	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::ExtensionV0 {
 		(
-			frame_system::AuthorizeCall::<Runtime>::new(),
+			(
+				(),
+				frame_system::AuthorizeCall::<Runtime>::new(),
+				indiv_pallet_pgas::AsPgas::<Runtime>::new(None),
+				indiv_pallet_alias_accounts::AsRingAlias::<Runtime>::new(None),
+				indiv_pallet_dotns_gateway::AsDotnsGateway::<Runtime>::new(None),
+			),
+			indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(true),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -1647,10 +1723,20 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 			frame_system::CheckMortality::from(generic::Era::Immortal),
 			frame_system::CheckNonce::<Runtime>::from(nonce),
 			frame_system::CheckWeight::<Runtime>::new(),
-			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None),
+			// An Ethereum transaction always pays in the native asset, so PGAS is skipped.
+			pallet_pgas_allowance::ChargePGAS::<
+				Runtime,
+				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+			>::new_skip_pgas(
+				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
+					tip, None,
+				),
+			),
 			pallet_claims::PrevalidateAttests::<Runtime>::new(),
-			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
+			(
+				frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+				pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
+			),
 		)
 			.into()
 	}
@@ -1659,6 +1745,47 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
+
+// `pallet-members-subscriber` runs an offchain worker that submits *authorized* transactions:
+// unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall` rather than from a
+// signature. `pallet-revive` already supplies the `CreateBare`/`CreateTransaction` half of the
+// plumbing for its own extrinsic type; this fills in the extension such a transaction carries.
+impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_extension() -> Self::Extension {
+		(
+			(
+				(),
+				frame_system::AuthorizeCall::<Runtime>::new(),
+				indiv_pallet_pgas::AsPgas::<Runtime>::new(None),
+				indiv_pallet_alias_accounts::AsRingAlias::<Runtime>::new(None),
+				indiv_pallet_dotns_gateway::AsDotnsGateway::<Runtime>::new(None),
+			),
+			indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(true),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_pgas_allowance::ChargePGAS::<
+				Runtime,
+				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+			>::new_skip_pgas(
+				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+			),
+			pallet_claims::PrevalidateAttests::<Runtime>::new(),
+			(
+				frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+				pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
+			),
+		)
+			.into()
+	}
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1810,6 +1937,14 @@ mod benches {
 		[pallet_election_provider_multi_block::verifier, MultiBlockElectionVerifier]
 		[pallet_election_provider_multi_block::unsigned, MultiBlockElectionUnsigned]
 		[pallet_election_provider_multi_block::signed, MultiBlockElectionSigned]
+
+		// Individuality
+		[indiv_pallet_alias_accounts, AliasAccounts]
+		[indiv_pallet_dotns_gateway, DotnsGateway]
+		[indiv_pallet_members_subscriber, MembersSubscriber]
+		[indiv_pallet_origin_restriction, OriginRestriction]
+		[indiv_pallet_pgas, Pgas]
+		[pallet_pgas_allowance, PgasAllowance]
 	);
 
 	use frame_benchmarking::BenchmarkError;

@@ -21,9 +21,9 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
 pub mod assets;
-pub mod coinage;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod individuality;
 pub mod people;
 #[cfg(test)]
 mod tests;
@@ -50,11 +50,11 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
+use indiv_support::traits::Alias;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::{
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
-	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature, AVERAGE_ON_INITIALIZE_RATIO,
-	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature, HOURS,
 };
 
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
@@ -74,15 +74,23 @@ pub use sp_runtime::{MultiAddress, Perbill, Permill};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use system_parachains_constants::polkadot::{
-	consensus::{
-		elastic_scaling::{
-			BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
+// This chain authors a block every `RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY`
+// = 2s, and each of those blocks is validated on its own core, so it may use the full 2s of PVF
+// execution time that the `async_backing` constants allow. Individuality's offchain workers submit
+// authorized transactions sized against that budget — the runtime's own integrity tests reject the
+// smaller, pre-elastic-scaling budget.
+use system_parachains_constants::{
+	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO},
+	polkadot::{
+		consensus::{
+			elastic_scaling::{
+				BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
+			},
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
-		RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		currency::*,
+		fee::WeightToFee as DotWeightToFee,
 	},
-	currency::*,
-	fee::WeightToFee as DotWeightToFee,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
@@ -113,17 +121,35 @@ pub type BlockId = generic::BlockId<Block>;
 
 /// The TransactionExtension to the basic transaction logic.
 ///
-/// `AsMember` and `AsCoinage` are origin modifiers: they replace the transaction's origin with a
-/// ring-membership-authenticated one, so they must run before `CheckNonce` (which only applies to
-/// signed origins) and before `ChargeAssetTxPayment`. The latter sees a non-signed origin for
-/// coinage transactions and returns `NoCharge`, leaving coinage to settle fees from the coin or
-/// unload token itself.
+/// The leading sub-tuple holds the *origin modifiers*: extensions that replace the transaction's
+/// origin with one authenticated by something other than an account signature — a ring-VRF
+/// membership proof, a referral ticket, a coin, an off-chain signature. They must all run before
+/// `CheckNonce` (which only applies to signed origins) and before `ChargeAssetTxPayment`, which
+/// sees a non-signed origin and returns `NoCharge` so the pallet that produced the origin can
+/// settle the fee its own way.
+///
+/// Because those origins pay no account fee, `RestrictOrigin` follows immediately after to charge
+/// them against a per-origin allowance instead.
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
-		indiv_pallet_members::extension::AsMember<Runtime>,
-		indiv_pallet_coinage::extension::AsCoinage<Runtime>,
-		frame_system::AuthorizeCall<Runtime>,
+		// Origin modifiers.
+		(
+			(),
+			pallet_verify_signature::VerifySignature<Runtime>,
+			indiv_pallet_people::extension::AsPerson<Runtime>,
+			indiv_pallet_proof_of_ink::extension::AsProofOfInkParticipant<Runtime>,
+			indiv_pallet_score::ScoreAsParticipant<Runtime>,
+			indiv_pallet_game::GameAsInvited<Runtime>,
+			indiv_pallet_people_lite::extension::PeopleLiteAuth<Runtime>,
+			indiv_pallet_members::extension::AsMember<Runtime>,
+			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
+			indiv_pallet_resources::extension::AsResources<Runtime>,
+			indiv_pallet_honour::extension::VoterAuth<Runtime>,
+			frame_system::AuthorizeCall<Runtime>,
+		),
+		// General checks and operations.
+		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -183,8 +209,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	// Bumped: `TxExtension` gained the `AsMember` and `AsCoinage` origin modifiers, which changes
-	// the transaction encoding.
+	// Bumped: `TxExtension` gained the Individuality origin modifiers and `RestrictOrigin`, which
+	// changes the transaction encoding.
 	transaction_version: 1,
 	system_version: 1,
 };
@@ -312,7 +338,9 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnSystemEvent = ();
+	// `pallet-relay-randomness` snapshots the relay chain randomness out of the relay state proof
+	// every time a new relay parent is validated.
+	type OnSystemEvent = RelayRandomness;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type OutboundXcmpMessageSource = XcmpQueue;
 	type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
@@ -637,7 +665,40 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct VerifySignatureBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_verify_signature::BenchmarkHelper<Signature, AccountId>
+	for VerifySignatureBenchmarkHelper
+{
+	fn create_signature(_entropy: &[u8], msg: &[u8]) -> (Signature, AccountId) {
+		use sp_io::crypto::{sr25519_generate, sr25519_sign};
+		use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+		let public = sr25519_generate(0.into(), None);
+		let who_account: AccountId = MultiSigner::Sr25519(public).into_account();
+		let signature = Signature::Sr25519(sr25519_sign(0.into(), &public, msg).unwrap());
+		(signature, who_account)
+	}
+}
+
+/// Lets a *general* transaction carry its signature inside [`TxExtension`] rather than in the
+/// extrinsic envelope. The Individuality origin modifiers are built on general transactions, so
+/// this is what authenticates the signer they read.
+impl pallet_verify_signature::Config for Runtime {
+	type Signature = Signature;
+	type AccountIdentifier = sp_runtime::MultiSigner;
+	type WeightInfo = pallet_verify_signature::weights::SubstrateWeight<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = VerifySignatureBenchmarkHelper;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
+//
+// Individuality pallet indices match the `next-people-paseo` reference runtime of
+// `paritytech/individuality` wherever the index was still free here, so that a chain can be
+// migrated between the two without renumbering pallets. `RelayRandomness` and `OriginRestriction`
+// could not keep their reference indices (5 and 13) because `WeightReclaim` and `AssetRate` already
+// occupy them.
 construct_runtime!(
 	pub enum Runtime
 	{
@@ -648,6 +709,7 @@ construct_runtime!(
 		ParachainInfo: parachain_info = 3,
 		MultiBlockMigrations: pallet_migrations = 4,
 		WeightReclaim: cumulus_pallet_weight_reclaim = 5,
+		RelayRandomness: indiv_pallet_relay_randomness = 6,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -656,6 +718,7 @@ construct_runtime!(
 		AssetRate: pallet_asset_rate = 13,
 		AssetTxPayment: pallet_asset_tx_payment = 14,
 		AssetsHolder: pallet_assets_holder = 15,
+		OriginRestriction: indiv_pallet_origin_restriction = 16,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -674,16 +737,28 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
+		VerifySignature: pallet_verify_signature = 43,
 
 		// The main stage.
 		Identity: pallet_identity = 50,
 
-		// Coinage and its supporting ring-membership infrastructure. Indices match the
-		// individuality reference runtime so that a chain can be migrated between the two
-		// without renumbering pallets.
+		// Individuality: personhood and everything built on it.
+		People: indiv_pallet_people = 51,
+		MobRule: indiv_pallet_mob_rule = 52,
+		ProofOfInk: indiv_pallet_proof_of_ink = 53,
+		// 54: previously used for the privacy voucher in the reference runtime.
+		Game: indiv_pallet_game = 55,
+		Score: indiv_pallet_score = 56,
+		DummyDim: indiv_pallet_dummy_dim = 59,
+		PeopleLite: indiv_pallet_people_lite = 62,
+		Resources: indiv_pallet_resources = 63,
 		ChunksManager: indiv_pallet_chunks_manager = 64,
 		Members: indiv_pallet_members = 67,
 		Coinage: indiv_pallet_coinage = 68,
+		MembersNotifier: indiv_pallet_members_notifier = 69,
+		Airdrop: indiv_pallet_airdrop = 70,
+		Honour: indiv_pallet_honour = 71,
+		Nfts: pallet_nfts = 72,
 	}
 );
 
@@ -713,9 +788,11 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
+		[pallet_nfts, Nfts]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
+		[pallet_verify_signature, VerifySignature]
 		// Cumulus
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_weight_reclaim, WeightReclaim]
@@ -726,14 +803,22 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
 		// Individuality
-		//
-		// NOTE: `as_unload_token_people_tx_ext` and `as_unload_token_lite_people_tx_ext` benchmark
-		// the *free* unload token flows, which are disabled in production. Under
-		// `runtime-benchmarks` `coinage::AnyMembershipProof` and non-zero allowances stand in for
-		// the production config so they still yield a weight; see `coinage.rs`.
+		[indiv_pallet_airdrop, Airdrop]
 		[indiv_pallet_chunks_manager, ChunksManager]
-		[indiv_pallet_members, Members]
 		[indiv_pallet_coinage, Coinage]
+		[indiv_pallet_dummy_dim, DummyDim]
+		[indiv_pallet_game, Game]
+		[indiv_pallet_honour, Honour]
+		[indiv_pallet_members, Members]
+		[indiv_pallet_members_notifier, MembersNotifier]
+		[indiv_pallet_mob_rule, MobRule]
+		[indiv_pallet_origin_restriction, OriginRestriction]
+		[indiv_pallet_people, People]
+		[indiv_pallet_people_lite, PeopleLite]
+		[indiv_pallet_proof_of_ink, ProofOfInk]
+		[indiv_pallet_relay_randomness, RelayRandomness]
+		[indiv_pallet_resources, Resources]
+		[indiv_pallet_score, Score]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -929,10 +1014,22 @@ mod benches {
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
-// `pallet-members` and `pallet-coinage` run offchain workers that submit *authorized*
-// transactions: unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall`
-// rather than from a signature. These impls tell those workers how to assemble such an
-// extrinsic for this runtime.
+/// Mortality window, in blocks, for the authorized transactions this runtime constructs and
+/// submits. They are re-submitted every block by their offchain workers while the action stays due,
+/// so a short window lets stale submissions expire from the pool promptly.
+///
+/// At the 2s block time this is ~4.3 minutes.
+///
+/// NOTE: must be a power of two for `Era::mortal`, and cannot exceed `BlockHashCount`.
+pub const TRANSACTION_MORTALITY_PERIOD: BlockNumber = 128;
+
+// A mortal era whose period exceeds the number of retained block hashes can never be validated
+// (its birth hash is pruned before the window closes), so guard the invariant at compile time.
+const _: () = assert!(TRANSACTION_MORTALITY_PERIOD <= BlockHashCount::get());
+
+// Several Individuality pallets run offchain workers that submit *authorized* transactions:
+// unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall` rather than from a
+// signature. These impls tell those workers how to assemble such an extrinsic for this runtime.
 impl<LocalCall> frame_system::offchain::CreateTransactionBase<LocalCall> for Runtime
 where
 	RuntimeCall: From<LocalCall>,
@@ -967,14 +1064,32 @@ where
 {
 	fn create_extension() -> Self::Extension {
 		(
-			indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
-			indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
-			frame_system::AuthorizeCall::<Runtime>::new(),
+			(
+				(),
+				pallet_verify_signature::VerifySignature::<Runtime>::Disabled,
+				indiv_pallet_people::extension::AsPerson::<Runtime>::new(None),
+				indiv_pallet_proof_of_ink::extension::AsProofOfInkParticipant::<Runtime>::new(None),
+				indiv_pallet_score::ScoreAsParticipant::<Runtime>::new(None),
+				indiv_pallet_game::GameAsInvited::<Runtime>::new(None),
+				indiv_pallet_people_lite::extension::PeopleLiteAuth::<Runtime>::new(None),
+				indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
+				indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
+				indiv_pallet_resources::extension::AsResources::<Runtime>::new(None),
+				indiv_pallet_honour::extension::VoterAuth::<Runtime>::new(None),
+				frame_system::AuthorizeCall::<Runtime>::new(),
+			),
+			indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(false),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
 			frame_system::CheckGenesis::<Runtime>::new(),
-			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+			// Anchor the mortal era at `block_number() - 1`: offchain workers build this extension
+			// while executing on the current block, whose own hash is not yet in storage, so the
+			// birth block must be the parent.
+			frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(
+				u64::from(TRANSACTION_MORTALITY_PERIOD),
+				u64::from(System::block_number()).saturating_sub(1),
+			)),
 			frame_system::CheckNonce::<Runtime>::from(0),
 			frame_system::CheckWeight::<Runtime>::new(),
 			pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
@@ -1211,6 +1326,32 @@ impl_runtime_apis! {
 			xcm_runtime_apis::authorized_aliases::Error
 		> {
 			PolkadotXcm::is_authorized_alias(origin, target)
+		}
+	}
+
+	impl indiv_pallet_mob_rule::runtime_api::MobRuleApi<Block, AccountId, Balance> for Runtime {
+		fn voted_on(voter: &Alias, done_only: bool) -> Vec<indiv_pallet_mob_rule::CaseIndex> {
+			MobRule::voted_on(voter, done_only)
+		}
+	}
+
+	impl indiv_pallet_proof_of_ink::runtime_api::ProofOfInkApi<Block, Balance> for Runtime {
+		fn candidacy_deposit() -> Balance {
+			use sp_runtime::traits::Convert;
+			let footprint = frame_support::traits::Footprint::from_mel::<
+				(AccountId, indiv_pallet_proof_of_ink::CandidateOf<Runtime>)
+			>();
+			frame_support::traits::LinearStoragePrice::<
+				individuality::ProofOfInkBaseDeposit,
+				individuality::ProofOfInkByteDeposit,
+				Balance,
+			>::convert(footprint)
+		}
+	}
+
+	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance> for Runtime {
+		fn play_deposit() -> Balance {
+			indiv_pallet_game::PlayDepositAmount::<Runtime>::get()
 		}
 	}
 

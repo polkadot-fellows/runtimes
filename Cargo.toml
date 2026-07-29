@@ -72,6 +72,7 @@ encointer-balances-tx-payment-rpc-runtime-api = { version = "~22.3.0", default-f
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
 encointer-primitives = { version = "~22.7.0", default-features = false }
+ed25519-zebra = { version = "4.0.3", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "48.0.0", default-features = false }
 frame-election-provider-support = { version = "47.0.0", default-features = false }
@@ -85,11 +86,31 @@ glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.42.0", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "29.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
+# The Individuality SDK. Not published to crates.io yet, so every crate is pinned to the same
+# revision of the source repository.
 # TODO: move to individuality-community.
-indiv-pallet-chunks-manager = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
-indiv-pallet-coinage = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
-indiv-pallet-members = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
-indiv-support = { git = "ssh://git@github.com/paritytech/individuality", rev = "5bafaea82beaa9538f12436ba240ff8d3318fdbc", default-features = false }
+indiv-pallet-airdrop = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-alias-accounts = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-chunks-manager = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-coinage = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-dotns-gateway = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-dummy-dim = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-game = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-honour = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-members = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-members-notifier = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-members-subscriber = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-mob-rule = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-origin-restriction = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-people = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-people-lite = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-pgas = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-proof-of-ink = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-relay-randomness = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-resources = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-pallet-score = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-precompile-personhood = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
+indiv-support = { git = "ssh://git@github.com/paritytech/individuality", rev = "fba8a64f6a0e91cbacd8ca78767c9cf9f989da41", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 # Ring-VRF primitives. Pinned to the same revision the individuality crates above depend on so
 # that cargo unifies to a single copy.
@@ -107,6 +128,7 @@ pallet-asset-conversion-precompiles = { version = "0.4.0", default-features = fa
 pallet-asset-rate = { version = "27.0.0", default-features = false }
 pallet-asset-tx-payment = { version = "48.0.0", default-features = false }
 pallet-assets = { version = "51.0.0", default-features = false }
+pallet-assets-freezer = { version = "0.16.0", default-features = false }
 pallet-assets-holder = { version = "0.11.0", default-features = false }
 pallet-assets-precompiles = { version = "0.9.0", default-features = false }
 pallet-aura = { version = "47.0.0", default-features = false }
@@ -168,6 +190,7 @@ pallet-nomination-pools-runtime-api = { version = "44.0.0", default-features = f
 pallet-offences = { version = "46.0.0", default-features = false }
 pallet-offences-benchmarking = { version = "48.0.0", default-features = false }
 pallet-parameters = { version = "0.19.0", default-features = false }
+pallet-pgas-allowance = { version = "0.3.0", default-features = false }
 pallet-preimage = { version = "48.0.0", default-features = false }
 pallet-proxy = { version = "48.0.0", default-features = false }
 pallet-ranked-collective = { version = "48.0.0", default-features = false }
@@ -197,6 +220,7 @@ pallet-treasury = { version = "47.0.0", default-features = false }
 pallet-uniques = { version = "48.0.0", default-features = false }
 pallet-utility = { version = "48.0.0", default-features = false }
 pallet-vesting = { version = "48.0.0", default-features = false }
+pallet-verify-signature = { version = "0.11.0", default-features = false }
 pallet-vesting-precompiles = { version = "0.4.0", default-features = false }
 pallet-whitelist = { version = "47.0.0", default-features = false }
 pallet-xcm = { version = "28.0.0", default-features = false }
@@ -272,6 +296,7 @@ sp-offchain = { version = "42.0.0", default-features = false }
 sp-runtime = { version = "47.0.0", default-features = false }
 sp-session = { version = "44.0.0", default-features = false }
 sp-staking = { version = "44.0.0", default-features = false }
+sp-statement-store = { version = "27.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 sp-state-machine = { version = "0.51.0", default-features = false }
 sp-storage = { version = "23.0.0", default-features = false }

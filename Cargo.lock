@@ -1580,6 +1580,13 @@ dependencies = [
  "frame-try-runtime",
  "hex",
  "hex-literal",
+ "indiv-pallet-alias-accounts",
+ "indiv-pallet-dotns-gateway",
+ "indiv-pallet-members-subscriber",
+ "indiv-pallet-origin-restriction",
+ "indiv-pallet-pgas",
+ "indiv-precompile-personhood",
+ "indiv-support",
  "kusama-runtime-constants",
  "log",
  "pallet-ah-ops",
@@ -1588,6 +1595,8 @@ dependencies = [
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
  "pallet-assets",
+ "pallet-assets-freezer",
+ "pallet-assets-holder",
  "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
@@ -1611,6 +1620,7 @@ dependencies = [
  "pallet-nomination-pools-benchmarking",
  "pallet-nomination-pools-runtime-api",
  "pallet-parameters",
+ "pallet-pgas-allowance",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
@@ -1683,6 +1693,7 @@ dependencies = [
  "system-parachains-common",
  "system-parachains-constants",
  "tokio",
+ "verifiable",
  "xcm-runtime-apis",
 ]
 
@@ -4827,7 +4838,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ab67060fc6b8ef687992d439ca0fa36e7ed17e9a0b16b25b601e8757df720de"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 2.0.114",
 ]
 
 [[package]]
@@ -7436,9 +7447,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "indiv-pallet-airdrop"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "merlin",
+ "pallet-assets",
+ "pallet-assets-holder",
+ "parity-scale-codec",
+ "rand_core 0.6.4",
+ "scale-info",
+ "schnorrkel",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-alias-accounts"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
 name = "indiv-pallet-chunks-manager"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=5bafaea82beaa9538f12436ba240ff8d3318fdbc#5bafaea82beaa9538f12436ba240ff8d3318fdbc"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7454,7 +7505,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-coinage"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=5bafaea82beaa9538f12436ba240ff8d3318fdbc#5bafaea82beaa9538f12436ba240ff8d3318fdbc"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7471,9 +7522,88 @@ dependencies = [
 ]
 
 [[package]]
+name = "indiv-pallet-dotns-gateway"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "alloy-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-members-subscriber",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-dummy-dim"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "indiv-pallet-game"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-airdrop",
+ "indiv-pallet-people",
+ "indiv-pallet-score",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 42.0.0",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "sp-state-machine 0.51.0",
+ "sp-statement-store",
+ "sp-trie 44.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-honour"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
 name = "indiv-pallet-members"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=5bafaea82beaa9538f12436ba240ff8d3318fdbc#5bafaea82beaa9538f12436ba240ff8d3318fdbc"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7490,9 +7620,233 @@ dependencies = [
 ]
 
 [[package]]
+name = "indiv-pallet-members-notifier"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-people",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-members-subscriber"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "staging-xcm",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-mob-rule"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 42.0.0",
+ "sp-arithmetic",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "staging-xcm",
+]
+
+[[package]]
+name = "indiv-pallet-origin-restriction"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "indiv-pallet-people"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-people-lite"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "ed25519-zebra",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-pgas"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-proof-of-ink"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 42.0.0",
+ "sp-arithmetic",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "sp-std",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-relay-randomness"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 47.0.0",
+ "sp-trie 44.0.0",
+]
+
+[[package]]
+name = "indiv-pallet-resources"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-people",
+ "indiv-pallet-people-lite",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "sp-statement-store",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-score"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-people",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "staging-xcm",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-precompile-personhood"
+version = "0.1.0"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "pallet-revive",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "indiv-support"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=5bafaea82beaa9538f12436ba240ff8d3318fdbc#5bafaea82beaa9538f12436ba240ff8d3318fdbc"
+source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9875,6 +10229,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-assets-freezer"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15621de603c5545907267e6363a2d5f0be9fc4e3fcc1e37b4c4da0d94380659a"
+dependencies = [
+ "log",
+ "pallet-assets",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
 name = "pallet-assets-holder"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11069,6 +11436,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-pgas-allowance"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d56b947fcadc0c46c636c9fe17a9b7522e9cd3791bc7f4f86463b1655a9c802b"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "48.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11678,6 +12061,22 @@ dependencies = [
  "sp-core 41.0.0",
  "sp-io 46.0.0",
  "sp-runtime 47.0.0",
+]
+
+[[package]]
+name = "pallet-verify-signature"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b82b1421a0d2cf2b53daf556c7a673c72cf1534b3309bef28130ca8c944a6bc"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
+ "sp-weights 34.0.0",
 ]
 
 [[package]]
@@ -12339,6 +12738,7 @@ dependencies = [
  "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
+ "ed25519-zebra",
  "enumflags2",
  "frame-benchmarking",
  "frame-executive",
@@ -12349,9 +12749,22 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
+ "indiv-pallet-airdrop",
  "indiv-pallet-chunks-manager",
  "indiv-pallet-coinage",
+ "indiv-pallet-dummy-dim",
+ "indiv-pallet-game",
+ "indiv-pallet-honour",
  "indiv-pallet-members",
+ "indiv-pallet-members-notifier",
+ "indiv-pallet-mob-rule",
+ "indiv-pallet-origin-restriction",
+ "indiv-pallet-people",
+ "indiv-pallet-people-lite",
+ "indiv-pallet-proof-of-ink",
+ "indiv-pallet-relay-randomness",
+ "indiv-pallet-resources",
+ "indiv-pallet-score",
  "indiv-support",
  "log",
  "pallet-asset-rate",
@@ -12366,12 +12779,14 @@ dependencies = [
  "pallet-message-queue",
  "pallet-migrations",
  "pallet-multisig",
+ "pallet-nfts",
  "pallet-proxy",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
+ "pallet-verify-signature",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -12389,9 +12804,11 @@ dependencies = [
  "sp-core 41.0.0",
  "sp-genesis-builder 0.23.0",
  "sp-inherents 42.0.0",
+ "sp-io 46.0.0",
  "sp-offchain",
  "sp-runtime 47.0.0",
  "sp-session",
+ "sp-statement-store",
  "sp-storage 23.0.0",
  "sp-transaction-pool",
  "sp-version 45.0.0",

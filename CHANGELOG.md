@@ -8,9 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- People Polkadot: add `pallet-coinage` together with the ring-membership infrastructure it requires, `pallet-members` and `pallet-chunks-manager`, from [`paritytech/individuality`](https://github.com/paritytech/individuality-community).
-  - `TxExtension` gains the `AsMember` and `AsCoinage` origin modifiers, so `transaction_version` is bumped.
-  - The *free* unload token flows are permanently disabled: People Polkadot deploys neither `pallet-people` nor `pallet-people-lite`, so `coinage::NoMembershipProof` rejects every personhood proof and the per-period free allowances are set to zero. The paid unload token flows and the plain `AsCoin` flow are fully functional.
+- People Polkadot: deploy the Individuality SDK personhood stack from [`paritytech/individuality`](https://github.com/paritytech/individuality), ported from that repository's `next-people-paseo` reference runtime and configured in the new `individuality` module.
+  - Ring-membership infrastructure: `pallet-chunks-manager` (the Bandersnatch ring-VRF SRS), `pallet-members` (member collections, ring roots, proof verification) and `pallet-members-notifier` (publishes ring roots to subscribing parachains over XCM).
+  - Personhood: `pallet-people` (the registry, `PersonalIdentity`/`PersonalAlias` origins), `pallet-people-lite` (device-attestation personhood), `pallet-proof-of-ink` (candidacy and evidence), `pallet-mob-rule` (juror adjudication) and `pallet-dummy-dim` (governance-driven recognition).
+  - Applications: `pallet-game` + `pallet-score` (the in-person meetup game), `pallet-airdrop` and `pallet-nfts` (prizes and attestations), `pallet-honour` (personhood-weighted voting on calls), `pallet-resources` (per-person off-chain resource rationing) and `pallet-coinage` (stablecoin-backed bearer coins held by ring aliases).
+  - Support: `pallet-origin-restriction` rate-limits the anonymous origins the above produce, `pallet-relay-randomness` surfaces relay chain randomness, and `pallet-verify-signature` enables the general transactions those flows are built on.
+  - `TxExtension` gains all the Individuality origin modifiers plus `RestrictOrigin`, so `transaction_version` is bumped.
+  - `indiv-pallet-storage-initialization` is deliberately **not** deployed: it is a development-chain bootstrapper that funds hard-coded accounts.
+- Asset Hub Polkadot: deploy the consumer side of the Individuality SDK, ported from that repository's `next-asset-hub-paseo` reference runtime and configured in the new `individuality` module.
+  - `pallet-members-subscriber` mirrors People Polkadot's ring roots over XCM, so ring-VRF personhood proofs verify locally.
+  - `pallet-alias-accounts` binds accounts to context-scoped anonymous aliases, and the `PersonhoodCheck` precompile exposes that check to `pallet-revive` contracts.
+  - `pallet-pgas` lets a proven person claim PGAS (a new non-transferable allowance asset, id `2_000_000_000`); `pallet-pgas-allowance` lets PGAS pay the fees of contract calls, and `pallet_revive::PGasDeposit` makes contract storage deposits PGAS-denominated. `pallet-assets-freezer` and `pallet-assets-holder` are added on the `Assets` (trust-backed) instance to support this.
+  - `pallet-dotns-gateway` is the personhood-gated front door to the dotNS name registry, with `pallet-origin-restriction` rate-limiting the anonymous origins it produces.
+  - `TxExtension` gains the Individuality origin modifiers, `RestrictOrigin` and the `ChargePGAS` payment wrapper, so `transaction_version` is bumped.
+
+### Changed
+
+- People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from the pre-elastic-scaling values (0.5s, 75%). This chain already authors a block every 2s under elastic scaling, and each block is validated on its own core, so it may use the full PVF execution time — Asset Hub Polkadot and Bulletin Polkadot are already configured this way. The smaller budget is rejected by the runtime's own integrity tests once the Individuality offchain-worker calls are present.
 
 ## [2.3.2] 23.07.2026
 

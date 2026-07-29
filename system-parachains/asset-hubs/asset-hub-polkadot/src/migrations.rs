@@ -167,6 +167,9 @@ pub type Unreleased = (
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
 	MigrateBountyAccountAssets,
+	// Creates the PGAS asset under the pallet-derived admin account. `pallet-pgas` cannot mint
+	// until it exists.
+	indiv_pallet_pgas::migration::CreatePgasAsset<Runtime>,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
