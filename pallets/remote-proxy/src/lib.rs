@@ -212,6 +212,12 @@ pub mod pallet {
 
 			// Update the block to root mappings.
 			BlockToRoot::<T, I>::mutate(|roots| {
+				// Multiple parachain blocks can share one relay parent. Skip duplicates so they
+				// don't fill the bounded vector with copies of the newest relay block.
+				if roots.last().is_some_and(|(last_block, _)| *last_block == block) {
+					return;
+				}
+
 				let delete_up_to =
 					block.clone().saturating_sub(T::MaxStorageRootsToKeep::get().into());
 
@@ -219,8 +225,12 @@ pub mod pallet {
 					roots.remove(0);
 				}
 
-				// We always remove all the old items before, thus there should always be space in
-				// the vector.
+				// Safety net: if age-based pruning didn't free a slot, evict the oldest root
+				// rather than silently dropping the newest one.
+				if roots.is_full() {
+					roots.remove(0);
+				}
+
 				let _res = roots.try_push((block, hash));
 				debug_assert!(_res.is_ok());
 			});
