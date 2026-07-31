@@ -2809,12 +2809,10 @@ dependencies = [
 
 [[package]]
 name = "bulletin-pallets-common"
-version = "0.6.0-draft"
+version = "0.7.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f1beb77f9fc822a2358d32ccf7f8cfae60519b60a3e0124180a436416365234"
+checksum = "afc8df43e75e7c526142b656070a65ff6f5b5ef1b243cf026ff3742826e9b482"
 dependencies = [
- "pallet-proxy",
- "pallet-sudo",
  "pallet-utility",
  "parity-scale-codec",
  "polkadot-sdk-frame",
@@ -2926,14 +2924,15 @@ dependencies = [
 
 [[package]]
 name = "bulletin-transaction-storage-primitives"
-version = "0.6.0-draft"
+version = "0.7.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7471a4d08483ae0a20e601626ceae333390731ed1e36fcb3176e79c36507a297"
+checksum = "413f87b23f20640576fe25ecb62b160af391e2f8b0c273aacaf713b26a1a1c34"
 dependencies = [
  "cid 0.11.1",
  "parity-scale-codec",
  "scale-info",
  "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
  "sp-transaction-storage-proof",
  "tracing",
 ]
@@ -9969,9 +9968,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-hop-promotion"
-version = "0.6.0-draft"
+version = "0.7.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "588cf643cdeeaa19f383c7339d47154ac9f7940abfeb829e21e0bae886d9a513"
+checksum = "e7bb6ac08f81c86f6433e39bcf5e4903d3fdc78176b868c86d2fc4006c974a5b"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "frame-support",
@@ -9987,9 +9986,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-transaction-storage"
-version = "0.6.0-draft"
+version = "0.7.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "067f2d327d323a545fc2b7a0f9ff727e94ec095b2790f71003bb1544bb95271c"
+checksum = "3c89b61a8856c1697af66b61a178a03056e69a231c39d63a6e59b7d83d672720"
 dependencies = [
  "array-bytes 6.2.3",
  "bulletin-transaction-storage-primitives",
@@ -10003,9 +10002,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-transaction-storage-runtime-api"
-version = "0.6.0-draft"
+version = "0.7.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73b5cce76a6bc8ad6f27e3529b66e0d5dcd041f9e0c468a146d6064847097c7a"
+checksum = "a4129ced0f684008e055d09b76149c52b7a084f8c8220d7e668460fec6663a62"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "parity-scale-codec",
