@@ -12663,6 +12663,12 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
+ "indiv-pallet-members",
+ "indiv-pallet-members-notifier",
+ "indiv-pallet-members-subscriber",
+ "indiv-pallet-people",
+ "indiv-support",
  "integration-tests-helpers",
  "pallet-assets",
  "pallet-balances",
@@ -12672,6 +12678,7 @@ dependencies = [
  "parachains-common",
  "parity-scale-codec",
  "people-polkadot-runtime",
+ "polkadot-primitives",
  "polkadot-runtime",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
@@ -12680,6 +12687,7 @@ dependencies = [
  "sp-runtime 47.0.0",
  "staging-xcm",
  "staging-xcm-executor",
+ "verifiable",
  "xcm-runtime-apis",
 ]
 
