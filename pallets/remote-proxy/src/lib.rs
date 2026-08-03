@@ -227,7 +227,8 @@ pub mod pallet {
 
 				// The pruning loop above, combined with the duplicate check before it, ensure that
 				// 1. all stored relay blocks are unique
-				// 2. there can be at most `MaxStorageRootsToKeep - 1` entries (corollary: there is always room in the `roots` vec)
+				// 2. there can be at most `MaxStorageRootsToKeep - 1` entries (corollary: there is
+				//    always room in the `roots` vec)
 				let _res = roots.try_push((block, hash));
 				debug_assert!(_res.is_ok());
 			});
