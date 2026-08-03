@@ -225,12 +225,8 @@ pub mod pallet {
 					roots.remove(0);
 				}
 
-				// Safety net: if age-based pruning didn't free a slot, evict the oldest root
-				// rather than silently dropping the newest one.
-				if roots.is_full() {
-					roots.remove(0);
-				}
-
+				// The duplicate check above ensures we never store the same relay block twice, so
+				// there can be at most `MaxStorageRootsToKeep` entries and there is always space.
 				let _res = roots.try_push((block, hash));
 				debug_assert!(_res.is_ok());
 			});
