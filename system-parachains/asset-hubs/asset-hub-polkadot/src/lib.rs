@@ -118,6 +118,7 @@ use frame_support::{
 	dispatch::DispatchClass,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
+	migrations::ForceUnstuckOnFailedMigration,
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible::{self, HoldConsideration},
@@ -146,7 +147,6 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use sp_runtime::Debug;
-use system_parachains_common::ForceUnstuckOnFailedMigration;
 use system_parachains_constants::{
 	async_backing::{
 		AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
@@ -199,7 +199,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_003_001,
+	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -223,6 +223,7 @@ parameter_types! {
 			.modify_max_length_for_class(DispatchClass::Normal, |m| {
 				*m = NORMAL_DISPATCH_RATIO * *m
 			})
+			.max_header_size(100 * 1024)
 			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
@@ -1457,8 +1458,7 @@ impl pallet_revive::Config for Runtime {
 	type DepositPerItem = DepositPerItem;
 	type DepositPerChildTrieItem = DepositPerChildTrieItem;
 	type DepositPerByte = DepositPerByte;
-	// TODO(#840): use `weights::pallet_revive::WeightInfo` here
-	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type WeightInfo = weights::pallet_revive::WeightInfo<Runtime>;
 	type Precompiles = (
 		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
 		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
@@ -1789,8 +1789,7 @@ mod benches {
 		[pallet_indices, Indices]
 		[polkadot_runtime_common::claims, Claims]
 		[pallet_ah_ops, AhOps]
-		// TODO(#840): uncomment this so that pallet-revive is also benchmarked with this runtime
-		// [pallet_revive, Revive]
+		[pallet_revive, Revive]
 
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
