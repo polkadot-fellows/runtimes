@@ -40,7 +40,8 @@ pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-// TODO(encointer stable2606): pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+// TODO(encointer stable2606): pub type EncointerKusamaChainSpec =
+// sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
