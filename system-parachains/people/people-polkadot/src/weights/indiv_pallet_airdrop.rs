@@ -246,6 +246,17 @@ impl<T: frame_system::Config> indiv_pallet_airdrop::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
+	fn capture_entropy() -> Weight {
+		Weight::from_parts(23_663_000, 0)
+			.saturating_add(Weight::from_parts(0, 4265))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	fn authorize_capture_entropy() -> Weight {
+		Weight::from_parts(13_387_000, 0)
+			.saturating_add(Weight::from_parts(0, 4265))
+			.saturating_add(T::DbWeight::get().reads(2))
+	}
 	/// Storage: `Airdrop::Events` (r:1 w:1)
 	/// Proof: `Airdrop::Events` (`max_values`: None, `max_size`: Some(767), added: 3242, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::Registrations` (r:102 w:0)

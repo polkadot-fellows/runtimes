@@ -46,6 +46,7 @@ pub mod pallet_message_queue;
 pub mod pallet_migrations;
 pub mod pallet_multisig;
 pub mod pallet_nfts;
+pub mod pallet_parameters;
 pub mod pallet_proxy;
 pub mod pallet_session;
 pub mod pallet_timestamp;

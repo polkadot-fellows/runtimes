@@ -23,7 +23,7 @@ use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
-use frame_support::{assert_err, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_runtime::Either;
 
@@ -254,4 +254,87 @@ fn transaction_extension_versions_are_stable() {
 	for id in indiv {
 		assert!(v1.contains(&id), "version 1 must carry `{id}`");
 	}
+}
+
+#[test]
+fn individuality_storage_parameters_are_governance_mutable() {
+	use crate::{
+		parameters::{dynamic_params, RuntimeParameters, StatementAllowanceParameter},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::traits::Get;
+	use polkadot_runtime_constants::{fellowship::FELLOWS_RANK, system_parachain::COLLECTIVES_ID};
+	use sp_runtime::BuildStorage;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreGraceWindow as Get<u32>>::get(),
+			2 * 24 * 60 * 60,
+		);
+		assert_noop!(
+			Parameters::set_parameter(
+				RuntimeOrigin::signed(ALICE.into()),
+				RuntimeParameters::StatementStorage(
+					dynamic_params::statement_storage::Parameters::StmtStoreGraceWindow(
+						dynamic_params::statement_storage::StmtStoreGraceWindow,
+						Some(60 * 60),
+					),
+				),
+			),
+			sp_runtime::DispatchError::BadOrigin,
+		);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::StatementStorage(
+				dynamic_params::statement_storage::Parameters::StmtStoreGraceWindow(
+					dynamic_params::statement_storage::StmtStoreGraceWindow,
+					Some(60 * 60),
+				),
+			),
+		));
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreGraceWindow as Get<u32>>::get(),
+			60 * 60,
+		);
+
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::StatementStorage(
+				dynamic_params::statement_storage::Parameters::PersonStatementLimit(
+					dynamic_params::statement_storage::PersonStatementLimit,
+					Some(StatementAllowanceParameter { max_size: 42, max_count: 3 }),
+				),
+			),
+		));
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::PersonStatementLimit as Get<
+				sp_statement_store::StatementAllowance,
+			>>::get(),
+			sp_statement_store::StatementAllowance { max_size: 42, max_count: 3 },
+		);
+
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+				1,
+				[
+					Parachain(COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					GeneralIndex(FELLOWS_RANK),
+				],
+			))),
+			RuntimeParameters::BulletinStorage(
+				dynamic_params::bulletin_storage::Parameters::LongTermStorageGraceWindow(
+					dynamic_params::bulletin_storage::LongTermStorageGraceWindow,
+					Some(2 * 60 * 60),
+				),
+			),
+		));
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LongTermStorageGraceWindow as Get<u32>>::get(),
+			2 * 60 * 60,
+		);
+	});
 }

@@ -7449,7 +7449,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-airdrop"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7472,7 +7471,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-alias-accounts"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7489,7 +7487,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-chunks-manager"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7505,7 +7502,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-coinage"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7524,7 +7520,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dotns-gateway"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "alloy-core",
  "frame-benchmarking",
@@ -7544,7 +7539,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dummy-dim"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7560,7 +7554,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-game"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -7587,7 +7580,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-honour"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7603,7 +7595,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7622,7 +7613,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-notifier"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -7644,7 +7634,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-subscriber"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7663,7 +7652,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-origin-restriction"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7679,7 +7667,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7697,7 +7684,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people-lite"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "ed25519-zebra",
  "frame-benchmarking",
@@ -7716,7 +7702,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-pgas"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7734,7 +7719,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-relay-randomness"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -7751,7 +7735,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-resources"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7772,7 +7755,6 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-score"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7792,7 +7774,6 @@ dependencies = [
 [[package]]
 name = "indiv-precompile-personhood"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7805,7 +7786,6 @@ dependencies = [
 [[package]]
 name = "indiv-support"
 version = "0.1.0"
-source = "git+ssh://git@github.com/paritytech/individuality?rev=fba8a64f6a0e91cbacd8ca78767c9cf9f989da41#fba8a64f6a0e91cbacd8ca78767c9cf9f989da41"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12745,6 +12725,7 @@ dependencies = [
  "pallet-migrations",
  "pallet-multisig",
  "pallet-nfts",
+ "pallet-parameters",
  "pallet-proxy",
  "pallet-session",
  "pallet-timestamp",

@@ -24,6 +24,7 @@ pub mod assets;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod individuality;
+pub mod parameters;
 pub mod people;
 #[cfg(test)]
 mod tests;
@@ -799,6 +800,7 @@ construct_runtime!(
 		Airdrop: indiv_pallet_airdrop = 70,
 		Honour: indiv_pallet_honour = 71,
 		Nfts: pallet_nfts = 72,
+		Parameters: pallet_parameters = 73,
 	}
 );
 
@@ -829,6 +831,7 @@ mod benches {
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_nfts, Nfts]
+		[pallet_parameters, Parameters]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]

@@ -51,6 +51,7 @@ pallet-message-queue = { workspace = true }
 pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nfts = { workspace = true }
+pallet-parameters = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
@@ -162,6 +163,7 @@ std = [
 	"pallet-migrations/std",
 	"pallet-multisig/std",
 	"pallet-nfts/std",
+	"pallet-parameters/std",
 	"pallet-proxy/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
@@ -241,6 +243,7 @@ runtime-benchmarks = [
 	"pallet-migrations/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
@@ -300,6 +303,7 @@ try-runtime = [
 	"pallet-migrations/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
+	"pallet-parameters/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",

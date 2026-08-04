@@ -135,7 +135,6 @@ use indiv_support::{
 };
 #[cfg(feature = "runtime-benchmarks")]
 use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
-use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use sp_runtime::MultiSigner;
@@ -148,14 +147,19 @@ use sp_statement_store::StatementAllowance;
 // this module configures.
 #[cfg(feature = "runtime-benchmarks")]
 use xcm::latest::Junction::GeneralIndex;
+#[cfg(feature = "runtime-benchmarks")]
+use xcm::latest::Junction::Parachain;
 use xcm::latest::{
 	send_xcm,
 	Instruction::{Transact, UnpaidExecution},
-	Junction::{PalletInstance, Parachain},
+	Junction::PalletInstance,
 	Location, OriginKind, WeightLimit, Xcm,
 };
 
-use crate::assets::hollar::{HollarLocation, HOLLAR_UNITS};
+use crate::{
+	assets::hollar::{HollarLocation, HOLLAR_UNITS},
+	parameters::dynamic_params,
+};
 
 /// Wall-clock durations expressed in block numbers.
 ///
@@ -337,6 +341,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type LiteOnboardingSize = LitePeopleOnboardingSize;
 	type AttestationSignature = Signature;
 	type LiteConsumerRegistrar = Resources;
+	type AccountContexts = AccountContexts;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
@@ -517,13 +522,6 @@ impl indiv_pallet_game::Config for Runtime {
 	type AirdropAssetBalance = Balance;
 	type Airdrop = Airdrop;
 	type AirdropSource = GameAirdropSource;
-	type NftProvider = Nfts;
-	type NftCollectionConfig = pallet_nfts::CollectionConfigFor<Runtime>;
-	type NftCollectionConfigValue = GameNftCollectionConfig;
-	type NftItemConfig = pallet_nfts::ItemConfig;
-	type NftItemConfigValue = GameNftItemConfig;
-	type NftCollectionOwner = GameNftCollectionOwner;
-	type NftMetadataLimit = ConstU32<256>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::GamePalletBenchmarkHelper;
 }
@@ -583,45 +581,7 @@ parameter_types! {
 	pub const MinUsernameLength: u32 = 6;
 	pub const PersonAuthDuration: u32 = 2 * 24 * 60 * 60; // 2 days
 	pub const MinPersonAuthUpdateInterval: u32 = 24 * 60 * 60; // 1 day
-	pub const NotificationSlotsPerPeriod: u8 = 16;
-	pub const LiteNotificationSlotsPerPeriod: u8 = 8;
-	pub const NotificationPeriodDuration: u32 = 24 * 60 * 60; // 1 day
-	pub const LongTermStorageGraceWindow: u32 = 60 * 60; // 1 hour
 	pub const MaxReservationQueueLength: u32 = 10;
-	pub const StmtStoreSlotsPerPeriod: u32 = 20;
-	pub const LiteStmtStoreSlotsPerPeriod: u32 = 10;
-	pub const StmtStoreCleanupLimit: u32 = 50;
-	pub const StmtStoreReplacementCooldown: u32 = 60; // 1 minute
-	pub const StmtStoreGraceWindow: u32 = 2 * 24 * 60 * 60; // 2 days
-	pub AccountsApiAllowance: StatementAllowance = StatementAllowance {
-		max_size: 500 * 1024, // 500 KiB
-		max_count: 2,
-	};
-	pub NotificationAllowance: StatementAllowance = StatementAllowance {
-		max_size: 10 * 1024, // 10 KiB
-		max_count: 1,
-	};
-	pub LitePersonStatementLimit: StatementAllowance = StatementAllowance {
-		max_size: 500 * 1024, // 500 KiB
-		max_count: 50,
-	};
-	pub PersonStatementLimit: StatementAllowance = StatementAllowance {
-		max_size: 1024 * 1024, // 1 MiB
-		max_count: 200,
-	};
-	pub const LongTermStoragePeriodDuration: u32 = 14 * 24 * 60 * 60; // 2 weeks
-	pub const LongTermStorageClaimsPerPeriod: u8 = 100;
-	pub const LongTermStorageCleanupLimit: u32 = 20;
-	pub LongTermStorageAllowanceForPeople: indiv_pallet_resources::types::LongTermStorageAllocation =
-		indiv_pallet_resources::types::LongTermStorageAllocation {
-			transactions: 100,
-			bytes: 8 * 1024 * 1024, // 8 MiB
-		};
-	pub LongTermStorageAllowanceForLitePeople: indiv_pallet_resources::types::LongTermStorageAllocation =
-		indiv_pallet_resources::types::LongTermStorageAllocation {
-			transactions: 10,
-			bytes: 4 * 1024 * 1024, // 4 MiB
-		};
 }
 
 impl indiv_pallet_resources::Config for Runtime {
@@ -630,36 +590,44 @@ impl indiv_pallet_resources::Config for Runtime {
 	type MaxUsernameLength = MaxUsernameLength;
 	type MinUsernameLength = MinUsernameLength;
 	type PersonAuthDuration = PersonAuthDuration;
-	type AccountsApiAllowance = AccountsApiAllowance;
-	type StmtStoreSlotsPerPeriod = StmtStoreSlotsPerPeriod;
-	type LiteStmtStoreSlotsPerPeriod = LiteStmtStoreSlotsPerPeriod;
-	type StmtStoreCleanupLimit = StmtStoreCleanupLimit;
-	type StmtStoreReplacementCooldown = StmtStoreReplacementCooldown;
-	type StmtStoreGraceWindow = StmtStoreGraceWindow;
-	type NotificationAllowance = NotificationAllowance;
-	type NotificationSlotsPerPeriod = NotificationSlotsPerPeriod;
-	type LiteNotificationSlotsPerPeriod = LiteNotificationSlotsPerPeriod;
-	type NotificationPeriodDuration = NotificationPeriodDuration;
+	type AccountsApiAllowance = crate::parameters::AccountsApiAllowance;
+	type StmtStoreSlotsPerPeriod = dynamic_params::statement_storage::StmtStoreSlotsPerPeriod;
+	type LiteStmtStoreSlotsPerPeriod =
+		dynamic_params::statement_storage::LiteStmtStoreSlotsPerPeriod;
+	type StmtStoreCleanupLimit = dynamic_params::statement_storage::StmtStoreCleanupLimit;
+	type StmtStoreReplacementCooldown =
+		dynamic_params::statement_storage::StmtStoreReplacementCooldown;
+	type StmtStoreGraceWindow = dynamic_params::statement_storage::StmtStoreGraceWindow;
+	type NotificationAllowance = crate::parameters::NotificationAllowance;
+	type NotificationSlotsPerPeriod = dynamic_params::statement_storage::NotificationSlotsPerPeriod;
+	type LiteNotificationSlotsPerPeriod =
+		dynamic_params::statement_storage::LiteNotificationSlotsPerPeriod;
+	type NotificationPeriodDuration = dynamic_params::statement_storage::NotificationPeriodDuration;
 	type OffchainWorkerInterval = ConstU32<1>;
 	type MinPersonAuthUpdateInterval = MinPersonAuthUpdateInterval;
 	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
 	type EnsureLitePerson = indiv_pallet_people_lite::EnsureLitePerson<Runtime>;
 	type Clock = RuntimeClock;
 	type OffchainSignature = Signature;
-	type LitePersonStatementLimit = LitePersonStatementLimit;
-	type PersonStatementLimit = PersonStatementLimit;
+	type LitePersonStatementLimit = crate::parameters::LitePersonStatementLimit;
+	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type LongTermStoragePeriodDuration = LongTermStoragePeriodDuration;
-	type LongTermStorageGraceWindow = LongTermStorageGraceWindow;
-	type LongTermStorageClaimsPerPeriod = LongTermStorageClaimsPerPeriod;
-	type LongTermStorageAllowanceForPeople = LongTermStorageAllowanceForPeople;
-	type LongTermStorageAllowanceForLitePeople = LongTermStorageAllowanceForLitePeople;
+	type LongTermStoragePeriodDuration =
+		dynamic_params::bulletin_storage::LongTermStoragePeriodDuration;
+	type LongTermStorageGraceWindow = dynamic_params::bulletin_storage::LongTermStorageGraceWindow;
+	type LongTermStorageClaimsPerPeriod =
+		dynamic_params::bulletin_storage::LongTermStorageClaimsPerPeriod;
+	type LongTermStorageAllowanceForPeople =
+		dynamic_params::bulletin_storage::LongTermStorageAllowanceForPeople;
+	type LongTermStorageAllowanceForLitePeople =
+		dynamic_params::bulletin_storage::LongTermStorageAllowanceForLitePeople;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type LongTermStorageDataStore = BulletinDataStore;
 	#[cfg(feature = "runtime-benchmarks")]
 	type LongTermStorageDataStore = benchmark_utils::BenchmarkDataStore;
-	type LongTermStorageCleanupLimit = LongTermStorageCleanupLimit;
+	type LongTermStorageCleanupLimit =
+		dynamic_params::bulletin_storage::LongTermStorageCleanupLimit;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::ResourcesBenchHelper;
 }
@@ -682,20 +650,16 @@ impl indiv_pallet_coinage::ValidateProof for MembershipProof {
 	fn validate_proof(
 		identifier: &Identifier,
 		proof: &Self::Proof,
-		context: &[u8],
+		context: &[u8; 32],
 		msg: &[u8],
 	) -> Result<Alias, ()> {
 		use indiv_support::traits::MembershipProver;
-		let context: Context = context
-			.try_into()
-			.inspect_err(|_| log::debug!("validate proof fail: context must be 32 bytes"))
-			.map_err(|_| ())?;
 		let result = Members::verify_membership(
 			identifier,
 			&proof.proof,
 			proof.ring,
 			proof.revision,
-			context,
+			*context,
 			msg,
 		)
 		.inspect_err(|e| log::debug!("validate proof fail: verify membership: {e:?}"))
@@ -897,8 +861,7 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 					RuntimeCall::Game(sign_up_with_account { .. }) |
 					RuntimeCall::Game(report { .. }) |
 					RuntimeCall::Game(offboard { .. }) |
-					RuntimeCall::Game(claim_airdrop { .. }) |
-					RuntimeCall::Game(mint_attestation_nft { .. })
+					RuntimeCall::Game(claim_airdrop { .. })
 			),
 			RestrictedEntity::PersonalAlias(_) |
 			RestrictedEntity::PersonalIdentity(_) |
@@ -950,11 +913,6 @@ enum TransactionStorageCalls<AccountId: Encode> {
 	RefreshAccountAuthorization(AccountId),
 }
 
-parameter_types! {
-	/// XCM destination location for the Bulletin Chain.
-	pub BulletinChainLocation: Location = Location::new(1, [Parachain(BULLETIN_ID)]);
-}
-
 /// Grants an account a data allowance on the Bulletin Chain, which is where long-term person data
 /// lives.
 pub struct BulletinDataStore;
@@ -985,9 +943,12 @@ impl BulletinDataStore {
 			},
 		]);
 
-		send_xcm::<xcm_config::XcmRouter>(BulletinChainLocation::get(), program)
-			.map(|_| ())
-			.map_err(|_| pallet_xcm::Error::<Runtime>::SendFailure)?;
+		send_xcm::<xcm_config::XcmRouter>(
+			dynamic_params::bulletin_storage::BulletinChainLocation::get(),
+			program,
+		)
+		.map(|_| ())
+		.map_err(|_| pallet_xcm::Error::<Runtime>::SendFailure)?;
 		Ok(())
 	}
 }
