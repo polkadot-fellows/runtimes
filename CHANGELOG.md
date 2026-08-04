@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Coretime Polkadot & Kusama: remove the truncation of the coretime assignments vector when sending them from the Coretime Chain to the Relay Chain. ([#1231](https://github.com/polkadot-fellows/runtimes/pull/1231))
+- Coretime Polkadot & Kusama: remove the truncation of the coretime assignments vector when sending them from the Coretime Chain to the Relay Chain. Now users can make all 80 assignments per core. ([#1231](https://github.com/polkadot-fellows/runtimes/pull/1231))
 
 ## [2.3.2] 23.07.2026
 
