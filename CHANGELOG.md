@@ -4,14 +4,21 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [2.3.2] 23.07.2026
+
+### Added
+
+- Collectives Polkadot: extend the Fellowship referenda `SubmitOrigin` with a governance-managed allow-list (`AllowedProposers` dynamic parameter, empty by default) so approved non-member accounts (e.g. the RFC or tip bot) can open Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629), [#1188](https://github.com/polkadot-fellows/runtimes/pull/1188)).
+- Asset Hub Polkadot & Kusama: add the curator-gated `increase_value` extrinsic to `pallet-multi-asset-bounties`, letting a bounty's curator raise its recorded `value` to recognise funds transferred to the bounty account out-of-band ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226), integrates [paritytech/polkadot-sdk#12409](https://github.com/paritytech/polkadot-sdk/pull/12409)).
 
 ### Changed
 
+- Asset Hub Polkadot & Kusama: bump `pallet-multi-asset-bounties` to 0.7.0 and the `parachains-common` / `assets-common` dependency cluster to the matching snapshot (staying on `frame-support` 47); no storage migration required ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226)).
 - Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
+- Proposal submission deposits for Polkadot Ambassador and Encointer Council Motions ([#1194](https://github.com/polkadot-fellows/runtimes/pull/1194))
+- Bump pallet-xcm and pallet-xcm-precompiles to latest version ([#1227](https://github.com/polkadot-fellows/runtimes/pull/1227))
 
 ### Fixed
-
 - All Polkadot & Kusama runtimes: configure an explicit `max_header_size` of 100 KiB. ([#1219](https://github.com/polkadot-fellows/runtimes/pull/1219))
 
 ## [2.3.1] 12.06.2026
@@ -31,7 +38,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
-- Collectives Polkadot: deploy `pallet-parameters` and allow a governance-managed set of accounts (e.g. the RFC or tip bot) to submit Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629))
 
 ### Changed
 
@@ -39,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update all runtimes to `polkadot-sdk` `unstable2604` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: K↔P bridge router exports unpaid (`UnpaidExport = true`) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Asset Hub Kusama & Polkadot: wire `pallet_revive` to its native runtime-benchmarked weights instead of `SubstrateWeight` (kitchensink). Resolves [#840](https://github.com/polkadot-fellows/runtimes/issues/840) ([#1182](https://github.com/polkadot-fellows/runtimes/pull/1182))
 - PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: redirect XCM trader fees (native and swap) to `DapStagingAccount` instead of `StakingPot` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH: filter `staking.reap_stash` from both `BaseCallFilter` and the XCM `SafeCallFilter` while the validator self-stake transition to higher bond. See Ref: [#1890](https://polkadot.subsquare.io/referenda/1890) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
