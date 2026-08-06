@@ -338,3 +338,185 @@ fn individuality_storage_parameters_are_governance_mutable() {
 		);
 	});
 }
+
+#[test]
+fn individuality_cross_runtime_pallet_indices_are_pinned() {
+	use crate::MembersNotifier;
+	use asset_hub_polkadot_runtime::individuality::RingRootsNotifierEndpoint;
+	use frame_support::traits::PalletInfoAccess;
+
+	assert_eq!(MembersNotifier::index(), 69);
+	assert_eq!(RingRootsNotifierEndpoint::get().pallet_index, MembersNotifier::index() as u8,);
+	assert_eq!(asset_hub_polkadot_runtime::MembersSubscriber::index(), 97);
+}
+
+#[test]
+fn individuality_deployment_order_guards_are_enforced() {
+	use crate::{
+		individuality::StableAssetLocation, Assets, ChunksManager, Coinage, RuntimeGenesisConfig,
+	};
+	use indiv_support::traits::RingExponent;
+	use sp_runtime::{transaction_validity::TransactionValidityError, BuildStorage};
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// `add_chunks` is authorized only after its page hash is committed.
+		assert!(matches!(
+			ChunksManager::authorize_add_chunks(&RingExponent::R2e9, &0, &[]),
+			Err(TransactionValidityError::Invalid(
+				sp_runtime::transaction_validity::InvalidTransaction::Call
+			))
+		));
+
+		// Coinage refuses an unregistered backing asset, then deliberately refuses a second choice.
+		let stable = StableAssetLocation::get();
+		assert_noop!(
+			Coinage::set_underlying_asset_id(RuntimeOrigin::root(), stable.clone()),
+			indiv_pallet_coinage::Error::<Runtime>::UnknownAsset,
+		);
+		assert_ok!(Assets::force_create(
+			RuntimeOrigin::root(),
+			stable.clone(),
+			AccountId::from(ALICE).into(),
+			true,
+			1,
+		));
+		assert_ok!(Coinage::set_underlying_asset_id(RuntimeOrigin::root(), stable.clone()));
+		assert_noop!(
+			Coinage::set_underlying_asset_id(RuntimeOrigin::root(), stable),
+			indiv_pallet_coinage::Error::<Runtime>::AssetIdAlreadySet,
+		);
+
+		// No schedule means no game state or score round is active.
+		assert!(indiv_pallet_game::Game::<Runtime>::get().is_none());
+		assert!(indiv_pallet_game::GameSchedules::<Runtime>::get().is_empty());
+		assert!(indiv_pallet_score::RoundPlanning::<Runtime>::get().is_none());
+		assert!(indiv_pallet_score::Participants::<Runtime>::iter().next().is_none());
+	});
+}
+
+#[test]
+fn bulletin_destination_is_governable_but_must_remain_a_sibling_parachain() {
+	use crate::{
+		individuality::BulletinDataStore,
+		parameters::{dynamic_params, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use sp_runtime::BuildStorage;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::BulletinStorage(
+				dynamic_params::bulletin_storage::Parameters::BulletinChainLocation(
+					dynamic_params::bulletin_storage::BulletinChainLocation,
+					Some(Location::parent()),
+				),
+			),
+		));
+		assert_eq!(
+			BulletinDataStore::bulletin_chain_location(),
+			Err(sp_runtime::DispatchError::Other(
+				"Bulletin destination must be a sibling parachain"
+			)),
+		);
+	});
+}
+
+#[test]
+fn individuality_dynamic_parameter_extremes_do_not_brick_parameter_updates() {
+	use crate::{
+		individuality::BulletinDataStore,
+		parameters::{dynamic_params, RuntimeParameters, StatementAllowanceParameter},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use indiv_pallet_resources::types::LongTermStorageAllocation;
+	use sp_runtime::BuildStorage;
+
+	macro_rules! statement_parameter {
+		($name:ident, $value:expr) => {
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				RuntimeParameters::StatementStorage(
+					dynamic_params::statement_storage::Parameters::$name(
+						dynamic_params::statement_storage::$name,
+						Some($value),
+					),
+				),
+			));
+		};
+	}
+	macro_rules! bulletin_parameter {
+		($name:ident, $value:expr) => {
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				RuntimeParameters::BulletinStorage(
+					dynamic_params::bulletin_storage::Parameters::$name(
+						dynamic_params::bulletin_storage::$name,
+						Some($value),
+					),
+				),
+			));
+		};
+	}
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		let zero_allowance = StatementAllowanceParameter { max_size: 0, max_count: 0 };
+		let max_allowance = StatementAllowanceParameter { max_size: u32::MAX, max_count: u32::MAX };
+		statement_parameter!(AccountsApiAllowance, zero_allowance.clone());
+		statement_parameter!(AccountsApiAllowance, max_allowance.clone());
+		statement_parameter!(StmtStoreSlotsPerPeriod, 0u32);
+		statement_parameter!(StmtStoreSlotsPerPeriod, u32::MAX);
+		statement_parameter!(LiteStmtStoreSlotsPerPeriod, 0u32);
+		statement_parameter!(LiteStmtStoreSlotsPerPeriod, u32::MAX);
+		statement_parameter!(StmtStoreCleanupLimit, 0u32);
+		statement_parameter!(StmtStoreCleanupLimit, u32::MAX);
+		statement_parameter!(StmtStoreReplacementCooldown, 0u32);
+		statement_parameter!(StmtStoreReplacementCooldown, u32::MAX);
+		statement_parameter!(StmtStoreGraceWindow, 0u32);
+		statement_parameter!(StmtStoreGraceWindow, u32::MAX);
+		statement_parameter!(NotificationAllowance, zero_allowance.clone());
+		statement_parameter!(NotificationAllowance, max_allowance.clone());
+		statement_parameter!(NotificationSlotsPerPeriod, 0u8);
+		statement_parameter!(NotificationSlotsPerPeriod, u8::MAX);
+		statement_parameter!(LiteNotificationSlotsPerPeriod, 0u8);
+		statement_parameter!(LiteNotificationSlotsPerPeriod, u8::MAX);
+		statement_parameter!(NotificationPeriodDuration, 0u32);
+		statement_parameter!(NotificationPeriodDuration, u32::MAX);
+		statement_parameter!(LitePersonStatementLimit, zero_allowance.clone());
+		statement_parameter!(LitePersonStatementLimit, max_allowance.clone());
+		statement_parameter!(PersonStatementLimit, zero_allowance);
+		statement_parameter!(PersonStatementLimit, max_allowance);
+
+		let zero_allocation = LongTermStorageAllocation { transactions: 0, bytes: 0 };
+		let max_allocation = LongTermStorageAllocation { transactions: u32::MAX, bytes: u64::MAX };
+		bulletin_parameter!(LongTermStoragePeriodDuration, 0u32);
+		bulletin_parameter!(LongTermStoragePeriodDuration, u32::MAX);
+		bulletin_parameter!(LongTermStorageGraceWindow, 0u32);
+		bulletin_parameter!(LongTermStorageGraceWindow, u32::MAX);
+		bulletin_parameter!(LongTermStorageClaimsPerPeriod, 0u8);
+		bulletin_parameter!(LongTermStorageClaimsPerPeriod, u8::MAX);
+		bulletin_parameter!(LongTermStorageCleanupLimit, 0u32);
+		bulletin_parameter!(LongTermStorageCleanupLimit, u32::MAX);
+		bulletin_parameter!(LongTermStorageAllowanceForPeople, zero_allocation);
+		bulletin_parameter!(LongTermStorageAllowanceForPeople, max_allocation);
+		bulletin_parameter!(LongTermStorageAllowanceForLitePeople, zero_allocation);
+		bulletin_parameter!(LongTermStorageAllowanceForLitePeople, max_allocation);
+		let zero_para = Location::new(1, [Parachain(0)]);
+		bulletin_parameter!(BulletinChainLocation, zero_para.clone());
+		assert_eq!(BulletinDataStore::bulletin_chain_location(), Ok(zero_para));
+		let max_para = Location::new(1, [Parachain(u32::MAX)]);
+		bulletin_parameter!(BulletinChainLocation, max_para.clone());
+		assert_eq!(BulletinDataStore::bulletin_chain_location(), Ok(max_para));
+		bulletin_parameter!(BulletinTransactionStoragePalletIndex, 0u8);
+		bulletin_parameter!(BulletinTransactionStoragePalletIndex, u8::MAX);
+	});
+}

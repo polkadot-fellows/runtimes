@@ -105,6 +105,7 @@ parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
+asset-hub-polkadot-runtime = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]
