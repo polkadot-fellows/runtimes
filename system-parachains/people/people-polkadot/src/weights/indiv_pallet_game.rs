@@ -928,4 +928,16 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
+	fn build_credit_tree(n: u32, ) -> Weight {
+		Weight::from_parts(22_375_511, 0)
+			.saturating_add(Weight::from_parts(0, 81479))
+			.saturating_add(Weight::from_parts(994_057, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
+	fn build_credit_tree_empty() -> Weight {
+		Weight::from_parts(2_692_000, 0)
+			.saturating_add(Weight::from_parts(0, 1493))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
 }

@@ -3023,8 +3023,13 @@ dependencies = [
  "bulletin-polkadot-runtime",
  "emulated-integration-tests-common",
  "frame-support",
+ "indiv-pallet-resources",
+ "indiv-support",
  "integration-tests-helpers",
+ "pallet-message-queue",
+ "pallet-xcm",
  "parachains-common",
+ "people-polkadot-runtime",
  "polkadot-system-emulated-network",
  "staging-xcm",
  "staging-xcm-executor",
@@ -7555,6 +7560,7 @@ dependencies = [
 name = "indiv-pallet-game"
 version = "0.1.0"
 dependencies = [
+ "binary-merkle-tree",
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -12675,6 +12681,7 @@ dependencies = [
 name = "people-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
  "assets-common",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",

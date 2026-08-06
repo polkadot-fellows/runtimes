@@ -79,39 +79,41 @@
 //! until the SRS is on chain, Asset Hub cannot verify anything until it is subscribed, and the
 //! value-carrying flows need their assets and accounts set up. In order:
 //!
-//! 1. `ChunksManager::set_chunk_page_hashes` (root) — commit the expected hash of each SRS chunk
-//!    page, per ring exponent. This must come first: `add_chunks` rejects any page that has no
-//!    committed hash to match against. Needed for every exponent this runtime uses:
+//! 1. `ChunksManager::set_chunk_page_hashes` (Fellowship or root) — commit the expected hash of
+//!    each SRS chunk page, per ring exponent. This must come first: `add_chunks` rejects any page
+//!    that has no committed hash to match against. Needed for every exponent this runtime uses:
 //!    [`MembersFlexibleRingExponent`] and [`LitePeopleRingExponent`] (`R2e9`), plus
 //!    [`RecyclerRingExponent`] and [`PaidUnloadTokenRingExponent`] (`R2e10`) for coinage.
 //! 2. `ChunksManager::add_chunks` — upload the chunk pages themselves. This call is *permissionless
 //!    and authorized*, not root: its validity comes from the page hashing to the committed value,
 //!    so anyone can supply the data.
-//! 3. `MembersNotifier::subscribe` (root) — register Asset Hub Polkadot (para 1000) as a ring-root
-//!    subscriber, listing the collections it needs (the people and lite-people identifiers with
-//!    their exponents, in strictly ascending identifier order) and `pallet_index` = the
-//!    `MembersSubscriber` index in Asset Hub Polkadot's `construct_runtime!` (97). Until this runs,
-//!    Asset Hub has no ring roots and every personhood proof there fails. Requires an open HRMP
-//!    channel in both directions.
+//! 3. `MembersNotifier::subscribe` (Fellowship or root) — register Asset Hub Polkadot (para 1000)
+//!    as a ring-root subscriber, listing the collections it needs (the people and lite-people
+//!    identifiers with their exponents, in strictly ascending identifier order) and `pallet_index`
+//!    = the `MembersSubscriber` index in Asset Hub Polkadot's `construct_runtime!` (97). Until this
+//!    runs, Asset Hub has no ring roots and every personhood proof there fails. Requires an open
+//!    HRMP channel in both directions.
 //! 4. `Assets::force_create` (root) for [`StableAssetLocation`], unless HOLLAR is already
 //!    registered locally. `CreateOrigin` is `EnsureNever` on this chain, so root is the only way.
-//!    This is a prerequisite for step 5, which rejects an unknown asset.
-//! 5. `Coinage::set_underlying_asset_id` (root) — nominate the asset backing every coin. It can
-//!    only be set once, and must be the asset described by [`StableAssetLocation`]; see
-//!    `Config::UnderlyingAssetUnit` for why.
-//! 6. Fund the pallet-derived accounts that pay out: [`GameAirdropSource`] (`pop/gads`) with the
+//!    This is a prerequisite for step 6, which rejects an unknown asset.
+//! 5. `Assets::force_set_metadata` (root) — set the HOLLAR asset metadata after creating it.
+//! 6. `AssetRate::create` (root) — create the HOLLAR conversion rate before any coinage activity.
+//!    [`indiv_pallet_coinage::Config::ConversionToAssetBalance`] uses `AssetRate`, so conversions
+//!    fail until the rate exists.
+//! 7. `Coinage::set_underlying_asset_id` (Fellowship or root) — nominate the asset backing every
+//!    coin. It can only be set once, and must be the asset described by [`StableAssetLocation`];
+//!    see `Config::UnderlyingAssetUnit` for why.
+//! 8. Fund the pallet-derived accounts that pay out: [`GameAirdropSource`] (`pop/gads`) with the
 //!    airdrop asset, and the [`ScorePotId`] (`scorepot`) pot for score cash-outs. Both are derived
 //!    accounts nobody controls, so they can only be funded by transfer.
-//! 7. `Game::schedule_games` (root) — no meetup game exists until one is scheduled, so
-//!    `pallet-game` and `pallet-score` stay dormant without this.
+//! 9. `Game::schedule_games` (Fellowship or root) — no meetup game exists until one is scheduled,
+//!    so `pallet-game` and `pallet-score` stay dormant without this.
+//! 10. `People::create_people_collection` (Fellowship or root) — create the people collection; this
+//!     is not done by the runtime upgrade and must precede people onboarding.
 //!
-//! Optional, per-provider: `PeopleLite::set_attestation_allowance` (root) to admit a
-//! device-attestation provider, and `DummyDim`'s recognition calls (root) to grant personhood
-//! directly.
-//!
-//! Note that `Game::create_attestation_collection` is deliberately *not* on this list: it is a
-//! permissionless authorized call driven by the pallet's own offchain worker, so the NFT collection
-//! bootstraps itself.
+//! Optional, per-provider: `PeopleLite::set_attestation_allowance` (Fellowship or root) to admit
+//! a device-attestation provider, and `DummyDim`'s recognition calls (Fellowship or root) to grant
+//! personhood directly.
 
 use super::*;
 
@@ -152,6 +154,7 @@ use xcm::latest::Junction::Parachain;
 use xcm::latest::{
 	send_xcm,
 	Instruction::{Transact, UnpaidExecution},
+	Junction,
 	Junction::PalletInstance,
 	Location, OriginKind, WeightLimit, Xcm,
 };
@@ -280,7 +283,7 @@ impl indiv_pallet_chunks_manager::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_chunks_manager::WeightInfo<Runtime>;
 	type Chunk = <BandersnatchVrfVerifiable as GenerateVerifiable>::StaticChunk;
 	type PageSize = ChunkPageSize;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::ChunksManagerBenchHelper;
 }
@@ -299,7 +302,7 @@ impl indiv_pallet_members::Config for Runtime {
 	type OldRootRetentionDuration = ConstU64<600>;
 	type OnRingRootChange = MembersNotifier;
 	type OffchainWorkerInterval = ConstU32<1>;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::MembersBenchHelper;
 }
@@ -327,14 +330,14 @@ impl indiv_pallet_people::Config for Runtime {
 	type OnboardingQueuePageSize = ConstU32<30>;
 	type StaleAliasCleanupInterval = StaleAliasCleanupInterval;
 	type SelfInclusionDelay = SelfInclusionDelayValue;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::PeopleBenchHelper;
 }
 
 impl indiv_pallet_people_lite::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_people_lite::WeightInfo<Runtime>;
-	type AttestationAllowanceManager = EnsureRoot<AccountId>;
+	type AttestationAllowanceManager = RootOrFellows;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
 	type LiteRingExponent = LitePeopleRingExponent;
@@ -348,7 +351,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 
 impl indiv_pallet_dummy_dim::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_dummy_dim::WeightInfo<Runtime>;
-	type UpdateOrigin = EnsureRoot<AccountId>;
+	type UpdateOrigin = RootOrFellows;
 	type MaxPersonBatchSize = ConstU32<1000>;
 	type People = People;
 }
@@ -453,17 +456,6 @@ parameter_types! {
 	pub PlayerStatementLimit: StatementAllowance =
 		StatementAllowance { max_size: 1_000_000, max_count: 1_000_000 };
 	pub GameAirdropSource: AccountId = PalletId(*b"pop/gads").into_account_truncating();
-	pub GameNftCollectionOwner: AccountId = PalletId(*b"pop/gnft").into_account_truncating();
-	// `DepositRequired` must stay enabled: `nonfungibles_v2::Create::create_collection` rejects
-	// configurations with it disabled. The deposit amounts are all zero anyway.
-	pub GameNftCollectionConfig: pallet_nfts::CollectionConfigFor<Runtime> =
-		pallet_nfts::CollectionConfig {
-			settings: pallet_nfts::CollectionSettings::all_enabled(),
-			max_supply: None,
-			mint_settings: pallet_nfts::MintSettings::default(),
-		};
-	pub GameNftItemConfig: pallet_nfts::ItemConfig =
-		pallet_nfts::ItemConfig { settings: pallet_nfts::ItemSettings::all_enabled() };
 }
 
 /// Duration of each phase of a game, in seconds.
@@ -479,6 +471,13 @@ impl Get<indiv_pallet_game::PhaseDurationValues> for GamePhaseDurations {
 		}
 	}
 }
+
+const PRODUCTION_MAX_GROUP_SIZE: u32 = 6;
+const BENCHMARK_MAX_GROUP_SIZE: u32 = 10;
+const PRODUCTION_MAX_ROUNDS: u32 = 3;
+const BENCHMARK_MAX_ROUNDS: u32 = 10;
+const _: () = assert!(PRODUCTION_MAX_GROUP_SIZE <= BENCHMARK_MAX_GROUP_SIZE);
+const _: () = assert!(PRODUCTION_MAX_ROUNDS <= BENCHMARK_MAX_ROUNDS);
 
 impl indiv_pallet_game::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_game::WeightInfo<Runtime>;
@@ -510,6 +509,12 @@ impl indiv_pallet_game::Config for Runtime {
 	type TicketSignature = MultiSignature;
 	type MaxGameSchedules = ConstU32<12>;
 	type MaxAttendanceHistoryDepth = ConstU32<12>;
+	// Keep enough space for the credits a full People block can award. The Polkadot `report` PoV
+	// weight permits up to 2,940 credits per normal block, so leave a small margin above that
+	// integrity floor. This value must be revisited when Polkadot reference weights are generated.
+	type MaxCreditsPerBlock = ConstU32<3000>;
+	type MaxCreditBlocksPerClaimant = ConstU32<32>;
+	type MaxRetainedAwardBlocks = ConstU32<256>;
 	type DefaultPhaseDurations = GamePhaseDurations;
 	type AccountSignature = Signature;
 	type PlayerStatementLimit = PlayerStatementLimit;
@@ -549,7 +554,7 @@ impl indiv_pallet_airdrop::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_airdrop::WeightInfo<Runtime>;
 	type MemberService = Members;
 	type Fungibles = AssetsWithHolder;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
 	type PalletId = AirdropPalletId;
 	type UnixTime = RuntimeClock;
 	// The pallet doesn't wait for the freshness of the randomness. It is used alongside
@@ -612,7 +617,7 @@ impl indiv_pallet_resources::Config for Runtime {
 	type LitePersonStatementLimit = crate::parameters::LitePersonStatementLimit;
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
 	type LongTermStoragePeriodDuration =
 		dynamic_params::bulletin_storage::LongTermStoragePeriodDuration;
 	type LongTermStorageGraceWindow = dynamic_params::bulletin_storage::LongTermStorageGraceWindow;
@@ -684,7 +689,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 
 	type NativeFungible = Balances;
 	type Fungibles = AssetsWithHolder;
-	type UnderlyingAssetIdManager = EnsureRoot<AccountId>;
+	type UnderlyingAssetIdManager = RootOrFellows;
 	type ConversionToAssetBalance = AssetRate;
 
 	// Coin values are `2^exponent * UnderlyingAssetUnit`, so with a unit of $0.01 the denominations

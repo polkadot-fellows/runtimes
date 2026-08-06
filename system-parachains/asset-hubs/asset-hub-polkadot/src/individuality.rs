@@ -67,8 +67,10 @@
 //!    `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot register any name until this
 //!    is set, so the dotNS registry contract has to be deployed first.
 //!
-//! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (root) to admit an attestation
-//! provider.
+//! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship or root) to admit
+//! an attestation provider.
+//! 4. `AliasAccounts::set_alias_fee` (Fellowship or root) — configure the asset and amount charged
+//!    for alias registration before enabling account-alias flows.
 
 use super::*;
 
@@ -99,6 +101,10 @@ pub mod time {
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
 }
+
+/// Root or the Technical Fellowship voice on Collectives may administer Individuality settings.
+pub type RootOrFellows =
+	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
@@ -180,7 +186,7 @@ impl indiv_pallet_alias_accounts::Config for Runtime {
 	type PeopleRingExponent = PeopleRingExponent;
 	type Fungibles = Assets;
 	type PgasAssetId = PgasAssetId;
-	type FeeManagerOrigin = EnsureRoot<AccountId>;
+	type FeeManagerOrigin = RootOrFellows;
 }
 
 impl indiv_precompile_personhood::Config for Runtime {
@@ -293,7 +299,9 @@ impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type MaxValiditySeconds = DotnsMaxValiditySeconds;
 	type MaxFutureSkewSeconds = DotnsMaxFutureSkewSeconds;
 	type UnixTime = Timestamp;
-	type AttestationAllowanceManager = EnsureRoot<AccountId>;
+	type AttestationAllowanceManager = RootOrFellows;
+	// This controls the RootGateway dispatcher contract, rather than an Individuality allowance;
+	// retain root until its governance surface has its own explicit review.
 	type DispatcherAddressManager = EnsureRoot<AccountId>;
 	type AttestationSignature = Signature;
 	#[cfg(feature = "runtime-benchmarks")]

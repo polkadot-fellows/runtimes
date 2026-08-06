@@ -1361,9 +1361,30 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance> for Runtime {
+	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance, AccountId, BlockNumber> for Runtime {
 		fn play_deposit() -> Balance {
 			indiv_pallet_game::PlayDepositAmount::<Runtime>::get()
+		}
+
+		fn nft_claim_credit_roots(
+			claimant: indiv_pallet_score::AccountOrPerson<AccountId>,
+		) -> Vec<(BlockNumber, indiv_pallet_game::NftClaimCreditRoot)> {
+			Game::nft_claim_credit_roots(&claimant)
+		}
+
+		fn nft_claim_credit_proofs(
+			award_block: BlockNumber,
+			claimant: indiv_pallet_score::AccountOrPerson<AccountId>,
+		) -> Result<Vec<indiv_pallet_game::NftClaimCreditProof>, indiv_pallet_game::NftClaimCreditProofError> {
+			Game::nft_claim_credit_proofs(award_block, &claimant)
+		}
+
+		fn nft_claim_credit_proof_from_awards(
+			award_block: BlockNumber,
+			awards: Vec<indiv_pallet_game::NftClaimCreditAward<AccountId>>,
+			leaf_index: u32,
+		) -> Result<indiv_pallet_game::NftClaimCreditProof, indiv_pallet_game::NftClaimCreditProofError> {
+			Game::nft_claim_credit_proof_from_awards(award_block, awards, leaf_index)
 		}
 	}
 
