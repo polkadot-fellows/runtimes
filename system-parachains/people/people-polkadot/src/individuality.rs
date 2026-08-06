@@ -48,8 +48,8 @@
 //!   people, plus context-scoped aliases (`PersonalAlias`) and the `PersonalIdentity` origin.
 //! * [`indiv_pallet_people_lite`] is the weaker, device-attestation based flavour of personhood.
 //! * [`indiv_pallet_game`] and [`indiv_pallet_score`] implement the in-person meetup game which
-//!   builds up a personhood score, with [`indiv_pallet_airdrop`] handing out prizes and
-//!   `pallet_nfts` minting attestations.
+//!   builds up a personhood score, with [`indiv_pallet_airdrop`] handing out prizes and game
+//!   reports recording NFT claim credits for Asset Hub to mint against.
 //! * [`indiv_pallet_honour`] lets people vote on calls with their personhood weight.
 //! * [`indiv_pallet_resources`] rations the off-chain resources (statement store, notifications,
 //!   long-term storage) a person may consume.
@@ -142,7 +142,7 @@ use scale_info::TypeInfo;
 use sp_runtime::MultiSigner;
 use sp_runtime::{
 	traits::{AccountIdConversion, ConstI8, ConstU16, Verify},
-	DispatchResult, MultiSignature,
+	DispatchError, DispatchResult, MultiSignature,
 };
 use sp_statement_store::StatementAllowance;
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
@@ -366,7 +366,7 @@ impl indiv_pallet_score::Config for Runtime {
 	type ScorePotId = ScorePotId;
 	type Currency = FungibleStableAsset;
 	type CurrencyLocationInfo = StableAssetLocation;
-	type ManagerOrigin = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
 	type MaxPayoutRoundSchedules = ConstU32<10>;
 	type OffchainWorkInterval = ConstU32<2>;
 	type People = People;
@@ -486,16 +486,16 @@ impl indiv_pallet_game::Config for Runtime {
 	// per-round slopes, so the benchmarking build widens them to 10. The fitted weight formulas
 	// stay valid at the production bounds, which only interpolate within the measured range.
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxGroupSize = ConstU32<6>;
+	type MaxGroupSize = ConstU32<PRODUCTION_MAX_GROUP_SIZE>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type MaxGroupSize = ConstU32<10>;
+	type MaxGroupSize = ConstU32<BENCHMARK_MAX_GROUP_SIZE>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type MaxRounds = ConstU32<3>;
+	type MaxRounds = ConstU32<PRODUCTION_MAX_ROUNDS>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type MaxRounds = ConstU32<10>;
+	type MaxRounds = ConstU32<BENCHMARK_MAX_ROUNDS>;
 	type UnixTime = RuntimeClock;
-	type ManagerOrigin = EnsureRoot<AccountId>;
-	type InviteIssuer = EnsureRoot<AccountId>;
+	type ManagerOrigin = RootOrFellows;
+	type InviteIssuer = RootOrFellows;
 	type NonPlayingKickoutTime = ConstU32<{ 90 * time::DAYS }>;
 	type NativeFungible = Balances;
 	type PlayDeposit = HoldConsideration<
@@ -768,7 +768,7 @@ impl indiv_pallet_members_notifier::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_members_notifier::WeightInfo<Runtime>;
 	type XcmRouter = xcm_config::XcmRouter;
 	type ChannelInfo = ParachainSystem;
-	type ManageOrigin = EnsureRoot<AccountId>;
+	type ManageOrigin = RootOrFellows;
 	type EnsureSubscriberOrigin = EnsureSiblingParachain;
 	type Crypto = BandersnatchVrfVerifiable;
 	type RingRootsProvider = Members;
@@ -884,8 +884,11 @@ impl indiv_pallet_origin_restriction::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::OriginRestrictionBenchmarkHelper;
 }
 
-/// Encoding of the Bulletin Chain pallets we construct remote calls into. The codec index must
-/// match the index of `TransactionStorage` in the Bulletin Chain's `construct_runtime`.
+/// Call encoding for the Bulletin Chain `TransactionStorage` calls invoked over XCM.
+///
+/// The pallet index is a dynamic parameter because Bulletin does not deploy
+/// `pallet-transaction-storage` yet. Governance must set it to the actual index before any
+/// long-term-storage allocation can succeed.
 ///
 /// TODO: long-term storage allocation is a silent no-op until Bulletin Polkadot deploys
 /// `pallet-transaction-storage`, and this index must be re-verified against its
@@ -898,16 +901,6 @@ impl indiv_pallet_origin_restriction::Config for Runtime {
 ///   against storage that was never actually reserved.
 /// * Nothing replays the grants issued during that window once the pallet does land, so the two
 ///   sides start out inconsistent and need a reconciliation plan.
-///
-/// Index 40 is a guess at where `TransactionStorage` will sit; a wrong index fails the same silent
-/// way, since the receiver simply cannot decode the call.
-#[derive(Encode, Decode)]
-enum BulletinPallets<AccountId: Encode> {
-	#[codec(index = 40)]
-	TransactionStorage(TransactionStorageCalls<AccountId>),
-}
-
-/// Call encoding for the Bulletin Chain `TransactionStorage` calls invoked over XCM.
 #[derive(Encode, Decode)]
 enum TransactionStorageCalls<AccountId: Encode> {
 	/// `authorize_account(who, transactions, bytes)`
@@ -923,14 +916,14 @@ enum TransactionStorageCalls<AccountId: Encode> {
 pub struct BulletinDataStore;
 impl AllocateStorage<AccountId> for BulletinDataStore {
 	fn allocate_storage(who: &AccountId, len: u64, count: u32) -> DispatchResult {
-		let call = BulletinPallets::<AccountId>::TransactionStorage(
+		let call = Self::encode_transaction_storage_call(
 			TransactionStorageCalls::AuthorizeAccount(who.clone(), count, len),
 		);
 		Self::send(call)
 	}
 
 	fn refresh_allocation(who: &AccountId) -> DispatchResult {
-		let call = BulletinPallets::<AccountId>::TransactionStorage(
+		let call = Self::encode_transaction_storage_call(
 			TransactionStorageCalls::RefreshAccountAuthorization(who.clone()),
 		);
 		Self::send(call)
@@ -938,22 +931,39 @@ impl AllocateStorage<AccountId> for BulletinDataStore {
 }
 
 impl BulletinDataStore {
-	fn send(call: BulletinPallets<AccountId>) -> DispatchResult {
+	/// The long-term storage protocol is a sibling-parachain protocol. Governance may correct the
+	/// Bulletin para-id, but may not redirect allocations to the relay chain or an arbitrary XCM
+	/// interior, where a successful local send would otherwise remain a silent remote no-op.
+	pub(crate) fn bulletin_chain_location() -> Result<Location, DispatchError> {
+		let destination = dynamic_params::bulletin_storage::BulletinChainLocation::get();
+		if destination.parents == 1 &&
+			matches!(destination.interior.as_slice(), [Junction::Parachain(_)])
+		{
+			Ok(destination)
+		} else {
+			Err(DispatchError::Other("Bulletin destination must be a sibling parachain"))
+		}
+	}
+
+	fn encode_transaction_storage_call(
+		call: TransactionStorageCalls<AccountId>,
+	) -> alloc::vec::Vec<u8> {
+		let mut encoded = alloc::vec![
+			dynamic_params::bulletin_storage::BulletinTransactionStoragePalletIndex::get(),
+		];
+		encoded.extend(call.encode());
+		encoded
+	}
+
+	fn send(call: alloc::vec::Vec<u8>) -> DispatchResult {
 		let program = Xcm(alloc::vec![
 			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
-			Transact {
-				origin_kind: OriginKind::Xcm,
-				fallback_max_weight: None,
-				call: call.encode().into(),
-			},
+			Transact { origin_kind: OriginKind::Xcm, fallback_max_weight: None, call: call.into() },
 		]);
 
-		send_xcm::<xcm_config::XcmRouter>(
-			dynamic_params::bulletin_storage::BulletinChainLocation::get(),
-			program,
-		)
-		.map(|_| ())
-		.map_err(|_| pallet_xcm::Error::<Runtime>::SendFailure)?;
+		send_xcm::<xcm_config::XcmRouter>(Self::bulletin_chain_location()?, program)
+			.map(|_| ())
+			.map_err(|_| pallet_xcm::Error::<Runtime>::SendFailure)?;
 		Ok(())
 	}
 }
