@@ -222,32 +222,10 @@ impl indiv_pallet_pgas::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::PgasBenchHelper;
 }
 
-/// Calls that PGAS may pay the fee for.
-///
-/// PGAS is claimed for free by anyone who can prove personhood, so it must not be spendable on
-/// anything that competes for block space with fee-paying traffic beyond contract execution, which
-/// is what it exists for.
-pub struct PGASCallFilter;
-impl frame_support::traits::Contains<RuntimeCall> for PGASCallFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		match call {
-			RuntimeCall::Revive(..) => true,
-			RuntimeCall::Utility(pallet_utility::Call::batch { calls }) |
-			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) |
-			RuntimeCall::Utility(pallet_utility::Call::force_batch { calls }) =>
-				calls.iter().all(|inner_call| matches!(inner_call, RuntimeCall::Revive(..))),
-			_ => false,
-		}
-	}
-}
-
 impl pallet_pgas_allowance::Config for Runtime {
 	type Assets = Assets;
 	type PGASAssetId = PgasAssetId;
-	// The benchmarks charge PGAS for a plain `remark`, so they need a filter that accepts it.
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type CallFilter = PGASCallFilter;
-	#[cfg(feature = "runtime-benchmarks")]
+	// PGAS is a general Asset Hub fee asset, so every RuntimeCall may be paid with it.
 	type CallFilter = frame_support::traits::Everything;
 	type WeightInfo = weights::pallet_pgas_allowance::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
