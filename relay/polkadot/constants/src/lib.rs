@@ -115,6 +115,12 @@ pub mod xcm {
 		/// The FellowshipAdmin OpenGov body index.
 		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
 		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
+		/// The TechnicalMaintenance OpenGov body index.
+		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
+		pub const TECHNICAL_MAINTENANCE_INDEX: u32 = 2;
+		/// The ProsperityAdmin OpenGov body index.
+		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
+		pub const PROSPERITY_ADMIN_INDEX: u32 = 3;
 	}
 }
 

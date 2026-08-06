@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_admin` track for guarding the Prosperity monetary mechanisms (PSM, coinage) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+
 ### Changed
 
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. It is now closer to Asset Hub Polkadot config.
