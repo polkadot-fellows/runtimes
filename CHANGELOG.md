@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Polkadot & Kusama system parachains that pass aliasers to their XCM barrier (Asset Hubs, Bridge Hubs, Collectives, Coretime, People, Encointer, Bulletin): stop passing the storage-reading `pallet_xcm::AuthorizedAliasers` filter to `AllowExplicitUnpaidExecutionFrom`. The barrier reads up to 5 instructions before `UnpaidExecution` and calls its `Aliasers` filter for every `AliasOrigin` among them, so a message could force up to 5 storage reads, on keys it chose, that nobody paid for. `TrustedAliasers` is now split into a computation-only `CheapTrustedAliasers` (used by the barrier) and `(CheapTrustedAliasers, AuthorizedAliasers<Runtime>)` (still `xcm_executor::Config::Aliasers`); aliases that only `AuthorizedAliasers` permits must now buy execution via the paid barrier instead of using `UnpaidExecution`.
+
 ## [2.3.2] 23.07.2026
 
 ### Added
