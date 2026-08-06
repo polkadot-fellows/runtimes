@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_admin` track for guarding the Prosperity monetary mechanisms (PSM, coinage) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_admin` track for guarding the Prosperity monetary mechanisms (PSM, coinage) ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
 
 ### Changed
 
