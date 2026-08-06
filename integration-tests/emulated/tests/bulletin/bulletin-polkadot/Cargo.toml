@@ -10,6 +10,8 @@ publish = false
 [dependencies]
 # Substrate
 frame-support = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+pallet-xcm = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
@@ -22,6 +24,9 @@ emulated-integration-tests-common = { workspace = true }
 # Local
 integration-tests-helpers = { workspace = true }
 bulletin-polkadot-runtime = { workspace = true }
+people-polkadot-runtime = { workspace = true }
+indiv-support = { workspace = true, default-features = true }
+indiv-pallet-resources = { workspace = true, default-features = true }
 polkadot-system-emulated-network = { workspace = true }
 
 [features]
