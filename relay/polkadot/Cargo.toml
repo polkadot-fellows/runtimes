@@ -102,6 +102,7 @@ pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 hex-literal = { workspace = true }
 
 polkadot-runtime-common = { workspace = true }
+relay-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
 
@@ -205,6 +206,7 @@ std = [
 	"polkadot-parachain-primitives/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
+	"relay-common/std",
 	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
@@ -286,6 +288,7 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"relay-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
