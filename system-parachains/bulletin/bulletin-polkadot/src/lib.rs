@@ -105,6 +105,13 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type BlockId = generic::BlockId<Block>;
 
 /// The TransactionExtension to the basic transaction logic.
+///
+/// ## PGAS
+///
+/// PGAS payment cannot be wired into Bulletin yet. Unlike Asset Hub, this runtime does not include
+/// `pallet-assets`, `pallet-asset-conversion-tx-payment`, or `pallet-pgas-allowance`; consequently
+/// it has neither a PGAS asset nor an asset-payment extension for `ChargePGAS` to wrap. Adding
+/// those pallets and their asset-conversion configuration is a separate deployment decision.
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
