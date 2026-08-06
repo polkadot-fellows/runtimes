@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - The Individuality origin modifiers, `RestrictOrigin` and the `ChargePGAS` payment wrapper are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged — Ethereum transactions and legacy signed transactions keep using it — so `transaction_version` does not move.
 - People Polkadot: make Individuality statement-store and Bulletin long-term-storage limits, including the Bulletin destination and `pallet-transaction-storage` target index, governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
 - Asset Hub Polkadot: make Individuality PGAS claim economics, alias-account windows, and dotNS gateway limits governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_admin` track for guarding the Prosperity monetary mechanisms (PSM, coinage) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
 
 ### Changed
 
