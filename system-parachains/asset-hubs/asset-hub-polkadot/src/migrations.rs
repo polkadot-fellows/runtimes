@@ -201,6 +201,32 @@ pub type Unreleased = (
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{individuality::PGAS_ASSET_ID, RuntimeGenesisConfig, TrustBackedAssetsInstance};
+	use frame_support::traits::OnRuntimeUpgrade;
+	use sp_runtime::BuildStorage;
+
+	/// P0: `CreatePgasAsset` swallows `BadAssetId` when `NextAssetId` is set, so a real Asset Hub
+	/// upgrade completes without creating PGAS. Keep this guard ignored until the migration design
+	/// is deliberately fixed; it must become green before release.
+	#[test]
+	#[ignore = "P0: CreatePgasAsset fails when Assets::NextAssetId is populated"]
+	fn pgas_asset_exists_after_create_pgas_asset_migration() {
+		let mut ext = sp_io::TestExternalities::new(
+			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+		);
+		ext.execute_with(|| {
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::put(50_000_000u32);
+			let _ = indiv_pallet_pgas::migration::CreatePgasAsset::<Runtime>::on_runtime_upgrade();
+			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				PGAS_ASSET_ID
+			));
+		});
+	}
+}
+
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = (Unreleased, Permanent);
 
