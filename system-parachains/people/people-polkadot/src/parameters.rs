@@ -72,12 +72,24 @@ pub mod dynamic_params {
 		pub static LongTermStorageClaimsPerPeriod: u8 = 100;
 		#[codec(index = 4)]
 		pub static LongTermStorageCleanupLimit: u32 = 20;
+		/// Long-term storage granted to a full person by each claim.
+		///
+		/// Each claim gives 1 MiB of long-term storage to a full person.
+		/// The default limit is 100 claims per period.
+		/// The claims add together. The maximum is 100 MiB per person per period.
+		/// This default supports the reviewed usage model. Governance can increase this value.
 		#[codec(index = 5)]
 		pub static LongTermStorageAllowanceForPeople: LongTermStorageAllocation =
-			LongTermStorageAllocation { transactions: 100, bytes: 8 * 1024 * 1024 };
+			LongTermStorageAllocation { transactions: 100, bytes: 1024 * 1024 };
+		/// Long-term storage granted to a lite person by each claim.
+		///
+		/// Each claim gives 100 KiB of long-term storage to a lite person.
+		/// The default limit is 100 claims per period.
+		/// The claims add together. The maximum is 10 MiB per person per period.
+		/// This default supports the reviewed usage model. Governance can increase this value.
 		#[codec(index = 6)]
 		pub static LongTermStorageAllowanceForLitePeople: LongTermStorageAllocation =
-			LongTermStorageAllocation { transactions: 10, bytes: 4 * 1024 * 1024 };
+			LongTermStorageAllocation { transactions: 10, bytes: 100 * 1024 };
 		/// The `pallet-transaction-storage` index on Bulletin, set when Bulletin deploys it.
 		#[codec(index = 7)]
 		pub static BulletinTransactionStoragePalletIndex: u8 = 40;
