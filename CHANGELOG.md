@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `pallet-pgas` lets a proven person claim PGAS (a new non-transferable allowance asset, id `2_000_000_000`); `pallet-pgas-allowance` lets PGAS pay the fees of contract calls, and `pallet_revive::PGasDeposit` makes contract storage deposits PGAS-denominated, so a proven person needs no DOT to use contracts. `pallet-assets-freezer` and `pallet-assets-holder` are added on the `Assets` (trust-backed) instance to support this, and `pallet_revive::migrations::v4::Migration` converts the storage deposits of contracts that already exist — it must ship in the same upgrade.
   - `pallet-dotns-gateway` is the personhood-gated front door to the dotNS name registry, with `pallet-origin-restriction` rate-limiting the anonymous origins it produces.
   - The Individuality origin modifiers, `RestrictOrigin` and the `ChargePGAS` payment wrapper are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged — Ethereum transactions and legacy signed transactions keep using it — so `transaction_version` does not move.
+- People Polkadot: make Individuality statement-store and Bulletin long-term-storage limits, including the Bulletin destination and `pallet-transaction-storage` target index, governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+- Asset Hub Polkadot: make Individuality PGAS claim economics, alias-account windows, and dotNS gateway limits governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
 
 ### Changed
 
