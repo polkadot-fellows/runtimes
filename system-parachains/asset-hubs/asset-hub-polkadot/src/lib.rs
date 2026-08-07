@@ -1283,6 +1283,8 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 		match key {
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
+			Individuality(_) =>
+				individuality::RootOrFellows::ensure_origin(origin.clone()).map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -1375,6 +1377,51 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static MaxOnIdleWeight: Option<Weight> =
 			Some(Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block);
+	}
+
+	/// Individuality economic and policy parameters.
+	///
+	/// The values below are read from `pallet_parameters` storage at use sites. Re-benchmark the
+	/// affected Individuality pallets in the Individuality SDK repository before release so their
+	/// weights account for those reads; do not regenerate weights in this runtime repository.
+	#[dynamic_pallet_params]
+	#[codec(index = 3)]
+	pub mod individuality {
+		/// PGAS minted to a proven person for each successful claim.
+		#[codec(index = 0)]
+		pub static PgasClaimAmount: Balance = 5000 * crate::individuality::PgasMinBalance::get();
+		/// Maximum PGAS claims per period for a full person.
+		#[codec(index = 1)]
+		pub static MaxClaimsPerPeriodPerPerson: u32 = 100;
+		/// Maximum PGAS claims per period for a lite person.
+		#[codec(index = 2)]
+		pub static MaxClaimsPerPeriodPerLitePerson: u32 = 40;
+		/// Maximum PGAS claim records removed by one cleanup call.
+		#[codec(index = 3)]
+		pub static MaxPgasClaimRecordCleanupPerCall: u32 = 20;
+		/// Seconds for which an alias proof remains valid.
+		#[codec(index = 4)]
+		pub static AliasProofValidityWindow: u64 = 300;
+		/// Seconds before a stale alias binding may be cleaned up.
+		#[codec(index = 5)]
+		pub static AliasCleanupGracePeriod: u64 = 3600;
+		/// Maximum weight available to one dotNS registry-contract call.
+		#[codec(index = 6)]
+		pub static DotnsMaxContractCallWeight: Weight =
+			Weight::from_parts(100_000_000_000, 2 * 1024 * 1024);
+		/// Maximum age of a dotNS attestation signature.
+		#[codec(index = 7)]
+		pub static DotnsMaxValiditySeconds: u64 = 3 * 24 * 60 * 60;
+		/// Permitted future clock skew for a dotNS attestation signature.
+		#[codec(index = 8)]
+		pub static DotnsMaxFutureSkewSeconds: u64 = 30;
+		/// Maximum allowance for anonymous full-person dotNS registration attempts.
+		#[codec(index = 9)]
+		pub static DotnsPersonRegistrationAllowanceMax: Balance = MILLICENTS;
+		/// Per-block recovery for anonymous full-person dotNS registration attempts.
+		#[codec(index = 10)]
+		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
+			50 * CENTS / ((30 * crate::individuality::time::MINUTES) as Balance);
 	}
 }
 

@@ -179,9 +179,9 @@ impl indiv_pallet_alias_accounts::Config for Runtime {
 	type MemberService = MembersSubscriber;
 	type UnixTime = Timestamp;
 	/// A proof is accepted for five minutes after the timestamp it commits to.
-	type ProofValidityWindow = ConstU64<300>;
+	type ProofValidityWindow = dynamic_params::individuality::AliasProofValidityWindow;
 	/// An hour of grace before a released alias binding can be cleaned up.
-	type CleanupGracePeriod = ConstU64<3600>;
+	type CleanupGracePeriod = dynamic_params::individuality::AliasCleanupGracePeriod;
 	type PeopleLiteRingExponent = PeopleLiteRingExponent;
 	type PeopleRingExponent = PeopleRingExponent;
 	type Fungibles = Assets;
@@ -201,15 +201,6 @@ parameter_types! {
 	pub PgasAdmin: AccountId = PgasPalletId::get().into_account_truncating();
 	pub PgasAssetId: AssetIdForTrustBackedAssets = PGAS_ASSET_ID;
 	pub PgasMinBalance: Balance = ExistentialDeposit::get() / 10;
-	/// How much PGAS a person receives per claim.
-	///
-	/// TODO: double-check this for Polkadot, together with `MaxClaimsPerPeriodPerPerson` below.
-	/// PGAS is minted for free to anyone who can prove personhood and pays for contract execution
-	/// and storage deposits, so this constant and the per-period claim caps together set how much
-	/// free block space and state growth a proven person is entitled to. It is derived from
-	/// `ExistentialDeposit`, which differs between this chain and the reference runtime, so the
-	/// resulting subsidy has not been sized for Polkadot.
-	pub PgasClaimAmount: Balance = 5000 * PgasMinBalance::get();
 }
 
 impl indiv_pallet_pgas::Config for Runtime {
@@ -218,10 +209,12 @@ impl indiv_pallet_pgas::Config for Runtime {
 	type Clock = Timestamp;
 	type Fungibles = Assets;
 	type PgasAssetId = PgasAssetId;
-	type PgasClaimAmount = PgasClaimAmount;
-	type MaxClaimsPerPeriodPerPerson = ConstU32<100>;
-	type MaxClaimsPerPeriodPerLitePerson = ConstU32<40>;
-	type MaxPgasClaimRecordCleanupPerCall = ConstU32<20>;
+	type PgasClaimAmount = dynamic_params::individuality::PgasClaimAmount;
+	type MaxClaimsPerPeriodPerPerson = dynamic_params::individuality::MaxClaimsPerPeriodPerPerson;
+	type MaxClaimsPerPeriodPerLitePerson =
+		dynamic_params::individuality::MaxClaimsPerPeriodPerLitePerson;
+	type MaxPgasClaimRecordCleanupPerCall =
+		dynamic_params::individuality::MaxPgasClaimRecordCleanupPerCall;
 	type PgasAdmin = PgasAdmin;
 	type PgasMinBalance = PgasMinBalance;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -263,7 +256,7 @@ impl indiv_pallet_dotns_gateway::ContractCaller for ReviveContractCaller {
 			dest,
 			value.into(),
 			TransactionLimits::WeightAndDeposit {
-				weight_limit: DotnsMaxContractCallWeight::get(),
+				weight_limit: dynamic_params::individuality::DotnsMaxContractCallWeight::get(),
 				// The root origin does not pay the deposit cost; per-call storage growth is bounded
 				// by `weight_limit.proof_size`.
 				deposit_limit: u128::MAX,
@@ -282,22 +275,14 @@ impl indiv_pallet_dotns_gateway::ContractCaller for ReviveContractCaller {
 	}
 }
 
-parameter_types! {
-	/// On-chain measured weight is below this, so this leaves some margin.
-	pub const DotnsMaxContractCallWeight: Weight =
-		Weight::from_parts(100_000_000_000, 2 * 1024 * 1024);
-	pub const DotnsMaxValiditySeconds: u64 = 3 * 24 * 60 * 60; // 3 days
-	pub const DotnsMaxFutureSkewSeconds: u64 = 30;
-}
-
 impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_dotns_gateway::WeightInfo<Runtime>;
 	type MemberService = MembersSubscriber;
 	type ContractCaller = ReviveContractCaller;
 	type AddressMapper = ReviveAddressMapper;
-	type MaxContractCallWeight = DotnsMaxContractCallWeight;
-	type MaxValiditySeconds = DotnsMaxValiditySeconds;
-	type MaxFutureSkewSeconds = DotnsMaxFutureSkewSeconds;
+	type MaxContractCallWeight = dynamic_params::individuality::DotnsMaxContractCallWeight;
+	type MaxValiditySeconds = dynamic_params::individuality::DotnsMaxValiditySeconds;
+	type MaxFutureSkewSeconds = dynamic_params::individuality::DotnsMaxFutureSkewSeconds;
 	type UnixTime = Timestamp;
 	type AttestationAllowanceManager = RootOrFellows;
 	// This controls the RootGateway dispatcher contract, rather than an Individuality allowance;
@@ -307,19 +292,6 @@ impl indiv_pallet_dotns_gateway::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::DotnsGatewayBenchHelper;
 }
-
-/// A deliberately tiny allowance: any non-trivial extrinsic fee exhausts it, so every
-/// `register_name` attempt relies on [`OperationAllowedOneTimeExcess`] to be admitted at all, and
-/// then locks the alias out until recovery brings its usage back to zero.
-const DOTNS_PERSON_REGISTRATION_ALLOWANCE_MAX: Balance = MILLICENTS;
-/// Recover enough that a failed name registration can be retried in about 30 minutes. The 50 CENTS
-/// figure comes from the measured weight of the call.
-///
-/// Counted in this chain's own 2s blocks via [`time`], not the 6s `async_backing::MINUTES` the rest
-/// of the runtime imports — the latter would make the allowance recover three times too fast, i.e.
-/// permit a retry every 10 minutes.
-const DOTNS_PERSON_REGISTRATION_ALLOWANCE_RECOVERY: Balance =
-	50 * CENTS / ((30 * time::MINUTES) as Balance);
 
 /// The anonymous origins this runtime rate-limits, and the key their allowance is tracked under.
 #[derive(
@@ -344,8 +316,10 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 		match self {
 			RestrictedEntity::DotnsPersonRegistration(_) =>
 				indiv_pallet_origin_restriction::Allowance {
-					max: DOTNS_PERSON_REGISTRATION_ALLOWANCE_MAX,
-					recovery_per_block: DOTNS_PERSON_REGISTRATION_ALLOWANCE_RECOVERY,
+					max: dynamic_params::individuality::DotnsPersonRegistrationAllowanceMax::get(),
+					recovery_per_block:
+						dynamic_params::individuality::DotnsPersonRegistrationAllowanceRecovery::get(
+						),
 				},
 		}
 	}
