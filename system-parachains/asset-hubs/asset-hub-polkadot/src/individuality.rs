@@ -66,11 +66,11 @@
 //! 3. `DotnsGateway::set_dispatcher_address` (root) — point the gateway at the deployed
 //!    `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot register any name until this
 //!    is set, so the dotNS registry contract has to be deployed first.
+//! 4. `AliasAccounts::set_alias_fee` (Fellowship or root) — configure the asset and amount charged
+//!    for alias registration before enabling account-alias flows.
 //!
 //! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship or root) to admit
 //! an attestation provider.
-//! 4. `AliasAccounts::set_alias_fee` (Fellowship or root) — configure the asset and amount charged
-//!    for alias registration before enabling account-alias flows.
 
 use super::*;
 
