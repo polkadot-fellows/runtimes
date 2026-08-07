@@ -424,8 +424,7 @@ mod tests {
 			Ok(0),
 			"Root maps to the root track"
 		);
-		// Root plus the custom origins above account for every declared track: no track is
-		// unreachable and no origin is unpinned.
+
 		assert_eq!(TRACKS_DATA.len(), pinned + 1);
 	}
 }
