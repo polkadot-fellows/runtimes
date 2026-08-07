@@ -1388,6 +1388,13 @@ pub mod dynamic_params {
 	#[codec(index = 3)]
 	pub mod individuality {
 		/// PGAS minted to a proven person for each successful claim.
+		///
+		/// PGAS is minted for free to anyone proving personhood and pays for contract execution and
+		/// storage deposits. This value, together with the per-period claim caps, therefore sets
+		/// how much free block space and state growth a person is entitled to. Its default
+		/// derives from `ExistentialDeposit`, unlike the reference runtime, so this subsidy has
+		/// not been sized for Polkadot. TODO: double-check it for Polkadot together with
+		/// `MaxClaimsPerPeriodPerPerson`.
 		#[codec(index = 0)]
 		pub static PgasClaimAmount: Balance = 5000 * crate::individuality::PgasMinBalance::get();
 		/// Maximum PGAS claims per period for a full person.
@@ -1419,6 +1426,11 @@ pub mod dynamic_params {
 		#[codec(index = 9)]
 		pub static DotnsPersonRegistrationAllowanceMax: Balance = MILLICENTS;
 		/// Per-block recovery for anonymous full-person dotNS registration attempts.
+		///
+		/// The formula counts this chain's own two-second blocks through `individuality::time`, not
+		/// the six-second `async_backing::MINUTES` imported elsewhere in the runtime. Using the
+		/// latter would make the allowance recover three times too fast: once every ten minutes
+		/// rather than every thirty.
 		#[codec(index = 10)]
 		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
 			50 * CENTS / ((30 * crate::individuality::time::MINUTES) as Balance);
