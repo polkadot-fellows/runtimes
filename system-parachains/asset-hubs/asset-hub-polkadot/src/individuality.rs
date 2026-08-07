@@ -178,9 +178,9 @@ impl indiv_pallet_alias_accounts::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_alias_accounts::WeightInfo<Runtime>;
 	type MemberService = MembersSubscriber;
 	type UnixTime = Timestamp;
-	/// A proof is accepted for five minutes after the timestamp it commits to.
+	/// The default proof-validity window is five minutes after the timestamp it commits to.
 	type ProofValidityWindow = dynamic_params::individuality::AliasProofValidityWindow;
-	/// An hour of grace before a released alias binding can be cleaned up.
+	/// The default cleanup grace period for a released alias binding is one hour.
 	type CleanupGracePeriod = dynamic_params::individuality::AliasCleanupGracePeriod;
 	type PeopleLiteRingExponent = PeopleLiteRingExponent;
 	type PeopleRingExponent = PeopleRingExponent;

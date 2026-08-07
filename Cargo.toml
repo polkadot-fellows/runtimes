@@ -8,6 +8,8 @@ license = "GPL-3.0-only"                                        # TODO <https://
 [workspace.dependencies]
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
+pallet-ct-migrator = { path = "pallets/ct-migrator", default-features = false }
+pallet-rc2-migrator = { path = "pallets/rc2-migrator", default-features = false }
 pallet-election-provider-multi-block = { version = "0.10.0", default-features = false }
 pallet-staking-async = { version = "0.13.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
@@ -317,7 +319,6 @@ subxt = { version = "0.43.0" }
 tracing-subscriber = { version = "0.3.18" }
 zombienet-sdk = { version = "0.4.11" }
 tuplex = { version = "0.1.0", default-features = false }
-relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
 serial_test = { version = "3" }
 
@@ -359,9 +360,10 @@ members = [
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
+	"pallets/ct-migrator",
 	"pallets/rc-migrator",
+	"pallets/rc2-migrator",
 	"pallets/remote-proxy",
-	"relay/common",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",

@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus, and each block is validated on its own core, so it may use a full core's PVF execution budget — Asset Hub Polkadot runs the identical consensus config and is already configured this way. The old pairing was a leftover from the elastic-scaling switch rather than a conservative choice: at 3 blocks per 6s relay slot it granted 1.5s of compute per 6s, less total throughput than a plain async-backing chain, at triple the block production cost.
+- People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. This matches Asset Hub Polkadot's block-weight configuration.
 
 ## [2.3.2] 23.07.2026
 
