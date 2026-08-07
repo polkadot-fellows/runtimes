@@ -178,7 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 2_003_001,
+	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -881,7 +881,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		let params = relay_common::EraPayoutParams {
+		let params = polkadot_runtime_common::impls::EraPayoutParams {
 			total_staked,
 			total_stakable: Balances::total_issuance(),
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
@@ -901,8 +901,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 				None
 			},
 		};
-		log::debug!(target: "runtime::kusama", "params: {params:?}");
-		relay_common::relay_era_payout(params)
+		polkadot_runtime_common::impls::relay_era_payout(params)
 	}
 }
 
