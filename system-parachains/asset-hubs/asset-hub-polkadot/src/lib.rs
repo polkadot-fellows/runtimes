@@ -3002,7 +3002,7 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{assert_noop, hypothetically_ok};
+	use frame_support::{assert_noop, assert_ok, hypothetically_ok};
 	use sp_runtime::{
 		traits::{Dispatchable, Zero},
 		DispatchError,
@@ -3010,6 +3010,117 @@ mod tests {
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
+
+	#[test]
+	fn individuality_parameters_are_governance_mutable() {
+		use frame_support::traits::Get;
+		use polkadot_runtime_constants::{
+			fellowship::FELLOWS_RANK, system_parachain::COLLECTIVES_ID,
+		};
+
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			assert_eq!(
+				dynamic_params::individuality::PgasClaimAmount::get(),
+				5000 * individuality::PgasMinBalance::get(),
+			);
+			assert_noop!(
+				Parameters::set_parameter(
+					RuntimeOrigin::signed(AccountId::from([1u8; 32])),
+					RuntimeParameters::Individuality(
+						dynamic_params::individuality::Parameters::PgasClaimAmount(
+							dynamic_params::individuality::PgasClaimAmount,
+							Some(42),
+						),
+					),
+				),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				RuntimeParameters::Individuality(
+					dynamic_params::individuality::Parameters::PgasClaimAmount(
+						dynamic_params::individuality::PgasClaimAmount,
+						Some(42),
+					),
+				),
+			));
+			assert_eq!(dynamic_params::individuality::PgasClaimAmount::get(), 42);
+
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+					1,
+					[
+						Parachain(COLLECTIVES_ID),
+						Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+						GeneralIndex(FELLOWS_RANK),
+					],
+				))),
+				RuntimeParameters::Individuality(
+					dynamic_params::individuality::Parameters::AliasProofValidityWindow(
+						dynamic_params::individuality::AliasProofValidityWindow,
+						Some(60),
+					),
+				),
+			));
+			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), 60);
+		});
+	}
+
+	#[test]
+	fn individuality_dynamic_parameter_bounds_are_stored() {
+		use frame_support::traits::Get;
+
+		macro_rules! set_individuality_parameter {
+			($name:ident, $value:expr) => {
+				assert_ok!(Parameters::set_parameter(
+					RuntimeOrigin::root(),
+					RuntimeParameters::Individuality(
+						dynamic_params::individuality::Parameters::$name(
+							dynamic_params::individuality::$name,
+							Some($value),
+						)
+					),
+				));
+			};
+		}
+
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			set_individuality_parameter!(PgasClaimAmount, Balance::MAX);
+			assert_eq!(dynamic_params::individuality::PgasClaimAmount::get(), Balance::MAX);
+			set_individuality_parameter!(MaxClaimsPerPeriodPerPerson, u32::MAX);
+			assert_eq!(dynamic_params::individuality::MaxClaimsPerPeriodPerPerson::get(), u32::MAX);
+			set_individuality_parameter!(MaxClaimsPerPeriodPerLitePerson, 0u32);
+			assert_eq!(dynamic_params::individuality::MaxClaimsPerPeriodPerLitePerson::get(), 0);
+			set_individuality_parameter!(MaxPgasClaimRecordCleanupPerCall, u32::MAX);
+			assert_eq!(
+				dynamic_params::individuality::MaxPgasClaimRecordCleanupPerCall::get(),
+				u32::MAX,
+			);
+			set_individuality_parameter!(AliasProofValidityWindow, u64::MAX);
+			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), u64::MAX);
+			set_individuality_parameter!(AliasCleanupGracePeriod, 0u64);
+			assert_eq!(dynamic_params::individuality::AliasCleanupGracePeriod::get(), 0);
+			set_individuality_parameter!(DotnsMaxContractCallWeight, Weight::MAX);
+			assert_eq!(
+				dynamic_params::individuality::DotnsMaxContractCallWeight::get(),
+				Weight::MAX
+			);
+			set_individuality_parameter!(DotnsMaxValiditySeconds, u64::MAX);
+			assert_eq!(dynamic_params::individuality::DotnsMaxValiditySeconds::get(), u64::MAX);
+			set_individuality_parameter!(DotnsMaxFutureSkewSeconds, 0u64);
+			assert_eq!(dynamic_params::individuality::DotnsMaxFutureSkewSeconds::get(), 0);
+			set_individuality_parameter!(DotnsPersonRegistrationAllowanceMax, Balance::MAX);
+			assert_eq!(
+				dynamic_params::individuality::DotnsPersonRegistrationAllowanceMax::get(),
+				Balance::MAX,
+			);
+			set_individuality_parameter!(DotnsPersonRegistrationAllowanceRecovery, 0);
+			assert_eq!(
+				dynamic_params::individuality::DotnsPersonRegistrationAllowanceRecovery::get(),
+				0,
+			);
+		});
+	}
 
 	/// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
 	/// Individuality deployment and must stay frozen so already-built signers keep working, while
