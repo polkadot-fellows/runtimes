@@ -17,6 +17,9 @@
 //! Shared types between system-parachains runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
+pub mod migrations;
 pub mod randomness;
 
 /// Extra runtime APIs.

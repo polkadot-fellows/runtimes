@@ -153,8 +153,18 @@ pub mod migrations {
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = (Unreleased, Permanent);
 
+	parameter_types! {
+		/// One day at the 6s block time of this chain.
+		///
+		/// No single MBM may block the chain for longer than this.
+		pub const MbmMaxBlocks: u32 = 14_400;
+	}
+
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
+	pub type MbmMigrations =
+		system_parachains_common::migrations::MaxStepsCapped<UncappedMbmMigrations, MbmMaxBlocks>;
+
+	type UncappedMbmMigrations = ();
 }
 
 /// Executive: handles dispatch to the various modules.

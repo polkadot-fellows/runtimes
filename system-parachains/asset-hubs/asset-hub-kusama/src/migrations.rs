@@ -146,11 +146,21 @@ mod multiblock_migrations {
 		migrations::foreign_assets_reserves::ForeignAssetsReservesProvider,
 	};
 	use frame_support::traits::Contains;
+	use system_parachains_common::migrations::MaxStepsCapped;
 	use xcm::v5::{Junction, Location};
 	use xcm_builder::StartsWith;
 
+	parameter_types! {
+		/// One day at the 2s block time of this chain.
+		///
+		/// No single MBM may block the chain for longer than this.
+		pub const MbmMaxBlocks: u32 = 43_200;
+	}
+
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = (
+	pub type MbmMigrations = MaxStepsCapped<UncappedMbmMigrations, MbmMaxBlocks>;
+
+	type UncappedMbmMigrations = (
 		assets_common::migrations::foreign_assets_reserves::ForeignAssetsReservesMigration<
 			Runtime,
 			ForeignAssetsInstance,
@@ -264,6 +274,20 @@ mod multiblock_migrations {
 					// unexpected asset
 					_ => false,
 				}
+			}
+		}
+	}
+
+	#[cfg(test)]
+	mod tests {
+		use super::*;
+		use frame_support::migrations::SteppedMigrations;
+
+		#[test]
+		fn no_mbm_can_run_for_longer_than_a_day() {
+			for n in 0..MbmMigrations::len() {
+				let max_steps = MbmMigrations::nth_max_steps(n).expect("n < len; qed");
+				assert!(max_steps.is_some_and(|max| max <= MbmMaxBlocks::get()));
 			}
 		}
 	}
