@@ -980,11 +980,20 @@ pub mod benchmark_utils {
 		},
 	};
 	use indiv_support::{
+		crypto::BandersnatchSuite,
 		genesis::ring_verifier_builder_params,
 		traits::{AddOnlyPeopleTrait, AppendOnlyMembers, RingMode, PEOPLE_IDENTIFIER},
 	};
 	use sp_runtime::{traits::IdentifyAccount, FixedU128};
 	use verifiable::ring::RingDomainSize;
+
+	type BenchRingSetup = (
+		<BandersnatchVrfVerifiable as GenerateVerifiable>::Members,
+		<BandersnatchVrfVerifiable as GenerateVerifiable>::Intermediate,
+		<BandersnatchVrfVerifiable as GenerateVerifiable>::Member,
+		<BandersnatchVrfVerifiable as GenerateVerifiable>::Secret,
+		<BandersnatchVrfVerifiable as GenerateVerifiable>::Config,
+	);
 
 	/// Reads `pallet_timestamp::Now` directly, deliberately skipping `pallet_timestamp::Pallet`'s
 	/// `UnixTime` impl so that the `log::error!` it emits for a zero timestamp does not fire on
@@ -1016,6 +1025,29 @@ pub mod benchmark_utils {
 		entropy[..8].copy_from_slice(&seed.to_le_bytes()[..]);
 		let secret = BandersnatchVrfVerifiable::new_secret(entropy);
 		BandersnatchVrfVerifiable::member_from_secret(&secret)
+	}
+
+	/// Builds a one-member Bandersnatch ring from a configured exponent.
+	///
+	/// This mirrors `ring_setup` in Individuality's
+	/// `runtimes/next-asset-hub-paseo/src/lib.rs`. `indiv_support::crypto` does not export the
+	/// benchmark helper at this pinned revision; keep this single local mirror in sync with review
+	/// r3734171704 until the SDK exports it.
+	fn ring_setup(ring_exponent: RingExponent, entropy: [u8; 32]) -> BenchRingSetup {
+		let domain: RingDomainSize =
+			ring_exponent.try_into().expect("RingExponent maps to RingDomainSize");
+		let chunks = ring_verifier_builder_params::<BandersnatchSuite>(domain);
+		let secret = BandersnatchVrfVerifiable::new_secret(entropy);
+		let member = BandersnatchVrfVerifiable::member_from_secret(&secret);
+		let mut intermediate = BandersnatchVrfVerifiable::start_members(domain);
+		BandersnatchVrfVerifiable::push_members(
+			&mut intermediate,
+			core::iter::once(member),
+			|range| Ok(chunks[range].to_vec()),
+		)
+		.expect("benchmark: push_members for a single member");
+		let members = BandersnatchVrfVerifiable::finish_members(intermediate.clone());
+		(members, intermediate, member, secret, domain)
 	}
 
 	pub fn account_from_seed(seed: u64) -> AccountId {
@@ -1101,7 +1133,10 @@ pub mod benchmark_utils {
 
 		fn initialize_chunks() -> Vec<<BandersnatchVrfVerifiable as GenerateVerifiable>::StaticChunk>
 		{
-			ring_verifier_builder_params(RingDomainSize::Domain11)
+			let domain: RingDomainSize = MembersFlexibleRingExponent::get()
+				.try_into()
+				.expect("people ring exponent maps to a ring domain size");
+			ring_verifier_builder_params(domain)
 		}
 	}
 
@@ -1240,28 +1275,15 @@ pub mod benchmark_utils {
 			message: &[u8],
 			member_seed: u32,
 		) -> (indiv_pallet_airdrop::ProofOf<Runtime>, Alias) {
-			use indiv_support::crypto::BandersnatchSuite;
-			type Crypto = BandersnatchVrfVerifiable;
-
 			let ring_exponent = MembersFlexibleRingExponent::get();
-			let domain: RingDomainSize =
-				ring_exponent.try_into().expect("RingExponent maps to RingDomainSize");
-			let chunks = ring_verifier_builder_params::<BandersnatchSuite>(domain);
-
 			let mut entropy = [0u8; 32];
 			entropy[..4].copy_from_slice(&member_seed.to_le_bytes());
-			let secret = Crypto::new_secret(entropy);
-			let member = Crypto::member_from_secret(&secret);
+			let (members, intermediate, member, secret, domain) =
+				ring_setup(ring_exponent, entropy);
 
 			// Build a single-member ring with `member`. The resulting `members` value is the
 			// on-chain ring root we seed below so that verification at
 			// `(PEOPLE_IDENTIFIER, ring = 0, rev = 0)` succeeds.
-			let mut intermediate = Crypto::start_members(domain);
-			Crypto::push_members(&mut intermediate, core::iter::once(member), |range| {
-				Ok(chunks[range].to_vec())
-			})
-			.expect("benchmark: push_members for a single member");
-			let members = Crypto::finish_members(intermediate.clone());
 
 			if indiv_pallet_members::Collections::<Runtime>::get(PEOPLE_IDENTIFIER).is_none() {
 				indiv_pallet_members::Collections::<Runtime>::insert(
@@ -1282,12 +1304,17 @@ pub mod benchmark_utils {
 				indiv_pallet_members::types::RingRoot { root: members, revision: 0, intermediate },
 			);
 
-			let commitment = Crypto::open(domain, &member, core::iter::once(member))
-				.expect("benchmark: open commitment");
-			let (proof, _aliases) =
-				Crypto::create_multi_context(commitment, &secret, &[&context[..]], message)
-					.expect("benchmark: create membership proof");
-			let alias = Crypto::alias_in_context(&secret, &context[..])
+			let commitment =
+				BandersnatchVrfVerifiable::open(domain, &member, core::iter::once(member))
+					.expect("benchmark: open commitment");
+			let (proof, _aliases) = BandersnatchVrfVerifiable::create_multi_context(
+				commitment,
+				&secret,
+				&[&context[..]],
+				message,
+			)
+			.expect("benchmark: create membership proof");
+			let alias = BandersnatchVrfVerifiable::alias_in_context(&secret, &context[..])
 				.expect("benchmark: alias_in_context");
 			(proof, alias)
 		}
@@ -1461,17 +1488,17 @@ pub mod benchmark_utils {
 			indiv_pallet_members::Pallet::<Runtime>::process_maintenance();
 
 			let ring_index: RingIndex = 0;
+			let domain: RingDomainSize = ring_exponent
+				.try_into()
+				.expect("people ring exponent maps to a ring domain size");
 			let ring_keys = indiv_pallet_members::RingKeys::<Runtime>::get((
 				indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER,
 				ring_index,
 				0u32,
 			));
-			let commitment = BandersnatchVrfVerifiable::open(
-				RingDomainSize::Domain11,
-				&member,
-				ring_keys.into_iter(),
-			)
-			.expect("benchmark: commitment must open");
+			let commitment =
+				BandersnatchVrfVerifiable::open(domain, &member, ring_keys.into_iter())
+					.expect("benchmark: commitment must open");
 			let (proof, _alias) =
 				BandersnatchVrfVerifiable::create(commitment, &secret, context, msg)
 					.expect("benchmark: proof must be creatable");
@@ -1522,17 +1549,17 @@ pub mod benchmark_utils {
 			indiv_pallet_members::Pallet::<Runtime>::process_maintenance();
 
 			let ring_index: RingIndex = 0;
+			let domain: RingDomainSize = ring_exponent
+				.try_into()
+				.expect("lite people ring exponent maps to a ring domain size");
 			let ring_keys = indiv_pallet_members::RingKeys::<Runtime>::get((
 				indiv_pallet_people_lite::LITE_PEOPLE_MEMBER_IDENTIFIER,
 				ring_index,
 				0u32,
 			));
-			let commitment = BandersnatchVrfVerifiable::open(
-				RingDomainSize::Domain11,
-				&ring_member,
-				ring_keys.into_iter(),
-			)
-			.expect("benchmark: commitment must open");
+			let commitment =
+				BandersnatchVrfVerifiable::open(domain, &ring_member, ring_keys.into_iter())
+					.expect("benchmark: commitment must open");
 			let (proof, _) =
 				BandersnatchVrfVerifiable::create(commitment, &ring_secret, context, msg)
 					.expect("benchmark: lite proof must be creatable");

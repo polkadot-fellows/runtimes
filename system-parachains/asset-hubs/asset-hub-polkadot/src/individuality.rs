@@ -406,8 +406,14 @@ pub mod benchmark_utils {
 
 	/// Builds a one-member Bandersnatch ring and returns everything needed to both seed its root
 	/// and prove membership of it.
+	///
+	/// This mirrors `ring_setup` in Individuality's
+	/// `runtimes/next-asset-hub-paseo/src/lib.rs`. `indiv_support::crypto` does not export the
+	/// benchmark helper at this pinned revision; keep this single local mirror in sync with review
+	/// r3734171704 until the SDK exports it.
 	fn ring_setup(
 		ring_exponent: RingExponent,
+		entropy: [u8; 32],
 	) -> (
 		<Crypto as GenerateVerifiable>::Members,
 		<Crypto as GenerateVerifiable>::Member,
@@ -418,7 +424,7 @@ pub mod benchmark_utils {
 			ring_exponent.try_into().expect("RingExponent maps to RingDomainSize");
 		let chunks = ring_verifier_builder_params::<BandersnatchSuite>(domain);
 
-		let secret = Crypto::new_secret([42u8; 32]);
+		let secret = Crypto::new_secret(entropy);
 		let member = Crypto::member_from_secret(&secret);
 
 		let mut intermediate = Crypto::start_members(domain);
@@ -459,18 +465,11 @@ pub mod benchmark_utils {
 		}
 
 		fn mock_ring_root(seed: u32) -> indiv_pallet_members_subscriber::types::MembersOf<Runtime> {
-			let domain = RingDomainSize::Domain11;
-			let chunks = ring_verifier_builder_params::<BandersnatchSuite>(domain);
-
-			let secret = Crypto::new_secret(alias_bench_entropy(seed));
-			let member = Crypto::member_from_secret(&secret);
-
-			let mut intermediate = Crypto::start_members(domain);
-			Crypto::push_members(&mut intermediate, core::iter::once(member), |range| {
-				Ok(chunks[range].to_vec())
-			})
-			.expect("benchmark: push_members for a single member");
-			Crypto::finish_members(intermediate)
+			ring_setup(
+				<Runtime as indiv_pallet_alias_accounts::Config>::PeopleRingExponent::get(),
+				alias_bench_entropy(seed),
+			)
+			.0
 		}
 	}
 
@@ -488,12 +487,12 @@ pub mod benchmark_utils {
 			context: Context,
 			msg: &[u8],
 		) -> (indiv_pallet_alias_accounts::ProofOf<Runtime>, Alias) {
-			let secret = Crypto::new_secret(alias_bench_entropy(seed));
-			let member = Crypto::member_from_secret(&secret);
-
-			let commitment =
-				Crypto::open(RingDomainSize::Domain11, &member, core::iter::once(member))
-					.expect("benchmark: open for a single-member ring");
+			let (_root, member, secret, domain) = ring_setup(
+				<Runtime as indiv_pallet_alias_accounts::Config>::PeopleRingExponent::get(),
+				alias_bench_entropy(seed),
+			);
+			let commitment = Crypto::open(domain, &member, core::iter::once(member))
+				.expect("benchmark: open for a single-member ring");
 			Crypto::create(commitment, &secret, &context[..], msg)
 				.expect("benchmark: create for a valid commitment")
 		}
@@ -508,7 +507,7 @@ pub mod benchmark_utils {
 			message: &[u8],
 		) -> indiv_pallet_alias_accounts::ProofOf<Runtime> {
 			let ring_exponent = ring_exponent_for(identifier);
-			let (root, member, secret, domain) = ring_setup(ring_exponent);
+			let (root, member, secret, domain) = ring_setup(ring_exponent, [42u8; 32]);
 
 			// The benchmark fills the sliding window with mock records before calling us; replace
 			// the record matching `revision` with our real commitment so verification against
@@ -592,18 +591,8 @@ pub mod benchmark_utils {
 			context: &Context,
 			message: &[u8],
 		) -> indiv_pallet_pgas::ProofOf<Runtime> {
-			let domain = RingDomainSize::Domain11;
-			let chunks = ring_verifier_builder_params::<BandersnatchSuite>(domain);
-
-			let secret = Crypto::new_secret([42u8; 32]);
-			let member = Crypto::member_from_secret(&secret);
-
-			let mut intermediate = Crypto::start_members(domain);
-			Crypto::push_members(&mut intermediate, core::iter::once(member), |range| {
-				Ok(chunks[range].to_vec())
-			})
-			.expect("benchmark: push_members for a single member");
-			let root = Crypto::finish_members(intermediate);
+			let ring_exponent = ring_exponent_for(identifier);
+			let (root, member, secret, domain) = ring_setup(ring_exponent, [42u8; 32]);
 
 			let record = indiv_pallet_members_subscriber::types::RingCommitmentRecord::<Runtime> {
 				root,
@@ -620,7 +609,7 @@ pub mod benchmark_utils {
 			);
 			indiv_pallet_members_subscriber::RingCollectionExponents::<Runtime>::insert(
 				*identifier,
-				RingExponent::R2e9,
+				ring_exponent,
 			);
 
 			let commitment = Crypto::open(domain, &member, core::iter::once(member))
@@ -686,7 +675,7 @@ pub mod benchmark_utils {
 	{
 		fn setup_ring_root(identifier: &Identifier, ring_index: RingIndex) -> RevisionIndex {
 			let ring_exponent = ring_exponent_for(identifier);
-			let real_root = ring_setup(ring_exponent).0;
+			let real_root = ring_setup(ring_exponent, [42u8; 32]).0;
 
 			// Fill the sliding window to capacity for the worst-case `verify_membership` iteration.
 			let now = <Timestamp as UnixTime>::now().as_secs();
@@ -731,7 +720,7 @@ pub mod benchmark_utils {
 			} else {
 				<Runtime as indiv_pallet_alias_accounts::Config>::PeopleRingExponent::get()
 			};
-			let (_root, member, secret, domain) = ring_setup(ring_exponent);
+			let (_root, member, secret, domain) = ring_setup(ring_exponent, [42u8; 32]);
 			let commitment = Crypto::open(domain, &member, core::iter::once(member))
 				.expect("benchmark: open for a single-member ring");
 			let (proof, _alias) = Crypto::create(
