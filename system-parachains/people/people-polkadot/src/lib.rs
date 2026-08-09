@@ -58,7 +58,9 @@ use parachains_common::{
 };
 
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
+use polkadot_runtime_constants::{
+	fellowship::IsFellowshipVoice, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+};
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -479,6 +481,8 @@ parameter_types! {
 	pub const SessionLength: BlockNumber = 6 * HOURS;
 	// StakingAdmin pluralistic body.
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
+	/// TechnicalMaintenance pluralistic body (governance track on Asset Hub).
+	pub const TechnicalMaintenanceBodyId: BodyId = BodyId::Index(TECHNICAL_MAINTENANCE_INDEX);
 }
 
 /// We allow Root and the `StakingAdmin` to execute privileged collator selection operations.

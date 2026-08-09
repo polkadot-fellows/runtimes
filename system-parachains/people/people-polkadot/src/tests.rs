@@ -263,7 +263,11 @@ fn individuality_storage_parameters_are_governance_mutable() {
 		Parameters, RuntimeGenesisConfig,
 	};
 	use frame_support::traits::Get;
-	use polkadot_runtime_constants::{fellowship::FELLOWS_RANK, system_parachain::COLLECTIVES_ID};
+	use polkadot_runtime_constants::{
+		fellowship::FELLOWS_RANK,
+		system_parachain::{ASSET_HUB_ID, COLLECTIVES_ID},
+		xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+	};
 	use sp_runtime::BuildStorage;
 
 	let mut ext = sp_io::TestExternalities::new(
@@ -335,6 +339,51 @@ fn individuality_storage_parameters_are_governance_mutable() {
 		assert_eq!(
 			<<Runtime as indiv_pallet_resources::Config>::LongTermStorageGraceWindow as Get<u32>>::get(),
 			2 * 60 * 60,
+		);
+
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+				1,
+				[
+					Parachain(ASSET_HUB_ID),
+					Plurality {
+						id: BodyId::Index(TECHNICAL_MAINTENANCE_INDEX),
+						part: BodyPart::Voice,
+					},
+				],
+			))),
+			RuntimeParameters::StatementStorage(
+				dynamic_params::statement_storage::Parameters::StmtStoreGraceWindow(
+					dynamic_params::statement_storage::StmtStoreGraceWindow,
+					Some(30 * 60),
+				),
+			),
+		));
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreGraceWindow as Get<u32>>::get(),
+			30 * 60,
+		);
+
+		assert_noop!(
+			Parameters::set_parameter(
+				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+					1,
+					[
+						Parachain(ASSET_HUB_ID),
+						Plurality {
+							id: BodyId::Index(TECHNICAL_MAINTENANCE_INDEX + 1),
+							part: BodyPart::Voice,
+						},
+					],
+				))),
+				RuntimeParameters::StatementStorage(
+					dynamic_params::statement_storage::Parameters::StmtStoreGraceWindow(
+						dynamic_params::statement_storage::StmtStoreGraceWindow,
+						Some(15 * 60),
+					),
+				),
+			),
+			sp_runtime::DispatchError::BadOrigin,
 		);
 	});
 }
