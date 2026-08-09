@@ -1284,8 +1284,11 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 		match key {
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
-			Individuality(_) =>
-				individuality::RootOrFellows::ensure_origin(origin.clone()).map(|_| ()),
+			Individuality(_) => EitherOfDiverse::<
+				individuality::RootOrFellows,
+				TechnicalMaintenance,
+			>::ensure_origin(origin.clone())
+			.map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -3076,6 +3079,35 @@ mod tests {
 				),
 			));
 			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), 60);
+		});
+	}
+
+	#[test]
+	fn technical_maintenance_can_set_individuality_parameters_only() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::from(pallet_custom_origins::Origin::TechnicalMaintenance),
+				RuntimeParameters::Individuality(
+					dynamic_params::individuality::Parameters::PgasClaimAmount(
+						dynamic_params::individuality::PgasClaimAmount,
+						Some(42),
+					),
+				),
+			));
+			assert_eq!(dynamic_params::individuality::PgasClaimAmount::get(), 42);
+
+			assert_noop!(
+				Parameters::set_parameter(
+					RuntimeOrigin::from(pallet_custom_origins::Origin::TechnicalMaintenance),
+					RuntimeParameters::StakingElection(
+						dynamic_params::staking_election::Parameters::SignedPhase(
+							dynamic_params::staking_election::SignedPhase,
+							Some(42),
+						),
+					),
+				),
+				DispatchError::BadOrigin,
+			);
 		});
 	}
 
