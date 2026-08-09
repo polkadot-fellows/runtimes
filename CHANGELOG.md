@@ -28,6 +28,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. This matches Asset Hub Polkadot's block-weight configuration.
 
+### Fixed
+
+- Asset Hub Polkadot: suspend `NextAssetId` while the PGAS migration creates its fixed-id asset, so `force_create` accepts it and the auto-increment sequence resumes unchanged.
+
 ## [2.3.2] 23.07.2026
 
 ### Added

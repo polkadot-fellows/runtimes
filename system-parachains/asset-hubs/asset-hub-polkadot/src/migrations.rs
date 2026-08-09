@@ -14,7 +14,9 @@
 // limitations under the License.
 
 //! The runtime migrations per release.
-use crate::Runtime;
+use crate::{Runtime, TrustBackedAssetsInstance};
+#[cfg(feature = "try-runtime")]
+use alloc::vec::Vec;
 use frame_support::parameter_types;
 
 /// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
@@ -146,6 +148,32 @@ impl frame_support::traits::OnRuntimeUpgrade for MigrateBountyAccountAssets {
 	}
 }
 
+/// Creates PGAS while the `pallet-assets` auto-increment guard is suspended.
+pub struct CreatePgasAssetWithSuspendedAssetIds;
+impl frame_support::traits::OnRuntimeUpgrade for CreatePgasAssetWithSuspendedAssetIds {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		let next_asset_id =
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::take();
+		let weight = indiv_pallet_pgas::migration::CreatePgasAsset::<Runtime>::on_runtime_upgrade();
+		if let Some(next_asset_id) = next_asset_id {
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::put(next_asset_id);
+		}
+
+		weight.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 2))
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		frame_support::ensure!(
+			pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				crate::individuality::PGAS_ASSET_ID
+			),
+			"PGAS asset must exist after migration"
+		);
+		Ok(())
+	}
+}
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
@@ -170,32 +198,15 @@ pub type Unreleased = (
 	// Creates the PGAS asset under the pallet-derived admin account. `pallet-pgas` cannot mint
 	// until it exists.
 	//
-	// TODO: this cannot work as-is on Asset Hub Polkadot — resolve before release.
+	// `NextAssetId` rejects a requested id while it is `Some` and does not match that value. The
+	// wrapper takes the value before creation and restores it immediately after. The take and put
+	// are atomic within this upgrade block, and a fresh chain with no value round-trips as `None`.
+	// The guard is the only obstacle to this fixed-id creation.
 	//
-	// Creating a trust-backed asset is permissionless (`CreateOrigin` is
-	// `AsEnsureOriginWithArg<EnsureSigned<AccountId>>`), but the *id* is not freely chosen: both
-	// `create` and `force_create` funnel into `do_force_create`, which enforces
-	// `ensure!(id == NextAssetId)` whenever `NextAssetId` is set. Since #414 this chain has
-	// `NextAssetId` set (auto-increment seeded at 50_000_000) and `AutoIncAssetId` bumping it on
-	// every creation.
-	//
-	// Two consequences:
-	//
-	// 1. Nobody can squat `PGAS_ASSET_ID` (2_000_000_000): the guard rejects any id that is not
-	//    the current `NextAssetId`, and the pre-#414 `EnsureLessThanAutoIncrement` origin rejected
-	//    ids >= 50_000_000, so the id has never been reachable by a signed caller. Good — but it
-	//    is the guard, not the size of the id, that provides this. The "sits far above the range
-	//    so it can never collide" reasoning on `PGAS_ASSET_ID` is therefore not the whole story.
-	// 2. That same guard makes this migration fail: `2_000_000_000` is not the current
-	//    `NextAssetId`, so `do_force_create` returns `BadAssetId`. `CreatePgasAsset` only
-	//    `log::error!`s that failure and still reports success, so the runtime upgrade would go
-	//    through with no PGAS asset and every PGAS flow silently dead on arrival.
-	//    `check-migrations` CI should catch it via the migration's `post_upgrade` assertion
-	//    against a live snapshot.
-	//
-	// Fixing this needs a deliberate choice, e.g. temporarily clearing `NextAssetId` around the
-	// creation, or reworking the upstream migration to bypass the guard.
-	indiv_pallet_pgas::migration::CreatePgasAsset<Runtime>,
+	// Once the SDK pin includes <https://github.com/paritytech/polkadot-sdk/pull/12378>, replace
+	// this wrapper with a bounded allocator such as the `ReservedFloorAllocator` sketch from the
+	// review: it must reserve ids greater than or equal to `PGAS_ASSET_ID` by rule, not distance.
+	CreatePgasAssetWithSuspendedAssetIds,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -204,25 +215,50 @@ pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{individuality::PGAS_ASSET_ID, RuntimeGenesisConfig, TrustBackedAssetsInstance};
+	use crate::{individuality::PGAS_ASSET_ID, RuntimeGenesisConfig};
 	use frame_support::traits::OnRuntimeUpgrade;
 	use sp_runtime::BuildStorage;
 
-	/// P0: `CreatePgasAsset` swallows `BadAssetId` when `NextAssetId` is set, so a real Asset Hub
-	/// upgrade completes without creating PGAS. Keep this guard ignored until the migration design
-	/// is deliberately fixed; it must become green before release.
 	#[test]
-	#[ignore = "P0: CreatePgasAsset fails when Assets::NextAssetId is populated"]
 	fn pgas_asset_exists_after_create_pgas_asset_migration() {
 		let mut ext = sp_io::TestExternalities::new(
 			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
 		);
 		ext.execute_with(|| {
-			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::put(50_000_000u32);
-			let _ = indiv_pallet_pgas::migration::CreatePgasAsset::<Runtime>::on_runtime_upgrade();
+			let next_asset_id = 50_000_000u32;
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::put(next_asset_id);
+			let _ = CreatePgasAssetWithSuspendedAssetIds::on_runtime_upgrade();
 			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
 				PGAS_ASSET_ID
 			));
+			assert_eq!(
+				pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::get(),
+				Some(next_asset_id)
+			);
+
+			let _ = CreatePgasAssetWithSuspendedAssetIds::on_runtime_upgrade();
+			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				PGAS_ASSET_ID
+			));
+			assert_eq!(
+				pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::get(),
+				Some(next_asset_id)
+			);
+		});
+	}
+
+	#[test]
+	fn pgas_asset_migration_preserves_absent_next_asset_id() {
+		let mut ext = sp_io::TestExternalities::new(
+			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+		);
+		ext.execute_with(|| {
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::kill();
+			let _ = CreatePgasAssetWithSuspendedAssetIds::on_runtime_upgrade();
+			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				PGAS_ASSET_ID
+			));
+			assert!(!pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::exists());
 		});
 	}
 }
