@@ -78,7 +78,7 @@ use frame_support::traits::{ContainsPair, EnsureOrigin};
 use indiv_support::traits::{Alias, RingExponent};
 #[cfg(feature = "runtime-benchmarks")]
 use indiv_support::traits::{Context, Identifier, RingIndex};
-use polkadot_runtime_constants::system_parachain::PEOPLE_ID;
+use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
 
 /// Wall-clock durations expressed in block numbers.
@@ -125,7 +125,7 @@ parameter_types! {
 			// Matches the `MembersNotifier` index in People Polkadot's `construct_runtime!`.
 			pallet_index: 69,
 		};
-	pub MembersSubscriberSelfParaId: u32 = parachain_info::Pallet::<Runtime>::parachain_id().into();
+	pub const MembersSubscriberSelfParaId: u32 = ASSET_HUB_ID;
 
 	/// Ring exponent of the people collection on People Polkadot. Must match
 	/// `MembersFlexibleRingExponent` there, or proofs will not verify.
