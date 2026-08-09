@@ -1086,6 +1086,7 @@ pub mod benchmark_utils {
 		> for ChunksManagerBenchHelper
 	{
 		fn chunk_page() -> Vec<<BandersnatchVrfVerifiable as GenerateVerifiable>::StaticChunk> {
+			// This fixed maximum domain is intentional: it selects the chunk-page-size fixture.
 			ring_verifier_builder_params(RingDomainSize::Domain16)
 				.into_iter()
 				.take(ChunkPageSize::get() as usize)
@@ -1388,7 +1389,8 @@ pub mod benchmark_utils {
 		}
 
 		fn setup_ring_roots(count: u32) {
-			// A valid intermediate and root using the smallest domain size.
+			// This fixed smallest domain is intentional: this transport fixture never proves
+			// membership.
 			let intermediate = BandersnatchVrfVerifiable::start_members(RingDomainSize::Domain11);
 			let root = BandersnatchVrfVerifiable::finish_members(intermediate.clone());
 
