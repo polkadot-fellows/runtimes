@@ -306,6 +306,10 @@
     "package": "bulletin-polkadot-runtime",
     "path": "system-parachains/bulletin/bulletin-polkadot",
     "max_code_size": 3145728,
+    "uris": [
+      "wss://bulletin-rpc.polkadot.io",
+      "wss://rpc-bulletin.luckyfriday.io"
+    ],
     "is_relay": false,
     "blocktime": 6000,
     "benchmarks_templates": {
