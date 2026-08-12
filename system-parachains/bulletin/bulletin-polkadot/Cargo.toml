@@ -14,6 +14,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
+log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 serde = { optional = true, features = [
 	"derive",
@@ -93,8 +94,10 @@ bulletin-transaction-storage-primitives = { workspace = true, features = ["std"]
 parachains-runtimes-test-utils = { workspace = true }
 pallet-bulletin-data-renewal = { workspace = true, features = ["std"] }
 pallet-bulletin-transaction-storage = { workspace = true, features = ["std"] }
+remote-externalities = { workspace = true }
 sp-io = { workspace = true }
 sp-keyring = { workspace = true }
+tokio = { features = ["macros"], workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
@@ -122,6 +125,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"log/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
