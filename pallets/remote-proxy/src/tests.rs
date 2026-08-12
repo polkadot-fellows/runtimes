@@ -28,7 +28,7 @@ use frame_system::Call as SystemCall;
 use pallet_balances::Call as BalancesCall;
 use pallet_proxy::{Error as ProxyError, Event as ProxyEvent};
 use pallet_utility::Call as UtilityCall;
-use sp_core::{ConstU32, ConstU64, H256};
+use sp_core::{ConstU32, ConstU64, Get, H256};
 use sp_io::TestExternalities;
 use sp_runtime::{
 	traits::{BlakeTwo256, BlockNumberProvider, Dispatchable},
@@ -642,5 +642,125 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 		BlockToRoot::<Test>::get()
 			.iter()
 			.for_each(|(b, _)| assert!(*b >= 31 && *b <= 40));
+	});
+}
+
+/// Multiple parachain blocks can share one relay parent; the hook must store that relay block
+/// only once instead of filling the bounded vector with duplicates.
+#[test]
+fn does_not_store_duplicate_relay_blocks() {
+	new_test_ext().execute_with(|| {
+		let root = H256::zero();
+
+		// Call the hook many more times than the capacity (10) for the same relay parent.
+		for _ in 0..100 {
+			RemoteProxy::on_validation_data(&PersistedValidationData {
+				parent_head: vec![].into(),
+				relay_parent_number: 1,
+				relay_parent_storage_root: root,
+				max_pov_size: 5000000,
+			});
+		}
+
+		// Only a single entry for the relay block should be stored.
+		assert_eq!(BlockToRoot::<Test>::get().into_inner(), vec![(1, root)]);
+	});
+}
+
+/// With several parachain blocks per relay block, the newest relay root must stay retrievable so
+/// a proof anchored at the latest relay block still verifies.
+#[test]
+fn newest_relay_root_is_always_retrievable() {
+	new_test_ext().execute_with(|| {
+		let root = H256::zero();
+		let call = Box::new(call_transfer(6, 1));
+		let capacity: u32 = <Test as Config>::MaxStorageRootsToKeep::get();
+
+		// Advance well past capacity, with several parachain blocks per relay block.
+		let parachain_blocks_per_relay_block = 4;
+		let last_relay_block = 100u32;
+		for relay_block in 1..=last_relay_block {
+			for _ in 0..parachain_blocks_per_relay_block {
+				RemoteProxy::on_validation_data(&PersistedValidationData {
+					parent_head: vec![].into(),
+					relay_parent_number: relay_block as _,
+					relay_parent_storage_root: root,
+					max_pov_size: 5000000,
+				});
+			}
+		}
+
+		let roots = BlockToRoot::<Test>::get();
+
+		// Exactly `capacity` distinct relay blocks are kept, with no duplicates.
+		assert_eq!(roots.len() as u32, capacity);
+		let blocks: Vec<u64> = roots.iter().map(|(b, _)| *b).collect();
+		let expected: Vec<u64> = ((last_relay_block - capacity + 1)..=last_relay_block)
+			.map(|b| b as u64)
+			.collect();
+		assert_eq!(blocks, expected);
+
+		// Newest root is retrievable: the empty proof gets past the anchor lookup and only then
+		// fails with `InvalidProof`, so the anchor block was found.
+		assert_err!(
+			RemoteProxy::remote_proxy(
+				RuntimeOrigin::signed(1),
+				1000,
+				None,
+				call.clone(),
+				RemoteProxyProof::RelayChain { proof: vec![], block: last_relay_block as u64 }
+			),
+			Error::<Test>::InvalidProof
+		);
+
+		// A relay block that was pruned out of the retention window is correctly rejected.
+		assert_err!(
+			RemoteProxy::remote_proxy(
+				RuntimeOrigin::signed(1),
+				1000,
+				None,
+				call,
+				RemoteProxyProof::RelayChain {
+					proof: vec![],
+					block: (last_relay_block - capacity) as u64
+				}
+			),
+			Error::<Test>::UnknownProofAnchorBlock
+		);
+	});
+}
+
+/// When the vector is full, adding a new relay root drops the oldest root, never the newest.
+#[test]
+fn full_vector_keeps_newest_and_drops_oldest() {
+	new_test_ext().execute_with(|| {
+		let root = H256::zero();
+		let capacity: u32 = <Test as Config>::MaxStorageRootsToKeep::get();
+
+		// Fill the vector to capacity with consecutive relay blocks.
+		for relay_block in 1..=capacity {
+			RemoteProxy::on_validation_data(&PersistedValidationData {
+				parent_head: vec![].into(),
+				relay_parent_number: relay_block,
+				relay_parent_storage_root: root,
+				max_pov_size: 5000000,
+			});
+		}
+		assert!(BlockToRoot::<Test>::get().is_full());
+
+		// Insert the next relay block into the full vector.
+		let new_block = (capacity + 1) as u64;
+		RemoteProxy::on_validation_data(&PersistedValidationData {
+			parent_head: vec![].into(),
+			relay_parent_number: new_block as _,
+			relay_parent_storage_root: root,
+			max_pov_size: 5000000,
+		});
+
+		let roots = BlockToRoot::<Test>::get();
+		assert_eq!(roots.len() as u32, capacity);
+		// Newest kept, oldest (block 1) evicted.
+		assert_eq!(roots.last().map(|(b, _)| *b), Some(new_block));
+		assert_eq!(roots.first().map(|(b, _)| *b), Some(2));
 	});
 }
