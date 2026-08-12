@@ -69,7 +69,7 @@ use sp_runtime::{
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
-	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT},
+	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT},
 	polkadot::{
 		consensus::{
 			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
@@ -90,10 +90,10 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// Bulletin uses 24s slot duration.
+/// Bulletin uses a 24s Aura slot duration, spanning 4 relay-chain slots. Blocks are still
+/// authored every 6s (`BLOCK_PROCESSING_VELOCITY` per relay slot), which is the cadence
+/// `HOURS`/`DAYS` measure — do not derive time constants from this value.
 pub const SLOT_DURATION: u64 = 24_000;
-
-pub const DAYS: BlockNumber = (24 * 60 * 60 * 1_000 / SLOT_DURATION) as BlockNumber;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
