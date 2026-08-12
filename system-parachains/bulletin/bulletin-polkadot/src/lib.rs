@@ -124,14 +124,8 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 		>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-		pallet_bulletin_transaction_storage::extension::ValidateStorageCalls<
-			Runtime,
-			storage::StorageCallInspector,
-		>,
-		pallet_bulletin_transaction_storage::extension::AllowanceBasedPriority<
-			Runtime,
-			pallet_bulletin_transaction_storage::extension::FlatBoost,
-		>,
+		storage::ValidateBulletinCalls,
+		storage::StoragePriorityBoost,
 	),
 >;
 
@@ -504,14 +498,8 @@ where
 				pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 			),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-			pallet_bulletin_transaction_storage::extension::ValidateStorageCalls::<
-				Runtime,
-				storage::StorageCallInspector,
-			>::default(),
-			pallet_bulletin_transaction_storage::extension::AllowanceBasedPriority::<
-				Runtime,
-				pallet_bulletin_transaction_storage::extension::FlatBoost,
-			>::default(),
+			storage::ValidateBulletinCalls::default(),
+			storage::StoragePriorityBoost::default(),
 		))
 	}
 }
@@ -572,6 +560,9 @@ mod runtime {
 	pub type TransactionStorage = pallet_bulletin_transaction_storage;
 	#[runtime::pallet_index(41)]
 	pub type HopPromotion = pallet_bulletin_hop_promotion;
+	// TODO: decide before release whether to ship renewals at launch or in a later upgrade.
+	#[runtime::pallet_index(42)]
+	pub type DataRenewal = pallet_bulletin_data_renewal;
 
 	// XCM & related
 	#[runtime::pallet_index(30)]

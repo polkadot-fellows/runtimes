@@ -2809,9 +2809,9 @@ dependencies = [
 
 [[package]]
 name = "bulletin-pallets-common"
-version = "0.7.0-draft"
+version = "0.9.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc8df43e75e7c526142b656070a65ff6f5b5ef1b243cf026ff3742826e9b482"
+checksum = "d9ff4c78b5fbbce621dd6677ab8d8c5889347acf7431e4aa58dbd3ce6e17cfde"
 dependencies = [
  "pallet-utility",
  "parity-scale-codec",
@@ -2874,6 +2874,7 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bulletin-data-renewal",
  "pallet-bulletin-hop-promotion",
  "pallet-bulletin-transaction-storage",
  "pallet-bulletin-transaction-storage-runtime-api",
@@ -2924,9 +2925,9 @@ dependencies = [
 
 [[package]]
 name = "bulletin-transaction-storage-primitives"
-version = "0.7.0-draft"
+version = "0.9.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413f87b23f20640576fe25ecb62b160af391e2f8b0c273aacaf713b26a1a1c34"
+checksum = "ea148bc46d3aab15c0817ffea6511f0bd54105d7ba8ab427144fe179ab58a0e1"
 dependencies = [
  "cid 0.11.1",
  "parity-scale-codec",
@@ -9967,10 +9968,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bulletin-hop-promotion"
-version = "0.7.0-draft"
+name = "pallet-bulletin-data-renewal"
+version = "0.9.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7bb6ac08f81c86f6433e39bcf5e4903d3fdc78176b868c86d2fc4006c974a5b"
+checksum = "ec1173a68b65d52d4a5d724a03fc217c3c1ab4d4ab00da4206c78c35aa408b5d"
+dependencies = [
+ "array-bytes 6.2.3",
+ "bulletin-transaction-storage-primitives",
+ "pallet-bulletin-transaction-storage",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+ "tracing",
+]
+
+[[package]]
+name = "pallet-bulletin-hop-promotion"
+version = "0.9.0-draft"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f64c7f1246bc248388924e628b7c89eb80656a85aeee23ab7081d60119bfae5"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "frame-support",
@@ -9980,18 +9996,20 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-sdk-frame",
  "scale-info",
+ "sp-core 41.0.0",
  "sp-io 46.0.0",
  "sp-runtime 47.0.0",
 ]
 
 [[package]]
 name = "pallet-bulletin-transaction-storage"
-version = "0.7.0-draft"
+version = "0.9.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c89b61a8856c1697af66b61a178a03056e69a231c39d63a6e59b7d83d672720"
+checksum = "79fbb70e8b0241934fe9cfbbd14a065dff7718b36c54025ea16fdce22cfe68c9"
 dependencies = [
  "array-bytes 6.2.3",
  "bulletin-transaction-storage-primitives",
+ "impl-trait-for-tuples",
  "pallet-bulletin-transaction-storage-runtime-api",
  "parity-scale-codec",
  "polkadot-sdk-frame",
@@ -10002,9 +10020,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-transaction-storage-runtime-api"
-version = "0.7.0-draft"
+version = "0.9.0-draft"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4129ced0f684008e055d09b76149c52b7a084f8c8220d7e668460fec6663a62"
+checksum = "5077370889078b2903de711856f75b478aa29ec498323af18482a72d3afcac60"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "parity-scale-codec",

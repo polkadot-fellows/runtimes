@@ -23,6 +23,7 @@ serde_json = { features = ["alloc"], workspace = true }
 # Bulletin
 bulletin-pallets-common = { workspace = true }
 bulletin-transaction-storage-primitives = { workspace = true }
+pallet-bulletin-data-renewal = { workspace = true }
 pallet-bulletin-hop-promotion = { workspace = true }
 pallet-bulletin-transaction-storage = { workspace = true }
 pallet-bulletin-transaction-storage-runtime-api = { workspace = true }
@@ -90,6 +91,7 @@ system-parachains-constants = { workspace = true }
 [dev-dependencies]
 bulletin-transaction-storage-primitives = { workspace = true, features = ["std"] }
 parachains-runtimes-test-utils = { workspace = true }
+pallet-bulletin-data-renewal = { workspace = true, features = ["std"] }
 pallet-bulletin-transaction-storage = { workspace = true, features = ["std"] }
 sp-io = { workspace = true }
 sp-keyring = { workspace = true }
@@ -123,6 +125,7 @@ std = [
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
+	"pallet-bulletin-data-renewal/std",
 	"pallet-bulletin-hop-promotion/std",
 	"pallet-bulletin-transaction-storage-runtime-api/std",
 	"pallet-bulletin-transaction-storage/std",
@@ -180,6 +183,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-bulletin-data-renewal/runtime-benchmarks",
 	"pallet-bulletin-hop-promotion/runtime-benchmarks",
 	"pallet-bulletin-transaction-storage/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
@@ -216,6 +220,7 @@ try-runtime = [
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-bulletin-data-renewal/try-runtime",
 	"pallet-bulletin-hop-promotion/try-runtime",
 	"pallet-bulletin-transaction-storage/try-runtime",
 	"pallet-collator-selection/try-runtime",

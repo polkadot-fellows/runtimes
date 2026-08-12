@@ -97,11 +97,9 @@ fn people_chain_can_authorize_account_on_bulletin() {
 		assert_eq!(
 			pallet_bulletin_transaction_storage::Pallet::<BulletinRuntime>::account_authorization_extent(who),
 			AuthorizationExtent {
-				transactions: 0,
 				transactions_allowance: transactions,
-				bytes: 0,
-				bytes_permanent: 0,
 				bytes_allowance: bytes,
+				..Default::default()
 			},
 		);
 	});

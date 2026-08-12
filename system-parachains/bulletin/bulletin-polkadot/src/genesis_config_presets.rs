@@ -89,10 +89,7 @@ fn bulletin_polkadot_genesis(
 				.collect(),
 		},
 		polkadot_xcm: PolkadotXcmConfig { safe_xcm_version: Some(SAFE_XCM_VERSION) },
-		transaction_storage: TransactionStorageConfig {
-			allowed_authorizers,
-			..Default::default()
-		},
+		transaction_storage: TransactionStorageConfig { allowed_authorizers, ..Default::default() },
 	})
 }
 
