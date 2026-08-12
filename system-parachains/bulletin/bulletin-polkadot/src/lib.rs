@@ -560,7 +560,6 @@ mod runtime {
 	pub type TransactionStorage = pallet_bulletin_transaction_storage;
 	#[runtime::pallet_index(41)]
 	pub type HopPromotion = pallet_bulletin_hop_promotion;
-	// TODO: decide before release whether to ship renewals at launch or in a later upgrade.
 	#[runtime::pallet_index(42)]
 	pub type DataRenewal = pallet_bulletin_data_renewal;
 
