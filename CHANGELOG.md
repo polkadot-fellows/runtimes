@@ -6,15 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Fixed
-
-- Asset Hub Polkadot & Kusama: fix `pallet-remote-proxy` dropping the newest relay storage root when multiple parachain blocks share one relay parent. `on_validation_data` now skips storing duplicate relay blocks, which used to fill the bounded `BlockToRoot` vector with copies too young to prune and silently drop the newest root, so remote-proxy proofs anchored at recent relay blocks no longer fail with `UnknownProofAnchorBlock` ([#1230](https://github.com/polkadot-fellows/runtimes/issues/1230)).
 ### Changed
 
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. It is now closer to Asset Hub Polkadot config.
 
 ### Fixed
 
+- Asset Hub Polkadot & Kusama: fix `pallet-remote-proxy` dropping the newest relay storage root when multiple parachain blocks share one relay parent. `on_validation_data` now skips storing duplicate relay blocks, which used to fill the bounded `BlockToRoot` vector with copies too young to prune and silently drop the newest root, so remote-proxy proofs anchored at recent relay blocks no longer fail with `UnknownProofAnchorBlock` ([#1230](https://github.com/polkadot-fellows/runtimes/issues/1230)).
 - Coretime Polkadot & Kusama: remove the truncation of the coretime assignments vector when sending them from the Coretime Chain to the Relay Chain. Now users can make all 80 assignments per core. ([#1231](https://github.com/polkadot-fellows/runtimes/pull/1231))
 
 ## [2.3.2] 23.07.2026
