@@ -226,7 +226,7 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
 		info: pallet_referenda::TrackInfo {
 			name: s("prosperity_admin"),
 			max_deciding: 10,
-			decision_deposit: 5 * GRAND,
+			decision_deposit: 50 * GRAND,
 			prepare_period: 2 * RC_HOURS,
 			decision_period: 28 * RC_DAYS,
 			confirm_period: 3 * RC_HOURS,

@@ -67,8 +67,9 @@ pub mod pallet_custom_origins {
 		/// Origin for signaling that the network wishes for some change.
 		WishForChange,
 		/// Origin for technical maintenance of operational values across system pallets: quotas,
-		/// allowances, limits, durations, fees and similar settings whose change moves no funds
-		/// and does not change who controls what.
+		/// allowances, limits, durations and anti-spam fees, and similar settings whose change
+		/// moves no funds, does not price the system's economics and does not change who controls
+		/// what.
 		TechnicalMaintenance,
 		/// Origin for guarding the monetary mechanisms around Prosperity: PSM, coinage and related
 		/// financial parameters.
