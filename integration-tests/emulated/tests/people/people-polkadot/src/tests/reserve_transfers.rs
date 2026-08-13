@@ -16,8 +16,7 @@
 use crate::*;
 use emulated_integration_tests_common::macros::{AssetTransferFilter, XcmPaymentApiV2};
 use frame_support::traits::fungibles;
-use people_polkadot_runtime::xcm_config::XcmConfig;
-use polkadot_runtime_constants::currency::CENTS as DOT_CENTS;
+use people_polkadot_runtime::xcm_config::{RelayTreasuryPalletAccount, XcmConfig};
 
 #[test]
 fn can_receive_hollar_from_hydration() {
@@ -96,23 +95,26 @@ fn can_send_hollar_back_to_hydration() {
 		type PolkadotXcm = <PeoplePolkadot as PeoplePolkadotPallet>::PolkadotXcm;
 		let sender = PeoplePolkadotSender::get();
 		let receiver = PeoplePolkadotReceiver::get();
+		// Delivery fees are collected here, in whichever asset they were paid.
+		let fee_receiver = RelayTreasuryPalletAccount::get();
 		// We need to open a channel between People and Hydration.
 		<PeoplePolkadot as Para>::ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(HYDRATION_PARA_ID.into());
-		// We need to mint some HOLLAR into our sender.
+		let transfer_amount = 10 * HOLLAR_UNITS;
+		let fees_amount = HOLLAR_UNITS;
+		// We need to mint some HOLLAR into our sender: HOLLAR pays for everything here, both
+		// execution and delivery, so no DOT is needed.
 		assert_ok!(<PeopleAssets as fungibles::Mutate<_>>::mint_into(
 			HollarLocation::get(),
 			&sender,
-			10 * HOLLAR_UNITS,
+			transfer_amount + fees_amount,
 		));
-		let transfer_amount = 10 * HOLLAR_UNITS;
-		let fees_amount = 10 * DOT_CENTS;
+		assert_eq!(
+			<PeopleAssets as fungibles::Inspect<_>>::balance(hollar_id.clone(), &fee_receiver),
+			0
+		);
 		let transfer_xcm = Xcm::builder()
-			.withdraw_asset((Parent, fees_amount))
-			// We need DOT to pay for delivery fees so we need
-			// to use all DOT here.
-			// TODO: Accept HOLLAR for delivery fees as well.
-			.pay_fees((Parent, fees_amount))
-			.withdraw_asset((hollar_id.clone(), transfer_amount))
+			.withdraw_asset((hollar_id.clone(), transfer_amount + fees_amount))
+			.pay_fees((hollar_id.clone(), fees_amount))
 			.initiate_transfer(
 				hydration_location,
 				Some(AssetTransferFilter::ReserveWithdraw(Definite(
@@ -120,7 +122,8 @@ fn can_send_hollar_back_to_hydration() {
 				))),
 				false,
 				vec![AssetTransferFilter::ReserveWithdraw(
-					AllOfCounted { id: hollar_id.into(), fun: WildFungible, count: 1 }.into(),
+					AllOfCounted { id: hollar_id.clone().into(), fun: WildFungible, count: 1 }
+						.into(),
 				)],
 				Xcm::<()>::builder_unsafe()
 					.refund_surplus()
@@ -135,6 +138,12 @@ fn can_send_hollar_back_to_hydration() {
 			Box::new(VersionedXcm::from(transfer_xcm)),
 			Weight::MAX,
 		));
+
+		// The delivery fees of the message sent to Hydration were paid in HOLLAR.
+		assert!(
+			<PeopleAssets as fungibles::Inspect<_>>::balance(hollar_id, &fee_receiver) > 0,
+			"delivery fees should have been collected in HOLLAR",
+		);
 	});
 }
 

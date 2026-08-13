@@ -14,17 +14,21 @@
 // limitations under the License.
 
 use super::{
-	assets::hollar::{HollarFromHydration, HollarLocation},
-	AccountId, AllPalletsWithSystem, AssetRate, Assets as AssetsPallet, Balance, Balances,
-	CollatorSelection, DotWeightToFee as WeightToFee, ParachainInfo, ParachainSystem, PolkadotXcm,
-	Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
+	assets::hollar::HollarFromHydration, AccountId, AllPalletsWithSystem, AssetRate,
+	Assets as AssetsPallet, Balance, Balances, CollatorSelection, DotWeightToFee as WeightToFee,
+	ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
+use cumulus_primitives_utility::{ChargeWeightInFungibles, TakeFirstAssetTrader};
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::{HoldConsideration, ItemOf},
-		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
+		fungible::HoldConsideration,
+		tokens::{
+			imbalance::{ResolveAssetTo, ResolveTo},
+			ConversionFromAssetBalance, ConversionToAssetBalance,
+		},
 		ConstU32, Contains, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
@@ -54,7 +58,10 @@ use xcm_builder::{
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::{
+	traits::{AssetExchange, ConvertLocation},
+	AssetsInHolding, XcmExecutor,
+};
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -132,12 +139,16 @@ pub type FungibleTransactor = FungibleAdapter<
 	(),
 >;
 
+/// Matches every asset that comes from outside, i.e. everything held in the `Assets` pallet.
+pub type ForeignAssetsMatcher =
+	assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>;
+
 /// Means for transacting other fungible tokens on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
 	// Use this implementation of `fungibles::*`.
 	AssetsPallet,
 	// Match everything that comes from outside.
-	assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>,
+	ForeignAssetsMatcher,
 	// Convert an XCM `Location` into a local account ID.
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -260,23 +271,23 @@ pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentia
 >;
 
 pub type WeightToNativeFee = WeightToFee<Runtime>;
-pub struct WeightToStableFee;
-impl frame_support::weights::WeightToFee for WeightToStableFee {
-	type Balance = Balance;
 
-	fn weight_to_fee(weight: &Weight) -> Self::Balance {
-		let native_fee = WeightToNativeFee::weight_to_fee(weight);
+/// Prices weight in any asset that governance registered a rate for in `pallet-asset-rate`.
+///
+/// The weight is first priced in DOT, then converted to the asset at the registered rate. Assets
+/// without a rate are rejected, which makes the trader fall through to the next component.
+pub struct WeightToAssetRateFee;
+impl ChargeWeightInFungibles<AccountId, AssetsPallet> for WeightToAssetRateFee {
+	fn charge_weight_in_fungibles(asset_id: Location, weight: Weight) -> Result<Balance, XcmError> {
+		let native_fee =
+			<WeightToNativeFee as frame_support::weights::WeightToFee>::weight_to_fee(&weight);
 
-		AssetRate::to_asset_balance(native_fee, HollarLocation::get())
-			// Using max value will make the payment fail and go to the next trader component.
-			.unwrap_or(Balance::MAX)
+		AssetRate::to_asset_balance(native_fee, asset_id).map_err(|_| XcmError::AssetNotFound)
 	}
 }
 
-/// A fungible adapter for the stable asset
-pub type FungibleHollar = ItemOf<AssetsPallet, HollarLocation, AccountId>;
-
-/// All ways of paying for execution fees via XCM.
+/// All ways of paying for execution fees via XCM: DOT, or any asset with a rate registered in
+/// `pallet-asset-rate` (HOLLAR being the first such asset).
 pub type Traders = (
 	UsingComponents<
 		WeightToNativeFee,
@@ -285,14 +296,93 @@ pub type Traders = (
 		Balances,
 		ResolveTo<StakingPot, Balances>,
 	>,
-	UsingComponents<
-		WeightToStableFee,
-		HollarLocation,
+	TakeFirstAssetTrader<
 		AccountId,
-		FungibleHollar,
-		ResolveTo<StakingPot, FungibleHollar>,
+		WeightToAssetRateFee,
+		ForeignAssetsMatcher,
+		AssetsPallet,
+		ResolveAssetTo<StakingPot, AssetsPallet>,
 	>,
 );
+
+/// Lets fees that the executor prices in DOT — delivery fees — be settled in any asset that
+/// governance registered a rate for in `pallet-asset-rate`.
+///
+/// No swap happens, since this chain holds no liquidity: the asset offered for fees is priced
+/// against the DOT amount the executor asks for using the registered rate, and, if it covers it, is
+/// handed straight back so that the `FeeManager` deposits it *in kind* into the fee receiver's
+/// account. This is the same deal the [`Traders`] above offer for execution fees.
+///
+/// The `ExchangeAsset` instruction is not weighed on this chain (its weight is `Weight::MAX`), so
+/// this is only ever reachable through fee payment in the XCM executor.
+pub struct FeesAtAssetRate;
+
+impl FeesAtAssetRate {
+	/// The single fungible asset of `assets`, if that is all it holds.
+	fn only_fungible(assets: &Assets) -> Option<(Location, Balance)> {
+		match assets.inner().as_slice() {
+			[Asset { id: AssetId(location), fun: Fungible(amount) }] =>
+				Some((location.clone(), *amount)),
+			_ => None,
+		}
+	}
+
+	/// What `amount` of `from` is worth in `to`, at the rates registered in `pallet-asset-rate`.
+	///
+	/// Only pairs including DOT are priced, which is all fees ever need: rates are registered
+	/// against DOT.
+	fn convert(amount: Balance, from: &Location, to: &Location) -> Option<Balance> {
+		let native = RelayLocation::get();
+		match (from == &native, to == &native) {
+			(true, true) => Some(amount),
+			(true, false) => AssetRate::to_asset_balance(amount, to.clone()).ok(),
+			(false, true) => AssetRate::from_asset_balance(amount, from.clone()).ok(),
+			(false, false) => None,
+		}
+	}
+}
+
+impl AssetExchange for FeesAtAssetRate {
+	fn exchange_asset(
+		_origin: Option<&Location>,
+		give: AssetsInHolding,
+		want: &Assets,
+		_maximal: bool,
+	) -> Result<AssetsInHolding, AssetsInHolding> {
+		// Only the assets set aside for fee payment, a single fungible, are ever offered here.
+		let given = match give.fungible.iter().next() {
+			Some((AssetId(location), accounting))
+				if give.fungible.len() == 1 && give.non_fungible.is_empty() =>
+				Some((location.clone(), accounting.amount())),
+			_ => None,
+		};
+		let (Some((given_asset, given_amount)), Some((wanted_asset, wanted_amount))) =
+			(given, Self::only_fungible(want))
+		else {
+			return Err(give);
+		};
+
+		match Self::convert(wanted_amount, &wanted_asset, &given_asset) {
+			// What is offered is worth what was asked for, so it settles the fee as it is.
+			Some(required) if required <= given_amount => Ok(give),
+			_ => Err(give),
+		}
+	}
+
+	fn quote_exchange_price(give: &Assets, want: &Assets, maximal: bool) -> Option<Assets> {
+		let (given_asset, given_amount) = Self::only_fungible(give)?;
+		let (wanted_asset, wanted_amount) = Self::only_fungible(want)?;
+		if maximal {
+			// How much of `want`'s asset is `give` worth?
+			let obtained = Self::convert(given_amount, &given_asset, &wanted_asset)?;
+			Some((wanted_asset, obtained).into())
+		} else {
+			// How much of `give`'s asset does it take to cover `want`?
+			let required = Self::convert(wanted_amount, &wanted_asset, &given_asset)?;
+			Some((given_asset, required).into())
+		}
+	}
+}
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -318,11 +408,11 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type AssetLocker = ();
-	// TODO: Will need for delivery fees.
-	type AssetExchanger = ();
+	/// Delivery fees are priced in DOT but can be settled in any asset with a registered rate.
+	type AssetExchanger = FeesAtAssetRate;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<FungibleTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<AssetTransactors, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;

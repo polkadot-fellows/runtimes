@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- People Polkadot: accept any asset governance registered a rate for in `pallet-asset-rate` — HOLLAR being the first one — for XCM *delivery* fees, on top of the transaction and XCM execution fees it already paid for. Delivery fees stay priced in DOT by the routers; the new `FeesAtAssetRate` asset exchanger prices the offered asset against that DOT amount at the registered rate, and the fee is then collected in that asset. XCM execution fees are charged through a generic `TakeFirstAssetTrader` instead of a HOLLAR-specific trader, so a new asset only needs a rate — no runtime upgrade — to pay for all three, and `XcmPaymentApi::query_acceptable_payment_assets` lists them.
+
 ### Fixed
 
 - Asset Hub Polkadot & Kusama: fix `pallet-remote-proxy` dropping the newest relay storage root when multiple parachain blocks share one relay parent. `on_validation_data` now skips storing duplicate relay blocks, which used to fill the bounded `BlockToRoot` vector with copies too young to prune and silently drop the newest root, so remote-proxy proofs anchored at recent relay blocks no longer fail with `UnknownProofAnchorBlock` ([#1230](https://github.com/polkadot-fellows/runtimes/issues/1230)).
