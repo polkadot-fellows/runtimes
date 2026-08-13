@@ -140,6 +140,120 @@ fn xcm_payment_api_works() {
 	>();
 }
 
+/// Execution and delivery fees can both be paid in any asset governance registered a rate for, at
+/// that rate. HOLLAR is the first such asset, but nothing here is specific to it.
+#[test]
+fn xcm_fees_can_be_paid_in_any_asset_with_a_registered_rate() {
+	use crate::{
+		xcm_config::{FeesAtAssetRate, RelayLocation, XcmConfig},
+		AssetRate, Assets as AssetsPallet, PolkadotXcm, RuntimeGenesisConfig,
+	};
+	use cumulus_primitives_core::{relay_chain::AsyncBackingParams, AbridgedHostConfiguration};
+	use frame_support::weights::WeightToFee as WeightToFeeT;
+	use sp_runtime::{BuildStorage, FixedU128};
+	use xcm_executor::traits::AssetExchange;
+
+	// An asset worth 4 DOT apiece, and one governance never registered a rate for.
+	let rated = Location::new(1, [Parachain(2034), GeneralIndex(222)]);
+	let unrated = Location::new(1, [Parachain(2034), GeneralIndex(333)]);
+	let rate = FixedU128::from_u32(4);
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		assert_ok!(AssetsPallet::force_create(
+			RuntimeOrigin::root(),
+			rated.clone(),
+			AccountId::from(ALICE).into(),
+			true,
+			1,
+		));
+		assert_ok!(AssetRate::create(RuntimeOrigin::root(), Box::new(rated.clone()), rate));
+
+		// Execution fees are priced in DOT, then converted at the registered rate.
+		let weight = Weight::from_parts(1_000_000_000, 10_000);
+		let native_fee = WeightToFee::<Runtime>::weight_to_fee(&weight);
+		type Trader = <XcmConfig as xcm_executor::Config>::Trader;
+		assert_eq!(
+			PolkadotXcm::query_weight_to_asset_fee::<Trader>(weight, AssetId(rated.clone()).into())
+				.unwrap(),
+			native_fee / 4,
+		);
+		// An asset without a rate buys no execution.
+		assert!(PolkadotXcm::query_weight_to_asset_fee::<Trader>(
+			weight,
+			AssetId(unrated.clone()).into()
+		)
+		.is_err());
+
+		// Delivery fees are quoted by the router in DOT, and settled in the asset at the same rate.
+		// Sending upwards needs the relay chain's limits, which only the inherent brings in.
+		cumulus_pallet_parachain_system::HostConfiguration::<Runtime>::put(
+			AbridgedHostConfiguration {
+				max_code_size: 3 * 1024 * 1024,
+				max_head_data_size: 20 * 1024,
+				max_upward_queue_count: 10,
+				max_upward_queue_size: 51_200,
+				max_upward_message_size: 51_200,
+				max_upward_message_num_per_candidate: 10,
+				hrmp_max_message_num_per_candidate: 10,
+				validation_upgrade_cooldown: 6,
+				validation_upgrade_delay: 6,
+				async_backing_params: AsyncBackingParams {
+					allowed_ancestry_len: 0,
+					max_candidate_depth: 0,
+				},
+			},
+		);
+		type AssetExchanger = <XcmConfig as xcm_executor::Config>::AssetExchanger;
+		let message = Xcm::<()>::builder_unsafe().clear_origin().build();
+		let quote = |asset: Location| -> Result<Assets, ()> {
+			PolkadotXcm::query_delivery_fees::<AssetExchanger>(
+				VersionedLocation::from(Location::parent()),
+				VersionedXcm::from(message.clone()),
+				AssetId(asset).into(),
+			)
+			.map(|fees| Assets::try_from(fees).expect("fees are in the latest version"))
+			.map_err(|_| ())
+		};
+		let in_dot = quote(RelayLocation::get()).expect("the relay chain is routable");
+		let Some(Asset { fun: Fungible(dot_fee), .. }) = in_dot.get(0).cloned() else {
+			panic!("delivery fees are a single fungible asset: {in_dot:?}");
+		};
+		assert_eq!(quote(rated.clone()).unwrap(), (rated.clone(), dot_fee / 4).into());
+		// And an asset without a rate cannot pay for delivery either.
+		assert!(quote(unrated.clone()).is_err());
+
+		// The same rate prices what the executor asks for, in both directions.
+		let dot_asked: Assets = (RelayLocation::get(), 400u128).into();
+		assert_eq!(
+			FeesAtAssetRate::quote_exchange_price(
+				&Asset { id: AssetId(rated.clone()), fun: Fungible(0) }.into(),
+				&dot_asked,
+				false,
+			),
+			Some((rated.clone(), 100u128).into()),
+		);
+		assert_eq!(
+			FeesAtAssetRate::quote_exchange_price(
+				&(rated.clone(), 100u128).into(),
+				&(RelayLocation::get(), 1u128).into(),
+				true,
+			),
+			Some((RelayLocation::get(), 400u128).into()),
+		);
+		assert_eq!(
+			FeesAtAssetRate::quote_exchange_price(
+				&Asset { id: AssetId(unrated), fun: Fungible(0) }.into(),
+				&dot_asked,
+				false,
+			),
+			None,
+		);
+	});
+}
+
 #[test]
 fn governance_authorize_upgrade_works() {
 	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
+- People Polkadot: accept any asset governance registered a rate for in `pallet-asset-rate` — HOLLAR being the first one — for XCM *delivery* fees, on top of the transaction and XCM execution fees it already paid for. Delivery fees stay priced in DOT by the routers; the new `FeesAtAssetRate` asset exchanger prices the offered asset against that DOT amount at the registered rate, and the fee is then collected in that asset. XCM execution fees are charged through a generic `TakeFirstAssetTrader` instead of a HOLLAR-specific trader, so a new asset only needs a rate — no runtime upgrade — to pay for all three, and `XcmPaymentApi::query_acceptable_payment_assets` lists them.
 
 ### Changed
 
