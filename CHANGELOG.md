@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- People Polkadot: accept any asset governance registered a rate for in `pallet-asset-rate` — HOLLAR being the first one — for XCM *delivery* fees, on top of the transaction and XCM execution fees it already paid for. Delivery fees stay priced in DOT by the routers; the new `FeesAtAssetRate` asset exchanger prices the offered asset against that DOT amount at the registered rate, and the fee is then collected in that asset. XCM execution fees are charged through a generic `TakeFirstAssetTrader` instead of a HOLLAR-specific trader, so a new asset only needs a rate — no runtime upgrade — to pay for all three, and `XcmPaymentApi::query_acceptable_payment_assets` lists them.
+- People Polkadot: pay transaction fees, XCM execution fees and XCM *delivery* fees in any asset that has a liquidity pool against DOT, the way Asset Hub does. `pallet-asset-conversion` and its liquidity-token instance of `pallet-assets` (`PoolAssets`) are deployed; opening a pool is permissionless, so an asset needs neither a runtime upgrade nor a governance vote to become a fee asset. All three fees stay priced in DOT and are settled by swapping just enough of the offered asset for it, which means the collators and the treasury are paid in DOT rather than in kind:
+  - Transaction fees go through `pallet-asset-conversion-tx-payment`, replacing `pallet-asset-tx-payment`. 🚨 This changes the `ChargeAssetTxPayment` transaction extension, so `transaction_version` is bumped to 1; signers must use the new metadata.
+  - XCM execution fees go through `SwapFirstAssetTrader`, and delivery fees — which the routers always quote in DOT — through the `SingleAssetExchangeAdapter` asset exchanger.
+  - All three fees fall back to the rate governance registered in `pallet-asset-rate` for assets that have no pool, and are then taken in kind at that rate exactly as before. Transaction fees reach that fallback through a new `ChargeWithFallback<ChargeThroughPool, ChargeAtAssetRate>` charger, which picks the half that charges using a read-only query so nothing is withdrawn before the choice is made. HOLLAR therefore keeps paying all three fees unchanged until a DOT/HOLLAR pool is funded, and moves to the pool automatically once one exists.
+  - `XcmPaymentApi::query_acceptable_payment_assets` lists DOT, every asset in a pool with it, and every asset with a registered rate; the new `AssetConversionApi` runtime API quotes swap prices.
 
 ### Fixed
 

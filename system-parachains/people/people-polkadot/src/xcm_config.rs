@@ -14,10 +14,10 @@
 // limitations under the License.
 
 use super::{
-	assets::hollar::HollarFromHydration, AccountId, AllPalletsWithSystem, AssetRate,
-	Assets as AssetsPallet, Balance, Balances, CollatorSelection, DotWeightToFee as WeightToFee,
-	ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
+	assets::{hollar::HollarFromHydration, NativeAndAssets},
+	AccountId, AllPalletsWithSystem, AssetConversion, AssetRate, Assets as AssetsPallet, Balance,
+	Balances, CollatorSelection, DotWeightToFee as WeightToFee, ParachainInfo, ParachainSystem,
+	PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
 use cumulus_primitives_utility::{ChargeWeightInFungibles, TakeFirstAssetTrader};
@@ -44,7 +44,7 @@ use parachains_common::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-use sp_runtime::traits::{AccountIdConversion, ConvertInto};
+use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -52,10 +52,11 @@ use xcm_builder::{
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
-	LocationAsSuperuser, NoChecking, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	LocationAsSuperuser, MatchedConvertedConcreteId, NoChecking, ParentIsPreset,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SingleAssetExchangeAdapter,
+	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
+	WeightInfoBounds, WithComputedOrigin, WithLatestLocationConverter, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{
@@ -272,6 +273,21 @@ pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentia
 
 pub type WeightToNativeFee = WeightToFee<Runtime>;
 
+/// Matches DOT on top of everything [`ForeignAssetsMatcher`] matches.
+///
+/// `ForeignAssetsMatcher` deliberately excludes the relay chain's own token, but the assets the
+/// executor asks *for* — delivery fees — are priced in DOT, so the exchanger has to recognise it.
+pub type NativeAndForeignAssetsMatcher = (
+	ForeignAssetsMatcher,
+	MatchedConvertedConcreteId<
+		Location,
+		Balance,
+		Equals<RelayLocation>,
+		WithLatestLocationConverter<Location>,
+		TryConvertInto,
+	>,
+);
+
 /// Prices weight in any asset that governance registered a rate for in `pallet-asset-rate`.
 ///
 /// The weight is first priced in DOT, then converted to the asset at the registered rate. Assets
@@ -286,8 +302,9 @@ impl ChargeWeightInFungibles<AccountId, AssetsPallet> for WeightToAssetRateFee {
 	}
 }
 
-/// All ways of paying for execution fees via XCM: DOT, or any asset with a rate registered in
-/// `pallet-asset-rate` (HOLLAR being the first such asset).
+/// All ways of paying for XCM execution fees, tried in order: DOT, then any asset with a
+/// [`AssetConversion`] pool against DOT, then any asset with a rate registered in
+/// `pallet-asset-rate`.
 pub type Traders = (
 	UsingComponents<
 		WeightToNativeFee,
@@ -296,6 +313,20 @@ pub type Traders = (
 		Balances,
 		ResolveTo<StakingPot, Balances>,
 	>,
+	// Weight is priced in DOT and the offered asset is swapped for exactly that much DOT, so an
+	// asset only needs a pool — no governance action — to buy execution. The DOT is what lands in
+	// the staking pot.
+	cumulus_primitives_utility::SwapFirstAssetTrader<
+		RelayLocation,
+		AssetConversion,
+		WeightToNativeFee,
+		NativeAndAssets,
+		ForeignAssetsMatcher,
+		ResolveAssetTo<StakingPot, NativeAndAssets>,
+		AccountId,
+	>,
+	// Fallback for assets with no pool: price the weight in DOT and take the asset in kind at the
+	// rate governance registered for it.
 	TakeFirstAssetTrader<
 		AccountId,
 		WeightToAssetRateFee,
@@ -305,10 +336,28 @@ pub type Traders = (
 	>,
 );
 
-/// Lets fees that the executor prices in DOT — delivery fees — be settled in any asset that
-/// governance registered a rate for in `pallet-asset-rate`.
+/// Swaps the asset offered for fees against the asset the executor prices them in — DOT — through
+/// an [`AssetConversion`] pool.
 ///
-/// No swap happens, since this chain holds no liquidity: the asset offered for fees is priced
+/// This is what lets delivery fees, which the routers always quote in DOT, be paid in another
+/// asset: the executor asks this exchanger for DOT, and it sells just enough of the offered asset
+/// to get it.
+pub type PoolAssetsExchanger = SingleAssetExchangeAdapter<
+	AssetConversion,
+	NativeAndAssets,
+	NativeAndForeignAssetsMatcher,
+	AccountId,
+>;
+
+/// All ways of settling a fee the executor priced in DOT — delivery fees — in another asset:
+/// through a pool, or, failing that, at a governance-registered rate.
+pub type AssetExchangers = (PoolAssetsExchanger, FeesAtAssetRate);
+
+/// Lets fees that the executor prices in DOT — delivery fees — be settled in any asset that
+/// governance registered a rate for in `pallet-asset-rate`. The fallback behind
+/// [`PoolAssetsExchanger`], for assets that have a rate but no pool.
+///
+/// No swap happens, since there is no pool to swap against: the asset offered for fees is priced
 /// against the DOT amount the executor asks for using the registered rate, and, if it covers it, is
 /// handed straight back so that the `FeeManager` deposits it *in kind* into the fee receiver's
 /// account. This is the same deal the [`Traders`] above offer for execution fees.
@@ -408,8 +457,9 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type AssetLocker = ();
-	/// Delivery fees are priced in DOT but can be settled in any asset with a registered rate.
-	type AssetExchanger = FeesAtAssetRate;
+	/// Delivery fees are priced in DOT but can be settled in any asset with a pool, or failing
+	/// that a registered rate.
+	type AssetExchanger = AssetExchangers;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
 		SendXcmFeeToAccount<AssetTransactors, RelayTreasuryPalletAccount>,

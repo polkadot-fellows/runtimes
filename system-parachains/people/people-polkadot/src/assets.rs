@@ -15,9 +15,28 @@
 
 use super::*;
 
-use frame_support::{parameter_types, traits::fungibles::Balanced};
+use assets_common::local_and_foreign_assets::TargetFromLeft;
+use core::marker::PhantomData;
+use frame_support::{
+	parameter_types,
+	traits::{
+		fungible, fungibles,
+		tokens::{
+			imbalance::ResolveAssetTo, ConversionToAssetBalance, Fortitude, Precision,
+			Preservation, WithdrawConsequence,
+		},
+		AsEnsureOriginWithArg, ConstU128, OnUnbalanced,
+	},
+};
 use frame_system::{EnsureNever, EnsureRoot};
+use pallet_asset_conversion_tx_payment::OnChargeAssetTransaction;
+use sp_runtime::{
+	traits::{DispatchInfoOf, PostDispatchInfoOf, Zero},
+	transaction_validity::{InvalidTransaction, TransactionValidityError},
+	Either,
+};
 use xcm::latest::{Asset, AssetId, Junction::*, Location};
+use xcm_config::{RelayLocation, StakingPot};
 
 parameter_types! {
 	pub const AssetDeposit: Balance = UNITS;
@@ -54,70 +73,380 @@ impl pallet_assets::Config for Runtime {
 	type BenchmarkHelper = xcm_config::XcmBenchmarkHelper;
 }
 
-/// Handles crediting transaction fees to the staking pot.
-pub struct CreditToStakingPot;
-impl pallet_asset_tx_payment::HandleCredit<AccountId, Assets> for CreditToStakingPot {
-	fn handle_credit(credit: frame_support::traits::fungibles::Credit<AccountId, Assets>) {
-		use sp_core::TypedGet;
-		let staking_pot = pallet_collator_selection::StakingPotAccountId::<Runtime>::get();
-		let _ = Assets::resolve(&staking_pot, credit);
-	}
+/// The liquidity pool tokens of [`AssetConversion`].
+///
+/// They are minted and burned by the asset conversion pallet itself, so nothing else may create
+/// them.
+pub type PoolAssetsInstance = pallet_assets::Instance1;
+impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type AssetId = u32;
+	type AssetIdParameter = u32;
+	type Currency = Balances;
+	#[cfg(feature = "runtime-benchmarks")]
+	type CreateOrigin =
+		AsEnsureOriginWithArg<frame_system::EnsureSignedBy<AssetConversionOrigin, AccountId>>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type CreateOrigin = AsEnsureOriginWithArg<frame_support::traits::NeverEnsureOrigin<AccountId>>;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	// The pool itself is paid for by `PoolSetupFee`, so its liquidity token costs no deposit.
+	type AssetDeposit = ConstU128<0>;
+	type AssetAccountDeposit = ConstU128<0>;
+	type MetadataDepositBase = ConstU128<0>;
+	type MetadataDepositPerByte = ConstU128<0>;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = AssetsStringLimit;
+	type Holder = ();
+	type Freezer = ();
+	type Extra = ();
+	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
+	type CallbackHandle = ();
+	type ReserveData = ();
+	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
-type OnChargeStableTransaction =
-	pallet_asset_tx_payment::FungiblesAdapter<AssetRate, CreditToStakingPot>;
+/// The fungibles registry [`AssetConversion`] trades over: DOT, plus everything held in the
+/// `Assets` pallet, all keyed by XCM `Location`.
+pub type NativeAndAssets = fungible::UnionOf<
+	Balances,
+	Assets,
+	TargetFromLeft<RelayLocation, Location>,
+	Location,
+	AccountId,
+>;
+
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+	/// The share of every swap that is left in the pool for its liquidity providers.
+	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32); // 0.3%
+	/// Storage deposit for the pool entry and for its liquidity token, plus what registering an
+	/// asset costs, so that opening a pool is never cheaper than creating the asset it pairs.
+	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
+}
 
 #[cfg(feature = "runtime-benchmarks")]
-pub struct AssetTxPaymentBenchmarkHelper;
+parameter_types! {
+	/// Index of the `Assets` pallet, used to build the asset locations of benchmark pools.
+	pub AssetsPalletIndex: u32 =
+		<Assets as frame_support::traits::PalletInfoAccess>::index() as u32;
+}
+
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_asset_tx_payment::BenchmarkHelperTrait<AccountId, Location, Location>
-	for AssetTxPaymentBenchmarkHelper
-{
-	fn create_asset_id_parameter(id: u32) -> (Location, Location) {
-		assert_eq!(id, 1);
-		let l = Location::new(
-			1,
-			[
-				xcm::latest::Junction::Parachain(1000),
-				xcm::latest::Junction::PalletInstance(50),
-				xcm::latest::Junction::GeneralIndex(1337),
-			],
+frame_support::ord_parameter_types! {
+	pub const AssetConversionOrigin: AccountId =
+		sp_runtime::traits::AccountIdConversion::<AccountId>::into_account_truncating(
+			&AssetConversionPalletId::get(),
 		);
-		(l.clone(), l)
+}
+
+pub type PoolIdToAccountId =
+	pallet_asset_conversion::AccountIdConverter<AssetConversionPalletId, (Location, Location)>;
+
+impl pallet_asset_conversion::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type HigherPrecisionBalance = sp_core::U256;
+	type AssetKind = Location;
+	type Assets = NativeAndAssets;
+	type PoolId = (Self::AssetKind, Self::AssetKind);
+	// Every pool is paired with DOT, which is what the fee conversion needs and what keeps a swap
+	// against the fee asset down to a single hop.
+	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
+		RelayLocation,
+		AccountId,
+		Self::AssetKind,
+		PoolIdToAccountId,
+	>;
+	type PoolAssetId = u32;
+	type PoolAssets = PoolAssets;
+	type PoolSetupFee = PoolSetupFee;
+	type PoolSetupFeeAsset = RelayLocation;
+	type PoolSetupFeeTarget = ResolveAssetTo<StakingPot, Self::Assets>;
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type LPFee = LpFee;
+	type PalletId = AssetConversionPalletId;
+	// Every pool holds DOT on one side (see `PoolLocator`), so swapping one asset for another takes
+	// two hops through DOT. Fee payment itself is always a single hop.
+	type MaxSwapPathLength = ConstU32<3>;
+	type MintMinLiquidity = ConstU128<100>;
+	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
+		RelayLocation,
+		parachain_info::Pallet<Runtime>,
+		AssetsPalletIndex,
+		Self::AssetKind,
+	>;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct AssetConversionTxHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_asset_conversion_tx_payment::BenchmarkHelperTrait<AccountId, Location, Location>
+	for AssetConversionTxHelper
+{
+	fn create_asset_id_parameter(seed: u32) -> (Location, Location) {
+		// Any sibling parachain's asset will do: it only has to be foreign to this chain.
+		let asset_id =
+			Location::new(1, [Parachain(3000), PalletInstance(53), GeneralIndex(seed.into())]);
+		(asset_id.clone(), asset_id)
 	}
 
 	fn setup_balances_and_pool(asset_id: Location, account: AccountId) {
 		use alloc::boxed::Box;
-		use frame_support::traits::{
-			fungible::Mutate as _,
-			fungibles::{Inspect as _, Mutate as _},
+		use frame_support::{
+			assert_ok,
+			traits::{
+				fungible::Mutate as _,
+				fungibles::{Inspect as _, Mutate as _},
+			},
 		};
 
-		AssetRate::create(RuntimeOrigin::root(), Box::new(asset_id.clone()), 1.into()).unwrap();
 		if !Assets::asset_exists(asset_id.clone()) {
-			Assets::force_create(
+			assert_ok!(Assets::force_create(
 				RuntimeOrigin::root(),
 				asset_id.clone(),
-				account.clone().into(),
-				true,
+				account.clone().into(), // owner
+				true,                   // is_sufficient
 				1,
-			)
-			.unwrap();
+			));
 		}
-		Assets::mint_into(asset_id, &account, 10_000 * UNITS).unwrap();
-		Balances::mint_into(&account, 10_000 * UNITS).unwrap();
+
+		let lp_provider = account;
+		assert_ok!(Balances::mint_into(&lp_provider, u64::MAX.into()));
+		assert_ok!(Assets::mint_into(asset_id.clone(), &lp_provider, u64::MAX.into()));
+
+		let token_native = Box::new(RelayLocation::get());
+		let token_second = Box::new(asset_id);
+
+		assert_ok!(AssetConversion::create_pool(
+			RuntimeOrigin::signed(lp_provider.clone()),
+			token_native.clone(),
+			token_second.clone()
+		));
+
+		// An eighth of what was minted on each side: comfortably above this chain's existential
+		// deposit, which the pool's own account has to keep, while leaving the provider the rest
+		// of the asset to pay the benchmarked fee with.
+		let liquidity: Balance = (u64::MAX / 8).into();
+		assert_ok!(AssetConversion::add_liquidity(
+			RuntimeOrigin::signed(lp_provider.clone()),
+			token_native,
+			token_second,
+			liquidity, // 1 desired
+			liquidity, // 2 desired
+			1,         // 1 min
+			1,         // 2 min
+			lp_provider,
+		));
 	}
 }
 
-impl pallet_asset_tx_payment::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Fungibles = Assets;
-	type OnChargeAssetTransaction = OnChargeStableTransaction;
-	type WeightInfo = weights::pallet_asset_tx_payment::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = AssetTxPaymentBenchmarkHelper;
+/// Charges the transaction fee in kind, at the rate governance registered for the asset in
+/// [`AssetRate`].
+///
+/// Fees are priced in DOT like everything else on this chain; the registered rate turns that into
+/// an amount of the asset, which is withdrawn from the payer and resolved to the staking pot as
+/// it is. Nothing is swapped, because this is the path for assets that have no pool.
+///
+/// This is what `pallet-asset-tx-payment` did on this chain before pools, kept as the fallback
+/// behind [`ChargeThroughPool`] so an asset with a rate but no pool keeps paying for transactions.
+pub struct ChargeAtAssetRate;
+
+impl ChargeAtAssetRate {
+	/// What `native` DOT of fee costs in `asset`, at the registered rate.
+	fn in_asset(native: Balance, asset: &Location) -> Result<Balance, TransactionValidityError> {
+		// The asset's precision is unknown, and integer division can round a small fee down to
+		// zero, so a non-zero fee always costs at least one unit of the asset.
+		let minimum = if native.is_zero() { 0 } else { 1 };
+		AssetRate::to_asset_balance(native, asset.clone())
+			.map(|converted| converted.max(minimum))
+			.map_err(|_| InvalidTransaction::Payment.into())
+	}
+
+	fn ensure_can_withdraw(
+		who: &AccountId,
+		asset: Location,
+		amount: Balance,
+	) -> Result<(), TransactionValidityError> {
+		match <Assets as fungibles::Inspect<AccountId>>::can_withdraw(asset, who, amount) {
+			WithdrawConsequence::Success => Ok(()),
+			_ => Err(InvalidTransaction::Payment.into()),
+		}
+	}
 }
 
+impl OnChargeAssetTransaction<Runtime> for ChargeAtAssetRate {
+	type Balance = Balance;
+	type AssetId = Location;
+	type LiquidityInfo = fungibles::Credit<AccountId, Assets>;
+
+	fn withdraw_fee(
+		who: &AccountId,
+		_call: &RuntimeCall,
+		_dispatch_info: &DispatchInfoOf<RuntimeCall>,
+		asset_id: Location,
+		fee: Balance,
+		_tip: Balance,
+	) -> Result<Self::LiquidityInfo, TransactionValidityError> {
+		let converted_fee = Self::in_asset(fee, &asset_id)?;
+		Self::ensure_can_withdraw(who, asset_id.clone(), converted_fee)?;
+		<Assets as fungibles::Balanced<AccountId>>::withdraw(
+			asset_id,
+			who,
+			converted_fee,
+			Precision::Exact,
+			Preservation::Protect,
+			Fortitude::Polite,
+		)
+		.map_err(|_| InvalidTransaction::Payment.into())
+	}
+
+	fn can_withdraw_fee(
+		who: &AccountId,
+		asset_id: Location,
+		fee: Balance,
+	) -> Result<(), TransactionValidityError> {
+		let converted_fee = Self::in_asset(fee, &asset_id)?;
+		Self::ensure_can_withdraw(who, asset_id, converted_fee)
+	}
+
+	fn correct_and_deposit_fee(
+		who: &AccountId,
+		_dispatch_info: &DispatchInfoOf<RuntimeCall>,
+		_post_info: &PostDispatchInfoOf<RuntimeCall>,
+		corrected_fee: Balance,
+		_tip: Balance,
+		asset_id: Location,
+		paid: Self::LiquidityInfo,
+	) -> Result<Balance, TransactionValidityError> {
+		let corrected = Self::in_asset(corrected_fee, &asset_id)?;
+		let (final_fee, refund) = paid.split(corrected);
+
+		// Give back what the call did not end up costing. If that cannot be resolved — the call
+		// may have reaped the payer's account — the refund stays with the fee rather than being
+		// burned.
+		let final_fee = match <Assets as fungibles::Balanced<AccountId>>::resolve(who, refund) {
+			Ok(()) => final_fee,
+			Err(refund) => final_fee.merge(refund).unwrap_or_else(|(final_fee, _)| final_fee),
+		};
+
+		let charged = final_fee.peek();
+		// The tip is not split out: it goes to the staking pot along with the fee, which is where
+		// the pool path sends both too.
+		ResolveAssetTo::<StakingPot, Assets>::on_unbalanced(final_fee);
+		Ok(charged)
+	}
+}
+
+/// Transaction fees are priced in DOT and paid by swapping just enough of the offered asset for
+/// that DOT through an [`AssetConversion`] pool.
+pub type ChargeThroughPool = pallet_asset_conversion_tx_payment::SwapAssetAdapter<
+	RelayLocation,
+	NativeAndAssets,
+	AssetConversion,
+	ResolveAssetTo<StakingPot, NativeAndAssets>,
+>;
+
+/// Charges the transaction fee with `Primary`, falling back to `Fallback` for assets that
+/// `Primary` cannot price.
+///
+/// Which half charges is decided by `Primary::can_withdraw_fee`, a read-only query, so nothing is
+/// withdrawn before the choice is made and a failed primary cannot leave a half-charged fee
+/// behind. `LiquidityInfo` records the half that took the fee, so the refund in
+/// `correct_and_deposit_fee` goes back through that same half.
+pub struct ChargeWithFallback<Primary, Fallback>(PhantomData<(Primary, Fallback)>);
+
+impl<Primary, Fallback> OnChargeAssetTransaction<Runtime> for ChargeWithFallback<Primary, Fallback>
+where
+	Primary: OnChargeAssetTransaction<Runtime, Balance = Balance, AssetId = Location>,
+	Fallback: OnChargeAssetTransaction<Runtime, Balance = Balance, AssetId = Location>,
+{
+	type Balance = Balance;
+	type AssetId = Location;
+	type LiquidityInfo = Either<Primary::LiquidityInfo, Fallback::LiquidityInfo>;
+
+	fn withdraw_fee(
+		who: &AccountId,
+		call: &RuntimeCall,
+		dispatch_info: &DispatchInfoOf<RuntimeCall>,
+		asset_id: Location,
+		fee: Balance,
+		tip: Balance,
+	) -> Result<Self::LiquidityInfo, TransactionValidityError> {
+		if Primary::can_withdraw_fee(who, asset_id.clone(), fee).is_ok() {
+			// `Primary` can handle the asset, so a failure here is a real failure, not a reason to
+			// charge the payer through the other half.
+			Primary::withdraw_fee(who, call, dispatch_info, asset_id, fee, tip).map(Either::Left)
+		} else {
+			Fallback::withdraw_fee(who, call, dispatch_info, asset_id, fee, tip).map(Either::Right)
+		}
+	}
+
+	fn can_withdraw_fee(
+		who: &AccountId,
+		asset_id: Location,
+		fee: Balance,
+	) -> Result<(), TransactionValidityError> {
+		Primary::can_withdraw_fee(who, asset_id.clone(), fee)
+			.or_else(|_| Fallback::can_withdraw_fee(who, asset_id, fee))
+	}
+
+	fn correct_and_deposit_fee(
+		who: &AccountId,
+		dispatch_info: &DispatchInfoOf<RuntimeCall>,
+		post_info: &PostDispatchInfoOf<RuntimeCall>,
+		corrected_fee: Balance,
+		tip: Balance,
+		asset_id: Location,
+		already_withdrawn: Self::LiquidityInfo,
+	) -> Result<Balance, TransactionValidityError> {
+		match already_withdrawn {
+			Either::Left(paid) => Primary::correct_and_deposit_fee(
+				who,
+				dispatch_info,
+				post_info,
+				corrected_fee,
+				tip,
+				asset_id,
+				paid,
+			),
+			Either::Right(paid) => Fallback::correct_and_deposit_fee(
+				who,
+				dispatch_info,
+				post_info,
+				corrected_fee,
+				tip,
+				asset_id,
+				paid,
+			),
+		}
+	}
+}
+
+/// Transaction fees can be paid in any asset with a pool against DOT — no governance action needed
+/// to enable one — and, for assets that have no pool, in any asset governance registered a rate
+/// for. This is the same order the XCM [`Traders`](xcm_config::Traders) try.
+impl pallet_asset_conversion_tx_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AssetId = Location;
+	type OnChargeAssetTransaction = ChargeWithFallback<ChargeThroughPool, ChargeAtAssetRate>;
+	type WeightInfo = weights::pallet_asset_conversion_tx_payment::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = AssetConversionTxHelper;
+}
+
+/// Governance-set exchange rates against DOT.
+///
+/// Pools are the primary way to price an asset against DOT. Rates registered here are the fallback
+/// every fee path reaches for when an asset has no pool: [`ChargeAtAssetRate`] for transaction
+/// fees, [`xcm_config::WeightToAssetRateFee`] for XCM execution fees and
+/// [`xcm_config::FeesAtAssetRate`] for XCM delivery fees.
 impl pallet_asset_rate::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;

@@ -42,6 +42,7 @@ decl_test_parachains! {
 		pallets = {
 			Assets: people_polkadot_runtime::Assets,
 			AssetRate: people_polkadot_runtime::AssetRate,
+			AssetConversion: people_polkadot_runtime::AssetConversion,
 			PolkadotXcm: people_polkadot_runtime::PolkadotXcm,
 			Balances: people_polkadot_runtime::Balances,
 			Identity: people_polkadot_runtime::Identity,
