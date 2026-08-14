@@ -238,8 +238,8 @@ impl<T: frame_system::Config> pallet_bulletin_transaction_storage::WeightInfo fo
 	/// Proof: `DataRenewal::PermanentStorageUsed` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: UNKNOWN KEY `0xc20bbe95ae9a16ecbfcfef6c5ccc7871` (r:1 w:0)
 	/// Proof: UNKNOWN KEY `0xc20bbe95ae9a16ecbfcfef6c5ccc7871` (r:1 w:0)
-	/// Storage: `DataRenewal::PendingAutoRenewals` (r:1 w:1)
-	/// Proof: `DataRenewal::PendingAutoRenewals` (`max_values`: Some(1), `max_size`: Some(77826), added: 78321, mode: `MaxEncodedLen`)
+	/// Storage: `DataRenewal::PendingRenewals` (r:1 w:1)
+	/// Proof: `DataRenewal::PendingRenewals` (`max_values`: Some(1), `max_size`: Some(77826), added: 78321, mode: `MaxEncodedLen`)
 	/// Storage: `DataRenewal::Renewals` (r:512 w:0)
 	/// Proof: `DataRenewal::Renewals` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[0, 512]`.

@@ -131,8 +131,8 @@ impl<T: frame_system::Config> pallet_bulletin_data_renewal::WeightInfo for Weigh
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// Storage: `DataRenewal::PendingAutoRenewals` (r:1 w:1)
-	/// Proof: `DataRenewal::PendingAutoRenewals` (`max_values`: Some(1), `max_size`: Some(77826), added: 78321, mode: `MaxEncodedLen`)
+	/// Storage: `DataRenewal::PendingRenewals` (r:1 w:1)
+	/// Proof: `DataRenewal::PendingRenewals` (`max_values`: Some(1), `max_size`: Some(77826), added: 78321, mode: `MaxEncodedLen`)
 	/// Storage: `TransactionStorage::BlockTransactions` (r:1 w:1)
 	/// Proof: `TransactionStorage::BlockTransactions` (`max_values`: Some(1), `max_size`: Some(44034), added: 44529, mode: `MaxEncodedLen`)
 	/// Storage: `DataRenewal::PermanentStorageUsed` (r:1 w:1)
