@@ -161,6 +161,20 @@ pub mod migrations {
 		system_parachains_common::migrations::MaxStepsCapped<UncappedMbmMigrations, MbmMaxBlocks>;
 
 	type UncappedMbmMigrations = ();
+
+	#[cfg(test)]
+	mod tests {
+		use super::*;
+		use frame_support::migrations::SteppedMigrations;
+
+		#[test]
+		fn no_mbm_can_run_for_longer_than_a_day() {
+			for n in 0..MbmMigrations::len() {
+				let max_steps = MbmMigrations::nth_max_steps(n).expect("n < len; qed");
+				assert!(max_steps.is_some_and(|max| max <= MbmMaxBlocks::get()));
+			}
+		}
+	}
 }
 
 /// Executive: handles dispatch to the various modules.

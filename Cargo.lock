@@ -18818,6 +18818,7 @@ dependencies = [
  "polkadot-primitives",
  "scale-info",
  "sp-api 42.0.0",
+ "sp-io 46.0.0",
  "sp-runtime 47.0.0",
  "sp-state-machine 0.51.0",
 ]

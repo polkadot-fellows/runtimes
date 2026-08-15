@@ -167,10 +167,13 @@ mod tests {
 		let mut meter = WeightMeter::new();
 		assert!(matches!(Capped::nth_step(1, None, &mut meter), Some(Ok(None))));
 
-		sp_state_machine::BasicExternalities::default().execute_with(|| {
+		sp_io::TestExternalities::default().execute_with(|| {
 			assert!(matches!(Capped::nth_transactional_step(1, None, &mut meter), Some(Ok(None))));
 
-			// The cap does not change how the pallet sees the tuple otherwise.
+			// `pallet-migrations` calls this on its `Migrations` in its own `integrity_test`,
+			// which would abort the runtime if it failed. Wrapping the tuple must keep it
+			// passing: every index below `len()` must still resolve to an id, a `max_steps`
+			// and a step.
 			Capped::integrity_test().unwrap();
 		});
 	}
