@@ -1406,7 +1406,7 @@ pub mod dynamic_params {
 		pub static MaxClaimsPerPeriodPerPerson: u32 = 100;
 		/// Maximum PGAS claims per period for a lite person.
 		#[codec(index = 2)]
-		pub static MaxClaimsPerPeriodPerLitePerson: u32 = 40;
+		pub static MaxClaimsPerPeriodPerLitePerson: u32 = 50;
 		/// Maximum PGAS claim records removed by one cleanup call.
 		#[codec(index = 3)]
 		pub static MaxPgasClaimRecordCleanupPerCall: u32 = 20;
