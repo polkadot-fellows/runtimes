@@ -11,7 +11,7 @@ pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.11.0", default-features = false }
 pallet-ct-migrator = { path = "pallets/ct-migrator", default-features = false }
 pallet-rc2-migrator = { path = "pallets/rc2-migrator", default-features = false }
-pallet-staking-async = { version = "0.13.0", default-features = false }
+pallet-staking-async = { version = "0.14.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
 impl-trait-for-tuples = { version = "0.2.3", default-features = false }
@@ -84,7 +84,7 @@ frame-system-benchmarking = { version = "49.0.0", default-features = false }
 frame-system-rpc-runtime-api = { version = "43.0.0", default-features = false }
 frame-try-runtime = { version = "0.54.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
-grandpa = { version = "0.43.0", package = "sc-consensus-grandpa" }
+grandpa = { version = "0.43.1", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "30.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
@@ -149,7 +149,7 @@ pallet-insecure-randomness-collective-flip = { version = "37.0.0", default-featu
 pallet-membership = { version = "49.0.0", default-features = false }
 pallet-message-queue = { version = "52.0.0", default-features = false }
 pallet-mmr = { version = "49.0.0", default-features = false }
-pallet-multi-asset-bounties = { version = "0.6.0", default-features = false }
+pallet-multi-asset-bounties = { version = "0.6.1", default-features = false }
 pallet-multisig = { version = "49.0.0", default-features = false }
 pallet-nft-fractionalization = { version = "33.0.0", default-features = false }
 pallet-nfts = { version = "43.0.0", default-features = false }
@@ -189,7 +189,7 @@ pallet-transaction-payment = { version = "49.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "49.0.0", default-features = false }
 pallet-treasury = { version = "48.0.0", default-features = false }
 pallet-uniques = { version = "49.0.0", default-features = false }
-pallet-utility = { version = "49.0.0", default-features = false }
+pallet-utility = { version = "49.0.1", default-features = false }
 pallet-vesting = { version = "49.0.0", default-features = false }
 pallet-vesting-precompiles = { version = "0.5.0", default-features = false }
 pallet-whitelist = { version = "48.0.0", default-features = false }

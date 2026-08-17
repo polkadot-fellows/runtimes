@@ -436,15 +436,4 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(6_095_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	/// The range of component `x` is `[32, 16384]`.
-	fn decode_message(x: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 9_061_257_000 picoseconds.
-		Weight::from_parts(9_360_460_984, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 6_923
-			.saturating_add(Weight::from_parts(2_287, 0).saturating_mul(x.into()))
-	}
 }
