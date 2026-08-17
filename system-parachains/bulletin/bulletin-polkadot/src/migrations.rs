@@ -82,7 +82,7 @@ pub mod authorize_fellowship {
 	/// This is a *snapshot*: the Fellowship changes over time, and the Bulletin chain cannot
 	/// read Collectives state, so the list has to be hard-coded. Refresh it (and the block
 	/// reference above) whenever the migration is re-armed.
-	pub const FELLOWSHIP_RANK1_MEMBERS: [[u8; 32]; 58] = [
+	pub const FELLOWSHIP_RANK1_PLUS_MEMBERS: [[u8; 32]; 58] = [
 		// Rank 7 - 16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna
 		// https://collectives.subsquare.io/user/16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna/fellowship
 		hex!("f0673d30606ee26672707e4fd2bc8b58d3becb7aba2d5f60add64abb5fea4710"),
