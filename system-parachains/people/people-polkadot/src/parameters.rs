@@ -52,7 +52,7 @@ pub mod dynamic_params {
 		pub static NotificationPeriodDuration: u32 = 24 * 60 * 60;
 		#[codec(index = 10)]
 		pub static LitePersonStatementLimit: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 500 * 1024, max_count: 50 };
+			StatementAllowanceParameter { max_size: 50 * 1024, max_count: 15 };
 		#[codec(index = 11)]
 		pub static PersonStatementLimit: StatementAllowanceParameter =
 			StatementAllowanceParameter { max_size: 100 * 1024, max_count: 30 };
