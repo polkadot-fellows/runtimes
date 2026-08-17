@@ -112,7 +112,6 @@ xcm-builder = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
-relay-common = { workspace = true }
 
 [dev-dependencies]
 sp-keyring = { workspace = true }
@@ -201,7 +200,6 @@ std = [
 	"pallet-xcm/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
-	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -283,7 +281,6 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
