@@ -85,8 +85,16 @@ fn people_chain_can_authorize_account_on_bulletin() {
 			BulletinPolkadot,
 			vec![
 				RuntimeEvent::TransactionStorage(
-					pallet_bulletin_transaction_storage::Event::AccountAuthorized { .. }
-				) => {},
+					pallet_bulletin_transaction_storage::Event::AccountAuthorized {
+						who: authorized,
+						transactions: granted_transactions,
+						bytes: granted_bytes,
+					}
+				) => {
+					authorized: *authorized == who,
+					granted_transactions: *granted_transactions == transactions,
+					granted_bytes: *granted_bytes == bytes,
+				},
 				RuntimeEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
 				) => {},

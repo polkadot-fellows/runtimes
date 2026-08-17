@@ -57,8 +57,16 @@ fn assert_authorized(who: AccountId) {
 		BulletinPolkadot,
 		vec![
 			RuntimeEvent::TransactionStorage(
-				pallet_bulletin_transaction_storage::Event::AccountAuthorized { .. }
-			) => {},
+				pallet_bulletin_transaction_storage::Event::AccountAuthorized {
+					who: authorized,
+					transactions,
+					bytes,
+				}
+			) => {
+				authorized: *authorized == who,
+				transactions: *transactions == TRANSACTIONS,
+				bytes: *bytes == BYTES,
+			},
 			RuntimeEvent::MessageQueue(
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},

@@ -82,7 +82,7 @@ pub mod authorize_fellowship {
 	/// This is a *snapshot*: the Fellowship changes over time, and the Bulletin chain cannot
 	/// read Collectives state, so the list has to be hard-coded. Refresh it (and the block
 	/// reference above) whenever the migration is re-armed.
-	pub const FELLOWSHIP_RANK1_MEMBERS: [[u8; 32]; 58] = [
+	pub const FELLOWSHIP_RANK1_PLUS_MEMBERS: [[u8; 32]; 58] = [
 		// Rank 7 - 16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna
 		// https://collectives.subsquare.io/user/16SDAKg9N6kKAbhgDyxBXdHEwpwHUHs2CNEiLNGeZV55qHna/fellowship
 		hex!("f0673d30606ee26672707e4fd2bc8b58d3becb7aba2d5f60add64abb5fea4710"),
@@ -260,7 +260,7 @@ pub mod authorize_fellowship {
 	];
 
 	/// Grants a storage authorization to every rank-1+ Fellowship member listed in
-	/// [`FELLOWSHIP_RANK1_MEMBERS`].
+	/// [`FELLOWSHIP_RANK1_PLUS_MEMBERS`].
 	///
 	/// **Temporary.** The grants expire on their own after
 	/// [`AuthorizationPeriod`](crate::storage::AuthorizationPeriod) (14 days) and nothing renews
@@ -279,7 +279,7 @@ pub mod authorize_fellowship {
 
 	impl OnRuntimeUpgrade for AuthorizeFellowshipMembers {
 		fn on_runtime_upgrade() -> Weight {
-			let members = FELLOWSHIP_RANK1_MEMBERS;
+			let members = FELLOWSHIP_RANK1_PLUS_MEMBERS;
 			let db_weight = <Runtime as frame_system::Config>::DbWeight::get();
 			// One `Authorizations` read per member for the idempotence guard.
 			let mut weight = db_weight.reads(members.len() as u64);
@@ -331,11 +331,11 @@ pub mod authorize_fellowship {
 
 			// A duplicate entry would take the additive `authorize_account` path and hand that
 			// member twice the intended allowance.
-			let members = FELLOWSHIP_RANK1_MEMBERS;
+			let members = FELLOWSHIP_RANK1_PLUS_MEMBERS;
 			for (i, member) in members.iter().enumerate() {
 				ensure!(
 					!members[i.saturating_add(1)..].contains(member),
-					"FELLOWSHIP_RANK1_MEMBERS contains a duplicate account"
+					"FELLOWSHIP_RANK1_PLUS_MEMBERS contains a duplicate account"
 				);
 			}
 
@@ -346,7 +346,7 @@ pub mod authorize_fellowship {
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 			use frame_support::ensure;
 
-			for raw in FELLOWSHIP_RANK1_MEMBERS.iter() {
+			for raw in FELLOWSHIP_RANK1_PLUS_MEMBERS.iter() {
 				let who = AccountId::from(*raw);
 				ensure!(
 					TransactionStorage::account_has_active_authorization(&who),
@@ -380,7 +380,7 @@ pub mod authorize_fellowship {
 			sp_io::TestExternalities::new(genesis).execute_with(|| {
 				AuthorizeFellowshipMembers::on_runtime_upgrade();
 
-				for raw in FELLOWSHIP_RANK1_MEMBERS.iter() {
+				for raw in FELLOWSHIP_RANK1_PLUS_MEMBERS.iter() {
 					let who = AccountId::from(*raw);
 					assert_eq!(
 						TransactionStorage::account_authorization_extent(who.clone()),
@@ -397,8 +397,8 @@ pub mod authorize_fellowship {
 		}
 	}
 
-	/// Checks [`FELLOWSHIP_RANK1_MEMBERS`] against live Collectives Polkadot state. Needs network
-	/// access, hence the feature gate.
+	/// Checks [`FELLOWSHIP_RANK1_PLUS_MEMBERS`] against live Collectives Polkadot state. Needs
+	/// network access, hence the feature gate.
 	#[cfg(all(test, feature = "try-runtime"))]
 	mod remote_tests {
 		use super::*;
@@ -431,7 +431,7 @@ pub mod authorize_fellowship {
 			[twox_128(b"FellowshipCollective"), twox_128(b"Members")].concat()
 		}
 
-		/// Every account in [`FELLOWSHIP_RANK1_MEMBERS`] must still be a Fellow of rank 1 or
+		/// Every account in [`FELLOWSHIP_RANK1_PLUS_MEMBERS`] must still be a Fellow of rank 1 or
 		/// higher, and no rank-1+ Fellow may be missing from it.
 		#[tokio::test]
 		async fn fellowship_rank1_snapshot_is_current() {
@@ -463,7 +463,7 @@ pub mod authorize_fellowship {
 
 				let hex = |who: &[u8; 32]| format!("0x{}", HexDisplay::from(who));
 
-				let stale = FELLOWSHIP_RANK1_MEMBERS
+				let stale = FELLOWSHIP_RANK1_PLUS_MEMBERS
 					.iter()
 					.filter(|who| live.get(*who).copied().unwrap_or_default() < 1)
 					.map(hex)
@@ -472,7 +472,9 @@ pub mod authorize_fellowship {
 
 				let missing = live
 					.iter()
-					.filter(|(who, rank)| **rank >= 1 && !FELLOWSHIP_RANK1_MEMBERS.contains(who))
+					.filter(|(who, rank)| {
+						**rank >= 1 && !FELLOWSHIP_RANK1_PLUS_MEMBERS.contains(who)
+					})
 					.map(|(who, _)| hex(who))
 					.collect::<Vec<_>>();
 				assert!(missing.is_empty(), "rank 1+ but not in the snapshot: {missing:?}");

@@ -48,7 +48,6 @@ const STORE_PRIORITY: TransactionPriority = TransactionPriority::MAX / 4;
 const TX_LONGEVITY: TransactionLongevity = DAYS as TransactionLongevity;
 
 parameter_types! {
-	// TODO: @bkontur @franciscoaguirre @karolk91 confirm
 	pub const AuthorizationPeriod: crate::BlockNumber = 14 * DAYS;
 	// Pool params per call family. The tag prefixes must stay pairwise distinct — the
 	// pallet's `integrity_test` asserts it — so families never dedup each other out of
