@@ -16,9 +16,6 @@ codec = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
-serde = { optional = true, features = [
-	"derive",
-], workspace = true }
 serde_json = { features = ["alloc"], workspace = true }
 
 # Bulletin
@@ -62,7 +59,6 @@ sp-session = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
-sp-weights = { workspace = true }
 
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
@@ -149,7 +145,6 @@ std = [
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
-	"serde",
 	"serde_json/std",
 	"sp-api/std",
 	"sp-block-builder/std",
@@ -166,7 +161,6 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-transaction-storage-proof/std",
 	"sp-version/std",
-	"sp-weights/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
 	"xcm-builder/std",
