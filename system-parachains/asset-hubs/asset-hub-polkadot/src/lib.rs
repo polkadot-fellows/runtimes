@@ -119,7 +119,7 @@ use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	migrations::ForceUnstuckOnFailedMigration,
-	ord_parameter_types, parameter_types,
+	parameter_types,
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
