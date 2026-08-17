@@ -1400,7 +1400,7 @@ pub mod dynamic_params {
 		/// not been sized for Polkadot. TODO: double-check it for Polkadot together with
 		/// `MaxClaimsPerPeriodPerPerson`.
 		#[codec(index = 0)]
-		pub static PgasClaimAmount: Balance = 5000 * crate::individuality::PgasMinBalance::get();
+		pub static PgasClaimAmount: Balance = 60 * crate::individuality::PgasMinBalance::get();
 		/// Maximum PGAS claims per period for a full person.
 		#[codec(index = 1)]
 		pub static MaxClaimsPerPeriodPerPerson: u32 = 100;
