@@ -255,7 +255,7 @@ parameter_types! {
 	/// How long a person must wait before they may prove membership of the ring they were just
 	/// added to, in seconds. Without the delay, the act of joining would narrow the anonymity set
 	/// down to the newest member.
-	pub const SelfInclusionDelayValue: u64 = 3600;
+	pub const SelfInclusionDelayValue: u64 = 300;
 
 	/// Owner of the people collection in `pallet-members`. Set to the pallet's own location so
 	/// that no other origin can manage it.
