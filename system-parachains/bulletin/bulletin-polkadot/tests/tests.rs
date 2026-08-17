@@ -131,9 +131,18 @@ fn wrap_call_utility_variants(call: RuntimeCall) -> Vec<(RuntimeCall, &'static s
 		(
 			RuntimeCall::Utility(pallet_utility::Call::as_derivative {
 				index: 0,
-				call: Box::new(call),
+				call: Box::new(call.clone()),
 			}),
 			"utility::as_derivative",
+		),
+		// Only one branch runs, but `inspect_wrapper` returns both so that authorization is
+		// validated for whichever it turns out to be.
+		(
+			RuntimeCall::Utility(pallet_utility::Call::if_else {
+				main: Box::new(call.clone()),
+				fallback: Box::new(call),
+			}),
+			"utility::if_else",
 		),
 	]
 }
@@ -875,11 +884,13 @@ mod safe_call_filter {
 			assert_ne!(granted, AuthorizationExtent::default());
 
 			let store = RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store { data });
-			let outcome = transact_from_governance(store);
-
-			assert!(
-				outcome.clone().ensure_complete().is_err(),
-				"XCM Transact store must be blocked by SafeCallFilter, got: {outcome:?}",
+			// Assert the filter's own error: `store` reaches `do_store` without an extrinsic
+			// index here and would fail with `BadContext` anyway, so a bare `is_err()` would
+			// pass even with the filter removed.
+			assert_eq!(
+				transact_from_governance(store).ensure_complete().map_err(|e| e.error),
+				Err(XcmError::NoPermission),
+				"XCM Transact store must be rejected by the SafeCallFilter",
 			);
 			assert_eq!(
 				TransactionStorage::account_authorization_extent(who),
@@ -908,13 +919,13 @@ mod safe_call_filter {
 			let granted = TransactionStorage::account_authorization_extent(who.clone());
 
 			let store = RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store { data });
-			let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![store] });
-			let outcome = transact_from_governance(batch);
-
-			assert!(
-				outcome.clone().ensure_complete().is_err(),
-				"XCM Transact batch(store) must be blocked by the recursive SafeCallFilter, got: {outcome:?}",
-			);
+			for (wrapped, label) in wrap_call_utility_variants(store) {
+				assert_eq!(
+					transact_from_governance(wrapped).ensure_complete().map_err(|e| e.error),
+					Err(XcmError::NoPermission),
+					"XCM Transact {label}(store) must be rejected by the recursive SafeCallFilter",
+				);
+			}
 			assert_eq!(TransactionStorage::account_authorization_extent(who), granted);
 		});
 	}
