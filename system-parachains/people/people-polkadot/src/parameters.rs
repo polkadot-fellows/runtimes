@@ -55,7 +55,7 @@ pub mod dynamic_params {
 			StatementAllowanceParameter { max_size: 500 * 1024, max_count: 50 };
 		#[codec(index = 11)]
 		pub static PersonStatementLimit: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 1024 * 1024, max_count: 200 };
+			StatementAllowanceParameter { max_size: 100 * 1024, max_count: 30 };
 	}
 
 	/// Bulletin destination and long-term storage allocation limits.
