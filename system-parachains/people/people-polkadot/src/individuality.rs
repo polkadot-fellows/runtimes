@@ -297,7 +297,7 @@ impl indiv_pallet_members::Config for Runtime {
 	type MaxCollections = ConstU32<100>;
 	type OnboardingQueuePageSize = ConstU32<255>;
 	type MaxFlexibleRingExponent = MembersFlexibleRingExponent;
-	type RingBuildingMemberLimit = ConstU32<100>;
+	type RingBuildingMemberLimit = ConstU32<60>;
 	/// 10 minutes, so proofs against a superseded root stay valid for a grace period.
 	type OldRootRetentionDuration = ConstU64<600>;
 	type OnRingRootChange = MembersNotifier;
