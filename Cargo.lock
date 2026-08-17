@@ -2839,6 +2839,7 @@ dependencies = [
  "bulletin-polkadot-runtime",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
  "integration-tests-helpers",
  "pallet-bulletin-transaction-storage",
  "parachains-common",
