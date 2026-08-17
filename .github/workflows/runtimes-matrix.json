@@ -311,7 +311,7 @@
       "wss://rpc-bulletin.luckyfriday.io"
     ],
     "is_relay": false,
-    "blocktime": 6000,
+    "blocktime": 24000,
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
