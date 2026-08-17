@@ -555,14 +555,6 @@ mod runtime {
 	#[runtime::pallet_index(24)]
 	pub type AuraExt = cumulus_pallet_aura_ext;
 
-	// The main business of the Bulletin chain.
-	#[runtime::pallet_index(40)]
-	pub type TransactionStorage = pallet_bulletin_transaction_storage;
-	#[runtime::pallet_index(41)]
-	pub type HopPromotion = pallet_bulletin_hop_promotion;
-	#[runtime::pallet_index(42)]
-	pub type DataRenewal = pallet_bulletin_data_renewal;
-
 	// XCM & related
 	#[runtime::pallet_index(30)]
 	pub type XcmpQueue = cumulus_pallet_xcmp_queue;
@@ -572,6 +564,14 @@ mod runtime {
 	pub type CumulusXcm = cumulus_pallet_xcm;
 	#[runtime::pallet_index(34)]
 	pub type MessageQueue = pallet_message_queue;
+
+	// The main business of the Bulletin chain.
+	#[runtime::pallet_index(40)]
+	pub type TransactionStorage = pallet_bulletin_transaction_storage;
+	#[runtime::pallet_index(41)]
+	pub type HopPromotion = pallet_bulletin_hop_promotion;
+	#[runtime::pallet_index(42)]
+	pub type DataRenewal = pallet_bulletin_data_renewal;
 }
 
 cumulus_pallet_parachain_system::register_validate_block! {
