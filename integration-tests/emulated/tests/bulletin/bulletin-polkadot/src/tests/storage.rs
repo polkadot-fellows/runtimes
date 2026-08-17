@@ -85,8 +85,16 @@ fn people_chain_can_authorize_account_on_bulletin() {
 			BulletinPolkadot,
 			vec![
 				RuntimeEvent::TransactionStorage(
-					pallet_bulletin_transaction_storage::Event::AccountAuthorized { .. }
-				) => {},
+					pallet_bulletin_transaction_storage::Event::AccountAuthorized {
+						who: authorized,
+						transactions: granted_transactions,
+						bytes: granted_bytes,
+					}
+				) => {
+					authorized: *authorized == who,
+					granted_transactions: *granted_transactions == transactions,
+					granted_bytes: *granted_bytes == bytes,
+				},
 				RuntimeEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
 				) => {},
@@ -95,12 +103,220 @@ fn people_chain_can_authorize_account_on_bulletin() {
 
 		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
 		assert_eq!(
-			pallet_bulletin_transaction_storage::Pallet::<BulletinRuntime>::account_authorization_extent(who),
+			pallet_bulletin_transaction_storage::Pallet::<BulletinRuntime>::account_authorization_extent(who.clone()),
 			AuthorizationExtent {
 				transactions_allowance: transactions,
 				bytes_allowance: bytes,
 				..Default::default()
 			},
+		);
+		// The grant is usable, not just recorded.
+		assert!(pallet_bulletin_transaction_storage::Pallet::<BulletinRuntime>::can_store(
+			&who,
+			bytes as u32,
+		));
+	});
+}
+
+/// A system parachain outside the barrier's unpaid-execution list gets no further than the
+/// barrier, whatever it asks for. The message is delivered and then dropped as unprocessable.
+#[test]
+fn unlisted_sibling_is_rejected_by_the_barrier() {
+	let who: AccountId = PeoplePolkadot::account_id_of(BOB);
+
+	let authorize_call = {
+		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
+		type BulletinRuntimeCall = <BulletinPolkadot as Chain>::RuntimeCall;
+		BulletinRuntimeCall::TransactionStorage(pallet_bulletin_transaction_storage::Call::<
+			BulletinRuntime,
+		>::authorize_account {
+			who: who.clone(),
+			transactions: 5,
+			bytes: 512 * 1024,
+		})
+		.encode()
+	};
+
+	BridgeHubPolkadot::execute_with(|| {
+		type Runtime = <BridgeHubPolkadot as Chain>::Runtime;
+		type RuntimeCall = <BridgeHubPolkadot as Chain>::RuntimeCall;
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+
+		let send_xcm = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+			dest: bx!(VersionedLocation::from(BridgeHubPolkadot::sibling_location_of(
+				BulletinPolkadot::para_id()
+			))),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					fallback_max_weight: None,
+					call: authorize_call.into(),
+				},
+			]))),
+		});
+
+		assert_ok!(send_xcm.dispatch(<BridgeHubPolkadot as Chain>::RuntimeOrigin::root()));
+
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+			]
+		);
+	});
+
+	BulletinPolkadot::execute_with(|| {
+		type RuntimeEvent = <BulletinPolkadot as Chain>::RuntimeEvent;
+		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
+
+		// A barrier rejection stops execution at instruction 0, which the queue reports as an
+		// unsuccessful message rather than a processing failure.
+		assert_expected_events!(
+			BulletinPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: false, .. }
+				) => {},
+			]
+		);
+
+		assert_eq!(
+			pallet_bulletin_transaction_storage::Pallet::<BulletinRuntime>::account_authorization_extent(who),
+			AuthorizationExtent::default(),
+		);
+	});
+}
+
+/// The Asset Hub clears the barrier, so what stops it from authorizing is the `Authorizer`
+/// config: only Root — reached with `OriginKind::Superuser` — or the People chain's XCM origin
+/// qualifies. As a plain `OriginKind::Xcm` origin the Asset Hub is neither.
+///
+/// `Transact` reports an inner dispatch failure through the transact-status register instead of
+/// failing the message, so `ExpectTransactStatus` is what turns the rejected dispatch into an
+/// unsuccessful message.
+#[test]
+fn asset_hub_cannot_authorize_as_a_plain_xcm_origin() {
+	let who: AccountId = AssetHubPolkadot::account_id_of(BOB);
+
+	let authorize_call = {
+		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
+		type BulletinRuntimeCall = <BulletinPolkadot as Chain>::RuntimeCall;
+		BulletinRuntimeCall::TransactionStorage(pallet_bulletin_transaction_storage::Call::<
+			BulletinRuntime,
+		>::authorize_account {
+			who: who.clone(),
+			transactions: 5,
+			bytes: 512 * 1024,
+		})
+		.encode()
+	};
+
+	AssetHubPolkadot::execute_with(|| {
+		type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+		type RuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		let send_xcm = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+			dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(
+				BulletinPolkadot::para_id()
+			))),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					fallback_max_weight: None,
+					call: authorize_call.into(),
+				},
+				ExpectTransactStatus(MaybeErrorCode::Success),
+			]))),
+		});
+
+		assert_ok!(send_xcm.dispatch(<AssetHubPolkadot as Chain>::RuntimeOrigin::root()));
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+			]
+		);
+	});
+
+	BulletinPolkadot::execute_with(|| {
+		type RuntimeEvent = <BulletinPolkadot as Chain>::RuntimeEvent;
+		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
+
+		assert_expected_events!(
+			BulletinPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: false, .. }
+				) => {},
+			]
+		);
+
+		assert_eq!(
+			pallet_bulletin_transaction_storage::Pallet::<BulletinRuntime>::account_authorization_extent(who),
+			AuthorizationExtent::default(),
+		);
+	});
+}
+
+/// Calls that commit data are unreachable over XCM. The Asset Hub is a superuser on the
+/// Bulletin chain, so `SafeCallFilter` is the only thing standing between it and a free
+/// `store`.
+#[test]
+fn store_over_xcm_is_blocked() {
+	let store_call = {
+		type BulletinRuntime = <BulletinPolkadot as Chain>::Runtime;
+		type BulletinRuntimeCall = <BulletinPolkadot as Chain>::RuntimeCall;
+		BulletinRuntimeCall::TransactionStorage(pallet_bulletin_transaction_storage::Call::<
+			BulletinRuntime,
+		>::store {
+			data: vec![42u8; 100],
+		})
+		.encode()
+	};
+
+	AssetHubPolkadot::execute_with(|| {
+		type Runtime = <AssetHubPolkadot as Chain>::Runtime;
+		type RuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		let send_xcm = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+			dest: bx!(VersionedLocation::from(AssetHubPolkadot::sibling_location_of(
+				BulletinPolkadot::para_id()
+			))),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Superuser,
+					fallback_max_weight: None,
+					call: store_call.into(),
+				},
+			]))),
+		});
+
+		assert_ok!(send_xcm.dispatch(<AssetHubPolkadot as Chain>::RuntimeOrigin::root()));
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent { .. }) => {},
+			]
+		);
+	});
+
+	BulletinPolkadot::execute_with(|| {
+		type RuntimeEvent = <BulletinPolkadot as Chain>::RuntimeEvent;
+
+		assert_expected_events!(
+			BulletinPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: false, .. }
+				) => {},
+			]
 		);
 	});
 }
