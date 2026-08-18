@@ -135,11 +135,11 @@ impl<T: frame_system::Config> indiv_pallet_members_subscriber::WeightInfo for We
 	/// Proof: `XcmpQueue::OutboundXcmpStatus` (`max_values`: Some(1), `max_size`: Some(1794), added: 2289, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::RelevantMessagingState` (r:1 w:0)
 	/// Proof: `ParachainSystem::RelevantMessagingState` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `MembersSubscriber::RingRoots` (r:1000 w:1000)
-	/// Proof: `MembersSubscriber::RingRoots` (`max_values`: None, `max_size`: Some(2433), added: 4908, mode: `MaxEncodedLen`)
-	/// Storage: `MembersSubscriber::RingCollectionStates` (r:10 w:10)
+	/// Storage: `MembersSubscriber::RingRoots` (r:2000 w:2000)
+	/// Proof: `MembersSubscriber::RingRoots` (`max_values`: None, `max_size`: Some(993), added: 3468, mode: `MaxEncodedLen`)
+	/// Storage: `MembersSubscriber::RingCollectionStates` (r:20 w:20)
 	/// Proof: `MembersSubscriber::RingCollectionStates` (`max_values`: None, `max_size`: Some(2500), added: 4975, mode: `MaxEncodedLen`)
-	/// Storage: `MembersSubscriber::RingCollectionExponents` (r:10 w:10)
+	/// Storage: `MembersSubscriber::RingCollectionExponents` (r:20 w:20)
 	/// Proof: `MembersSubscriber::RingCollectionExponents` (`max_values`: None, `max_size`: Some(49), added: 2524, mode: `MaxEncodedLen`)
 	/// Storage: `XcmpQueue::OutboundXcmpMessages` (r:0 w:1)
 	/// Proof: `XcmpQueue::OutboundXcmpMessages` (`max_values`: None, `max_size`: Some(105506), added: 107981, mode: `MaxEncodedLen`)
@@ -147,13 +147,13 @@ impl<T: frame_system::Config> indiv_pallet_members_subscriber::WeightInfo for We
 	/// Proof: `MembersSubscriber::ProcessingState` (`max_values`: Some(1), `max_size`: Some(24), added: 519, mode: `MaxEncodedLen`)
 	fn terminate_subscription() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `58763`
-		//  Estimated: `4908990`
-		// Minimum execution time: 1_810_278_000 picoseconds.
-		Weight::from_parts(1_874_932_000, 0)
-			.saturating_add(Weight::from_parts(0, 4908990))
-			.saturating_add(T::DbWeight::get().reads(1025))
-			.saturating_add(T::DbWeight::get().writes(1024))
+		//  Measured:  `117176`
+		//  Estimated: `6936990`
+		// Minimum execution time: 2_035_000_000 picoseconds.
+		Weight::from_parts(2_430_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 6936990))
+			.saturating_add(T::DbWeight::get().reads(2045))
+			.saturating_add(T::DbWeight::get().writes(2044))
 	}
 	/// Storage: `MembersSubscriber::RingCollectionStates` (r:1 w:1)
 	/// Proof: `MembersSubscriber::RingCollectionStates` (`max_values`: None, `max_size`: Some(2500), added: 4975, mode: `MaxEncodedLen`)

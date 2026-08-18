@@ -164,7 +164,7 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 	type MaxRingRootsPerCollection = ConstU32<100>;
 	type EnsureNotifierOrigin = EnsureNotifierSibling;
 	type EnsureTerminationOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureNotifierSibling>;
-	type MaxCollections = ConstU32<10>;
+	type MaxCollections = ConstU32<20>;
 	type UnixTime = Timestamp;
 	type ReplayCooldownSeconds = ConstU64<60>;
 	type MaxUpdatesPerBatch = ConstU32<10>;
