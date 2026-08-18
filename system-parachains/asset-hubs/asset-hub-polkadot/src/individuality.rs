@@ -171,7 +171,7 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 	type ReplayWarningThreshold = ConstU32<5>;
 	type ReplayAbandonThreshold = ConstU32<10>;
 	type MaxRecentRootsPerRing = ConstU32<3>;
-	type OffchainWorkerInterval = ConstU32<1>;
+	type OffchainWorkerInterval = ConstU32<3>;
 }
 
 impl indiv_pallet_alias_accounts::Config for Runtime {
