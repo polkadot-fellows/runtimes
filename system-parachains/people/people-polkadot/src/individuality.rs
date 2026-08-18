@@ -771,7 +771,7 @@ impl indiv_pallet_members_notifier::Config for Runtime {
 	type Clock = RuntimeClock;
 	type MaxSubscribers = ConstU32<10>;
 	type MaxUpdatesPerBatch = ConstU32<10>;
-	type MaxCollectionsPerSubscriber = ConstU32<3>;
+	type MaxCollectionsPerSubscriber = ConstU32<10>;
 	type MaxCollections = ConstU32<100>;
 	type UpdateTriggerBlocks = ConstU32<1>;
 	type UpdateTriggerThreshold = ConstU32<1>;
