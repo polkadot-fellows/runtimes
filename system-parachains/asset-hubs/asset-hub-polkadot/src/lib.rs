@@ -248,7 +248,7 @@ parameter_types! {
 		.build_or_panic();
 	pub const SS58Prefix: u8 = 0;
 	/// The canonical account for permanently removing DOT from circulation.
-	pub BurnAccount: AccountId = PalletId(*b"py/mnbrn").into_account_truncating();
+	pub BurnAccount: AccountId = PalletId(*b"py/cabrn").into_account_truncating();
 }
 
 /// Calls that are temporarily disabled at the runtime level.
@@ -2898,12 +2898,12 @@ mod tests {
 		assert_eq!(
 			account,
 			AccountId::from(hex_literal::hex!(
-				"6d6f646c70792f6d6e62726e0000000000000000000000000000000000000000"
+				"6d6f646c70792f636162726e0000000000000000000000000000000000000000"
 			))
 		);
 		assert_eq!(
 			account.to_ss58check_with_version(Ss58AddressFormat::try_from("polkadot").unwrap()),
-			"13UVJyLnbVp8UBiThFiF7E3CQFuoRYLAkbGAQZcDT3m5LiDU"
+			"13UVJyLnbVp77Q2CRfD1Uryp655A696vD62DbmzF7woS1Vf8"
 		);
 	}
 
