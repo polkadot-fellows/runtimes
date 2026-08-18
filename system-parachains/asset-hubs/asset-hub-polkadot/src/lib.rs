@@ -102,6 +102,7 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
 };
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -244,6 +245,8 @@ parameter_types! {
 		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
 		.build_or_panic();
 	pub const SS58Prefix: u8 = 0;
+	/// The canonical account for permanently removing DOT from circulation.
+	pub BurnAccount: AccountId = PalletId(*b"py/mnbrn").into_account_truncating();
 }
 
 /// Calls that are temporarily disabled at the runtime level.
@@ -2883,6 +2886,23 @@ mod tests {
 		let acc =
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
 		assert_eq!(acc, MigController::sorted_members()[0]);
+	}
+
+	#[test]
+	fn burn_account_is_stable() {
+		use sp_core::crypto::{Ss58AddressFormat, Ss58Codec};
+
+		let account = BurnAccount::get();
+		assert_eq!(
+			account,
+			AccountId::from(hex_literal::hex!(
+				"6d6f646c70792f6d6e62726e0000000000000000000000000000000000000000"
+			))
+		);
+		assert_eq!(
+			account.to_ss58check_with_version(Ss58AddressFormat::try_from("polkadot").unwrap()),
+			"13UVJyLnbVp8UBiThFiF7E3CQFuoRYLAkbGAQZcDT3m5LiDU"
+		);
 	}
 
 	#[test]
