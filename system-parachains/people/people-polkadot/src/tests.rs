@@ -276,7 +276,7 @@ fn individuality_storage_parameters_are_governance_mutable() {
 	ext.execute_with(|| {
 		assert_eq!(
 			<<Runtime as indiv_pallet_resources::Config>::StmtStoreGraceWindow as Get<u32>>::get(),
-			2 * 24 * 60 * 60,
+			24 * 60 * 60,
 		);
 		assert_noop!(
 			Parameters::set_parameter(

@@ -40,7 +40,7 @@ pub mod dynamic_params {
 		#[codec(index = 4)]
 		pub static StmtStoreReplacementCooldown: u32 = 60;
 		#[codec(index = 5)]
-		pub static StmtStoreGraceWindow: u32 = 2 * 24 * 60 * 60;
+		pub static StmtStoreGraceWindow: u32 = 24 * 60 * 60;
 		#[codec(index = 6)]
 		pub static NotificationAllowance: StatementAllowanceParameter =
 			StatementAllowanceParameter { max_size: 10 * 1024, max_count: 1 };
