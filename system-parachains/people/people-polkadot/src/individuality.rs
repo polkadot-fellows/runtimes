@@ -561,7 +561,7 @@ impl indiv_pallet_airdrop::Config for Runtime {
 	type AccountIdToPublic = AccountIdToSr25519Public;
 	type ClearLimit = ConstU32<100>;
 	type DrawLimit = ConstU32<100>;
-	type OffchainWorkerInterval = ConstU32<1>;
+	type OffchainWorkerInterval = ConstU32<2>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::AirdropBenchmarkHelper;
 }
