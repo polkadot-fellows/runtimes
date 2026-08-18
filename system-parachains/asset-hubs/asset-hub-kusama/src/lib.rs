@@ -1868,6 +1868,12 @@ impl
 type StakingRcClientBench<T> = pallet_staking_async_rc_client::benchmarking::Pallet<T>;
 
 #[cfg(feature = "runtime-benchmarks")]
+type NominationPoolsBench<T> = pallet_nomination_pools_benchmarking::Pallet<T>;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_nomination_pools_benchmarking::Config for Runtime {}
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
@@ -1892,6 +1898,7 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_nft_fractionalization, NftFractionalization]
 		[pallet_nfts, Nfts]
+		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
