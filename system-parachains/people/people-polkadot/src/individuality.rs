@@ -448,11 +448,7 @@ impl pallet_nfts::Config for Runtime {
 parameter_types! {
 	pub const PlayDepositReason: RuntimeHoldReason =
 		RuntimeHoldReason::Game(indiv_pallet_game::HoldReason::PlayDeposit);
-	// TODO: double-check this value for Polkadot. Ported verbatim from the reference runtime, where
-	// it is 2 PAS; here the same literal is 2 DOT, which is a materially higher barrier to playing.
-	// It is only the *default* — `ManagerOrigin` can change it on chain — but the default is what a
-	// freshly upgraded chain runs with.
-	pub const PlayDepositDefault: Balance = 2 * UNITS;
+	pub const PlayDepositDefault: Balance = 5 * UNITS;
 	pub PlayerStatementLimit: StatementAllowance =
 		StatementAllowance { max_size: 1_000_000, max_count: 1_000_000 };
 	pub GameAirdropSource: AccountId = PalletId(*b"pop/gads").into_account_truncating();
