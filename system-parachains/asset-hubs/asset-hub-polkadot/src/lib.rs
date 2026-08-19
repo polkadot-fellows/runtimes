@@ -1777,7 +1777,6 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			(),
 			frame_system::AuthorizeCall<Runtime>,
 			indiv_pallet_pgas::AsPgas<Runtime>,
-			indiv_pallet_alias_accounts::AsRingAlias<Runtime>,
 			indiv_pallet_dotns_gateway::AsDotnsGateway<Runtime>,
 		),
 		// General checks and operations.
@@ -3223,7 +3222,6 @@ mod tests {
 		let indiv = [
 			"UnitTransactionExtension",
 			"AsPgas",
-			"AsRingAlias",
 			"AsDotnsGateway",
 			"RestrictOrigins",
 		];

@@ -154,7 +154,7 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureNotifierSibling {
 }
 
 impl indiv_pallet_members_subscriber::Config for Runtime {
-	type WeightInfo = weights::indiv_pallet_members_subscriber::WeightInfo<Runtime>;
+	type WeightInfo = indiv_pallet_members_subscriber::weights::SubstrateWeight<Runtime>;
 	type Crypto = indiv_support::crypto::BandersnatchVrfVerifiable;
 	type XcmSender = xcm_config::XcmRouter;
 	type RingRootsNotifier = RingRootsNotifierEndpoint;
@@ -171,11 +171,12 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 	type ReplayWarningThreshold = ConstU32<5>;
 	type ReplayAbandonThreshold = ConstU32<10>;
 	type MaxRecentRootsPerRing = ConstU32<3>;
+	type OldRootRetentionDuration = ConstU64<600>;
 	type OffchainWorkerInterval = ConstU32<3>;
 }
 
 impl indiv_pallet_alias_accounts::Config for Runtime {
-	type WeightInfo = weights::indiv_pallet_alias_accounts::WeightInfo<Runtime>;
+	type WeightInfo = indiv_pallet_alias_accounts::weights::SubstrateWeight<Runtime>;
 	type MemberService = MembersSubscriber;
 	type UnixTime = Timestamp;
 	/// The default proof-validity window is five minutes after the timestamp it commits to.
