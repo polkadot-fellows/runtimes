@@ -88,8 +88,8 @@ glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.42.0", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "29.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
-# The Individuality SDK is a local sibling checkout for development. This local-only setup is
-# intentionally not suitable for GitHub CI.
+# Individuality crates come from the public individuality-community repo, pinned to a release
+# revision. Bump this pin when a new public release lands.
 indiv-pallet-airdrop = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
