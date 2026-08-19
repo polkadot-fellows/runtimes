@@ -13,7 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Tests for storage authorization via XCM from the People chain.
+//! The storage pallets' XCM surface: the People chain can authorize accounts, a sibling
+//! outside the barrier's unpaid-execution list cannot get a message executed at all, the
+//! Asset Hub cannot authorize as a plain `OriginKind::Xcm` origin, and calls that commit
+//! data are blocked by the `SafeCallFilter`.
 
 use crate::*;
 use emulated_integration_tests_common::{
