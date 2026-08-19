@@ -15,6 +15,7 @@
 // limitations under the License.
 
 use crate::{
+	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
 };
@@ -25,7 +26,7 @@ use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 use frame_support::{assert_err, assert_noop, assert_ok};
 use parachains_runtimes_test_utils::GovernanceOrigin;
-use sp_runtime::Either;
+use sp_runtime::{Either, MultiAddress};
 
 const ALICE: [u8; 32] = [1u8; 32];
 
@@ -419,10 +420,15 @@ fn individuality_deployment_order_guards_are_enforced() {
 			))
 		));
 
-		// Coinage refuses an unregistered backing asset, then deliberately refuses a second choice.
+		// Coinage refuses an unregistered backing asset. Once governance funds the pallet account's
+		// minimum balance, it can create sufficient instances for that backing asset.
 		let stable = StableAssetLocation::get();
 		assert_noop!(
-			Coinage::set_underlying_asset_id(RuntimeOrigin::root(), stable.clone()),
+			Coinage::create_sufficient_instance(
+				RuntimeOrigin::root(),
+				stable.clone(),
+				HOLLAR_UNITS / 100,
+			),
 			indiv_pallet_coinage::Error::<Runtime>::UnknownAsset,
 		);
 		assert_ok!(Assets::force_create(
@@ -432,11 +438,25 @@ fn individuality_deployment_order_guards_are_enforced() {
 			true,
 			1,
 		));
-		assert_ok!(Coinage::set_underlying_asset_id(RuntimeOrigin::root(), stable.clone()));
-		assert_noop!(
-			Coinage::set_underlying_asset_id(RuntimeOrigin::root(), stable),
-			indiv_pallet_coinage::Error::<Runtime>::AssetIdAlreadySet,
-		);
+		assert_ok!(Assets::mint(
+			RuntimeOrigin::signed(AccountId::from(ALICE).into()),
+			stable.clone(),
+			MultiAddress::Id(Coinage::pallet_account()),
+			1,
+		));
+		assert_ok!(Coinage::create_sufficient_instance(
+			RuntimeOrigin::root(),
+			stable.clone(),
+			HOLLAR_UNITS / 100,
+		));
+		assert_ok!(Coinage::create_sufficient_instance(
+			RuntimeOrigin::root(),
+			stable.clone(),
+			HOLLAR_UNITS / 100,
+		));
+		let mut instances = Coinage::get_instance_ids(stable);
+		instances.sort();
+		assert_eq!(instances, vec![0, 1]);
 
 		// No schedule means no game state or score round is active.
 		assert!(indiv_pallet_game::Game::<Runtime>::get().is_none());
