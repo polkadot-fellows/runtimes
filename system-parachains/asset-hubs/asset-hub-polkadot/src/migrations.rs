@@ -169,11 +169,8 @@ pub type Unreleased = (
 	MigrateBountyAccountAssets,
 );
 
-/// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = (Unreleased, Permanent);
+pub type SingleBlockMigrations = Unreleased;
 
 #[cfg(not(feature = "runtime-benchmarks"))]
 pub use multiblock_migrations::MbmMigrations;

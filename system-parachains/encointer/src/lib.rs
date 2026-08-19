@@ -983,10 +983,7 @@ pub mod migrations {
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+	pub type SingleBlockMigrations = Unreleased;
 }
 
 /// Executive: handles dispatch to the various modules.

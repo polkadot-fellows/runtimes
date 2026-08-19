@@ -20,11 +20,8 @@ use super::*;
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (cumulus_pallet_parachain_system::migration::Migration<Runtime>,);
 
-/// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
-
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = (Unreleased, Permanent);
+pub type SingleBlockMigrations = Unreleased;
 
 /// MBM migrations to apply on runtime upgrade.
 pub type MbmMigrations = ();
