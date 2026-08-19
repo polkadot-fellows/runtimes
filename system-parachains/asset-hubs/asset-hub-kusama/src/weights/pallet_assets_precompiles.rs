@@ -50,7 +50,7 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_assets_precompiles`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_assets_precompiles::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_assets_precompiles::weights::WeightInfo for WeightInfo<T> {
 	/// Storage: `ForeignAssets::Asset` (r:2 w:0)
 	/// Proof: `ForeignAssets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsPrecompiles::ForeignAssetIdToAssetIndex` (r:1 w:1)

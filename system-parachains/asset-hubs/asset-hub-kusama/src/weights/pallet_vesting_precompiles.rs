@@ -50,7 +50,7 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_vesting_precompiles`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_vesting_precompiles::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_vesting_precompiles::weights::WeightInfo for WeightInfo<T> {
 	/// Storage: `Vesting::Vesting` (r:1 w:0)
 	/// Proof: `Vesting::Vesting` (`max_values`: None, `max_size`: Some(1057), added: 3532, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::ValidationData` (r:1 w:0)
