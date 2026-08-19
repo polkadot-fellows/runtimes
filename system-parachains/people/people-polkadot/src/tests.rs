@@ -16,7 +16,7 @@
 
 use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
+	Block, DotWeightToFee as WeightToFee, ProxyType, Runtime, RuntimeCall, RuntimeOrigin,
 };
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
@@ -192,4 +192,57 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+/// Exhaustive, so a new `pallet_identity` call upstream breaks the build.
+#[test]
+fn nontransfer_proxy_pins_every_identity_call() {
+	use codec::Decode;
+	use frame_support::traits::InstanceFilter;
+
+	fn admitted(call: &pallet_identity::Call<Runtime>) -> bool {
+		use pallet_identity::Call::*;
+		match call {
+			// Take or repatriate a deposit from the proxied account.
+			request_judgement { .. } | set_subs { .. } | add_sub { .. } => false,
+			add_registrar { .. } |
+			set_identity { .. } |
+			clear_identity { .. } |
+			cancel_request { .. } |
+			set_fee { .. } |
+			set_account_id { .. } |
+			set_fields { .. } |
+			provide_judgement { .. } |
+			kill_identity { .. } |
+			rename_sub { .. } |
+			remove_sub { .. } |
+			quit_sub { .. } |
+			add_username_authority { .. } |
+			remove_username_authority { .. } |
+			set_username_for { .. } |
+			accept_username { .. } |
+			remove_expired_approval { .. } |
+			set_primary_username { .. } |
+			unbind_username { .. } |
+			remove_username { .. } |
+			kill_username { .. } => true,
+			__Ignore(..) => unreachable!("not a dispatchable"),
+		}
+	}
+
+	// `Identity: pallet_identity = 50` in `construct_runtime!`.
+	for call_index in 0..=23u8 {
+		let mut payload = vec![50u8, call_index];
+		payload.extend_from_slice(&[0u8; 512]);
+		let call = RuntimeCall::decode(&mut &payload[..])
+			.unwrap_or_else(|_| panic!("Identity call {call_index} must decode"));
+		match &call {
+			RuntimeCall::Identity(inner) => assert_eq!(
+				ProxyType::NonTransfer.filter(&call),
+				admitted(inner),
+				"NonTransfer admission drifted for Identity call {call_index}"
+			),
+			_ => panic!("call index {call_index} did not decode to an Identity call"),
+		}
+	}
 }
