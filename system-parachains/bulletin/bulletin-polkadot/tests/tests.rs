@@ -550,6 +550,31 @@ mod granting {
 			let remaining =
 				AllowedAuthorizers::<Runtime>::get(&authorizer).expect("still registered");
 			assert_eq!(remaining.quota, Some(Quota { transactions: 7, bytes: 7168 }));
+
+			// The same works as a signed extrinsic; Charlie pays fees (the budget is not
+			// feeless), hence the funding.
+			fund(&authorizer);
+			let authorize =
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::authorize_account {
+					who: Sr25519Keyring::Ferdie.to_account_id(),
+					transactions: 3,
+					bytes: 1024,
+				});
+			assert_ok_ok(construct_and_apply_extrinsic(
+				Sr25519Keyring::Charlie.pair(),
+				authorize.clone(),
+			));
+
+			// Once removed, the ex-authorizer is rejected at validation, before dispatch.
+			assert_ok!(TransactionStorage::remove_authorizer(
+				RuntimeOrigin::root(),
+				authorizer.clone(),
+			));
+			assert!(AllowedAuthorizers::<Runtime>::get(&authorizer).is_none());
+			assert_eq!(
+				construct_and_apply_extrinsic(Sr25519Keyring::Charlie.pair(), authorize),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::BadSigner)),
+			);
 		});
 	}
 
@@ -1049,26 +1074,61 @@ mod storing {
 	#[test]
 	fn store_with_cid_config_works() {
 		new_test_ext().execute_with(|| {
+			let account = Sr25519Keyring::Alice;
+			let who: AccountId = account.to_account_id();
 			let data = vec![0u8; 4 * 1024];
+			let total_bytes = data.len() as u64;
+
+			assert_ok!(TransactionStorage::authorize_account(
+				RuntimeOrigin::root(),
+				who.clone(),
+				0,
+				3 * total_bytes,
+			));
+			assert_eq!(
+				TransactionStorage::account_authorization_extent(who.clone()),
+				AuthorizationExtent { bytes_allowance: 3 * total_bytes, ..Default::default() },
+			);
+			advance_block();
 			let block_number = System::block_number();
 
 			// 1. Store data with plain `store` (defaults to Blake2b256, RAW_CODEC 0x55).
-			assert_ok!(TransactionStorage::store(RuntimeOrigin::root(), data.clone()));
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+					data: data.clone(),
+				}),
+			));
 
 			// 2. Store with explicit Blake2b256 + RAW_CODEC — should produce the same content_hash.
-			assert_ok!(TransactionStorage::store_with_cid_config(
-				RuntimeOrigin::root(),
-				CidConfig { codec: RAW_CODEC, hashing: HashingAlgorithm::Blake2b256 },
-				data.clone(),
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store_with_cid_config {
+					cid: CidConfig { codec: RAW_CODEC, hashing: HashingAlgorithm::Blake2b256 },
+					data: data.clone(),
+				}),
 			));
 
 			// 3. Store with Sha2_256 + dag-pb codec (0x70) — should produce a different
 			//    content_hash.
-			assert_ok!(TransactionStorage::store_with_cid_config(
-				RuntimeOrigin::root(),
-				CidConfig { codec: 0x70, hashing: HashingAlgorithm::Sha2_256 },
-				data.clone(),
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store_with_cid_config {
+					cid: CidConfig { codec: 0x70, hashing: HashingAlgorithm::Sha2_256 },
+					data: data.clone(),
+				}),
 			));
+
+			// The three stores consumed exactly the granted byte allowance.
+			assert_eq!(
+				TransactionStorage::account_authorization_extent(who),
+				AuthorizationExtent {
+					transactions: 3,
+					bytes: 3 * total_bytes,
+					bytes_allowance: 3 * total_bytes,
+					..Default::default()
+				},
+			);
 
 			TransactionStorage::on_finalize(block_number);
 
@@ -1292,11 +1352,49 @@ mod storing {
 
 			// Still unfunded, but now feeless.
 			let before = TransactionStorage::account_authorization_extent(who.clone());
+			let stored_block = System::block_number();
 			assert_ok_ok(construct_and_apply_extrinsic(account.pair(), store));
 
-			let after = TransactionStorage::account_authorization_extent(who);
+			let after = TransactionStorage::account_authorization_extent(who.clone());
 			assert_eq!(after.transactions, before.transactions + 1);
 			assert_eq!(after.bytes, before.bytes + data.len() as u64);
+			advance_block();
+
+			// `force_renew` is feeless as well: still no balance, and it commits the entry's
+			// size to the permanent counter.
+			let before = after;
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::DataRenewal(RenewalCall::<Runtime>::force_renew {
+					entry: TransactionRef::Position { block: stored_block, index: 0 },
+				}),
+			));
+			let after = TransactionStorage::account_authorization_extent(who.clone());
+			assert_eq!(after.transactions, before.transactions + 1);
+			assert_eq!(after.bytes, before.bytes);
+			assert_eq!(
+				after.extra.bytes_permanent,
+				before.extra.bytes_permanent + data.len() as u64,
+			);
+			advance_block();
+
+			// `enable_auto_renew` is feeless and pre-pays one cycle at registration: one tx
+			// slot plus the entry's size in permanent bytes, like `force_renew`.
+			let content_hash = sp_io::hashing::blake2_256(&data);
+			let before = after;
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::DataRenewal(RenewalCall::<Runtime>::enable_auto_renew {
+					content_hash,
+				}),
+			));
+			let after = TransactionStorage::account_authorization_extent(who);
+			assert_eq!(after.transactions, before.transactions + 1);
+			assert_eq!(after.bytes, before.bytes);
+			assert_eq!(
+				after.extra.bytes_permanent,
+				before.extra.bytes_permanent + data.len() as u64,
+			);
 		});
 	}
 
@@ -1351,7 +1449,31 @@ mod storing {
 					transactions: 1,
 					bytes: 1,
 				});
-			assert_eq!(priority(origin, &other), 0);
+			assert_eq!(priority(origin.clone(), &other), 0);
+
+			// Eager-compute: a single tx whose size alone would push the signer over the cap
+			// is demoted to no boost on entry, even though nothing is consumed yet.
+			let oversized = RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+				data: vec![0u8; 4_001],
+			});
+			assert_eq!(priority(origin.clone(), &oversized), 0);
+
+			// Consume the entire byte allowance -> over budget -> the boost is withdrawn.
+			advance_block();
+			assert_ok_ok(construct_and_apply_extrinsic(
+				Sr25519Keyring::Eve.pair(),
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+					data: vec![0u8; 4_000],
+				}),
+			));
+			advance_block();
+			assert_eq!(priority(origin.clone(), &store), 0);
+
+			// Renewals carry `Origin::Authorized` too, but only stores are boosted.
+			let renew = RuntimeCall::DataRenewal(RenewalCall::<Runtime>::force_renew {
+				entry: TransactionRef::Position { block: 1, index: 0 },
+			});
+			assert_eq!(priority(origin, &renew), 0);
 		});
 	}
 
@@ -1852,6 +1974,19 @@ mod renewals {
 				pallet_bulletin_data_renewal::PermanentStorageUsed::<Runtime>::get(),
 				data.len() as u64,
 			);
+
+			// Like `renew`, `force_renew` is refused inside every dispatcher. The account is
+			// funded, so fees are not what rejects the (non-feeless) wrappers.
+			let force_renew = RuntimeCall::DataRenewal(RenewalCall::<Runtime>::force_renew {
+				entry: TransactionRef::Position { block: stored_block, index: 0 },
+			});
+			for (wrapped, label) in wrap_call_utility_variants(force_renew) {
+				assert_eq!(
+					construct_and_apply_extrinsic(account.pair(), wrapped),
+					Err(TransactionValidityError::Invalid(InvalidTransaction::Call)),
+					"force_renew via {label} must be rejected",
+				);
+			}
 		});
 	}
 
