@@ -20,8 +20,8 @@ use crate::{
 	system_parachains_specs::{
 		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
 		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, CoretimeKusamaChainSpec,
-		CoretimePolkadotChainSpec, GluttonKusamaChainSpec, PeopleKusamaChainSpec,
-		PeoplePolkadotChainSpec,
+		CoretimePolkadotChainSpec, EncointerKusamaChainSpec, GluttonKusamaChainSpec,
+		PeopleKusamaChainSpec, PeoplePolkadotChainSpec,
 	},
 	ChainSpec,
 };
@@ -58,9 +58,8 @@ pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn Chain
 			Ok(Box::new(CoretimePolkadotChainSpec::from_json_file(path)?)),
 		x if x.starts_with("glutton-kusama") =>
 			Ok(Box::new(GluttonKusamaChainSpec::from_json_file(path)?)),
-		// TODO(encointer stable2606): re-enable once encointer-* supports stable2606
-		// x if x.starts_with("encointer-kusama") =>
-		// 	Ok(Box::new(EncointerKusamaChainSpec::from_json_file(path)?)),
+		x if x.starts_with("encointer-kusama") =>
+			Ok(Box::new(EncointerKusamaChainSpec::from_json_file(path)?)),
 		x if x.starts_with("people-kusama") =>
 			Ok(Box::new(PeopleKusamaChainSpec::from_json_file(path)?)),
 		x if x.starts_with("people-polkadot") =>
