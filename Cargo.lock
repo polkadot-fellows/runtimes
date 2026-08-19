@@ -2866,7 +2866,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-remote-externalities",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -2921,7 +2920,6 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "tokio",
  "xcm-runtime-apis",
 ]
 

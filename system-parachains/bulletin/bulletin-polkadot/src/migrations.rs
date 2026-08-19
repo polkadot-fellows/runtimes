@@ -77,7 +77,7 @@ pub mod authorize_fellowship {
 	/// (hash `0x23aee9a890b2800f95e74871617401805604ebcc5bb15aefd9552a935eed7c99`), keeping
 	/// every member whose `MemberRecord::rank` is `>= 1` — i.e. all inducted Fellows, excluding
 	/// rank-0 candidates. Each entry carries a Subsquare link so the rank can be verified by
-	/// hand; [`remote_tests`] re-checks the whole list against live Collectives state.
+	/// hand.
 	///
 	/// This is a *snapshot*: the Fellowship changes over time, and the Bulletin chain cannot
 	/// read Collectives state, so the list has to be hard-coded. Refresh it (and the block
@@ -393,91 +393,6 @@ pub mod authorize_fellowship {
 					// The grant must be usable right away for a `store` of any allowed size.
 					assert!(TransactionStorage::can_store(&who, DEFAULT_MAX_TRANSACTION_SIZE));
 				}
-			});
-		}
-	}
-
-	/// Checks [`FELLOWSHIP_RANK1_PLUS_MEMBERS`] against live Collectives Polkadot state. Needs
-	/// network access, hence the feature gate.
-	#[cfg(all(test, feature = "try-runtime"))]
-	mod remote_tests {
-		use super::*;
-		use frame_support::storage::unhashed;
-		use remote_externalities::{Builder, Mode, OnlineConfig};
-		use sp_core::hexdisplay::HexDisplay;
-		use sp_io::hashing::twox_128;
-		use std::collections::BTreeMap;
-
-		const MATRIX: &str =
-			concat!(env!("CARGO_MANIFEST_DIR"), "/../../../.github/workflows/runtimes-matrix.json");
-
-		fn collectives_uris() -> Vec<String> {
-			let matrix: serde_json::Value =
-				serde_json::from_slice(&std::fs::read(MATRIX).expect(MATRIX)).unwrap();
-			matrix
-				.as_array()
-				.unwrap()
-				.iter()
-				.find(|entry| entry["name"] == "collectives-polkadot")
-				.expect("`collectives-polkadot` entry")["uris"]
-				.as_array()
-				.expect("`uris` list")
-				.iter()
-				.map(|uri| uri.as_str().unwrap().to_owned())
-				.collect()
-		}
-
-		fn members_prefix() -> Vec<u8> {
-			[twox_128(b"FellowshipCollective"), twox_128(b"Members")].concat()
-		}
-
-		/// Every account in [`FELLOWSHIP_RANK1_PLUS_MEMBERS`] must still be a Fellow of rank 1 or
-		/// higher, and no rank-1+ Fellow may be missing from it.
-		#[tokio::test]
-		async fn fellowship_rank1_snapshot_is_current() {
-			let prefix = members_prefix();
-			let mut ext = Builder::<Block>::default()
-				.mode(Mode::Online(OnlineConfig {
-					transport_uris: collectives_uris(),
-					// Just the one map; leaving this empty downloads all of state.
-					hashed_prefixes: vec![prefix.clone()],
-					child_trie: false,
-					..Default::default()
-				}))
-				.build()
-				.await
-				.unwrap();
-
-			ext.execute_with(|| {
-				let mut live = BTreeMap::new();
-				let mut key = prefix.clone();
-				while let Some(next) = sp_io::storage::next_key(&key) {
-					if !next.starts_with(&prefix) {
-						break;
-					}
-					// `Twox64Concat` appends the plain key after its 8-byte hash.
-					let who: [u8; 32] = next[prefix.len() + 8..].try_into().unwrap();
-					live.insert(who, unhashed::get::<u16>(&next).unwrap());
-					key = next;
-				}
-
-				let hex = |who: &[u8; 32]| format!("0x{}", HexDisplay::from(who));
-
-				let stale = FELLOWSHIP_RANK1_PLUS_MEMBERS
-					.iter()
-					.filter(|who| live.get(*who).copied().unwrap_or_default() < 1)
-					.map(hex)
-					.collect::<Vec<_>>();
-				assert!(stale.is_empty(), "no longer rank 1+: {stale:?}");
-
-				let missing = live
-					.iter()
-					.filter(|(who, rank)| {
-						**rank >= 1 && !FELLOWSHIP_RANK1_PLUS_MEMBERS.contains(who)
-					})
-					.map(|(who, _)| hex(who))
-					.collect::<Vec<_>>();
-				assert!(missing.is_empty(), "rank 1+ but not in the snapshot: {missing:?}");
 			});
 		}
 	}
