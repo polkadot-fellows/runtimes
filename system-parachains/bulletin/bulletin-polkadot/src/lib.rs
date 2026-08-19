@@ -123,9 +123,9 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			Runtime,
 			pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 		>,
-		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 		storage::ValidateBulletinCalls,
 		storage::StoragePriorityBoost,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 	),
 >;
 
@@ -497,9 +497,9 @@ where
 			pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
 				pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 			),
-			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 			storage::ValidateBulletinCalls::default(),
 			storage::StoragePriorityBoost::default(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		))
 	}
 }

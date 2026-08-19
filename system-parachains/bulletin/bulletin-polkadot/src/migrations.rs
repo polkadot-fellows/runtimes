@@ -19,7 +19,9 @@ use super::*;
 
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
-	// Initialize TransactionStorage retention period on first upgrade.
+	// Initialize TransactionStorage retention period on first upgrade. In `Unreleased`
+	// rather than `Permanent`: the pallet arrives on a chain that is past genesis, so the
+	// zero-check is needed exactly once and retires with the release.
 	pallet_bulletin_transaction_storage::migrations::SetRetentionPeriodIfZero<
 		Runtime,
 		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,

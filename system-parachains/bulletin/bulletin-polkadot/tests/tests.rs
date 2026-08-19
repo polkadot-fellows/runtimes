@@ -167,9 +167,9 @@ fn construct_extrinsic(sender: sp_core::sr25519::Pair, call: RuntimeCall) -> Unc
 			pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
 				pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 			),
-			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 			ValidateBulletinCalls::default(),
 			StoragePriorityBoost::default(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		));
 	let payload = sp_runtime::generic::SignedPayload::new(call.clone(), tx_ext.clone())
 		.expect("signed payload should be valid");
