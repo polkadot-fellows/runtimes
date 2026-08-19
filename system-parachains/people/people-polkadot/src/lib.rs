@@ -785,6 +785,8 @@ construct_runtime!(
 		// 54: previously used for the privacy voucher in the reference runtime.
 		Game: indiv_pallet_game = 55,
 		Score: indiv_pallet_score = 56,
+		// NFT claim credits awarded by the game and delivered to Asset Hub.
+		NftCredits: indiv_pallet_nft_credits = 57,
 		DummyDim: indiv_pallet_dummy_dim = 59,
 		PeopleLite: indiv_pallet_people_lite = 62,
 		Resources: indiv_pallet_resources = 63,
@@ -846,6 +848,7 @@ mod benches {
 		[indiv_pallet_coinage, Coinage]
 		[indiv_pallet_dummy_dim, DummyDim]
 		[indiv_pallet_game, Game]
+		[indiv_pallet_nft_credits, NftCredits]
 		[indiv_pallet_honour, Honour]
 		[indiv_pallet_members, Members]
 		[indiv_pallet_members_notifier, MembersNotifier]
@@ -1356,30 +1359,32 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance, AccountId, BlockNumber> for Runtime {
+	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance> for Runtime {
 		fn play_deposit() -> Balance {
 			indiv_pallet_game::PlayDepositAmount::<Runtime>::get()
 		}
+	}
 
+	impl indiv_pallet_nft_credits::runtime_api::NftCreditsApi<Block, AccountId, BlockNumber> for Runtime {
 		fn nft_claim_credit_roots(
-			claimant: indiv_pallet_score::AccountOrPerson<AccountId>,
-		) -> Vec<(BlockNumber, indiv_pallet_game::NftClaimCreditRoot)> {
-			Game::nft_claim_credit_roots(&claimant)
+			claimant: indiv_support::identity::AccountOrPerson<AccountId>,
+		) -> Vec<(BlockNumber, indiv_support::credit_trees::NftClaimCreditTree)> {
+			NftCredits::nft_claim_credit_roots(&claimant)
 		}
 
 		fn nft_claim_credit_proofs(
 			award_block: BlockNumber,
-			claimant: indiv_pallet_score::AccountOrPerson<AccountId>,
-		) -> Result<Vec<indiv_pallet_game::NftClaimCreditProof>, indiv_pallet_game::NftClaimCreditProofError> {
-			Game::nft_claim_credit_proofs(award_block, &claimant)
+			claimant: indiv_support::identity::AccountOrPerson<AccountId>,
+		) -> Result<Vec<indiv_pallet_nft_credits::NftClaimCreditProof>, indiv_pallet_nft_credits::NftClaimCreditProofError> {
+			NftCredits::nft_claim_credit_proofs(award_block, &claimant)
 		}
 
 		fn nft_claim_credit_proof_from_awards(
 			award_block: BlockNumber,
-			awards: Vec<indiv_pallet_game::NftClaimCreditAward<AccountId>>,
+			awards: Vec<indiv_pallet_nft_credits::NftClaimCreditAward<AccountId>>,
 			leaf_index: u32,
-		) -> Result<indiv_pallet_game::NftClaimCreditProof, indiv_pallet_game::NftClaimCreditProofError> {
-			Game::nft_claim_credit_proof_from_awards(award_block, awards, leaf_index)
+		) -> Result<indiv_pallet_nft_credits::NftClaimCreditProof, indiv_pallet_nft_credits::NftClaimCreditProofError> {
+			NftCredits::nft_claim_credit_proof_from_awards(award_block, awards, leaf_index)
 		}
 	}
 

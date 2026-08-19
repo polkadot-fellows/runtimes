@@ -97,6 +97,7 @@ indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-comm
 indiv-pallet-dotns-gateway = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-dummy-dim = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-game = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
+indiv-pallet-nft-credits = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-honour = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-members = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
 indiv-pallet-members-notifier = { git = "https://github.com/paritytech/individuality-community", rev = "e30decd42545ba0fe512394a4896dec077e14982", default-features = false }
