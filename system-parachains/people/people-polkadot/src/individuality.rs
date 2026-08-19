@@ -97,18 +97,16 @@
 //!    registered locally. `CreateOrigin` is `EnsureNever` on this chain, so root is the only way.
 //!    This is a prerequisite for step 6, which rejects an unknown asset.
 //! 5. `Assets::force_set_metadata` (root) — set the HOLLAR asset metadata after creating it.
-//! 6. `AssetRate::create` (root) — create the HOLLAR conversion rate before any coinage activity.
-//!    [`indiv_pallet_coinage::Config::ConversionToAssetBalance`] uses `AssetRate`, so conversions
-//!    fail until the rate exists.
-//! 7. `Coinage::set_underlying_asset_id` (Fellowship or root) — nominate the asset backing every
-//!    coin. It can only be set once, and must be the asset described by [`StableAssetLocation`];
-//!    see `Config::UnderlyingAssetUnit` for why.
-//! 8. Fund the pallet-derived accounts that pay out: [`GameAirdropSource`] (`pop/gads`) with the
+//! 6. Mint the coinage pallet account at least HOLLAR's minimum balance, then call
+//!    `Coinage::create_sufficient_instance` (Fellowship or root) with
+//!    [`StableAssetLocation`] and its `$0.01` asset unit. The public pallet uses explicit,
+//!    permanent instances rather than a single globally selected backing asset.
+//! 7. Fund the pallet-derived accounts that pay out: [`GameAirdropSource`] (`pop/gads`) with the
 //!    airdrop asset, and the [`ScorePotId`] (`scorepot`) pot for score cash-outs. Both are derived
 //!    accounts nobody controls, so they can only be funded by transfer.
-//! 9. `Game::schedule_games` (Fellowship or root) — no meetup game exists until one is scheduled,
+//! 8. `Game::schedule_games` (Fellowship or root) — no meetup game exists until one is scheduled,
 //!    so `pallet-game` and `pallet-score` stay dormant without this.
-//! 10. `People::create_people_collection` (Fellowship or root) — create the people collection; this
+//! 9. `People::create_people_collection` (Fellowship or root) — create the people collection; this
 //!     is not done by the runtime upgrade and must precede people onboarding.
 //!
 //! Optional, per-provider: `PeopleLite::set_attestation_allowance` (Fellowship or root) to admit
@@ -830,7 +828,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type LoadDeposit = CoinageLoadDeposit;
 	type InstanceCreationDeposit = CoinageInstanceCreationDeposit;
 
-	// Coin values are `2^exponent * UnderlyingAssetUnit`, so with a unit of $0.01 the denominations
+	// Coin values are `2^exponent * asset_unit`, so with a unit of $0.01 the denominations
 	// run from $0.01 (exponent 0) up to $163.84 (exponent 14).
 	//
 	// TODO: double-check the coinage economics for Polkadot. The denomination range, the free
