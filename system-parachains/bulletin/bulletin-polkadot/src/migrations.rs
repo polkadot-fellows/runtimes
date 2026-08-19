@@ -19,13 +19,6 @@ use super::*;
 
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
-	// Initialize TransactionStorage retention period on first upgrade. In `Unreleased`
-	// rather than `Permanent`: the pallet arrives on a chain that is past genesis, so the
-	// zero-check is needed exactly once and retires with the release.
-	pallet_bulletin_transaction_storage::migrations::SetRetentionPeriodIfZero<
-		Runtime,
-		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,
-	>,
 	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	// Seed storage authorizations for the rank-1+ Fellowship.
 	//
@@ -36,7 +29,7 @@ pub type Unreleased = (
 	// Personhood on the People Chain is the only authorizer, so there is no way to store data here
 	// until that logic is switched on live. This grant opens a short window to sanity-check the
 	// chain itself first — Bitswap retrieval, collator p2p setup, and the like — before PoP/DIM
-	// go live. Runs last so the storage pallet's own migrations have already applied.
+	// go live.
 	//
 	// NOTE: this is entirely optional. If we decide we do not want this testing window, drop this
 	// one line before release — nothing else in the runtime depends on it, and the rest of
@@ -45,7 +38,14 @@ pub type Unreleased = (
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+pub type Permanent = (
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
+	// Idempotent: initializes `RetentionPeriod` when zero, a no-op read once set.
+	pallet_bulletin_transaction_storage::migrations::SetRetentionPeriodIfZero<
+		Runtime,
+		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,
+	>,
+);
 
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = (Unreleased, Permanent);
