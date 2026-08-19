@@ -1134,8 +1134,10 @@ mod storing {
 		let max_size: u32 = <Runtime as TxStorageConfig>::MaxTransactionSize::get();
 		assert_eq!(max_size, 2 * 1024 * 1024);
 
+		const NUM_TRANSACTIONS: u32 = 8;
+		const TRANSACTION_SIZE: u64 = 1024 * 1024; // 1 MiB
+
 		new_test_ext().execute_with(|| {
-			let max_size: u32 = <Runtime as TxStorageConfig>::MaxTransactionSize::get();
 			let max_size = max_size as usize;
 
 			advance_block();
@@ -1147,6 +1149,71 @@ mod storing {
 			assert_err!(
 				TransactionStorage::store(RuntimeOrigin::root(), vec![0u8; max_size + 1]),
 				pallet_bulletin_transaction_storage::Error::<Runtime>::BadDataSize,
+			);
+
+			// The length bound: stores accumulate in one block until the normal-class block
+			// length is spent. 8 one-MiB stores fit; the 9th does not.
+			let account = Sr25519Keyring::Alice;
+			let who: AccountId = account.to_account_id();
+			assert_ok!(TransactionStorage::authorize_account(
+				RuntimeOrigin::root(),
+				who.clone(),
+				0,
+				(NUM_TRANSACTIONS as u64 + 1) * TRANSACTION_SIZE,
+			));
+			advance_block();
+
+			for index in 0..NUM_TRANSACTIONS {
+				assert_ok_ok(construct_and_apply_extrinsic(
+					account.pair(),
+					RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+						data: vec![index as u8; TRANSACTION_SIZE as usize],
+					}),
+				));
+			}
+			assert_err!(
+				construct_and_apply_extrinsic(
+					account.pair(),
+					RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+						data: vec![0u8; TRANSACTION_SIZE as usize],
+					}),
+				),
+				TransactionValidityError::Invalid(InvalidTransaction::ExhaustsResources),
+			);
+
+			// Exactly the eight applied stores consumed allowance.
+			assert_eq!(
+				TransactionStorage::account_authorization_extent(who.clone()),
+				AuthorizationExtent {
+					transactions: NUM_TRANSACTIONS,
+					bytes: NUM_TRANSACTIONS as u64 * TRANSACTION_SIZE,
+					bytes_allowance: (NUM_TRANSACTIONS as u64 + 1) * TRANSACTION_SIZE,
+					..Default::default()
+				},
+			);
+
+			// The entry bound: `MaxBlockTransactions` counts entries, not bytes, so only
+			// entries that carry no data — renewals, or this test helper — can reach it.
+			// At 511 entries one more store fits; at 512 the block is full and validation
+			// rejects further stores outright.
+			advance_block();
+			TransactionStorage::fill_block_transactions(max_block_txs - 1, 1);
+			assert!(!TransactionStorage::block_transactions_full());
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+					data: vec![1u8; 32],
+				}),
+			));
+			assert!(TransactionStorage::block_transactions_full());
+			assert_err!(
+				construct_and_apply_extrinsic(
+					account.pair(),
+					RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+						data: vec![2u8; 32],
+					}),
+				),
+				TransactionValidityError::Invalid(InvalidTransaction::ExhaustsResources),
 			);
 		});
 	}
