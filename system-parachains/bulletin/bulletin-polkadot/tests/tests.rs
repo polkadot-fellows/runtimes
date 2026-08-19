@@ -554,6 +554,54 @@ mod granting {
 	}
 
 	#[test]
+	fn authorizer_registration_is_root_only() {
+		// `AuthorizerRegistrarOrigin` is Root. Membership in `AllowedAuthorizers` grants the
+		// right to authorize storage, not to register or revoke other authorizers, so even an
+		// allowed authorizer is rejected here. The one non-Root removal path,
+		// `remove_exhausted_authorizer`, is permissionless but fenced to inactive budgets.
+		new_test_ext().execute_with(|| {
+			let authorizer: AccountId = Sr25519Keyring::Charlie.to_account_id();
+			assert_ok!(TransactionStorage::add_authorizer(
+				RuntimeOrigin::root(),
+				authorizer.clone(),
+				authorizer_budget(10, 1024),
+			));
+
+			let signer: AccountId = Sr25519Keyring::Alice.to_account_id();
+			let who: AccountId = Sr25519Keyring::Bob.to_account_id();
+			for origin in [
+				RuntimeOrigin::signed(signer),
+				RuntimeOrigin::signed(authorizer.clone()),
+				RuntimeOrigin::none(),
+			] {
+				assert_noop!(
+					TransactionStorage::add_authorizer(
+						origin.clone(),
+						who.clone(),
+						authorizer_budget(10, 1024),
+					),
+					sp_runtime::DispatchError::BadOrigin,
+				);
+				assert_noop!(
+					TransactionStorage::remove_authorizer(origin, authorizer.clone()),
+					sp_runtime::DispatchError::BadOrigin,
+				);
+			}
+			assert!(AllowedAuthorizers::<Runtime>::get(&who).is_none());
+
+			// The permissionless cleanup cannot strip an authorizer whose budget is active.
+			assert_noop!(
+				TransactionStorage::remove_exhausted_authorizer(
+					RuntimeOrigin::none(),
+					authorizer.clone(),
+				),
+				pallet_bulletin_transaction_storage::Error::<Runtime>::AuthorizerBudgetNotExhausted,
+			);
+			assert!(AllowedAuthorizers::<Runtime>::get(&authorizer).is_some());
+		});
+	}
+
+	#[test]
 	fn add_remove_authorizer_manages_system_providers() {
 		// Registering an authorizer holds a System provider reference (so a `feeless`
 		// authorizer with no balance is not reaped); removing it releases the reference.
