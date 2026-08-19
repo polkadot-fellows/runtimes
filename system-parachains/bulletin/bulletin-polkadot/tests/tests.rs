@@ -1121,12 +1121,18 @@ mod storing {
 
 	#[test]
 	fn transaction_storage_max_throughput_per_block() {
-		// The Polkadot Bulletin chain is configured for:
-		//   512 transactions × 8 MiB = 4 GiB of storage per block.
+		// Per-block capacity has two independent bounds:
+		//   - `MaxBlockTransactions = 512` caps indexed entries (stores and renewals combined);
+		//   - `MaxTransactionSize = 2 MiB` caps one blob, and a `store` carries its data inline, so
+		//     block length (10 MiB, 90% normal class) admits at most four max-sized stores per
+		//     block.
+		// Only renewals — small extrinsics referencing already-stored blobs — can fill all
+		// 512 slots, re-committing up to 512 × 2 MiB = 1 GiB without carrying the data.
+		// Pinned as literals so an upstream change of the pallet defaults is noticed here.
 		let max_block_txs: u32 = <Runtime as TxStorageConfig>::MaxBlockTransactions::get();
 		assert_eq!(max_block_txs, 512u32);
 		let max_size: u32 = <Runtime as TxStorageConfig>::MaxTransactionSize::get();
-		assert_eq!(max_size, DEFAULT_MAX_TRANSACTION_SIZE);
+		assert_eq!(max_size, 2 * 1024 * 1024);
 
 		new_test_ext().execute_with(|| {
 			let max_size: u32 = <Runtime as TxStorageConfig>::MaxTransactionSize::get();
@@ -1134,7 +1140,7 @@ mod storing {
 
 			advance_block();
 
-			// A maximum-sized transaction (8 MiB) can be stored.
+			// A maximum-sized transaction (2 MiB) can be stored.
 			assert_ok!(TransactionStorage::store(RuntimeOrigin::root(), vec![0u8; max_size]));
 
 			// Data that exceeds MaxTransactionSize is rejected.
