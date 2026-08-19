@@ -125,9 +125,12 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::{HoldConsideration, ItemOf},
-		AsEnsureOriginWithArg, ConstU128, ConstUint, ContainsPair, Get, PalletInfoAccess,
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstantStoragePrice, ConstUint, ContainsPair,
+		Get, PalletInfoAccess,
 	},
+	weights::WeightToFee,
 };
+use frame_support::traits::tokens::ConversionToAssetBalance;
 use indiv_pallet_origin_restriction::Allowance;
 use indiv_support::{
 	crypto::{BandersnatchVrfVerifiable, GenerateVerifiable},
@@ -141,7 +144,7 @@ use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use sp_runtime::MultiSigner;
 use sp_runtime::{
-	traits::{AccountIdConversion, ConstI8, ConstU16, Verify},
+	traits::{AccountIdConversion, ConstI8, ConstU16, Convert, Verify},
 	DispatchError, DispatchResult, MultiSignature,
 };
 use sp_statement_store::StatementAllowance;
@@ -336,7 +339,7 @@ impl indiv_pallet_people::Config for Runtime {
 }
 
 impl indiv_pallet_people_lite::Config for Runtime {
-	type WeightInfo = weights::indiv_pallet_people_lite::WeightInfo<Runtime>;
+	type WeightInfo = indiv_pallet_people_lite::weights::SubstrateWeight<Runtime>;
 	type AttestationAllowanceManager = RootOrFellows;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
@@ -643,7 +646,6 @@ parameter_types! {
 impl indiv_pallet_resources::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_resources::WeightInfo<Runtime>;
 	type MemberService = Members;
-	type MaxUsernameLength = MaxUsernameLength;
 	type MinUsernameLength = MinUsernameLength;
 	type PersonAuthDuration = PersonAuthDuration;
 	type AccountsApiAllowance = crate::parameters::AccountsApiAllowance;
@@ -727,21 +729,105 @@ impl indiv_pallet_coinage::ValidateProof for MembershipProof {
 parameter_types! {
 	/// Coinage's pallet id, used to derive the account holding the assets backing all coins.
 	pub const CoinagePalletId: PalletId = PalletId(*b"coinage ");
+	pub const CoinageInstanceCreationHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Coinage(indiv_pallet_coinage::HoldReason::InstanceCreationDeposit);
+	pub const CoinageInstanceCreationDepositAmount: Balance = 0;
+	pub CoinageLoadDeposit: (Location, Balance) = (StableAssetLocation::get(), 0);
+}
+
+pub type CoinageInstanceCreationDeposit = HoldConsideration<
+	AccountId,
+	Balances,
+	CoinageInstanceCreationHoldReason,
+	ConstantStoragePrice<CoinageInstanceCreationDepositAmount, Balance>,
+>;
+
+/// Coinage only supports the configured HOLLAR instance. Other assets cannot be converted and
+/// therefore cannot be used to pay an unload fee.
+pub struct CoinageFeeConversion;
+
+impl pallet_asset_conversion::Swap<AccountId> for CoinageFeeConversion {
+	type Balance = Balance;
+	type AssetKind = Location;
+
+	fn max_path_len() -> u32 {
+		0
+	}
+
+	fn swap_exact_tokens_for_tokens(
+		_sender: AccountId,
+		_path: Vec<Self::AssetKind>,
+		_amount_in: Self::Balance,
+		_amount_out_min: Option<Self::Balance>,
+		_send_to: AccountId,
+		_keep_alive: bool,
+	) -> Result<Self::Balance, DispatchError> {
+		Err(DispatchError::Other("coinage only supports HOLLAR"))
+	}
+
+	fn swap_tokens_for_exact_tokens(
+		_sender: AccountId,
+		_path: Vec<Self::AssetKind>,
+		_amount_out: Self::Balance,
+		_amount_in_max: Option<Self::Balance>,
+		_send_to: AccountId,
+		_keep_alive: bool,
+	) -> Result<Self::Balance, DispatchError> {
+		Err(DispatchError::Other("coinage only supports HOLLAR"))
+	}
+}
+
+impl pallet_asset_conversion::QuotePrice for CoinageFeeConversion {
+	type Balance = Balance;
+	type AssetKind = Location;
+
+	fn quote_price_tokens_for_exact_tokens(
+		_asset1: Self::AssetKind,
+		_asset2: Self::AssetKind,
+		_amount: Self::Balance,
+		_include_fee: bool,
+	) -> Option<Self::Balance> {
+		None
+	}
+
+	fn quote_price_exact_tokens_for_tokens(
+		_asset1: Self::AssetKind,
+		_asset2: Self::AssetKind,
+		_amount: Self::Balance,
+		_include_fee: bool,
+	) -> Option<Self::Balance> {
+		None
+	}
+}
+
+/// Converts lifecycle weight to HOLLAR, the only coinage asset this runtime enables.
+pub struct CoinageWeightToFee;
+
+impl Convert<Weight, Balance> for CoinageWeightToFee {
+	fn convert(weight: Weight) -> Balance {
+		AssetRate::to_asset_balance(
+			<crate::DotWeightToFee<Runtime> as WeightToFee>::weight_to_fee(&weight),
+			StableAssetLocation::get(),
+		)
+		.unwrap_or(Balance::MAX)
+	}
 }
 
 impl indiv_pallet_coinage::Config for Runtime {
-	type WeightInfo = weights::indiv_pallet_coinage::WeightInfo<Runtime>;
+	type WeightInfo = indiv_pallet_coinage::weights::SubstrateWeight<Runtime>;
 	type PalletId = CoinagePalletId;
 	type UnixTime = RuntimeClock;
 	type MemberService = Members;
-	type CollectionOwner = CoinageCollectionOwner;
 	type RecyclerRingExponent = RecyclerRingExponent;
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 
 	type NativeFungible = Balances;
 	type Fungibles = AssetsWithHolder;
-	type UnderlyingAssetIdManager = RootOrFellows;
-	type ConversionToAssetBalance = AssetRate;
+	type AdminOrigin = RootOrFellows;
+	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
+	type EnablePermissionless = ConstBool<false>;
+	type LoadDeposit = CoinageLoadDeposit;
+	type InstanceCreationDeposit = CoinageInstanceCreationDeposit;
 
 	// Coin values are `2^exponent * UnderlyingAssetUnit`, so with a unit of $0.01 the denominations
 	// run from $0.01 (exponent 0) up to $163.84 (exponent 14).
@@ -753,15 +839,6 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
 	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
-	/// The underlying amount backing one coin at exponent 0, i.e. $0.01 worth of
-	/// [`StableAssetLocation`].
-	///
-	/// NOTE: this is a compile-time constant while the backing asset is chosen at runtime through
-	/// `set_underlying_asset_id`. Nominating an asset whose decimals differ from HOLLAR's silently
-	/// rescales every denomination, so root must nominate HOLLAR — or this constant has to change
-	/// in the same runtime upgrade that nominates something else.
-	type UnderlyingAssetUnit = ConstUint<{ HOLLAR_UNITS / 100 }>;
-
 	type MaximumAge = ConstU16<16>;
 	type MaxSplitOutputs = ConstU32<32>;
 	type MaxConsolidation = ConstU32<64>;
@@ -782,8 +859,10 @@ impl indiv_pallet_coinage::Config for Runtime {
 		ConstU128<{ 1000 * (HOLLAR_UNITS / 100) }>;
 	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
 
+	type FeeConversion = CoinageFeeConversion;
+	type NativeAssetKind = StableAssetLocation;
 	type FeeDestination = TypedGetToGet<pallet_collator_selection::StakingPotAccountId<Runtime>>;
-	type WeightToFee = TransactionPayment;
+	type WeightToFee = CoinageWeightToFee;
 	type OffchainWorkerInterval = ConstU32<4>;
 	/// Base lock applied to a coin after a failed `AsCoin` dispatch; grows as `2^retries * base`.
 	type CoinFailureLockPeriod = ConstU64<60>;
@@ -816,7 +895,7 @@ parameter_types! {
 }
 
 impl indiv_pallet_members_notifier::Config for Runtime {
-	type WeightInfo = weights::indiv_pallet_members_notifier::WeightInfo<Runtime>;
+	type WeightInfo = indiv_pallet_members_notifier::weights::SubstrateWeight<Runtime>;
 	type XcmRouter = xcm_config::XcmRouter;
 	type ChannelInfo = ParachainSystem;
 	type ManageOrigin = RootOrFellows;
