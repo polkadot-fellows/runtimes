@@ -3036,7 +3036,7 @@ mod tests {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
 			assert_eq!(
 				dynamic_params::individuality::PgasClaimAmount::get(),
-				5000 * individuality::PgasMinBalance::get(),
+				60 * individuality::PgasMinBalance::get(),
 			);
 			assert_noop!(
 				Parameters::set_parameter(
