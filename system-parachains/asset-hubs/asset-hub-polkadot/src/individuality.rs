@@ -43,8 +43,8 @@
 //!   how a contract or a dApp learns "this account belongs to a distinct person" without learning
 //!   who.
 //! * [`indiv_precompile_personhood`] exposes that check to `pallet-revive` contracts.
-//! * [`indiv_pallet_pgas`] lets a proven person periodically claim PGAS, an execution
-//!   allowance asset. [`pallet_pgas_allowance`] then lets PGAS pay the fees of contract calls, and
+//! * [`indiv_pallet_pgas`] lets a proven person periodically claim PGAS, an execution allowance
+//!   asset. [`pallet_pgas_allowance`] then lets PGAS pay the fees of contract calls, and
 //!   `pallet_revive::PGasDeposit` makes contract storage deposits PGAS-denominated — so a person
 //!   can use contracts without holding DOT.
 //! * [`indiv_pallet_dotns_gateway`] is the personhood-gated front door to the dotNS name registry:

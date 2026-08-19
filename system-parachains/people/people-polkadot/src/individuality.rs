@@ -98,16 +98,16 @@
 //!    This is a prerequisite for step 6, which rejects an unknown asset.
 //! 5. `Assets::force_set_metadata` (root) — set the HOLLAR asset metadata after creating it.
 //! 6. Mint the coinage pallet account at least HOLLAR's minimum balance, then call
-//!    `Coinage::create_sufficient_instance` (Fellowship or root) with
-//!    [`StableAssetLocation`] and its `$0.01` asset unit. The public pallet uses explicit,
-//!    permanent instances rather than a single globally selected backing asset.
+//!    `Coinage::create_sufficient_instance` (Fellowship or root) with [`StableAssetLocation`] and
+//!    its `$0.01` asset unit. The public pallet uses explicit, permanent instances rather than a
+//!    single globally selected backing asset.
 //! 7. Fund the pallet-derived accounts that pay out: [`GameAirdropSource`] (`pop/gads`) with the
 //!    airdrop asset, and the [`ScorePotId`] (`scorepot`) pot for score cash-outs. Both are derived
 //!    accounts nobody controls, so they can only be funded by transfer.
 //! 8. `Game::schedule_games` (Fellowship or root) — no meetup game exists until one is scheduled,
 //!    so `pallet-game` and `pallet-score` stay dormant without this.
 //! 9. `People::create_people_collection` (Fellowship or root) — create the people collection; this
-//!     is not done by the runtime upgrade and must precede people onboarding.
+//!    is not done by the runtime upgrade and must precede people onboarding.
 //!
 //! Optional, per-provider: `PeopleLite::set_attestation_allowance` (Fellowship or root) to admit
 //! a device-attestation provider, and `DummyDim`'s recognition calls (Fellowship or root) to grant
@@ -123,12 +123,12 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::{HoldConsideration, ItemOf},
-		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstantStoragePrice, ConstUint, ContainsPair,
+		tokens::ConversionToAssetBalance,
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair,
 		Get, PalletInfoAccess,
 	},
 	weights::WeightToFee,
 };
-use frame_support::traits::tokens::ConversionToAssetBalance;
 use indiv_pallet_origin_restriction::Allowance;
 use indiv_support::{
 	crypto::{BandersnatchVrfVerifiable, GenerateVerifiable},
@@ -1637,11 +1637,7 @@ pub mod benchmark_utils {
 		fn extra_asset_id(seed: u32) -> Location {
 			Location::new(
 				1,
-				[
-					Parachain(1000),
-					PalletInstance(50),
-					GeneralIndex(1_000_000u128 + seed as u128),
-				],
+				[Parachain(1000), PalletInstance(50), GeneralIndex(1_000_000u128 + seed as u128)],
 			)
 		}
 

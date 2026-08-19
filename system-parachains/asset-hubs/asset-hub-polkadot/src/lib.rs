@@ -3219,12 +3219,7 @@ mod tests {
 		// reports only its inner `ChargeAssetTxPayment` identifier. So this test deliberately
 		// cannot tell version 0's bare payment extension apart from version 1's PGAS-wrapped one;
 		// it pins ordering, not the payment wrapper.
-		let indiv = [
-			"UnitTransactionExtension",
-			"AsPgas",
-			"AsDotnsGateway",
-			"RestrictOrigins",
-		];
+		let indiv = ["UnitTransactionExtension", "AsPgas", "AsDotnsGateway", "RestrictOrigins"];
 		let v1_without_indiv: Vec<&str> =
 			v1.iter().copied().filter(|id| !indiv.contains(id)).collect();
 		assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
