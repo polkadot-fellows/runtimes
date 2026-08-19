@@ -439,7 +439,7 @@ fn individuality_deployment_order_guards_are_enforced() {
 			1,
 		));
 		assert_ok!(Assets::mint(
-			RuntimeOrigin::signed(AccountId::from(ALICE).into()),
+			RuntimeOrigin::signed(AccountId::from(ALICE)),
 			stable.clone(),
 			MultiAddress::Id(Coinage::pallet_account()),
 			1,
