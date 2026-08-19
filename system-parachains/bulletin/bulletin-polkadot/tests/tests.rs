@@ -19,8 +19,8 @@
 use bulletin_polkadot_runtime::{
 	storage::{StorageCallInspector, StoragePriorityBoost, ValidateBulletinCalls},
 	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
-	Balances, Block, Executive, Runtime, RuntimeCall, RuntimeOrigin, System, TransactionStorage,
-	TxExtension, UncheckedExtrinsic,
+	Balances, Block, Executive, HopPromotion, Runtime, RuntimeCall, RuntimeOrigin, System,
+	TransactionStorage, TxExtension, UncheckedExtrinsic,
 };
 use bulletin_transaction_storage_primitives::cids::{
 	calculate_cid, CidConfig, HashingAlgorithm, RAW_CODEC,
@@ -1804,6 +1804,152 @@ mod renewals {
 					"renew via {label} must be rejected",
 				);
 			}
+		});
+	}
+}
+
+mod hop_promotion {
+	//! HOP promotions: near-expiry pool blobs land on chain as authorized general
+	//! transactions — no outer signature, no fees, and no debit of the submitter's allowance.
+
+	use super::*;
+	use sp_hop::runtime_decl_for_hop_runtime_api::HopRuntimeApiV1;
+	use sp_runtime::{MultiSignature, MultiSigner};
+
+	/// Signer, payload signature and content hash for promoting `data` at `submit_timestamp`.
+	fn promotion_parts(
+		account: Sr25519Keyring,
+		data: &[u8],
+		submit_timestamp: u64,
+	) -> (MultiSigner, MultiSignature, [u8; 32]) {
+		let content_hash = sp_io::hashing::blake2_256(data);
+		let payload =
+			pallet_bulletin_hop_promotion::signing_payload(&content_hash, submit_timestamp);
+		(
+			MultiSigner::Sr25519(account.public()),
+			MultiSignature::Sr25519(account.pair().sign(&payload)),
+			content_hash,
+		)
+	}
+
+	#[test]
+	fn is_promoted_on_chain_works() {
+		new_test_ext().execute_with(|| {
+			let account = Sr25519Keyring::Alice;
+			let who: AccountId = account.to_account_id();
+			let data = b"some-promoted-blob".to_vec();
+			let content_hash = sp_io::hashing::blake2_256(&data);
+
+			// Nothing stored yet — unknown hash returns false.
+			assert!(!HopPromotion::is_promoted_on_chain(content_hash));
+
+			// Authorize Alice and store the blob via `TransactionStorage::store`. Default
+			// hashing is `Blake2b256`, which matches `content_hash` above.
+			assert_ok!(TransactionStorage::authorize_account(
+				RuntimeOrigin::root(),
+				who.clone(),
+				0,
+				data.len() as u64,
+			));
+			advance_block();
+			assert_ok_ok(construct_and_apply_extrinsic(
+				account.pair(),
+				RuntimeCall::TransactionStorage(TxStorageCall::<Runtime>::store {
+					data: data.clone(),
+				}),
+			));
+			// `BlockTransactions` is moved into `Transactions[block]` in `on_finalize`.
+			advance_block();
+
+			// Stored hash is now visible; an unrelated hash is not. Both directly and via the
+			// runtime API the HOP maintenance task uses.
+			assert!(HopPromotion::is_promoted_on_chain(content_hash));
+			assert!(!HopPromotion::is_promoted_on_chain([0xAB; 32]));
+			assert!(Runtime::is_promoted_on_chain(content_hash));
+		});
+	}
+
+	/// The full node-side flow: build the extrinsic through the `HopRuntimeApi` composition in
+	/// `impl_runtime_apis!` — which also pins the extension values hand-built in
+	/// `create_extension` — and apply it through `Executive`.
+	#[test]
+	fn promotion_via_runtime_api_works() {
+		new_test_ext().execute_with(|| {
+			let account = Sr25519Keyring::Alice;
+			let who: AccountId = account.to_account_id();
+			let data = b"hop-promoted-data".to_vec();
+			// `pallet_timestamp` reads 0 in a fresh externality; zero skew is within tolerance.
+			let submit_timestamp: u64 = 0;
+			let (signer, signature, content_hash) =
+				promotion_parts(account, &data, submit_timestamp);
+
+			let max_size: u32 = <Runtime as TxStorageConfig>::MaxTransactionSize::get();
+			assert_eq!(Runtime::max_promotion_size(), max_size);
+
+			// Not authorized yet: the API says no, and the authorize closure rejects the
+			// extrinsic as a bad signer.
+			assert!(!Runtime::can_account_promote(who.clone(), data.len() as u32));
+			let xt = Runtime::create_promotion_extrinsic(
+				data.clone(),
+				signer.clone(),
+				signature.clone(),
+				submit_timestamp,
+			);
+			assert_eq!(
+				Executive::apply_extrinsic(xt),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::BadSigner)),
+			);
+
+			// An active authorization makes the account eligible.
+			assert_ok!(TransactionStorage::authorize_account(
+				RuntimeOrigin::root(),
+				who.clone(),
+				0,
+				data.len() as u64,
+			));
+			advance_block();
+			assert!(Runtime::can_account_promote(who.clone(), data.len() as u32));
+			let before = TransactionStorage::account_authorization_extent(who.clone());
+
+			// A signature over different data is refused before anything is stored.
+			let (_, wrong_signature, _) =
+				promotion_parts(account, b"different-data", submit_timestamp);
+			let xt = Runtime::create_promotion_extrinsic(
+				data.clone(),
+				signer.clone(),
+				wrong_signature,
+				submit_timestamp,
+			);
+			assert_eq!(
+				Executive::apply_extrinsic(xt),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::BadProof)),
+			);
+
+			// A submit timestamp outside `SubmitTimestampTolerance` (48h) is stale.
+			let late = 49 * 60 * 60 * 1000;
+			let (_, late_signature, _) = promotion_parts(account, &data, late);
+			let xt = Runtime::create_promotion_extrinsic(
+				data.clone(),
+				signer.clone(),
+				late_signature,
+				late,
+			);
+			assert_eq!(
+				Executive::apply_extrinsic(xt),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			// The genuine promotion is accepted and dispatches.
+			let xt = Runtime::create_promotion_extrinsic(data, signer, signature, submit_timestamp);
+			assert_ok_ok(Executive::apply_extrinsic(xt));
+
+			// Promotion consumes none of the account's allowance: the authorization only
+			// gates eligibility.
+			assert_eq!(TransactionStorage::account_authorization_extent(who), before);
+
+			// After block flush, the promoted hash is visible on-chain.
+			advance_block();
+			assert!(HopPromotion::is_promoted_on_chain(content_hash));
 		});
 	}
 }
