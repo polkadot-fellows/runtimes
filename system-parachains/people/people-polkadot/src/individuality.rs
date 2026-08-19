@@ -732,7 +732,8 @@ parameter_types! {
 	pub const CoinageInstanceCreationHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::Coinage(indiv_pallet_coinage::HoldReason::InstanceCreationDeposit);
 	pub const CoinageInstanceCreationDepositAmount: Balance = 0;
-	pub CoinageLoadDeposit: (Location, Balance) = (StableAssetLocation::get(), 0);
+	pub CoinageLoadDeposit: (Location, Balance) =
+		(StableAssetLocation::get(), HOLLAR_UNITS / 100);
 }
 
 pub type CoinageInstanceCreationDeposit = HoldConsideration<
