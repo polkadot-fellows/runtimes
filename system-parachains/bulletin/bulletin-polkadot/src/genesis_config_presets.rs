@@ -57,6 +57,7 @@ fn bulletin_polkadot_live_genesis(id: ParaId) -> serde_json::Value {
 		0,
 		id,
 		Vec::new(),
+		Vec::new(),
 	)
 }
 
@@ -65,6 +66,7 @@ fn bulletin_polkadot_genesis(
 	endowed_accounts: Vec<AccountId>,
 	endowment: Balance,
 	id: ParaId,
+	account_authorizations: Vec<(AccountId, u32, u64)>,
 	allowed_authorizers: Vec<(AccountId, u32, u64)>,
 ) -> serde_json::Value {
 	build_struct_json_patch!(RuntimeGenesisConfig {
@@ -89,8 +91,31 @@ fn bulletin_polkadot_genesis(
 				.collect(),
 		},
 		polkadot_xcm: PolkadotXcmConfig { safe_xcm_version: Some(SAFE_XCM_VERSION) },
-		transaction_storage: TransactionStorageConfig { allowed_authorizers, ..Default::default() },
+		transaction_storage: TransactionStorageConfig {
+			account_authorizations,
+			allowed_authorizers,
+			..Default::default()
+		},
 	})
+}
+
+/// Authorizer seeded into the `dev` and `local_testnet` presets: `//Eve`, the account the
+/// bulletin-chain integration tests authorize with. The runtime has no sudo and reaches Root
+/// only over XCM from the relay chain or the Asset Hub, so a chain built from these presets
+/// would otherwise start with no way to authorize storage at all. The `live` preset seeds
+/// nothing, and presets never apply on a runtime upgrade, so this cannot reach the deployed
+/// chain.
+fn testnet_authorizers() -> Vec<(AccountId, u32, u64)> {
+	vec![(get_account_id_from_seed::<sr25519::Public>("Eve"), 100_000, 100 * 1024 * 1024 * 1024)]
+}
+
+/// Account authorization seeded into the `dev` and `local_testnet` presets: `//Alice` may
+/// store immediately, without a prior `authorize_account` from [`testnet_authorizers`].
+/// Matches the upstream Bulletin testnet presets. Unlike authorizer budgets, account
+/// authorizations expire after `AuthorizationPeriod`, so on a long-lived local chain the
+/// Eve authorizer is the durable path.
+fn testnet_account_authorizations() -> Vec<(AccountId, u32, u64)> {
+	vec![(get_account_id_from_seed::<sr25519::Public>("Alice"), 100, 10 * 1024 * 1024)]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
@@ -103,13 +128,8 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			testnet_accounts(),
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
-			// Local: seed Eve so zombienet tests can authorize without Root/XCM
-			// (bulletin-chain integration tests authorize with //Eve).
-			vec![(
-				get_account_id_from_seed::<sr25519::Public>("Eve"),
-				100_000,
-				100 * 1024 * 1024 * 1024,
-			)],
+			testnet_account_authorizations(),
+			testnet_authorizers(),
 		),
 		sp_genesis_builder::DEV_RUNTIME_PRESET => bulletin_polkadot_genesis(
 			// initial collators.
@@ -125,7 +145,8 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			],
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
-			Vec::new(),
+			testnet_account_authorizations(),
+			testnet_authorizers(),
 		),
 		_ => return None,
 	};
