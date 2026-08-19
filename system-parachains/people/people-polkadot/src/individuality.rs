@@ -1115,7 +1115,7 @@ pub mod benchmark_utils {
 		genesis::ring_verifier_builder_params,
 		traits::{AddOnlyPeopleTrait, AppendOnlyMembers, RingMode, PEOPLE_IDENTIFIER},
 	};
-	use sp_runtime::{traits::IdentifyAccount, FixedU128};
+	use sp_runtime::traits::IdentifyAccount;
 	use verifiable::ring::RingDomainSize;
 
 	type BenchRingSetup = (
@@ -1574,10 +1574,43 @@ pub mod benchmark_utils {
 	pub struct CoinageBenchHelper;
 	impl indiv_pallet_coinage::BenchmarkHelper<Runtime> for CoinageBenchHelper {
 		fn setup_assets() {
+			use frame_support::traits::fungibles::{Inspect, Mutate};
+
 			ensure_stable_asset_exists();
-			if !indiv_pallet_coinage::UnderlyingAssetId::<Runtime>::exists() {
-				indiv_pallet_coinage::UnderlyingAssetId::<Runtime>::put(StableAssetLocation::get());
+			if indiv_pallet_coinage::AssetToInstance::<Runtime>::iter_key_prefix(
+				StableAssetLocation::get(),
+			)
+			.next()
+			.is_none()
+			{
+				let asset = StableAssetLocation::get();
+				<AssetsWithHolder as Mutate<_>>::mint_into(
+					asset.clone(),
+					&Coinage::pallet_account(),
+					<AssetsWithHolder as Inspect<_>>::minimum_balance(asset.clone()),
+				)
+				.expect("benchmark: coinage pallet account must be fundable");
+				Coinage::create_sufficient_instance(
+					RuntimeOrigin::root(),
+					asset,
+					HOLLAR_UNITS / 100,
+				)
+				.expect("benchmark: sufficient coinage instance must be creatable");
 			}
+		}
+
+		fn setup_asset_without_instance() -> Location {
+			use frame_support::traits::fungibles::{Inspect, Mutate};
+
+			ensure_stable_asset_exists();
+			let asset = StableAssetLocation::get();
+			<AssetsWithHolder as Mutate<_>>::mint_into(
+				asset.clone(),
+				&Coinage::pallet_account(),
+				<AssetsWithHolder as Inspect<_>>::minimum_balance(asset.clone()),
+			)
+			.expect("benchmark: coinage pallet account must be fundable");
+			asset
 		}
 
 		fn fund_account(who: &AccountId, amount: Balance) {
@@ -1585,17 +1618,41 @@ pub mod benchmark_utils {
 				.expect("benchmark: account must be fundable");
 		}
 
+		fn create_extra_asset(seed: u32, who: &AccountId) -> Location {
+			use frame_support::traits::fungibles::{Create, Mutate};
+
+			let asset = Self::extra_asset_id(seed);
+			if !Assets::asset_exists(asset.clone()) {
+				<Assets as Create<_>>::create(
+					asset.clone(),
+					CoinagePalletId::get().into_account_truncating(),
+					true,
+					1u128,
+				)
+				.expect("benchmark: extra asset must be creatable");
+			}
+			<AssetsWithHolder as Mutate<_>>::mint_into(asset.clone(), who, 1_000_000 * UNITS)
+				.expect("benchmark: extra asset must be fundable");
+			asset
+		}
+
+		fn extra_asset_id(seed: u32) -> Location {
+			Location::new(
+				1,
+				[
+					Parachain(1000),
+					PalletInstance(50),
+					GeneralIndex(1_000_000u128 + seed as u128),
+				],
+			)
+		}
+
 		fn set_time(now: core::time::Duration) {
 			pallet_timestamp::Now::<Runtime>::put(now.as_millis() as u64);
 		}
 
-		fn setup_conversion_rate() {
-			// DOT has 10 decimals and HOLLAR has 18, so one raw HOLLAR unit ($10^-18) is
-			// 10^-8 raw DOT.
-			pallet_asset_rate::ConversionRateToNative::<Runtime>::insert(
-				StableAssetLocation::get(),
-				FixedU128::from_rational(1, 100_000_000),
-			);
+		fn setup_fee_conversion() {
+			// The benchmark runtime retains the production HOLLAR-only fee conversion policy.
 		}
 
 		fn create_people_proof(context: &[u8], msg: &[u8], _alias: Alias) -> MembershipProof {
