@@ -207,8 +207,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	// Not bumped: the Individuality pipeline is a *new* extension version (`TxExtensionV1`), and
-	// version 0 is unchanged, so transactions built against the current metadata stay valid.
 	transaction_version: 15,
 	system_version: 1,
 };
