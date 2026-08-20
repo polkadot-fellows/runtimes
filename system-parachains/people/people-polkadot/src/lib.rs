@@ -205,6 +205,8 @@ pub mod migrations {
 	pub type Unreleased = (
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+		indiv_pallet_people::migration::CreatePeopleCollection<Runtime>,
+		indiv_pallet_people_lite::migration::CreateLitePeopleCollection<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
