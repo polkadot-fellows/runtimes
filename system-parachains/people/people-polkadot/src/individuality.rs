@@ -239,9 +239,10 @@ parameter_types! {
 	/// Ring exponent for coinage's paid unload token collections.
 	pub const PaidUnloadTokenRingExponent: RingExponent = RingExponent::R2e10;
 
-	/// How long a person must wait before they may prove membership of the ring they were just
-	/// added to, in seconds. Without the delay, the act of joining would narrow the anonymity set
-	/// down to the newest member.
+	/// How long a person must wait before they may include themselves in the people ring collection,
+	/// in seconds. This bypasses the normal onboarding queue mechanism, potentially reducing privacy.
+	/// Without the delay, the act of joining would narrow the anonymity set down to the newest member
+	/// in certain contexts.
 	pub const SelfInclusionDelayValue: u64 = 300;
 
 	/// Owner of the people collection in `pallet-members`. Set to the pallet's own location so
