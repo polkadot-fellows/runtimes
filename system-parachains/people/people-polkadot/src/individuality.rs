@@ -305,6 +305,14 @@ impl frame_support::traits::Contains<Context> for AccountContexts {
 	}
 }
 
+/// The alias contexts that lite people can authenticate against.
+pub struct LiteAccountContexts;
+impl frame_support::traits::Contains<Context> for LiteAccountContexts {
+	fn contains(context: &Context) -> bool {
+		context == indiv_pallet_people_lite::LITE_PEOPLE_AUTH_CONTEXT
+	}
+}
+
 parameter_types! {
 	pub const StaleAliasCleanupInterval: BlockNumber = 5 * time::MINUTES;
 }
@@ -332,7 +340,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type LiteOnboardingSize = LitePeopleOnboardingSize;
 	type AttestationSignature = Signature;
 	type LiteConsumerRegistrar = Resources;
-	type AccountContexts = AccountContexts;
+	type AccountContexts = LiteAccountContexts;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
