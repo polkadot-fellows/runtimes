@@ -23,11 +23,8 @@ pub type Unreleased = (
 	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
 );
 
-/// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<crate::Runtime>;
-
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = (Unreleased, Permanent);
+pub type SingleBlockMigrations = Unreleased;
 
 frame_support::parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
