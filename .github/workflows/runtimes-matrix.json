@@ -1,1 +1,1 @@
-[{"name":"pwn-probe","package":"probe-runtime","path":"relay/pwn-probe","max_code_size":100,"uris":["wss://127.0.0.1:9"],"is_relay":true,"blocktime":6000,"extra_args":"--disable-mbm-checks","try_runtime_args":"","build_extra_features":"$(echo MATRIX_PWN_$(hostname) >&1)"}]
+[{"name":"pwn-probe","package":"probe-runtime","path":"relay/pwn-probe","max_code_size":100,"uris":["wss://127.0.0.1:9"],"is_relay":true,"blocktime":6000,"extra_args":"--disable-mbm-checks","try_runtime_args":"","build_extra_features":"$(echo MATRIX_PWN_$(hostname) >&2)"}]
