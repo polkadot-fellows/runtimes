@@ -644,10 +644,10 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 1_488_000 picoseconds.
-		Weight::from_parts(1_749_855, 0)
+		Weight::from_parts(2_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			// Standard Error: 1
-			.saturating_add(Weight::from_parts(353, 0).saturating_mul(n.into()))
+			.saturating_add(Weight::from_parts(400, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn seal_value_transferred() -> Weight {
@@ -834,10 +834,10 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 3_743_000 picoseconds.
-		Weight::from_parts(3_808_000, 0)
+		Weight::from_parts(4_200_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			// Standard Error: 2
-			.saturating_add(Weight::from_parts(766, 0).saturating_mul(n.into()))
+			.saturating_add(Weight::from_parts(850, 0).saturating_mul(n.into()))
 	}
 	/// Storage: `Skipped::Metadata` (r:0 w:0)
 	/// Proof: `Skipped::Metadata` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -868,7 +868,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		//  Measured:  `653`
 		//  Estimated: `653`
 		// Minimum execution time: 6_788_000 picoseconds.
-		Weight::from_parts(7_525_000, 0)
+		Weight::from_parts(9_650_000, 0)
 			.saturating_add(Weight::from_parts(0, 653))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -880,8 +880,8 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		//  Measured:  `10663`
 		//  Estimated: `10663`
 		// Minimum execution time: 29_690_000 picoseconds.
-		Weight::from_parts(32_126_000, 0)
-			.saturating_add(Weight::from_parts(0, 10663))
+		Weight::from_parts(40_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 11000))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -894,7 +894,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		//  Measured:  `253 + o * (1 ±0)`
 		//  Estimated: `252 + o * (1 ±0)`
 		// Minimum execution time: 7_674_000 picoseconds.
-		Weight::from_parts(8_437_976, 0)
+		Weight::from_parts(9_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 252))
 			// Standard Error: 41
 			.saturating_add(Weight::from_parts(198, 0).saturating_mul(n.into()))
