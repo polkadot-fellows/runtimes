@@ -97,7 +97,7 @@
 //! 9. `PeopleLite::set_attestation_allowance` (Fellowship or root) — admit a device-attestation
 //!    provider.
 //!
-//! Optional: `DummyDim`'s recognition calls (Fellowship or root) grant personhood directly.
+//! `DummyDim`'s recognition calls (Fellowship or root) grant personhood directly.
 
 use super::*;
 
