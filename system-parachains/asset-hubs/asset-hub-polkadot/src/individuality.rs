@@ -63,7 +63,7 @@
 //!    `MembersNotifier::subscribe` naming this chain and the `MembersSubscriber` pallet index (97);
 //!    there is no local call to make. Until the first batch of roots arrives, every personhood
 //!    proof on this chain fails. Requires an open HRMP channel in both directions.
-//! 3. `DotnsGateway::set_dispatcher_address` (root) — point the gateway at the deployed
+//! 3. `DotnsGateway::set_dispatcher_address` (Fellowship or root) — point the gateway at the deployed
 //!    `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot register any name until this
 //!    is set, so the dotNS registry contract has to be deployed first.
 //! 4. `AliasAccounts::set_alias_fee` (Fellowship or root) — configure the asset and amount charged
@@ -286,9 +286,7 @@ impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type MaxFutureSkewSeconds = dynamic_params::individuality::DotnsMaxFutureSkewSeconds;
 	type UnixTime = Timestamp;
 	type AttestationAllowanceManager = RootOrFellows;
-	// This controls the RootGateway dispatcher contract, rather than an Individuality allowance;
-	// retain root until its governance surface has its own explicit review.
-	type DispatcherAddressManager = EnsureRoot<AccountId>;
+	type DispatcherAddressManager = RootOrFellows;
 	type AttestationSignature = Signature;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::DotnsGatewayBenchHelper;
