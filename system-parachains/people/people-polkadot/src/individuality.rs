@@ -61,18 +61,6 @@
 //!   produce, since those origins pay no fee from an account.
 //! * [`indiv_pallet_relay_randomness`] surfaces relay chain randomness, used to seed airdrop draws.
 //!
-//! # Not deployed here
-//!
-//! `indiv-pallet-storage-initialization` is a bootstrapping pallet for fresh development chains
-//! (it funds hard-coded development accounts and seeds a first game), so it has no place on
-//! Polkadot.
-//!
-//! `indiv-pallet-mob-rule`, the juror pallet, is not deployed either. Its cases can only be opened
-//! through its `StatementOracle` implementation, and the only pallet that calls it in the reference
-//! runtime is `indiv-pallet-proof-of-ink`, which is not deployed here — so no case could ever be
-//! created and the whole pallet would be inert. It has to come back together with a pallet that
-//! judges statements.
-//!
 //! # Deployment steps
 //!
 //! Enacting the runtime upgrade activates none of this on its own: the ring-VRF machinery is inert
