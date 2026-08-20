@@ -94,9 +94,10 @@
 //!    accounts nobody controls, so they can only be funded by transfer.
 //! 8. `Game::schedule_games` (Fellowship or root) — no meetup game exists until one is scheduled,
 //!    so `pallet-game` and `pallet-score` stay dormant without this.
-//! Optional, per-provider: `PeopleLite::set_attestation_allowance` (Fellowship or root) to admit
-//! a device-attestation provider, and `DummyDim`'s recognition calls (Fellowship or root) to grant
-//! personhood directly.
+//! 9. `PeopleLite::set_attestation_allowance` (Fellowship or root) — admit a device-attestation
+//!    provider.
+//!
+//! Optional: `DummyDim`'s recognition calls (Fellowship or root) grant personhood directly.
 
 use super::*;
 
