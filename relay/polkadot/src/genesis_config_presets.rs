@@ -97,7 +97,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		validation_upgrade_delay: 2,
 		code_retention_period: 1200,
 		// Keep below the 5 MiB block length so code-upgrade benchmarks aren't filtered as
-		// oversized.
+		// oversized. TODO: https://github.com/paritytech/polkadot-sdk/issues/12969
 		max_code_size: 3 * 1024 * 1024,
 		max_pov_size: MAX_POV_SIZE,
 		max_head_data_size: 32 * 1024,

@@ -27,6 +27,9 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "polkadot_runtime_common::paras_registrar": ["schedule_code_upgrade"]
     }
   },
   {
@@ -55,6 +58,9 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
+    },
+    "benchmarks_exclude_extrinsics": {
+      "polkadot_runtime_common::paras_registrar": ["schedule_code_upgrade"]
     }
   },
   {

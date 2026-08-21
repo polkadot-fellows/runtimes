@@ -164,6 +164,7 @@ jobs:
             cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
           fi
           # run benchmarking
+          # TODO: https://github.com/paritytech/polkadot-sdk/issues/12968
           if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
             EXCLUDE_EXTRINSICS=""
           else
