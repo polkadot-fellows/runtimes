@@ -17,6 +17,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull_requests: read
 
 jobs:
   # Job required by "confirmChangelogChecksPassed"
