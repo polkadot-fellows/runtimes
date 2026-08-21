@@ -99,21 +99,14 @@ fn bulletin_polkadot_genesis(
 	})
 }
 
-/// Authorizer seeded into the `dev` and `local_testnet` presets: `//Eve`, the account the
-/// bulletin-chain integration tests authorize with. The runtime has no sudo and reaches Root
-/// only over XCM from the relay chain or the Asset Hub, so a chain built from these presets
-/// would otherwise start with no way to authorize storage at all. The `live` preset seeds
-/// nothing, and presets never apply on a runtime upgrade, so this cannot reach the deployed
-/// chain.
+/// Authorizer for the `dev` and `local_testnet` presets: `//Eve`, granted a 100k-transaction
+/// and 100 GiB allowance so those chains can authorize storage from genesis.
 fn testnet_authorizers() -> Vec<(AccountId, u32, u64)> {
 	vec![(get_account_id_from_seed::<sr25519::Public>("Eve"), 100_000, 100 * 1024 * 1024 * 1024)]
 }
 
-/// Account authorization seeded into the `dev` and `local_testnet` presets: `//Alice` may
-/// store immediately, without a prior `authorize_account` from [`testnet_authorizers`].
-/// Matches the upstream Bulletin testnet presets. Unlike authorizer budgets, account
-/// authorizations expire after `AuthorizationPeriod`, so on a long-lived local chain the
-/// Eve authorizer is the durable path.
+/// Account authorization for the `dev` and `local_testnet` presets: `//Alice`, allowed 100
+/// transactions and 10 MiB, so it can store immediately without a prior `authorize_account`.
 fn testnet_account_authorizations() -> Vec<(AccountId, u32, u64)> {
 	vec![(get_account_id_from_seed::<sr25519::Public>("Alice"), 100, 10 * 1024 * 1024)]
 }
