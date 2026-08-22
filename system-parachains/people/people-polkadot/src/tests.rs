@@ -531,9 +531,10 @@ fn individuality_dynamic_parameter_extremes_do_not_brick_parameter_updates() {
 	use crate::{
 		individuality::BulletinDataStore,
 		parameters::{dynamic_params, RuntimeParameters, StatementAllowanceParameter},
-		Parameters, RuntimeGenesisConfig,
+		ExistentialDeposit, Parameters, RuntimeGenesisConfig,
 	};
 	use indiv_pallet_resources::types::LongTermStorageAllocation;
+	use frame_support::traits::Get;
 	use sp_runtime::BuildStorage;
 
 	macro_rules! statement_parameter {
@@ -616,6 +617,61 @@ fn individuality_dynamic_parameter_extremes_do_not_brick_parameter_updates() {
 		assert_eq!(BulletinDataStore::bulletin_chain_location(), Ok(max_para));
 		bulletin_parameter!(BulletinTransactionStoragePalletIndex, 0u8);
 		bulletin_parameter!(BulletinTransactionStoragePalletIndex, u8::MAX);
+
+		// `pallet_parameters` accepts every SCALE-decodable value. The runtime consumes the
+		// guarded aliases from `indiv_support::parameters`, so malicious or accidental extremes
+		// cannot violate the resources pallet's invariants or exceed its benchmarked cleanup bounds.
+		statement_parameter!(StmtStoreSlotsPerPeriod, 0u32);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreSlotsPerPeriod as Get<u32>>::get(),
+			1,
+		);
+		statement_parameter!(LiteStmtStoreSlotsPerPeriod, u32::MAX);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LiteStmtStoreSlotsPerPeriod as Get<u32>>::get(),
+			1,
+		);
+		statement_parameter!(StmtStoreCleanupLimit, u32::MAX);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreCleanupLimit as Get<u32>>::get(),
+			50,
+		);
+		statement_parameter!(StmtStoreReplacementCooldown, u32::MAX);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreReplacementCooldown as Get<u32>>::get(),
+			24 * 60 * 60,
+		);
+		statement_parameter!(StmtStoreGraceWindow, 0u32);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::StmtStoreGraceWindow as Get<u32>>::get(),
+			1,
+		);
+		statement_parameter!(NotificationSlotsPerPeriod, 0u8);
+		statement_parameter!(LiteNotificationSlotsPerPeriod, u8::MAX);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LiteNotificationSlotsPerPeriod as Get<u8>>::get(),
+			0,
+		);
+		bulletin_parameter!(LongTermStoragePeriodDuration, 0u32);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LongTermStoragePeriodDuration as Get<u32>>::get(),
+			1,
+		);
+		bulletin_parameter!(LongTermStorageGraceWindow, u32::MAX);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LongTermStorageGraceWindow as Get<u32>>::get(),
+			0,
+		);
+		bulletin_parameter!(LongTermStorageClaimsPerPeriod, 0u8);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LongTermStorageClaimsPerPeriod as Get<u8>>::get(),
+			1,
+		);
+		bulletin_parameter!(LongTermStorageCleanupLimit, u32::MAX);
+		assert_eq!(
+			<<Runtime as indiv_pallet_resources::Config>::LongTermStorageCleanupLimit as Get<u32>>::get(),
+			20,
+		);
 		assert_ok!(Parameters::set_parameter(
 			RuntimeOrigin::root(),
 			RuntimeParameters::PeopleAirdrops(
@@ -634,5 +690,18 @@ fn individuality_dynamic_parameter_extremes_do_not_brick_parameter_updates() {
 				),
 			),
 		));
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::LitePersonhood(
+				dynamic_params::lite_personhood::Parameters::RegistrationFee(
+					dynamic_params::lite_personhood::RegistrationFee,
+					Some(0),
+				),
+			),
+		));
+		assert_eq!(
+			<<Runtime as indiv_pallet_people_lite::Config>::RegistrationFee as Get<Balance>>::get(),
+			ExistentialDeposit::get(),
+		);
 	});
 }

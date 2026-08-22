@@ -774,18 +774,15 @@ impl indiv_pallet_resources::Config for Runtime {
 	type MinUsernameLength = MinUsernameLength;
 	type PersonAuthDuration = PersonAuthDuration;
 	type AccountsApiAllowance = crate::parameters::AccountsApiAllowance;
-	type StmtStoreSlotsPerPeriod = dynamic_params::statement_storage::StmtStoreSlotsPerPeriod;
-	type LiteStmtStoreSlotsPerPeriod =
-		dynamic_params::statement_storage::LiteStmtStoreSlotsPerPeriod;
-	type StmtStoreCleanupLimit = dynamic_params::statement_storage::StmtStoreCleanupLimit;
-	type StmtStoreReplacementCooldown =
-		dynamic_params::statement_storage::StmtStoreReplacementCooldown;
-	type StmtStoreGraceWindow = dynamic_params::statement_storage::StmtStoreGraceWindow;
+	type StmtStoreSlotsPerPeriod = crate::parameters::StmtStoreSlotsPerPeriod;
+	type LiteStmtStoreSlotsPerPeriod = crate::parameters::LiteStmtStoreSlotsPerPeriod;
+	type StmtStoreCleanupLimit = crate::parameters::StmtStoreCleanupLimit;
+	type StmtStoreReplacementCooldown = crate::parameters::StmtStoreReplacementCooldown;
+	type StmtStoreGraceWindow = crate::parameters::StmtStoreGraceWindow;
 	type NotificationAllowance = crate::parameters::NotificationAllowance;
-	type NotificationSlotsPerPeriod = dynamic_params::statement_storage::NotificationSlotsPerPeriod;
-	type LiteNotificationSlotsPerPeriod =
-		dynamic_params::statement_storage::LiteNotificationSlotsPerPeriod;
-	type NotificationPeriodDuration = dynamic_params::statement_storage::NotificationPeriodDuration;
+	type NotificationSlotsPerPeriod = crate::parameters::NotificationSlotsPerPeriod;
+	type LiteNotificationSlotsPerPeriod = crate::parameters::LiteNotificationSlotsPerPeriod;
+	type NotificationPeriodDuration = crate::parameters::NotificationPeriodDuration;
 	type OffchainWorkerInterval = ConstU32<1>;
 	type MinPersonAuthUpdateInterval = MinPersonAuthUpdateInterval;
 	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
@@ -796,21 +793,17 @@ impl indiv_pallet_resources::Config for Runtime {
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
 	type ManagerOrigin = RootOrFellows;
-	type LongTermStoragePeriodDuration =
-		dynamic_params::bulletin_storage::LongTermStoragePeriodDuration;
-	type LongTermStorageGraceWindow = dynamic_params::bulletin_storage::LongTermStorageGraceWindow;
-	type LongTermStorageClaimsPerPeriod =
-		dynamic_params::bulletin_storage::LongTermStorageClaimsPerPeriod;
-	type LongTermStorageAllowanceForPeople =
-		dynamic_params::bulletin_storage::LongTermStorageAllowanceForPeople;
+	type LongTermStoragePeriodDuration = crate::parameters::LongTermStoragePeriodDuration;
+	type LongTermStorageGraceWindow = crate::parameters::LongTermStorageGraceWindow;
+	type LongTermStorageClaimsPerPeriod = crate::parameters::LongTermStorageClaimsPerPeriod;
+	type LongTermStorageAllowanceForPeople = crate::parameters::LongTermStorageAllowanceForPeople;
 	type LongTermStorageAllowanceForLitePeople =
-		dynamic_params::bulletin_storage::LongTermStorageAllowanceForLitePeople;
+		crate::parameters::LongTermStorageAllowanceForLitePeople;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type LongTermStorageDataStore = BulletinDataStore;
 	#[cfg(feature = "runtime-benchmarks")]
 	type LongTermStorageDataStore = benchmark_utils::BenchmarkDataStore;
-	type LongTermStorageCleanupLimit =
-		dynamic_params::bulletin_storage::LongTermStorageCleanupLimit;
+	type LongTermStorageCleanupLimit = crate::parameters::LongTermStorageCleanupLimit;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::ResourcesBenchHelper;
 }
