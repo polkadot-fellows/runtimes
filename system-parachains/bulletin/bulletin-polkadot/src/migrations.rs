@@ -42,7 +42,7 @@ pub type Unreleased = (
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = (
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-	// Idempotent: initializes `RetentionPeriod` when zero, a no-op read once set.
+	// Idempotent: initializes `RetentionPeriod` when zero, a no-op once set.
 	pallet_bulletin_transaction_storage::migrations::SetRetentionPeriodIfZero<
 		Runtime,
 		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,
@@ -50,7 +50,7 @@ pub type Permanent = (
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = Unreleased;
+pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 /// MBM migrations to apply on runtime upgrade.
 pub type MbmMigrations = ();
