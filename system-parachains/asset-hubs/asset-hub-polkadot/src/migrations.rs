@@ -157,6 +157,7 @@ pub type Unreleased = (
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	// DAP V1->V2: seed `BudgetAllocation` and `LastIssuanceTimestamp`, credit a one-shot
 	// catch-up drip. Required when moving staking to non-minting mode (see SDK PR #11616).
