@@ -830,6 +830,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
@@ -1741,6 +1742,12 @@ impl
 type StakingRcClientBench<T> = pallet_staking_async_rc_client::benchmarking::Pallet<T>;
 
 #[cfg(feature = "runtime-benchmarks")]
+type NominationPoolsBench<T> = pallet_nomination_pools_benchmarking::Pallet<T>;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_nomination_pools_benchmarking::Config for Runtime {}
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
@@ -1763,6 +1770,7 @@ mod benches {
 		[pallet_migrations, MultiBlockMigrations]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
+		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_scheduler, Scheduler]
@@ -2313,6 +2321,9 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
 			RELAY_PARENT_OFFSET
+		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
 		}
 	}
 

@@ -19,6 +19,8 @@ use super::*;
 
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
+	// xcmp-queue storage v6 -> v7 (SDK stable2606-1).
+	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	// Seed storage authorizations for the rank-1+ Fellowship.
 	//
@@ -48,7 +50,7 @@ pub type Permanent = (
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = (Unreleased, Permanent);
+pub type SingleBlockMigrations = Unreleased;
 
 /// MBM migrations to apply on runtime upgrade.
 pub type MbmMigrations = ();

@@ -13,6 +13,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   trigger-review-bot:
     # (It is not a draft) && (it is not a review || it is an approving review)
@@ -39,7 +43,7 @@ jobs:
           github.event_name == 'pull_request_target' &&
           github.event.action == 'synchronize' && 
           github.event.sender.login == github.event.pull_request.user.login && 
-          !contains(steps.fellows.outputs.github-handles, github.event.pull_request.user.login)
+          !contains(format(',{0},', steps.fellows.outputs.github-handles), format(',{0},', github.event.pull_request.user.login))
         run: |
           # We get the list of reviewers who approved the PR
           REVIEWERS=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
