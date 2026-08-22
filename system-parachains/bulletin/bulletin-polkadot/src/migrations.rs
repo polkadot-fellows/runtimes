@@ -18,7 +18,10 @@
 use super::*;
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = (cumulus_pallet_parachain_system::migration::Migration<Runtime>,);
+pub type Unreleased = (
+	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
+	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+);
 
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = Unreleased;
