@@ -164,7 +164,7 @@ pallet-offences-benchmarking = { version = "48.0.0", default-features = false }
 pallet-parameters = { version = "0.19.0", default-features = false }
 pallet-preimage = { version = "48.0.0", default-features = false }
 pallet-proxy = { version = "48.0.0", default-features = false }
-pallet-psm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "szegoo-backport-12245-to-stable2606", default-features = false }
+pallet-psm = { version = "0.5.0", default-features = false }
 pallet-ranked-collective = { version = "48.0.0", default-features = false }
 pallet-recovery = { version = "48.0.0", default-features = false }
 pallet-referenda = { version = "48.0.0", default-features = false }
@@ -368,10 +368,3 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
-
-[patch."https://github.com/paritytech/polkadot-sdk.git"]
-frame-benchmarking = { version = "49.0.0" }
-frame-support = { version = "48.0.0" }
-frame-system = { version = "48.0.0" }
-sp-io = { version = "48.0.0" }
-sp-runtime = { version = "48.0.0" }
