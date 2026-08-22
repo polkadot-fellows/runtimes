@@ -1189,7 +1189,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 }
 
-// PSM configuration. Values intentionally match Asset Hub Westend.
+// PSM configuration for Asset Hub Polkadot.
 parameter_types! {
 	/// Fixed deposit held for a permissionless PSM created via `create_psm`.
 	pub const PsmCreationDeposit: Balance = 100 * UNITS;
