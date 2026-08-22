@@ -36,6 +36,7 @@ indiv-pallet-members = { workspace = true }
 indiv-pallet-members-notifier = { workspace = true }
 indiv-pallet-origin-restriction = { workspace = true }
 indiv-pallet-people = { workspace = true }
+indiv-pallet-people-airdrops = { workspace = true }
 indiv-pallet-people-lite = { workspace = true }
 indiv-pallet-relay-randomness = { workspace = true }
 indiv-pallet-resources = { workspace = true }
@@ -147,6 +148,7 @@ std = [
 	"indiv-pallet-members/std",
 	"indiv-pallet-nft-credits/std",
 	"indiv-pallet-origin-restriction/std",
+	"indiv-pallet-people-airdrops/std",
 	"indiv-pallet-people-lite/std",
 	"indiv-pallet-people/std",
 	"indiv-pallet-relay-randomness/std",
@@ -233,6 +235,7 @@ runtime-benchmarks = [
 	"indiv-pallet-members/runtime-benchmarks",
 	"indiv-pallet-nft-credits/runtime-benchmarks",
 	"indiv-pallet-origin-restriction/runtime-benchmarks",
+	"indiv-pallet-people-airdrops/runtime-benchmarks",
 	"indiv-pallet-people-lite/runtime-benchmarks",
 	"indiv-pallet-people/runtime-benchmarks",
 	"indiv-pallet-relay-randomness/runtime-benchmarks",
@@ -295,6 +298,7 @@ try-runtime = [
 	"indiv-pallet-members/try-runtime",
 	"indiv-pallet-nft-credits/try-runtime",
 	"indiv-pallet-origin-restriction/try-runtime",
+	"indiv-pallet-people-airdrops/try-runtime",
 	"indiv-pallet-people-lite/try-runtime",
 	"indiv-pallet-people/try-runtime",
 	"indiv-pallet-relay-randomness/try-runtime",

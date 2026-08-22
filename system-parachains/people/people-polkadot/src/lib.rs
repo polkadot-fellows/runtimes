@@ -800,6 +800,7 @@ construct_runtime!(
 		Honour: indiv_pallet_honour = 71,
 		Nfts: pallet_nfts = 72,
 		Parameters: pallet_parameters = 73,
+		PeopleAirdrops: indiv_pallet_people_airdrops = 74,
 	}
 );
 
@@ -856,6 +857,7 @@ mod benches {
 		[indiv_pallet_members_notifier, MembersNotifier]
 		[indiv_pallet_origin_restriction, OriginRestriction]
 		[indiv_pallet_people, People]
+		[indiv_pallet_people_airdrops, PeopleAirdrops]
 		[indiv_pallet_people_lite, PeopleLite]
 		[indiv_pallet_relay_randomness, RelayRandomness]
 		[indiv_pallet_resources, Resources]

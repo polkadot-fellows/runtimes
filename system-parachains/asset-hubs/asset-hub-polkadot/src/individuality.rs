@@ -66,8 +66,8 @@
 //! 3. `DotnsGateway::set_dispatcher_address` (Fellowship or root) — point the gateway at the deployed
 //!    `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot register any name until this
 //!    is set, so the dotNS registry contract has to be deployed first.
-//! 4. `AliasAccounts::set_alias_fee` (Fellowship or root) — configure the asset and amount charged
-//!    for alias registration before enabling account-alias flows.
+//! 4. Set the governance-mutable alias fee if desired, then run collators with offchain workers
+//!    enabled so the alias-account stale-mapping sweep can submit authorized maintenance calls.
 //!
 //! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship or root) to admit
 //! an attestation provider.
@@ -132,6 +132,8 @@ parameter_types! {
 	pub const PeopleRingExponent: RingExponent = RingExponent::R2e9;
 	/// Ring exponent of the lite people collection on People Polkadot.
 	pub const PeopleLiteRingExponent: RingExponent = RingExponent::R2e9;
+	/// Product-context suffix for the Polkadot deployment.
+	pub const NetworkSuffix: &'static [u8] = b"polkadot";
 }
 
 /// Origin check restricted to the sibling parachain that publishes the ring roots.
@@ -141,8 +143,9 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureNotifierSibling {
 
 	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
 		match o.clone().into() {
-			Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id)) if u32::from(id) == PEOPLE_ID =>
-				Ok(()),
+			Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id)) if u32::from(id) == PEOPLE_ID => {
+				Ok(())
+			},
 			_ => Err(o),
 		}
 	}
@@ -154,14 +157,15 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureNotifierSibling {
 }
 
 impl indiv_pallet_members_subscriber::Config for Runtime {
-	type WeightInfo = indiv_pallet_members_subscriber::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::indiv_pallet_members_subscriber::WeightInfo<Runtime>;
 	type Crypto = indiv_support::crypto::BandersnatchVrfVerifiable;
 	type XcmSender = xcm_config::XcmRouter;
 	type RingRootsNotifier = RingRootsNotifierEndpoint;
 	type SelfParaId = MembersSubscriberSelfParaId;
 	type MaxMissingRootsPerCollection = ConstU32<255>;
 	type MaxDeletedRingsPerCollection = ConstU32<100>;
-	type MaxRingRootsPerCollection = ConstU32<100>;
+	type MaxGapScanPerBatch = ConstU32<32>;
+	type PurgePageSize = ConstU32<100>;
 	type EnsureNotifierOrigin = EnsureNotifierSibling;
 	type EnsureTerminationOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureNotifierSibling>;
 	type MaxCollections = ConstU32<20>;
@@ -176,18 +180,22 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 }
 
 impl indiv_pallet_alias_accounts::Config for Runtime {
-	type WeightInfo = indiv_pallet_alias_accounts::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::indiv_pallet_alias_accounts::WeightInfo<Runtime>;
 	type MemberService = MembersSubscriber;
 	type UnixTime = Timestamp;
 	/// The default proof-validity window is five minutes after the timestamp it commits to.
 	type ProofValidityWindow = dynamic_params::individuality::AliasProofValidityWindow;
-	/// The default cleanup grace period for a released alias binding is one hour.
-	type CleanupGracePeriod = dynamic_params::individuality::AliasCleanupGracePeriod;
+	/// Retain released mappings for longer than any accepted ring-root revision.
+	type MappingRetention = ConstU64<{ 90 * 24 * 60 * 60 }>;
 	type PeopleLiteRingExponent = PeopleLiteRingExponent;
 	type PeopleRingExponent = PeopleRingExponent;
 	type Fungibles = Assets;
 	type PgasAssetId = PgasAssetId;
-	type FeeManagerOrigin = RootOrFellows;
+	type AliasFee = dynamic_params::individuality::AliasFee;
+	type OffchainWorkerInterval = indiv_support::parameters::AtLeastOne<
+		dynamic_params::individuality::StaleAliasSweepInterval,
+	>;
+	type MaxStaleAliasBatch = ConstU32<32>;
 }
 
 impl indiv_precompile_personhood::Config for Runtime {
@@ -206,6 +214,7 @@ parameter_types! {
 
 impl indiv_pallet_pgas::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_pgas::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
 	type MembershipProver = MembersSubscriber;
 	type Clock = Timestamp;
 	type Fungibles = Assets;
@@ -278,6 +287,7 @@ impl indiv_pallet_dotns_gateway::ContractCaller for ReviveContractCaller {
 
 impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_dotns_gateway::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
 	type MemberService = MembersSubscriber;
 	type ContractCaller = ReviveContractCaller;
 	type AddressMapper = ReviveAddressMapper;
@@ -313,13 +323,14 @@ pub enum RestrictedEntity {
 impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
 	fn allowance(&self) -> indiv_pallet_origin_restriction::Allowance<Balance> {
 		match self {
-			RestrictedEntity::DotnsPersonRegistration(_) =>
+			RestrictedEntity::DotnsPersonRegistration(_) => {
 				indiv_pallet_origin_restriction::Allowance {
 					max: dynamic_params::individuality::DotnsPersonRegistrationAllowanceMax::get(),
 					recovery_per_block:
 						dynamic_params::individuality::DotnsPersonRegistrationAllowanceRecovery::get(
 						),
-				},
+				}
+			},
 		}
 	}
 
@@ -511,19 +522,17 @@ pub mod benchmark_utils {
 			// The benchmark fills the sliding window with mock records before calling us; replace
 			// the record matching `revision` with our real commitment so verification against
 			// the bench-chosen target revision succeeds.
-			indiv_pallet_members_subscriber::RingRoots::<Runtime>::mutate(
-				*identifier,
-				ring_index,
-				|roots_opt| {
-					let roots = roots_opt
-						.as_mut()
-						.expect("seed_ring populates RingRoots before create_proof_for_revision");
-					let idx = roots
-						.iter()
-						.position(|r| r.revision == revision)
-						.expect("requested revision must be present in seeded roots");
-					roots[idx].root = root;
-				},
+			let mut roots = indiv_pallet_members_subscriber::Pallet::<Runtime>::current_ring_roots(
+				identifier, ring_index,
+			)
+			.expect("seed_ring populates RingRoots before create_proof_for_revision");
+			let idx = roots
+				.iter()
+				.position(|r| r.revision == revision)
+				.expect("requested revision must be present in seeded roots");
+			roots[idx].root = root;
+			indiv_pallet_members_subscriber::Pallet::<Runtime>::set_current_ring_roots(
+				identifier, ring_index, roots,
 			);
 			indiv_pallet_members_subscriber::RingCollectionExponents::<Runtime>::insert(
 				*identifier,
@@ -539,6 +548,19 @@ pub mod benchmark_utils {
 
 		fn setup_pgas_asset() {
 			ensure_pgas_asset();
+		}
+
+		fn set_alias_fee(fee: Balance) {
+			pallet_parameters::Pallet::<Runtime>::set_parameter(
+				RuntimeOrigin::root(),
+				RuntimeParameters::Individuality(
+					dynamic_params::individuality::Parameters::AliasFee(
+						dynamic_params::individuality::AliasFee,
+						Some(Some(fee)),
+					),
+				),
+			)
+			.expect("root may set the alias fee");
 		}
 
 		fn max_ring_revisions() -> u32 {
@@ -574,7 +596,11 @@ pub mod benchmark_utils {
 					})
 					.expect("revisions bounded by max_ring_revisions");
 			}
-			indiv_pallet_members_subscriber::RingRoots::<Runtime>::insert(collection, ring, roots);
+			indiv_pallet_members_subscriber::Pallet::<Runtime>::set_current_ring_roots(
+				&collection,
+				ring,
+				roots,
+			);
 		}
 	}
 
@@ -601,10 +627,8 @@ pub mod benchmark_utils {
 			};
 			let mut roots: BoundedVec<_, _> = Default::default();
 			roots.try_push(record).expect("MaxRecentRootsPerRing > 0");
-			indiv_pallet_members_subscriber::RingRoots::<Runtime>::insert(
-				*identifier,
-				ring_index,
-				roots,
+			indiv_pallet_members_subscriber::Pallet::<Runtime>::set_current_ring_roots(
+				identifier, ring_index, roots,
 			);
 			indiv_pallet_members_subscriber::RingCollectionExponents::<Runtime>::insert(
 				*identifier,
@@ -697,10 +721,8 @@ pub mod benchmark_utils {
 			}
 			let last_idx = roots.len() - 1;
 			roots[last_idx].root = real_root;
-			indiv_pallet_members_subscriber::RingRoots::<Runtime>::insert(
-				*identifier,
-				ring_index,
-				roots,
+			indiv_pallet_members_subscriber::Pallet::<Runtime>::set_current_ring_roots(
+				identifier, ring_index, roots,
 			);
 			indiv_pallet_members_subscriber::RingCollectionExponents::<Runtime>::insert(
 				*identifier,
@@ -725,7 +747,7 @@ pub mod benchmark_utils {
 			let (proof, _alias) = Crypto::create(
 				commitment,
 				&secret,
-				&indiv_pallet_dotns_gateway::DOTNS_GATEWAY_CONTEXT[..],
+				&indiv_pallet_dotns_gateway::Pallet::<Runtime>::proof_context()[..],
 				message,
 			)
 			.expect("benchmark: create proof");

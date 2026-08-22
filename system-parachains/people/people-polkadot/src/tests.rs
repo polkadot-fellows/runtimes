@@ -17,7 +17,8 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
+	Balance, Block, DotWeightToFee as WeightToFee, PeopleAirdrops, Runtime, RuntimeCall,
+	RuntimeOrigin, UNITS,
 };
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
@@ -386,6 +387,33 @@ fn individuality_storage_parameters_are_governance_mutable() {
 			),
 			sp_runtime::DispatchError::BadOrigin,
 		);
+
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::PeopleAirdrops(
+				dynamic_params::people_airdrops::Parameters::PrizeSource(
+					dynamic_params::people_airdrops::PrizeSource,
+					Some(sp_runtime::AccountId32::new([42u8; 32])),
+				),
+			),
+		));
+		assert_eq!(
+			dynamic_params::people_airdrops::PrizeSource::get(),
+			sp_runtime::AccountId32::new([42u8; 32]),
+		);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::LitePersonhood(
+				dynamic_params::lite_personhood::Parameters::RegistrationFee(
+					dynamic_params::lite_personhood::RegistrationFee,
+					Some(75 * UNITS),
+				),
+			),
+		));
+		assert_eq!(
+			<<Runtime as indiv_pallet_people_lite::Config>::RegistrationFee as Get<Balance>>::get(),
+			75 * UNITS,
+		);
 	});
 }
 
@@ -398,6 +426,7 @@ fn individuality_cross_runtime_pallet_indices_are_pinned() {
 	assert_eq!(MembersNotifier::index(), 69);
 	assert_eq!(RingRootsNotifierEndpoint::get().pallet_index, MembersNotifier::index() as u8,);
 	assert_eq!(asset_hub_polkadot_runtime::MembersSubscriber::index(), 97);
+	assert_eq!(PeopleAirdrops::index(), 74);
 }
 
 #[test]
@@ -587,5 +616,23 @@ fn individuality_dynamic_parameter_extremes_do_not_brick_parameter_updates() {
 		assert_eq!(BulletinDataStore::bulletin_chain_location(), Ok(max_para));
 		bulletin_parameter!(BulletinTransactionStoragePalletIndex, 0u8);
 		bulletin_parameter!(BulletinTransactionStoragePalletIndex, u8::MAX);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::PeopleAirdrops(
+				dynamic_params::people_airdrops::Parameters::PrizeSource(
+					dynamic_params::people_airdrops::PrizeSource,
+					Some(sp_runtime::AccountId32::new([0u8; 32])),
+				),
+			),
+		));
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::LitePersonhood(
+				dynamic_params::lite_personhood::Parameters::RegistrationFee(
+					dynamic_params::lite_personhood::RegistrationFee,
+					Some(Balance::MAX),
+				),
+			),
+		));
 	});
 }

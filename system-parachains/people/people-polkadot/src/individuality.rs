@@ -96,6 +96,8 @@
 //!    so `pallet-game` and `pallet-score` stay dormant without this.
 //! 9. `PeopleLite::set_attestation_allowance` (Fellowship or root) — admit a device-attestation
 //!    provider.
+//! 10. Run collators with offchain workers enabled: `PeopleAirdrops` schedules and executes its
+//!     maintenance through an offchain worker.
 //!
 //! `DummyDim`'s recognition calls (Fellowship or root) grant personhood directly.
 
@@ -108,10 +110,10 @@ use frame_support::traits::NeverEnsureOrigin;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::{HoldConsideration, ItemOf},
-		tokens::ConversionToAssetBalance,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair,
 		Get, PalletInfoAccess,
+		fungible::{HoldConsideration, ItemOf},
+		tokens::ConversionToAssetBalance,
 	},
 	weights::WeightToFee,
 };
@@ -128,8 +130,8 @@ use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use sp_runtime::MultiSigner;
 use sp_runtime::{
-	traits::{AccountIdConversion, ConstI8, ConstU16, Convert, Verify},
 	DispatchError, DispatchResult, MultiSignature,
+	traits::{AccountIdConversion, ConstI8, ConstU16, Convert, Verify},
 };
 use sp_statement_store::StatementAllowance;
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
@@ -139,15 +141,14 @@ use xcm::latest::Junction::GeneralIndex;
 #[cfg(feature = "runtime-benchmarks")]
 use xcm::latest::Junction::Parachain;
 use xcm::latest::{
-	send_xcm,
 	Instruction::{Transact, UnpaidExecution},
 	Junction,
 	Junction::PalletInstance,
-	Location, OriginKind, WeightLimit, Xcm,
+	Location, OriginKind, WeightLimit, Xcm, send_xcm,
 };
 
 use crate::{
-	assets::hollar::{HollarLocation, HOLLAR_UNITS},
+	assets::hollar::{HOLLAR_UNITS, HollarLocation},
 	parameters::dynamic_params,
 };
 
@@ -160,7 +161,7 @@ use crate::{
 pub mod time {
 	use super::BlockNumber;
 	use system_parachains_constants::polkadot::consensus::{
-		elastic_scaling::BLOCK_PROCESSING_VELOCITY, RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		RELAY_CHAIN_SLOT_DURATION_MILLIS, elastic_scaling::BLOCK_PROCESSING_VELOCITY,
 	};
 
 	/// Target block time, in milliseconds.
@@ -216,6 +217,9 @@ pub type RuntimeClock = Timestamp;
 pub type RuntimeClock = benchmark_utils::BenchmarkClock;
 
 parameter_types! {
+	/// Product-context suffix for the Polkadot deployment.
+	pub const NetworkSuffix: &'static [u8] = b"polkadot";
+
 	/// Page size for the ring-VRF SRS chunk storage.
 	pub const ChunkPageSize: u32 = 255;
 
@@ -300,8 +304,8 @@ impl indiv_pallet_members::Config for Runtime {
 pub struct AccountContexts;
 impl frame_support::traits::Contains<Context> for AccountContexts {
 	fn contains(context: &Context) -> bool {
-		context == &indiv_pallet_score::SCORE_CONTEXT ||
-			context == &indiv_pallet_resources::RESOURCES_CONTEXT
+		context == &indiv_pallet_score::Pallet::<Runtime>::score_context()
+			|| context == &indiv_pallet_resources::Pallet::<Runtime>::resources_context()
 	}
 }
 
@@ -309,7 +313,24 @@ impl frame_support::traits::Contains<Context> for AccountContexts {
 pub struct LiteAccountContexts;
 impl frame_support::traits::Contains<Context> for LiteAccountContexts {
 	fn contains(context: &Context) -> bool {
-		context == indiv_pallet_people_lite::LITE_PEOPLE_AUTH_CONTEXT
+		context == &indiv_pallet_people_lite::Pallet::<Runtime>::auth_context()
+			|| context == &indiv_pallet_score::Pallet::<Runtime>::score_context()
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct PeopleLiteBenchmarkHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature> for PeopleLiteBenchmarkHelper {
+	fn sign_message(message: &[u8]) -> (AccountId, Signature) {
+		<() as indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature>>::sign_message(
+			message,
+		)
+	}
+
+	fn worst_case_account_context(_default: Context) -> Context {
+		indiv_pallet_score::Pallet::<Runtime>::score_context()
 	}
 }
 
@@ -332,7 +353,11 @@ impl indiv_pallet_people::Config for Runtime {
 }
 
 impl indiv_pallet_people_lite::Config for Runtime {
-	type WeightInfo = indiv_pallet_people_lite::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::indiv_pallet_people_lite::WeightInfo<Runtime>;
+	type Currency = Balances;
+	type PotId = LitePeoplePotId;
+	type RegistrationFee = crate::parameters::LitePersonRegistrationFee;
+	type Suffix = NetworkSuffix;
 	type AttestationAllowanceManager = RootOrFellows;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
@@ -342,7 +367,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type LiteConsumerRegistrar = Resources;
 	type AccountContexts = LiteAccountContexts;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
+	type BenchmarkHelper = PeopleLiteBenchmarkHelper;
 }
 
 impl indiv_pallet_dummy_dim::Config for Runtime {
@@ -354,10 +379,12 @@ impl indiv_pallet_dummy_dim::Config for Runtime {
 
 parameter_types! {
 	pub const ScorePotId: PalletId = PalletId(*b"scorepot");
+	pub const LitePeoplePotId: PalletId = PalletId(*b"plitefee");
 }
 
 impl indiv_pallet_score::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_score::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
 	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
 	type ScorePotId = ScorePotId;
 	type Currency = FungibleStableAsset;
@@ -571,6 +598,7 @@ impl indiv_pallet_nft_credits::Config for Runtime {
 	type ChannelInfo = ParachainSystem;
 	type MaxQueuedCreditTrees = ConstU32<256>;
 	type MaxCreditTreesPerMessage = ConstU32<32>;
+	type ReplayCooldownSeconds = ConstU64<60>;
 	type NftClaimsRemoteWeight = NftClaimsRemoteWeight;
 	type MaxCreditBlocksPerClaimant = ConstU32<32>;
 	type MaxRetainedAwardBlocks = ConstU32<256>;
@@ -617,6 +645,109 @@ impl indiv_pallet_airdrop::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::AirdropBenchmarkHelper;
 }
 
+impl indiv_pallet_people_airdrops::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_people_airdrops::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
+	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
+	type AirdropAssetId = <Runtime as pallet_assets::Config>::AssetId;
+	type AirdropAssetBalance = Balance;
+	type Airdrop = Airdrop;
+	type ManagerOrigin = RootOrFellows;
+	type PrizeSource = crate::parameters::PeopleAirdropsPrizeSource;
+	type Randomness = indiv_pallet_relay_randomness::RelayBlockRandomness<Runtime>;
+	type UnixTime = RuntimeClock;
+	type MaxScheduleBatch = ConstU32<16>;
+	type MaxRegisterBatch = ConstU32<16>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = PeopleAirdropsBenchmarkHelper;
+}
+
+/// Benchmark hooks for the people-airdrops pallet.
+#[cfg(feature = "runtime-benchmarks")]
+pub struct PeopleAirdropsBenchmarkHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl indiv_pallet_people_airdrops::benchmarking::BenchmarkHelper<Runtime>
+	for PeopleAirdropsBenchmarkHelper
+{
+	fn fund_prize_source(
+		source: &AccountId,
+		draws: u32,
+	) -> alloc::vec::Vec<indiv_pallet_people_airdrops::AirdropEventInfoOf<Runtime>> {
+		use frame_support::traits::fungibles::Mutate;
+		use indiv_pallet_airdrop::{benchmarking::BenchmarkHelper as _, pallet::SupportedAssets};
+		const BENCH_ASSET_BASE: u32 = 42;
+		const BENCH_PRIZE: Balance = 1_000;
+		if pallet_timestamp::Now::<Runtime>::get() == 0 {
+			Self::set_unix_time(1);
+		}
+		let pot = indiv_pallet_airdrop::Pallet::<Runtime>::airdrop_pot_id();
+		(0..draws)
+			.map(|i| {
+				let asset_id = benchmark_utils::AirdropBenchmarkHelper::create_asset_id_parameter(
+					BENCH_ASSET_BASE + i,
+				);
+				if !SupportedAssets::<Runtime>::contains_key(&asset_id) {
+					Assets::mint_into(asset_id.clone(), &pot, 1).expect("fund pot ed");
+					SupportedAssets::<Runtime>::insert(&asset_id, 1u128);
+				}
+				Assets::mint_into(asset_id.clone(), source, BENCH_PRIZE)
+					.expect("fund prize source");
+				indiv_pallet_people_airdrops::AirdropEventInfoOf::<Runtime> {
+					prize: indiv_pallet_airdrop::types::AirdropPrize {
+						asset_id,
+						asset_amount: BENCH_PRIZE,
+						max_winners: 1,
+						winner_cap: sp_runtime::Permill::one(),
+					},
+					registration_starts: 100,
+					draw_time: 200,
+					end_time: 300,
+				}
+			})
+			.collect()
+	}
+
+	fn open_registration(event_id: &indiv_pallet_airdrop::types::EventId) {
+		indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
+			if let Some(event) = event {
+				event.status =
+					indiv_pallet_airdrop::types::Status::Registering { total_participants: 0 };
+			}
+		});
+	}
+
+	fn start_claiming(event_id: &indiv_pallet_airdrop::types::EventId) {
+		use indiv_pallet_airdrop::pallet::{Registrations, Winners};
+		let registrations =
+			Registrations::<Runtime>::iter_prefix(event_id).collect::<alloc::vec::Vec<_>>();
+		for (slot, entry) in &registrations {
+			Winners::<Runtime>::insert(event_id, entry.clone(), *slot);
+		}
+		indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
+			if let Some(event) = event {
+				event.status = indiv_pallet_airdrop::types::Status::Claiming {
+					total_participants: registrations.len() as u32,
+					effective_winners: registrations.len() as u32,
+					claimed: 0,
+				};
+			}
+		});
+	}
+
+	fn count_registrations(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
+		indiv_pallet_airdrop::pallet::Registrations::<Runtime>::iter_prefix(event_id).count() as u32
+	}
+
+	fn count_winners(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
+		indiv_pallet_airdrop::pallet::Winners::<Runtime>::iter_prefix(event_id).count() as u32
+	}
+
+	fn set_unix_time(now_secs: u64) {
+		pallet_timestamp::Now::<Runtime>::put(now_secs * 1_000);
+	}
+}
+
 /// Direct byte-level reinterpretation of an `AccountId32` as an sr25519 public key.
 pub struct AccountIdToSr25519Public;
 impl sp_runtime::traits::TryConvert<AccountId, sp_core::sr25519::Public>
@@ -638,6 +769,7 @@ parameter_types! {
 
 impl indiv_pallet_resources::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_resources::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
 	type MemberService = Members;
 	type MinUsernameLength = MinUsernameLength;
 	type PersonAuthDuration = PersonAuthDuration;
@@ -845,9 +977,9 @@ impl indiv_pallet_coinage::Config for Runtime {
 
 	type MembershipProof = MembershipProof;
 	type UnloadTokenTimePeriodPeopleLitePeople = ConstU32<{ 24 * 60 * 60 }>; // 1 day
-																		  // Free unload token allowance of $20 per time period for people and $10 for lite people. The
-																		  // fee is dynamic (it follows the fee multiplier), and usage is additionally capped by
-																		  // `MaxFreeUnloadTokensPerTimePeriod`.
+	// Free unload token allowance of $20 per time period for people and $10 for lite people. The
+	// fee is dynamic (it follows the fee multiplier), and usage is additionally capped by
+	// `MaxFreeUnloadTokensPerTimePeriod`.
 	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 2000 * (HOLLAR_UNITS / 100) }>;
 	type UnloadTokenAllowancePerTimePeriodForLitePeople =
 		ConstU128<{ 1000 * (HOLLAR_UNITS / 100) }>;
@@ -937,13 +1069,15 @@ pub enum RestrictedEntity {
 impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
 	fn allowance(&self) -> Allowance<Balance> {
 		match self {
-			RestrictedEntity::PersonalAlias(_) | RestrictedEntity::PersonalIdentity(_) =>
+			RestrictedEntity::PersonalAlias(_) | RestrictedEntity::PersonalIdentity(_) => {
 				Allowance {
 					max: PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_MAX,
 					recovery_per_block: PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_RECOVERY,
-				},
-			RestrictedEntity::AccountParticipant(_) =>
-				Allowance { max: 0, recovery_per_block: ACCOUNT_PARTICIPANT_RECOVERY },
+				}
+			},
+			RestrictedEntity::AccountParticipant(_) => {
+				Allowance { max: 0, recovery_per_block: ACCOUNT_PARTICIPANT_RECOVERY }
+			},
 			RestrictedEntity::LitePerson(_) | RestrictedEntity::LiteAlias(_) => Allowance {
 				max: LITE_PERSON_ALLOWANCE_MAX,
 				recovery_per_block: LITE_PERSON_ALLOWANCE_RECOVERY,
@@ -956,16 +1090,21 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 		use indiv_pallet_people_lite::Origin::*;
 		use indiv_pallet_score::Origin::*;
 		match origin_caller {
-			OriginCaller::People(PersonalIdentity(id)) =>
-				Some(RestrictedEntity::PersonalIdentity(*id)),
-			OriginCaller::People(PersonalAlias(rev_ca)) =>
-				Some(RestrictedEntity::PersonalAlias(rev_ca.ca.alias)),
-			OriginCaller::Score(AccountParticipant(account_id)) =>
-				Some(RestrictedEntity::AccountParticipant(account_id.clone())),
-			OriginCaller::PeopleLite(LitePerson(account_id)) =>
-				Some(RestrictedEntity::LitePerson(account_id.clone())),
-			OriginCaller::PeopleLite(LiteAlias(rev_ca)) =>
-				Some(RestrictedEntity::LiteAlias(rev_ca.ca.alias)),
+			OriginCaller::People(PersonalIdentity(id)) => {
+				Some(RestrictedEntity::PersonalIdentity(*id))
+			},
+			OriginCaller::People(PersonalAlias(rev_ca)) => {
+				Some(RestrictedEntity::PersonalAlias(rev_ca.ca.alias))
+			},
+			OriginCaller::Score(AccountParticipant(account_id)) => {
+				Some(RestrictedEntity::AccountParticipant(account_id.clone()))
+			},
+			OriginCaller::PeopleLite(LitePerson(account_id)) => {
+				Some(RestrictedEntity::LitePerson(account_id.clone()))
+			},
+			OriginCaller::PeopleLite(LiteAlias(rev_ca)) => {
+				Some(RestrictedEntity::LiteAlias(rev_ca.ca.alias))
+			},
 			_ => None,
 		}
 	}
@@ -984,18 +1123,18 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 		match entity {
 			RestrictedEntity::AccountParticipant(_) => matches!(
 				call,
-				RuntimeCall::Score(cash_out { .. }) |
-					RuntimeCall::Score(redeem_credit { .. }) |
-					RuntimeCall::Score(register { .. }) |
-					RuntimeCall::Game(sign_up_with_account { .. }) |
-					RuntimeCall::Game(report { .. }) |
-					RuntimeCall::Game(offboard { .. }) |
-					RuntimeCall::Game(claim_airdrop { .. })
+				RuntimeCall::Score(cash_out { .. })
+					| RuntimeCall::Score(redeem_credit { .. })
+					| RuntimeCall::Score(register { .. })
+					| RuntimeCall::Game(sign_up_with_account { .. })
+					| RuntimeCall::Game(report { .. })
+					| RuntimeCall::Game(offboard { .. })
+					| RuntimeCall::Game(claim_airdrop { .. })
 			),
-			RestrictedEntity::PersonalAlias(_) |
-			RestrictedEntity::PersonalIdentity(_) |
-			RestrictedEntity::LitePerson(_) |
-			RestrictedEntity::LiteAlias(_) => false,
+			RestrictedEntity::PersonalAlias(_)
+			| RestrictedEntity::PersonalIdentity(_)
+			| RestrictedEntity::LitePerson(_)
+			| RestrictedEntity::LiteAlias(_) => false,
 		}
 	}
 }
@@ -1060,8 +1199,8 @@ impl BulletinDataStore {
 	/// interior, where a successful local send would otherwise remain a silent remote no-op.
 	pub(crate) fn bulletin_chain_location() -> Result<Location, DispatchError> {
 		let destination = dynamic_params::bulletin_storage::BulletinChainLocation::get();
-		if destination.parents == 1 &&
-			matches!(destination.interior.as_slice(), [Junction::Parachain(_)])
+		if destination.parents == 1
+			&& matches!(destination.interior.as_slice(), [Junction::Parachain(_)])
 		{
 			Ok(destination)
 		} else {
@@ -1099,14 +1238,14 @@ pub mod benchmark_utils {
 	use frame_support::{
 		dispatch::RawOrigin,
 		traits::{
-			fungibles::{Create, Inspect, Mutate},
 			UnixTime,
+			fungibles::{Create, Inspect, Mutate},
 		},
 	};
 	use indiv_support::{
 		crypto::BandersnatchSuite,
 		genesis::ring_verifier_builder_params,
-		traits::{AddOnlyPeopleTrait, AppendOnlyMembers, RingMode, PEOPLE_IDENTIFIER},
+		traits::{AddOnlyPeopleTrait, AppendOnlyMembers, PEOPLE_IDENTIFIER, RingMode},
 	};
 	use sp_runtime::traits::IdentifyAccount;
 	use verifiable::ring::RingDomainSize;
@@ -1253,7 +1392,7 @@ pub mod benchmark_utils {
 		/// context [`AccountContexts`] checks: it is the one that makes `contains` evaluate every
 		/// comparison before matching.
 		fn valid_account_context() -> Context {
-			indiv_pallet_resources::RESOURCES_CONTEXT
+			indiv_pallet_resources::Pallet::<Runtime>::resources_context()
 		}
 
 		fn initialize_chunks() -> Vec<<BandersnatchVrfVerifiable as GenerateVerifiable>::StaticChunk>

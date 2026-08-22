@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- People Polkadot: align the Individuality SDK dependency pin with `individuality-community` main (`3e4a9a8…`), add `pallet-people-airdrops`, and make lite-person registration fee-backed. The new product-context derivation uses the Polkadot suffix; aliases made with the prior static contexts on zombie-bite forks no longer resolve.
+- Asset Hub Polkadot: align the Individuality SDK dependency pin with `individuality-community` main and adopt the alias-account stale-mapping sweep/offchain worker rework. Collators must run with offchain workers enabled.
+
 - People Polkadot: deploy the Individuality SDK personhood stack from [`paritytech/individuality`](https://github.com/paritytech/individuality), ported from that repository's `next-people-paseo` reference runtime and configured in the new `individuality` module.
   - Ring-membership infrastructure: `pallet-chunks-manager` (the Bandersnatch ring-VRF SRS), `pallet-members` (member collections, ring roots, proof verification) and `pallet-members-notifier` (publishes ring roots to subscribing parachains over XCM).
   - Personhood: `pallet-people` (the registry, `PersonalIdentity`/`PersonalAlias` origins), `pallet-people-lite` (device-attestation personhood) and `pallet-dummy-dim` (governance-driven recognition).

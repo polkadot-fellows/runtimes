@@ -10,7 +10,9 @@ use cumulus_pallet_parachain_system::{
 use frame_support::BoundedVec;
 use indiv_pallet_members::{CurrentRingIndex, Root};
 use indiv_pallet_members_notifier::{PendingInit, Subscribers};
-use indiv_pallet_members_subscriber::{RingCollectionExponents, RingRoots, Subscription};
+use indiv_pallet_members_subscriber::{
+	Pallet as MembersSubscriber, RingCollectionExponents, Subscription,
+};
 use indiv_support::crypto::{BandersnatchVrfVerifiable, GenerateVerifiable};
 use polkadot_primitives::v9::AbridgedHrmpChannel;
 use verifiable::ring::RingDomainSize;
@@ -90,8 +92,8 @@ fn people_ring_root_notification_activates_asset_hub_subscriber() {
 			Some(ring_exponent)
 		);
 
-		let received =
-			RingRoots::<AssetHubRuntime>::get(collection, 0).expect("root was delivered");
+		let received = MembersSubscriber::<AssetHubRuntime>::current_ring_roots(&collection, 0)
+			.expect("root was delivered");
 		assert_eq!(received.len(), 1);
 		assert_eq!(received[0].revision, 7);
 		assert_eq!(received[0].root, root);

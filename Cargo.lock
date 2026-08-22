@@ -525,7 +525,7 @@ dependencies = [
  "ark-bls12-377 0.5.0",
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-std 0.5.0",
 ]
 
@@ -554,6 +554,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-bls12-381"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be2ede2c0c96fa37d5d3484e8a59fec566c4a52b8c84bf993eaa6c67d7225a4c"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+]
+
+[[package]]
 name = "ark-bls12-381-ext"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -562,9 +574,23 @@ dependencies = [
  "ark-bls12-381 0.5.0",
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-bls12-381-ext"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54d637e6e5fdaf847b7e7ba5064d3986e2d2a2aab6d2b9ea38d6ffd8c901f375"
+dependencies = [
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-models-ext 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
 ]
 
 [[package]]
@@ -611,7 +637,7 @@ dependencies = [
  "ark-bw6-761",
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-std 0.5.0",
 ]
 
@@ -675,6 +701,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ec"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8352a2b2aedf6ba2cc38f7520fc51191d518dde96175c729af19f2d059f191c4"
+dependencies = [
+ "ahash",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "educe",
+ "fnv",
+ "hashbrown 0.17.1",
+ "itertools 0.14.0",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "rayon",
+ "zeroize",
+]
+
+[[package]]
 name = "ark-ed-on-bls12-377"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -695,7 +743,7 @@ dependencies = [
  "ark-ec 0.5.0",
  "ark-ed-on-bls12-377",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-std 0.5.0",
 ]
 
@@ -712,16 +760,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ed-on-bls12-381-bandersnatch"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "997428e73129c7b7a7431b4f67855db94947421f008b97b4c256101cea1686cc"
+dependencies = [
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-std 0.6.0",
+]
+
+[[package]]
 name = "ark-ed-on-bls12-381-bandersnatch-ext"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee7e1fb880811e22d4fc8ffe83eaa260e39a4deb0f345dcc8ffb663d3e034e7a"
 dependencies = [
  "ark-ec 0.5.0",
- "ark-ed-on-bls12-381-bandersnatch",
+ "ark-ed-on-bls12-381-bandersnatch 0.5.0",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-ed-on-bls12-381-bandersnatch-ext"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98a2b67897cc7b0a1a480619ac5cbed851486541eed57b20706a54cf9c5ff759"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-models-ext 0.6.0",
+ "ark-std 0.6.0",
 ]
 
 [[package]]
@@ -779,6 +852,23 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "paste",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ff"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7a806ac6c8307b929df4645776290a50ee2aac754ad09d8bdf73391309e43af"
+dependencies = [
+ "ark-ff-asm 0.6.0",
+ "ark-ff-macros 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
+ "educe",
+ "num-bigint",
+ "num-traits",
  "rayon",
  "zeroize",
 ]
@@ -808,6 +898,16 @@ name = "ark-ff-asm"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62945a2f7e6de02a31fe400aa489f0e0f5b2502e69f95f853adb82a96c7a6b60"
+dependencies = [
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "ark-ff-asm"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1479009684adc073dff49a1025d3a7065b317a9ead25aaaca38cdc70058ba8a2"
 dependencies = [
  "quote",
  "syn 2.0.114",
@@ -852,6 +952,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ff-macros"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a0691ed21ef00ef89c1e9bda832eba493dda3ec2f8d892fb25b705f73f06bb8"
+dependencies = [
+ "num-bigint",
+ "num-traits",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
 name = "ark-groth16"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,6 +993,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-models-ext"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4aabf979cc6d6605f515f10411958d534fe33e0ae20741490e3e869805a87351"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "derivative",
+]
+
+[[package]]
 name = "ark-pallas"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -898,7 +1024,7 @@ checksum = "d6906648fb42b7c83fc40ea43b12fbf75b704532057d71a467a25ec4afc239b6"
 dependencies = [
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-pallas",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
@@ -930,6 +1056,21 @@ dependencies = [
  "educe",
  "fnv",
  "hashbrown 0.15.5",
+]
+
+[[package]]
+name = "ark-poly"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75f55af10b672002b8d953e230282c51206842e20e5791a94432219b4201de5c"
+dependencies = [
+ "ahash",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "educe",
+ "fnv",
+ "hashbrown 0.17.1",
  "rayon",
 ]
 
@@ -1006,6 +1147,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-scale"
+version = "0.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7080e0b73651b75236e0b9af7c6a68cd38e87d02553e39c0cbf525b704c780a9"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "ark-serialize"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1042,6 +1197,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-serialize"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a74dd304fd536fb95d0a328e72be759209cc496a9da094c5bc56e5fea4f9e86b"
+dependencies = [
+ "ark-serialize-derive 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
+ "num-bigint",
+ "rayon",
+ "serde_with",
+]
+
+[[package]]
 name = "ark-serialize-derive"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1057,6 +1226,17 @@ name = "ark-serialize-derive"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213888f660fddcca0d257e88e54ac05bca01885f258ccdf695bafd77031bb69d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "ark-serialize-derive"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f153690697a2b91e5e1251ff98411ee5371500a111a0fd317a70e588eb300f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1107,6 +1287,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-std"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "367c9c827ed431bff6868b7aa926e05b16eb46603cc8b6e768e4a5553fa1d155"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
+ "rayon",
+]
+
+[[package]]
 name = "ark-transcript"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1117,6 +1308,19 @@ dependencies = [
  "ark-std 0.5.0",
  "digest 0.10.7",
  "rand_core 0.6.4",
+ "sha3",
+]
+
+[[package]]
+name = "ark-transcript"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a9a23188a6bb8d8d2394a2a904e6944999e2cfceb446b086ff3a581ee05cebd"
+dependencies = [
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
  "sha3",
 ]
 
@@ -1140,7 +1344,7 @@ checksum = "27dfabb2b731180273184366ebf57b1793600889e9c7b548916433dd19fb8932"
 dependencies = [
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
- "ark-models-ext",
+ "ark-models-ext 0.5.2",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
  "ark-vesta",
@@ -1154,7 +1358,7 @@ checksum = "0d63e9780640021b74d02b32895d8cec1b4abe8e5547b560a6bda6b14b78c6da"
 dependencies = [
  "ark-bls12-381 0.5.0",
  "ark-ec 0.5.0",
- "ark-ed-on-bls12-381-bandersnatch",
+ "ark-ed-on-bls12-381-bandersnatch 0.5.0",
  "ark-ff 0.5.0",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
@@ -1167,21 +1371,21 @@ dependencies = [
 
 [[package]]
 name = "ark-vrf"
-version = "0.5.1"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b9bd02dbd2f282fe742d51f681adb2745a79dc8a025bc8d16cac9b255d55bf7"
+checksum = "6e1eab4d92e7a80fea37a6a5424de677f8c46809b88ed4c5e94dd4eed5cc39e8"
 dependencies = [
- "ark-bls12-381 0.5.0",
- "ark-ec 0.5.0",
- "ark-ed-on-bls12-381-bandersnatch",
- "ark-ff 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
  "digest 0.10.7",
  "generic-array 0.14.7",
  "rayon",
  "sha2 0.10.9",
- "w3f-ring-proof 0.0.8",
+ "w3f-ring-proof 0.0.10",
  "zeroize",
 ]
 
@@ -2087,7 +2291,7 @@ version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90dbd31c98227229239363921e60fcf5e558e43ec69094d46fc4996f08d1d5bc"
 dependencies = [
- "bitcoin_hashes 0.13.0",
+ "bitcoin_hashes 0.14.1",
  "rand 0.8.5",
  "rand_core 0.6.4",
  "serde",
@@ -5671,7 +5875,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6739,6 +6943,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+]
+
+[[package]]
 name = "hashlink"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7146,7 +7359,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "system-configuration 0.7.0",
  "tokio",
  "tower-service",
@@ -7454,7 +7667,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-airdrop"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7477,12 +7690,13 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-alias-accounts"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "indiv-support",
+ "log",
  "parity-scale-codec",
  "scale-info",
  "sp-core 41.0.0",
@@ -7494,7 +7708,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-chunks-manager"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7510,7 +7724,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-coinage"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7531,7 +7745,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dotns-gateway"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "alloy-core",
  "frame-benchmarking",
@@ -7551,7 +7765,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dummy-dim"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7567,7 +7781,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-game"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "binary-merkle-tree",
  "cumulus-pallet-parachain-system",
@@ -7596,7 +7810,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-honour"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7612,7 +7826,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7631,7 +7845,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-notifier"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -7654,7 +7868,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-subscriber"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7673,7 +7887,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-nft-credits"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "binary-merkle-tree",
  "cumulus-primitives-core",
@@ -7695,7 +7909,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-origin-restriction"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7711,7 +7925,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7727,9 +7941,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "indiv-pallet-people-airdrops"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-airdrop",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-runtime 47.0.0",
+]
+
+[[package]]
 name = "indiv-pallet-people-lite"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "ed25519-zebra",
  "frame-benchmarking",
@@ -7748,7 +7979,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-pgas"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7766,7 +7997,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-relay-randomness"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -7783,7 +8014,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-resources"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7804,7 +8035,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-score"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7824,7 +8055,7 @@ dependencies = [
 [[package]]
 name = "indiv-precompile-personhood"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7837,10 +8068,16 @@ dependencies = [
 [[package]]
 name = "indiv-support"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=e30decd42545ba0fe512394a4896dec077e14982#e30decd42545ba0fe512394a4896dec077e14982"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
 dependencies = [
+ "ark-bls12-381-ext 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch-ext 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-scale 0.0.14",
  "frame-support",
  "frame-system",
+ "getrandom 0.2.17",
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-tx-payment",
  "pallet-transaction-payment",
@@ -9765,7 +10002,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9884,7 +10121,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 1.1.3",
+ "proc-macro-crate 3.4.0",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -12781,6 +13018,7 @@ dependencies = [
  "indiv-pallet-nft-credits",
  "indiv-pallet-origin-restriction",
  "indiv-pallet-people",
+ "indiv-pallet-people-airdrops",
  "indiv-pallet-people-lite",
  "indiv-pallet-relay-randomness",
  "indiv-pallet-resources",
@@ -13943,8 +14181,8 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.12.1",
+ "heck 0.5.0",
+ "itertools 0.14.0",
  "log",
  "multimap",
  "once_cell",
@@ -13963,8 +14201,8 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.12.1",
+ "heck 0.5.0",
+ "itertools 0.14.0",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -13996,7 +14234,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -14009,7 +14247,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -14121,7 +14359,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls 0.23.36",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -14158,9 +14396,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -14889,7 +15127,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -17702,7 +17940,7 @@ version = "41.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "571e6da2db8de83fa2a6f9fab2a86befdcd004c90cfa19c641b072d3f322a60d"
 dependencies = [
- "ark-vrf 0.5.1",
+ "ark-vrf 0.5.3",
  "array-bytes 6.2.3",
  "bip39",
  "bitflags 1.3.2",
@@ -17753,18 +17991,18 @@ dependencies = [
  "ark-bls12-377 0.5.0",
  "ark-bls12-377-ext",
  "ark-bls12-381 0.5.0",
- "ark-bls12-381-ext",
+ "ark-bls12-381-ext 0.5.2",
  "ark-bw6-761",
  "ark-bw6-761-ext",
  "ark-ec 0.5.0",
  "ark-ed-on-bls12-377",
  "ark-ed-on-bls12-377-ext",
- "ark-ed-on-bls12-381-bandersnatch",
- "ark-ed-on-bls12-381-bandersnatch-ext",
+ "ark-ed-on-bls12-381-bandersnatch 0.5.0",
+ "ark-ed-on-bls12-381-bandersnatch-ext 0.5.2",
  "ark-ff 0.5.0",
  "ark-pallas",
  "ark-pallas-ext",
- "ark-scale",
+ "ark-scale 0.0.13",
  "ark-vesta",
  "ark-vesta-ext",
  "sp-runtime-interface 35.0.0",
@@ -19586,7 +19824,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -20395,13 +20633,16 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "verifiable"
-version = "0.5.0"
-source = "git+https://github.com/paritytech/verifiable?rev=1f9f67524acce0d9c46dbbb566f84ce52757b114#1f9f67524acce0d9c46dbbb566f84ce52757b114"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61bcf1e43762a8701eb3c2e836633c9ff3b65814ff573772b3250c1ed6ff218d"
 dependencies = [
- "ark-scale",
- "ark-serialize 0.5.0",
- "ark-vrf 0.5.1",
+ "ark-scale 0.0.14",
+ "ark-serialize 0.6.0",
+ "ark-vrf 0.5.3",
  "bounded-collections",
+ "getrandom 0.2.17",
+ "getrandom_or_panic",
  "parity-scale-codec",
  "scale-info",
  "sha2 0.10.9",
@@ -20459,15 +20700,15 @@ dependencies = [
 
 [[package]]
 name = "w3f-pcs"
-version = "0.0.5"
+version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ea1046a1deb6d26c34ba2d1f1bab4222d695d126502ee765f80b021753cb674"
+checksum = "1304615e0b129091634dcebd1acf9edee4d6aabd03e7d679a0c49a1a1a45fe98"
 dependencies = [
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-poly 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
  "merlin",
  "rayon",
 ]
@@ -20490,19 +20731,20 @@ dependencies = [
 
 [[package]]
 name = "w3f-plonk-common"
-version = "0.0.7"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30408cda37b81bd7257319942584c794c5784d00d749757bc664656749a1472a"
+checksum = "e24647403dfe8eeb4ef57358e41c29c1ae253c4a123ef9e04d3029fabca38bc2"
 dependencies = [
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-poly 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
  "getrandom_or_panic",
  "rand_core 0.6.4",
  "rayon",
- "w3f-pcs 0.0.5",
+ "subtle 2.6.1",
+ "w3f-pcs 0.0.7",
 ]
 
 [[package]]
@@ -20516,26 +20758,26 @@ dependencies = [
  "ark-poly 0.5.0",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
- "ark-transcript",
+ "ark-transcript 0.0.3",
  "w3f-pcs 0.0.2",
  "w3f-plonk-common 0.0.2",
 ]
 
 [[package]]
 name = "w3f-ring-proof"
-version = "0.0.8"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cbfc4cb881a934e6f33c25927bf955d0cb18e52b94528bbc5fa28dddedb4cd1"
+checksum = "b86bf57d9f25c1020c372f1a64069fef9f158db85cd6ef087cee560337bed56d"
 dependencies = [
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-poly 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
- "ark-transcript",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "ark-transcript 0.0.6",
  "rayon",
- "w3f-pcs 0.0.5",
- "w3f-plonk-common 0.0.7",
+ "w3f-pcs 0.0.7",
+ "w3f-plonk-common 0.0.10",
 ]
 
 [[package]]
@@ -21356,7 +21598,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

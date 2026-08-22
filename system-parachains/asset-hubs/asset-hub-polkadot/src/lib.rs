@@ -1411,7 +1411,7 @@ pub mod dynamic_params {
 		/// Seconds for which an alias proof remains valid.
 		#[codec(index = 4)]
 		pub static AliasProofValidityWindow: u64 = 300;
-		/// Seconds before a stale alias binding may be cleaned up.
+		/// Deprecated: retained for SCALE compatibility with pre-sweep stored parameters.
 		#[codec(index = 5)]
 		pub static AliasCleanupGracePeriod: u64 = 3600;
 		/// Maximum weight available to one dotNS registry-contract call.
@@ -1436,6 +1436,12 @@ pub mod dynamic_params {
 		#[codec(index = 10)]
 		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
 			50 * CENTS / ((30 * crate::individuality::time::MINUTES) as Balance);
+		/// Optional fee charged for creating an alias mapping.
+		#[codec(index = 11)]
+		pub static AliasFee: Option<Balance> = None;
+		/// Block interval for the alias-account stale-mapping sweep.
+		#[codec(index = 12)]
+		pub static StaleAliasSweepInterval: BlockNumber = HOURS;
 	}
 }
 
@@ -3076,6 +3082,26 @@ mod tests {
 				),
 			));
 			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), 60);
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				RuntimeParameters::Individuality(
+					dynamic_params::individuality::Parameters::AliasFee(
+						dynamic_params::individuality::AliasFee,
+						Some(Some(42)),
+					),
+				),
+			));
+			assert_eq!(dynamic_params::individuality::AliasFee::get(), Some(42));
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				RuntimeParameters::Individuality(
+					dynamic_params::individuality::Parameters::StaleAliasSweepInterval(
+						dynamic_params::individuality::StaleAliasSweepInterval,
+						Some(0),
+					),
+				),
+			));
+			assert_eq!(dynamic_params::individuality::StaleAliasSweepInterval::get(), 0);
 		});
 	}
 
@@ -3142,6 +3168,12 @@ mod tests {
 			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), u64::MAX);
 			set_individuality_parameter!(AliasCleanupGracePeriod, 0u64);
 			assert_eq!(dynamic_params::individuality::AliasCleanupGracePeriod::get(), 0);
+			set_individuality_parameter!(AliasFee, Some(Balance::MAX));
+			assert_eq!(dynamic_params::individuality::AliasFee::get(), Some(Balance::MAX));
+			set_individuality_parameter!(AliasFee, None);
+			assert_eq!(dynamic_params::individuality::AliasFee::get(), None);
+			set_individuality_parameter!(StaleAliasSweepInterval, 0u32);
+			assert_eq!(dynamic_params::individuality::StaleAliasSweepInterval::get(), 0);
 			set_individuality_parameter!(DotnsMaxContractCallWeight, Weight::MAX);
 			assert_eq!(
 				dynamic_params::individuality::DotnsMaxContractCallWeight::get(),

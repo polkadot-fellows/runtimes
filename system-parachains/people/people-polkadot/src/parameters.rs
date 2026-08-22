@@ -11,8 +11,10 @@ use frame_support::{
 	traits::{EnsureOrigin, EnsureOriginWithArg, Get},
 };
 use indiv_pallet_resources::types::LongTermStorageAllocation;
+use indiv_support::parameters::AtLeast;
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 use scale_info::TypeInfo;
+use sp_runtime::traits::AccountIdConversion;
 use sp_statement_store::StatementAllowance;
 use xcm::latest::prelude::{Location, Parachain};
 
@@ -94,6 +96,23 @@ pub mod dynamic_params {
 		#[codec(index = 7)]
 		pub static BulletinTransactionStoragePalletIndex: u8 = 40;
 	}
+
+	/// People airdrop draw funding.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod people_airdrops {
+		#[codec(index = 0)]
+		pub static PrizeSource: sp_runtime::AccountId32 =
+			PalletId(*b"pop/pads").into_account_truncating();
+	}
+
+	/// Lite-person registration pricing.
+	#[dynamic_pallet_params]
+	#[codec(index = 3)]
+	pub mod lite_personhood {
+		#[codec(index = 0)]
+		pub static RegistrationFee: Balance = 75 * UNITS;
+	}
 }
 
 /// A [`StatementAllowance`] stored as a bounded dynamic parameter.
@@ -142,6 +161,9 @@ pub type LitePersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::LitePersonStatementLimit>;
 pub type PersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::PersonStatementLimit>;
+pub type LitePersonRegistrationFee =
+	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
+pub type PeopleAirdropsPrizeSource = dynamic_params::people_airdrops::PrizeSource;
 
 /// Root, the Fellowship governance voice, and Asset Hub's TechnicalMaintenance voice may update
 /// these parameters.
