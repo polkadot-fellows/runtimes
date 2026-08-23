@@ -215,12 +215,10 @@ where
 		force: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
 		match Criterion::convert(asset) {
-			Left(asset) => {
-				Left::decrease_balance(asset, who, amount, precision, preservation, force)
-			},
-			Right(asset) => {
-				Right::decrease_balance(asset, who, amount, precision, preservation, force)
-			},
+			Left(asset) =>
+				Left::decrease_balance(asset, who, amount, precision, preservation, force),
+			Right(asset) =>
+				Right::decrease_balance(asset, who, amount, precision, preservation, force),
 		}
 	}
 	fn increase_balance(
