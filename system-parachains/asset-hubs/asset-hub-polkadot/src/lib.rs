@@ -1229,20 +1229,16 @@ impl pallet_psm::BenchmarkHelper<Location, AccountId> for PsmBenchmarkHelper {
 		use frame_support::traits::fungibles::{
 			metadata::Mutate as MetadataMutate, Create, Inspect,
 		};
-		if !<LocalAndForeignAssets as Inspect<AccountId>>::asset_exists(asset_id.clone()) {
-			let _ = <LocalAndForeignAssets as Create<AccountId>>::create(
-				asset_id.clone(),
-				owner.clone(),
-				true,
-				1,
-			);
+		if !<PsmAssets as Inspect<AccountId>>::asset_exists(asset_id.clone()) {
+			let _ =
+				<PsmAssets as Create<AccountId>>::create(asset_id.clone(), owner.clone(), true, 1);
 		}
 		let _ = Balances::force_set_balance(
 			RuntimeOrigin::root(),
 			owner.clone().into(),
 			10u128.pow(18),
 		);
-		let _ = <LocalAndForeignAssets as MetadataMutate<AccountId>>::set(
+		let _ = <PsmAssets as MetadataMutate<AccountId>>::set(
 			asset_id,
 			owner,
 			b"Benchmark".to_vec(),
