@@ -14,6 +14,7 @@
 // limitations under the License.
 
 //! Runtime-local fungibles adapter used by PSM.
+// TODO: Remove with the next SDK release.
 
 use alloc::vec::Vec;
 use frame_support::traits::tokens::{

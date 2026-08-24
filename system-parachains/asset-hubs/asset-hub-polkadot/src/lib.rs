@@ -125,9 +125,9 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
-		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
-		PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, ConstantStoragePrice,
+		Contains, EitherOf, EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice,
+		NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -1193,8 +1193,6 @@ impl pallet_asset_conversion::Config for Runtime {
 parameter_types! {
 	/// Fixed deposit held for a permissionless PSM created via `create_psm`.
 	pub const PsmCreationDeposit: Balance = 100 * UNITS;
-	/// The creation deposit is fixed rather than priced by footprint size.
-	pub const PsmDepositSlope: Balance = 0;
 	pub PsmHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::Psm(pallet_psm::HoldReason::CreationDeposit);
 	pub const NoPsmDepositor: Option<AccountId> = None;
@@ -1260,7 +1258,7 @@ impl pallet_psm::Config for Runtime {
 		AccountId,
 		Balances,
 		PsmHoldReason,
-		LinearStoragePrice<PsmCreationDeposit, PsmDepositSlope, Balance>,
+		ConstantStoragePrice<PsmCreationDeposit, Balance>,
 	>;
 	type CreateOrigin = PsmCreateOrigin;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -1269,7 +1267,7 @@ impl pallet_psm::Config for Runtime {
 	// TODO: replace with Asset Hub Polkadot benchmark-generated weights.
 	type WeightInfo = ();
 	type PalletId = PsmPalletId;
-	type MaxExternals = ConstU32<10>;
+	type MaxExternals = ConstU32<5>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = PsmBenchmarkHelper;
 }
