@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! Repairs `pallet_proxy::Proxies` entries undecodable since spec 23 due to the added `delay`
-//! field and removed `ProxyType` variants. Valid proxies are kept (`delay = 0`), unknown types
-//! dropped, empty entries removed with deposit refunded. Already-decodable entries are untouched.
+//! Repairs `pallet_proxy::Proxies` entries undecodable since spec 23 (added `delay` field, removed
+//! `ProxyType` variants): valid proxies keep `delay = 0`, unknown types are dropped, entries left
+//! empty are removed and their deposit refunded. Decodable entries are untouched.
 
 use codec::{Compact, Decode, Input};
 use frame_support::{
@@ -41,7 +41,7 @@ type CurrentProxiesValue<T> =
 
 const LOG_TARGET: &str = "runtime::migrations::proxy";
 
-/// Sanity cap on legacy proxy count to guard against corrupt data.
+/// Sanity cap guarding against corrupt data.
 const MAX_LEGACY_PROXIES: u32 = 1024;
 
 struct LegacyEntry<T: pallet_proxy::Config> {
@@ -49,9 +49,8 @@ struct LegacyEntry<T: pallet_proxy::Config> {
 	deposit: BalanceOf<T>,
 }
 
-/// Decodes a pre-`delay` `(Vec<(AccountId, ProxyType)>, Balance)` value, reading each
-/// `ProxyType` as a raw byte so removed variants don't abort the decode.
-/// Returns `None` if the buffer isn't fully consumed (layout mismatch or corrupt data).
+/// Decodes a pre-`delay` `(Vec<(AccountId, ProxyType)>, Balance)` value. Returns `None` if the
+/// buffer isn't fully consumed (layout mismatch or corrupt data).
 fn decode_legacy<T: pallet_proxy::Config>(raw: &[u8]) -> Option<LegacyEntry<T>> {
 	let mut input = raw;
 
@@ -63,7 +62,7 @@ fn decode_legacy<T: pallet_proxy::Config>(raw: &[u8]) -> Option<LegacyEntry<T>> 
 	let mut proxies = Vec::new();
 	for _ in 0..count {
 		let delegate = AccountIdOf::<T>::decode(&mut input).ok()?;
-		// Raw byte read: removed/unknown variants are silently dropped rather than aborting.
+		// Read as a raw byte so removed variants are dropped instead of aborting the decode.
 		let mut discriminant = [0u8; 1];
 		input.read(&mut discriminant).ok()?;
 		if let Ok(proxy_type) = ProxyTypeOf::<T>::decode(&mut &discriminant[..]) {
@@ -73,7 +72,7 @@ fn decode_legacy<T: pallet_proxy::Config>(raw: &[u8]) -> Option<LegacyEntry<T>> 
 
 	let deposit = BalanceOf::<T>::decode(&mut input).ok()?;
 
-	// Any remaining bytes mean our layout assumption was wrong; leave the entry untouched.
+	// Leftover bytes mean the layout assumption was wrong.
 	if !input.is_empty() {
 		return None;
 	}
@@ -101,7 +100,7 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 		let mut weight = db_weight.reads(1);
 		let (mut scanned, mut repaired) = (0u64, 0u64);
 
-		// iter_keys decodes only storage keys, never values, so broken entries are still yielded.
+		// `iter_keys` never decodes values, so broken entries are still yielded.
 		for who in pallet_proxy::Proxies::<T>::iter_keys() {
 			scanned += 1;
 			weight = weight.saturating_add(db_weight.reads(1));
@@ -134,7 +133,7 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 				let bounded = match BoundedVec::<_, T::MaxProxies>::try_from(entry.proxies) {
 					Ok(bounded) => bounded,
 					Err(_) => {
-						// Unreachable: legacy entries respected the same MaxProxies bound.
+						// Unreachable: legacy entries respected the same bound.
 						log::error!(
 							target: LOG_TARGET,
 							"Legacy proxy entry exceeds MaxProxies; left untouched",
@@ -178,7 +177,7 @@ impl<T: pallet_proxy::Config> OnRuntimeUpgrade for MigrateLegacyProxies<T> {
 			target: LOG_TARGET,
 			"pre_upgrade: {undecodable} undecodable proxy entries ({fixable} fixable, {unfixable} unfixable)",
 		);
-		// Passed to post_upgrade, which asserts this count stays constant after the migration.
+		// `post_upgrade` asserts this count is unchanged.
 		Ok(unfixable.encode())
 	}
 

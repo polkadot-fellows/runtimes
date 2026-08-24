@@ -13869,7 +13869,7 @@ dependencies = [
  "log",
  "pallet-proxy",
  "parity-scale-codec",
- "sp-runtime 47.0.0",
+ "sp-runtime 48.0.0",
 ]
 
 [[package]]
