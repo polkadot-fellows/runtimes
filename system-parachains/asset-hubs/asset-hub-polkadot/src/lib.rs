@@ -1260,8 +1260,7 @@ impl pallet_psm::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
 	type AssetId = Location;
-	// TODO: replace with Asset Hub Polkadot benchmark-generated weights.
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_psm::WeightInfo<Runtime>;
 	type PalletId = PsmPalletId;
 	type MaxExternals = ConstU32<5>;
 	#[cfg(feature = "runtime-benchmarks")]
