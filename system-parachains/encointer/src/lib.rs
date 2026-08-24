@@ -1095,6 +1095,11 @@ mod benches {
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
 		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
 	}
 
 	use xcm::latest::prelude::{Location, *};
@@ -1204,10 +1209,8 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1000)]),
-				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(parachains_common::benchmarking::set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
