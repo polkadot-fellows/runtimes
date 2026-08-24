@@ -520,10 +520,10 @@ impl_runtime_apis! {
 				}
 
 				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
+					use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
 					// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
-					Ok(parachains_common::benchmarking::set_up_worst_case_authorized_alias::<
-						Runtime,
-					>())
+					Ok(set_up_worst_case_authorized_alias::<Runtime>())
 				}
 			}
 
