@@ -2022,11 +2022,8 @@ pub mod migrations {
 		relay_common::proxy::MigrateLegacyProxies<Runtime>,
 	);
 
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
+	pub type SingleBlockMigrations = Unreleased;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2078,7 +2075,6 @@ mod benches {
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
-		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
@@ -2112,7 +2108,6 @@ mod benches {
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
 	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
-	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
@@ -2129,7 +2124,6 @@ mod benches {
 	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
-	impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
 	parameter_types! {
