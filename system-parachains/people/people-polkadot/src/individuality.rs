@@ -15,26 +15,6 @@
 
 //! The Individuality SDK on People Polkadot.
 //!
-//! This module configures the whole [Individuality](https://github.com/paritytech/individuality)
-//! pallet set that lives on the People Chain. It is a port of the `next-people-paseo` reference
-//! runtime of that repository; the configuration values are kept identical wherever they are not
-//! network specific.
-//!
-//! TODO: audit every hard-written value in this module before release. Keeping the reference
-//! runtime's values made the port reviewable, but "identical to Paseo" is the wrong default for the
-//! ones that carry real value or real time:
-//!
-//! * Currency-denominated constants mean something different here. A literal such as `2 * UNITS` is
-//!   2 PAS on the reference chain and 2 DOT here — same number, ~3 orders of magnitude apart in
-//!   value.
-//! * Constants counted in blocks must use this chain's 2s block time; see [`time`] and
-//!   [`relay_time`] for the two paces in play, and pick deliberately between them.
-//! * Anything denominated in the backing stablecoin ties this chain's economics to
-//!   [`StableAssetLocation`], a Hydration-issued asset.
-//!
-//! This is expected to be revisited in a follow-up refactor; the individual sites are marked with
-//! their own TODOs.
-//!
 //! # The pieces
 //!
 //! * [`indiv_pallet_chunks_manager`] holds the Bandersnatch ring-VRF SRS. Everything below that
