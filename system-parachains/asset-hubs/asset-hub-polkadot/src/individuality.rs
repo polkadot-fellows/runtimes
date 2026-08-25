@@ -15,10 +15,7 @@
 
 //! The Individuality SDK on Asset Hub Polkadot.
 //!
-//! Personhood itself lives on People Polkadot; this is the consumer side. It is a port of the
-//! `next-asset-hub-paseo` reference runtime of
-//! [Individuality](https://github.com/paritytech/individuality), with the configuration values kept
-//! identical wherever they are not network specific.
+//! Personhood itself lives on People Polkadot; this is the consumer side.
 //!
 //! TODO: audit every hard-written value in this module before release. Keeping the reference
 //! runtime's values made the port reviewable, but "identical to Paseo" is the wrong default for the
