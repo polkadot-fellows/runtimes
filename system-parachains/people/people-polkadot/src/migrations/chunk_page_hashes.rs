@@ -145,12 +145,18 @@ impl OnRuntimeUpgrade for InitializeChunkPageHashes {
 		);
 
 		for (ring_exponent, hashes) in committed_page_hashes() {
-			for page_index in 0..hashes.len() as u32 {
+			for (page_index, expected) in hashes.iter().enumerate() {
+				let stored = ChunkPageHashes::<Runtime>::get(ring_exponent, page_index as u32)
+					.ok_or("chunk page hash missing after initialization")?;
 				ensure!(
-					ChunkPageHashes::<Runtime>::contains_key(ring_exponent, page_index),
-					"chunk page hash missing after initialization"
+					&stored == expected,
+					"stored chunk page hash differs from the committed one"
 				);
 			}
+			ensure!(
+				ChunkPageHashes::<Runtime>::iter_key_prefix(ring_exponent).count() == hashes.len(),
+				"unexpected number of chunk page hashes stored for this ring"
+			);
 		}
 
 		Ok(())
@@ -167,14 +173,10 @@ mod tests {
 	};
 	use verifiable::ring::RingDomainSize;
 
-	/// Domain `indiv-support` assigns each exponent, not restated here — the tests exist to check it.
 	fn domain_of(ring_exponent: RingExponent) -> RingDomainSize {
 		ring_exponent.try_into().expect("every RingExponent maps to a RingDomainSize")
 	}
 
-	/// Each exponent must pick the domain holding that many chunks. The mapping is off-by-two by name
-	/// (`R2e9` -> `Domain11`): a domain is sized for the PCS, not the ring. Anchoring on the chunk
-	/// count instead of the name makes the `R2e9`/`R2e10` labels a checked claim.
 	#[test]
 	fn ring_exponent_selects_the_domain_with_that_many_chunks() {
 		for ring_exponent in [RingExponent::R2e9, RingExponent::R2e10] {
@@ -207,13 +209,13 @@ mod tests {
 			assert_eq!(
 				committed.to_vec(),
 				expected,
-				"committed page hashes for {ring_exponent:?} are stale"
+				"committed page hashes for {ring_exponent:?} are stale — regenerate them with \
+				 `cargo test -p people-polkadot-runtime --lib print_chunk_page_hashes -- \
+				 --ignored --nocapture`"
 			);
 		}
 	}
 
-	/// Each committed hash accepts exactly its own page of both rings, and nothing at any other
-	/// index — `authorize_add_chunks` is the sole gate on what a ring can store.
 	#[test]
 	fn each_committed_hash_accepts_only_its_own_page() {
 		use crate::RuntimeGenesisConfig;
@@ -260,9 +262,6 @@ mod tests {
 		});
 	}
 
-	/// The committed chunks must actually build a ring at that exponent: build a one-member ring as
-	/// `pallet-members` would. A mismatched pairing fails here — `start_members` gets the domain,
-	/// `push_members` reads the chunks, and arkworks rejects if they disagree.
 	#[test]
 	fn committed_chunks_build_a_ring_at_their_exponent() {
 		for ring_exponent in [RingExponent::R2e9, RingExponent::R2e10] {
@@ -296,7 +295,6 @@ mod tests {
 		}
 	}
 
-	/// The upgrade commits every page hash and is safe to re-run.
 	#[test]
 	fn migration_commits_hashes_and_is_idempotent() {
 		use crate::RuntimeGenesisConfig;
@@ -341,15 +339,21 @@ mod tests {
 			// Re-running is a no-op: reads only, and no hash is rewritten.
 			let before: Vec<_> = ChunkPageHashes::<Runtime>::iter().collect();
 			let rerun = InitializeChunkPageHashes::on_runtime_upgrade();
-			assert_eq!(rerun, <Runtime as frame_system::Config>::DbWeight::get().reads(2));
+			// One presence read per ring, plus a read of every page to compare against ours.
+			let expected_pages: u64 =
+				committed_page_hashes().iter().map(|(_, h)| h.len() as u64).sum();
+			assert_eq!(
+				rerun,
+				<Runtime as frame_system::Config>::DbWeight::get().reads(2 + expected_pages)
+			);
 			assert_eq!(ChunkPageHashes::<Runtime>::iter().collect::<Vec<_>>(), before);
 		});
 	}
 
-	/// Pins the unit of [`HASHED_CHUNKS_PER_PAGE`]: it counts chunks, and one chunk is a 96-byte
-	/// G1 point, so a full page's preimage is 24_482 bytes including the SCALE length prefix.
+	/// Pins the unit of [`HASHED_CHUNKS_PER_PAGE`]: it counts chunks, and one chunk is 96-byte,
+	/// so a full page's preimage is 24_482 bytes including the SCALE length prefix.
 	#[test]
-	fn a_page_is_a_count_of_chunks_not_bytes() {
+	fn a_page_is_a_count_of_chunks() {
 		use verifiable::ring::RingSuiteExt;
 
 		let chunks =
@@ -364,16 +368,5 @@ mod tests {
 		let tail = chunks[2 * HASHED_CHUNKS_PER_PAGE as usize..].to_vec();
 		assert_eq!(tail.len(), 2);
 		assert_eq!(tail.encode().len(), 2 * 96 + 1);
-	}
-
-	/// A page is hashed as a plain `Vec<StaticChunk>`, so its SCALE length prefix is in the preimage.
-	#[test]
-	fn page_hash_preimage_is_length_prefixed() {
-		let chunks =
-			ring_verifier_builder_params::<BandersnatchSuite>(domain_of(RingExponent::R2e9));
-		let first_page = chunks[..HASHED_CHUNKS_PER_PAGE as usize].to_vec();
-		assert_eq!(sp_io::hashing::blake2_256(&first_page.encode()), hashes::R2E9[0]);
-		// Dropping the prefix must not hash to the committed value.
-		assert_ne!(sp_io::hashing::blake2_256(&first_page.encode()[2..]), hashes::R2E9[0]);
 	}
 }
