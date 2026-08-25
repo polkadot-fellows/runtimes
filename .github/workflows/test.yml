@@ -17,6 +17,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   check-release-pr:
     # Produces two outputs:
@@ -135,47 +139,60 @@ jobs:
 
       - name: Test ${{ matrix.runtime.name }}
         run: |
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
-            cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features ${{ matrix.runtime.build_extra_features }}
+          if [ -n "$EXTRA_FEATURES" ]; then
+            cargo test -p "$PACKAGE" --release --locked -q --features "$EXTRA_FEATURES"
           else
-            cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+            cargo test -p "$PACKAGE" --release --locked -q
           fi
         env:
           RUSTFLAGS: "-C debug-assertions"
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
 
       - name: Test all features ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
+        run: cargo test -p "$PACKAGE" --release --locked -q --all-features
         env:
           RUSTFLAGS: "-C debug-assertions"
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uris[0] }}
           RUST_LOG: "remote-ext=info"
+          PACKAGE: ${{ matrix.runtime.package }}
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
-          PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          PACKAGE_NAME="$PACKAGE"
+          RUNTIME_BLOB_NAME=$(echo "$PACKAGE_NAME" | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
-            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks,${{ matrix.runtime.build_extra_features }} -q --locked
+          if [ -n "$EXTRA_FEATURES" ]; then
+            cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks,"$EXTRA_FEATURES" -q --locked
           else
-            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+            cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks -q --locked
           fi
           # run benchmarking
-          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+          # TODO: https://github.com/paritytech/polkadot-sdk/issues/12968
+          if [ "$EXCLUDE_PALLETS_JSON" = "null" ] || [ -z "$EXCLUDE_PALLETS_JSON" ]; then
+            EXCLUDE_PALLETS=""
+          else
+            EXCLUDE_PALLETS_LIST=$(echo "$EXCLUDE_PALLETS_JSON" | jq -r 'join(",")')
+            EXCLUDE_PALLETS=" --exclude-pallets ${EXCLUDE_PALLETS_LIST}"
+          fi
+          if [ "$EXCLUDE_EXTRINSICS_JSON" = "null" ] || [ -z "$EXCLUDE_EXTRINSICS_JSON" ]; then
             EXCLUDE_EXTRINSICS=""
           else
-            EXCLUDE_EXTRINSICS_JSON='${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}'
             EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
             EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
           RUSTFLAGS: "-C debug-assertions"
           RUNTIME_LOG: "error"
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
+          EXCLUDE_PALLETS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_pallets) }}
+          EXCLUDE_EXTRINSICS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}
 
   # Job required by "confirmTestPassed"
   integration-test:
@@ -219,9 +236,10 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Test ${{ matrix.itest.name }}
-        run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
+        run: cargo test -p "$PACKAGE" --release --locked -q
         env:
           RUSTFLAGS: "-C debug-assertions"
+          PACKAGE: ${{ matrix.itest.package }}
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
@@ -360,25 +378,28 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build runtime ${{ matrix.runtime.name }}
+        env:
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
         run: |
-          PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          PACKAGE_NAME="$PACKAGE"
+          RUNTIME_BLOB_NAME=$(echo "$PACKAGE_NAME" | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
           FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
-          if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
+          if cargo metadata --format-version=1 | jq --arg pkg "$PACKAGE" '.packages[] | select(.name==$pkg) | .features' | grep metadata-hash; then
             FEATURES="metadata-hash"
           fi
 
           # Add extra features
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+          if [ -n "$EXTRA_FEATURES" ]; then
             if [ -z "$FEATURES" ]; then
-              FEATURES="${{ matrix.runtime.build_extra_features }}"
+              FEATURES="$EXTRA_FEATURES"
             else
-              FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+              FEATURES="$FEATURES,$EXTRA_FEATURES"
             fi
           fi
 
@@ -388,7 +409,7 @@ jobs:
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
-          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
+          cargo build --profile production -p "$PACKAGE" $FEATURES -q --locked
           echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
 
       - name: Upload  ${{ matrix.runtime.name }}
@@ -524,6 +545,7 @@ jobs:
               - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
               - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
               - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "bulletin-polkadot",    pet_key: "bulletinPolkadot",     port: 9006, endpoint_var: "BULLETINPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:
