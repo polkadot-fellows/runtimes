@@ -34,6 +34,7 @@ indiv-pallet-nft-credits = { workspace = true }
 indiv-pallet-honour = { workspace = true }
 indiv-pallet-members = { workspace = true }
 indiv-pallet-members-notifier = { workspace = true }
+indiv-pallet-network-suffix = { workspace = true }
 indiv-pallet-origin-restriction = { workspace = true }
 indiv-pallet-people = { workspace = true }
 indiv-pallet-people-airdrops = { workspace = true }
@@ -66,6 +67,7 @@ sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
+sp-crypto-hashing = { workspace = true }
 sp-genesis-builder = { workspace = true }
 sp-inherents = { workspace = true }
 sp-io = { workspace = true }
@@ -144,6 +146,7 @@ std = [
 	"indiv-pallet-game/std",
 	"indiv-pallet-honour/std",
 	"indiv-pallet-members-notifier/std",
+	"indiv-pallet-network-suffix/std",
 	"indiv-pallet-members/std",
 	"indiv-pallet-nft-credits/std",
 	"indiv-pallet-origin-restriction/std",
@@ -190,6 +193,7 @@ std = [
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
+	"sp-crypto-hashing/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
 	"sp-io/std",
@@ -230,6 +234,7 @@ runtime-benchmarks = [
 	"indiv-pallet-game/runtime-benchmarks",
 	"indiv-pallet-honour/runtime-benchmarks",
 	"indiv-pallet-members-notifier/runtime-benchmarks",
+	"indiv-pallet-network-suffix/runtime-benchmarks",
 	"indiv-pallet-members/runtime-benchmarks",
 	"indiv-pallet-nft-credits/runtime-benchmarks",
 	"indiv-pallet-origin-restriction/runtime-benchmarks",
@@ -292,6 +297,7 @@ try-runtime = [
 	"indiv-pallet-game/try-runtime",
 	"indiv-pallet-honour/try-runtime",
 	"indiv-pallet-members-notifier/try-runtime",
+	"indiv-pallet-network-suffix/try-runtime",
 	"indiv-pallet-members/try-runtime",
 	"indiv-pallet-nft-credits/try-runtime",
 	"indiv-pallet-origin-restriction/try-runtime",

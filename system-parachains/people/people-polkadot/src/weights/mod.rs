@@ -16,7 +16,8 @@
 //! Expose the auto generated weight files.
 
 // TODO: Regenerate before release on the target hardware: this placeholder set mirrors the
-// reference runtime for `indiv_pallet_people_airdrops`, `indiv_pallet_people_lite`,
+// reference runtime for `indiv_pallet_network_suffix`, `indiv_pallet_people_airdrops`,
+// `indiv_pallet_people_lite`,
 // `asset-hub-polkadot/indiv_pallet_alias_accounts`, and
 // `asset-hub-polkadot/indiv_pallet_members_subscriber`.
 
@@ -33,6 +34,7 @@ pub mod indiv_pallet_dummy_dim;
 pub mod indiv_pallet_game;
 pub mod indiv_pallet_honour;
 pub mod indiv_pallet_members;
+pub mod indiv_pallet_network_suffix;
 pub mod indiv_pallet_origin_restriction;
 pub mod indiv_pallet_people;
 pub mod indiv_pallet_people_airdrops;

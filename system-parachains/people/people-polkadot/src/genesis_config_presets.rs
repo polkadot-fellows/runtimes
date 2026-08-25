@@ -61,6 +61,10 @@ fn people_polkadot_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"networkSuffix": NetworkSuffixConfig {
+			network_suffix: b"polkadot".to_vec().try_into().expect("network suffix fits"),
+			..Default::default()
+		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})

@@ -24,6 +24,7 @@ pub mod frame_system_extensions;
 pub mod indiv_pallet_alias_accounts;
 pub mod indiv_pallet_dotns_gateway;
 pub mod indiv_pallet_members_subscriber;
+pub mod indiv_pallet_network_suffix;
 pub mod indiv_pallet_origin_restriction;
 pub mod indiv_pallet_pgas;
 pub mod inmemorydb_weights;

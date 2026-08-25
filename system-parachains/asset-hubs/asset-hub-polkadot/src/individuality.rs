@@ -120,8 +120,22 @@ parameter_types! {
 	pub const PeopleRingExponent: RingExponent = RingExponent::R2e9;
 	/// Ring exponent of the lite people collection on People Polkadot.
 	pub const PeopleLiteRingExponent: RingExponent = RingExponent::R2e9;
-	/// Product-context suffix for the Polkadot deployment.
-	pub const NetworkSuffix: &'static [u8] = b"polkadot";
+	pub DefaultNetworkSuffix: indiv_support::context::ProductContextNetworkSuffix =
+		b"polkadot".to_vec().try_into().expect("default network suffix fits");
+}
+
+impl indiv_pallet_network_suffix::Config for Runtime {
+	type UpdateOrigin = EnsureRoot<Self::AccountId>;
+	type DefaultSuffix = DefaultNetworkSuffix;
+	type WeightInfo = NetworkSuffixWeightInfo;
+}
+
+/// Conservatively reuse the heavier `pallet_parameters` setter weight.
+pub struct NetworkSuffixWeightInfo;
+impl indiv_pallet_network_suffix::WeightInfo for NetworkSuffixWeightInfo {
+	fn set_network_suffix(_s: u32) -> frame_support::weights::Weight {
+		<weights::pallet_parameters::WeightInfo<Runtime> as pallet_parameters::WeightInfo>::set_parameter()
+	}
 }
 
 /// Origin check restricted to the sibling parachain that publishes the ring roots.

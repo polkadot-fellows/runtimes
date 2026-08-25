@@ -1693,6 +1693,7 @@ construct_runtime!(
 		Pgas: indiv_pallet_pgas = 99,
 		DotnsGateway: indiv_pallet_dotns_gateway = 152,
 		OriginRestriction: indiv_pallet_origin_restriction = 153,
+		NetworkSuffix: indiv_pallet_network_suffix = 154,
 		PgasAllowance: pallet_pgas_allowance = 252,
 
 		// Asset Hub Migration in the 250s
@@ -1926,6 +1927,7 @@ mod benches {
 		[pallet_proxy, Proxy]
 		[pallet_scheduler, Scheduler]
 		[pallet_parameters, Parameters]
+		[indiv_pallet_network_suffix, NetworkSuffix]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]

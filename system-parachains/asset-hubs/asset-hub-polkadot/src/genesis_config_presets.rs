@@ -88,6 +88,10 @@ fn asset_hub_polkadot_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"networkSuffix": NetworkSuffixConfig {
+			network_suffix: b"polkadot".to_vec().try_into().expect("network suffix fits"),
+			..Default::default()
+		},
 		"staking": {
 			"validatorCount": 600,
 			"devStakers": Some((2_000, 25_000)),

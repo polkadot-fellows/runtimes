@@ -194,8 +194,8 @@ pub type RuntimeClock = Timestamp;
 pub type RuntimeClock = benchmark_utils::BenchmarkClock;
 
 parameter_types! {
-	/// Product-context suffix for the Polkadot deployment.
-	pub const NetworkSuffix: &'static [u8] = b"polkadot";
+	pub DefaultNetworkSuffix: indiv_support::context::ProductContextNetworkSuffix =
+		b"polkadot".to_vec().try_into().expect("default network suffix fits");
 
 	/// Page size for the ring-VRF SRS chunk storage.
 	pub const ChunkPageSize: u32 = 255;
@@ -244,6 +244,20 @@ parameter_types! {
 		Location::new(0, [PalletInstance(<Coinage as PalletInfoAccess>::index() as u8)]);
 }
 
+impl indiv_pallet_network_suffix::Config for Runtime {
+	type UpdateOrigin = EnsureRoot<Self::AccountId>;
+	type DefaultSuffix = DefaultNetworkSuffix;
+	type WeightInfo = NetworkSuffixWeightInfo;
+}
+
+/// Conservatively reuse the heavier `pallet_parameters` setter weight.
+pub struct NetworkSuffixWeightInfo;
+impl indiv_pallet_network_suffix::WeightInfo for NetworkSuffixWeightInfo {
+	fn set_network_suffix(_s: u32) -> frame_support::weights::Weight {
+		<weights::pallet_parameters::WeightInfo<Runtime> as pallet_parameters::WeightInfo>::set_parameter()
+	}
+}
+
 impl indiv_pallet_relay_randomness::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_relay_randomness::WeightInfo<Runtime>;
 }
@@ -283,6 +297,7 @@ impl frame_support::traits::Contains<Context> for AccountContexts {
 	fn contains(context: &Context) -> bool {
 		context == &indiv_pallet_score::Pallet::<Runtime>::score_context()
 			|| context == &indiv_pallet_resources::Pallet::<Runtime>::resources_context()
+			|| context == &indiv_pallet_people_airdrops::Pallet::<Runtime>::people_airdrops_context()
 	}
 }
 
@@ -1387,7 +1402,7 @@ pub mod benchmark_utils {
 			.expect("benchmark: people collection must be created");
 
 			let secret =
-				BandersnatchVrfVerifiable::new_secret(sp_core::twox_256(b"honour-bench-voter"));
+				BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(b"honour-bench-voter"));
 			let member = BandersnatchVrfVerifiable::member_from_secret(&secret);
 
 			Members::add_members(indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER, vec![member])
@@ -1690,7 +1705,7 @@ pub mod benchmark_utils {
 			indiv_pallet_members::Pallet::<Runtime>::initialize_chunks(ring_exponent);
 
 			let secret =
-				BandersnatchVrfVerifiable::new_secret(sp_core::twox_256(b"people_for_coinage:42"));
+				BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(b"people_for_coinage:42"));
 			let member = BandersnatchVrfVerifiable::member_from_secret(&secret);
 
 			// Onboard members immediately.

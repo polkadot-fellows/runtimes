@@ -797,6 +797,7 @@ construct_runtime!(
 		Honour: indiv_pallet_honour = 71,
 		Parameters: pallet_parameters = 73,
 		PeopleAirdrops: indiv_pallet_people_airdrops = 74,
+		NetworkSuffix: indiv_pallet_network_suffix = 75,
 	}
 );
 
@@ -827,6 +828,7 @@ mod benches {
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_parameters, Parameters]
+		[indiv_pallet_network_suffix, NetworkSuffix]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
