@@ -3187,16 +3187,7 @@ mod tests {
 		});
 	}
 
-	/// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
-	/// Individuality deployment and must stay frozen so already-built signers keep working, while
-	/// version 1 carries the Individuality origin modifiers.
-	///
-	/// Freezing version 0 matters more here than on People Polkadot: Ethereum transactions
-	/// (`EthExtraImpl::ExtensionV0`) and legacy signed transactions can only ever use version 0.
-	///
-	/// This pins both: the identifiers of version 0 in order, and the fact that version 1 exists
-	/// and is version 0 plus the Individuality extensions. Any reordering of version 0 breaks live
-	/// signers, so it should only ever change together with `transaction_version`.
+	/// Pin transaction extension version 0 and assert that version 1 appears in the metadata.
 	#[test]
 	fn transaction_extension_versions_are_stable() {
 		use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
