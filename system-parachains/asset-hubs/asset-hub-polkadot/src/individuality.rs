@@ -30,6 +30,10 @@
 //!   asset. [`pallet_pgas_allowance`] then lets PGAS pay the fees of contract calls, and
 //!   `pallet_revive::PGasDeposit` makes contract storage deposits PGAS-denominated — so a person
 //!   can use contracts without holding DOT.
+//! * [`indiv_pallet_dotns_gateway`] is the personhood-gated front door to the dotNS name registry:
+//!   one name per person, claimed through a ring proof.
+//! * [`indiv_pallet_origin_restriction`] rate-limits the anonymous origins the extensions above
+//!   produce, since those origins pay no fee from an account.
 //!
 //! # Deployment steps
 //!
@@ -42,17 +46,44 @@
 //!    `MembersNotifier::subscribe` naming this chain and the `MembersSubscriber` pallet index (97);
 //!    there is no local call to make. Until the first batch of roots arrives, every personhood
 //!    proof on this chain fails. Requires an open HRMP channel in both directions.
-//! 3. Run collators with offchain workers enabled so the alias-account stale-mapping sweep can
+//! 3. `DotnsGateway::set_dispatcher_address` (Fellowship, root, or TechnicalMaintenance) — point
+//!    the gateway at the deployed `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot
+//!    register any name until this is set, so the dotNS registry contract has to be deployed first.
+//! 4. Run collators with offchain workers enabled so the alias-account stale-mapping sweep can
 //!    submit authorized maintenance calls. The alias fee is governance-mutable.
+//!
+//! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship, root, or
+//! TechnicalMaintenance) to admit an attestation provider.
 
 use super::*;
 
-use frame_support::traits::{EnsureOrigin, Get};
-use indiv_support::traits::RingExponent;
+use frame_support::traits::{ContainsPair, EnsureOrigin, Get};
+use indiv_support::traits::{Alias, RingExponent};
 #[cfg(feature = "runtime-benchmarks")]
-use indiv_support::traits::{Alias, Context, Identifier, RingIndex};
+use indiv_support::traits::{Context, Identifier, RingIndex};
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
+
+/// Wall-clock durations expressed in block numbers.
+///
+/// Asset Hub Polkadot authors a block every
+/// `RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY` = 2s under elastic scaling. The
+/// `MINUTES`/`HOURS`/`DAYS` this runtime imports from `system_parachains_constants::async_backing`
+/// assume a 6s block, so using them for the durations below would silently scale them by 3x.
+pub mod time {
+	use super::BlockNumber;
+	use system_parachains_constants::polkadot::consensus::{
+		elastic_scaling::BLOCK_PROCESSING_VELOCITY, RELAY_CHAIN_SLOT_DURATION_MILLIS,
+	};
+
+	/// Target block time, in milliseconds.
+	pub const MILLISECS_PER_BLOCK: BlockNumber =
+		RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY;
+
+	pub const MINUTES: BlockNumber = 60_000 / MILLISECS_PER_BLOCK;
+	pub const HOURS: BlockNumber = MINUTES * 60;
+	pub const DAYS: BlockNumber = HOURS * 24;
+}
 
 /// Root, the Technical Fellowship voice, or TechnicalMaintenance may administer Individuality
 /// settings.
@@ -206,12 +237,137 @@ impl pallet_pgas_allowance::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::PGASBenchmarkHelper;
 }
 
+/// Bridges `pallet-dotns-gateway`'s `AddressMapper` trait to `pallet_revive`'s.
+pub struct ReviveAddressMapper;
+impl indiv_pallet_dotns_gateway::AddressMapper<AccountId> for ReviveAddressMapper {
+	fn to_address(account_id: &AccountId) -> sp_core::H160 {
+		<pallet_revive::AccountId32Mapper<Runtime> as pallet_revive::AddressMapper<Runtime>>::to_address(
+			account_id,
+		)
+	}
+}
+
+/// Adapter exposing `pallet_revive::Pallet::bare_call` to `pallet-dotns-gateway`, which drives the
+/// dotNS registry contract.
+pub struct ReviveContractCaller;
+impl indiv_pallet_dotns_gateway::ContractCaller for ReviveContractCaller {
+	fn call(
+		dest: sp_core::H160,
+		data: Vec<u8>,
+		value: u128,
+	) -> Result<(Vec<u8>, Weight), indiv_pallet_dotns_gateway::ContractCallError> {
+		use pallet_revive::{ExecConfig, TransactionLimits};
+		let cr = pallet_revive::Pallet::<Runtime>::bare_call(
+			RuntimeOrigin::root(),
+			dest,
+			value.into(),
+			TransactionLimits::WeightAndDeposit {
+				weight_limit: dynamic_params::individuality::DotnsMaxContractCallWeight::get(),
+				// The root origin does not pay the deposit cost; per-call storage growth is bounded
+				// by `weight_limit.proof_size`.
+				deposit_limit: u128::MAX,
+			},
+			data,
+			&ExecConfig::new_substrate_tx(),
+		);
+		match cr.result {
+			Ok(ret) if !ret.did_revert() => Ok((ret.data, cr.weight_consumed)),
+			Ok(ret) => Err(indiv_pallet_dotns_gateway::ContractCallError {
+				dispatch: sp_runtime::DispatchError::Other("contract reverted"),
+				revert_data: Some(ret.data),
+			}),
+			Err(e) => Err(indiv_pallet_dotns_gateway::ContractCallError::from(e)),
+		}
+	}
+}
+
+impl indiv_pallet_dotns_gateway::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_dotns_gateway::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
+	type MemberService = MembersSubscriber;
+	type ContractCaller = ReviveContractCaller;
+	type AddressMapper = ReviveAddressMapper;
+	type MaxContractCallWeight = dynamic_params::individuality::DotnsMaxContractCallWeight;
+	type MaxValiditySeconds = dynamic_params::individuality::DotnsMaxValiditySeconds;
+	type MaxFutureSkewSeconds = dynamic_params::individuality::DotnsMaxFutureSkewSeconds;
+	type UnixTime = Timestamp;
+	type AttestationAllowanceManager = RootOrFellowsOrTechnicalMaintenance;
+	type DispatcherAddressManager = RootOrFellowsOrTechnicalMaintenance;
+	type AttestationSignature = Signature;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmark_utils::DotnsGatewayBenchHelper;
+}
+
+/// The anonymous origins this runtime rate-limits, and the key their allowance is tracked under.
+#[derive(
+	Clone,
+	Encode,
+	Decode,
+	Debug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+	Eq,
+	PartialEq,
+	DecodeWithMemTracking,
+)]
+pub enum RestrictedEntity {
+	/// A full-person dotNS registration attempt, keyed by the anonymous alias derived from the
+	/// ring proof in `indiv_pallet_dotns_gateway::AsDotnsGateway`.
+	DotnsPersonRegistration(Alias),
+}
+
+impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
+	fn allowance(&self) -> indiv_pallet_origin_restriction::Allowance<Balance> {
+		match self {
+			RestrictedEntity::DotnsPersonRegistration(_) => {
+				indiv_pallet_origin_restriction::Allowance {
+					max: dynamic_params::individuality::DotnsPersonRegistrationAllowanceMax::get(),
+					recovery_per_block:
+						dynamic_params::individuality::DotnsPersonRegistrationAllowanceRecovery::get(
+						),
+				}
+			},
+		}
+	}
+
+	fn restricted_entity(origin_caller: &OriginCaller) -> Option<Self> {
+		match origin_caller {
+			OriginCaller::DotnsGateway(indiv_pallet_dotns_gateway::Origin::PersonRegistration(
+				alias,
+			)) => Some(RestrictedEntity::DotnsPersonRegistration(*alias)),
+			_ => None,
+		}
+	}
+}
+
+/// Calls an entity with an exhausted allowance may still dispatch once, going into debt.
+pub struct OperationAllowedOneTimeExcess;
+impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExcess {
+	fn contains(entity: &RestrictedEntity, call: &RuntimeCall) -> bool {
+		match entity {
+			RestrictedEntity::DotnsPersonRegistration(_) => matches!(
+				call,
+				RuntimeCall::DotnsGateway(indiv_pallet_dotns_gateway::Call::register_name { .. })
+			),
+		}
+	}
+}
+
+impl indiv_pallet_origin_restriction::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_origin_restriction::WeightInfo<Runtime>;
+	type RestrictedEntity = RestrictedEntity;
+	type OperationAllowedOneTimeExcess = OperationAllowedOneTimeExcess;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmark_utils::OriginRestrictionBenchmarkHelper;
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_utils {
 	use super::*;
 	use frame_support::{
 		traits::{
 			fungibles::{Create, Inspect, Mutate},
+			UnixTime,
 		},
 		BoundedVec,
 	};
@@ -503,4 +659,128 @@ pub mod benchmark_utils {
 		}
 	}
 
+	/// sr25519 helpers for the dotNS gateway benchmark, which needs a signature over a message the
+	/// runtime cannot otherwise produce.
+	mod dotns_keys {
+		use super::*;
+		use sp_core::{crypto::KeyTypeId, sr25519};
+		use sp_runtime::{traits::IdentifyAccount, MultiSignature, MultiSigner};
+
+		const DOTNS_BENCH_KEY_TYPE: KeyTypeId = KeyTypeId(*b"dnbe");
+		const DOTNS_BENCH_SEED: &[u8] = b"//DotnsGatewayBench";
+
+		fn ensure_bench_key() -> sr25519::Public {
+			if let Some(pk) = sp_io::crypto::sr25519_public_keys(DOTNS_BENCH_KEY_TYPE).first() {
+				return *pk;
+			}
+			sp_io::crypto::sr25519_generate(DOTNS_BENCH_KEY_TYPE, Some(DOTNS_BENCH_SEED.to_vec()))
+		}
+
+		pub fn bench_candidate() -> AccountId {
+			MultiSigner::Sr25519(ensure_bench_key()).into_account()
+		}
+
+		pub fn bench_sign(message: &[u8]) -> Signature {
+			let pk = ensure_bench_key();
+			let sig = sp_io::crypto::sr25519_sign(DOTNS_BENCH_KEY_TYPE, &pk, message)
+				.expect("bench key was just inserted");
+			MultiSignature::Sr25519(sig)
+		}
+	}
+
+	pub struct DotnsGatewayBenchHelper;
+	impl indiv_pallet_dotns_gateway::benchmarking::BenchmarkHelper<Runtime>
+		for DotnsGatewayBenchHelper
+	{
+		fn setup_ring_root(identifier: &Identifier, ring_index: RingIndex) -> RevisionIndex {
+			let ring_exponent = ring_exponent_for(identifier);
+			let real_root = ring_setup(ring_exponent, [42u8; 32]).0;
+
+			// Fill the sliding window to capacity for the worst-case `verify_membership` iteration.
+			let now = <Timestamp as UnixTime>::now().as_secs();
+			let max_recent =
+				<<Runtime as indiv_pallet_members_subscriber::Config>::MaxRecentRootsPerRing as Get<
+					u32,
+				>>::get();
+			let mut roots: BoundedVec<_, _> = BoundedVec::new();
+			for i in 0..max_recent {
+				roots
+					.try_push(indiv_pallet_members_subscriber::types::RingCommitmentRecord::<
+						Runtime,
+					> {
+						root: <Runtime as indiv_pallet_members_subscriber::benchmarking::BenchmarkHelper<Runtime>>::mock_ring_root(i),
+						revision: i + 1,
+						source_time: now,
+						source_sequence: 0,
+					})
+					.expect("within MaxRecentRootsPerRing bound");
+			}
+			let last_idx = roots.len() - 1;
+			roots[last_idx].root = real_root;
+			indiv_pallet_members_subscriber::Pallet::<Runtime>::set_current_ring_roots(
+				identifier, ring_index, roots,
+			);
+			indiv_pallet_members_subscriber::RingCollectionExponents::<Runtime>::insert(
+				*identifier,
+				ring_exponent,
+			);
+			max_recent
+		}
+
+		fn valid_proof(
+			collection: &indiv_pallet_dotns_gateway::Collection,
+			message: &[u8],
+		) -> indiv_pallet_dotns_gateway::ProofOf<Runtime> {
+			let ring_exponent = if collection == &indiv_pallet_dotns_gateway::Collection::PeopleLite
+			{
+				<Runtime as indiv_pallet_alias_accounts::Config>::PeopleLiteRingExponent::get()
+			} else {
+				<Runtime as indiv_pallet_alias_accounts::Config>::PeopleRingExponent::get()
+			};
+			let (_root, member, secret, domain) = ring_setup(ring_exponent, [42u8; 32]);
+			let commitment = Crypto::open(domain, &member, core::iter::once(member))
+				.expect("benchmark: open for a single-member ring");
+			let (proof, _alias) = Crypto::create(
+				commitment,
+				&secret,
+				&indiv_pallet_dotns_gateway::Pallet::<Runtime>::proof_context()[..],
+				message,
+			)
+			.expect("benchmark: create proof");
+			proof
+		}
+
+		fn candidate() -> AccountId {
+			dotns_keys::bench_candidate()
+		}
+
+		fn sign(message: &[u8]) -> Signature {
+			dotns_keys::bench_sign(message)
+		}
+
+		fn set_time(seconds: u64) {
+			pallet_timestamp::Now::<Runtime>::put(seconds.saturating_mul(1_000));
+		}
+	}
+
+	pub struct OriginRestrictionBenchmarkHelper;
+	impl indiv_pallet_origin_restriction::BenchmarkHelper<OriginCaller, RuntimeCall>
+		for OriginRestrictionBenchmarkHelper
+	{
+		fn excess_pair() -> (OriginCaller, RuntimeCall) {
+			(
+				OriginCaller::DotnsGateway(indiv_pallet_dotns_gateway::Origin::PersonRegistration(
+					[0u8; 32],
+				)),
+				RuntimeCall::DotnsGateway(indiv_pallet_dotns_gateway::Call::register_name {
+					who: AccountId::from([0u8; 32]),
+					label: indiv_pallet_dotns_gateway::BaseLabel::try_from(b"a".to_vec())
+						.expect("single byte label fits"),
+					link: indiv_pallet_dotns_gateway::Link::None(
+						indiv_pallet_dotns_gateway::ChatKey::from([0u8; 65]),
+					),
+				}),
+			)
+		}
+	}
 }

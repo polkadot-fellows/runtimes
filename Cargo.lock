@@ -1785,7 +1785,9 @@ dependencies = [
  "hex",
  "hex-literal",
  "indiv-pallet-alias-accounts",
+ "indiv-pallet-dotns-gateway",
  "indiv-pallet-members-subscriber",
+ "indiv-pallet-origin-restriction",
  "indiv-pallet-pgas",
  "indiv-precompile-personhood",
  "indiv-support",
@@ -7737,6 +7739,26 @@ dependencies = [
  "sp-runtime 47.0.0",
  "sp-trie 44.0.0",
  "staging-xcm",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-dotns-gateway"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?rev=3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5#3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5"
+dependencies = [
+ "alloy-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-members-subscriber",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 41.0.0",
+ "sp-io 46.0.0",
+ "sp-runtime 47.0.0",
  "verifiable",
 ]
 

@@ -94,6 +94,7 @@ indiv-pallet-airdrop = { git = "https://github.com/paritytech/individuality-comm
 indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
 indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
 indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
+indiv-pallet-dotns-gateway = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
 indiv-pallet-dummy-dim = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
 indiv-pallet-game = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
 indiv-pallet-nft-credits = { git = "https://github.com/paritytech/individuality-community", rev = "3e4a9a8ae0579d3032bf47da9b4ad9facc8df8b5", default-features = false, version = "*" }
