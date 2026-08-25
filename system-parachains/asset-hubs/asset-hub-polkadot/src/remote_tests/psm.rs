@@ -55,11 +55,9 @@ async fn live_psm_ext() -> remote_externalities::RemoteExternalities<Block> {
 		.mode(Mode::Online(OnlineConfig {
 			transport_uris: vec![uri],
 			child_trie: false,
-			hashed_prefixes: vec![pallet_assets::Asset::<
-				Runtime,
-				TrustBackedAssetsInstance,
-			>::final_prefix()
-			.to_vec()],
+			hashed_prefixes: vec![
+				pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::final_prefix().to_vec(),
+			],
 			hashed_keys: vec![usdt_metadata_key],
 			..Default::default()
 		}))
