@@ -247,7 +247,6 @@ mod multiblock_migrations {
 		>,
 		// Not added: we do it with a manual TX
 		//pallet_revive::migrations::v3::Migration<Runtime>,
-		//
 		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
 		// `PGasDeposit`.
 		pallet_revive::migrations::v4::Migration<Runtime>,
