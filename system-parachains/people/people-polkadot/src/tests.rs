@@ -140,28 +140,25 @@ fn xcm_payment_api_works() {
 	>();
 }
 
-/// Execution and delivery fees can both be paid in any asset governance registered a rate for, at
-/// that rate. HOLLAR is the first such asset, but nothing here is specific to it.
+/// XCM execution fees can be paid in any asset governance registered a rate for, at that rate.
+/// HOLLAR is the first such asset, but nothing here is specific to it.
 #[test]
-fn xcm_fees_can_be_paid_in_any_asset_with_a_registered_rate() {
+fn xcm_execution_fees_can_be_paid_in_any_asset_with_a_registered_rate() {
 	use crate::{
-		xcm_config::{FeesAtAssetRate, RelayLocation, XcmConfig},
-		AssetRate, Assets as AssetsPallet, PolkadotXcm, RuntimeGenesisConfig,
+		xcm_config::{RelayLocation, XcmConfig},
+		AssetRate, Assets as AssetsPallet, PolkadotXcm,
 	};
-	use cumulus_primitives_core::{relay_chain::AsyncBackingParams, AbridgedHostConfiguration};
 	use frame_support::weights::WeightToFee as WeightToFeeT;
-	use sp_runtime::{BuildStorage, FixedU128};
-	use xcm_executor::traits::AssetExchange;
+	use parachains_runtimes_test_utils::ExtBuilder;
+	use sp_runtime::FixedU128;
+	use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApi;
 
 	// An asset worth 4 DOT apiece, and one governance never registered a rate for.
 	let rated = Location::new(1, [Parachain(2034), GeneralIndex(222)]);
 	let unrated = Location::new(1, [Parachain(2034), GeneralIndex(333)]);
 	let rate = FixedU128::from_u32(4);
 
-	let mut ext = sp_io::TestExternalities::new(
-		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
-	);
-	ext.execute_with(|| {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
 		assert_ok!(AssetsPallet::force_create(
 			RuntimeOrigin::root(),
 			rated.clone(),
@@ -187,69 +184,14 @@ fn xcm_fees_can_be_paid_in_any_asset_with_a_registered_rate() {
 		)
 		.is_err());
 
-		// Delivery fees are quoted by the router in DOT, and settled in the asset at the same rate.
-		// Sending upwards needs the relay chain's limits, which only the inherent brings in.
-		cumulus_pallet_parachain_system::HostConfiguration::<Runtime>::put(
-			AbridgedHostConfiguration {
-				max_code_size: 3 * 1024 * 1024,
-				max_head_data_size: 20 * 1024,
-				max_upward_queue_count: 10,
-				max_upward_queue_size: 51_200,
-				max_upward_message_size: 51_200,
-				max_upward_message_num_per_candidate: 10,
-				hrmp_max_message_num_per_candidate: 10,
-				validation_upgrade_cooldown: 6,
-				validation_upgrade_delay: 6,
-				async_backing_params: AsyncBackingParams {
-					allowed_ancestry_len: 0,
-					max_candidate_depth: 0,
-				},
-			},
-		);
-		type AssetExchanger = <XcmConfig as xcm_executor::Config>::AssetExchanger;
-		let message = Xcm::<()>::builder_unsafe().clear_origin().build();
-		let quote = |asset: Location| -> Result<Assets, ()> {
-			PolkadotXcm::query_delivery_fees::<AssetExchanger>(
-				VersionedLocation::from(Location::parent()),
-				VersionedXcm::from(message.clone()),
-				AssetId(asset).into(),
-			)
-			.map(|fees| Assets::try_from(fees).expect("fees are in the latest version"))
-			.map_err(|_| ())
-		};
-		let in_dot = quote(RelayLocation::get()).expect("the relay chain is routable");
-		let Some(Asset { fun: Fungible(dot_fee), .. }) = in_dot.get(0).cloned() else {
-			panic!("delivery fees are a single fungible asset: {in_dot:?}");
-		};
-		assert_eq!(quote(rated.clone()).unwrap(), (rated.clone(), dot_fee / 4).into());
-		// And an asset without a rate cannot pay for delivery either.
-		assert!(quote(unrated.clone()).is_err());
-
-		// The same rate prices what the executor asks for, in both directions.
-		let dot_asked: Assets = (RelayLocation::get(), 400u128).into();
+		// And the runtime API advertises DOT and every rated asset, nothing else.
+		let acceptable = Runtime::query_acceptable_payment_assets(XCM_VERSION).unwrap();
 		assert_eq!(
-			FeesAtAssetRate::quote_exchange_price(
-				&Asset { id: AssetId(rated.clone()), fun: Fungible(0) }.into(),
-				&dot_asked,
-				false,
-			),
-			Some((rated.clone(), 100u128).into()),
-		);
-		assert_eq!(
-			FeesAtAssetRate::quote_exchange_price(
-				&(rated.clone(), 100u128).into(),
-				&(RelayLocation::get(), 1u128).into(),
-				true,
-			),
-			Some((RelayLocation::get(), 400u128).into()),
-		);
-		assert_eq!(
-			FeesAtAssetRate::quote_exchange_price(
-				&Asset { id: AssetId(unrated), fun: Fungible(0) }.into(),
-				&dot_asked,
-				false,
-			),
-			None,
+			acceptable,
+			vec![
+				VersionedAssetId::from(AssetId(RelayLocation::get())),
+				VersionedAssetId::from(AssetId(rated)),
+			],
 		);
 	});
 }
