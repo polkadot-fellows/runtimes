@@ -3242,13 +3242,6 @@ mod tests {
 			v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
 		assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
 
-		// Version 1 is version 0 plus the Individuality pipeline: same non-Individuality
-		// identifiers, in the same relative order.
-		//
-		// NOTE: `ChargePGAS` is absent from this list because it is metadata-transparent — it
-		// reports only its inner `ChargeAssetTxPayment` identifier. So this test deliberately
-		// cannot tell version 0's bare payment extension apart from version 1's PGAS-wrapped one;
-		// it pins ordering, not the payment wrapper.
 		let indiv = ["UnitTransactionExtension", "AsPgas", "AsDotnsGateway", "RestrictOrigins"];
 		let v1_without_indiv: Vec<&str> =
 			v1.iter().copied().filter(|id| !indiv.contains(id)).collect();
