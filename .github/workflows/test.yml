@@ -545,6 +545,7 @@ jobs:
               - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
               - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
               - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "bulletin-polkadot",    pet_key: "bulletinPolkadot",     port: 9006, endpoint_var: "BULLETINPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:
