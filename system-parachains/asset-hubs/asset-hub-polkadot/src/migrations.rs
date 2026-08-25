@@ -249,18 +249,7 @@ mod multiblock_migrations {
 		//pallet_revive::migrations::v3::Migration<Runtime>,
 		//
 		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
-		// `PGasDeposit` (see `lib.rs`). It records every existing code-upload deposit in
-		// `NativeDepositOf` and converts each contract's native `StorageDepositReserve` hold into
-		// PGAS. Without it, `refund_on_hold` finds no `NativeDepositOf` credit and no PGAS on hold
-		// for contracts deployed before the switch, so `settle_pgas_refund` caps the refund at
-		// zero: partial storage-deposit refunds would silently return nothing and leave the
-		// native hold stuck. Its phases 1 and 2 are no-ops unless `Deposit` supports PGAS, so it
-		// must not be added before that switch, and both must ship together.
-		//
-		// The `version_from: 3` in its `MigrationId` is only part of the identifier —
-		// `pallet-migrations` gates on whether that id is already in `Historic`, not on a version
-		// chain — so this runs even though revive's v3 MBM above was skipped in favour of a manual
-		// transaction.
+		// `PGasDeposit`.
 		pallet_revive::migrations::v4::Migration<Runtime>,
 	);
 
