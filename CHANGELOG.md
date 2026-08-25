@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
 - People Polkadot: pay XCM execution fees in any asset governance registered a rate for in `pallet-asset-rate`, not only HOLLAR and DOT. `XcmPaymentApi::query_acceptable_payment_assets` lists every rated asset ([#1257](https://github.com/polkadot-fellows/runtimes/pull/1257)).
+- People Polkadot: pay XCM delivery fees in any asset governance registered a rate for in `pallet-asset-rate`, not only DOT ([#1258](https://github.com/polkadot-fellows/runtimes/pull/1258)).
 
 ### Changed
 
