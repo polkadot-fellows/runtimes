@@ -109,7 +109,9 @@ system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
 asset-hub-polkadot-runtime = { workspace = true }
+indiv-support = { workspace = true, features = ["genesis", "std"] }
 parachains-runtimes-test-utils = { workspace = true }
+verifiable = { workspace = true, features = ["builder-params", "std"] }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
