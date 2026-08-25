@@ -17,20 +17,6 @@
 //!
 //! Personhood itself lives on People Polkadot; this is the consumer side.
 //!
-//! TODO: audit every hard-written value in this module before release. Keeping the reference
-//! runtime's values made the port reviewable, but "identical to Paseo" is the wrong default for the
-//! ones that carry real value or real time:
-//!
-//! * Currency-denominated constants mean something different here: the same literal is PAS on the
-//!   reference chain and DOT here.
-//! * Constants counted in blocks must use this chain's 2s block time, not the 6s
-//!   `async_backing::MINUTES` this runtime imports for everything else — see [`time`].
-//! * The cross-runtime constants ([`RingRootsNotifierEndpoint`]'s pallet index, the ring exponents)
-//!   have to agree with People Polkadot or proofs silently fail to verify.
-//!
-//! This is expected to be revisited in a follow-up refactor; the individual sites are marked with
-//! their own TODOs.
-//!
 //! # The pieces
 //!
 //! * [`indiv_pallet_members_subscriber`] mirrors the ring roots that People Polkadot's
