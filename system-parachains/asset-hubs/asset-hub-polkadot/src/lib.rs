@@ -1563,17 +1563,7 @@ impl pallet_revive::Config for Runtime {
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 	type AllowEVMBytecode = ConstBool<true>;
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
-	// Storage deposits are denominated in PGAS, so a proven person can deploy and use contracts
-	// from their free PGAS allowance alone — without this, `pallet-pgas-allowance` would let them
-	// pay a contract call's *fee* in PGAS but they would still need DOT for the deposit.
-	//
-	// The backend keeps both currencies working side by side: `charge_and_hold` falls back to the
-	// native currency whenever the payer has too little reducible PGAS and records the amount in
-	// `pallet_revive::NativeDepositOf`, and `refund_on_hold` pays that credit back in native before
-	// touching PGAS. Deposits already held in DOT when this was switched on are *not* covered by
-	// that bookkeeping, though — they predate `NativeDepositOf` — which is what
-	// `pallet_revive::migrations::v4::Migration` in `migrations.rs` exists to fix. That migration
-	// is mandatory: see the comment there.
+	// Enable deposit payment in PGas with fallback in native.
 	type Deposit = pallet_revive::PGasDeposit<
 		Runtime,
 		Assets,
