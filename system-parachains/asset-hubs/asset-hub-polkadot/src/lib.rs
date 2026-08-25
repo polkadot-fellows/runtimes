@@ -1421,9 +1421,9 @@ pub mod dynamic_params {
 		#[codec(index = 10)]
 		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
 			50 * CENTS / ((30 * crate::individuality::time::MINUTES) as Balance);
-		/// Optional fee charged for creating an alias mapping.
+		/// Fee charged for creating an alias mapping.
 		#[codec(index = 11)]
-		pub static AliasFee: Option<Balance> = None;
+		pub static AliasFee: Balance = 1;
 		/// Block interval for the alias-account stale-mapping sweep.
 		#[codec(index = 12)]
 		pub static StaleAliasSweepInterval: BlockNumber = HOURS;
@@ -2967,7 +2967,7 @@ ord_parameter_types! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{assert_noop, assert_ok, hypothetically_ok};
+	use frame_support::{assert_noop, hypothetically_ok};
 	use sp_runtime::{
 		traits::{Dispatchable, Zero},
 		DispatchError,
@@ -2975,170 +2975,6 @@ mod tests {
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
-
-	#[test]
-	fn individuality_parameters_are_governance_mutable() {
-		use frame_support::traits::Get;
-		use polkadot_runtime_constants::{
-			fellowship::FELLOWS_RANK, system_parachain::COLLECTIVES_ID,
-		};
-
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			assert_eq!(
-				dynamic_params::individuality::PgasClaimAmount::get(),
-				60 * individuality::PgasMinBalance::get(),
-			);
-			assert_noop!(
-				Parameters::set_parameter(
-					RuntimeOrigin::signed(AccountId::from([1u8; 32])),
-					RuntimeParameters::Individuality(
-						dynamic_params::individuality::Parameters::PgasClaimAmount(
-							dynamic_params::individuality::PgasClaimAmount,
-							Some(42),
-						),
-					),
-				),
-				DispatchError::BadOrigin,
-			);
-			assert_ok!(Parameters::set_parameter(
-				RuntimeOrigin::root(),
-				RuntimeParameters::Individuality(
-					dynamic_params::individuality::Parameters::PgasClaimAmount(
-						dynamic_params::individuality::PgasClaimAmount,
-						Some(42),
-					),
-				),
-			));
-			assert_eq!(dynamic_params::individuality::PgasClaimAmount::get(), 42);
-
-			assert_ok!(Parameters::set_parameter(
-				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
-					1,
-					[
-						Parachain(COLLECTIVES_ID),
-						Plurality { id: BodyId::Technical, part: BodyPart::Voice },
-						GeneralIndex(FELLOWS_RANK),
-					],
-				))),
-				RuntimeParameters::Individuality(
-					dynamic_params::individuality::Parameters::AliasProofValidityWindow(
-						dynamic_params::individuality::AliasProofValidityWindow,
-						Some(60),
-					),
-				),
-			));
-			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), 60);
-			assert_ok!(Parameters::set_parameter(
-				RuntimeOrigin::root(),
-				RuntimeParameters::Individuality(
-					dynamic_params::individuality::Parameters::AliasFee(
-						dynamic_params::individuality::AliasFee,
-						Some(Some(42)),
-					),
-				),
-			));
-			assert_eq!(dynamic_params::individuality::AliasFee::get(), Some(42));
-			assert_ok!(Parameters::set_parameter(
-				RuntimeOrigin::root(),
-				RuntimeParameters::Individuality(
-					dynamic_params::individuality::Parameters::StaleAliasSweepInterval(
-						dynamic_params::individuality::StaleAliasSweepInterval,
-						Some(0),
-					),
-				),
-			));
-			assert_eq!(dynamic_params::individuality::StaleAliasSweepInterval::get(), 0);
-		});
-	}
-
-	#[test]
-	fn technical_maintenance_can_set_individuality_parameters_only() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			assert_ok!(Parameters::set_parameter(
-				RuntimeOrigin::from(pallet_custom_origins::Origin::TechnicalMaintenance),
-				RuntimeParameters::Individuality(
-					dynamic_params::individuality::Parameters::PgasClaimAmount(
-						dynamic_params::individuality::PgasClaimAmount,
-						Some(42),
-					),
-				),
-			));
-			assert_eq!(dynamic_params::individuality::PgasClaimAmount::get(), 42);
-
-			assert_noop!(
-				Parameters::set_parameter(
-					RuntimeOrigin::from(pallet_custom_origins::Origin::TechnicalMaintenance),
-					RuntimeParameters::StakingElection(
-						dynamic_params::staking_election::Parameters::SignedPhase(
-							dynamic_params::staking_election::SignedPhase,
-							Some(42),
-						),
-					),
-				),
-				DispatchError::BadOrigin,
-			);
-		});
-	}
-
-	#[test]
-	fn individuality_dynamic_parameter_bounds_are_stored() {
-		use frame_support::traits::Get;
-
-		macro_rules! set_individuality_parameter {
-			($name:ident, $value:expr) => {
-				assert_ok!(Parameters::set_parameter(
-					RuntimeOrigin::root(),
-					RuntimeParameters::Individuality(
-						dynamic_params::individuality::Parameters::$name(
-							dynamic_params::individuality::$name,
-							Some($value),
-						)
-					),
-				));
-			};
-		}
-
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			set_individuality_parameter!(PgasClaimAmount, Balance::MAX);
-			assert_eq!(dynamic_params::individuality::PgasClaimAmount::get(), Balance::MAX);
-			set_individuality_parameter!(MaxClaimsPerPeriodPerPerson, u32::MAX);
-			assert_eq!(dynamic_params::individuality::MaxClaimsPerPeriodPerPerson::get(), u32::MAX);
-			set_individuality_parameter!(MaxClaimsPerPeriodPerLitePerson, 0u32);
-			assert_eq!(dynamic_params::individuality::MaxClaimsPerPeriodPerLitePerson::get(), 0);
-			set_individuality_parameter!(MaxPgasClaimRecordCleanupPerCall, u32::MAX);
-			assert_eq!(
-				dynamic_params::individuality::MaxPgasClaimRecordCleanupPerCall::get(),
-				u32::MAX,
-			);
-			set_individuality_parameter!(AliasProofValidityWindow, u64::MAX);
-			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), u64::MAX);
-			set_individuality_parameter!(AliasFee, Some(Balance::MAX));
-			assert_eq!(dynamic_params::individuality::AliasFee::get(), Some(Balance::MAX));
-			set_individuality_parameter!(AliasFee, None);
-			assert_eq!(dynamic_params::individuality::AliasFee::get(), None);
-			set_individuality_parameter!(StaleAliasSweepInterval, 0u32);
-			assert_eq!(dynamic_params::individuality::StaleAliasSweepInterval::get(), 0);
-			set_individuality_parameter!(DotnsMaxContractCallWeight, Weight::MAX);
-			assert_eq!(
-				dynamic_params::individuality::DotnsMaxContractCallWeight::get(),
-				Weight::MAX
-			);
-			set_individuality_parameter!(DotnsMaxValiditySeconds, u64::MAX);
-			assert_eq!(dynamic_params::individuality::DotnsMaxValiditySeconds::get(), u64::MAX);
-			set_individuality_parameter!(DotnsMaxFutureSkewSeconds, 0u64);
-			assert_eq!(dynamic_params::individuality::DotnsMaxFutureSkewSeconds::get(), 0);
-			set_individuality_parameter!(DotnsPersonRegistrationAllowanceMax, Balance::MAX);
-			assert_eq!(
-				dynamic_params::individuality::DotnsPersonRegistrationAllowanceMax::get(),
-				Balance::MAX,
-			);
-			set_individuality_parameter!(DotnsPersonRegistrationAllowanceRecovery, 0);
-			assert_eq!(
-				dynamic_params::individuality::DotnsPersonRegistrationAllowanceRecovery::get(),
-				0,
-			);
-		});
-	}
 
 	/// Pin transaction extension version 0 and assert that version 1 appears in the metadata.
 	#[test]

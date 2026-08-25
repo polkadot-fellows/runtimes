@@ -49,15 +49,15 @@
 //! 3. `DotnsGateway::set_dispatcher_address` (Fellowship, root, or TechnicalMaintenance) — point
 //!    the gateway at the deployed `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot
 //!    register any name until this is set, so the dotNS registry contract has to be deployed first.
-//! 4. Set the governance-mutable alias fee if desired, then run collators with offchain workers
-//!    enabled so the alias-account stale-mapping sweep can submit authorized maintenance calls.
+//! 4. Run collators with offchain workers enabled so the alias-account stale-mapping sweep can
+//!    submit authorized maintenance calls. The alias fee is governance-mutable.
 //!
 //! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship, root, or
 //! TechnicalMaintenance) to admit an attestation provider.
 
 use super::*;
 
-use frame_support::traits::{ContainsPair, EnsureOrigin};
+use frame_support::traits::{ContainsPair, EnsureOrigin, Get};
 use indiv_support::traits::{Alias, RingExponent};
 #[cfg(feature = "runtime-benchmarks")]
 use indiv_support::traits::{Context, Identifier, RingIndex};
@@ -167,6 +167,14 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 	type OffchainWorkerInterval = ConstU32<3>;
 }
 
+/// Adapts the runtime's required alias fee to the alias-accounts pallet configuration.
+pub struct AliasFee;
+impl Get<Option<Balance>> for AliasFee {
+	fn get() -> Option<Balance> {
+		Some(dynamic_params::individuality::AliasFee::get())
+	}
+}
+
 impl indiv_pallet_alias_accounts::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_alias_accounts::WeightInfo<Runtime>;
 	type MemberService = MembersSubscriber;
@@ -179,7 +187,7 @@ impl indiv_pallet_alias_accounts::Config for Runtime {
 	type PeopleRingExponent = PeopleRingExponent;
 	type Fungibles = Assets;
 	type PgasAssetId = PgasAssetId;
-	type AliasFee = dynamic_params::individuality::AliasFee;
+	type AliasFee = AliasFee;
 	type OffchainWorkerInterval = indiv_support::parameters::AtLeastOne<
 		dynamic_params::individuality::StaleAliasSweepInterval,
 	>;
@@ -544,7 +552,7 @@ pub mod benchmark_utils {
 				RuntimeParameters::Individuality(
 					dynamic_params::individuality::Parameters::AliasFee(
 						dynamic_params::individuality::AliasFee,
-						Some(Some(fee)),
+						Some(fee),
 					),
 				),
 			)
