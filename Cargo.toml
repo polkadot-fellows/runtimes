@@ -41,8 +41,10 @@ bp-relayers = { version = "0.29.0", default-features = false }
 bp-runtime = { version = "0.28.0", default-features = false }
 bp-xcm-bridge-hub = { version = "0.14.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.25.0", default-features = false }
+bulletin-pallets-common = { version = "0.12.0", default-features = false }
 bulletin-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot" }
 bulletin-polkadot-runtime = { path = "system-parachains/bulletin/bulletin-polkadot" }
+bulletin-transaction-storage-primitives = { version = "0.12.0", default-features = false }
 bridge-hub-common = { version = "0.22.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
@@ -117,6 +119,10 @@ pallet-bridge-messages = { version = "0.29.0", default-features = false }
 pallet-bridge-parachains = { version = "0.29.0", default-features = false }
 pallet-bridge-relayers = { version = "0.29.0", default-features = false }
 pallet-broker = { version = "0.28.0", default-features = false }
+pallet-bulletin-data-renewal = { version = "0.12.0", default-features = false }
+pallet-bulletin-hop-promotion = { version = "0.12.0", default-features = false }
+pallet-bulletin-transaction-storage = { version = "0.12.0", default-features = false }
+pallet-bulletin-transaction-storage-runtime-api = { version = "0.12.0", default-features = false }
 pallet-child-bounties = { version = "48.0.0", default-features = false }
 pallet-collator-selection = { version = "30.0.0", default-features = false }
 pallet-collective = { version = "49.0.0", default-features = false }
@@ -259,6 +265,7 @@ sp-core = { version = "43.0.0", default-features = false }
 sp-dap = { version = "0.3.0", default-features = false }
 sp-debug-derive = { version = "15.0.0", default-features = false }
 sp-genesis-builder = { version = "0.24.0", default-features = false }
+sp-hop = { version = "0.3.0", default-features = false }
 sp-inherents = { version = "43.0.0", default-features = false }
 sp-io = { version = "48.0.0", default-features = false }
 sp-keyring = { version = "48.0.0" }
@@ -272,6 +279,7 @@ sp-state-machine = { version = "0.53.0", default-features = false }
 sp-storage = { version = "25.0.0", default-features = false }
 sp-tracing = { version = "19.0.0", default-features = false }
 sp-transaction-pool = { version = "43.0.0", default-features = false }
+sp-transaction-storage-proof = { version = "43.0.0", default-features = false }
 sp-trie = { version = "46.0.0", default-features = false }
 sp-version = { version = "46.0.0", default-features = false }
 sp-weights = { version = "36.0.0", default-features = false }
