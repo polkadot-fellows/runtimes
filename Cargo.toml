@@ -41,8 +41,10 @@ bp-relayers = { version = "0.29.0", default-features = false }
 bp-runtime = { version = "0.28.0", default-features = false }
 bp-xcm-bridge-hub = { version = "0.14.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.25.0", default-features = false }
+bulletin-pallets-common = { version = "0.12.0", default-features = false }
 bulletin-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot" }
 bulletin-polkadot-runtime = { path = "system-parachains/bulletin/bulletin-polkadot" }
+bulletin-transaction-storage-primitives = { version = "0.12.0", default-features = false }
 bridge-hub-common = { version = "0.22.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
@@ -117,6 +119,10 @@ pallet-bridge-messages = { version = "0.29.0", default-features = false }
 pallet-bridge-parachains = { version = "0.29.0", default-features = false }
 pallet-bridge-relayers = { version = "0.29.0", default-features = false }
 pallet-broker = { version = "0.28.0", default-features = false }
+pallet-bulletin-data-renewal = { version = "0.12.0", default-features = false }
+pallet-bulletin-hop-promotion = { version = "0.12.0", default-features = false }
+pallet-bulletin-transaction-storage = { version = "0.12.0", default-features = false }
+pallet-bulletin-transaction-storage-runtime-api = { version = "0.12.0", default-features = false }
 pallet-child-bounties = { version = "48.0.0", default-features = false }
 pallet-collator-selection = { version = "30.0.0", default-features = false }
 pallet-collective = { version = "49.0.0", default-features = false }
@@ -164,6 +170,7 @@ pallet-offences-benchmarking = { version = "49.0.0", default-features = false }
 pallet-parameters = { version = "0.20.0", default-features = false }
 pallet-preimage = { version = "49.0.0", default-features = false }
 pallet-proxy = { version = "49.0.0", default-features = false }
+pallet-psm = { version = "0.5.0", default-features = false }
 pallet-ranked-collective = { version = "49.0.0", default-features = false }
 pallet-recovery = { version = "49.0.0", default-features = false }
 pallet-referenda = { version = "49.0.0", default-features = false }
@@ -193,13 +200,13 @@ pallet-utility = { version = "49.0.1", default-features = false }
 pallet-vesting = { version = "49.0.0", default-features = false }
 pallet-vesting-precompiles = { version = "0.5.0", default-features = false }
 pallet-whitelist = { version = "48.0.0", default-features = false }
-pallet-xcm = { version = "29.0.0", default-features = false }
+pallet-xcm = { version = "29.1.0", default-features = false }
 pallet-xcm-benchmarks = { version = "29.0.0", default-features = false }
-pallet-xcm-precompiles = { version = "0.9.0", default-features = false }
+pallet-xcm-precompiles = { version = "0.9.1", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.25.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.27.0", default-features = false }
 parachain-info = { version = "0.28.0", default-features = false, package = "staging-parachain-info" }
-parachains-common = { version = "32.0.0", default-features = false }
+parachains-common = { version = "32.1.0", default-features = false }
 parachains-runtimes-test-utils = { version = "33.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
@@ -219,7 +226,7 @@ polkadot-system-emulated-network = { path = "integration-tests/emulated/networks
 primitive-types = { version = "0.13.1", default-features = false }
 frame-metadata-hash-extension = { version = "0.16.0", default-features = false }
 remote-externalities = { version = "0.60.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "28.0.0", default-features = false, package = "polkadot-runtime-parachains" }
+runtime-parachains = { version = "28.1.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "51.0.0" }
 sc-network = { version = "0.58.0" }
 scale-info = { version = "2.11.6", default-features = false }
@@ -258,6 +265,7 @@ sp-core = { version = "43.0.0", default-features = false }
 sp-dap = { version = "0.3.0", default-features = false }
 sp-debug-derive = { version = "15.0.0", default-features = false }
 sp-genesis-builder = { version = "0.24.0", default-features = false }
+sp-hop = { version = "0.3.0", default-features = false }
 sp-inherents = { version = "43.0.0", default-features = false }
 sp-io = { version = "48.0.0", default-features = false }
 sp-keyring = { version = "48.0.0" }
@@ -271,6 +279,7 @@ sp-state-machine = { version = "0.53.0", default-features = false }
 sp-storage = { version = "25.0.0", default-features = false }
 sp-tracing = { version = "19.0.0", default-features = false }
 sp-transaction-pool = { version = "43.0.0", default-features = false }
+sp-transaction-storage-proof = { version = "43.0.0", default-features = false }
 sp-trie = { version = "46.0.0", default-features = false }
 sp-version = { version = "46.0.0", default-features = false }
 sp-weights = { version = "36.0.0", default-features = false }
@@ -278,10 +287,10 @@ substrate-wasm-builder = { version = "34.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 system-parachains-common = { path = "system-parachains/common", default-features = false }
 tokio = { version = "1.45.0" }
-xcm = { version = "24.0.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "29.0.0", default-features = false, package = "staging-xcm-builder" }
+xcm = { version = "24.1.0", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "29.0.1", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.31.0" }
-xcm-executor = { version = "28.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-executor = { version = "28.0.1", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.16.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.43.0" }
