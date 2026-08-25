@@ -1841,15 +1841,6 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-// `pallet-members-subscriber` runs an offchain worker that submits *authorized* transactions:
-// unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall` rather than from a
-// signature. `staking` already supplies the `CreateBare`/`CreateTransaction` half of the plumbing;
-// this fills in the extension such a transaction carries.
-//
-// It submits on extension version 0, not 1: `AuthorizeCall` has been part of version 0 since before
-// the Individuality deployment, and an authorized origin is not one of the anonymous origins
-// `RestrictOrigin` meters, so nothing in version 1 changes how these transactions are validated.
-// Staying on version 0 keeps the submitted payload smaller.
 impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
 where
 	RuntimeCall: From<LocalCall>,
