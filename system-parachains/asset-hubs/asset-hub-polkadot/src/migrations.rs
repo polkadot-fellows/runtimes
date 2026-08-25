@@ -195,17 +195,6 @@ pub type Unreleased = (
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
 	MigrateBountyAccountAssets,
-	// Creates the PGAS asset under the pallet-derived admin account. `pallet-pgas` cannot mint
-	// until it exists.
-	//
-	// `NextAssetId` rejects a requested id while it is `Some` and does not match that value. The
-	// wrapper takes the value before creation and restores it immediately after. The take and put
-	// are atomic within this upgrade block, and a fresh chain with no value round-trips as `None`.
-	// The guard is the only obstacle to this fixed-id creation.
-	//
-	// Once the SDK pin includes <https://github.com/paritytech/polkadot-sdk/pull/12378>, replace
-	// this wrapper with a bounded allocator such as the `ReservedFloorAllocator` sketch from the
-	// review: it must reserve ids greater than or equal to `PGAS_ASSET_ID` by rule, not distance.
 	CreatePgasAssetWithSuspendedAssetIds,
 );
 
