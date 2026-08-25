@@ -267,13 +267,6 @@ pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor);
 /// - assets *native to Asset Hub* — the ones its trust backed `Assets` and pool instances issue —
 ///   sent from Asset Hub.
 ///
-/// The second rule is deliberately restricted to Asset Hub's own assets rather than everything
-/// Asset Hub happens to custody. Trusting a chain as the reserve for an asset it did not issue
-/// gives that asset two reserves, and `ReserveAssetDeposited` *mints* locally, so the second
-/// reserve can credit this chain with holdings the real reserve is not backing. Concretely, a
-/// blanket rule would let Asset Hub mint DOT here (`FungibleTransactor` has no checking account),
-/// and mint HOLLAR that could then be withdrawn against Hydration's backing.
-///
 /// Broad-ish reserve trust is still paired with a narrow registry: `pallet-assets` here has
 /// `CreateOrigin = EnsureNever`, so an incoming asset is only ever credited if root already
 /// registered it locally.
