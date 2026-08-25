@@ -795,7 +795,6 @@ construct_runtime!(
 		MembersNotifier: indiv_pallet_members_notifier = 69,
 		Airdrop: indiv_pallet_airdrop = 70,
 		Honour: indiv_pallet_honour = 71,
-		Nfts: pallet_nfts = 72,
 		Parameters: pallet_parameters = 73,
 		PeopleAirdrops: indiv_pallet_people_airdrops = 74,
 	}
@@ -827,7 +826,6 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
-		[pallet_nfts, Nfts]
 		[pallet_parameters, Parameters]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_timestamp, Timestamp]

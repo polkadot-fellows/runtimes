@@ -1399,28 +1399,6 @@ pub mod dynamic_params {
 		/// Seconds for which an alias proof remains valid.
 		#[codec(index = 4)]
 		pub static AliasProofValidityWindow: u64 = 300;
-		/// Maximum weight available to one dotNS registry-contract call.
-		#[codec(index = 6)]
-		pub static DotnsMaxContractCallWeight: Weight =
-			Weight::from_parts(100_000_000_000, 2 * 1024 * 1024);
-		/// Maximum age of a dotNS attestation signature.
-		#[codec(index = 7)]
-		pub static DotnsMaxValiditySeconds: u64 = 3 * 24 * 60 * 60;
-		/// Permitted future clock skew for a dotNS attestation signature.
-		#[codec(index = 8)]
-		pub static DotnsMaxFutureSkewSeconds: u64 = 30;
-		/// Maximum allowance for anonymous full-person dotNS registration attempts.
-		#[codec(index = 9)]
-		pub static DotnsPersonRegistrationAllowanceMax: Balance = MILLICENTS;
-		/// Per-block recovery for anonymous full-person dotNS registration attempts.
-		///
-		/// The formula counts this chain's own two-second blocks through `individuality::time`, not
-		/// the six-second `async_backing::MINUTES` imported elsewhere in the runtime. Using the
-		/// latter would make the allowance recover three times too fast: once every ten minutes
-		/// rather than every thirty.
-		#[codec(index = 10)]
-		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
-			50 * CENTS / ((30 * crate::individuality::time::MINUTES) as Balance);
 		/// Fee charged for creating an alias mapping.
 		#[codec(index = 11)]
 		pub static AliasFee: Balance = 1;
@@ -1691,8 +1669,6 @@ construct_runtime!(
 		MembersSubscriber: indiv_pallet_members_subscriber = 97,
 		AliasAccounts: indiv_pallet_alias_accounts = 98,
 		Pgas: indiv_pallet_pgas = 99,
-		DotnsGateway: indiv_pallet_dotns_gateway = 152,
-		OriginRestriction: indiv_pallet_origin_restriction = 153,
 		PgasAllowance: pallet_pgas_allowance = 252,
 
 		// Asset Hub Migration in the 250s
@@ -1736,10 +1712,8 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			(),
 			frame_system::AuthorizeCall<Runtime>,
 			indiv_pallet_pgas::AsPgas<Runtime>,
-			indiv_pallet_dotns_gateway::AsDotnsGateway<Runtime>,
 		),
 		// General checks and operations.
-		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
 		frame_system::CheckNonZeroSender<Runtime>,
 		frame_system::CheckSpecVersion<Runtime>,
 		frame_system::CheckTxVersion<Runtime>,
@@ -1972,9 +1946,7 @@ mod benches {
 
 		// Individuality
 		[indiv_pallet_alias_accounts, AliasAccounts]
-		[indiv_pallet_dotns_gateway, DotnsGateway]
 		[indiv_pallet_members_subscriber, MembersSubscriber]
-		[indiv_pallet_origin_restriction, OriginRestriction]
 		[indiv_pallet_pgas, Pgas]
 		[pallet_pgas_allowance, PgasAllowance]
 	);
@@ -3013,7 +2985,7 @@ mod tests {
 			v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
 		assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
 
-		let indiv = ["UnitTransactionExtension", "AsPgas", "AsDotnsGateway", "RestrictOrigins"];
+		let indiv = ["UnitTransactionExtension", "AsPgas"];
 		let v1_without_indiv: Vec<&str> =
 			v1.iter().copied().filter(|id| !indiv.contains(id)).collect();
 		assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");

@@ -85,13 +85,10 @@ use super::*;
 
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_primitives_core::ParaId;
-#[cfg(not(feature = "runtime-benchmarks"))]
-use frame_support::traits::NeverEnsureOrigin;
 use frame_support::{
 	parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair,
-		Get, PalletInfoAccess,
+		ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
 		fungible::{HoldConsideration, ItemOf},
 		tokens::ConversionToAssetBalance,
 	},
@@ -111,7 +108,7 @@ use scale_info::TypeInfo;
 use sp_runtime::MultiSigner;
 use sp_runtime::{
 	DispatchError, DispatchResult, MultiSignature,
-	traits::{AccountIdConversion, ConstI8, ConstU16, Convert, Verify},
+	traits::{AccountIdConversion, ConstI8, ConstU16, Convert},
 };
 use sp_statement_store::StatementAllowance;
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
@@ -376,76 +373,6 @@ impl indiv_pallet_score::Config for Runtime {
 	type Crypto = BandersnatchVrfVerifiable;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::ScoreBenchmarkHelper;
-}
-
-parameter_types! {
-	pub NftsPalletFeatures: pallet_nfts::PalletFeatures = pallet_nfts::PalletFeatures::all_enabled();
-	/// One year, counted in *relay chain* blocks: `pallet-nfts` below sets
-	/// `BlockNumberProvider = RelaychainDataProvider`, so this must use the relay pace (6s) and not
-	/// this chain's own 2s [`time`] constants.
-	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 30 * relay_time::DAYS;
-}
-
-// All deposits are zero: the attestation NFT collection is owned by a pallet-derived account with
-// no funds and minting must be free. Public collection creation is closed off via `CreateOrigin`
-// instead.
-#[cfg(not(feature = "runtime-benchmarks"))]
-parameter_types! {
-	pub const NftsCollectionDeposit: Balance = 0;
-	pub const NftsItemDeposit: Balance = 0;
-	pub const NftsMetadataDepositBase: Balance = 0;
-	pub const NftsAttributeDepositBase: Balance = 0;
-	pub const NftsDepositPerByte: Balance = 0;
-}
-
-// The upstream `redeposit` benchmark asserts deposit updates, which zero deposits can never
-// produce, so the benchmarks run with Asset Hub-like deposit amounts. This slightly overweighs the
-// zero-deposit production paths, which is the conservative direction.
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-	pub const NftsCollectionDeposit: Balance = system_para_deposit(1, 130);
-	pub const NftsItemDeposit: Balance = system_para_deposit(1, 164) / 40;
-	pub const NftsMetadataDepositBase: Balance = system_para_deposit(1, 129) / 10;
-	pub const NftsAttributeDepositBase: Balance = system_para_deposit(1, 0) / 10;
-	pub const NftsDepositPerByte: Balance = system_para_deposit(0, 1);
-}
-
-/// A `pallet-nfts` instance compatible with the Asset Hub one (`u32` collection and item
-/// identifiers) so items can eventually be transferred there via XCM. Public collection creation is
-/// disabled: collections are created internally (by the game) or by the root origin via
-/// `force_create`.
-impl pallet_nfts::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type CollectionId = u32;
-	type ItemId = u32;
-	type Currency = Balances;
-	// The benchmarks exercise the public `create` call, so they need an origin that can succeed.
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
-	type ForceOrigin = EnsureRoot<AccountId>;
-	type Locker = ();
-	type CollectionDeposit = NftsCollectionDeposit;
-	type ItemDeposit = NftsItemDeposit;
-	type MetadataDepositBase = NftsMetadataDepositBase;
-	type AttributeDepositBase = NftsAttributeDepositBase;
-	type DepositPerByte = NftsDepositPerByte;
-	type StringLimit = ConstU32<256>;
-	type KeyLimit = ConstU32<64>;
-	type ValueLimit = ConstU32<256>;
-	type ApprovalsLimit = ConstU32<20>;
-	type ItemAttributesApprovalsLimit = ConstU32<30>;
-	type MaxTips = ConstU32<10>;
-	type MaxDeadlineDuration = NftsMaxDeadlineDuration;
-	type MaxAttributesPerCall = ConstU32<10>;
-	type Features = NftsPalletFeatures;
-	type OffchainSignature = Signature;
-	type OffchainPublic = <Signature as Verify>::Signer;
-	type WeightInfo = weights::pallet_nfts::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = ();
-	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 parameter_types! {

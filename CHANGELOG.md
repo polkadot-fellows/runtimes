@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - People Polkadot: deploy the Individuality SDK personhood stack from [`paritytech/individuality`](https://github.com/paritytech/individuality), ported from that repository's `next-people-paseo` reference runtime and configured in the new `individuality` module.
   - Ring-membership infrastructure: `pallet-chunks-manager` (the Bandersnatch ring-VRF SRS), `pallet-members` (member collections, ring roots, proof verification) and `pallet-members-notifier` (publishes ring roots to subscribing parachains over XCM).
   - Personhood: `pallet-people` (the registry, `PersonalIdentity`/`PersonalAlias` origins), `pallet-people-lite` (device-attestation personhood) and `pallet-dummy-dim` (governance-driven recognition).
-  - Applications: `pallet-game` + `pallet-score` (the in-person meetup game), `pallet-airdrop` and `pallet-nfts` (prizes and attestations), `pallet-honour` (personhood-weighted voting on calls), `pallet-resources` (per-person off-chain resource rationing) and `pallet-coinage` (stablecoin-backed bearer coins held by ring aliases).
+  - Applications: `pallet-game` + `pallet-score` (the in-person meetup game), `pallet-airdrop` (prizes), `pallet-honour` (personhood-weighted voting on calls), `pallet-resources` (per-person off-chain resource rationing) and `pallet-coinage` (stablecoin-backed bearer coins held by ring aliases).
   - Support: `pallet-origin-restriction` rate-limits the anonymous origins the above produce, `pallet-relay-randomness` surfaces relay chain randomness, and `pallet-verify-signature` enables the general transactions those flows are built on.
   - The Individuality origin modifiers and `RestrictOrigin` are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged, so existing signers keep working and `transaction_version` does not move; only general (extrinsic format v5) transactions can select version 1.
   - `indiv-pallet-proof-of-ink`, `indiv-pallet-mob-rule` and `indiv-pallet-storage-initialization` are deliberately **not** deployed. `pallet-mob-rule`'s cases can only be opened by a pallet judging statements through its `StatementOracle` implementation, which is `pallet-proof-of-ink` in the reference runtime, so without it the juror pallet would be inert. `pallet-storage-initialization` is a development-chain bootstrapper that funds hard-coded accounts.
@@ -22,10 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `pallet-members-subscriber` mirrors People Polkadot's ring roots over XCM, so ring-VRF personhood proofs verify locally.
   - `pallet-alias-accounts` binds accounts to context-scoped anonymous aliases, and the `PersonhoodCheck` precompile exposes that check to `pallet-revive` contracts.
   - `pallet-pgas` lets a proven person claim PGAS (a new non-transferable allowance asset, id `2_000_000_000`); `pallet-pgas-allowance` lets PGAS pay the fees of contract calls, and `pallet_revive::PGasDeposit` makes contract storage deposits PGAS-denominated, so a proven person needs no DOT to use contracts. `pallet-assets-freezer` and `pallet-assets-holder` are added on the `Assets` (trust-backed) instance to support this, and `pallet_revive::migrations::v4::Migration` converts the storage deposits of contracts that already exist — it must ship in the same upgrade.
-  - `pallet-dotns-gateway` is the personhood-gated front door to the dotNS name registry, with `pallet-origin-restriction` rate-limiting the anonymous origins it produces.
-  - The Individuality origin modifiers, `RestrictOrigin` and the `ChargePGAS` payment wrapper are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged — Ethereum transactions and legacy signed transactions keep using it — so `transaction_version` does not move.
+  - The Individuality origin modifier and the `ChargePGAS` payment wrapper are added as a **new transaction extension version 1** (`TxExtensionV1`). Version 0 is unchanged — Ethereum transactions and legacy signed transactions keep using it — so `transaction_version` does not move.
 - People Polkadot: make Individuality statement-store and Bulletin long-term-storage limits, including the Bulletin destination and `pallet-transaction-storage` target index, governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
-- Asset Hub Polkadot: make Individuality PGAS claim economics, alias-account windows, and dotNS gateway limits governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+- Asset Hub Polkadot: make Individuality PGAS claim economics and alias-account windows governance-adjustable through `pallet-parameters` (Fellowship or root) ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
 - Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_admin` track for guarding the Prosperity monetary mechanisms (PSM, coinage) ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
 
 ### Changed
@@ -40,6 +39,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- People Polkadot: remove the unused `pallet-nfts` instance.
+- Asset Hub Polkadot: remove the inactive dotNS gateway and its origin-restriction pallet.
 - All runtimes: remove `pallet_xcm::migration::MigrateToLatestXcmVersion`, which ran on every runtime upgrade as the `Permanent` migration. Stored XCM data is already at the current `XCM_VERSION`, so re-running it on each upgrade is pure overhead. The now-empty `Permanent` alias is gone and `SingleBlockMigrations` is just `Unreleased`; a future `XCM_VERSION` bump must add this migration to that release's `Unreleased` list ([#1244](https://github.com/polkadot-fellows/runtimes/pull/1244)).
 
 ## [2.3.2] 23.07.2026
