@@ -419,14 +419,73 @@ fn individuality_storage_parameters_are_governance_mutable() {
 
 #[test]
 fn individuality_cross_runtime_pallet_indices_are_pinned() {
-	use crate::MembersNotifier;
+	use crate::{individuality::ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX, MembersNotifier};
 	use asset_hub_polkadot_runtime::individuality::RingRootsNotifierEndpoint;
 	use frame_support::traits::PalletInfoAccess;
 
 	assert_eq!(MembersNotifier::index(), 69);
 	assert_eq!(RingRootsNotifierEndpoint::get().pallet_index, MembersNotifier::index() as u8,);
 	assert_eq!(asset_hub_polkadot_runtime::MembersSubscriber::index(), 97);
+	assert_eq!(
+		ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX,
+		asset_hub_polkadot_runtime::MembersSubscriber::index() as u8,
+	);
 	assert_eq!(PeopleAirdrops::index(), 74);
+}
+
+#[test]
+fn asset_hub_subscription_whitelist_matches_asset_hub() {
+	use crate::individuality::{
+		asset_hub_subscription_whitelist, LitePeopleRingExponent, MembersFlexibleRingExponent,
+	};
+	use cumulus_primitives_core::ParaId;
+	use frame_support::traits::PalletInfoAccess;
+	use indiv_support::traits::{PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER};
+	use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
+
+	let whitelist = asset_hub_subscription_whitelist();
+	assert_eq!(whitelist.len(), 1);
+	let entry = &whitelist[0];
+	assert_eq!(entry.para_id, ParaId::from(ASSET_HUB_ID));
+	assert_eq!(entry.pallet_index, asset_hub_polkadot_runtime::MembersSubscriber::index() as u8);
+	assert_eq!(
+		entry.collections,
+		vec![
+			(*PEOPLE_IDENTIFIER, MembersFlexibleRingExponent::get().exponent()),
+			(*PEOPLE_LITE_IDENTIFIER, LitePeopleRingExponent::get().exponent()),
+		],
+	);
+	assert!(entry.collections.windows(2).all(|pair| pair[0].0 < pair[1].0));
+}
+
+#[test]
+fn seed_asset_hub_subscription_whitelist_migration_seeds_the_entry() {
+	use crate::{
+		individuality::asset_hub_subscription_whitelist,
+		migrations::SeedAssetHubSubscriptionWhitelist, Runtime, RuntimeGenesisConfig,
+	};
+	use cumulus_primitives_core::ParaId;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use indiv_pallet_members_notifier::{Pallet as MembersNotifierPallet, SubscriptionWhitelist};
+	use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
+	use sp_runtime::BuildStorage;
+
+	let mut ext =
+		sp_io::TestExternalities::new(RuntimeGenesisConfig::default().build_storage().unwrap());
+	ext.execute_with(|| {
+		let para_id = ParaId::from(ASSET_HUB_ID);
+		assert!(SubscriptionWhitelist::<Runtime>::get(para_id).is_none());
+
+		SeedAssetHubSubscriptionWhitelist::on_runtime_upgrade();
+
+		let stored = SubscriptionWhitelist::<Runtime>::get(para_id)
+			.expect("the migration seeds the Asset Hub whitelist entry");
+		let expected = MembersNotifierPallet::<Runtime>::resolve_whitelist_entry(
+			&asset_hub_subscription_whitelist()[0],
+		)
+		.expect("the whitelist entry is well-formed");
+		assert_eq!(stored, expected);
+	});
 }
 
 #[test]

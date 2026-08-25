@@ -55,12 +55,13 @@
 //! 2. `ChunksManager::add_chunks` — upload the chunk pages themselves. This call is *permissionless
 //!    and authorized*, not root: its validity comes from the page hashing to the committed value,
 //!    so anyone can supply the data.
-//! 3. `MembersNotifier::subscribe` (Fellowship or root) — register Asset Hub Polkadot (para 1000)
-//!    as a ring-root subscriber, listing the collections it needs (the people and lite-people
-//!    identifiers with their exponents, in strictly ascending identifier order) and `pallet_index`
-//!    = the `MembersSubscriber` index in Asset Hub Polkadot's `construct_runtime!` (97). Until this
-//!    runs, Asset Hub has no ring roots and every personhood proof there fails. Requires an open
-//!    HRMP channel in both directions.
+//! 3. `MembersNotifier::subscribe_whitelisted` — register Asset Hub Polkadot (para 1000) as a
+//!    ring-root subscriber. This call is *permissionless and authorized*, not governance: the
+//!    upgrade seeds the whitelist entry (see [`asset_hub_subscription_whitelist`]) and the call can
+//!    only consume it exactly as seeded, so anyone may dispatch it. Until this runs, Asset Hub has
+//!    no ring roots and every personhood proof there fails. Requires an open HRMP channel in both
+//!    directions. Governance's `MembersNotifier::subscribe` stays available as the fallback if the
+//!    seeded entry is wrong or already consumed.
 //! 4. `Assets::force_create` (root) for [`StableAssetLocation`], unless HOLLAR is already
 //!    registered locally. `CreateOrigin` is `EnsureNever` on this chain, so root is the only way.
 //!    This is a prerequisite for step 6, which rejects an unknown asset.
@@ -101,10 +102,12 @@ use indiv_pallet_origin_restriction::Allowance;
 use indiv_support::{
 	crypto::{BandersnatchVrfVerifiable, GenerateVerifiable},
 	fungibles::CombineAssetsWithHolder,
-	traits::{Alias, AllocateStorage, Context, Identifier, RevisionIndex, RingExponent, RingIndex},
+	traits::{
+		Alias, AllocateStorage, Context, Identifier, PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER,
+		RevisionIndex, RingExponent, RingIndex,
+	},
 	utils::TypedGetToGet,
 };
-#[cfg(feature = "runtime-benchmarks")]
 use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
@@ -991,6 +994,36 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureSiblingParacha
 parameter_types! {
 	/// Weight charged locally for the `request_replay` call a subscriber dispatches on us.
 	pub ConstantWeight: Weight = Weight::from_parts(10_000, 0);
+}
+
+/// Pallet index of `MembersSubscriber` in Asset Hub Polkadot's `construct_runtime!`.
+pub const ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX: u8 = 97;
+
+parameter_types! {
+	pub AssetHubSubscriptionWhitelist:
+		alloc::vec::Vec<indiv_pallet_members_notifier::GenesisWhitelistEntry> =
+			asset_hub_subscription_whitelist();
+}
+
+/// One-shot subscriptions any signed account may activate with
+/// `MembersNotifier::subscribe_whitelisted`, seeded into storage by
+/// [`SeedAssetHubSubscriptionWhitelist`](crate::migrations::SeedAssetHubSubscriptionWhitelist).
+///
+/// This is what lets Asset Hub Polkadot subscribe without a governance call: the collections,
+/// their exponents and the subscriber pallet index are fixed here, so the permissionless call can
+/// only consume the entry exactly as written. Once consumed, only `ManageOrigin` can re-subscribe.
+///
+/// Identifiers must be strictly ascending, or the entry is rejected as malformed.
+pub fn asset_hub_subscription_whitelist(
+) -> alloc::vec::Vec<indiv_pallet_members_notifier::GenesisWhitelistEntry> {
+	alloc::vec![indiv_pallet_members_notifier::GenesisWhitelistEntry {
+		para_id: ParaId::from(ASSET_HUB_ID),
+		collections: alloc::vec![
+			(*PEOPLE_IDENTIFIER, MembersFlexibleRingExponent::get().exponent()),
+			(*PEOPLE_LITE_IDENTIFIER, LitePeopleRingExponent::get().exponent()),
+		],
+		pallet_index: ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX,
+	}]
 }
 
 impl indiv_pallet_members_notifier::Config for Runtime {
