@@ -1382,10 +1382,6 @@ pub mod dynamic_params {
 	}
 
 	/// Individuality economic and policy parameters.
-	///
-	/// The values below are read from `pallet_parameters` storage at use sites. Re-benchmark the
-	/// affected Individuality pallets in the Individuality SDK repository before release so their
-	/// weights account for those reads; do not regenerate weights in this runtime repository.
 	#[dynamic_pallet_params]
 	#[codec(index = 3)]
 	pub mod individuality {
