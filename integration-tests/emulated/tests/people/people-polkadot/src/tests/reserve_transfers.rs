@@ -340,10 +340,10 @@ fn people_only_trusts_asset_hub_for_asset_hub_native_assets() {
 		rejected(HollarLocation::get(), asset_hub.clone());
 
 		// Nor may Asset Hub vouch for the assets of other chains it merely custodies.
-		rejected(Location::new(1, [Parachain(2000), GeneralIndex(1)]), asset_hub);
+		rejected(Location::new(1, [Parachain(2000), GeneralIndex(1)]), asset_hub.clone());
 		rejected(
 			Location::new(2, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })]),
-			PeoplePolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
+			asset_hub,
 		);
 
 		// And an Asset Hub asset is only accepted when Asset Hub is the one sending it.
