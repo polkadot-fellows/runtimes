@@ -31,6 +31,9 @@ impl_runtime_apis! {
 		fn relay_parent_offset() -> u32 {
 			0
 		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
+		}
 	}
 
 	impl cumulus_primitives_aura::AuraUnincludedSegmentApi<Block> for Runtime {
@@ -403,6 +406,11 @@ impl_runtime_apis! {
 				fn get_asset() -> Asset {
 					Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
 				}
+
+				/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+				fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+					Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+				}
 			}
 
 			parameter_types! {
@@ -512,10 +520,10 @@ impl_runtime_apis! {
 				}
 
 				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-					Ok((
-						Location::new(1, [Parachain(1000)]),
-						Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-					))
+					use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+					// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+					Ok(set_up_worst_case_authorized_alias::<Runtime>())
 				}
 			}
 
@@ -550,6 +558,87 @@ impl_runtime_apis! {
 	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
 		fn parachain_id() -> ParaId {
 			ParachainInfo::parachain_id()
+		}
+	}
+
+	impl sp_transaction_storage_proof::runtime_api::TransactionStorageApi<Block> for Runtime {
+		fn retention_period() -> sp_runtime::traits::NumberFor<Block> {
+			TransactionStorage::retention_period()
+		}
+
+		fn indexed_transactions(
+			block: sp_runtime::traits::NumberFor<Block>,
+		) -> alloc::vec::Vec<sp_transaction_storage_proof::IndexedTransactionInfo> {
+			use sp_transaction_storage_proof::IndexedTransactionInfo;
+
+			TransactionStorage::transactions_at(block)
+				.map(|txs| {
+					txs.into_iter()
+						.map(|tx| IndexedTransactionInfo {
+							content_hash: tx.content_hash,
+							size: tx.size,
+							hashing: tx.hashing.into(),
+							cid_codec: tx.cid_codec,
+							extrinsic_index: tx.extrinsic_index,
+						})
+						.collect()
+				})
+				.unwrap_or_default()
+		}
+	}
+
+	impl pallet_bulletin_transaction_storage_runtime_api::BulletinTransactionStorageApi<Block, AccountId, BlockNumber> for Runtime {
+		fn account_authorization(
+			account: AccountId,
+		) -> Option<pallet_bulletin_transaction_storage_runtime_api::AccountAuthorization<BlockNumber>> {
+			use pallet_bulletin_transaction_storage::AuthorizationScope;
+
+			TransactionStorage::get_active_authorization(&AuthorizationScope::Account(account))
+				.map(|auth| auth.to_account_authorization(auth.extent.extra.bytes_permanent))
+		}
+
+		fn can_store(account: AccountId, data_len: u32) -> bool {
+			TransactionStorage::can_store(&account, data_len)
+		}
+
+		fn can_renew(
+			account: AccountId,
+			entry: pallet_bulletin_transaction_storage::TransactionRef<BlockNumber>,
+		) -> bool {
+			DataRenewal::can_renew(&account, &entry)
+		}
+	}
+
+	impl sp_hop::HopRuntimeApi<Block, AccountId> for Runtime {
+		fn can_account_promote(who: AccountId, data_len: u32) -> bool {
+			HopPromotion::can_account_promote(&who, data_len)
+		}
+
+		fn create_promotion_extrinsic(
+			data: alloc::vec::Vec<u8>,
+			signer: sp_runtime::MultiSigner,
+			signature: sp_runtime::MultiSignature,
+			submit_timestamp: u64,
+		) -> <Block as BlockT>::Extrinsic {
+			use frame_system::offchain::CreateAuthorizedTransaction;
+			<Runtime as CreateAuthorizedTransaction<pallet_bulletin_hop_promotion::Call<Runtime>>>::create_authorized_transaction(
+				pallet_bulletin_hop_promotion::Call::<Runtime>::promote {
+					data,
+					signer,
+					signature,
+					submit_timestamp,
+				}
+				.into(),
+			)
+		}
+
+		fn max_promotion_size() -> u32 {
+			use frame_support::traits::Get;
+			<Runtime as pallet_bulletin_transaction_storage::Config>::MaxTransactionSize::get()
+		}
+
+		fn is_promoted_on_chain(hash: [u8; 32]) -> bool {
+			HopPromotion::is_promoted_on_chain(hash)
 		}
 	}
 }

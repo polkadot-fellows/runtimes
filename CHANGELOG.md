@@ -8,8 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- People Polkadot: align the Individuality SDK dependency pin with `individuality-community` main (`3e4a9a8…`), add `pallet-people-airdrops`, and make lite-person registration fee-backed. The new product-context derivation uses the Polkadot suffix; aliases made with the prior static contexts on zombie-bite forks no longer resolve.
-- Asset Hub Polkadot: align the Individuality SDK dependency pin with `individuality-community` main and adopt the alias-account stale-mapping sweep/offchain worker rework. Collators must run with offchain workers enabled.
+- Bulletin Polkadot: add the storage pallets and business logic ([#1119](https://github.com/polkadot-fellows/runtimes/issues/1119), [#1170](https://github.com/polkadot-fellows/runtimes/pull/1170)).
+- Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
+- All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
+
+- People Polkadot: align the Individuality SDK dependency pin with `individuality-community` `d5b846…` (stable2606), add the on-chain `NetworkSuffix` pallet, `pallet-people-airdrops`, and fee-backed lite-person registration. The new product-context derivation uses the Polkadot suffix; aliases made with the prior static contexts on zombie-bite forks no longer resolve.
+- Asset Hub Polkadot: align the Individuality SDK dependency pin with `individuality-community` `d5b846…` (stable2606), add the on-chain `NetworkSuffix` pallet, and adopt the alias-account stale-mapping sweep/offchain worker rework. Collators must run with offchain workers enabled.
 
 - People Polkadot: deploy the Individuality SDK personhood stack from [`paritytech/individuality`](https://github.com/paritytech/individuality), ported from that repository's `next-people-paseo` reference runtime and configured in the new `individuality` module.
   - Ring-membership infrastructure: `pallet-chunks-manager` (the Bandersnatch ring-VRF SRS), `pallet-members` (member collections, ring roots, proof verification) and `pallet-members-notifier` (publishes ring roots to subscribing parachains over XCM).
@@ -30,9 +34,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Update all runtimes to `polkadot-sdk` `stable2606-2` ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252)).
+- Update all runtimes to `polkadot-sdk` `stable2606-1` ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223)).
+- All system parachains: run the `cumulus_pallet_xcmp_queue` storage migration to v7 (outbound channel status now stores the queued byte size, avoiding per-page checks) ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#12176](https://github.com/paritytech/polkadot-sdk/pull/12176)).
+
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. This matches Asset Hub Polkadot's block-weight configuration.
 
 ### Fixed
+
+- Relay chains and most system parachains: fix `pallet-xcm-benchmarks` worst-case setups (`Transact` batching, `alias_origin`, multi-asset deposits) that were underpricing XCM weights.
 
 - Asset Hub Polkadot & Kusama: fix `pallet-remote-proxy` dropping the newest relay storage root when multiple parachain blocks share one relay parent. `on_validation_data` now skips storing duplicate relay blocks, which used to fill the bounded `BlockToRoot` vector with copies too young to prune and silently drop the newest root, so remote-proxy proofs anchored at recent relay blocks no longer fail with `UnknownProofAnchorBlock` ([#1230](https://github.com/polkadot-fellows/runtimes/issues/1230)).
 - Asset Hub Polkadot: suspend `NextAssetId` while the PGAS migration creates its fixed-id asset, so `force_create` accepts it and the auto-increment sequence resumes unchanged.

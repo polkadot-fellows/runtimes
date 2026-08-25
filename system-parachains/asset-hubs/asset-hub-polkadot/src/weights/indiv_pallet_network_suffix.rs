@@ -8,6 +8,7 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
+#![allow(dead_code)]
 #![allow(missing_docs)]
 
 use core::marker::PhantomData;

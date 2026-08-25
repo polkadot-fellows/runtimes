@@ -26,6 +26,7 @@ mod apis;
 mod benchmarks;
 mod genesis_config_presets;
 pub mod migrations;
+pub mod storage;
 mod weights;
 pub mod xcm_config;
 
@@ -68,7 +69,7 @@ use sp_runtime::{
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
-	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT},
+	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT},
 	polkadot::{
 		consensus::{
 			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
@@ -89,7 +90,9 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// Bulletin uses 24s slot duration.
+/// Bulletin uses a 24s Aura slot duration, spanning 4 relay-chain slots. Blocks are still
+/// authored every 6s (`BLOCK_PROCESSING_VELOCITY` per relay slot), which is the cadence
+/// `HOURS`/`DAYS` measure — do not derive time constants from this value.
 pub const SLOT_DURATION: u64 = 24_000;
 
 /// The address format for describing accounts.
@@ -127,6 +130,8 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			Runtime,
 			pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 		>,
+		storage::ValidateBulletinCalls,
+		storage::StoragePriorityBoost,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 	),
 >;
@@ -160,7 +165,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 2_003_002,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 1,
+	transaction_version: 2,
 	system_version: 1,
 };
 
@@ -309,6 +314,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
@@ -463,6 +469,49 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type RuntimeCall = RuntimeCall;
+}
+
+impl<C> frame_system::offchain::CreateTransaction<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type Extension = TxExtension;
+
+	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
+		generic::UncheckedExtrinsic::new_transaction(call, extension)
+	}
+}
+
+impl<C> frame_system::offchain::CreateAuthorizedTransaction<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	fn create_extension() -> Self::Extension {
+		cumulus_pallet_weight_reclaim::StorageWeightReclaim::new((
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
+				pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
+			),
+			storage::ValidateBulletinCalls::default(),
+			storage::StoragePriorityBoost::default(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+		))
+	}
+}
+
 #[frame_support::runtime]
 mod runtime {
 	#[runtime::runtime]
@@ -523,6 +572,14 @@ mod runtime {
 	pub type CumulusXcm = cumulus_pallet_xcm;
 	#[runtime::pallet_index(34)]
 	pub type MessageQueue = pallet_message_queue;
+
+	// The main business of the Bulletin chain.
+	#[runtime::pallet_index(40)]
+	pub type TransactionStorage = pallet_bulletin_transaction_storage;
+	#[runtime::pallet_index(41)]
+	pub type HopPromotion = pallet_bulletin_hop_promotion;
+	#[runtime::pallet_index(42)]
+	pub type DataRenewal = pallet_bulletin_data_renewal;
 }
 
 cumulus_pallet_parachain_system::register_validate_block! {

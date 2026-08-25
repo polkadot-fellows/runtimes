@@ -126,6 +126,7 @@ pub mod migrations {
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	);
 
@@ -326,6 +327,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
@@ -818,6 +820,39 @@ mod benches {
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
 		}
+
+		/// `n` distinct coretime regions: `Broker` is the only asset kind this chain holds more
+		/// than one of, and `RegionTransactor` is the last `AssetTransactors` entry, so every
+		/// deposit falls through `FungibleTransactor` first.
+		fn get_assets(n: u32) -> Assets {
+			(0..n)
+				.map(|index| {
+					// A distinct `core` per region, so the `RegionId`s (and therefore the
+					// `AssetInstance`s) stay distinct and the set does not collapse.
+					//
+					// Owner `None`, because `nonfungible::Mutate::mint_into` only accepts a
+					// region that is currently unowned, i.e. sitting in the holding register.
+					let region_id = pallet_broker::Pallet::<Runtime>::issue(
+						index as CoreIndex,
+						0,
+						CoreMask::complete(),
+						42,
+						None,
+						None,
+					);
+					Asset {
+						id: AssetId(xcm_config::BrokerPalletLocation::get()),
+						fun: NonFungible(Index(region_id.into())),
+					}
+				})
+				.collect::<Vec<_>>()
+				.into()
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
 	}
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
@@ -918,10 +953,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1000)]),
-				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
@@ -934,7 +969,7 @@ mod benches {
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
-	pub use pallet_broker::CoreMask;
+	pub use pallet_broker::{CoreIndex, CoreMask};
 	pub use sp_storage::TrackedStorageKey;
 }
 
@@ -955,6 +990,9 @@ impl_runtime_apis! {
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
 			0
+		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
 		}
 	}
 

@@ -171,19 +171,27 @@ jobs:
             cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks -q --locked
           fi
           # run benchmarking
+          # TODO: https://github.com/paritytech/polkadot-sdk/issues/12968
+          if [ "$EXCLUDE_PALLETS_JSON" = "null" ] || [ -z "$EXCLUDE_PALLETS_JSON" ]; then
+            EXCLUDE_PALLETS=""
+          else
+            EXCLUDE_PALLETS_LIST=$(echo "$EXCLUDE_PALLETS_JSON" | jq -r 'join(",")')
+            EXCLUDE_PALLETS=" --exclude-pallets ${EXCLUDE_PALLETS_LIST}"
+          fi
           if [ "$EXCLUDE_EXTRINSICS_JSON" = "null" ] || [ -z "$EXCLUDE_EXTRINSICS_JSON" ]; then
             EXCLUDE_EXTRINSICS=""
           else
             EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
             EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
           RUSTFLAGS: "-C debug-assertions"
           RUNTIME_LOG: "error"
           PACKAGE: ${{ matrix.runtime.package }}
           EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
+          EXCLUDE_PALLETS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_pallets) }}
           EXCLUDE_EXTRINSICS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}
 
   # Job required by "confirmTestPassed"
@@ -537,6 +545,7 @@ jobs:
               - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
               - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
               - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "bulletin-polkadot",    pet_key: "bulletinPolkadot",     port: 9006, endpoint_var: "BULLETINPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:

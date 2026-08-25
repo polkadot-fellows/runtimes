@@ -17,6 +17,10 @@
 //! Shared types between system-parachains runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 pub mod randomness;
 
 /// Extra runtime APIs.

@@ -12,6 +12,7 @@ publish = false
 frame-support = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
@@ -27,16 +28,19 @@ bulletin-polkadot-runtime = { workspace = true }
 people-polkadot-runtime = { workspace = true }
 indiv-support = { workspace = true, default-features = true }
 indiv-pallet-resources = { workspace = true, default-features = true }
+pallet-bulletin-transaction-storage = { workspace = true, default-features = true }
 polkadot-system-emulated-network = { workspace = true }
 
 [features]
 runtime-benchmarks = [
 	"bulletin-polkadot-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
 	"indiv-pallet-resources/runtime-benchmarks",
 	"indiv-support/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-bulletin-transaction-storage/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"people-polkadot-runtime/runtime-benchmarks",
