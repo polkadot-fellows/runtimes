@@ -1754,21 +1754,7 @@ pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
-/// The `TransactionExtension` to the basic transaction logic, version 1: version 0 plus the
-/// Individuality pipeline.
-///
-/// Only *general* (extrinsic format v5) transactions can select this version, by encoding `1` as
-/// their extension version. That is what the Individuality flows use anyway, since they carry no
-/// account signature in the extrinsic envelope.
-///
-/// The leading sub-tuple holds the *origin modifiers*: extensions that replace the transaction's
-/// origin with one authenticated by a ring-VRF personhood proof rather than an account signature.
-/// They must all run before `CheckNonce` (which only applies to signed origins) and before the
-/// payment extension.
-///
-/// Because those origins pay no account fee, `RestrictOrigin` follows immediately after to charge
-/// them against a per-origin allowance instead. `ChargePGAS` wraps the ordinary payment extension
-/// so that eligible calls can settle their fee in PGAS instead of DOT.
+/// The `TransactionExtension` pipeline version 1: latest.
 pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
