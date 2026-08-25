@@ -2104,6 +2104,34 @@ mod benches {
 				Location::new(0, [PalletInstance(50), GeneralIndex(asset_id.into())]);
 			Asset { id: AssetId(asset_location), fun: Fungible(amount) }
 		}
+
+		/// `n` distinct `ForeignAssets`: `Location`-keyed, so the priciest kind to deposit.
+		fn get_assets(n: u32) -> XcmAssets {
+			// Unfunded: `force_create` touches neither the owner's balance nor its references.
+			let owner: AccountId = frame_benchmarking::whitelisted_caller();
+			(0..n)
+				.map(|index| {
+					// Sibling-para location, so this resolves to `ForeignFungiblesTransactor`.
+					let asset_location =
+						Location::new(1, [Parachain(2000), GeneralIndex(index.into())]);
+					// `sufficient`, so depositing needs no native provider reference.
+					assert_ok!(ForeignAssets::force_create(
+						RuntimeOrigin::root(),
+						asset_location.clone(),
+						owner.clone().into(),
+						true,
+						1u128,
+					));
+					Asset { id: AssetId(asset_location), fun: Fungible(1_000_000u128) }
+				})
+				.collect::<Vec<_>>()
+				.into()
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
 	}
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
@@ -2321,10 +2349,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1001)]),
-				Location::new(1, [Parachain(1001), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
