@@ -13,23 +13,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! The current, intentionally failing People-to-Bulletin long-term-storage protocol.
+//! The People-to-Bulletin long-term-storage grant.
 
 use crate::*;
+use emulated_integration_tests_common::{impls::assert_expected_events, macros::pallet_message_queue};
 use indiv_pallet_resources::{
 	types::MembershipCollection, Origin as ResourcesOrigin, SpentLongTermStorageAliases,
 };
 use indiv_support::utils::BigEndianU32;
 
-/// This is the silent-failure trap: People accepts a long-term-storage allocation and sends an
-/// XCM `Transact`, but Bulletin does not include `pallet-transaction-storage` at the configured
-/// index. Once Bulletin deploys that pallet, replace the receiver assertion with the created
-/// authorization state and keep the sender-side assertion.
+/// A long-term-storage claim on People authorizes the same account on Bulletin.
+///
+/// People authorizes the allocation locally and sends an XCM `Transact` to Bulletin's
+/// `pallet-transaction-storage`. Bulletin's XCM barrier grants the People chain free execution for
+/// Proof-of-Personhood authorizations, so the `Transact` dispatches `authorize_account` and records
+/// the account authorization.
+///
+/// Asserts People recorded the claim (`SpentLongTermStorageAliases`, `LongTermStorageClaimed`) and
+/// Bulletin authorized the account (`TransactionStorage::AccountAuthorized`).
 #[test]
-fn people_long_term_storage_grant_is_not_applied_on_bulletin_yet() {
+fn people_long_term_storage_grant_is_applied_on_bulletin() {
 	let who: AccountId = [42; 32].into();
 
 	PeoplePolkadot::execute_with(|| {
+		type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
 		let alias = [7; 32];
 		assert_ok!(people_polkadot_runtime::Resources::claim_long_term_storage(
 			people_polkadot_runtime::RuntimeOrigin::from(
@@ -45,29 +53,36 @@ fn people_long_term_storage_grant_is_not_applied_on_bulletin_yet() {
 			BigEndianU32::from(0),
 			alias,
 		));
-		assert!(people_polkadot_runtime::System::events().iter().any(|record| {
-			matches!(
-				&record.event,
-				people_polkadot_runtime::RuntimeEvent::Resources(
+		assert_expected_events!(
+			PeoplePolkadot,
+			vec![
+				RuntimeEvent::Resources(
 					indiv_pallet_resources::Event::LongTermStorageClaimed { account, .. }
-				) if account == &who
-			)
-		}));
+				) => {
+					account: *account == who,
+				},
+			]
+		);
 	});
 
 	BulletinPolkadot::execute_with(|| {
-		// The queue rejects the message before dispatch: Bulletin has no TransactionStorage runtime
-		// call to decode. This is the current silent-failure trap to flip after deployment.
-		assert!(bulletin_polkadot_runtime::System::events().iter().any(|record| {
-			matches!(
-				record.event,
-				bulletin_polkadot_runtime::RuntimeEvent::MessageQueue(
-					pallet_message_queue::Event::ProcessingFailed {
-						error: frame_support::traits::ProcessMessageError::Unsupported,
+		type RuntimeEvent = <BulletinPolkadot as Chain>::RuntimeEvent;
+
+		assert_expected_events!(
+			BulletinPolkadot,
+			vec![
+				RuntimeEvent::TransactionStorage(
+					pallet_bulletin_transaction_storage::Event::AccountAuthorized {
+						who: authorized,
 						..
 					}
-				)
-			)
-		}));
+				) => {
+					authorized: *authorized == who,
+				},
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+			]
+		);
 	});
 }
