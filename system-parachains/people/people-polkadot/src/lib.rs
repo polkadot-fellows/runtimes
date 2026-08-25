@@ -1071,9 +1071,14 @@ impl_runtime_apis! {
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
 			// DOT, plus every asset governance registered a rate for.
-			let acceptable_assets = core::iter::once(AssetId(xcm_config::RelayLocation::get()))
+			// `AssetKind` is an arbitrary `Location`, so a rate may also be registered for the
+			// relay location itself; skip it there to avoid reporting DOT twice.
+			let relay_location = xcm_config::RelayLocation::get();
+			let acceptable_assets = core::iter::once(AssetId(relay_location.clone()))
 				.chain(
-					pallet_asset_rate::ConversionRateToNative::<Runtime>::iter_keys().map(AssetId),
+					pallet_asset_rate::ConversionRateToNative::<Runtime>::iter_keys()
+						.filter(|asset_kind| asset_kind != &relay_location)
+						.map(AssetId),
 				)
 				.collect::<Vec<_>>();
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
