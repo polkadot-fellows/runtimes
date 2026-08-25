@@ -91,7 +91,7 @@ use system_parachains_constants::{
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId, BodyId},
+	latest::prelude::{AssetId, BodyId, Location},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
 	VersionedXcm,
 };
@@ -133,7 +133,7 @@ pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckEra<Runtime>,
 		frame_system::CheckNonce<Runtime>,
 		frame_system::CheckWeight<Runtime>,
-		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 	),
 >;
@@ -180,7 +180,7 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckEra<Runtime>,
 		frame_system::CheckNonce<Runtime>,
 		frame_system::CheckWeight<Runtime>,
-		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 	),
 >;
@@ -751,9 +751,14 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment = 11,
 		Assets: pallet_assets = 12,
 		AssetRate: pallet_asset_rate = 13,
-		AssetTxPayment: pallet_asset_tx_payment = 14,
+		// 14: previously used for `pallet-asset-tx-payment`. Its asset-conversion successor keeps
+		// the pallet name and the `ChargeAssetTxPayment` encoding, but its `AssetTxFeePaid` event
+		// has a different shape, so it takes a fresh index rather than reusing this one.
 		AssetsHolder: pallet_assets_holder = 15,
 		OriginRestriction: indiv_pallet_origin_restriction = 16,
+		AssetConversion: pallet_asset_conversion = 17,
+		PoolAssets: pallet_assets::<Instance1> = 18,
+		AssetTxPayment: pallet_asset_conversion_tx_payment = 19,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -817,9 +822,11 @@ mod benches {
 		// Substrate
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
-		[pallet_asset_tx_payment, AssetTxPayment]
+		[pallet_asset_conversion, AssetConversion]
+		[pallet_asset_conversion_tx_payment, AssetTxPayment]
 		[pallet_asset_rate, AssetRate]
 		[pallet_assets, Assets]
+		[pallet_assets, Pool]
 		[pallet_balances, Balances]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]
@@ -1047,6 +1054,9 @@ mod benches {
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
+	/// The liquidity-token instance of `pallet_assets`, benchmarked separately from the `Assets`
+	/// instance because its asset id and storage layout differ.
+	pub type Pool = pallet_assets::Pallet<Runtime, crate::assets::PoolAssetsInstance>;
 	pub use frame_support::traits::WhitelistedStorageKeys;
 	pub use sp_storage::TrackedStorageKey;
 }
@@ -1123,7 +1133,7 @@ where
 			)),
 			frame_system::CheckNonce::<Runtime>::from(0),
 			frame_system::CheckWeight::<Runtime>::new(),
-			pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		)
 			.into()
@@ -1294,7 +1304,20 @@ impl_runtime_apis! {
 
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let acceptable_assets = vec![AssetId(xcm_config::RelayLocation::get())];
+			let native_asset = xcm_config::RelayLocation::get();
+			// DOT, plus every asset in a pool with it, plus every asset governance registered a
+			// rate for. The last two can overlap, so deduplicate.
+			let mut acceptable_assets = vec![AssetId(native_asset.clone())];
+			acceptable_assets.extend(
+				assets_common::PoolAdapter::<Runtime>::get_assets_in_pool_with(native_asset)
+					.map_err(|()| XcmPaymentApiError::VersionedConversionFailed)?
+			);
+			for rated in pallet_asset_rate::ConversionRateToNative::<Runtime>::iter_keys() {
+				let rated = AssetId(rated);
+				if !acceptable_assets.contains(&rated) {
+					acceptable_assets.push(rated);
+				}
+			}
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 
@@ -1311,6 +1334,30 @@ impl_runtime_apis! {
 		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>, asset_id: VersionedAssetId) -> Result<VersionedAssets, XcmPaymentApiError> {
 			type AssetExchanger = <xcm_config::XcmConfig as xcm_executor::Config>::AssetExchanger;
 			PolkadotXcm::query_delivery_fees::<AssetExchanger>(destination, message, asset_id)
+		}
+	}
+
+	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, Location> for Runtime {
+		fn quote_price_exact_tokens_for_tokens(
+			asset1: Location,
+			asset2: Location,
+			amount: Balance,
+			include_fee: bool,
+		) -> Option<Balance> {
+			AssetConversion::quote_price_exact_tokens_for_tokens(asset1, asset2, amount, include_fee)
+		}
+
+		fn quote_price_tokens_for_exact_tokens(
+			asset1: Location,
+			asset2: Location,
+			amount: Balance,
+			include_fee: bool,
+		) -> Option<Balance> {
+			AssetConversion::quote_price_tokens_for_exact_tokens(asset1, asset2, amount, include_fee)
+		}
+
+		fn get_reserves(asset1: Location, asset2: Location) -> Option<(Balance, Balance)> {
+			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
 

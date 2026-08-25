@@ -44,6 +44,7 @@ indiv-pallet-score = { workspace = true }
 indiv-support = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-conversion = { workspace = true }
+pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-assets-holder = { workspace = true }
 pallet-aura = { workspace = true }
@@ -58,7 +59,6 @@ pallet-parameters = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
-pallet-asset-tx-payment = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-utility = { workspace = true }
@@ -156,9 +156,9 @@ std = [
 	"indiv-pallet-score/std",
 	"indiv-support/std",
 	"log/std",
+	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-rate/std",
-	"pallet-asset-tx-payment/std",
 	"pallet-assets-holder/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
@@ -242,9 +242,9 @@ runtime-benchmarks = [
 	"indiv-pallet-resources/runtime-benchmarks",
 	"indiv-pallet-score/runtime-benchmarks",
 	"indiv-support/runtime-benchmarks",
+	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
-	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets-holder/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -304,9 +304,9 @@ try-runtime = [
 	"indiv-pallet-relay-randomness/try-runtime",
 	"indiv-pallet-resources/try-runtime",
 	"indiv-pallet-score/try-runtime",
+	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
-	"pallet-asset-tx-payment/try-runtime",
 	"pallet-assets-holder/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
