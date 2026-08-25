@@ -1282,10 +1282,9 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 		match key {
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
-			Individuality(_) => EitherOfDiverse::<
-				individuality::RootOrFellows,
-				TechnicalMaintenance,
-			>::ensure_origin(origin.clone())
+			Individuality(_) => individuality::RootOrFellowsOrTechnicalMaintenance::ensure_origin(
+				origin.clone(),
+			)
 			.map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
@@ -1400,9 +1399,6 @@ pub mod dynamic_params {
 		/// Seconds for which an alias proof remains valid.
 		#[codec(index = 4)]
 		pub static AliasProofValidityWindow: u64 = 300;
-		/// Deprecated: retained for SCALE compatibility with pre-sweep stored parameters.
-		#[codec(index = 5)]
-		pub static AliasCleanupGracePeriod: u64 = 3600;
 		/// Maximum weight available to one dotNS registry-contract call.
 		#[codec(index = 6)]
 		pub static DotnsMaxContractCallWeight: Weight =
@@ -3116,8 +3112,6 @@ mod tests {
 			);
 			set_individuality_parameter!(AliasProofValidityWindow, u64::MAX);
 			assert_eq!(dynamic_params::individuality::AliasProofValidityWindow::get(), u64::MAX);
-			set_individuality_parameter!(AliasCleanupGracePeriod, 0u64);
-			assert_eq!(dynamic_params::individuality::AliasCleanupGracePeriod::get(), 0);
 			set_individuality_parameter!(AliasFee, Some(Balance::MAX));
 			assert_eq!(dynamic_params::individuality::AliasFee::get(), Some(Balance::MAX));
 			set_individuality_parameter!(AliasFee, None);

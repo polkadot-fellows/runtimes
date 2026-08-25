@@ -46,14 +46,14 @@
 //!    `MembersNotifier::subscribe` naming this chain and the `MembersSubscriber` pallet index (97);
 //!    there is no local call to make. Until the first batch of roots arrives, every personhood
 //!    proof on this chain fails. Requires an open HRMP channel in both directions.
-//! 3. `DotnsGateway::set_dispatcher_address` (Fellowship or root) — point the gateway at the deployed
-//!    `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot register any name until this
-//!    is set, so the dotNS registry contract has to be deployed first.
+//! 3. `DotnsGateway::set_dispatcher_address` (Fellowship, root, or TechnicalMaintenance) — point
+//!    the gateway at the deployed `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot
+//!    register any name until this is set, so the dotNS registry contract has to be deployed first.
 //! 4. Set the governance-mutable alias fee if desired, then run collators with offchain workers
 //!    enabled so the alias-account stale-mapping sweep can submit authorized maintenance calls.
 //!
-//! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship or root) to admit
-//! an attestation provider.
+//! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship, root, or
+//! TechnicalMaintenance) to admit an attestation provider.
 
 use super::*;
 
@@ -85,9 +85,14 @@ pub mod time {
 	pub const DAYS: BlockNumber = HOURS * 24;
 }
 
-/// Root or the Technical Fellowship voice on Collectives may administer Individuality settings.
+/// Root, the Technical Fellowship voice, or TechnicalMaintenance may administer Individuality
+/// settings.
 pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
+
+/// The full administration origin shared by Individuality pallet managers and dynamic parameters.
+pub type RootOrFellowsOrTechnicalMaintenance =
+	EitherOfDiverse<RootOrFellows, TechnicalMaintenance>;
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
@@ -278,8 +283,8 @@ impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type MaxValiditySeconds = dynamic_params::individuality::DotnsMaxValiditySeconds;
 	type MaxFutureSkewSeconds = dynamic_params::individuality::DotnsMaxFutureSkewSeconds;
 	type UnixTime = Timestamp;
-	type AttestationAllowanceManager = RootOrFellows;
-	type DispatcherAddressManager = RootOrFellows;
+	type AttestationAllowanceManager = RootOrFellowsOrTechnicalMaintenance;
+	type DispatcherAddressManager = RootOrFellowsOrTechnicalMaintenance;
 	type AttestationSignature = Signature;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::DotnsGatewayBenchHelper;
