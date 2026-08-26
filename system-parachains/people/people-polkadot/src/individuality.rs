@@ -133,9 +133,6 @@ pub type StableAssetLocation = HollarLocation;
 
 /// The full-featured fungibles implementation, combining `pallet-assets` balances with the hold
 /// functionality supplied by `pallet-assets-holder`.
-///
-/// `pallet-assets` alone does not implement `fungibles::MutateHold`, which coinage requires in
-/// order to lock the asset backing a coin.
 pub type AssetsWithHolder = CombineAssetsWithHolder<Assets, AssetsHolder>;
 
 /// A `fungible` (single-asset) view of [`StableAssetLocation`], with hold support.
