@@ -60,8 +60,7 @@ pub mod time {
 	pub const DAYS: BlockNumber = HOURS * 24;
 }
 
-/// Root, the Technical Fellowship voice, or TechnicalMaintenance may administer Individuality
-/// settings.
+/// Root or Technical Fellowship voice
 pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
