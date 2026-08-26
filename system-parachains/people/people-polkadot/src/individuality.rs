@@ -94,8 +94,8 @@ use crate::{
 /// functionality supplied by `pallet-assets-holder`.
 pub type AssetsWithHolder = CombineAssetsWithHolder<Assets, AssetsHolder>;
 
-/// A `fungible` (single-asset) view of [`HollarLocation`], with hold support.
-pub type FungibleStableAsset = ItemOf<AssetsWithHolder, HollarLocation, AccountId>;
+/// A `fungible` view of HOLLAR, with hold support.
+pub type FungibleHollar = ItemOf<AssetsWithHolder, HollarLocation, AccountId>;
 
 /// Wall-clock source used by the pallet `Config`s in this module.
 #[cfg(not(feature = "runtime-benchmarks"))]
@@ -274,7 +274,7 @@ impl indiv_pallet_score::Config for Runtime {
 	type Suffix = NetworkSuffix;
 	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
 	type ScorePotId = ScorePotId;
-	type Currency = FungibleStableAsset;
+	type Currency = FungibleHollar;
 	type CurrencyLocationInfo = HollarLocation;
 	type ManagerOrigin = RootOrFellows;
 	type MaxPayoutRoundSchedules = ConstU32<10>;
