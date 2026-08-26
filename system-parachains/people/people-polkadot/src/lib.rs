@@ -693,9 +693,6 @@ impl pallet_verify_signature::BenchmarkHelper<Signature, AccountId>
 	}
 }
 
-/// Lets a *general* transaction carry its signature inside [`TxExtensionV1`] rather than in the
-/// extrinsic envelope. The Individuality origin modifiers are built on general transactions, so
-/// this is what authenticates the signer they read.
 impl pallet_verify_signature::Config for Runtime {
 	type Signature = Signature;
 	type AccountIdentifier = sp_runtime::MultiSigner;
