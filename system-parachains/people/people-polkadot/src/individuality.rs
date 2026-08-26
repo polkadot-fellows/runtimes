@@ -801,7 +801,6 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type MemberService = Members;
 	type RecyclerRingExponent = RecyclerRingExponent;
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
-
 	type NativeFungible = Balances;
 	type Fungibles = AssetsWithHolder;
 	type AdminOrigin = RootOrFellows;
