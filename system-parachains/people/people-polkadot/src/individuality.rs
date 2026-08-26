@@ -40,46 +40,6 @@
 //! * [`indiv_pallet_origin_restriction`] rate-limits the anonymous origins the extensions above
 //!   produce, since those origins pay no fee from an account.
 //! * [`indiv_pallet_relay_randomness`] surfaces relay chain randomness, used to seed airdrop draws.
-//!
-//! # Deployment steps
-//!
-//! Enacting the runtime upgrade activates none of this on its own: the ring-VRF machinery is inert
-//! until the SRS is on chain, Asset Hub cannot verify anything until it is subscribed, and the
-//! value-carrying flows need their assets and accounts set up. In order:
-//!
-//! 1. `ChunksManager::set_chunk_page_hashes` (Fellowship or root) — commit the expected hash of
-//!    each SRS chunk page, per ring exponent. This must come first: `add_chunks` rejects any page
-//!    that has no committed hash to match against. Needed for every exponent this runtime uses:
-//!    [`MembersFlexibleRingExponent`] and [`LitePeopleRingExponent`] (`R2e9`), plus
-//!    [`RecyclerRingExponent`] and [`PaidUnloadTokenRingExponent`] (`R2e10`) for coinage.
-//! 2. `ChunksManager::add_chunks` — upload the chunk pages themselves. This call is *permissionless
-//!    and authorized*, not root: its validity comes from the page hashing to the committed value,
-//!    so anyone can supply the data.
-//! 3. `MembersNotifier::subscribe` (Fellowship or root) — register Asset Hub Polkadot (para 1000)
-//!    as a ring-root subscriber, listing the collections it needs (the people and lite-people
-//!    identifiers with their exponents, in strictly ascending identifier order) and `pallet_index`
-//!    = the `MembersSubscriber` index in Asset Hub Polkadot's `construct_runtime!` (97). Until this
-//!    runs, Asset Hub has no ring roots and every personhood proof there fails. Requires an open
-//!    HRMP channel in both directions.
-//! 4. `Assets::force_create` (root) for [`StableAssetLocation`], unless HOLLAR is already
-//!    registered locally. `CreateOrigin` is `EnsureNever` on this chain, so root is the only way.
-//!    This is a prerequisite for step 6, which rejects an unknown asset.
-//! 5. `Assets::force_set_metadata` (root) — set the HOLLAR asset metadata after creating it.
-//! 6. Mint the coinage pallet account at least HOLLAR's minimum balance, then call
-//!    `Coinage::create_sufficient_instance` (Fellowship or root) with [`StableAssetLocation`] and
-//!    its `$0.01` asset unit. The public pallet uses explicit, permanent instances rather than a
-//!    single globally selected backing asset.
-//! 7. Fund the pallet-derived accounts that pay out: [`GameAirdropSource`] (`pop/gads`) with the
-//!    airdrop asset, and the [`ScorePotId`] (`scorepot`) pot for score cash-outs. Both are derived
-//!    accounts nobody controls, so they can only be funded by transfer.
-//! 8. `Game::schedule_games` (Fellowship or root) — no meetup game exists until one is scheduled,
-//!    so `pallet-game` and `pallet-score` stay dormant without this.
-//! 9. `PeopleLite::set_attestation_allowance` (Fellowship or root) — admit a device-attestation
-//!    provider.
-//! 10. Run collators with offchain workers enabled: `PeopleAirdrops` schedules and executes its
-//!     maintenance through an offchain worker.
-//!
-//! `DummyDim`'s recognition calls (Fellowship or root) grant personhood directly.
 
 use super::*;
 
