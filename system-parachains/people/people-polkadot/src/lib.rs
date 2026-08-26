@@ -699,10 +699,7 @@ impl pallet_verify_signature::BenchmarkHelper<Signature, AccountId>
 impl pallet_verify_signature::Config for Runtime {
 	type Signature = Signature;
 	type AccountIdentifier = sp_runtime::MultiSigner;
-	// TODO: generate a local weights file for this pallet, like every other pallet in this runtime.
-	// It is already listed in `benches!`, but the weights come from upstream's generic Substrate
-	// measurements rather than from this runtime's own benchmark run.
-	type WeightInfo = pallet_verify_signature::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = VerifySignatureBenchmarkHelper;
 }
