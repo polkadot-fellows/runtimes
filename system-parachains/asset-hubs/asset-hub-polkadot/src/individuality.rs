@@ -44,12 +44,7 @@ use indiv_support::traits::{Context, Identifier, RingIndex};
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
 
-/// Wall-clock durations expressed in block numbers.
-///
-/// Asset Hub Polkadot authors a block every
-/// `RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY` = 2s under elastic scaling. The
-/// `MINUTES`/`HOURS`/`DAYS` this runtime imports from `system_parachains_constants::async_backing`
-/// assume a 6s block, so using them for the durations below would silently scale them by 3x.
+/// Wall-clock durations expressed in parachain block numbers.
 pub mod time {
 	use super::BlockNumber;
 	use system_parachains_constants::polkadot::consensus::{
