@@ -71,6 +71,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, ConstI8, ConstU16, Convert},
 };
 use sp_statement_store::StatementAllowance;
+use polkadot_runtime_constants::time::{DAYS as RC_DAYS, MINUTES as RC_MINUTES};
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
 // this module configures.
 #[cfg(feature = "runtime-benchmarks")]
@@ -88,35 +89,6 @@ use crate::{
 	assets::hollar::{HOLLAR_UNITS, HollarLocation},
 	parameters::dynamic_params,
 };
-
-/// Wall-clock durations expressed in parachain block numbers.
-pub mod time {
-	use super::BlockNumber;
-	use system_parachains_constants::polkadot::consensus::{
-		RELAY_CHAIN_SLOT_DURATION_MILLIS, elastic_scaling::BLOCK_PROCESSING_VELOCITY,
-	};
-
-	/// Target block time, in milliseconds.
-	pub const MILLISECS_PER_BLOCK: BlockNumber =
-		RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY;
-
-	pub const MINUTES: BlockNumber = 60_000 / MILLISECS_PER_BLOCK;
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	pub const DAYS: BlockNumber = HOURS * 24;
-}
-
-/// Wall-clock durations expressed in *relay chain* block numbers.
-///
-/// For the few parameters that are compared against a `RelaychainDataProvider` block number rather
-/// than this chain's own. Mixing the two silently scales the duration by 3x.
-pub mod relay_time {
-	use super::BlockNumber;
-	use system_parachains_constants::polkadot::consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS;
-
-	pub const MINUTES: BlockNumber = 60_000 / RELAY_CHAIN_SLOT_DURATION_MILLIS;
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	pub const DAYS: BlockNumber = HOURS * 24;
-}
 
 /// The stablecoin backing the value-carrying flows of this module: juror rewards, score cash-outs
 /// and, once nominated by root, coins.
@@ -258,7 +230,7 @@ impl indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature> for PeopleL
 }
 
 parameter_types! {
-	pub const StaleAliasCleanupInterval: BlockNumber = 5 * time::MINUTES;
+	pub const StaleAliasCleanupInterval: BlockNumber = 5 * RC_MINUTES;
 }
 
 impl indiv_pallet_people::Config for Runtime {
@@ -369,7 +341,7 @@ impl indiv_pallet_game::Config for Runtime {
 	type ManagerOrigin = RootOrFellows;
 	type InviteIssuer = RootOrFellows;
 	type EnsureLiteAlias = indiv_pallet_people_lite::EnsureLiteAliasInContext<Runtime>;
-	type NonPlayingKickoutTime = ConstU32<{ 90 * time::DAYS }>;
+	type NonPlayingKickoutTime = ConstU32<{ 90 * RC_DAYS }>;
 	type NativeFungible = Balances;
 	type PlayDeposit = HoldConsideration<
 		AccountId,
