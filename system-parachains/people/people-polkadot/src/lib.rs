@@ -715,12 +715,6 @@ impl pallet_verify_signature::Config for Runtime {
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
-//
-// Individuality pallet indices match the `next-people-paseo` reference runtime of
-// `paritytech/individuality` wherever the index was still free here, so that a chain can be
-// migrated between the two without renumbering pallets. `RelayRandomness` and `OriginRestriction`
-// could not keep their reference indices (5 and 13) because `WeightReclaim` and `AssetRate` already
-// occupy them.
 construct_runtime!(
 	pub enum Runtime
 	{
