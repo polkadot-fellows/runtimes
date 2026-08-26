@@ -89,12 +89,7 @@ use crate::{
 	parameters::dynamic_params,
 };
 
-/// Wall-clock durations expressed in block numbers.
-///
-/// People Polkadot authors a block every
-/// `RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY` = 2s under elastic scaling. The
-/// `MINUTES`/`HOURS`/`DAYS` re-exported by `parachains_common` assume a 12s block and so cannot be
-/// used for the durations below.
+/// Wall-clock durations expressed in parachain block numbers.
 pub mod time {
 	use super::BlockNumber;
 	use system_parachains_constants::polkadot::consensus::{
