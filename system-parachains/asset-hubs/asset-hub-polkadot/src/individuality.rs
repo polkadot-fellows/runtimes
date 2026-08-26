@@ -72,10 +72,6 @@ pub type RootOrFellowsOrTechnicalMaintenance =
 ///
 /// The id sits far above the `AutoIncAssetId` range so that it can never collide with a
 /// user-registered trust-backed asset.
-///
-/// NOTE: what actually keeps this id unreachable by a signed caller is `pallet-assets`' `id ==
-/// NextAssetId` guard, not the size of the id. That guard also prevents the asset from being
-/// *created* at this id — see the `CreatePgasAsset` TODO in `migrations.rs`.
 pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 2_000_000_000;
 
 parameter_types! {
