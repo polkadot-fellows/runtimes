@@ -151,10 +151,7 @@ parameter_types! {
 	/// Page size for the ring-VRF SRS chunk storage.
 	pub const ChunkPageSize: u32 = 255;
 
-	/// Largest ring exponent usable by `Flexible` collections in `pallet-members`, which is also
-	/// the exponent of the people ring. `R2e9` reserves 257 of the 2^9 domain slots for
-	/// proof-system overhead (blinding and internal rows), giving an effective capacity of 255
-	/// members per ring.
+	/// Largest ring exponent usable by `Flexible` collections in `pallet-members`.
 	pub const MembersFlexibleRingExponent: RingExponent = RingExponent::R2e9;
 
 	/// Ring exponent for the lite people collection.
