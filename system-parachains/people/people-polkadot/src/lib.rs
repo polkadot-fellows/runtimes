@@ -348,8 +348,6 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Runtime {
 	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
-	// `pallet-relay-randomness` snapshots the relay chain randomness out of the relay state proof
-	// every time a new relay parent is validated.
 	type OnSystemEvent = RelayRandomness;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type OutboundXcmpMessageSource = XcmpQueue;
