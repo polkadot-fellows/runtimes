@@ -826,7 +826,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type WeightToFee = CoinageWeightToFee;
 	type OffchainWorkerInterval = ConstU32<4>;
 	/// Base lock applied to a coin after a failed `AsCoin` dispatch; grows as `2^retries * base`.
-	type CoinFailureLockPeriod = ConstU64<60>;
+	type CoinFailureLockPeriod = ConstU64<3600>;
 
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::CoinageBenchHelper;
