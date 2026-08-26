@@ -998,11 +998,6 @@ pub mod benchmark_utils {
 	}
 
 	/// Builds a one-member Bandersnatch ring from a configured exponent.
-	///
-	/// This mirrors `ring_setup` in Individuality's
-	/// `runtimes/next-asset-hub-paseo/src/lib.rs`. `indiv_support::crypto` does not export the
-	/// benchmark helper at this pinned revision; keep this single local mirror in sync with review
-	/// r3734171704 until the SDK exports it.
 	fn ring_setup(ring_exponent: RingExponent, entropy: [u8; 32]) -> BenchRingSetup {
 		let domain: RingDomainSize =
 			ring_exponent.try_into().expect("RingExponent maps to RingDomainSize");
