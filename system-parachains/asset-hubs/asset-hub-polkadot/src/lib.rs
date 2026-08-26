@@ -1767,8 +1767,7 @@ construct_runtime!(
 		AssetsPrecompilesPermit: pallet_assets_precompiles::permit::pallet = 92,
 		VestingPrecompiles: pallet_vesting_precompiles::pallet = 93,
 
-		// Individuality. Indices match the `next-asset-hub-paseo` reference runtime of
-		// `paritytech/individuality`.
+		// Individuality
 		MembersSubscriber: indiv_pallet_members_subscriber = 97,
 		AliasAccounts: indiv_pallet_alias_accounts = 98,
 		Pgas: indiv_pallet_pgas = 99,
