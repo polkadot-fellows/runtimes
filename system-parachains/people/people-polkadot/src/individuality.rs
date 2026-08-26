@@ -481,7 +481,6 @@ impl indiv_pallet_resources::Config for Runtime {
 
 /// Runtime-local ring membership proof, used by coinage to authenticate the free unload token
 /// flows against the people and lite people rings.
-// TODO(<https://github.com/paritytech/individuality/issues/1125>): move this into pallet-people.
 #[derive(
 	Clone, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen,
 )]
