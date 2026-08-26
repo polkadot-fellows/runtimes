@@ -202,11 +202,6 @@ impl frame_support::traits::Contains<Context> for LiteAccountContexts {
 	}
 }
 
-
-parameter_types! {
-	pub const StaleAliasCleanupInterval: BlockNumber = 5 * RC_MINUTES;
-}
-
 impl indiv_pallet_people::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_people::WeightInfo<Runtime>;
 	type MemberService = Members;
@@ -214,7 +209,7 @@ impl indiv_pallet_people::Config for Runtime {
 	type CollectionOwner = PeopleCollectionOwner;
 	type AccountContexts = AccountContexts;
 	type OnboardingQueuePageSize = ConstU32<30>;
-	type StaleAliasCleanupInterval = StaleAliasCleanupInterval;
+	type StaleAliasCleanupInterval = ConstU32<{ 5 * RC_MINUTES }>;
 	type SelfInclusionDelay = SelfInclusionDelayValue;
 	type ManagerOrigin = RootOrFellows;
 	#[cfg(feature = "runtime-benchmarks")]
