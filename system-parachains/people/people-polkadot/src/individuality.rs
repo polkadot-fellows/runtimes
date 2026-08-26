@@ -1466,7 +1466,6 @@ pub mod benchmark_utils {
 		}
 
 		fn setup_fee_conversion() {
-			// The benchmark runtime retains the production HOLLAR-only fee conversion policy.
 		}
 
 		fn create_people_proof(context: &[u8], msg: &[u8], _alias: Alias) -> MembershipProof {
