@@ -19,7 +19,7 @@
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 58.0.0
 //! DATE: 2026-08-25, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
-//! HOSTNAME: `15def30e955c`, CPU: `Intel(R) Core(TM) i9-14900`
+//! HOSTNAME: `31844e40d474`, CPU: `QEMU Virtual CPU version 2.5+`
 //! WASM-EXECUTION: `Compiled`, CHAIN: `None`, DB CACHE: 1024
 
 // Executed Command:
@@ -30,7 +30,7 @@
 // --extrinsic=*
 // --runtime=target/production/wbuild/bulletin-polkadot-runtime/bulletin_polkadot_runtime.wasm
 // --pallet=pallet_xcm
-// --header=/_work/ibp-gb-gatotech-X/runtimes/runtimes/.github/scripts/cmd/file_header.txt
+// --header=/_work/ibp-ch/runtimes/runtimes/.github/scripts/cmd/file_header.txt
 // --output=./system-parachains/bulletin/bulletin-polkadot/src/weights
 // --wasm-execution=compiled
 // --steps=50
@@ -65,8 +65,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `98`
 		//  Estimated: `3791`
-		// Minimum execution time: 18_365_000 picoseconds.
-		Weight::from_parts(19_884_000, 0)
+		// Minimum execution time: 21_049_000 picoseconds.
+		Weight::from_parts(26_251_000, 0)
 			.saturating_add(Weight::from_parts(0, 3791))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -89,10 +89,10 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Proof: `XcmpQueue::OutboundXcmpMessages` (`max_values`: None, `max_size`: Some(105506), added: 107981, mode: `MaxEncodedLen`)
 	fn teleport_assets() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `130`
+		//  Measured:  `167`
 		//  Estimated: `3791`
-		// Minimum execution time: 65_589_000 picoseconds.
-		Weight::from_parts(69_815_000, 0)
+		// Minimum execution time: 79_099_000 picoseconds.
+		Weight::from_parts(87_540_000, 0)
 			.saturating_add(Weight::from_parts(0, 3791))
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -125,10 +125,10 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Proof: `XcmpQueue::OutboundXcmpMessages` (`max_values`: None, `max_size`: Some(105506), added: 107981, mode: `MaxEncodedLen`)
 	fn transfer_assets() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `130`
+		//  Measured:  `167`
 		//  Estimated: `3791`
-		// Minimum execution time: 66_581_000 picoseconds.
-		Weight::from_parts(70_946_000, 0)
+		// Minimum execution time: 79_540_000 picoseconds.
+		Weight::from_parts(91_470_000, 0)
 			.saturating_add(Weight::from_parts(0, 3791))
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -139,8 +139,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `1485`
-		// Minimum execution time: 4_617_000 picoseconds.
-		Weight::from_parts(5_202_000, 0)
+		// Minimum execution time: 5_871_000 picoseconds.
+		Weight::from_parts(7_730_000, 0)
 			.saturating_add(Weight::from_parts(0, 1485))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
@@ -150,8 +150,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_638_000 picoseconds.
-		Weight::from_parts(5_277_000, 0)
+		// Minimum execution time: 5_930_000 picoseconds.
+		Weight::from_parts(7_619_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -159,8 +159,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_303_000 picoseconds.
-		Weight::from_parts(1_599_000, 0)
+		// Minimum execution time: 1_820_000 picoseconds.
+		Weight::from_parts(2_131_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
 	/// Storage: `PolkadotXcm::VersionNotifiers` (r:1 w:1)
@@ -183,8 +183,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `98`
 		//  Estimated: `3791`
-		// Minimum execution time: 24_842_000 picoseconds.
-		Weight::from_parts(26_612_000, 0)
+		// Minimum execution time: 27_770_000 picoseconds.
+		Weight::from_parts(33_410_000, 0)
 			.saturating_add(Weight::from_parts(0, 3791))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
@@ -207,8 +207,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `265`
 		//  Estimated: `108971`
-		// Minimum execution time: 28_933_000 picoseconds.
-		Weight::from_parts(31_278_000, 0)
+		// Minimum execution time: 33_930_000 picoseconds.
+		Weight::from_parts(40_680_000, 0)
 			.saturating_add(Weight::from_parts(0, 108971))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -219,8 +219,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_327_000 picoseconds.
-		Weight::from_parts(1_601_000, 0)
+		// Minimum execution time: 1_811_000 picoseconds.
+		Weight::from_parts(2_360_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -230,8 +230,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `23`
 		//  Estimated: `15863`
-		// Minimum execution time: 13_686_000 picoseconds.
-		Weight::from_parts(14_635_000, 0)
+		// Minimum execution time: 17_520_000 picoseconds.
+		Weight::from_parts(21_430_000, 0)
 			.saturating_add(Weight::from_parts(0, 15863))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -242,8 +242,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `27`
 		//  Estimated: `15867`
-		// Minimum execution time: 13_867_000 picoseconds.
-		Weight::from_parts(14_694_000, 0)
+		// Minimum execution time: 17_430_000 picoseconds.
+		Weight::from_parts(21_350_000, 0)
 			.saturating_add(Weight::from_parts(0, 15867))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -254,8 +254,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `79`
 		//  Estimated: `18394`
-		// Minimum execution time: 17_993_000 picoseconds.
-		Weight::from_parts(18_940_000, 0)
+		// Minimum execution time: 23_240_000 picoseconds.
+		Weight::from_parts(27_290_000, 0)
 			.saturating_add(Weight::from_parts(0, 18394))
 			.saturating_add(T::DbWeight::get().reads(7))
 	}
@@ -273,8 +273,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `79`
 		//  Estimated: `6019`
-		// Minimum execution time: 16_432_000 picoseconds.
-		Weight::from_parts(17_815_000, 0)
+		// Minimum execution time: 19_350_000 picoseconds.
+		Weight::from_parts(22_520_000, 0)
 			.saturating_add(Weight::from_parts(0, 6019))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -285,8 +285,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `79`
 		//  Estimated: `13444`
-		// Minimum execution time: 12_394_000 picoseconds.
-		Weight::from_parts(13_191_000, 0)
+		// Minimum execution time: 17_029_000 picoseconds.
+		Weight::from_parts(19_969_000, 0)
 			.saturating_add(Weight::from_parts(0, 13444))
 			.saturating_add(T::DbWeight::get().reads(5))
 	}
@@ -296,8 +296,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `34`
 		//  Estimated: `15874`
-		// Minimum execution time: 13_978_000 picoseconds.
-		Weight::from_parts(14_826_000, 0)
+		// Minimum execution time: 18_090_000 picoseconds.
+		Weight::from_parts(22_221_000, 0)
 			.saturating_add(Weight::from_parts(0, 15874))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -316,8 +316,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `79`
 		//  Estimated: `15919`
-		// Minimum execution time: 23_539_000 picoseconds.
-		Weight::from_parts(25_237_000, 0)
+		// Minimum execution time: 29_020_000 picoseconds.
+		Weight::from_parts(37_700_000, 0)
 			.saturating_add(Weight::from_parts(0, 15919))
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -330,8 +330,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `1485`
-		// Minimum execution time: 1_788_000 picoseconds.
-		Weight::from_parts(1_991_000, 0)
+		// Minimum execution time: 2_260_000 picoseconds.
+		Weight::from_parts(2_570_000, 0)
 			.saturating_add(Weight::from_parts(0, 1485))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -342,8 +342,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `7576`
 		//  Estimated: `11041`
-		// Minimum execution time: 20_089_000 picoseconds.
-		Weight::from_parts(20_860_000, 0)
+		// Minimum execution time: 32_230_000 picoseconds.
+		Weight::from_parts(34_890_000, 0)
 			.saturating_add(Weight::from_parts(0, 11041))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -356,8 +356,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `24`
 		//  Estimated: `3489`
-		// Minimum execution time: 29_838_000 picoseconds.
-		Weight::from_parts(31_774_000, 0)
+		// Minimum execution time: 36_059_000 picoseconds.
+		Weight::from_parts(39_221_000, 0)
 			.saturating_add(Weight::from_parts(0, 3489))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -367,26 +367,28 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Storage: `PolkadotXcm::AssetTraps` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AssetTraps` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 20]`.
-	fn claim_assets_by_size(_n: u32, ) -> Weight {
+	fn claim_assets_by_size(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `24`
 		//  Estimated: `3489`
-		// Minimum execution time: 29_657_000 picoseconds.
-		Weight::from_parts(31_884_078, 0)
+		// Minimum execution time: 35_951_000 picoseconds.
+		Weight::from_parts(39_273_129, 0)
 			.saturating_add(Weight::from_parts(0, 3489))
+			// Standard Error: 7_726
+			.saturating_add(Weight::from_parts(72_436, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(85), added: 2560, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(103), added: 2578, mode: `MaxEncodedLen`)
 	fn add_authorized_alias() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `129`
 		//  Estimated: `3594`
-		// Minimum execution time: 37_890_000 picoseconds.
-		Weight::from_parts(39_626_000, 0)
+		// Minimum execution time: 45_610_000 picoseconds.
+		Weight::from_parts(57_620_000, 0)
 			.saturating_add(Weight::from_parts(0, 3594))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -394,13 +396,13 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Storage: `PolkadotXcm::AuthorizedAliases` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AuthorizedAliases` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(85), added: 2560, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(103), added: 2578, mode: `MaxEncodedLen`)
 	fn remove_authorized_alias() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `517`
 		//  Estimated: `3982`
-		// Minimum execution time: 37_352_000 picoseconds.
-		Weight::from_parts(39_127_000, 0)
+		// Minimum execution time: 46_540_000 picoseconds.
+		Weight::from_parts(59_760_000, 0)
 			.saturating_add(Weight::from_parts(0, 3982))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -409,8 +411,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_857_000 picoseconds.
-		Weight::from_parts(6_062_000, 0)
+		// Minimum execution time: 7_360_000 picoseconds.
+		Weight::from_parts(7_600_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
 	/// The range of component `n` is `[0, 8192]`.
@@ -418,21 +420,21 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 647_000 picoseconds.
-		Weight::from_parts(198_899, 0)
+		// Minimum execution time: 991_000 picoseconds.
+		Weight::from_parts(1_059_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 80
-			.saturating_add(Weight::from_parts(40_710, 0).saturating_mul(n.into()))
+			// Standard Error: 81
+			.saturating_add(Weight::from_parts(65_539, 0).saturating_mul(n.into()))
 	}
 	/// The range of component `n` is `[0, 131072]`.
 	fn decode_xcm(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 209_000 picoseconds.
-		Weight::from_parts(1_147_903, 0)
+		// Minimum execution time: 310_000 picoseconds.
+		Weight::from_parts(350_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 1
-			.saturating_add(Weight::from_parts(1_563, 0).saturating_mul(n.into()))
+			// Standard Error: 6
+			.saturating_add(Weight::from_parts(2_525, 0).saturating_mul(n.into()))
 	}
 }

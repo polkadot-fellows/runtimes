@@ -28,7 +28,10 @@
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
     },
-    "benchmarks_exclude_pallets": ["polkadot_runtime_common::paras_registrar"]
+    "benchmarks_exclude_pallets": [
+      "pallet_staking",
+      "polkadot_runtime_common::paras_registrar"
+    ]
   },
   {
     "name": "kusama",
@@ -57,7 +60,10 @@
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
     },
-    "benchmarks_exclude_pallets": ["polkadot_runtime_common::paras_registrar"]
+    "benchmarks_exclude_pallets": [
+      "pallet_staking",
+      "polkadot_runtime_common::paras_registrar"
+    ]
   },
   {
     "name": "glutton-kusama",
