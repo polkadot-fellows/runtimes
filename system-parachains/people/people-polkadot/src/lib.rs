@@ -781,9 +781,9 @@ construct_runtime!(
 
 		// Individuality: personhood and everything built on it.
 		People: indiv_pallet_people = 51,
-		// 52: previously used for `pallet-mob-rule` in the reference runtime.
-		// 53: previously used for `pallet-proof-of-ink` in the reference runtime.
-		// 54: previously used for the privacy voucher in the reference runtime.
+		// 52: never used.
+		// 53: never used.
+		// 54: never used.
 		Game: indiv_pallet_game = 55,
 		Score: indiv_pallet_score = 56,
 		NftCredits: indiv_pallet_nft_credits = 57,
