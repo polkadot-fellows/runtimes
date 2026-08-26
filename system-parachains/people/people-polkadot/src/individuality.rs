@@ -799,14 +799,6 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type EnablePermissionless = ConstBool<false>;
 	type LoadDeposit = CoinageLoadDeposit;
 	type InstanceCreationDeposit = CoinageInstanceCreationDeposit;
-
-	// Coin values are `2^exponent * asset_unit`, so with a unit of $0.01 the denominations
-	// run from $0.01 (exponent 0) up to $163.84 (exponent 14).
-	//
-	// TODO: double-check the coinage economics for Polkadot. The denomination range, the free
-	// unload allowances below and the choice of [`StableAssetLocation`] as backing asset are all
-	// ported from the reference runtime, so nobody has yet decided that Polkadot wants bearer
-	// coins in this exact range backed by a Hydration-issued stablecoin.
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
 	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
