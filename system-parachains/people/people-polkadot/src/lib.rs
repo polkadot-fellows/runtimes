@@ -1100,14 +1100,6 @@ pub const TRANSACTION_MORTALITY_PERIOD: BlockNumber = 128;
 // (its birth hash is pruned before the window closes), so guard the invariant at compile time.
 const _: () = assert!(TRANSACTION_MORTALITY_PERIOD <= BlockHashCount::get());
 
-// Several Individuality pallets run offchain workers that submit *authorized* transactions:
-// unsigned extrinsics whose validity comes from `frame_system::AuthorizeCall` rather than from a
-// signature. These impls tell those workers how to assemble such an extrinsic for this runtime.
-//
-// They submit on extension version 0, not 1: `AuthorizeCall` has been part of version 0 since
-// before the Individuality deployment, and an authorized origin is not one of the anonymous origins
-// `RestrictOrigin` meters, so nothing in version 1 changes how these transactions are validated.
-// Staying on version 0 keeps the submitted payload smaller.
 impl<LocalCall> frame_system::offchain::CreateTransactionBase<LocalCall> for Runtime
 where
 	RuntimeCall: From<LocalCall>,
