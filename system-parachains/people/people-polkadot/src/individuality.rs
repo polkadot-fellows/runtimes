@@ -107,9 +107,6 @@ parameter_types! {
 	pub DefaultNetworkSuffix: indiv_support::context::ProductContextNetworkSuffix =
 		b"polkadot".to_vec().try_into().expect("default network suffix fits");
 
-	/// Page size for the ring-VRF SRS chunk storage.
-	pub const ChunkPageSize: u32 = 255;
-
 	/// Largest ring exponent usable by `Flexible` collections in `pallet-members`.
 	pub const MembersFlexibleRingExponent: RingExponent = RingExponent::R2e9;
 
@@ -160,7 +157,7 @@ impl indiv_pallet_relay_randomness::Config for Runtime {
 impl indiv_pallet_chunks_manager::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_chunks_manager::WeightInfo<Runtime>;
 	type Chunk = <BandersnatchVrfVerifiable as GenerateVerifiable>::StaticChunk;
-	type PageSize = ChunkPageSize;
+	type PageSize = ConstU32<255>;
 	type ManagerOrigin = RootOrFellows;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::ChunksManagerBenchHelper;
@@ -1151,7 +1148,7 @@ pub mod benchmark_utils {
 			// This fixed maximum domain is intentional: it selects the chunk-page-size fixture.
 			ring_verifier_builder_params(RingDomainSize::Domain16)
 				.into_iter()
-				.take(ChunkPageSize::get() as usize)
+				.take(255)
 				.collect()
 		}
 	}
