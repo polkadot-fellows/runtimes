@@ -202,21 +202,6 @@ impl frame_support::traits::Contains<Context> for LiteAccountContexts {
 	}
 }
 
-#[cfg(feature = "runtime-benchmarks")]
-pub struct PeopleLiteBenchmarkHelper;
-
-#[cfg(feature = "runtime-benchmarks")]
-impl indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature> for PeopleLiteBenchmarkHelper {
-	fn sign_message(message: &[u8]) -> (AccountId, Signature) {
-		<() as indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature>>::sign_message(
-			message,
-		)
-	}
-
-	fn worst_case_account_context(_default: Context) -> Context {
-		indiv_pallet_score::Pallet::<Runtime>::score_context()
-	}
-}
 
 parameter_types! {
 	pub const StaleAliasCleanupInterval: BlockNumber = 5 * RC_MINUTES;
@@ -251,7 +236,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type LiteConsumerRegistrar = Resources;
 	type AccountContexts = LiteAccountContexts;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = PeopleLiteBenchmarkHelper;
+	type BenchmarkHelper = benchmark_utils::PeopleLiteBenchmarkHelper;
 }
 
 impl indiv_pallet_dummy_dim::Config for Runtime {
@@ -360,41 +345,6 @@ impl indiv_pallet_game::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::GamePalletBenchmarkHelper;
 }
 
-/// What the NFT-credit benchmarks cannot set up themselves: only the runtime knows how its HRMP
-/// channels are represented in the parachain-system messaging snapshot.
-#[cfg(feature = "runtime-benchmarks")]
-pub struct NftCreditsBenchmarkHelper;
-
-#[cfg(feature = "runtime-benchmarks")]
-impl indiv_pallet_nft_credits::benchmarking::BenchmarkHelper for NftCreditsBenchmarkHelper {
-	fn open_nft_claims_channel(max_message_size: u32) {
-		use cumulus_pallet_parachain_system::RelevantMessagingState;
-		use cumulus_primitives_core::relay_chain::AbridgedHrmpChannel;
-
-		let channel = AbridgedHrmpChannel {
-			max_capacity: 1000,
-			max_total_size: 1_000_000,
-			max_message_size,
-			msg_count: 0,
-			total_size: 0,
-			mqc_head: None,
-		};
-		let claims_chain = <Runtime as indiv_pallet_nft_credits::Config>::NftClaimsParaId::get();
-		let mut messaging_state = RelevantMessagingState::<Runtime>::get().unwrap_or(
-			cumulus_pallet_parachain_system::relay_state_snapshot::MessagingStateSnapshot {
-				dmq_mqc_head: Default::default(),
-				relay_dispatch_queue_remaining_capacity: Default::default(),
-				ingress_channels: Vec::new(),
-				egress_channels: Vec::new(),
-			},
-		);
-		messaging_state.egress_channels.retain(|(id, _)| *id != claims_chain);
-		messaging_state.egress_channels.push((claims_chain, channel));
-		messaging_state.egress_channels.sort_by_key(|(id, _)| *id);
-		RelevantMessagingState::<Runtime>::put(messaging_state);
-	}
-}
-
 parameter_types! {
 	/// Upper bound on the remote Asset Hub execution cost for one delivered credit tree.
 	pub NftClaimsRemoteWeight: Weight = Weight::from_parts(150_000_000, 2_600);
@@ -417,7 +367,7 @@ impl indiv_pallet_nft_credits::Config for Runtime {
 	type MaxCreditBlocksPerClaimant = ConstU32<32>;
 	type MaxRetainedAwardBlocks = ConstU32<256>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = NftCreditsBenchmarkHelper;
+	type BenchmarkHelper = benchmark_utils::NftCreditsBenchmarkHelper;
 }
 
 parameter_types! {
@@ -473,93 +423,7 @@ impl indiv_pallet_people_airdrops::Config for Runtime {
 	type MaxScheduleBatch = ConstU32<16>;
 	type MaxRegisterBatch = ConstU32<16>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = PeopleAirdropsBenchmarkHelper;
-}
-
-/// Benchmark hooks for the people-airdrops pallet.
-#[cfg(feature = "runtime-benchmarks")]
-pub struct PeopleAirdropsBenchmarkHelper;
-
-#[cfg(feature = "runtime-benchmarks")]
-impl indiv_pallet_people_airdrops::benchmarking::BenchmarkHelper<Runtime>
-	for PeopleAirdropsBenchmarkHelper
-{
-	fn fund_prize_source(
-		source: &AccountId,
-		draws: u32,
-	) -> alloc::vec::Vec<indiv_pallet_people_airdrops::AirdropEventInfoOf<Runtime>> {
-		use frame_support::traits::fungibles::Mutate;
-		use indiv_pallet_airdrop::{benchmarking::BenchmarkHelper as _, pallet::SupportedAssets};
-		const BENCH_ASSET_BASE: u32 = 42;
-		const BENCH_PRIZE: Balance = 1_000;
-		if pallet_timestamp::Now::<Runtime>::get() == 0 {
-			Self::set_unix_time(1);
-		}
-		let pot = indiv_pallet_airdrop::Pallet::<Runtime>::airdrop_pot_id();
-		(0..draws)
-			.map(|i| {
-				let asset_id = benchmark_utils::AirdropBenchmarkHelper::create_asset_id_parameter(
-					BENCH_ASSET_BASE + i,
-				);
-				if !SupportedAssets::<Runtime>::contains_key(&asset_id) {
-					Assets::mint_into(asset_id.clone(), &pot, 1).expect("fund pot ed");
-					SupportedAssets::<Runtime>::insert(&asset_id, 1u128);
-				}
-				Assets::mint_into(asset_id.clone(), source, BENCH_PRIZE)
-					.expect("fund prize source");
-				indiv_pallet_people_airdrops::AirdropEventInfoOf::<Runtime> {
-					prize: indiv_pallet_airdrop::types::AirdropPrize {
-						asset_id,
-						asset_amount: BENCH_PRIZE,
-						max_winners: 1,
-						winner_cap: sp_runtime::Permill::one(),
-					},
-					registration_starts: 100,
-					draw_time: 200,
-					end_time: 300,
-				}
-			})
-			.collect()
-	}
-
-	fn open_registration(event_id: &indiv_pallet_airdrop::types::EventId) {
-		indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
-			if let Some(event) = event {
-				event.status =
-					indiv_pallet_airdrop::types::Status::Registering { total_participants: 0 };
-			}
-		});
-	}
-
-	fn start_claiming(event_id: &indiv_pallet_airdrop::types::EventId) {
-		use indiv_pallet_airdrop::pallet::{Registrations, Winners};
-		let registrations =
-			Registrations::<Runtime>::iter_prefix(event_id).collect::<alloc::vec::Vec<_>>();
-		for (slot, entry) in &registrations {
-			Winners::<Runtime>::insert(event_id, entry.clone(), *slot);
-		}
-		indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
-			if let Some(event) = event {
-				event.status = indiv_pallet_airdrop::types::Status::Claiming {
-					total_participants: registrations.len() as u32,
-					effective_winners: registrations.len() as u32,
-					claimed: 0,
-				};
-			}
-		});
-	}
-
-	fn count_registrations(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
-		indiv_pallet_airdrop::pallet::Registrations::<Runtime>::iter_prefix(event_id).count() as u32
-	}
-
-	fn count_winners(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
-		indiv_pallet_airdrop::pallet::Winners::<Runtime>::iter_prefix(event_id).count() as u32
-	}
-
-	fn set_unix_time(now_secs: u64) {
-		pallet_timestamp::Now::<Runtime>::put(now_secs * 1_000);
-	}
+	type BenchmarkHelper = benchmark_utils::PeopleAirdropsBenchmarkHelper;
 }
 
 /// Direct byte-level reinterpretation of an `AccountId32` as an sr25519 public key.
@@ -1061,6 +925,133 @@ pub mod benchmark_utils {
 	impl UnixTime for BenchmarkClock {
 		fn now() -> core::time::Duration {
 			core::time::Duration::from_millis(pallet_timestamp::Now::<Runtime>::get())
+		}
+	}
+
+	pub struct PeopleLiteBenchmarkHelper;
+	impl indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature> for PeopleLiteBenchmarkHelper {
+		fn sign_message(message: &[u8]) -> (AccountId, Signature) {
+			<() as indiv_pallet_people_lite::BenchmarkHelper<AccountId, Signature>>::sign_message(
+				message,
+			)
+		}
+
+		fn worst_case_account_context(_default: Context) -> Context {
+			indiv_pallet_score::Pallet::<Runtime>::score_context()
+		}
+	}
+
+	/// Sets up the NFT claims HRMP channel for benchmarks.
+	pub struct NftCreditsBenchmarkHelper;
+	impl indiv_pallet_nft_credits::benchmarking::BenchmarkHelper for NftCreditsBenchmarkHelper {
+		fn open_nft_claims_channel(max_message_size: u32) {
+			use cumulus_pallet_parachain_system::RelevantMessagingState;
+			use cumulus_primitives_core::relay_chain::AbridgedHrmpChannel;
+
+			let channel = AbridgedHrmpChannel {
+				max_capacity: 1000,
+				max_total_size: 1_000_000,
+				max_message_size,
+				msg_count: 0,
+				total_size: 0,
+				mqc_head: None,
+			};
+			let claims_chain = <Runtime as indiv_pallet_nft_credits::Config>::NftClaimsParaId::get();
+			let mut messaging_state = RelevantMessagingState::<Runtime>::get().unwrap_or(
+				cumulus_pallet_parachain_system::relay_state_snapshot::MessagingStateSnapshot {
+					dmq_mqc_head: Default::default(),
+					relay_dispatch_queue_remaining_capacity: Default::default(),
+					ingress_channels: Vec::new(),
+					egress_channels: Vec::new(),
+				},
+			);
+			messaging_state.egress_channels.retain(|(id, _)| *id != claims_chain);
+			messaging_state.egress_channels.push((claims_chain, channel));
+			messaging_state.egress_channels.sort_by_key(|(id, _)| *id);
+			RelevantMessagingState::<Runtime>::put(messaging_state);
+		}
+	}
+
+	/// Benchmark helper for people airdrops.
+	pub struct PeopleAirdropsBenchmarkHelper;
+	impl indiv_pallet_people_airdrops::benchmarking::BenchmarkHelper<Runtime>
+		for PeopleAirdropsBenchmarkHelper
+	{
+		fn fund_prize_source(
+			source: &AccountId,
+			draws: u32,
+		) -> Vec<indiv_pallet_people_airdrops::AirdropEventInfoOf<Runtime>> {
+			use frame_support::traits::fungibles::Mutate;
+			use indiv_pallet_airdrop::{benchmarking::BenchmarkHelper as _, pallet::SupportedAssets};
+			const BENCH_ASSET_BASE: u32 = 42;
+			const BENCH_PRIZE: Balance = 1_000;
+			if pallet_timestamp::Now::<Runtime>::get() == 0 {
+				Self::set_unix_time(1);
+			}
+			let pot = indiv_pallet_airdrop::Pallet::<Runtime>::airdrop_pot_id();
+			(0..draws)
+				.map(|i| {
+					let asset_id = AirdropBenchmarkHelper::create_asset_id_parameter(
+						BENCH_ASSET_BASE + i,
+					);
+					if !SupportedAssets::<Runtime>::contains_key(&asset_id) {
+						Assets::mint_into(asset_id.clone(), &pot, 1).expect("fund pot ed");
+						SupportedAssets::<Runtime>::insert(&asset_id, 1u128);
+					}
+					Assets::mint_into(asset_id.clone(), source, BENCH_PRIZE)
+						.expect("fund prize source");
+					indiv_pallet_people_airdrops::AirdropEventInfoOf::<Runtime> {
+						prize: indiv_pallet_airdrop::types::AirdropPrize {
+							asset_id,
+							asset_amount: BENCH_PRIZE,
+							max_winners: 1,
+							winner_cap: sp_runtime::Permill::one(),
+						},
+						registration_starts: 100,
+						draw_time: 200,
+						end_time: 300,
+					}
+				})
+				.collect()
+		}
+
+		fn open_registration(event_id: &indiv_pallet_airdrop::types::EventId) {
+			indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
+				if let Some(event) = event {
+					event.status =
+						indiv_pallet_airdrop::types::Status::Registering { total_participants: 0 };
+				}
+			});
+		}
+
+		fn start_claiming(event_id: &indiv_pallet_airdrop::types::EventId) {
+			use indiv_pallet_airdrop::pallet::{Registrations, Winners};
+			let registrations = Registrations::<Runtime>::iter_prefix(event_id).collect::<Vec<_>>();
+			for (slot, entry) in &registrations {
+				Winners::<Runtime>::insert(event_id, entry.clone(), *slot);
+			}
+			indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
+				if let Some(event) = event {
+					event.status = indiv_pallet_airdrop::types::Status::Claiming {
+						total_participants: registrations.len() as u32,
+						effective_winners: registrations.len() as u32,
+						claimed: 0,
+					};
+				}
+			});
+		}
+
+		fn count_registrations(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
+			indiv_pallet_airdrop::pallet::Registrations::<Runtime>::iter_prefix(event_id).count()
+				as u32
+		}
+
+		fn count_winners(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
+			indiv_pallet_airdrop::pallet::Winners::<Runtime>::iter_prefix(event_id).count() as u32
+		}
+
+		fn set_unix_time(now_secs: u64) {
+			pallet_timestamp::Now::<Runtime>::put(now_secs * 1_000);
 		}
 	}
 
