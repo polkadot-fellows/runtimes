@@ -30,6 +30,7 @@ pub mod frame_system;
 pub mod frame_system_extensions;
 pub mod indiv_pallet_airdrop;
 pub mod indiv_pallet_chunks_manager;
+pub mod indiv_pallet_coinage;
 pub mod indiv_pallet_dummy_dim;
 pub mod indiv_pallet_game;
 pub mod indiv_pallet_honour;

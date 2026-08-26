@@ -526,7 +526,7 @@ parameter_types! {
 }
 
 impl indiv_pallet_coinage::Config for Runtime {
-	type WeightInfo = indiv_pallet_coinage::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::indiv_pallet_coinage::WeightInfo<Runtime>;
 	type PalletId = CoinagePalletId;
 	type UnixTime = RuntimeClock;
 	type MemberService = Members;
