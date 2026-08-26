@@ -786,7 +786,6 @@ construct_runtime!(
 		// 54: previously used for the privacy voucher in the reference runtime.
 		Game: indiv_pallet_game = 55,
 		Score: indiv_pallet_score = 56,
-		// NFT claim credits awarded by the game and delivered to Asset Hub.
 		NftCredits: indiv_pallet_nft_credits = 57,
 		DummyDim: indiv_pallet_dummy_dim = 59,
 		PeopleLite: indiv_pallet_people_lite = 62,
