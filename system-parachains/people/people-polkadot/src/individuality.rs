@@ -628,8 +628,6 @@ impl indiv_pallet_members_notifier::Config for Runtime {
 // The allowances below bound how much block weight an *anonymous* origin may consume. Such origins
 // are not backed by an account, so nothing else limits them: without this a single alias could
 // spam the chain for free. The allowance regenerates linearly per block.
-//
-// TODO(<https://github.com/paritytech/individuality/issues/1124>): choose good values.
 const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_MAX: Balance = UNITS;
 const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_RECOVERY: Balance = CENTS;
 const ACCOUNT_PARTICIPANT_RECOVERY: Balance = CENTS;
