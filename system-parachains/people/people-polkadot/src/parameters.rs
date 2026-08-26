@@ -1,7 +1,7 @@
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Governance-mutable Individuality runtime parameters.
+//! Governance-mutable runtime parameters.
 
 use crate::{ExistentialDeposit, *};
 use frame_support::{
