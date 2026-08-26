@@ -34,26 +34,6 @@
 //!   one name per person, claimed through a ring proof.
 //! * [`indiv_pallet_origin_restriction`] rate-limits the anonymous origins the extensions above
 //!   produce, since those origins pay no fee from an account.
-//!
-//! # Deployment steps
-//!
-//! Enacting the runtime upgrade activates none of this on its own:
-//!
-//! 1. The PGAS asset must exist before any PGAS flow works. This is meant to happen automatically
-//!    via `indiv_pallet_pgas::migration::CreatePgasAsset` in `migrations.rs` — but see the TODO
-//!    there, because that migration cannot currently succeed on this chain.
-//! 2. Subscription to People Polkadot's ring roots is driven from *there*, by
-//!    `MembersNotifier::subscribe` naming this chain and the `MembersSubscriber` pallet index (97);
-//!    there is no local call to make. Until the first batch of roots arrives, every personhood
-//!    proof on this chain fails. Requires an open HRMP channel in both directions.
-//! 3. `DotnsGateway::set_dispatcher_address` (Fellowship, root, or TechnicalMaintenance) — point
-//!    the gateway at the deployed `RootGatewayDispatcher` contract. `pallet-dotns-gateway` cannot
-//!    register any name until this is set, so the dotNS registry contract has to be deployed first.
-//! 4. Run collators with offchain workers enabled so the alias-account stale-mapping sweep can
-//!    submit authorized maintenance calls. The alias fee is governance-mutable.
-//!
-//! Optional, per-provider: `DotnsGateway::set_attestation_allowance` (Fellowship, root, or
-//! TechnicalMaintenance) to admit an attestation provider.
 
 use super::*;
 
