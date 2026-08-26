@@ -139,12 +139,6 @@ pub type AssetsWithHolder = CombineAssetsWithHolder<Assets, AssetsHolder>;
 pub type FungibleStableAsset = ItemOf<AssetsWithHolder, StableAssetLocation, AccountId>;
 
 /// Wall-clock source used by the pallet `Config`s in this module.
-///
-/// `pallet_timestamp`'s `UnixTime::now` logs at `error` level whenever `Now` is still zero. That is
-/// the normal state throughout benchmarking, which runs at genesis and sets `Now` directly, so the
-/// real provider would emit that error on essentially every call and bury the benchmark output.
-/// Under `runtime-benchmarks` we therefore read the raw storage value instead. Both paths return
-/// the same value; only the logging differs.
 #[cfg(not(feature = "runtime-benchmarks"))]
 pub type RuntimeClock = Timestamp;
 #[cfg(feature = "runtime-benchmarks")]
