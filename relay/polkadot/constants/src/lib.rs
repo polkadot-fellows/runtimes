@@ -118,9 +118,9 @@ pub mod xcm {
 		/// The TechnicalMaintenance OpenGov body index.
 		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
 		pub const TECHNICAL_MAINTENANCE_INDEX: u32 = 2;
-		/// The ProsperityAdmin OpenGov body index.
+		/// The ProsperityEmergency OpenGov body index.
 		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
-		pub const PROSPERITY_ADMIN_INDEX: u32 = 3;
+		pub const PROSPERITY_EMERGENCY_INDEX: u32 = 3;
 	}
 }
 

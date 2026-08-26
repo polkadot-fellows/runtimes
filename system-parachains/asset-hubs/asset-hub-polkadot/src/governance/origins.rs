@@ -80,7 +80,7 @@ pub mod pallet_custom_origins {
 		/// normal operation, so that a fast referendum on this track can react when something
 		/// goes wrong. Wider administrative powers, such as fees, debt ceilings and asset
 		/// composition, stay on stricter paths until deliberately wired here.
-		ProsperityAdmin,
+		ProsperityEmergency,
 	}
 
 	macro_rules! decl_unit_ensures {
@@ -125,7 +125,7 @@ pub mod pallet_custom_origins {
 		WhitelistedCaller,
 		WishForChange,
 		TechnicalMaintenance,
-		ProsperityAdmin,
+		ProsperityEmergency,
 	);
 
 	macro_rules! decl_ensure {

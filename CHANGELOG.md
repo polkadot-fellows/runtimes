@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bulletin Polkadot: add the storage pallets and business logic ([#1119](https://github.com/polkadot-fellows/runtimes/issues/1119), [#1170](https://github.com/polkadot-fellows/runtimes/pull/1170)).
 - Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
-- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_admin` track for guarding the Prosperity monetary mechanisms (PSM, coinage) ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
+- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_emergency` track for guarding the dotUSD monetary mechanisms ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
 
 ### Changed
 

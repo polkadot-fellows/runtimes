@@ -76,9 +76,10 @@ const APP_TECHNICAL_MAINTENANCE: Curve =
 	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
 const SUP_TECHNICAL_MAINTENANCE: Curve =
 	Curve::make_reciprocal(3, 28, percent(6), percent(5), percent(50));
-const APP_PROSPERITY_ADMIN: Curve = Curve::make_linear(17, 28, percent(50), percent(100));
-const SUP_PROSPERITY_ADMIN: Curve =
-	Curve::make_reciprocal(3, 28, percent(6), percent(5), percent(50));
+const APP_PROSPERITY_EMERGENCY: Curve =
+	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
+const SUP_PROSPERITY_EMERGENCY: Curve =
+	Curve::make_reciprocal(1, 28, percent(20), percent(5), percent(50));
 
 const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
 	pallet_referenda::Track {
@@ -224,15 +225,15 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
 	pallet_referenda::Track {
 		id: 17,
 		info: pallet_referenda::TrackInfo {
-			name: s("prosperity_admin"),
+			name: s("prosperity_emergency"),
 			max_deciding: 10,
 			decision_deposit: 50 * GRAND,
 			prepare_period: 2 * RC_HOURS,
 			decision_period: 28 * RC_DAYS,
 			confirm_period: 3 * RC_HOURS,
 			min_enactment_period: 10 * RC_MINUTES,
-			min_approval: APP_PROSPERITY_ADMIN,
-			min_support: SUP_PROSPERITY_ADMIN,
+			min_approval: APP_PROSPERITY_EMERGENCY,
+			min_support: SUP_PROSPERITY_EMERGENCY,
 		},
 	},
 	pallet_referenda::Track {
@@ -362,7 +363,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				origins::Origin::GeneralAdmin => Ok(14),
 				origins::Origin::AuctionAdmin => Ok(15),
 				origins::Origin::TechnicalMaintenance => Ok(16),
-				origins::Origin::ProsperityAdmin => Ok(17),
+				origins::Origin::ProsperityEmergency => Ok(17),
 				// Referendum admins
 				origins::Origin::ReferendumCanceller => Ok(20),
 				origins::Origin::ReferendumKiller => Ok(21),
@@ -405,7 +406,7 @@ mod tests {
 			(GeneralAdmin, 14),
 			(AuctionAdmin, 15),
 			(TechnicalMaintenance, 16),
-			(ProsperityAdmin, 17),
+			(ProsperityEmergency, 17),
 			(ReferendumCanceller, 20),
 			(ReferendumKiller, 21),
 			(SmallTipper, 30),
