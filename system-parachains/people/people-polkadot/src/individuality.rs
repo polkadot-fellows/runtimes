@@ -204,15 +204,7 @@ parameter_types! {
 impl indiv_pallet_network_suffix::Config for Runtime {
 	type UpdateOrigin = EnsureRoot<Self::AccountId>;
 	type DefaultSuffix = DefaultNetworkSuffix;
-	type WeightInfo = NetworkSuffixWeightInfo;
-}
-
-/// Conservatively reuse the heavier `pallet_parameters` setter weight.
-pub struct NetworkSuffixWeightInfo;
-impl indiv_pallet_network_suffix::WeightInfo for NetworkSuffixWeightInfo {
-	fn set_network_suffix(_s: u32) -> frame_support::weights::Weight {
-		<weights::pallet_parameters::WeightInfo<Runtime> as pallet_parameters::WeightInfo>::set_parameter()
-	}
+	type WeightInfo = weights::indiv_pallet_network_suffix::WeightInfo<Runtime>;
 }
 
 impl indiv_pallet_relay_randomness::Config for Runtime {
