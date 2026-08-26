@@ -181,10 +181,6 @@ parameter_types! {
 	/// Owner of the lite people collection. See [`PeopleCollectionOwner`].
 	pub LitePeopleCollectionOwner: Location =
 		Location::new(0, [PalletInstance(<PeopleLite as PalletInfoAccess>::index() as u8)]);
-
-	/// Owner of the coinage collections. See [`PeopleCollectionOwner`].
-	pub CoinageCollectionOwner: Location =
-		Location::new(0, [PalletInstance(<Coinage as PalletInfoAccess>::index() as u8)]);
 }
 
 impl indiv_pallet_network_suffix::Config for Runtime {
