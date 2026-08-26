@@ -116,12 +116,7 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 
-/// The TransactionExtension to the basic transaction logic, version 0.
-///
-/// **Frozen.** This is byte-for-byte the pipeline this runtime had before the Individuality
-/// deployment, and it must stay that way: legacy signed (extrinsic format v4) transactions can only
-/// ever use version 0, and every already-built signer targets it. The Individuality extensions live
-/// in [`TxExtensionV1`] instead, so nothing here changes and `transaction_version` does not move.
+/// The TransactionExtension pipeline version 0. **Frozen.**
 pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
