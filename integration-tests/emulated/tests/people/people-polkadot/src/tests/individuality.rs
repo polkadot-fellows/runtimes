@@ -98,8 +98,6 @@ fn people_ring_root_notification_activates_asset_hub_subscriber() {
 		assert_eq!(received[0].revision, 7);
 		assert_eq!(received[0].root, root);
 
-		// This is deliberately narrow: PGAS asset *creation* remains covered by the
-		// migration/chopsticks finding, while this assertion protects the runtime wiring.
 		assert_eq!(
 			asset_hub_polkadot_runtime::individuality::PgasAssetId::get(),
 			asset_hub_polkadot_runtime::individuality::PGAS_ASSET_ID,
