@@ -170,7 +170,7 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
-/// The transaction extension pipelines a general transaction may select other than version 0.
+/// The transaction extension pipelines with versions other than 0.
 pub type TxExtensionOtherVersions = PipelineAtVers<1, TxExtensionV1>;
 
 /// Unchecked extrinsic type as expected by this runtime.
