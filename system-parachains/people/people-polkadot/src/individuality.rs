@@ -821,8 +821,8 @@ impl indiv_pallet_coinage::Config for Runtime {
 
 	/// ~3 months before a full recycler ring can be cleaned up.
 	type RecyclerExpirationTime = ConstU32<{ 90 * 24 * 60 * 60 }>;
-	type PaidUnloadTokenTimePeriod = ConstU32<{ 3 * 24 * 60 * 60 }>;
-	type PaidUnloadTokenRingExpirationTime = ConstU32<{ 4 * 24 * 60 * 60 }>;
+	type PaidUnloadTokenTimePeriod = ConstU32<{ 7 * 24 * 60 * 60 }>;
+	type PaidUnloadTokenRingExpirationTime = ConstU32<{ 7 * 24 * 60 * 60 }>;
 
 	type MembershipProof = MembershipProof;
 	type UnloadTokenTimePeriodPeopleLitePeople = ConstU32<{ 24 * 60 * 60 }>; // 1 day
