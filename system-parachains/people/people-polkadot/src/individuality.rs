@@ -829,9 +829,8 @@ impl indiv_pallet_coinage::Config for Runtime {
 	// Free unload token allowance of $20 per time period for people and $10 for lite people. The
 	// fee is dynamic (it follows the fee multiplier), and usage is additionally capped by
 	// `MaxFreeUnloadTokensPerTimePeriod`.
-	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 2000 * (HOLLAR_UNITS / 100) }>;
-	type UnloadTokenAllowancePerTimePeriodForLitePeople =
-		ConstU128<{ 1000 * (HOLLAR_UNITS / 100) }>;
+	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 20 * HOLLAR_UNITS }>;
+	type UnloadTokenAllowancePerTimePeriodForLitePeople = ConstU128<{ 10 * HOLLAR_UNITS }>;
 	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
 
 	type FeeConversion = CoinageFeeConversion;
