@@ -90,20 +90,12 @@ use crate::{
 	parameters::dynamic_params,
 };
 
-/// The stablecoin backing the value-carrying flows of this module: juror rewards, score cash-outs
-/// and, once nominated by root, coins.
-///
-/// HOLLAR is the only non-native fungible People Polkadot accepts (see
-/// `xcm_config::XcmConfig::IsReserve`), and it already has a `pallet-asset-rate` entry because the
-/// XCM trader prices weight in it.
-pub type StableAssetLocation = HollarLocation;
-
 /// The full-featured fungibles implementation, combining `pallet-assets` balances with the hold
 /// functionality supplied by `pallet-assets-holder`.
 pub type AssetsWithHolder = CombineAssetsWithHolder<Assets, AssetsHolder>;
 
-/// A `fungible` (single-asset) view of [`StableAssetLocation`], with hold support.
-pub type FungibleStableAsset = ItemOf<AssetsWithHolder, StableAssetLocation, AccountId>;
+/// A `fungible` (single-asset) view of [`HollarLocation`], with hold support.
+pub type FungibleStableAsset = ItemOf<AssetsWithHolder, HollarLocation, AccountId>;
 
 /// Wall-clock source used by the pallet `Config`s in this module.
 #[cfg(not(feature = "runtime-benchmarks"))]
@@ -283,7 +275,7 @@ impl indiv_pallet_score::Config for Runtime {
 	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
 	type ScorePotId = ScorePotId;
 	type Currency = FungibleStableAsset;
-	type CurrencyLocationInfo = StableAssetLocation;
+	type CurrencyLocationInfo = HollarLocation;
 	type ManagerOrigin = RootOrFellows;
 	type MaxPayoutRoundSchedules = ConstU32<10>;
 	type OffchainWorkInterval = ConstU32<2>;
@@ -676,7 +668,7 @@ parameter_types! {
 		RuntimeHoldReason::Coinage(indiv_pallet_coinage::HoldReason::InstanceCreationDeposit);
 	pub const CoinageInstanceCreationDepositAmount: Balance = 10 * UNIT;
 	pub CoinageLoadDeposit: (Location, Balance) =
-		(StableAssetLocation::get(), HOLLAR_UNITS / 100);
+		(HollarLocation::get(), HOLLAR_UNITS / 100);
 }
 
 pub type CoinageInstanceCreationDeposit = HoldConsideration<
@@ -751,7 +743,7 @@ impl Convert<Weight, Balance> for CoinageWeightToFee {
 	fn convert(weight: Weight) -> Balance {
 		AssetRate::to_asset_balance(
 			<crate::DotWeightToFee<Runtime> as WeightToFee>::weight_to_fee(&weight),
-			StableAssetLocation::get(),
+			HollarLocation::get(),
 		)
 		.unwrap_or(Balance::MAX)
 	}
@@ -793,7 +785,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
 
 	type FeeConversion = CoinageFeeConversion;
-	type NativeAssetKind = StableAssetLocation;
+	type NativeAssetKind = HollarLocation;
 	type FeeDestination = TypedGetToGet<pallet_collator_selection::StakingPotAccountId<Runtime>>;
 	type WeightToFee = CoinageWeightToFee;
 	type OffchainWorkerInterval = ConstU32<4>;
@@ -1137,7 +1129,7 @@ pub mod benchmark_utils {
 
 	/// Idempotently creates the stable asset so the value-carrying flows have something to move.
 	pub fn ensure_stable_asset_exists() {
-		let asset = StableAssetLocation::get();
+		let asset = HollarLocation::get();
 		if !<Assets as Inspect<AccountId>>::asset_exists(asset.clone()) {
 			<Assets as Create<AccountId>>::create(
 				asset,
@@ -1263,7 +1255,7 @@ pub mod benchmark_utils {
 		}
 
 		fn airdrop_asset_id() -> <Runtime as pallet_assets::Config>::AssetId {
-			StableAssetLocation::get()
+			HollarLocation::get()
 		}
 	}
 
@@ -1517,12 +1509,12 @@ pub mod benchmark_utils {
 
 			ensure_stable_asset_exists();
 			if indiv_pallet_coinage::AssetToInstance::<Runtime>::iter_key_prefix(
-				StableAssetLocation::get(),
+				HollarLocation::get(),
 			)
 			.next()
 			.is_none()
 			{
-				let asset = StableAssetLocation::get();
+				let asset = HollarLocation::get();
 				<AssetsWithHolder as Mutate<_>>::mint_into(
 					asset.clone(),
 					&Coinage::pallet_account(),
@@ -1542,7 +1534,7 @@ pub mod benchmark_utils {
 			use frame_support::traits::fungibles::{Inspect, Mutate};
 
 			ensure_stable_asset_exists();
-			let asset = StableAssetLocation::get();
+			let asset = HollarLocation::get();
 			<AssetsWithHolder as Mutate<_>>::mint_into(
 				asset.clone(),
 				&Coinage::pallet_account(),
@@ -1553,7 +1545,7 @@ pub mod benchmark_utils {
 		}
 
 		fn fund_account(who: &AccountId, amount: Balance) {
-			<AssetsWithHolder as Mutate<_>>::mint_into(StableAssetLocation::get(), who, amount)
+			<AssetsWithHolder as Mutate<_>>::mint_into(HollarLocation::get(), who, amount)
 				.expect("benchmark: account must be fundable");
 		}
 

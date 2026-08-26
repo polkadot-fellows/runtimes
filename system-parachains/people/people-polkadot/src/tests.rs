@@ -432,7 +432,7 @@ fn individuality_cross_runtime_pallet_indices_are_pinned() {
 #[test]
 fn individuality_deployment_order_guards_are_enforced() {
 	use crate::{
-		individuality::StableAssetLocation, Assets, ChunksManager, Coinage, RuntimeGenesisConfig,
+		assets::hollar::HollarLocation, Assets, ChunksManager, Coinage, RuntimeGenesisConfig,
 	};
 	use indiv_support::traits::RingExponent;
 	use sp_runtime::{transaction_validity::TransactionValidityError, BuildStorage};
@@ -451,7 +451,7 @@ fn individuality_deployment_order_guards_are_enforced() {
 
 		// Coinage refuses an unregistered backing asset. Once governance funds the pallet account's
 		// minimum balance, it can create sufficient instances for that backing asset.
-		let stable = StableAssetLocation::get();
+		let stable = HollarLocation::get();
 		assert_noop!(
 			Coinage::create_sufficient_instance(
 				RuntimeOrigin::root(),
