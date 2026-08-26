@@ -604,7 +604,7 @@ parameter_types! {
 }
 
 impl indiv_pallet_members_notifier::Config for Runtime {
-	type WeightInfo = indiv_pallet_members_notifier::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::indiv_pallet_members_notifier::WeightInfo<Runtime>;
 	type XcmRouter = xcm_config::XcmRouter;
 	type ChannelInfo = ParachainSystem;
 	type ManageOrigin = RootOrFellows;

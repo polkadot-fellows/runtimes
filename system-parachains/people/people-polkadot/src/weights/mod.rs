@@ -35,6 +35,7 @@ pub mod indiv_pallet_dummy_dim;
 pub mod indiv_pallet_game;
 pub mod indiv_pallet_honour;
 pub mod indiv_pallet_members;
+pub mod indiv_pallet_members_notifier;
 pub mod indiv_pallet_network_suffix;
 pub mod indiv_pallet_origin_restriction;
 pub mod indiv_pallet_people;
