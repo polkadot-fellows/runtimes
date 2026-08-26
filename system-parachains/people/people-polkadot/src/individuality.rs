@@ -728,22 +728,6 @@ impl indiv_pallet_origin_restriction::Config for Runtime {
 }
 
 /// Call encoding for the Bulletin Chain `TransactionStorage` calls invoked over XCM.
-///
-/// The pallet index is a dynamic parameter because Bulletin does not deploy
-/// `pallet-transaction-storage` yet. Governance must set it to the actual index before any
-/// long-term-storage allocation can succeed.
-///
-/// TODO: long-term storage allocation is a silent no-op until Bulletin Polkadot deploys
-/// `pallet-transaction-storage`, and this index must be re-verified against its
-/// `construct_runtime!` when it does. Two things to resolve before relying on this path:
-///
-/// * Bulletin Polkadot does not deploy `pallet-transaction-storage` yet, so the messages sent below
-///   are accepted locally (XCM delivery is fire-and-forget, and `send_xcm` only reports a *send*
-///   failure) and then discarded by the receiver. `pallet-resources` nevertheless records the
-///   allocation as granted on this chain, so a person can consume their long-term storage allowance
-///   against storage that was never actually reserved.
-/// * Nothing replays the grants issued during that window once the pallet does land, so the two
-///   sides start out inconsistent and need a reconciliation plan.
 #[derive(Encode, Decode)]
 enum TransactionStorageCalls<AccountId: Encode> {
 	/// `authorize_account(who, transactions, bytes)`

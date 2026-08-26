@@ -97,7 +97,6 @@ pub mod dynamic_params {
 		#[codec(index = 6)]
 		pub static LongTermStorageAllowanceForLitePeople: LongTermStorageAllocation =
 			LongTermStorageAllocation { transactions: 10, bytes: 100 * 1024 };
-		/// The `pallet-transaction-storage` index on Bulletin, set when Bulletin deploys it.
 		#[codec(index = 7)]
 		pub static BulletinTransactionStoragePalletIndex: u8 = 40;
 	}
