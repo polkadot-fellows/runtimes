@@ -527,13 +527,6 @@ parameter_types! {
 		(HollarLocation::get(), HOLLAR_UNITS / 100);
 }
 
-pub type CoinageInstanceCreationDeposit = HoldConsideration<
-	AccountId,
-	Balances,
-	CoinageInstanceCreationHoldReason,
-	ConstantStoragePrice<CoinageInstanceCreationDepositAmount, Balance>,
->;
-
 /// Coinage only supports the configured HOLLAR instance. Other assets cannot be converted and
 /// therefore cannot be used to pay an unload fee.
 pub struct CoinageFeeConversion;
@@ -621,7 +614,12 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
 	type EnablePermissionless = ConstBool<false>;
 	type LoadDeposit = CoinageLoadDeposit;
-	type InstanceCreationDeposit = CoinageInstanceCreationDeposit;
+	type InstanceCreationDeposit = HoldConsideration<
+		AccountId,
+		Balances,
+		CoinageInstanceCreationHoldReason,
+		ConstantStoragePrice<CoinageInstanceCreationDepositAmount, Balance>,
+	>;
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
 	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
