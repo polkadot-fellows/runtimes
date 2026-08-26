@@ -807,8 +807,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type MaxConsolidation = ConstU32<64>;
 	type MaxBatchUnpaidLoad = ConstU32<10>;
 
-	/// ~3 months before a full recycler ring can be cleaned up.
-	type RecyclerExpirationTime = ConstU32<{ 90 * 24 * 60 * 60 }>;
+	type RecyclerExpirationTime = ConstU32<{ 365 * 24 * 60 * 60 }>; // ~ 1 year
 	type PaidUnloadTokenTimePeriod = ConstU32<{ 7 * 24 * 60 * 60 }>;
 	type PaidUnloadTokenRingExpirationTime = ConstU32<{ 7 * 24 * 60 * 60 }>;
 
