@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Conservative fallback weights for `pallet_parameters`.
-//!
-//! These must be regenerated on the reference benchmark hardware before production deployment.
 
 use core::marker::PhantomData;
 use frame_support::{traits::Get, weights::Weight};
