@@ -158,7 +158,7 @@ impl indiv_pallet_chunks_manager::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_chunks_manager::WeightInfo<Runtime>;
 	type Chunk = <BandersnatchVrfVerifiable as GenerateVerifiable>::StaticChunk;
 	type PageSize = ConstU32<255>;
-	type ManagerOrigin = RootOrFellows;
+	type ManagerOrigin = EnsureRoot<Self::AccountId>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::ChunksManagerBenchHelper;
 }
