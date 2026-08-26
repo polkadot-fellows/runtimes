@@ -614,7 +614,10 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 	type NativeFungible = Balances;
 	type Fungibles = AssetsWithHolder;
-	type AdminOrigin = RootOrFellows;
+	type AdminOrigin = EitherOfDiverse<
+		RootOrFellows,
+		EnsureXcm<IsVoiceOfBody<AssetHubLocation, TechnicalMaintenanceBodyId>>,
+	>;
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
 	type EnablePermissionless = ConstBool<false>;
 	type LoadDeposit = CoinageLoadDeposit;
