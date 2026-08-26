@@ -50,9 +50,7 @@ use frame_support::{
 	traits::{
 		ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
 		fungible::{HoldConsideration, ItemOf},
-		tokens::ConversionToAssetBalance,
 	},
-	weights::WeightToFee,
 };
 use indiv_pallet_origin_restriction::Allowance;
 use indiv_support::{
@@ -68,7 +66,7 @@ use scale_info::TypeInfo;
 use sp_runtime::MultiSigner;
 use sp_runtime::{
 	DispatchError, DispatchResult, MultiSignature,
-	traits::{AccountIdConversion, ConstI8, ConstU16, Convert},
+	traits::{AccountIdConversion, ConstI8, ConstU16},
 };
 use sp_statement_store::StatementAllowance;
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, MINUTES as RC_MINUTES};
@@ -527,77 +525,6 @@ parameter_types! {
 		(HollarLocation::get(), HOLLAR_UNITS / 100);
 }
 
-/// Coinage only supports the configured HOLLAR instance. Other assets cannot be converted and
-/// therefore cannot be used to pay an unload fee.
-pub struct CoinageFeeConversion;
-
-impl pallet_asset_conversion::Swap<AccountId> for CoinageFeeConversion {
-	type Balance = Balance;
-	type AssetKind = Location;
-
-	fn max_path_len() -> u32 {
-		0
-	}
-
-	fn swap_exact_tokens_for_tokens(
-		_sender: AccountId,
-		_path: Vec<Self::AssetKind>,
-		_amount_in: Self::Balance,
-		_amount_out_min: Option<Self::Balance>,
-		_send_to: AccountId,
-		_keep_alive: bool,
-	) -> Result<Self::Balance, DispatchError> {
-		Err(DispatchError::Other("coinage only supports HOLLAR"))
-	}
-
-	fn swap_tokens_for_exact_tokens(
-		_sender: AccountId,
-		_path: Vec<Self::AssetKind>,
-		_amount_out: Self::Balance,
-		_amount_in_max: Option<Self::Balance>,
-		_send_to: AccountId,
-		_keep_alive: bool,
-	) -> Result<Self::Balance, DispatchError> {
-		Err(DispatchError::Other("coinage only supports HOLLAR"))
-	}
-}
-
-impl pallet_asset_conversion::QuotePrice for CoinageFeeConversion {
-	type Balance = Balance;
-	type AssetKind = Location;
-
-	fn quote_price_tokens_for_exact_tokens(
-		_asset1: Self::AssetKind,
-		_asset2: Self::AssetKind,
-		_amount: Self::Balance,
-		_include_fee: bool,
-	) -> Option<Self::Balance> {
-		None
-	}
-
-	fn quote_price_exact_tokens_for_tokens(
-		_asset1: Self::AssetKind,
-		_asset2: Self::AssetKind,
-		_amount: Self::Balance,
-		_include_fee: bool,
-	) -> Option<Self::Balance> {
-		None
-	}
-}
-
-/// Converts lifecycle weight to HOLLAR, the only coinage asset this runtime enables.
-pub struct CoinageWeightToFee;
-
-impl Convert<Weight, Balance> for CoinageWeightToFee {
-	fn convert(weight: Weight) -> Balance {
-		AssetRate::to_asset_balance(
-			<crate::DotWeightToFee<Runtime> as WeightToFee>::weight_to_fee(&weight),
-			HollarLocation::get(),
-		)
-		.unwrap_or(Balance::MAX)
-	}
-}
-
 impl indiv_pallet_coinage::Config for Runtime {
 	type WeightInfo = indiv_pallet_coinage::weights::SubstrateWeight<Runtime>;
 	type PalletId = CoinagePalletId;
@@ -606,7 +533,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type RecyclerRingExponent = RecyclerRingExponent;
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 	type NativeFungible = Balances;
-	type Fungibles = AssetsWithHolder;
+	type Fungibles = NativeAndAssets;
 	type AdminOrigin = EitherOfDiverse<
 		RootOrFellows,
 		EnsureXcm<IsVoiceOfBody<AssetHubLocation, TechnicalMaintenanceBodyId>>,
@@ -641,10 +568,10 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type UnloadTokenAllowancePerTimePeriodForLitePeople = ConstU128<{ 10 * HOLLAR_UNITS }>;
 	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
 
-	type FeeConversion = CoinageFeeConversion;
-	type NativeAssetKind = HollarLocation;
+	type FeeConversion = AssetConversion;
+	type NativeAssetKind = xcm_config::RelayLocation;
 	type FeeDestination = TypedGetToGet<pallet_collator_selection::StakingPotAccountId<Runtime>>;
-	type WeightToFee = CoinageWeightToFee;
+	type WeightToFee = TransactionPayment;
 	type OffchainWorkerInterval = ConstU32<4>;
 	/// Base lock applied to a coin after a failed `AsCoin` dispatch; grows as `2^retries * base`.
 	type CoinFailureLockPeriod = ConstU64<3600>;

@@ -32,6 +32,7 @@ mod weights;
 pub mod xcm_config;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
+use assets_common::local_and_foreign_assets::TargetFromLeft;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
@@ -41,12 +42,16 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf,
+		fungible,
+		tokens::imbalance::{ResolveAssetTo, ResolveTo},
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, EitherOf,
 		EitherOfDiverse, Everything, InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
 };
+#[cfg(not(feature = "runtime-benchmarks"))]
+use frame_support::traits::NeverEnsureOrigin;
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
@@ -91,7 +96,7 @@ use system_parachains_constants::{
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId, BodyId},
+	latest::prelude::{AssetId, BodyId, Location},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
 	VersionedXcm,
 };
@@ -702,6 +707,103 @@ impl pallet_verify_signature::Config for Runtime {
 	type BenchmarkHelper = VerifySignatureBenchmarkHelper;
 }
 
+pub type PoolAssetsInstance = pallet_assets::Instance1;
+impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type RemoveItemsLimit = ConstU32<1000>;
+	type AssetId = u32;
+	type AssetIdParameter = u32;
+	type ReserveData = ();
+	type Currency = Balances;
+	#[cfg(feature = "runtime-benchmarks")]
+	type CreateOrigin = AsEnsureOriginWithArg<
+		frame_system::EnsureSignedBy<AssetConversionOrigin, AccountId>,
+	>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AssetDeposit = ConstU128<0>;
+	type AssetAccountDeposit = ConstU128<0>;
+	type MetadataDepositBase = ConstU128<0>;
+	type MetadataDepositPerByte = ConstU128<0>;
+	type ApprovalDeposit = ExistentialDeposit;
+	type StringLimit = assets::AssetsStringLimit;
+	type Freezer = ();
+	type Holder = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
+pub type NativeAndAssets = fungible::UnionOf<
+	Balances,
+	individuality::AssetsWithHolder,
+	TargetFromLeft<xcm_config::RelayLocation, Location>,
+	Location,
+	AccountId,
+>;
+
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+	pub StakingPotAccount: AccountId =
+		<pallet_collator_selection::StakingPotAccountId<Runtime> as frame_support::traits::TypedGet>::get();
+	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
+	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + assets::AssetDeposit::get();
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub AssetsPalletIndex: u32 = <Assets as frame_support::traits::PalletInfoAccess>::index() as u32;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+frame_support::ord_parameter_types! {
+	pub const AssetConversionOrigin: AccountId =
+		sp_runtime::traits::AccountIdConversion::<AccountId>::into_account_truncating(
+			&AssetConversionPalletId::get(),
+		);
+}
+
+pub type PoolIdToAccountId =
+	pallet_asset_conversion::AccountIdConverter<AssetConversionPalletId, (Location, Location)>;
+
+impl pallet_asset_conversion::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type HigherPrecisionBalance = sp_core::U256;
+	type AssetKind = Location;
+	type Assets = NativeAndAssets;
+	type PoolId = (Self::AssetKind, Self::AssetKind);
+	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
+		xcm_config::RelayLocation,
+		AccountId,
+		Self::AssetKind,
+		PoolIdToAccountId,
+	>;
+	type PoolAssetId = u32;
+	type PoolAssets = PoolAssets;
+	type PoolSetupFee = PoolSetupFee;
+	type PoolSetupFeeAsset = xcm_config::RelayLocation;
+	type PoolSetupFeeTarget = ResolveAssetTo<StakingPotAccount, Self::Assets>;
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type LPFee = LpFee;
+	type PalletId = AssetConversionPalletId;
+	type MaxSwapPathLength = ConstU32<3>;
+	type MintMinLiquidity = ConstU128<100>;
+	type WeightInfo = pallet_asset_conversion::weights::SubstrateWeight<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
+		xcm_config::RelayLocation,
+		parachain_info::Pallet<Runtime>,
+		AssetsPalletIndex,
+		Self::AssetKind,
+	>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -723,6 +825,8 @@ construct_runtime!(
 		AssetTxPayment: pallet_asset_tx_payment = 14,
 		AssetsHolder: pallet_assets_holder = 15,
 		OriginRestriction: indiv_pallet_origin_restriction = 16,
+		AssetConversion: pallet_asset_conversion = 17,
+		PoolAssets: pallet_assets::<Instance1> = 18,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -774,8 +878,8 @@ mod benches {
 	use super::{
 		assets::hollar::{Hollar, HydrationLocation},
 		parameter_types, vec, xcm_config, AccountId, Balances, ExistentialDeposit, ParachainSystem,
-		PriceForSiblingParachainDelivery, Runtime, RuntimeCall, RuntimeOrigin, System, XcmConfig,
-		UNITS,
+		PoolAssetsInstance, PriceForSiblingParachainDelivery, Runtime, RuntimeCall, RuntimeOrigin,
+		System, XcmConfig, UNITS,
 	};
 	use alloc::{boxed::Box, vec::Vec};
 	use codec::Encode;
@@ -790,6 +894,8 @@ mod benches {
 		[pallet_asset_tx_payment, AssetTxPayment]
 		[pallet_asset_rate, AssetRate]
 		[pallet_assets, Assets]
+		[pallet_assets, Pool]
+		[pallet_asset_conversion, AssetConversion]
 		[pallet_balances, Balances]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]
@@ -1046,6 +1152,7 @@ mod benches {
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
+	pub type Pool = pallet_assets::Pallet<Runtime, PoolAssetsInstance>;
 	pub use frame_support::traits::WhitelistedStorageKeys;
 	pub use sp_storage::TrackedStorageKey;
 }
