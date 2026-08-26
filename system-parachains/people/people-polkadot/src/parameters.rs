@@ -27,9 +27,6 @@ pub const STMT_STORE_CLEANUP_LIMIT_CAP: u32 = 50;
 pub const LONG_TERM_STORAGE_CLEANUP_LIMIT_CAP: u32 = 20;
 
 /// Dynamic runtime parameters configurable on-chain through [`pallet_parameters`].
-///
-/// These defaults preserve the Individuality integration's initial economics. Governance can
-/// adjust them after deployment without another runtime upgrade.
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
 	use super::*;
