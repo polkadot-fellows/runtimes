@@ -194,7 +194,6 @@ impl<T: frame_system::Config> indiv_pallet_people_lite::WeightInfo for WeightInf
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
-	// Placeholder for fee-to-pot registration. The benchmark bot regenerates this after push.
 	fn register_with_fee() -> Weight {
 		Weight::from_parts(1_374_450_000, 0)
 			.saturating_add(Weight::from_parts(0, 11671))
