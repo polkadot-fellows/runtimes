@@ -272,8 +272,8 @@ parameter_types! {
 }
 
 /// Duration of each phase of a game, in seconds.
-pub struct GamePhaseDurations;
-impl Get<indiv_pallet_game::PhaseDurationValues> for GamePhaseDurations {
+pub struct DefaultGamePhaseDurations;
+impl Get<indiv_pallet_game::PhaseDurationValues> for DefaultGamePhaseDurations {
 	fn get() -> indiv_pallet_game::PhaseDurationValues {
 		indiv_pallet_game::PhaseDurationValues {
 			registration: 5 * 60,
@@ -324,7 +324,7 @@ impl indiv_pallet_game::Config for Runtime {
 	type MaxGameSchedules = ConstU32<12>;
 	type MaxAttendanceHistoryDepth = ConstU32<12>;
 	type NftClaimCredits = NftCredits;
-	type DefaultPhaseDurations = GamePhaseDurations;
+	type DefaultPhaseDurations = DefaultGamePhaseDurations;
 	type AccountSignature = Signature;
 	type PlayerStatementLimit = PlayerStatementLimit;
 	type PeopleVoteWeight = ConstUint<2>;
