@@ -440,13 +440,10 @@ impl indiv_pallet_members_notifier::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::MembersNotifierBenchHelper;
 }
 
-// The allowances below bound how much block weight an *anonymous* origin may consume. Such origins
-// are not backed by an account, so nothing else limits them: without this a single alias could
-// spam the chain for free. The allowance regenerates linearly per block.
 const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_MAX: Balance = UNITS;
-const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_RECOVERY: Balance = CENTS;
+const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_RECOVERY: Balance = 3 * CENTS;
 const LITE_PERSON_ALLOWANCE_MAX: Balance = UNITS;
-const LITE_PERSON_ALLOWANCE_RECOVERY: Balance = MILLICENTS;
+const LITE_PERSON_ALLOWANCE_RECOVERY: Balance = 3 * MILLICENTS;
 
 /// The anonymous origins this runtime rate-limits, and the key their allowance is tracked under.
 #[derive(
@@ -519,6 +516,7 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 
 impl indiv_pallet_origin_restriction::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_origin_restriction::WeightInfo<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type RestrictedEntity = RestrictedEntity;
 	type OperationAllowedOneTimeExcess = OperationAllowedOneTimeExcess;
 	#[cfg(feature = "runtime-benchmarks")]

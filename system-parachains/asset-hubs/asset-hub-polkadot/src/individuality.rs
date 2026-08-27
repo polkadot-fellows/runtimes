@@ -44,22 +44,6 @@ use indiv_support::traits::{Context, Identifier, RingIndex};
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
 
-/// Wall-clock durations expressed in parachain block numbers.
-pub mod time {
-	use super::BlockNumber;
-	use system_parachains_constants::polkadot::consensus::{
-		elastic_scaling::BLOCK_PROCESSING_VELOCITY, RELAY_CHAIN_SLOT_DURATION_MILLIS,
-	};
-
-	/// Target block time, in milliseconds.
-	pub const MILLISECS_PER_BLOCK: BlockNumber =
-		RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY;
-
-	pub const MINUTES: BlockNumber = 60_000 / MILLISECS_PER_BLOCK;
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	pub const DAYS: BlockNumber = HOURS * 24;
-}
-
 /// Root or Technical Fellowship voice
 pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
@@ -331,6 +315,7 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 
 impl indiv_pallet_origin_restriction::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_origin_restriction::WeightInfo<Runtime>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type RestrictedEntity = RestrictedEntity;
 	type OperationAllowedOneTimeExcess = OperationAllowedOneTimeExcess;
 	#[cfg(feature = "runtime-benchmarks")]

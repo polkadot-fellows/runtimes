@@ -1494,13 +1494,12 @@ pub mod dynamic_params {
 		pub static DotnsPersonRegistrationAllowanceMax: Balance = MILLICENTS;
 		/// Per-block recovery for anonymous full-person dotNS registration attempts.
 		///
-		/// The formula counts this chain's own two-second blocks through `individuality::time`, not
-		/// the six-second `async_backing::MINUTES` imported elsewhere in the runtime. Using the
-		/// latter would make the allowance recover three times too fast: once every ten minutes
-		/// rather than every thirty.
+		/// `pallet-origin-restriction` measures recovery against the relay chain block number, so
+		/// the formula counts the relay chain's six-second blocks: the allowance recovers once
+		/// every thirty minutes.
 		#[codec(index = 10)]
 		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
-			50 * CENTS / ((30 * crate::individuality::time::MINUTES) as Balance);
+			50 * CENTS / ((30 * RC_MINUTES) as Balance);
 		/// Fee charged for creating an alias mapping.
 		#[codec(index = 11)]
 		pub static AliasFee: Balance = 1;
