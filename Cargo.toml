@@ -222,6 +222,7 @@ polkadot-primitives = { version = "25.0.0", default-features = false }
 polkadot-runtime = { path = "relay/polkadot" }
 polkadot-runtime-common = { version = "29.0.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
+relay-common = { path = "relay/common", default-features = false }
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
 primitive-types = { version = "0.13.1", default-features = false }
 frame-metadata-hash-extension = { version = "0.16.0", default-features = false }
@@ -342,6 +343,7 @@ members = [
 	"pallets/rc-migrator",
 	"pallets/rc2-migrator",
 	"pallets/remote-proxy",
+	"relay/common",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",

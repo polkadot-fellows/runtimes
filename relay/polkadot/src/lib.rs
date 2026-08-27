@@ -2019,6 +2019,7 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		relay_common::proxy::MigrateLegacyProxies<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
