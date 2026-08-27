@@ -9,10 +9,10 @@ use frame_support::{
 	traits::{ConstU32, EnsureOrigin, EnsureOriginWithArg},
 };
 use indiv_pallet_resources::types::LongTermStorageAllocation;
+pub use indiv_support::parameters::StatementAllowanceParameter;
 use indiv_support::parameters::{
 	AtLeast, AtLeastOne, AtMost, BenchmarkMax, SaturatingSubOne, StatementAllowanceGetter,
 };
-pub use indiv_support::parameters::StatementAllowanceParameter;
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 use xcm::latest::prelude::{Location, Parachain};
 

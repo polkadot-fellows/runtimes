@@ -38,12 +38,12 @@
 use super::*;
 
 use frame_support::traits::{ContainsPair, EnsureOrigin, Get};
+#[cfg(feature = "runtime-benchmarks")]
+use indiv_support::traits::{Context, Identifier, RingIndex};
 use indiv_support::{
 	parameters::{AtLeastOne, AtMost, BenchmarkMax},
 	traits::{Alias, RingExponent},
 };
-#[cfg(feature = "runtime-benchmarks")]
-use indiv_support::traits::{Context, Identifier, RingIndex};
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
 
@@ -52,8 +52,7 @@ pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
 /// The full administration origin shared by Individuality pallet managers and dynamic parameters.
-pub type RootOrFellowsOrTechnicalMaintenance =
-	EitherOfDiverse<RootOrFellows, TechnicalMaintenance>;
+pub type RootOrFellowsOrTechnicalMaintenance = EitherOfDiverse<RootOrFellows, TechnicalMaintenance>;
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
@@ -94,9 +93,8 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureNotifierSibling {
 
 	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
 		match o.clone().into() {
-			Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id)) if u32::from(id) == PEOPLE_ID => {
-				Ok(())
-			},
+			Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id)) if u32::from(id) == PEOPLE_ID =>
+				Ok(()),
 			_ => Err(o),
 		}
 	}
@@ -131,10 +129,7 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 }
 
 pub type MaxDeletedRingsPerCollection = BenchmarkMax<
-	AtMost<
-		AtLeastOne<dynamic_params::individuality::MaxDeletedRingsPerCollection>,
-		ConstU32<100>,
-	>,
+	AtMost<AtLeastOne<dynamic_params::individuality::MaxDeletedRingsPerCollection>, ConstU32<100>>,
 	ConstU32<100>,
 >;
 
@@ -147,10 +142,7 @@ impl Get<Option<Balance>> for AliasFee {
 }
 
 pub type MaxStaleAliasBatch = BenchmarkMax<
-	AtMost<
-		AtLeastOne<dynamic_params::individuality::MaxStaleAliasBatch>,
-		ConstU32<32>,
-	>,
+	AtMost<AtLeastOne<dynamic_params::individuality::MaxStaleAliasBatch>, ConstU32<32>>,
 	ConstU32<32>,
 >;
 
@@ -298,14 +290,13 @@ pub enum RestrictedEntity {
 impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
 	fn allowance(&self) -> indiv_pallet_origin_restriction::Allowance<Balance> {
 		match self {
-			RestrictedEntity::DotnsPersonRegistration(_) => {
+			RestrictedEntity::DotnsPersonRegistration(_) =>
 				indiv_pallet_origin_restriction::Allowance {
 					max: dynamic_params::individuality::DotnsPersonRegistrationAllowanceMax::get(),
 					recovery_per_block:
 						dynamic_params::individuality::DotnsPersonRegistrationAllowanceRecovery::get(
 						),
-				}
-			},
+				},
 		}
 	}
 

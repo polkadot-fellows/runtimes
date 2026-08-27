@@ -389,5 +389,4 @@ mod tests {
 	fn tracks_are_well_formed() {
 		assert_eq!(TracksInfo::check_integrity(), Ok(()));
 	}
-
 }

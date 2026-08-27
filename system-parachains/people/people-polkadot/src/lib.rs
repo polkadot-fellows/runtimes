@@ -36,6 +36,8 @@ use assets_common::local_and_foreign_assets::TargetFromLeft;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+#[cfg(not(feature = "runtime-benchmarks"))]
+use frame_support::traits::NeverEnsureOrigin;
 use frame_support::{
 	construct_runtime, derive_impl,
 	dispatch::DispatchClass,
@@ -50,8 +52,6 @@ use frame_support::{
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
 };
-#[cfg(not(feature = "runtime-benchmarks"))]
-use frame_support::traits::NeverEnsureOrigin;
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
@@ -725,9 +725,8 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type ReserveData = ();
 	type Currency = Balances;
 	#[cfg(feature = "runtime-benchmarks")]
-	type CreateOrigin = AsEnsureOriginWithArg<
-		frame_system::EnsureSignedBy<AssetConversionOrigin, AccountId>,
-	>;
+	type CreateOrigin =
+		AsEnsureOriginWithArg<frame_system::EnsureSignedBy<AssetConversionOrigin, AccountId>>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
 	type ForceOrigin = EnsureRoot<AccountId>;

@@ -45,8 +45,8 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		ConstBool, ConstU128, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
-		fungible::HoldConsideration,
+		fungible::HoldConsideration, ConstBool, ConstU128, ConstantStoragePrice, ContainsPair, Get,
+		PalletInfoAccess,
 	},
 };
 use indiv_pallet_origin_restriction::Allowance;
@@ -55,18 +55,19 @@ use indiv_support::traits::{Identifier, RingIndex};
 use indiv_support::{
 	crypto::{BandersnatchVrfVerifiable, GenerateVerifiable},
 	fungibles::CombineAssetsWithHolder,
-	traits::{Alias, AllocateStorage, Context, PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER, RingExponent},
+	traits::{
+		Alias, AllocateStorage, Context, RingExponent, PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER,
+	},
 	utils::TypedGetToGet,
 };
-use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
+use polkadot_runtime_constants::{system_parachain::ASSET_HUB_ID, time::MINUTES as RC_MINUTES};
 use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
-use sp_runtime::{MultiSignature, traits::AccountIdConversion};
+use sp_runtime::{traits::AccountIdConversion, MultiSignature};
 use sp_runtime::{
-	DispatchError, DispatchResult,
 	traits::{ConstI8, ConstU16},
+	DispatchError, DispatchResult,
 };
-use polkadot_runtime_constants::time::MINUTES as RC_MINUTES;
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
 // this module configures.
 #[cfg(feature = "runtime-benchmarks")]
@@ -74,14 +75,15 @@ use xcm::latest::Junction::GeneralIndex;
 #[cfg(feature = "runtime-benchmarks")]
 use xcm::latest::Junction::Parachain;
 use xcm::latest::{
+	send_xcm,
 	Instruction::{Transact, UnpaidExecution},
 	Junction,
 	Junction::PalletInstance,
-	Location, OriginKind, WeightLimit, Xcm, send_xcm,
+	Location, OriginKind, WeightLimit, Xcm,
 };
 
 #[cfg(feature = "runtime-benchmarks")]
-use crate::assets::hollar::{HOLLAR_UNITS, HollarLocation};
+use crate::assets::hollar::{HollarLocation, HOLLAR_UNITS};
 use crate::parameters::dynamic_params;
 
 /// The full-featured fungibles implementation, combining `pallet-assets` balances with the hold
@@ -345,9 +347,9 @@ impl indiv_pallet_coinage::Config for Runtime {
 
 	type MembershipProof = People;
 	type UnloadTokenTimePeriodPeopleLitePeople = ConstU32<{ 24 * 60 * 60 }>; // 1 day
-	// Free unload token allowance per time period, expressed in DOT (the pallet's native balance,
-	// not HOLLAR): 20 DOT for people and 10 DOT for lite people. The fee is dynamic (it follows
-	// the fee multiplier), and usage is additionally capped by `MaxFreeUnloadTokensPerTimePeriod`.
+																		  // Free unload token allowance per time period, expressed in DOT (the pallet's native balance,
+																		  // not HOLLAR): 20 DOT for people and 10 DOT for lite people. The fee is dynamic (it follows
+																		  // the fee multiplier), and usage is additionally capped by `MaxFreeUnloadTokensPerTimePeriod`.
 	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 20 * UNITS }>;
 	type UnloadTokenAllowancePerTimePeriodForLitePeople = ConstU128<{ 10 * UNITS }>;
 	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
@@ -454,13 +456,12 @@ pub enum RestrictedEntity {
 impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
 	fn allowance(&self) -> Allowance<Balance> {
 		match self {
-			RestrictedEntity::PersonalAlias(_) | RestrictedEntity::PersonalIdentity(_) => {
+			RestrictedEntity::PersonalAlias(_) | RestrictedEntity::PersonalIdentity(_) =>
 				Allowance {
 					max: crate::parameters::PeopleIdentityAndAliasAllowanceMax::get(),
 					recovery_per_block:
 						crate::parameters::PeopleIdentityAndAliasAllowanceRecovery::get(),
-				}
-			},
+				},
 			RestrictedEntity::LitePerson(_) | RestrictedEntity::LiteAlias(_) => Allowance {
 				max: crate::parameters::LitePeopleAllowanceMax::get(),
 				recovery_per_block: crate::parameters::LitePeopleAllowanceRecovery::get(),
@@ -472,18 +473,14 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 		use indiv_pallet_people::Origin::*;
 		use indiv_pallet_people_lite::Origin::*;
 		match origin_caller {
-			OriginCaller::People(PersonalIdentity(id)) => {
-				Some(RestrictedEntity::PersonalIdentity(*id))
-			},
-			OriginCaller::People(PersonalAlias(rev_ca)) => {
-				Some(RestrictedEntity::PersonalAlias(rev_ca.ca.alias))
-			},
-			OriginCaller::PeopleLite(LitePerson(account_id)) => {
-				Some(RestrictedEntity::LitePerson(account_id.clone()))
-			},
-			OriginCaller::PeopleLite(LiteAlias(rev_ca)) => {
-				Some(RestrictedEntity::LiteAlias(rev_ca.ca.alias))
-			},
+			OriginCaller::People(PersonalIdentity(id)) =>
+				Some(RestrictedEntity::PersonalIdentity(*id)),
+			OriginCaller::People(PersonalAlias(rev_ca)) =>
+				Some(RestrictedEntity::PersonalAlias(rev_ca.ca.alias)),
+			OriginCaller::PeopleLite(LitePerson(account_id)) =>
+				Some(RestrictedEntity::LitePerson(account_id.clone())),
+			OriginCaller::PeopleLite(LiteAlias(rev_ca)) =>
+				Some(RestrictedEntity::LiteAlias(rev_ca.ca.alias)),
 			_ => None,
 		}
 	}
@@ -555,8 +552,8 @@ impl BulletinDataStore {
 	/// interior, where a successful local send would otherwise remain a silent remote no-op.
 	pub(crate) fn bulletin_chain_location() -> Result<Location, DispatchError> {
 		let destination = dynamic_params::bulletin_storage::BulletinChainLocation::get();
-		if destination.parents == 1
-			&& matches!(destination.interior.as_slice(), [Junction::Parachain(_)])
+		if destination.parents == 1 &&
+			matches!(destination.interior.as_slice(), [Junction::Parachain(_)])
 		{
 			Ok(destination)
 		} else {
@@ -594,8 +591,8 @@ pub mod benchmark_utils {
 	use frame_support::{
 		dispatch::RawOrigin,
 		traits::{
-			UnixTime,
 			fungibles::{Create, Inspect, Mutate},
+			UnixTime,
 		},
 	};
 	use indiv_support::{
@@ -739,8 +736,9 @@ pub mod benchmark_utils {
 			)
 			.expect("benchmark: people collection must be created");
 
-			let secret =
-				BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(b"honour-bench-voter"));
+			let secret = BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(
+				b"honour-bench-voter",
+			));
 			let member = BandersnatchVrfVerifiable::member_from_secret(&secret);
 
 			Members::add_members(indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER, vec![member])
@@ -956,8 +954,7 @@ pub mod benchmark_utils {
 			pallet_timestamp::Now::<Runtime>::put(now.as_millis() as u64);
 		}
 
-		fn setup_fee_conversion() {
-		}
+		fn setup_fee_conversion() {}
 
 		fn create_people_proof(
 			context: &[u8],
@@ -969,8 +966,9 @@ pub mod benchmark_utils {
 			let ring_exponent = <Runtime as indiv_pallet_people::Config>::RingExponent::get();
 			indiv_pallet_members::Pallet::<Runtime>::initialize_chunks(ring_exponent);
 
-			let secret =
-				BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(b"people_for_coinage:42"));
+			let secret = BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(
+				b"people_for_coinage:42",
+			));
 			let member = BandersnatchVrfVerifiable::member_from_secret(&secret);
 
 			// Onboard members immediately.

@@ -16,7 +16,9 @@
 //! The People-to-Bulletin long-term-storage grant.
 
 use crate::*;
-use emulated_integration_tests_common::{impls::assert_expected_events, macros::pallet_message_queue};
+use emulated_integration_tests_common::{
+	impls::assert_expected_events, macros::pallet_message_queue,
+};
 use indiv_pallet_resources::{
 	types::MembershipCollection, Origin as ResourcesOrigin, SpentLongTermStorageAliases,
 };
