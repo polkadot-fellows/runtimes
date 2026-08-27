@@ -7,7 +7,6 @@ use crate::{ExistentialDeposit, *};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	traits::{ConstU32, EnsureOrigin, EnsureOriginWithArg},
-	PalletId,
 };
 use indiv_pallet_resources::types::LongTermStorageAllocation;
 use indiv_support::parameters::{
@@ -15,7 +14,6 @@ use indiv_support::parameters::{
 };
 pub use indiv_support::parameters::StatementAllowanceParameter;
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
-use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::{Location, Parachain};
 
 const SECONDS_PER_DAY: u32 = 24 * 60 * 60;
@@ -99,15 +97,6 @@ pub mod dynamic_params {
 			LongTermStorageAllocation { transactions: 10, bytes: 100 * 1024 };
 		#[codec(index = 7)]
 		pub static BulletinTransactionStoragePalletIndex: u8 = 40;
-	}
-
-	/// People airdrop draw funding.
-	#[dynamic_pallet_params]
-	#[codec(index = 2)]
-	pub mod people_airdrops {
-		#[codec(index = 0)]
-		pub static PrizeSource: sp_runtime::AccountId32 =
-			PalletId(*b"pop/pads").into_account_truncating();
 	}
 
 	/// Lite-person registration pricing.
@@ -197,7 +186,6 @@ pub type LongTermStorageAllowanceForLitePeople =
 
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
-pub type PeopleAirdropsPrizeSource = dynamic_params::people_airdrops::PrizeSource;
 
 /// Root, the Fellowship governance voice, and Asset Hub's TechnicalMaintenance voice may update
 /// these parameters.

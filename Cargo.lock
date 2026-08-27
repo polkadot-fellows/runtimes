@@ -7762,30 +7762,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indiv-pallet-airdrop"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "indiv-support",
- "log",
- "merlin",
- "pallet-assets",
- "pallet-assets-holder",
- "parity-scale-codec",
- "rand_core 0.6.4",
- "scale-info",
- "schnorrkel",
- "sp-core 43.0.0",
- "sp-crypto-hashing",
- "sp-io 48.0.0",
- "sp-runtime 48.0.0",
- "verifiable",
-]
-
-[[package]]
 name = "indiv-pallet-alias-accounts"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
@@ -7876,35 +7852,6 @@ dependencies = [
  "sp-core 43.0.0",
  "sp-io 48.0.0",
  "sp-runtime 48.0.0",
-]
-
-[[package]]
-name = "indiv-pallet-game"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
-dependencies = [
- "binary-merkle-tree",
- "cumulus-pallet-parachain-system",
- "cumulus-primitives-core",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "indiv-pallet-airdrop",
- "indiv-pallet-people",
- "indiv-pallet-score",
- "indiv-support",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-api 43.0.0",
- "sp-core 43.0.0",
- "sp-io 48.0.0",
- "sp-runtime 48.0.0",
- "sp-state-machine 0.53.0",
- "sp-statement-store",
- "sp-trie 46.0.0",
- "staging-xcm",
- "verifiable",
 ]
 
 [[package]]
@@ -8000,28 +7947,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indiv-pallet-nft-credits"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
-dependencies = [
- "binary-merkle-tree",
- "cumulus-primitives-core",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "indiv-pallet-game",
- "indiv-pallet-score",
- "indiv-support",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-api 43.0.0",
- "sp-io 48.0.0",
- "sp-runtime 48.0.0",
- "staging-xcm",
-]
-
-[[package]]
 name = "indiv-pallet-origin-restriction"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
@@ -8054,24 +7979,6 @@ dependencies = [
  "sp-io 48.0.0",
  "sp-runtime 48.0.0",
  "verifiable",
-]
-
-[[package]]
-name = "indiv-pallet-people-airdrops"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "indiv-pallet-airdrop",
- "indiv-support",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 43.0.0",
- "sp-crypto-hashing",
- "sp-runtime 48.0.0",
 ]
 
 [[package]]
@@ -8149,26 +8056,6 @@ dependencies = [
  "sp-io 48.0.0",
  "sp-runtime 48.0.0",
  "sp-statement-store",
- "verifiable",
-]
-
-[[package]]
-name = "indiv-pallet-score"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=d5b8461987ca0944e5a4bb73e12b98bbed0bd998#d5b8461987ca0944e5a4bb73e12b98bbed0bd998"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "indiv-pallet-people",
- "indiv-support",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 43.0.0",
- "sp-io 48.0.0",
- "sp-runtime 48.0.0",
- "staging-xcm",
  "verifiable",
 ]
 
@@ -13245,23 +13132,18 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "indiv-pallet-airdrop",
  "indiv-pallet-chunks-manager",
  "indiv-pallet-coinage",
  "indiv-pallet-dummy-dim",
- "indiv-pallet-game",
  "indiv-pallet-honour",
  "indiv-pallet-members",
  "indiv-pallet-members-notifier",
  "indiv-pallet-network-suffix",
- "indiv-pallet-nft-credits",
  "indiv-pallet-origin-restriction",
  "indiv-pallet-people",
- "indiv-pallet-people-airdrops",
  "indiv-pallet-people-lite",
  "indiv-pallet-relay-randomness",
  "indiv-pallet-resources",
- "indiv-pallet-score",
  "indiv-support",
  "log",
  "pallet-asset-conversion",
@@ -13307,7 +13189,6 @@ dependencies = [
  "sp-offchain",
  "sp-runtime 48.0.0",
  "sp-session",
- "sp-statement-store",
  "sp-storage 25.0.0",
  "sp-transaction-pool",
  "sp-version 46.0.0",

@@ -25,23 +25,18 @@ frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
-indiv-pallet-airdrop = { workspace = true }
 indiv-pallet-chunks-manager = { workspace = true }
 indiv-pallet-coinage = { workspace = true }
 indiv-pallet-dummy-dim = { workspace = true }
-indiv-pallet-game = { workspace = true }
-indiv-pallet-nft-credits = { workspace = true }
 indiv-pallet-honour = { workspace = true }
 indiv-pallet-members = { workspace = true }
 indiv-pallet-members-notifier = { workspace = true }
 indiv-pallet-network-suffix = { workspace = true }
 indiv-pallet-origin-restriction = { workspace = true }
 indiv-pallet-people = { workspace = true }
-indiv-pallet-people-airdrops = { workspace = true }
 indiv-pallet-people-lite = { workspace = true }
 indiv-pallet-relay-randomness = { workspace = true }
 indiv-pallet-resources = { workspace = true }
-indiv-pallet-score = { workspace = true }
 indiv-support = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-conversion = { workspace = true }
@@ -74,7 +69,6 @@ sp-io = { workspace = true }
 sp-offchain = { workspace = true }
 sp-runtime = { workspace = true }
 sp-session = { workspace = true }
-sp-statement-store = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
@@ -140,23 +134,18 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
-	"indiv-pallet-airdrop/std",
 	"indiv-pallet-chunks-manager/std",
 	"indiv-pallet-coinage/std",
 	"indiv-pallet-dummy-dim/std",
-	"indiv-pallet-game/std",
 	"indiv-pallet-honour/std",
 	"indiv-pallet-members-notifier/std",
 	"indiv-pallet-network-suffix/std",
 	"indiv-pallet-members/std",
-	"indiv-pallet-nft-credits/std",
 	"indiv-pallet-origin-restriction/std",
-	"indiv-pallet-people-airdrops/std",
 	"indiv-pallet-people-lite/std",
 	"indiv-pallet-people/std",
 	"indiv-pallet-relay-randomness/std",
 	"indiv-pallet-resources/std",
-	"indiv-pallet-score/std",
 	"indiv-support/std",
 	"log/std",
 	"pallet-asset-conversion/std",
@@ -201,7 +190,6 @@ std = [
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
-	"sp-statement-store/std",
 	"sp-storage/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
@@ -229,23 +217,18 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"indiv-pallet-airdrop/runtime-benchmarks",
 	"indiv-pallet-chunks-manager/runtime-benchmarks",
 	"indiv-pallet-coinage/runtime-benchmarks",
 	"indiv-pallet-dummy-dim/runtime-benchmarks",
-	"indiv-pallet-game/runtime-benchmarks",
 	"indiv-pallet-honour/runtime-benchmarks",
 	"indiv-pallet-members-notifier/runtime-benchmarks",
 	"indiv-pallet-network-suffix/runtime-benchmarks",
 	"indiv-pallet-members/runtime-benchmarks",
-	"indiv-pallet-nft-credits/runtime-benchmarks",
 	"indiv-pallet-origin-restriction/runtime-benchmarks",
-	"indiv-pallet-people-airdrops/runtime-benchmarks",
 	"indiv-pallet-people-lite/runtime-benchmarks",
 	"indiv-pallet-people/runtime-benchmarks",
 	"indiv-pallet-relay-randomness/runtime-benchmarks",
 	"indiv-pallet-resources/runtime-benchmarks",
-	"indiv-pallet-score/runtime-benchmarks",
 	"indiv-support/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
@@ -293,23 +276,18 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"indiv-pallet-airdrop/try-runtime",
 	"indiv-pallet-chunks-manager/try-runtime",
 	"indiv-pallet-coinage/try-runtime",
 	"indiv-pallet-dummy-dim/try-runtime",
-	"indiv-pallet-game/try-runtime",
 	"indiv-pallet-honour/try-runtime",
 	"indiv-pallet-members-notifier/try-runtime",
 	"indiv-pallet-network-suffix/try-runtime",
 	"indiv-pallet-members/try-runtime",
-	"indiv-pallet-nft-credits/try-runtime",
 	"indiv-pallet-origin-restriction/try-runtime",
-	"indiv-pallet-people-airdrops/try-runtime",
 	"indiv-pallet-people-lite/try-runtime",
 	"indiv-pallet-people/try-runtime",
 	"indiv-pallet-relay-randomness/try-runtime",
 	"indiv-pallet-resources/try-runtime",
-	"indiv-pallet-score/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
