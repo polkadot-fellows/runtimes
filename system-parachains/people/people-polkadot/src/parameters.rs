@@ -99,6 +99,20 @@ pub mod dynamic_params {
 		pub static BulletinTransactionStoragePalletIndex: u8 = 40;
 	}
 
+	/// Allowances bounding on aliases and identity.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod origin_restriction {
+		#[codec(index = 0)]
+		pub static PeopleIdentityAndAliasAllowanceMax: Balance = UNITS;
+		#[codec(index = 1)]
+		pub static PeopleIdentityAndAliasAllowanceRecovery: Balance = 3 * CENTS;
+		#[codec(index = 2)]
+		pub static LitePeopleAllowanceMax: Balance = UNITS;
+		#[codec(index = 3)]
+		pub static LitePeopleAllowanceRecovery: Balance = 3 * MILLICENTS;
+	}
+
 	/// Lite-person registration pricing.
 	#[dynamic_pallet_params]
 	#[codec(index = 3)]
@@ -111,13 +125,8 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 4)]
 	pub mod coinage {
-		/// Held from a sponsored instance's pot per loaded recycler key, until the coin is
-		/// unloaded or its recycler is archived. Prices the state a load occupies meanwhile;
-		/// revisit as the DOT price moves. Deposits already held keep the price they were taken
-		/// at.
 		#[codec(index = 0)]
 		pub static LoadDepositPrice: Balance = UNITS / 10;
-		/// Held from the creator of a sponsored instance for as long as it stays sponsored.
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
 	}
@@ -198,6 +207,20 @@ pub type LongTermStorageAllowanceForPeople =
 	dynamic_params::bulletin_storage::LongTermStorageAllowanceForPeople;
 pub type LongTermStorageAllowanceForLitePeople =
 	dynamic_params::bulletin_storage::LongTermStorageAllowanceForLitePeople;
+
+pub type PeopleIdentityAndAliasAllowanceMax =
+	dynamic_params::origin_restriction::PeopleIdentityAndAliasAllowanceMax;
+pub type LitePeopleAllowanceMax = dynamic_params::origin_restriction::LitePeopleAllowanceMax;
+
+/// Recovery rates, kept non-zero.
+pub type PeopleIdentityAndAliasAllowanceRecovery = AtLeast<
+	dynamic_params::origin_restriction::PeopleIdentityAndAliasAllowanceRecovery,
+	frame_support::traits::ConstU128<1>,
+>;
+pub type LitePeopleAllowanceRecovery = AtLeast<
+	dynamic_params::origin_restriction::LitePeopleAllowanceRecovery,
+	frame_support::traits::ConstU128<1>,
+>;
 
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;

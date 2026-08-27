@@ -440,11 +440,6 @@ impl indiv_pallet_members_notifier::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::MembersNotifierBenchHelper;
 }
 
-const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_MAX: Balance = UNITS;
-const PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_RECOVERY: Balance = 3 * CENTS;
-const LITE_PERSON_ALLOWANCE_MAX: Balance = UNITS;
-const LITE_PERSON_ALLOWANCE_RECOVERY: Balance = 3 * MILLICENTS;
-
 /// The anonymous origins this runtime rate-limits, and the key their allowance is tracked under.
 #[derive(
 	Clone, Encode, Decode, Debug, MaxEncodedLen, TypeInfo, Eq, PartialEq, DecodeWithMemTracking,
@@ -461,13 +456,14 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 		match self {
 			RestrictedEntity::PersonalAlias(_) | RestrictedEntity::PersonalIdentity(_) => {
 				Allowance {
-					max: PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_MAX,
-					recovery_per_block: PEOPLE_IDENTITY_AND_ALIAS_ALLOWANCE_RECOVERY,
+					max: crate::parameters::PeopleIdentityAndAliasAllowanceMax::get(),
+					recovery_per_block:
+						crate::parameters::PeopleIdentityAndAliasAllowanceRecovery::get(),
 				}
 			},
 			RestrictedEntity::LitePerson(_) | RestrictedEntity::LiteAlias(_) => Allowance {
-				max: LITE_PERSON_ALLOWANCE_MAX,
-				recovery_per_block: LITE_PERSON_ALLOWANCE_RECOVERY,
+				max: crate::parameters::LitePeopleAllowanceMax::get(),
+				recovery_per_block: crate::parameters::LitePeopleAllowanceRecovery::get(),
 			},
 		}
 	}
