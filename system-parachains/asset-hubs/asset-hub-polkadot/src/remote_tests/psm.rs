@@ -148,6 +148,11 @@ fn setup_psm() -> PsmTestEnv {
 	PsmTestEnv { internal_asset, external_asset, caller, psm_account }
 }
 
+// NOTE: These tests are intentionally ignored because they rely on a live RPC and could make CI
+// flaky. Run them manually with:
+//
+// PSM_RPC=wss://your-rpc.example cargo test -p asset-hub-polkadot-runtime \
+//     --features try-runtime remote_tests::psm -- --ignored
 #[tokio::test]
 #[ignore = "requires a live Asset Hub Polkadot RPC"]
 async fn psm_mint_and_redeem_against_live_state() {
