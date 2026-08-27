@@ -1502,7 +1502,7 @@ pub mod dynamic_params {
 			50 * CENTS / ((30 * RC_MINUTES) as Balance);
 		/// Fee charged for creating an alias mapping.
 		#[codec(index = 11)]
-		pub static AliasFee: Balance = 1;
+		pub static AliasFee: Balance = UNITS / 4;
 		/// Block interval for the alias-account stale-mapping sweep.
 		#[codec(index = 12)]
 		pub static StaleAliasSweepInterval: BlockNumber = HOURS;
