@@ -1485,7 +1485,7 @@ pub mod dynamic_params {
 			Weight::from_parts(100_000_000_000, 2 * 1024 * 1024);
 		/// Maximum age of a dotNS attestation signature.
 		#[codec(index = 7)]
-		pub static DotnsMaxValiditySeconds: u64 = 3 * 24 * 60 * 60;
+		pub static DotnsMaxValiditySeconds: u64 = 60 * 60;
 		/// Permitted future clock skew for a dotNS attestation signature.
 		#[codec(index = 8)]
 		pub static DotnsMaxFutureSkewSeconds: u64 = 30;
