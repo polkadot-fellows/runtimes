@@ -90,8 +90,6 @@ glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.43.1", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "30.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
-## These crates are pinned from the public individuality-community repository. Bump them as a
-## unit; `verifiable` must remain unified with the version they resolve.
 indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
