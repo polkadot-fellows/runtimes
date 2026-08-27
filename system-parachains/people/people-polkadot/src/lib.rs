@@ -195,7 +195,16 @@ pub mod migrations {
 		chunk_page_hashes::InitializeChunkPageHashes,
 		indiv_pallet_people::migration::CreatePeopleCollection<Runtime>,
 		indiv_pallet_people_lite::migration::CreateLitePeopleCollection<Runtime>,
+		// Single-use: whitelist the Asset Hub as a subscriber. Remove once live.
+		// It overwrites unconditionally.
+		SeedAssetHubSubscriptionWhitelist,
 	);
+
+	pub type SeedAssetHubSubscriptionWhitelist =
+		indiv_pallet_members_notifier::migration::SeedSubscriptionWhitelist<
+			Runtime,
+			individuality::AssetHubSubscriptionWhitelist,
+		>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
