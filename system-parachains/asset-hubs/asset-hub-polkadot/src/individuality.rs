@@ -146,6 +146,14 @@ impl Get<Option<Balance>> for AliasFee {
 	}
 }
 
+pub type MaxStaleAliasBatch = BenchmarkMax<
+	AtMost<
+		AtLeastOne<dynamic_params::individuality::MaxStaleAliasBatch>,
+		ConstU32<32>,
+	>,
+	ConstU32<32>,
+>;
+
 impl indiv_pallet_alias_accounts::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_alias_accounts::WeightInfo<Runtime>;
 	type MemberService = MembersSubscriber;
@@ -162,7 +170,7 @@ impl indiv_pallet_alias_accounts::Config for Runtime {
 	type OffchainWorkerInterval = indiv_support::parameters::AtLeastOne<
 		dynamic_params::individuality::StaleAliasSweepInterval,
 	>;
-	type MaxStaleAliasBatch = ConstU32<32>;
+	type MaxStaleAliasBatch = MaxStaleAliasBatch;
 }
 
 impl indiv_precompile_personhood::Config for Runtime {

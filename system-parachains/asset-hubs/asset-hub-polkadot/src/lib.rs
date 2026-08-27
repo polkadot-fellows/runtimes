@@ -1509,6 +1509,9 @@ pub mod dynamic_params {
 		/// Maximum deleted rings tracked for one collection.
 		#[codec(index = 13)]
 		pub static MaxDeletedRingsPerCollection: u32 = 100;
+		/// Maximum aliases processed by one stale-alias sweep call.
+		#[codec(index = 14)]
+		pub static MaxStaleAliasBatch: u32 = 32;
 	}
 }
 
