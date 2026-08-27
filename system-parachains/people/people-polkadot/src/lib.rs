@@ -147,8 +147,6 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			(),
 			pallet_verify_signature::VerifySignature<Runtime>,
 			indiv_pallet_people::extension::AsPerson<Runtime>,
-			indiv_pallet_score::ScoreAsParticipant<Runtime>,
-			indiv_pallet_game::GameAsInvited<Runtime>,
 			indiv_pallet_people_lite::extension::PeopleLiteAuth<Runtime>,
 			indiv_pallet_members::extension::AsMember<Runtime>,
 			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
@@ -852,9 +850,9 @@ construct_runtime!(
 		// 52: never used.
 		// 53: never used.
 		// 54: never used.
-		Game: indiv_pallet_game = 55,
-		Score: indiv_pallet_score = 56,
-		NftCredits: indiv_pallet_nft_credits = 57,
+		// 55: never used.
+		// 56: never used.
+		// 57: never used.
 		DummyDim: indiv_pallet_dummy_dim = 59,
 		PeopleLite: indiv_pallet_people_lite = 62,
 		Resources: indiv_pallet_resources = 63,
@@ -862,10 +860,10 @@ construct_runtime!(
 		Members: indiv_pallet_members = 67,
 		Coinage: indiv_pallet_coinage = 68,
 		MembersNotifier: indiv_pallet_members_notifier = 69,
-		Airdrop: indiv_pallet_airdrop = 70,
+		// 70: never used.
 		Honour: indiv_pallet_honour = 71,
 		Parameters: pallet_parameters = 73,
-		PeopleAirdrops: indiv_pallet_people_airdrops = 74,
+		// 74: never used.
 		NetworkSuffix: indiv_pallet_network_suffix = 75,
 	}
 );
@@ -916,22 +914,17 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
 		// Individuality
-		[indiv_pallet_airdrop, Airdrop]
 		[indiv_pallet_chunks_manager, ChunksManager]
 		[indiv_pallet_coinage, Coinage]
 		[indiv_pallet_dummy_dim, DummyDim]
-		[indiv_pallet_game, Game]
-		[indiv_pallet_nft_credits, NftCredits]
 		[indiv_pallet_honour, Honour]
 		[indiv_pallet_members, Members]
 		[indiv_pallet_members_notifier, MembersNotifier]
 		[indiv_pallet_origin_restriction, OriginRestriction]
 		[indiv_pallet_people, People]
-		[indiv_pallet_people_airdrops, PeopleAirdrops]
 		[indiv_pallet_people_lite, PeopleLite]
 		[indiv_pallet_relay_randomness, RelayRandomness]
 		[indiv_pallet_resources, Resources]
-		[indiv_pallet_score, Score]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -1455,35 +1448,6 @@ impl_runtime_apis! {
 			xcm_runtime_apis::authorized_aliases::Error
 		> {
 			PolkadotXcm::is_authorized_alias(origin, target)
-		}
-	}
-
-	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance> for Runtime {
-		fn play_deposit() -> Balance {
-			indiv_pallet_game::PlayDepositAmount::<Runtime>::get()
-		}
-	}
-
-	impl indiv_pallet_nft_credits::runtime_api::NftCreditsApi<Block, AccountId, BlockNumber> for Runtime {
-		fn nft_claim_credit_roots(
-			claimant: indiv_support::identity::AccountOrPerson<AccountId>,
-		) -> Vec<(BlockNumber, indiv_support::credit_trees::NftClaimCreditTree)> {
-			NftCredits::nft_claim_credit_roots(&claimant)
-		}
-
-		fn nft_claim_credit_proofs(
-			award_block: BlockNumber,
-			claimant: indiv_support::identity::AccountOrPerson<AccountId>,
-		) -> Result<Vec<indiv_pallet_nft_credits::NftClaimCreditProof>, indiv_pallet_nft_credits::NftClaimCreditProofError> {
-			NftCredits::nft_claim_credit_proofs(award_block, &claimant)
-		}
-
-		fn nft_claim_credit_proof_from_awards(
-			award_block: BlockNumber,
-			awards: Vec<indiv_pallet_nft_credits::NftClaimCreditAward<AccountId>>,
-			leaf_index: u32,
-		) -> Result<indiv_pallet_nft_credits::NftClaimCreditProof, indiv_pallet_nft_credits::NftClaimCreditProofError> {
-			NftCredits::nft_claim_credit_proof_from_awards(award_block, awards, leaf_index)
 		}
 	}
 

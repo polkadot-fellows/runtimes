@@ -17,8 +17,7 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Balance, Block, DotWeightToFee as WeightToFee, PeopleAirdrops, Runtime, RuntimeCall,
-	RuntimeOrigin, UNITS,
+	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
 };
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
@@ -242,8 +241,6 @@ fn transaction_extension_versions_are_stable() {
 		"UnitTransactionExtension",
 		"VerifyMultiSignature",
 		"AsPerson",
-		"ScoreAsParticipant",
-		"GameAsInvited",
 		"PeopleLiteAuth",
 		"AsMember",
 		"AsCoinage",
@@ -267,7 +264,6 @@ fn individuality_cross_runtime_pallet_indices_are_pinned() {
 	assert_eq!(MembersNotifier::index(), 69);
 	assert_eq!(RingRootsNotifierEndpoint::get().pallet_index, MembersNotifier::index() as u8,);
 	assert_eq!(asset_hub_polkadot_runtime::MembersSubscriber::index(), 97);
-	assert_eq!(PeopleAirdrops::index(), 74);
 }
 
 #[test]
@@ -327,12 +323,6 @@ fn individuality_deployment_order_guards_are_enforced() {
 		let mut instances = Coinage::get_instance_ids(stable);
 		instances.sort();
 		assert_eq!(instances, vec![0, 1]);
-
-		// No schedule means no game state or score round is active.
-		assert!(indiv_pallet_game::Game::<Runtime>::get().is_none());
-		assert!(indiv_pallet_game::GameSchedules::<Runtime>::get().is_empty());
-		assert!(indiv_pallet_score::RoundPlanning::<Runtime>::get().is_none());
-		assert!(indiv_pallet_score::Participants::<Runtime>::iter().next().is_none());
 	});
 }
 

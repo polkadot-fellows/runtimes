@@ -92,14 +92,11 @@ grandpa-primitives = { version = "30.0.0", default-features = false, package = "
 hex-literal = { version = "0.4.1" }
 ## These crates are pinned from the public individuality-community repository. Bump them as a
 ## unit; `verifiable` must remain unified with the version they resolve.
-indiv-pallet-airdrop = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-dotns-gateway = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-dummy-dim = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
-indiv-pallet-game = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
-indiv-pallet-nft-credits = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-honour = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-members = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-members-notifier = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
@@ -107,12 +104,10 @@ indiv-pallet-members-subscriber = { git = "https://github.com/paritytech/individ
 indiv-pallet-network-suffix = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-origin-restriction = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-people = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
-indiv-pallet-people-airdrops = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-people-lite = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-pgas = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-relay-randomness = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
-indiv-pallet-score = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-precompile-personhood = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 indiv-support = { git = "https://github.com/paritytech/individuality-community", rev = "d5b8461987ca0944e5a4bb73e12b98bbed0bd998", default-features = false, version = "*" }
 verifiable = { version = "0.3.0", default-features = false }
@@ -305,7 +300,6 @@ sp-offchain = { version = "43.0.0", default-features = false }
 sp-runtime = { version = "48.0.0", default-features = false }
 sp-session = { version = "45.0.0", default-features = false }
 sp-staking = { version = "45.0.0", default-features = false }
-sp-statement-store = { version = "28.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 sp-state-machine = { version = "0.53.0", default-features = false }
 sp-storage = { version = "25.0.0", default-features = false }
