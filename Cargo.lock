@@ -13079,6 +13079,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "frame-system",
+ "indiv-pallet-coinage",
  "indiv-pallet-members",
  "indiv-pallet-members-notifier",
  "indiv-pallet-members-subscriber",

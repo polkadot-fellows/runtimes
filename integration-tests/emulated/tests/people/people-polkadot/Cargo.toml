@@ -19,6 +19,7 @@ pallet-assets = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
+indiv-pallet-coinage = { workspace = true, default-features = true }
 indiv-pallet-members = { workspace = true, default-features = true }
 indiv-pallet-members-notifier = { workspace = true, default-features = true }
 indiv-pallet-members-subscriber = { workspace = true, default-features = true }
@@ -54,6 +55,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"indiv-pallet-coinage/runtime-benchmarks",
 	"indiv-pallet-members-notifier/runtime-benchmarks",
 	"indiv-pallet-members-subscriber/runtime-benchmarks",
 	"indiv-pallet-members/runtime-benchmarks",
