@@ -319,6 +319,9 @@ try-runtime = [
 	"system-parachains-constants/try-runtime",
 ]
 
+# Use RFC-163 EC host functions instead of in-runtime cryptography.
+ec-crypto-hostcalls = ["indiv-support/ec-crypto-hostcalls"]
+
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
 metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 
