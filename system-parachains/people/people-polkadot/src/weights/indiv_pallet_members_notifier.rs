@@ -319,4 +319,16 @@ impl<T: frame_system::Config> indiv_pallet_members_notifier::WeightInfo for Weig
 			.saturating_add(Weight::from_parts(0, 1509))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
+	// TODO: placeholder until re-benchmarked
+	fn subscribe_whitelisted() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn authorize_subscribe_whitelisted() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
 }

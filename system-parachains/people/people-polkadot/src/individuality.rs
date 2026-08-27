@@ -337,7 +337,7 @@ parameter_types! {
 	pub const CoinagePalletId: PalletId = PalletId(*b"coinage ");
 	pub const CoinageInstanceCreationHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::Coinage(indiv_pallet_coinage::HoldReason::InstanceCreationDeposit);
-	pub const CoinageInstanceCreationDepositAmount: Balance = 10 * UNIT;
+	pub const CoinageInstanceCreationDepositAmount: Balance = 10 * UNITS;
 	pub CoinageLoadDeposit: (Location, Balance) =
 		(HollarLocation::get(), HOLLAR_UNITS / 100);
 }

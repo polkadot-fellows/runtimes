@@ -1908,20 +1908,6 @@ impl<T: frame_system::Config> indiv_pallet_coinage::WeightInfo for WeightInfo<T>
 			.saturating_add(Weight::from_parts(0, 2518).saturating_mul(d.into()))
 			.saturating_add(Weight::from_parts(0, 3667).saturating_mul(r.into()))
 	}
-	/// Storage: `Coinage::UnderlyingAssetId` (r:1 w:1)
-	/// Proof: `Coinage::UnderlyingAssetId` (`max_values`: Some(1), `max_size`: Some(602), added: 1097, mode: `MaxEncodedLen`)
-	/// Storage: `Assets::Asset` (r:1 w:0)
-	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
-	fn set_underlying_asset_id() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `269`
-		//  Estimated: `4273`
-		// Minimum execution time: 14_378_000 picoseconds.
-		Weight::from_parts(15_399_000, 0)
-			.saturating_add(Weight::from_parts(0, 4273))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
 	/// Storage: `Coinage::UnderlyingAssetId` (r:1 w:0)
 	/// Proof: `Coinage::UnderlyingAssetId` (`max_values`: Some(1), `max_size`: Some(602), added: 1097, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::Holds` (r:1 w:1)
@@ -2058,49 +2044,76 @@ impl<T: frame_system::Config> indiv_pallet_coinage::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
-	/// Storage: `Coinage::InitializePalletAccount` (r:1 w:0)
-	/// Proof: `Coinage::InitializePalletAccount` (`max_values`: Some(1), `max_size`: Some(0), added: 495, mode: `MaxEncodedLen`)
-	/// Storage: `Coinage::UnderlyingAssetId` (r:1 w:0)
-	/// Proof: `Coinage::UnderlyingAssetId` (`max_values`: Some(1), `max_size`: Some(602), added: 1097, mode: `MaxEncodedLen`)
-	fn on_poll_initialize_check_condition() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `142`
-		//  Estimated: `2087`
-		// Minimum execution time: 2_855_000 picoseconds.
-		Weight::from_parts(3_211_000, 0)
-			.saturating_add(Weight::from_parts(0, 2087))
-			.saturating_add(T::DbWeight::get().reads(2))
+	// TODO: placeholder until re-benchmarked
+	fn create_sufficient_instance() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
 	}
-	/// Storage: `Coinage::UnderlyingAssetId` (r:1 w:0)
-	/// Proof: `Coinage::UnderlyingAssetId` (`max_values`: Some(1), `max_size`: Some(602), added: 1097, mode: `MaxEncodedLen`)
-	/// Storage: `Coinage::RecyclerCollectionCreated` (r:15 w:15)
-	/// Proof: `Coinage::RecyclerCollectionCreated` (`max_values`: None, `max_size`: Some(9), added: 2484, mode: `MaxEncodedLen`)
-	/// Storage: `Members::Collections` (r:15 w:15)
-	/// Proof: `Members::Collections` (`max_values`: None, `max_size`: Some(646), added: 3121, mode: `MaxEncodedLen`)
-	/// Storage: `Members::SuspendedCollections` (r:15 w:0)
-	/// Proof: `Members::SuspendedCollections` (`max_values`: None, `max_size`: Some(646), added: 3121, mode: `MaxEncodedLen`)
-	/// Storage: `Members::IdentifiersOf` (r:1 w:1)
-	/// Proof: `Members::IdentifiersOf` (`max_values`: None, `max_size`: Some(3821), added: 6296, mode: `MaxEncodedLen`)
-	/// Storage: `Assets::Account` (r:1 w:1)
-	/// Proof: `Assets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
-	/// Storage: `Assets::Asset` (r:1 w:1)
-	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:1 w:1)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `Coinage::InitializePalletAccount` (r:0 w:1)
-	/// Proof: `Coinage::InitializePalletAccount` (`max_values`: Some(1), `max_size`: Some(0), added: 495, mode: `MaxEncodedLen`)
-	/// Storage: `Members::RingsState` (r:0 w:15)
-	/// Proof: `Members::RingsState` (`max_values`: None, `max_size`: Some(34), added: 2509, mode: `MaxEncodedLen`)
-	/// Storage: `Members::OnboardingSize` (r:0 w:15)
-	/// Proof: `Members::OnboardingSize` (`max_values`: None, `max_size`: Some(36), added: 2511, mode: `MaxEncodedLen`)
-	fn on_poll_initialize() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `508`
-		//  Estimated: `47805`
-		// Minimum execution time: 227_395_000 picoseconds.
-		Weight::from_parts(240_755_000, 0)
-			.saturating_add(Weight::from_parts(0, 47805))
-			.saturating_add(T::DbWeight::get().reads(50))
-			.saturating_add(T::DbWeight::get().writes(65))
+	// TODO: placeholder until re-benchmarked
+	fn create_sponsored_instance() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn fund_pot() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn withdraw_pot_funds() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn charge_load_deposit() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn settle_load_deposits() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn read_instance() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn collapse_load_deposits() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn make_instance_sufficient() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn make_instance_sponsored() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn unload_recyclers_into_external_asset_non_anonymous_fee_fail() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
+	// TODO: placeholder until re-benchmarked
+	fn unload_archived_recycler_into_external_asset_fee_fail() -> Weight {
+		Weight::from_parts(1_000_000_000, 10_000)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(10))
 	}
 }
