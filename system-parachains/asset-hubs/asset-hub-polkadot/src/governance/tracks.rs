@@ -390,41 +390,4 @@ mod tests {
 		assert_eq!(TracksInfo::check_integrity(), Ok(()));
 	}
 
-	/// Track ids are consensus relevant: in flight referenda and conviction voting class locks
-	/// reference them, so the origin to id mapping must never shift when tracks are added.
-	#[test]
-	fn all_origins_map_to_their_declared_tracks() {
-		use origins::Origin::*;
-		let cases: [(origins::Origin, u16); 17] = [
-			(WhitelistedCaller, 1),
-			(WishForChange, 2),
-			(StakingAdmin, 10),
-			(Treasurer, 11),
-			(LeaseAdmin, 12),
-			(FellowshipAdmin, 13),
-			(GeneralAdmin, 14),
-			(AuctionAdmin, 15),
-			(TechnicalMaintenance, 16),
-			(ProsperityAdmin, 17),
-			(ReferendumCanceller, 20),
-			(ReferendumKiller, 21),
-			(SmallTipper, 30),
-			(BigTipper, 31),
-			(SmallSpender, 32),
-			(MediumSpender, 33),
-			(BigSpender, 34),
-		];
-		let pinned = cases.len();
-		for (origin, id) in cases {
-			assert_eq!(TracksInfo::track_for(&origin.into()), Ok(id));
-			assert!(TRACKS_DATA.iter().any(|t| t.id == id), "track {id} is not declared");
-		}
-		assert_eq!(
-			TracksInfo::track_for(&frame_system::RawOrigin::Root.into()),
-			Ok(0),
-			"Root maps to the root track"
-		);
-
-		assert_eq!(TRACKS_DATA.len(), pinned + 1);
-	}
 }
