@@ -37,11 +37,6 @@ const LOG_TARGET: &str = "runtime::people-polkadot::migrations";
 /// The runtime keeps only hashes, not chunk data: `ChunksManager::add_chunks` uploads pages later,
 /// accepted only if they hash to a committed value. Embedding the builder params instead would cost
 /// ~1.7 MiB of wasm.
-///
-/// `R2e9` covers [`crate::individuality::MembersFlexibleRingExponent`] and
-/// [`crate::individuality::LitePeopleRingExponent`]; `R2e10` covers
-/// [`crate::individuality::RecyclerRingExponent`] and
-/// [`crate::individuality::PaidUnloadTokenRingExponent`].
 mod hashes {
 	use hex_literal::hex;
 
@@ -116,6 +111,12 @@ impl OnRuntimeUpgrade for InitializeChunkPageHashes {
 				continue;
 			};
 
+			// The call consumes its benchmarked weight whether or not it succeeds.
+			weight.saturating_accrue(
+				<Runtime as indiv_pallet_chunks_manager::Config>::WeightInfo::set_chunk_page_hashes(
+					page_count,
+				),
+			);
 			match indiv_pallet_chunks_manager::Pallet::<Runtime>::set_chunk_page_hashes(
 				RawOrigin::Root.into(),
 				ring_exponent,
@@ -125,11 +126,6 @@ impl OnRuntimeUpgrade for InitializeChunkPageHashes {
 					log::info!(
 						target: LOG_TARGET,
 						"chunk page hashes for ring {ring_exponent:?} initialized ({page_count} pages)"
-					);
-					weight.saturating_accrue(
-						<Runtime as indiv_pallet_chunks_manager::Config>::WeightInfo::set_chunk_page_hashes(
-							page_count,
-						),
 					);
 				},
 				Err(e) => {
