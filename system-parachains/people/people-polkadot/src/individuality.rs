@@ -538,7 +538,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 		EnsureXcm<IsVoiceOfBody<AssetHubLocation, TechnicalMaintenanceBodyId>>,
 	>;
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
-	type EnablePermissionless = ConstBool<false>;
+	type EnablePermissionless = ConstBool<true>;
 	type LoadDeposit = CoinageLoadDeposit;
 	type InstanceCreationDeposit = HoldConsideration<
 		AccountId,
