@@ -50,13 +50,12 @@ use frame_support::{
 	},
 };
 use indiv_pallet_origin_restriction::Allowance;
+#[cfg(feature = "runtime-benchmarks")]
+use indiv_support::traits::{Identifier, RingIndex};
 use indiv_support::{
 	crypto::{BandersnatchVrfVerifiable, GenerateVerifiable},
 	fungibles::CombineAssetsWithHolder,
-	traits::{
-		Alias, AllocateStorage, Context, Identifier, PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER,
-		RevisionIndex, RingExponent, RingIndex,
-	},
+	traits::{Alias, AllocateStorage, Context, PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER, RingExponent},
 	utils::TypedGetToGet,
 };
 use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
@@ -81,10 +80,9 @@ use xcm::latest::{
 	Location, OriginKind, WeightLimit, Xcm, send_xcm,
 };
 
-use crate::{
-	assets::hollar::{HOLLAR_UNITS, HollarLocation},
-	parameters::dynamic_params,
-};
+#[cfg(feature = "runtime-benchmarks")]
+use crate::assets::hollar::{HOLLAR_UNITS, HollarLocation};
+use crate::parameters::dynamic_params;
 
 /// The full-featured fungibles implementation, combining `pallet-assets` balances with the hold
 /// functionality supplied by `pallet-assets-holder`.
@@ -299,49 +297,16 @@ impl indiv_pallet_resources::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::ResourcesBenchHelper;
 }
 
-/// Runtime-local ring membership proof, used by coinage to authenticate the free unload token
-/// flows against the people and lite people rings.
-#[derive(
-	Clone, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen,
-)]
-pub struct MembershipProof {
-	pub proof: <BandersnatchVrfVerifiable as GenerateVerifiable>::Proof,
-	pub ring: RingIndex,
-	pub revision: RevisionIndex,
-}
-
-impl indiv_pallet_coinage::ValidateProof for MembershipProof {
-	type Proof = MembershipProof;
-
-	fn validate_proof(
-		identifier: &Identifier,
-		proof: &Self::Proof,
-		context: &[u8; 32],
-		msg: &[u8],
-	) -> Result<Alias, ()> {
-		use indiv_support::traits::MembershipProver;
-		let result = Members::verify_membership(
-			identifier,
-			&proof.proof,
-			proof.ring,
-			proof.revision,
-			*context,
-			msg,
-		)
-		.inspect_err(|e| log::debug!("validate proof fail: verify membership: {e:?}"))
-		.map_err(|_| ())?;
-		Ok(result.alias)
-	}
-}
-
 parameter_types! {
 	/// Coinage's pallet id, used to derive the account holding the assets backing all coins.
 	pub const CoinagePalletId: PalletId = PalletId(*b"coinage ");
 	pub const CoinageInstanceCreationHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::Coinage(indiv_pallet_coinage::HoldReason::InstanceCreationDeposit);
-	pub const CoinageInstanceCreationDepositAmount: Balance = 10 * UNITS;
+	/// The load deposit is held in DOT from a sponsored instance's pot, one per loaded recycler
+	/// key. Governance sets the price through `pallet-parameters`
+	/// (`dynamic_params::coinage::LoadDepositPrice`).
 	pub CoinageLoadDeposit: (Location, Balance) =
-		(HollarLocation::get(), HOLLAR_UNITS / 100);
+		(xcm_config::RelayLocation::get(), parameters::CoinageLoadDepositPrice::get());
 }
 
 impl indiv_pallet_coinage::Config for Runtime {
@@ -364,7 +329,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 		AccountId,
 		Balances,
 		CoinageInstanceCreationHoldReason,
-		ConstantStoragePrice<CoinageInstanceCreationDepositAmount, Balance>,
+		ConstantStoragePrice<parameters::CoinageInstanceCreationDeposit, Balance>,
 	>;
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
@@ -378,13 +343,13 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type PaidUnloadTokenTimePeriod = ConstU32<{ 7 * 24 * 60 * 60 }>;
 	type PaidUnloadTokenRingExpirationTime = ConstU32<{ 7 * 24 * 60 * 60 }>;
 
-	type MembershipProof = MembershipProof;
+	type MembershipProof = People;
 	type UnloadTokenTimePeriodPeopleLitePeople = ConstU32<{ 24 * 60 * 60 }>; // 1 day
-	// Free unload token allowance of $20 per time period for people and $10 for lite people. The
-	// fee is dynamic (it follows the fee multiplier), and usage is additionally capped by
-	// `MaxFreeUnloadTokensPerTimePeriod`.
-	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 20 * HOLLAR_UNITS }>;
-	type UnloadTokenAllowancePerTimePeriodForLitePeople = ConstU128<{ 10 * HOLLAR_UNITS }>;
+	// Free unload token allowance per time period, expressed in DOT (the pallet's native balance,
+	// not HOLLAR): 20 DOT for people and 10 DOT for lite people. The fee is dynamic (it follows
+	// the fee multiplier), and usage is additionally capped by `MaxFreeUnloadTokensPerTimePeriod`.
+	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 20 * UNITS }>;
+	type UnloadTokenAllowancePerTimePeriodForLitePeople = ConstU128<{ 10 * UNITS }>;
 	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
 
 	type FeeConversion = AssetConversion;
@@ -1000,7 +965,11 @@ pub mod benchmark_utils {
 		fn setup_fee_conversion() {
 		}
 
-		fn create_people_proof(context: &[u8], msg: &[u8], _alias: Alias) -> MembershipProof {
+		fn create_people_proof(
+			context: &[u8],
+			msg: &[u8],
+			_alias: Alias,
+		) -> indiv_pallet_people::MembershipProof<Runtime> {
 			// Initialize the people collection and chunks if not already created.
 			indiv_pallet_people::Pallet::<Runtime>::initialize_people_collection();
 			let ring_exponent = <Runtime as indiv_pallet_people::Config>::RingExponent::get();
@@ -1038,10 +1007,14 @@ pub mod benchmark_utils {
 				BandersnatchVrfVerifiable::create(commitment, &secret, context, msg)
 					.expect("benchmark: proof must be creatable");
 
-			MembershipProof { proof, ring: ring_index, revision: 0 }
+			indiv_pallet_people::MembershipProof { proof, ring: ring_index, revision: 0 }
 		}
 
-		fn create_lite_people_proof(context: &[u8], msg: &[u8], _alias: Alias) -> MembershipProof {
+		fn create_lite_people_proof(
+			context: &[u8],
+			msg: &[u8],
+			_alias: Alias,
+		) -> indiv_pallet_people::MembershipProof<Runtime> {
 			use sp_core::Pair;
 
 			let ring_exponent = LitePeopleRingExponent::get();
@@ -1099,7 +1072,7 @@ pub mod benchmark_utils {
 				BandersnatchVrfVerifiable::create(commitment, &ring_secret, context, msg)
 					.expect("benchmark: lite proof must be creatable");
 
-			MembershipProof { proof, ring: ring_index, revision: 0 }
+			indiv_pallet_people::MembershipProof { proof, ring: ring_index, revision: 0 }
 		}
 	}
 

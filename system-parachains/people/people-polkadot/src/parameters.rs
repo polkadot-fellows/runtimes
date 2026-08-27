@@ -106,6 +106,21 @@ pub mod dynamic_params {
 		#[codec(index = 0)]
 		pub static RegistrationFee: Balance = 75 * UNITS;
 	}
+
+	/// Coinage deposits, both in DOT.
+	#[dynamic_pallet_params]
+	#[codec(index = 4)]
+	pub mod coinage {
+		/// Held from a sponsored instance's pot per loaded recycler key, until the coin is
+		/// unloaded or its recycler is archived. Prices the state a load occupies meanwhile;
+		/// revisit as the DOT price moves. Deposits already held keep the price they were taken
+		/// at.
+		#[codec(index = 0)]
+		pub static LoadDepositPrice: Balance = UNITS / 10;
+		/// Held from the creator of a sponsored instance for as long as it stays sponsored.
+		#[codec(index = 1)]
+		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
+	}
 }
 
 pub type AccountsApiAllowance =
@@ -186,6 +201,12 @@ pub type LongTermStorageAllowanceForLitePeople =
 
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
+
+/// Coinage load deposit price, kept non-zero so sponsored loads always take some collateral (the
+/// pallet's integrity test requires it).
+pub type CoinageLoadDepositPrice =
+	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
+pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
 
 /// Root, the Fellowship governance voice, and Asset Hub's TechnicalMaintenance voice may update
 /// these parameters.
