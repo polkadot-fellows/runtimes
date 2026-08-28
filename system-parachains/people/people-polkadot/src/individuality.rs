@@ -68,6 +68,7 @@ use sp_runtime::{
 	traits::{ConstI8, ConstU16},
 	DispatchError, DispatchResult,
 };
+use sp_statement_store::StatementAllowance;
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
 // this module configures.
 #[cfg(feature = "runtime-benchmarks")]
@@ -256,6 +257,10 @@ parameter_types! {
 	pub const PersonAuthDuration: u32 = 2 * 24 * 60 * 60; // 2 days
 	pub const MinPersonAuthUpdateInterval: u32 = 24 * 60 * 60; // 1 day
 	pub const MaxReservationQueueLength: u32 = 10;
+	pub const AccountsApiAllowance: StatementAllowance =
+		StatementAllowance { max_size: 500 * 1024, max_count: 2 };
+	pub const NotificationAllowance: StatementAllowance =
+		StatementAllowance { max_size: 10 * 1024, max_count: 1 };
 }
 
 impl indiv_pallet_resources::Config for Runtime {
@@ -264,16 +269,16 @@ impl indiv_pallet_resources::Config for Runtime {
 	type MemberService = Members;
 	type MinUsernameLength = MinUsernameLength;
 	type PersonAuthDuration = PersonAuthDuration;
-	type AccountsApiAllowance = crate::parameters::AccountsApiAllowance;
+	type AccountsApiAllowance = AccountsApiAllowance;
 	type StmtStoreSlotsPerPeriod = crate::parameters::StmtStoreSlotsPerPeriod;
 	type LiteStmtStoreSlotsPerPeriod = crate::parameters::LiteStmtStoreSlotsPerPeriod;
 	type StmtStoreCleanupLimit = crate::parameters::StmtStoreCleanupLimit;
 	type StmtStoreReplacementCooldown = crate::parameters::StmtStoreReplacementCooldown;
 	type StmtStoreGraceWindow = crate::parameters::StmtStoreGraceWindow;
-	type NotificationAllowance = crate::parameters::NotificationAllowance;
+	type NotificationAllowance = NotificationAllowance;
 	type NotificationSlotsPerPeriod = crate::parameters::NotificationSlotsPerPeriod;
 	type LiteNotificationSlotsPerPeriod = crate::parameters::LiteNotificationSlotsPerPeriod;
-	type NotificationPeriodDuration = crate::parameters::NotificationPeriodDuration;
+	type NotificationPeriodDuration = ConstU32<{ 24 * 60 * 60 }>;
 	type OffchainWorkerInterval = ConstU32<1>;
 	type MinPersonAuthUpdateInterval = MinPersonAuthUpdateInterval;
 	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
@@ -284,8 +289,9 @@ impl indiv_pallet_resources::Config for Runtime {
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
 	type ManagerOrigin = RootOrTechnicalMaintenance;
-	type LongTermStoragePeriodDuration = crate::parameters::LongTermStoragePeriodDuration;
-	type LongTermStorageGraceWindow = crate::parameters::LongTermStorageGraceWindow;
+	type LongTermStoragePeriodDuration = ConstU32<{ 14 * 24 * 60 * 60 }>; // 2 weeks
+																	   // Long-term storage grace window, kept smaller than the storage period.
+	type LongTermStorageGraceWindow = ConstU32<{ 60 * 60 }>; // 1 hour
 	type LongTermStorageClaimsPerPeriod = crate::parameters::LongTermStorageClaimsPerPeriod;
 	type LongTermStorageAllowanceForPeople = crate::parameters::LongTermStorageAllowanceForPeople;
 	type LongTermStorageAllowanceForLitePeople =

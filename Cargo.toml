@@ -297,6 +297,7 @@ sp-npos-elections = { version = "43.0.0", default-features = false }
 sp-offchain = { version = "43.0.0", default-features = false }
 sp-runtime = { version = "48.0.0", default-features = false }
 sp-session = { version = "45.0.0", default-features = false }
+sp-statement-store = { version = "28.0.0", default-features = false }
 sp-staking = { version = "45.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 sp-state-machine = { version = "0.53.0", default-features = false }

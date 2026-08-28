@@ -63,9 +63,7 @@ use parachains_common::{
 };
 
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::{
-	fellowship::IsFellowshipVoice, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
-};
+use polkadot_runtime_constants::xcm::body::TECHNICAL_MAINTENANCE_INDEX;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -101,8 +99,8 @@ use xcm::{
 	VersionedXcm,
 };
 use xcm_config::{
-	AssetHubLocation, FellowshipLocation, PriceForSiblingParachainDelivery, RelayChainLocation,
-	StakingPot, XcmConfig, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, PriceForSiblingParachainDelivery, RelayChainLocation, StakingPot, XcmConfig,
+	XcmOriginToTransactDispatchOrigin,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},

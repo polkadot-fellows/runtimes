@@ -11,7 +11,7 @@ use frame_support::{
 use indiv_pallet_resources::types::LongTermStorageAllocation;
 pub use indiv_support::parameters::StatementAllowanceParameter;
 use indiv_support::parameters::{
-	AtLeast, AtLeastOne, AtMost, BenchmarkMax, SaturatingSubOne, StatementAllowanceGetter,
+	AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter,
 };
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 use xcm::latest::prelude::{Location, Parachain};
@@ -33,9 +33,6 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
 	pub mod statement_storage {
-		#[codec(index = 0)]
-		pub static AccountsApiAllowance: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 500 * 1024, max_count: 2 };
 		#[codec(index = 1)]
 		pub static StmtStoreSlotsPerPeriod: u32 = 20;
 		#[codec(index = 2)]
@@ -46,15 +43,10 @@ pub mod dynamic_params {
 		pub static StmtStoreReplacementCooldown: u32 = 60;
 		#[codec(index = 5)]
 		pub static StmtStoreGraceWindow: u32 = 24 * 60 * 60;
-		#[codec(index = 6)]
-		pub static NotificationAllowance: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 10 * 1024, max_count: 1 };
 		#[codec(index = 7)]
 		pub static NotificationSlotsPerPeriod: u8 = 16;
 		#[codec(index = 8)]
 		pub static LiteNotificationSlotsPerPeriod: u8 = 8;
-		#[codec(index = 9)]
-		pub static NotificationPeriodDuration: u32 = 24 * 60 * 60;
 		#[codec(index = 10)]
 		pub static LitePersonStatementLimit: StatementAllowanceParameter =
 			StatementAllowanceParameter { max_size: 50 * 1024, max_count: 15 };
@@ -69,10 +61,6 @@ pub mod dynamic_params {
 	pub mod bulletin_storage {
 		#[codec(index = 0)]
 		pub static BulletinChainLocation: Location = Location::new(1, [Parachain(BULLETIN_ID)]);
-		#[codec(index = 1)]
-		pub static LongTermStoragePeriodDuration: u32 = 14 * 24 * 60 * 60;
-		#[codec(index = 2)]
-		pub static LongTermStorageGraceWindow: u32 = 60 * 60;
 		#[codec(index = 3)]
 		pub static LongTermStorageClaimsPerPeriod: u8 = 100;
 		#[codec(index = 4)]
@@ -132,10 +120,6 @@ pub mod dynamic_params {
 	}
 }
 
-pub type AccountsApiAllowance =
-	StatementAllowanceGetter<dynamic_params::statement_storage::AccountsApiAllowance>;
-pub type NotificationAllowance =
-	StatementAllowanceGetter<dynamic_params::statement_storage::NotificationAllowance>;
 pub type LitePersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::LitePersonStatementLimit>;
 pub type PersonStatementLimit =
@@ -176,18 +160,6 @@ pub type NotificationSlotsPerPeriod = dynamic_params::statement_storage::Notific
 pub type LiteNotificationSlotsPerPeriod = AtMost<
 	dynamic_params::statement_storage::LiteNotificationSlotsPerPeriod,
 	NotificationSlotsPerPeriod,
->;
-
-pub type NotificationPeriodDuration = dynamic_params::statement_storage::NotificationPeriodDuration;
-
-/// Long-term storage period duration, kept non-zero.
-pub type LongTermStoragePeriodDuration =
-	AtLeastOne<dynamic_params::bulletin_storage::LongTermStoragePeriodDuration>;
-
-/// Long-term storage grace window, kept smaller than the storage period.
-pub type LongTermStorageGraceWindow = AtMost<
-	dynamic_params::bulletin_storage::LongTermStorageGraceWindow,
-	SaturatingSubOne<LongTermStoragePeriodDuration>,
 >;
 
 /// Long-term storage claims per period, kept non-zero.
