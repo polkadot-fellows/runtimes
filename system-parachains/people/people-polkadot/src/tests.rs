@@ -245,7 +245,6 @@ fn transaction_extension_versions_are_stable() {
 		"AsMember",
 		"AsCoinage",
 		"AsResources",
-		"HonourAuth",
 		"RestrictOrigins",
 	];
 	let v1_without_indiv: Vec<&str> = v1.iter().copied().filter(|id| !indiv.contains(id)).collect();

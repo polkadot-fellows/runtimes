@@ -95,7 +95,6 @@ indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuali
 indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-dotns-gateway = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-dummy-dim = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
-indiv-pallet-honour = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-members = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-members-notifier = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }
 indiv-pallet-members-subscriber = { git = "https://github.com/paritytech/individuality-community", rev = "523a0d710981ff44500b613e26be2fb2701750da", default-features = false, version = "*" }

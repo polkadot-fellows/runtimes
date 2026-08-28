@@ -27,7 +27,6 @@
 //! * [`indiv_pallet_people`] is the personhood registry proper: one ring per generation of proven
 //!   people, plus context-scoped aliases (`PersonalAlias`) and the `PersonalIdentity` origin.
 //! * [`indiv_pallet_people_lite`] is the weaker, device-attestation based flavour of personhood.
-//! * [`indiv_pallet_honour`] lets people vote on calls with their personhood weight.
 //! * [`indiv_pallet_resources`] rations the off-chain resources (statement store, notifications,
 //!   long-term storage) a person may consume.
 //! * [`indiv_pallet_coinage`] implements bearer-instrument "coins" backed by a stablecoin, held by
@@ -237,21 +236,6 @@ impl indiv_pallet_dummy_dim::Config for Runtime {
 
 parameter_types! {
 	pub const LitePeoplePotId: PalletId = PalletId(*b"plitefee");
-}
-
-parameter_types! {
-	pub const HonourPointFreezeDuration: indiv_pallet_honour::Seconds = 24 * 60 * 60;
-	pub const HonourCallMortality: indiv_pallet_honour::Seconds = 5 * 60;
-}
-
-impl indiv_pallet_honour::Config for Runtime {
-	type WeightInfo = weights::indiv_pallet_honour::WeightInfo<Runtime>;
-	type MemberService = Members;
-	type Clock = Timestamp;
-	type PointFreezeDuration = HonourPointFreezeDuration;
-	type CallMortality = HonourCallMortality;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = benchmark_utils::HonourBenchmarkHelper;
 }
 
 parameter_types! {
@@ -713,64 +697,6 @@ pub mod benchmark_utils {
 				.try_into()
 				.expect("people ring exponent maps to a ring domain size");
 			ring_verifier_builder_params(domain)
-		}
-	}
-
-	pub struct HonourBenchmarkHelper;
-	impl indiv_pallet_honour::benchmarking::BenchmarkHelper<Runtime> for HonourBenchmarkHelper {
-		fn set_time(now: indiv_pallet_honour::Seconds) {
-			pallet_timestamp::Now::<Runtime>::put(now.saturating_mul(1_000));
-		}
-
-		fn seed_and_create_proof(
-			vote: &indiv_pallet_honour::VoteData,
-			message: &[u8],
-		) -> indiv_pallet_honour::RingProofOf<Runtime> {
-			let ring_exponent = <Runtime as indiv_pallet_people::Config>::RingExponent::get();
-			let ring_index: RingIndex = 0;
-
-			// Build a one-member people ring in the member service. Mirrors the targeted setup used
-			// by `indiv_pallet_people`'s own proof benchmarks rather than the full
-			// `process_maintenance` sweep, which is heavier and runs once per benchmark repeat.
-			Members::create_collection(
-				PeopleCollectionOwner::get(),
-				indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER,
-				1,
-				RingMode::Flexible,
-				ring_exponent,
-				None,
-			)
-			.expect("benchmark: people collection must be created");
-
-			let secret = BandersnatchVrfVerifiable::new_secret(sp_crypto_hashing::twox_256(
-				b"honour-bench-voter",
-			));
-			let member = BandersnatchVrfVerifiable::member_from_secret(&secret);
-
-			Members::add_members(indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER, vec![member])
-				.expect("benchmark: ring member must be added");
-			Members::initialize_chunks(ring_exponent);
-			Members::onboard_all_and_build_ring(
-				indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER,
-				ring_index,
-			)
-			.expect("benchmark: people ring must be built");
-
-			let ring_members =
-				Members::ring_members(indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER, ring_index);
-			let domain: RingDomainSize =
-				ring_exponent.try_into().expect("people ring exponent maps to a domain size");
-			let commitment =
-				BandersnatchVrfVerifiable::open(domain, &member, ring_members.into_iter())
-					.expect("benchmark: commitment must open");
-
-			let contexts = vote.get_contexts();
-			let contexts: Vec<&[u8]> = contexts.iter().map(|c| &c[..]).collect();
-			let (proof, _) = BandersnatchVrfVerifiable::create_multi_context(
-				commitment, &secret, &contexts, message,
-			)
-			.expect("benchmark: proof creation must succeed");
-			proof
 		}
 	}
 

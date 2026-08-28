@@ -28,7 +28,6 @@ frame-try-runtime = { optional = true, workspace = true }
 indiv-pallet-chunks-manager = { workspace = true }
 indiv-pallet-coinage = { workspace = true }
 indiv-pallet-dummy-dim = { workspace = true }
-indiv-pallet-honour = { workspace = true }
 indiv-pallet-members = { workspace = true }
 indiv-pallet-members-notifier = { workspace = true }
 indiv-pallet-network-suffix = { workspace = true }
@@ -140,7 +139,6 @@ std = [
 	"indiv-pallet-chunks-manager/std",
 	"indiv-pallet-coinage/std",
 	"indiv-pallet-dummy-dim/std",
-	"indiv-pallet-honour/std",
 	"indiv-pallet-members-notifier/std",
 	"indiv-pallet-members/std",
 	"indiv-pallet-network-suffix/std",
@@ -224,7 +222,6 @@ runtime-benchmarks = [
 	"indiv-pallet-chunks-manager/runtime-benchmarks",
 	"indiv-pallet-coinage/runtime-benchmarks",
 	"indiv-pallet-dummy-dim/runtime-benchmarks",
-	"indiv-pallet-honour/runtime-benchmarks",
 	"indiv-pallet-members-notifier/runtime-benchmarks",
 	"indiv-pallet-members/runtime-benchmarks",
 	"indiv-pallet-network-suffix/runtime-benchmarks",
@@ -283,7 +280,6 @@ try-runtime = [
 	"indiv-pallet-chunks-manager/try-runtime",
 	"indiv-pallet-coinage/try-runtime",
 	"indiv-pallet-dummy-dim/try-runtime",
-	"indiv-pallet-honour/try-runtime",
 	"indiv-pallet-members-notifier/try-runtime",
 	"indiv-pallet-members/try-runtime",
 	"indiv-pallet-network-suffix/try-runtime",

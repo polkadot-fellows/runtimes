@@ -25,7 +25,6 @@ pub mod frame_system_extensions;
 pub mod indiv_pallet_chunks_manager;
 pub mod indiv_pallet_coinage;
 pub mod indiv_pallet_dummy_dim;
-pub mod indiv_pallet_honour;
 pub mod indiv_pallet_members;
 pub mod indiv_pallet_members_notifier;
 pub mod indiv_pallet_network_suffix;

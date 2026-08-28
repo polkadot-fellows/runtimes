@@ -7855,23 +7855,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indiv-pallet-honour"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=523a0d710981ff44500b613e26be2fb2701750da#523a0d710981ff44500b613e26be2fb2701750da"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "indiv-support",
- "parity-scale-codec",
- "scale-info",
- "sp-core 43.0.0",
- "sp-crypto-hashing",
- "sp-runtime 48.0.0",
- "verifiable",
-]
-
-[[package]]
 name = "indiv-pallet-members"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/individuality-community?rev=523a0d710981ff44500b613e26be2fb2701750da#523a0d710981ff44500b613e26be2fb2701750da"
@@ -13136,7 +13119,6 @@ dependencies = [
  "indiv-pallet-chunks-manager",
  "indiv-pallet-coinage",
  "indiv-pallet-dummy-dim",
- "indiv-pallet-honour",
  "indiv-pallet-members",
  "indiv-pallet-members-notifier",
  "indiv-pallet-network-suffix",

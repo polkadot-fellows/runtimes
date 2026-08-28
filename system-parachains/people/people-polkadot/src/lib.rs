@@ -149,7 +149,6 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			indiv_pallet_members::extension::AsMember<Runtime>,
 			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
 			indiv_pallet_resources::extension::AsResources<Runtime>,
-			indiv_pallet_honour::extension::VoterAuth<Runtime>,
 			frame_system::AuthorizeCall<Runtime>,
 		),
 		// General checks and operations.
@@ -873,7 +872,7 @@ construct_runtime!(
 		Coinage: indiv_pallet_coinage = 68,
 		MembersNotifier: indiv_pallet_members_notifier = 69,
 		// 70: never used.
-		Honour: indiv_pallet_honour = 71,
+		// 71: never used.
 		Parameters: pallet_parameters = 73,
 		// 74: never used.
 		NetworkSuffix: indiv_pallet_network_suffix = 75,
@@ -929,7 +928,6 @@ mod benches {
 		[indiv_pallet_chunks_manager, ChunksManager]
 		[indiv_pallet_coinage, Coinage]
 		[indiv_pallet_dummy_dim, DummyDim]
-		[indiv_pallet_honour, Honour]
 		[indiv_pallet_members, Members]
 		[indiv_pallet_members_notifier, MembersNotifier]
 		[indiv_pallet_origin_restriction, OriginRestriction]
