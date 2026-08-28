@@ -325,7 +325,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	>;
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
-	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
+	type MinimumExponentForOutputUnloadFee = ConstI8<4>;
 	type MaximumAge = ConstU16<16>;
 	type MaxSplitOutputs = ConstU32<32>;
 	type MaxConsolidation = ConstU32<64>;
@@ -853,8 +853,14 @@ pub mod benchmark_utils {
 		}
 
 		fn fund_account(who: &AccountId, amount: Balance) {
-			<AssetsWithHolder as Mutate<_>>::mint_into(HollarLocation::get(), who, amount)
-				.expect("benchmark: account must be fundable");
+			let fee_reserve =
+				Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1).unwrap_or_default();
+			<AssetsWithHolder as Mutate<_>>::mint_into(
+				HollarLocation::get(),
+				who,
+				amount.saturating_add(fee_reserve),
+			)
+			.expect("benchmark: account must be fundable");
 		}
 
 		fn create_extra_asset(seed: u32, who: &AccountId) -> Location {
@@ -886,7 +892,46 @@ pub mod benchmark_utils {
 			pallet_timestamp::Now::<Runtime>::put(now.as_millis() as u64);
 		}
 
-		fn setup_fee_conversion() {}
+		fn setup_fee_conversion() {
+			use alloc::boxed::Box;
+			use frame_support::traits::fungible::Mutate as _;
+
+			let native = xcm_config::RelayLocation::get();
+			let asset = HollarLocation::get();
+			if pallet_asset_conversion::Pools::<Runtime>::contains_key((
+				native.clone(),
+				asset.clone(),
+			)) {
+				return;
+			}
+
+			let native_liquidity = 1_000 * UNITS;
+			let asset_liquidity = 1_000 * HOLLAR_UNITS;
+			let provider: AccountId = [42u8; 32].into();
+
+			Balances::mint_into(&provider, native_liquidity.saturating_mul(2))
+				.expect("benchmark: liquidity provider must be fundable with DOT");
+			Self::fund_account(&provider, asset_liquidity.saturating_mul(2));
+
+			let origin = RuntimeOrigin::signed(provider.clone());
+			AssetConversion::create_pool(
+				origin.clone(),
+				Box::new(native.clone()),
+				Box::new(asset.clone()),
+			)
+			.expect("benchmark: fee conversion pool must be creatable");
+			AssetConversion::add_liquidity(
+				origin,
+				Box::new(native),
+				Box::new(asset),
+				native_liquidity,
+				asset_liquidity,
+				1,
+				1,
+				provider,
+			)
+			.expect("benchmark: fee conversion pool must accept liquidity");
+		}
 
 		fn create_people_proof(
 			context: &[u8],
