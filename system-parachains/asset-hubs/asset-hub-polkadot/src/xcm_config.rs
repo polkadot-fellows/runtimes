@@ -20,8 +20,8 @@ use super::{
 	treasury, AccountId, AllExceptReapStash, AllPalletsWithSystem, AssetConversion, Assets,
 	Balance, Balances, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
 	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
-	PriceForParentDelivery, ProsperityAdmin, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
-	RuntimeOrigin, StakingAdmin, TechnicalMaintenance, ToKusamaXcmRouter, Treasurer, XcmpQueue,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
+	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -49,7 +49,7 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{
 	fellowship::{IsFellowshipVoice, ARCHITECTS_RANK},
 	system_parachain,
-	xcm::body::{FELLOWSHIP_ADMIN_INDEX, PROSPERITY_ADMIN_INDEX, TECHNICAL_MAINTENANCE_INDEX},
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;
@@ -540,10 +540,6 @@ parameter_types! {
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 	// `Treasurer` pluralistic body.
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
-	// `TechnicalMaintenance` pluralistic body.
-	pub const TechnicalMaintenanceBodyId: BodyId = BodyId::Index(TECHNICAL_MAINTENANCE_INDEX);
-	// `ProsperityAdmin` pluralistic body.
-	pub const ProsperityAdminBodyId: BodyId = BodyId::Index(PROSPERITY_ADMIN_INDEX);
 }
 
 /// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
@@ -561,14 +557,6 @@ pub type FellowshipAdminToPlurality =
 /// Type to convert the `Treasurer` origin to a Plurality `Location` value.
 pub type TreasurerToPlurality = OriginToPluralityVoice<RuntimeOrigin, Treasurer, TreasurerBodyId>;
 
-/// Type to convert the `TechnicalMaintenance` origin to a Plurality `Location` value.
-pub type TechnicalMaintenanceToPlurality =
-	OriginToPluralityVoice<RuntimeOrigin, TechnicalMaintenance, TechnicalMaintenanceBodyId>;
-
-/// Type to convert the `ProsperityAdmin` origin to a Plurality `Location` value.
-pub type ProsperityAdminToPlurality =
-	OriginToPluralityVoice<RuntimeOrigin, ProsperityAdmin, ProsperityAdminBodyId>;
-
 /// Converts a local signed origin into an XCM `Location`.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
@@ -584,11 +572,6 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	FellowshipAdminToPlurality,
 	// `Treasurer` origin to be used in XCM as a corresponding Plurality `Location` value.
 	TreasurerToPlurality,
-	// `TechnicalMaintenance` origin to be used in XCM as a corresponding Plurality `Location`
-	// value.
-	TechnicalMaintenanceToPlurality,
-	// `ProsperityAdmin` origin to be used in XCM as a corresponding Plurality `Location` value.
-	ProsperityAdminToPlurality,
 	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
 );

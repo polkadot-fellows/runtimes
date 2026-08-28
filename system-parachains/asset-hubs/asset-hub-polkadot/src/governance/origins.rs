@@ -66,18 +66,6 @@ pub mod pallet_custom_origins {
 		WhitelistedCaller,
 		/// Origin for signaling that the network wishes for some change.
 		WishForChange,
-		/// Origin for technical maintenance of operational values across system pallets: quotas,
-		/// allowances, limits, durations, fees and similar settings whose change moves no funds
-		/// and does not change who controls what.
-		TechnicalMaintenance,
-		/// Origin for guarding the monetary mechanisms around Prosperity: PSM, coinage and related
-		/// financial parameters.
-		///
-		/// Intended to be designated as the protective tier of those mechanisms once they are
-		/// deployed, holding powers such as pausing, so that a fast referendum on this track can
-		/// react when something goes wrong. Wider administrative powers stay on stricter paths
-		/// until deliberately wired here.
-		ProsperityAdmin,
 	}
 
 	macro_rules! decl_unit_ensures {
@@ -121,8 +109,6 @@ pub mod pallet_custom_origins {
 		ReferendumKiller,
 		WhitelistedCaller,
 		WishForChange,
-		TechnicalMaintenance,
-		ProsperityAdmin,
 	);
 
 	macro_rules! decl_ensure {

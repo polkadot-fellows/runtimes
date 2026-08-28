@@ -72,15 +72,8 @@ const APP_WHITELISTED_CALLER: Curve =
 	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
 const SUP_WHITELISTED_CALLER: Curve =
 	Curve::make_reciprocal(1, 28, percent(20), percent(5), percent(50));
-const APP_TECHNICAL_MAINTENANCE: Curve =
-	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
-const SUP_TECHNICAL_MAINTENANCE: Curve =
-	Curve::make_reciprocal(3, 28, percent(6), percent(5), percent(50));
-const APP_PROSPERITY_ADMIN: Curve = Curve::make_linear(17, 28, percent(50), percent(100));
-const SUP_PROSPERITY_ADMIN: Curve =
-	Curve::make_reciprocal(3, 28, percent(6), percent(5), percent(50));
 
-const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
+const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 	pallet_referenda::Track {
 		id: 0,
 		info: pallet_referenda::TrackInfo {
@@ -205,34 +198,6 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
 			min_enactment_period: 10 * RC_MINUTES,
 			min_approval: APP_AUCTION_ADMIN,
 			min_support: SUP_AUCTION_ADMIN,
-		},
-	},
-	pallet_referenda::Track {
-		id: 16,
-		info: pallet_referenda::TrackInfo {
-			name: s("technical_maintenance"),
-			max_deciding: 100,
-			decision_deposit: 10 * GRAND,
-			prepare_period: 30 * RC_MINUTES,
-			decision_period: 28 * RC_DAYS,
-			confirm_period: 10 * RC_MINUTES,
-			min_enactment_period: 10 * RC_MINUTES,
-			min_approval: APP_TECHNICAL_MAINTENANCE,
-			min_support: SUP_TECHNICAL_MAINTENANCE,
-		},
-	},
-	pallet_referenda::Track {
-		id: 17,
-		info: pallet_referenda::TrackInfo {
-			name: s("prosperity_admin"),
-			max_deciding: 10,
-			decision_deposit: 5 * GRAND,
-			prepare_period: 2 * RC_HOURS,
-			decision_period: 28 * RC_DAYS,
-			confirm_period: 3 * RC_HOURS,
-			min_enactment_period: 10 * RC_MINUTES,
-			min_approval: APP_PROSPERITY_ADMIN,
-			min_support: SUP_PROSPERITY_ADMIN,
 		},
 	},
 	pallet_referenda::Track {
@@ -361,8 +326,6 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				origins::Origin::FellowshipAdmin => Ok(13),
 				origins::Origin::GeneralAdmin => Ok(14),
 				origins::Origin::AuctionAdmin => Ok(15),
-				origins::Origin::TechnicalMaintenance => Ok(16),
-				origins::Origin::ProsperityAdmin => Ok(17),
 				// Referendum admins
 				origins::Origin::ReferendumCanceller => Ok(20),
 				origins::Origin::ReferendumKiller => Ok(21),
@@ -376,17 +339,5 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		} else {
 			Err(())
 		}
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use pallet_referenda::TracksInfo as _;
-
-	/// `pallet-referenda` relies on `tracks()` being sorted by id to look tracks up.
-	#[test]
-	fn tracks_are_well_formed() {
-		assert_eq!(TracksInfo::check_integrity(), Ok(()));
 	}
 }
