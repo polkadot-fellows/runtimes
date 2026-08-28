@@ -160,7 +160,8 @@ use system_parachains_constants::{
 	polkadot::{
 		consensus::{
 			elastic_scaling::{
-				BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
+				BLOCK_PROCESSING_VELOCITY, HOURS as PARA_HOURS, RELAY_PARENT_OFFSET,
+				UNINCLUDED_SEGMENT_CAPACITY,
 			},
 			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
@@ -1504,7 +1505,7 @@ pub mod dynamic_params {
 		pub static AliasFee: Balance = UNITS / 4;
 		/// Block interval for the alias-account stale-mapping sweep.
 		#[codec(index = 12)]
-		pub static StaleAliasSweepInterval: BlockNumber = HOURS;
+		pub static StaleAliasSweepInterval: BlockNumber = PARA_HOURS;
 		/// Maximum deleted rings tracked for one collection.
 		#[codec(index = 13)]
 		pub static MaxDeletedRingsPerCollection: u32 = 100;

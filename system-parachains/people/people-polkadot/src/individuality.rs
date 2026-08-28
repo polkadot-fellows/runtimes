@@ -60,7 +60,7 @@ use indiv_support::{
 	},
 	utils::TypedGetToGet,
 };
-use polkadot_runtime_constants::{system_parachain::ASSET_HUB_ID, time::MINUTES as RC_MINUTES};
+use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use sp_runtime::{traits::AccountIdConversion, MultiSignature};
@@ -69,6 +69,7 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 use sp_statement_store::StatementAllowance;
+use system_parachains_constants::polkadot::consensus::elastic_scaling::MINUTES as PARA_MINUTES;
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
 // this module configures.
 #[cfg(feature = "runtime-benchmarks")]
@@ -200,7 +201,7 @@ impl indiv_pallet_people::Config for Runtime {
 	type CollectionOwner = PeopleCollectionOwner;
 	type AccountContexts = AccountContexts;
 	type OnboardingQueuePageSize = ConstU32<30>;
-	type StaleAliasCleanupInterval = ConstU32<{ 5 * RC_MINUTES }>;
+	type StaleAliasCleanupInterval = ConstU32<{ 5 * PARA_MINUTES }>;
 	type SelfInclusionDelay = SelfInclusionDelayValue;
 	type ManagerOrigin = EnsureRoot<AccountId>;
 	#[cfg(feature = "runtime-benchmarks")]
