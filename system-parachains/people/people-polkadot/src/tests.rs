@@ -193,3 +193,42 @@ fn governance_authorize_upgrade_works() {
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }
+
+#[test]
+fn asset_hub_whitelisted_caller_voice_is_recognized() {
+	use frame_support::traits::EnsureOrigin;
+	use polkadot_runtime_constants::{
+		system_parachain::ASSET_HUB_ID, xcm::body::WHITELISTED_CALLER_INDEX,
+	};
+
+	let voice = |parachain: u32, body_index: u32| {
+		RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+			1,
+			[
+				Parachain(parachain),
+				Plurality { id: BodyId::Index(body_index), part: BodyPart::Voice },
+			],
+		)))
+	};
+
+	// ok - Asset Hub's WhitelistedCaller voice
+	assert!(crate::RootOrWhitelistedCaller::ensure_origin(voice(
+		ASSET_HUB_ID,
+		WHITELISTED_CALLER_INDEX
+	))
+	.is_ok());
+
+	// err - same body from another parachain
+	assert!(crate::RootOrWhitelistedCaller::ensure_origin(voice(
+		ASSET_HUB_ID + 1,
+		WHITELISTED_CALLER_INDEX
+	))
+	.is_err());
+
+	// err - another body from Asset Hub
+	assert!(crate::RootOrWhitelistedCaller::ensure_origin(voice(
+		ASSET_HUB_ID,
+		WHITELISTED_CALLER_INDEX + 1
+	))
+	.is_err());
+}

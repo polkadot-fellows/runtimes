@@ -56,7 +56,9 @@ use parachains_common::{
 };
 
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
+use polkadot_runtime_constants::{
+	fellowship::IsFellowshipVoice, xcm::body::WHITELISTED_CALLER_INDEX,
+};
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -358,6 +360,12 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
+/// Root or Asset Hub's `WhitelistedCaller` voice.
+pub type RootOrWhitelistedCaller = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureXcm<IsVoiceOfBody<AssetHubLocation, WhitelistedCallerBodyId>>,
+>;
+
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelInfo = ParachainSystem;
@@ -412,6 +420,8 @@ parameter_types! {
 	pub const SessionLength: BlockNumber = 6 * HOURS;
 	// StakingAdmin pluralistic body.
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
+	/// WhitelistedCaller pluralistic body (governance track on Asset Hub).
+	pub const WhitelistedCallerBodyId: BodyId = BodyId::Index(WHITELISTED_CALLER_INDEX);
 }
 
 /// We allow Root and the `StakingAdmin` to execute privileged collator selection operations.

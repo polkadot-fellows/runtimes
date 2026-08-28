@@ -21,7 +21,7 @@ use super::{
 	Balance, Balances, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
 	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
+	StakingAdmin, ToKusamaXcmRouter, Treasurer, WhitelistedCaller, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -49,7 +49,7 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{
 	fellowship::{IsFellowshipVoice, ARCHITECTS_RANK},
 	system_parachain,
-	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	xcm::body::{FELLOWSHIP_ADMIN_INDEX, WHITELISTED_CALLER_INDEX},
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
 use sp_runtime::traits::TryConvertInto;
@@ -540,6 +540,8 @@ parameter_types! {
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 	// `Treasurer` pluralistic body.
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
+	// `WhitelistedCaller` pluralistic body.
+	pub const WhitelistedCallerBodyId: BodyId = BodyId::Index(WHITELISTED_CALLER_INDEX);
 }
 
 /// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
@@ -557,6 +559,10 @@ pub type FellowshipAdminToPlurality =
 /// Type to convert the `Treasurer` origin to a Plurality `Location` value.
 pub type TreasurerToPlurality = OriginToPluralityVoice<RuntimeOrigin, Treasurer, TreasurerBodyId>;
 
+/// Type to convert the `WhitelistedCaller` origin to a Plurality `Location` value.
+pub type WhitelistedCallerToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, WhitelistedCaller, WhitelistedCallerBodyId>;
+
 /// Converts a local signed origin into an XCM `Location`.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
@@ -572,6 +578,9 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	FellowshipAdminToPlurality,
 	// `Treasurer` origin to be used in XCM as a corresponding Plurality `Location` value.
 	TreasurerToPlurality,
+	// `WhitelistedCaller` origin to be used in XCM as a corresponding Plurality `Location`
+	// value.
+	WhitelistedCallerToPlurality,
 	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
 );

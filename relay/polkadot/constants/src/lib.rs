@@ -115,6 +115,9 @@ pub mod xcm {
 		/// The FellowshipAdmin OpenGov body index.
 		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
 		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
+		/// The WhitelistedCaller OpenGov body index.
+		/// Used with `Plurality { id: BodyId::Index(..), .. }`.
+		pub const WHITELISTED_CALLER_INDEX: u32 = 2;
 	}
 }
 
