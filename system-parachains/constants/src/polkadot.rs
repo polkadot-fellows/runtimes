@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Network suffix used to derive Individuality product contexts on Polkadot system chains.
+pub const INDIVIDUALITY_NETWORK_SUFFIX: &[u8] = b"polkadot";
+
 /// Universally recognized accounts.
 pub mod account {
 	use frame_support::PalletId;

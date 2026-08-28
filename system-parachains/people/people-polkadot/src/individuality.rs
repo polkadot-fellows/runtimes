@@ -69,7 +69,9 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 use sp_statement_store::StatementAllowance;
-use system_parachains_constants::polkadot::consensus::elastic_scaling::MINUTES as PARA_MINUTES;
+use system_parachains_constants::polkadot::{
+	consensus::elastic_scaling::MINUTES as PARA_MINUTES, INDIVIDUALITY_NETWORK_SUFFIX,
+};
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
 // this module configures.
 #[cfg(feature = "runtime-benchmarks")]
@@ -100,7 +102,7 @@ pub type RuntimeClock = benchmark_utils::BenchmarkClock;
 
 parameter_types! {
 	pub DefaultNetworkSuffix: indiv_support::context::ProductContextNetworkSuffix =
-		b"polkadot".to_vec().try_into().expect("default network suffix fits");
+		INDIVIDUALITY_NETWORK_SUFFIX.to_vec().try_into().expect("default network suffix fits");
 
 	/// Largest ring exponent usable by `Flexible` collections in `pallet-members`.
 	pub const MembersFlexibleRingExponent: RingExponent = RingExponent::R2e9;

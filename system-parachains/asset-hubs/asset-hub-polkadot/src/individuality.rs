@@ -46,6 +46,7 @@ use indiv_support::{
 };
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
+use system_parachains_constants::polkadot::INDIVIDUALITY_NETWORK_SUFFIX;
 
 /// Root or the whitelisted caller origin or the technical maintenance.
 ///
@@ -78,7 +79,7 @@ parameter_types! {
 	/// Ring exponent of the lite people collection on People Polkadot.
 	pub const PeopleLiteRingExponent: RingExponent = RingExponent::R2e9;
 	pub DefaultNetworkSuffix: indiv_support::context::ProductContextNetworkSuffix =
-		b"polkadot".to_vec().try_into().expect("default network suffix fits");
+		INDIVIDUALITY_NETWORK_SUFFIX.to_vec().try_into().expect("default network suffix fits");
 }
 
 impl indiv_pallet_network_suffix::Config for Runtime {

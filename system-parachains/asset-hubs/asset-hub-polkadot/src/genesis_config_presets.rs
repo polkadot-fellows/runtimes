@@ -22,7 +22,7 @@ use pallet_revive::AddressMapper;
 use parachains_common::AssetHubPolkadotAuraId;
 use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
-use system_parachains_constants::genesis_presets::*;
+use system_parachains_constants::{genesis_presets::*, polkadot::INDIVIDUALITY_NETWORK_SUFFIX};
 use xcm::latest::prelude::*;
 use xcm_builder::GlobalConsensusConvertsFor;
 use xcm_executor::traits::ConvertLocation;
@@ -89,7 +89,7 @@ fn asset_hub_polkadot_genesis(
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
 		"networkSuffix": NetworkSuffixConfig {
-			network_suffix: b"polkadot".to_vec().try_into().expect("network suffix fits"),
+			network_suffix: INDIVIDUALITY_NETWORK_SUFFIX.to_vec().try_into().expect("network suffix fits"),
 			..Default::default()
 		},
 		"staking": {
