@@ -1506,9 +1506,6 @@ pub mod dynamic_params {
 		/// Block interval for the alias-account stale-mapping sweep.
 		#[codec(index = 12)]
 		pub static StaleAliasSweepInterval: BlockNumber = PARA_HOURS;
-		/// Maximum deleted rings tracked for one collection.
-		#[codec(index = 13)]
-		pub static MaxDeletedRingsPerCollection: u32 = 100;
 		/// Maximum aliases processed by one stale-alias sweep call.
 		#[codec(index = 14)]
 		pub static MaxStaleAliasBatch: u32 = 32;
