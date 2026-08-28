@@ -66,6 +66,7 @@ parameter_types! {
 
 parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+	pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
@@ -73,6 +74,13 @@ pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	<Runtime as frame_system::Config>::DbWeight,
 >;
 
+/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Asset Hub
+/// Polkadot is complete and the pallet has been removed from the runtime, see
+/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+	StateTrieMigrationName,
+	<Runtime as frame_system::Config>::DbWeight,
+>;
 /// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
 /// from the previous account derivation to the new one introduced by
 /// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
@@ -154,6 +162,7 @@ pub type Unreleased = (
 		TrappedBalanceMember,
 	>,
 	RemoveAhMigratorPallet,
+	RemoveStateTrieMigrationPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,

@@ -70,6 +70,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
 
+### Removed
+
+- Polkadot, Asset Hub Polkadot & Asset Hub Kusama: remove the now-complete `pallet-state-trie-migration` and purge its leftover on-chain storage via a `RemovePallet` migration ([#905](https://github.com/polkadot-fellows/runtimes/issues/905)).
+
 ### Changed
 
 - Enable multiple blocks per slot for all remaining system parachains (BridgeHub Polkadot/Kusama, Coretime Polkadot/Kusama, Collectives Polkadot) ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
