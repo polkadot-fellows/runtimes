@@ -74,11 +74,9 @@ pub mod pallet_custom_origins {
 		/// financial parameters.
 		///
 		/// Intended to be designated as the protective tier of those mechanisms once they are
-		/// deployed: operating their circuit breakers, for example disabling the minting of a
-		/// stable asset while keeping redemptions open, halting its swaps entirely, or restoring
-		/// normal operation, so that a fast referendum on this track can react when something
-		/// goes wrong. Wider administrative powers, such as fees, debt ceilings and asset
-		/// composition, stay on stricter paths until deliberately wired here.
+		/// deployed, holding powers such as pausing, so that a fast referendum on this track can
+		/// react when something goes wrong. Wider administrative powers stay on stricter paths
+		/// until deliberately wired here.
 		ProsperityAdmin,
 	}
 
