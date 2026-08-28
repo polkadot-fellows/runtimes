@@ -228,7 +228,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 impl indiv_pallet_dummy_dim::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_dummy_dim::WeightInfo<Runtime>;
 	type UpdateOrigin = EnsureRoot<AccountId>;
-	type MaxPersonBatchSize = ConstU32<1000>;
+	type MaxPersonBatchSize = ConstU32<100>;
 	type People = People;
 }
 
