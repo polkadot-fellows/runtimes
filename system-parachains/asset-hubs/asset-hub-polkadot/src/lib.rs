@@ -1363,7 +1363,7 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
 			Individuality(_) =>
-				individuality::RootOrFellowsOrTechnicalMaintenance::ensure_origin(origin.clone())
+				individuality::RootOrWhitelistOrTechnicalMaintenance::ensure_origin(origin.clone())
 					.map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<

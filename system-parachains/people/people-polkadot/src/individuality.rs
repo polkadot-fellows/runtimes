@@ -170,7 +170,7 @@ impl indiv_pallet_members::Config for Runtime {
 	type OldRootRetentionDuration = ConstU64<600>;
 	type OnRingRootChange = MembersNotifier;
 	type OffchainWorkerInterval = ConstU32<1>;
-	type ManagerOrigin = RootOrFellows;
+	type ManagerOrigin = RootOrTechnicalMaintenance;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::MembersBenchHelper;
 }
@@ -201,7 +201,7 @@ impl indiv_pallet_people::Config for Runtime {
 	type OnboardingQueuePageSize = ConstU32<30>;
 	type StaleAliasCleanupInterval = ConstU32<{ 5 * RC_MINUTES }>;
 	type SelfInclusionDelay = SelfInclusionDelayValue;
-	type ManagerOrigin = RootOrFellows;
+	type ManagerOrigin = EnsureRoot<AccountId>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::PeopleBenchHelper;
 }
@@ -212,7 +212,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type PotId = LitePeoplePotId;
 	type RegistrationFee = crate::parameters::LitePersonRegistrationFee;
 	type Suffix = NetworkSuffix;
-	type AttestationAllowanceManager = RootOrFellows;
+	type AttestationAllowanceManager = RootOrTechnicalMaintenance;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
 	type LiteRingExponent = LitePeopleRingExponent;
@@ -226,7 +226,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 
 impl indiv_pallet_dummy_dim::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_dummy_dim::WeightInfo<Runtime>;
-	type UpdateOrigin = RootOrFellows;
+	type UpdateOrigin = EnsureRoot<AccountId>;
 	type MaxPersonBatchSize = ConstU32<1000>;
 	type People = People;
 }
@@ -283,7 +283,7 @@ impl indiv_pallet_resources::Config for Runtime {
 	type LitePersonStatementLimit = crate::parameters::LitePersonStatementLimit;
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
-	type ManagerOrigin = RootOrFellows;
+	type ManagerOrigin = RootOrTechnicalMaintenance;
 	type LongTermStoragePeriodDuration = crate::parameters::LongTermStoragePeriodDuration;
 	type LongTermStorageGraceWindow = crate::parameters::LongTermStorageGraceWindow;
 	type LongTermStorageClaimsPerPeriod = crate::parameters::LongTermStorageClaimsPerPeriod;
@@ -320,10 +320,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 	type NativeFungible = Balances;
 	type Fungibles = NativeAndAssets;
-	type AdminOrigin = EitherOfDiverse<
-		RootOrFellows,
-		EnsureXcm<IsVoiceOfBody<AssetHubLocation, TechnicalMaintenanceBodyId>>,
-	>;
+	type AdminOrigin = RootOrTechnicalMaintenance;
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
 	type EnablePermissionless = ConstBool<true>;
 	type LoadDeposit = CoinageLoadDeposit;
@@ -423,7 +420,7 @@ impl indiv_pallet_members_notifier::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_members_notifier::WeightInfo<Runtime>;
 	type XcmRouter = xcm_config::XcmRouter;
 	type ChannelInfo = ParachainSystem;
-	type ManageOrigin = RootOrFellows;
+	type ManageOrigin = EnsureRoot<AccountId>;
 	type EnsureSubscriberOrigin = EnsureSiblingParachain;
 	type Crypto = BandersnatchVrfVerifiable;
 	type RingRootsProvider = Members;

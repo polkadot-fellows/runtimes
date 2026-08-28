@@ -47,12 +47,13 @@ use indiv_support::{
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, PEOPLE_ID};
 use sp_runtime::traits::AccountIdConversion;
 
-/// Root or Technical Fellowship voice
-pub type RootOrFellows =
-	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
-
+/// Root or the whitelisted caller origin or the technical maintenance.
+///
 /// The full administration origin shared by Individuality pallet managers and dynamic parameters.
-pub type RootOrFellowsOrTechnicalMaintenance = EitherOfDiverse<RootOrFellows, TechnicalMaintenance>;
+pub type RootOrWhitelistOrTechnicalMaintenance = EitherOfDiverse<
+	EitherOfDiverse<EnsureRoot<AccountId>, WhitelistedCaller>,
+	TechnicalMaintenance,
+>;
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
@@ -262,8 +263,8 @@ impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type MaxValiditySeconds = dynamic_params::individuality::DotnsMaxValiditySeconds;
 	type MaxFutureSkewSeconds = dynamic_params::individuality::DotnsMaxFutureSkewSeconds;
 	type UnixTime = Timestamp;
-	type AttestationAllowanceManager = RootOrFellowsOrTechnicalMaintenance;
-	type DispatcherAddressManager = RootOrFellowsOrTechnicalMaintenance;
+	type AttestationAllowanceManager = RootOrWhitelistOrTechnicalMaintenance;
+	type DispatcherAddressManager = RootOrWhitelistOrTechnicalMaintenance;
 	type AttestationSignature = Signature;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::DotnsGatewayBenchHelper;
