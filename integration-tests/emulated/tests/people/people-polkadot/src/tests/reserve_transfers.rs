@@ -294,8 +294,9 @@ fn asset_hub_can_reserve_transfer_its_own_assets_to_people() {
 		assert_expected_events!(
 			PeoplePolkadot,
 			vec![
-				RuntimeEvent::Assets(pallet_assets::Event::Issued { owner, amount, .. }) => {
-					owner: *owner == receiver,
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, amount }) => {
+					asset_id: *asset_id == usdt_on_people(),
+					who: *who == receiver,
 					amount: *amount == transfer_amount,
 				},
 			]
@@ -321,8 +322,11 @@ fn people_only_trusts_asset_hub_for_asset_hub_native_assets() {
 	let amount = 1_000_000_000;
 
 	let rejected = |asset: Location, origin: Location| {
+		// The barrier only admits messages that pay for their execution up front. Which asset is
+		// offered does not matter: `ReserveAssetDeposited` is rejected before `BuyExecution` runs.
 		let xcm = Xcm::builder_unsafe()
-			.reserve_asset_deposited((asset, amount))
+			.reserve_asset_deposited((asset.clone(), amount))
+			.buy_execution((asset, amount), Unlimited)
 			.deposit_asset(AllCounted(1), PeoplePolkadotReceiver::get())
 			.build();
 		assert_eq!(
@@ -360,8 +364,10 @@ fn asset_hub_assets_are_not_teleportable_to_people() {
 	let transfer_amount = 1_000_000_000;
 
 	PeoplePolkadot::execute_with(|| {
+		// Pay for execution so the barrier admits the message and the teleport check is what fails.
 		let xcm = Xcm::builder_unsafe()
 			.receive_teleported_asset((usdt_on_people(), transfer_amount))
+			.buy_execution((usdt_on_people(), transfer_amount), Unlimited)
 			.deposit_asset(AllCounted(1), PeoplePolkadotReceiver::get())
 			.build();
 		assert_eq!(
