@@ -1237,6 +1237,7 @@ dependencies = [
  "pallet-referenda",
  "pallet-remote-proxy",
  "pallet-revive",
+ "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
  "pallet-society",
@@ -1248,6 +1249,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
@@ -1431,6 +1433,7 @@ dependencies = [
  "pallet-rc-migrator",
  "pallet-referenda",
  "pallet-revive",
+ "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
  "pallet-staking",
@@ -1441,6 +1444,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
@@ -11293,6 +11297,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-safe-mode"
+version = "30.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd1d5f6a4b215e3708c7e52ce7d2b72f95295357f08ee97921c16de2a722aacc"
+dependencies = [
+ "docify",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
 name = "pallet-salary"
 version = "34.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11619,6 +11638,18 @@ dependencies = [
  "serde",
  "sp-core 43.0.0",
  "sp-runtime 48.0.0",
+]
+
+[[package]]
+name = "pallet-tx-pause"
+version = "30.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3372c0c172f1004b296aa9968e80ab000b45f761870b40a5e206544465bbd37"
+dependencies = [
+ "docify",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
 ]
 
 [[package]]

@@ -71,8 +71,10 @@ pub mod migrations;
 mod psm;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
+pub mod safe_mode;
 pub mod staking;
 pub mod treasury;
+pub mod tx_pause;
 mod weights;
 pub mod xcm_config;
 
@@ -126,8 +128,8 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, ConstantStoragePrice,
-		Contains, EitherOf, EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice,
-		NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		Contains, EitherOf, EitherOfDiverse, Equals, InsideBoth, InstanceFilter,
+		LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -264,7 +266,7 @@ impl Contains<RuntimeCall> for AllExceptReapStash {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = AllExceptReapStash;
+	type BaseCallFilter = InsideBoth<AllExceptReapStash, InsideBoth<SafeMode, TxPause>>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -1676,6 +1678,9 @@ construct_runtime!(
 
 		// Asset Hub Migration in the 250s
 		AhOps: pallet_ah_ops = 254,
+
+		SafeMode: pallet_safe_mode = 100,
+		TxPause: pallet_tx_pause = 101,
 	}
 );
 

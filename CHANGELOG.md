@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bulletin Polkadot: add the storage pallets and business logic ([#1119](https://github.com/polkadot-fellows/runtimes/issues/1119), [#1170](https://github.com/polkadot-fellows/runtimes/pull/1170)).
 - Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
+- Asset Hub Polkadot & Kusama: deploy `pallet-safe-mode` and `pallet-tx-pause` for emergency chain lockdown ([#1164](https://github.com/polkadot-fellows/runtimes/pull/1164)). Safe mode can be entered permissionlessly with a 100k UNITS deposit (1-day duration; 30-day release delay on PAH, 48-day on KAH), or force-controlled by Root/Technical Fellowship. Whitelist includes governance recovery calls (`Whitelist`, `Utility`). Tx-pause is Root-only. XCM `Transact` respects the same call filters; asset-transfer XCM instructions are unaffected.
 
 ### Changed
 
@@ -84,7 +85,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hub Polkadot & Kusama, People Polkadot & Kusama: switch to 24s Aura slot duration. Longer Aura slots improve elastic scaling throughput and censorship resistance, while keeping the parachain block time unchanged. ([#1174](https://github.com/polkadot-fellows/runtimes/pull/1174))
 - Flexible minimum validator set size on rc ([#PR1193](https://github.com/polkadot-fellows/runtimes/pull/1193))
 - Configurable salary parameters for Fellowship and Secretary ([#1186](https://github.com/polkadot-fellows/runtimes/pull/1186))
-
 ## [2.2.2] 23.04.2026
 
 ### Changed
