@@ -173,7 +173,7 @@ impl indiv_pallet_members::Config for Runtime {
 	type OldRootRetentionDuration = ConstU64<600>;
 	type OnRingRootChange = MembersNotifier;
 	type OffchainWorkerInterval = ConstU32<1>;
-	type ManagerOrigin = RootOrTechnicalMaintenance;
+	type ManagerOrigin = IndividualityManagerOrigin;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::MembersBenchHelper;
 }
@@ -215,7 +215,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type PotId = LitePeoplePotId;
 	type RegistrationFee = crate::parameters::LitePersonRegistrationFee;
 	type Suffix = NetworkSuffix;
-	type AttestationAllowanceManager = RootOrTechnicalMaintenance;
+	type AttestationAllowanceManager = IndividualityManagerOrigin;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
 	type LiteRingExponent = LitePeopleRingExponent;
@@ -275,7 +275,7 @@ impl indiv_pallet_resources::Config for Runtime {
 	type LitePersonStatementLimit = crate::parameters::LitePersonStatementLimit;
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
-	type ManagerOrigin = RootOrTechnicalMaintenance;
+	type ManagerOrigin = IndividualityManagerOrigin;
 	type LongTermStoragePeriodDuration = ConstU32<{ 14 * 24 * 60 * 60 }>; // 2 weeks
 																	   // Long-term storage grace window, kept smaller than the storage period.
 	type LongTermStorageGraceWindow = ConstU32<{ 60 * 60 }>; // 1 hour
@@ -313,7 +313,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 	type NativeFungible = Balances;
 	type Fungibles = NativeAndAssets;
-	type AdminOrigin = RootOrTechnicalMaintenance;
+	type AdminOrigin = IndividualityManagerOrigin;
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
 	type EnablePermissionless = ConstBool<true>;
 	type LoadDeposit = CoinageLoadDeposit;

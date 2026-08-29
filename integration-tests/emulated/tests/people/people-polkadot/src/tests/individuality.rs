@@ -190,15 +190,15 @@ fn asset_hub_governance_creates_a_coinage_instance() {
 	});
 
 	assert_ok!(send_asset_hub_transact_to_people(
-		Origin::TechnicalMaintenance.into(),
-		OriginKind::Xcm,
+		AssetHubRuntimeOrigin::root(),
+		OriginKind::Superuser,
 		&create_instance,
 	));
 
 	PeoplePolkadot::execute_with(|| {
 		PeoplePolkadot::assert_xcmp_queue_success(None);
 		let instance = indiv_pallet_coinage::Instances::<PeopleRuntime>::get(0)
-			.expect("technical_maintenance created the instance");
+			.expect("root created the instance");
 		assert_eq!(instance.asset_id, asset);
 		assert_eq!(instance.asset_unit, HOLLAR_UNITS / 100);
 		assert_eq!(instance.mode, indiv_pallet_coinage::InstanceMode::Sufficient);

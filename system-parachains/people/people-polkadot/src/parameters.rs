@@ -203,7 +203,7 @@ pub type CoinageLoadDepositPrice =
 	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
 pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
 
-/// Root and Asset Hub's TechnicalMaintenance voice may update these parameters.
+/// Root may update these parameters.
 pub struct DynamicParameterOrigin;
 impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
 	type Success = ();
@@ -212,7 +212,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		origin: RuntimeOrigin,
 		_key: &RuntimeParametersKey,
 	) -> Result<Self::Success, RuntimeOrigin> {
-		RootOrTechnicalMaintenance::ensure_origin(origin.clone())
+		<IndividualityManagerOrigin as EnsureOrigin<RuntimeOrigin>>::ensure_origin(origin.clone())
 			.map(|_| ())
 			.map_err(|_| origin)
 	}
