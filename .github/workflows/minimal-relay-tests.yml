@@ -1,0 +1,117 @@
+name: "Minimal Relay tests"
+
+# The three-chain snapshot harness for the AHM v2 (Minimal Relay) migration: loads live-state
+# snapshots of the RC, Asset Hub and Coretime chain, produces blocks by hand and shuttles XCM
+# between them. Kusama runs on every PR (its snapshots are ~1.5 GB in total); Polkadot's Asset
+# Hub snapshot is ~4 GB, so that suite runs nightly and on dispatch.
+
+# Deliberately NOT triggered by pull_request yet: while the migration is being built, the thing
+# changing fastest is the migration itself, and taxing every unrelated PR with snapshot downloads
+# for a project that is not theirs yet buys nothing. The trigger flips to pull_request when the
+# migration becomes state other PRs must not break (planned: October, with the rehearsals) — the
+# PR lane below (skip Asset Hub, ~180 MB) already exists for that day.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+# cancel previous runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  minimal-relay:
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: kusama
+            snapshots: "kusama:snap_rc asset-hub-kusama:snap_ah coretime-kusama:snap_ct"
+            cargo-args: "--features kusama"
+          - name: polkadot
+            snapshots: "polkadot:snap_rc asset-hub-polkadot:snap_ah coretime-polkadot:snap_ct"
+            cargo-args: ""
+    steps:
+      - name: Skip heavy network on PRs
+        if: github.event_name == 'pull_request' && matrix.network.name == 'polkadot'
+        run: echo "SKIP=true" >> $GITHUB_ENV
+
+      - name: Checkout
+        if: env.SKIP != 'true'
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        if: env.SKIP != 'true'
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        if: env.SKIP != 'true'
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        if: env.SKIP != 'true'
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        if: env.SKIP != 'true'
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-minimal-relay"
+
+      # Asset Hub's snapshot dwarfs the other two (~4 GB on Polkadot, ~1.3 GB on Kusama), and
+      # the migration only teleports *to* it — its execution is a deep check, not a fast one. PR
+      # runs therefore skip everything Asset Hub (every such test carries `asset_hub` in its
+      # name) and download only the RC and Coretime snapshots (~180 MB on Kusama); the scheduled
+      # run covers all of it.
+      - name: Decide the Asset Hub lane
+        if: env.SKIP != 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "SNAPSHOT_KEYS=rc ct" >> $GITHUB_ENV
+            echo "TEST_FILTER=-- --skip asset_hub" >> $GITHUB_ENV
+          else
+            echo "SNAPSHOT_KEYS=rc ah ct" >> $GITHUB_ENV
+            echo "TEST_FILTER=" >> $GITHUB_ENV
+          fi
+
+      - name: Download snapshots from the latest scheduled Check Migrations run
+        if: env.SKIP != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p integration-tests/minimal-relay/snapshots
+          # Artifacts are only guaranteed on scheduled runs (PR runs reuse a cache and skip the
+          # upload), so pick the newest successful scheduled run.
+          run_id=$(gh run list --repo ${{ github.repository }} --workflow check-migrations.yml \
+            --status success --limit 20 --json databaseId,event \
+            --jq '[.[] | select(.event == "schedule")][0].databaseId')
+          test -n "$run_id" && test "$run_id" != "null"
+          for pair in ${{ matrix.network.snapshots }}; do
+            name="${pair%%:*}"; out="${pair##*:}"
+            case " $SNAPSHOT_KEYS " in *" ${out#snap_} "*) ;; *) continue ;; esac
+            tmp=$(mktemp -d)
+            gh run download "$run_id" --repo ${{ github.repository }} \
+              --name "try-runtime-snapshot-$name" --dir "$tmp"
+            mv "$tmp"/* "integration-tests/minimal-relay/snapshots/$out.snap"
+            rm -rf "$tmp"
+          done
+          ls -lh integration-tests/minimal-relay/snapshots/
+
+      - name: Run the suite
+        if: env.SKIP != 'true'
+        run: |
+          SNAP_RC=integration-tests/minimal-relay/snapshots/snap_rc.snap \
+          SNAP_AH=integration-tests/minimal-relay/snapshots/snap_ah.snap \
+          SNAP_CT=integration-tests/minimal-relay/snapshots/snap_ct.snap \
+          SKIP_WASM_BUILD=1 cargo test -p polkadot-integration-tests-minimal-relay \
+            ${{ matrix.network.cargo-args }} $TEST_FILTER

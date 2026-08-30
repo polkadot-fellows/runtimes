@@ -1,0 +1,95 @@
+# Minimal Relay migration test harness.
+#
+# `just test` is the only command you need: it fetches any missing snapshot and runs the suite.
+
+snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots")
+repo := "polkadot-fellows/runtimes"
+workflow := "check-migrations.yml"
+
+# "<file key> <runtime name in CI matrix> <RPC endpoint>" per line.
+# Endpoints must stay in sync with `Chain::rpc()` in src/mock.rs.
+chains := "
+rc polkadot wss://try-runtime.polkadot.io:443
+ah asset-hub-polkadot wss://polkadot-asset-hub-rpc.polkadot.io:443
+ct coretime-polkadot wss://polkadot-coretime-rpc.polkadot.io:443
+"
+
+default: test
+
+# Run the suite against Kusama. Same tests, `--features kusama` swaps which runtimes they bind to.
+test-kusama *args:
+	SNAP_RC="{{ snap_dir }}/snap_rc_ksm.snap" \
+	SNAP_AH="{{ snap_dir }}/snap_ah_ksm.snap" \
+	SNAP_CT="{{ snap_dir }}/snap_ct_ksm.snap" \
+		cargo test -p polkadot-integration-tests-minimal-relay --features kusama {{ args }}
+
+# The fast lane: everything that does not need the multi-GB Asset Hub snapshot (~2s once built).
+# Mirrors what CI runs on every PR; the full suite runs nightly.
+test-fast:
+	SNAP_RC="{{ snap_dir }}/snap_rc.snap" \
+	SNAP_AH="{{ snap_dir }}/snap_ah.snap" \
+	SNAP_CT="{{ snap_dir }}/snap_ct.snap" \
+		cargo test -p polkadot-integration-tests-minimal-relay -- --skip asset_hub
+
+# Run the integration tests, fetching missing snapshots first. Extra args go to `cargo test`.
+test *args: _ensure-snapshots
+	SNAP_RC="{{ snap_dir }}/snap_rc.snap" \
+	SNAP_AH="{{ snap_dir }}/snap_ah.snap" \
+	SNAP_CT="{{ snap_dir }}/snap_ct.snap" \
+		cargo test -p polkadot-integration-tests-minimal-relay {{ args }}
+
+# TODO: Host the snapshots somewhere easy to download and fetch from there instead.
+
+# Download fresh snapshots from the daily `Check Migrations` CI artifacts (needs `gh` auth).
+# With no arguments all chains are re-downloaded; pass keys (e.g. `just snapshots ct`) to limit it.
+snapshots *keys="rc ah ct":
+	#!/usr/bin/env bash
+	set -euo pipefail
+	mkdir -p "{{ snap_dir }}"
+	# Artifacts are only guaranteed on scheduled runs (PR runs reuse a cache and skip the upload).
+	run_id=$(gh run list --repo {{ repo }} --workflow {{ workflow }} --status success --limit 20 \
+		--json databaseId,event --jq '[.[] | select(.event == "schedule")][0].databaseId')
+	if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+		echo "No successful scheduled '{{ workflow }}' run found on {{ repo }}; try 'just snapshots-from-rpc'." >&2
+		exit 1
+	fi
+	while read -r key name _uri; do
+		[ -z "$key" ] && continue
+		case " {{ keys }} " in *" $key "*) ;; *) continue ;; esac
+		tmp=$(mktemp -d)
+		echo "Downloading try-runtime-snapshot-$name from CI run $run_id..."
+		gh run download "$run_id" --repo {{ repo }} --name "try-runtime-snapshot-$name" --dir "$tmp"
+		mv "$tmp/snapshot.raw" "{{ snap_dir }}/snap_$key.snap"
+		rmdir "$tmp"
+	done <<< "{{ chains }}"
+	ls -lh "{{ snap_dir }}"/snap_*.snap
+
+# Needs the try-runtime CLI: https://github.com/paritytech/try-runtime-cli
+
+# Create snapshots by scraping public RPC nodes; no auth needed but slow for Asset Hub (~4 GB).
+snapshots-from-rpc:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	mkdir -p "{{ snap_dir }}"
+	while read -r key _name uri; do
+		[ -z "$key" ] && continue
+		# `--uri=` (with equals sign) is required; with a space, the greedy multi-value flag
+		# swallows the snapshot path argument.
+		try-runtime create-snapshot "--uri=$uri" "{{ snap_dir }}/snap_$key.snap"
+	done <<< "{{ chains }}"
+	ls -lh "{{ snap_dir }}"/snap_*.snap
+
+# Download only the snapshots that are missing, so one deleted file does not force a
+# re-download of the others (the AH artifact is multi-GB).
+_ensure-snapshots:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	missing=""
+	while read -r key _rest; do
+		[ -z "$key" ] && continue
+		[ -f "{{ snap_dir }}/snap_$key.snap" ] || missing="$missing $key"
+	done <<< "{{ chains }}"
+	if [ -n "$missing" ]; then
+		echo "Missing snapshots in {{ snap_dir }}:$missing -- fetching from CI..."
+		just --justfile "{{ justfile() }}" snapshots $missing
+	fi

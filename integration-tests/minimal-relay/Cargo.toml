@@ -1,0 +1,42 @@
+[package]
+name = "polkadot-integration-tests-minimal-relay"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Polkadot integration tests for the Minimal Relay migration"
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+log = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+polkadot-primitives = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
+runtime-parachains = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-storage = { workspace = true, default-features = true }
+sp-tracing = { workspace = true, default-features = true }
+tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
+xcm = { workspace = true, default-features = true }
+
+asset-hub-kusama-runtime = { workspace = true, default-features = true }
+asset-hub-polkadot-runtime = { workspace = true, default-features = true }
+coretime-kusama-runtime = { workspace = true, default-features = true }
+coretime-polkadot-runtime = { workspace = true, default-features = true }
+kusama-runtime = { workspace = true, default-features = true }
+kusama-runtime-constants = { workspace = true, default-features = true }
+polkadot-runtime = { workspace = true, default-features = true }
+polkadot-runtime-constants = { workspace = true, default-features = true }
+
+[features]
+default = []
+# Run the whole suite against Kusama instead of Polkadot. The tests are network-agnostic; this
+# only swaps which runtimes `mock::network` resolves to, and which snapshots the justfile passes.
+kusama = []

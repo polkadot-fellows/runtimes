@@ -42,3 +42,4 @@ target/
 *.json
 *.lz4
 .claude/
+integration-tests/minimal-relay/snapshots/
