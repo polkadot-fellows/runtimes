@@ -14,11 +14,45 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::traits::OnInitialize;
+use frame_support::{
+	pallet_prelude::{OptionQuery, Twox64Concat},
+	storage_alias,
+	traits::OnInitialize,
+};
+use frame_system::pallet_prelude::BlockNumberFor;
 use kusama_runtime::Dmp;
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_broker::{ConfigRecord, CoreAssignment, CoreMask, ScheduleItem};
-use sp_runtime::Perbill;
+use polkadot_primitives::CoreIndex;
+use runtime_parachains::scheduler::PartsOf57600;
+use scale_info::TypeInfo;
+use sp_runtime::{
+	codec::{Decode, Encode},
+	Perbill,
+};
+
+// The two structs below enable reading of the `CoreSchedules` from the relay chain in this test,
+// in order to compare what the relay chain stores with what the coretime chain emitted in its
+// `CoreAssigned` event.
+// TODO: remove this once a public accessor has been added in the scheduler pallet.
+
+/// Mirror of the private `scheduler::assigner_coretime::Schedule`.
+#[derive(Encode, Decode, TypeInfo)]
+pub struct Schedule<N> {
+	pub assignments: Vec<(CoreAssignment, PartsOf57600)>,
+	pub end_hint: Option<N>,
+	pub next_schedule: Option<N>,
+}
+
+/// Mirror of the private `scheduler::CoreSchedules`.
+#[storage_alias]
+type CoreSchedules<T: runtime_parachains::scheduler::Config> = StorageMap<
+	runtime_parachains::scheduler::Pallet<T>,
+	Twox64Concat,
+	(BlockNumberFor<T>, CoreIndex),
+	Schedule<BlockNumberFor<T>>,
+	OptionQuery,
+>;
 
 #[test]
 fn broker_transacts_are_processed_by_relay() {
@@ -109,9 +143,10 @@ fn broker_transacts_are_processed_by_relay() {
 	let mut block_number_cursor = Kusama::ext_wrapper(<Kusama as Chain>::System::block_number);
 
 	let mut found_sale_initialized = false;
-	let mut found_core_assigned = false;
+	let mut found_core_assignment = None;
+	let mut found_core_assigned_when = None;
 	let mut found_history_dropped = false;
-	let mut found_relay_core_assigned = false;
+	let mut found_relay_core_assignment = None;
 	let mut relay_ump_processed = 0u32;
 	// `HistoryDropped` is the terminal event of the round-trip, so it implies all earlier
 	// broker/relay steps have already fired in prior iterations.
@@ -125,8 +160,21 @@ fn broker_transacts_are_processed_by_relay() {
 				match &event.event {
 					CoretimeEvent::Broker(pallet_broker::Event::SaleInitialized { .. }) =>
 						found_sale_initialized = true,
-					CoretimeEvent::Broker(pallet_broker::Event::CoreAssigned { .. }) =>
-						found_core_assigned = true,
+					CoretimeEvent::Broker(pallet_broker::Event::CoreAssigned {
+						assignment,
+						when,
+						..
+					}) => {
+						found_core_assigned_when = Some(*when);
+						found_core_assignment = Some(
+							assignment
+								.iter()
+								.map(|(assignment, parts)| {
+									(assignment.clone(), PartsOf57600::new_saturating(*parts))
+								})
+								.collect::<Vec<_>>(),
+						);
+					},
 					CoretimeEvent::Broker(pallet_broker::Event::HistoryDropped {
 						when: 0,
 						revenue: 0,
@@ -147,8 +195,14 @@ fn broker_transacts_are_processed_by_relay() {
 						..
 					}) => relay_ump_processed += 1,
 					RelayEvent::Coretime(runtime_parachains::coretime::Event::CoreAssigned {
-						..
-					}) => found_relay_core_assigned = true,
+						core,
+					}) => {
+						let begin = found_core_assigned_when
+							.expect("broker should have emitted `CoreAssigned`");
+						found_relay_core_assignment =
+							CoreSchedules::<kusama_runtime::Runtime>::get((begin, core))
+								.map(|schedule| schedule.assignments);
+					},
 					_ => {},
 				}
 			}
@@ -157,7 +211,7 @@ fn broker_transacts_are_processed_by_relay() {
 		});
 	}
 	assert!(found_sale_initialized, "broker never emitted `SaleInitialized`");
-	assert!(found_core_assigned, "broker never emitted `CoreAssigned`");
+	assert!(found_core_assignment.is_some(), "broker never emitted `CoreAssigned`");
 	assert!(
 		found_history_dropped,
 		"broker never emitted `HistoryDropped` (revenue round-trip did not complete)",
@@ -167,7 +221,11 @@ fn broker_transacts_are_processed_by_relay() {
 		"relay processed fewer UMPs than expected: got {relay_ump_processed}",
 	);
 	assert!(
-		found_relay_core_assigned,
+		found_relay_core_assignment.is_some(),
 		"relay never emitted `coretime::CoreAssigned` (assign_core dispatch failed)",
+	);
+	assert_eq!(
+		found_core_assignment, found_relay_core_assignment,
+		"the relay chain received a different assignment than the one set by the broker"
 	);
 }
