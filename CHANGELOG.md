@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All system parachains: run the `cumulus_pallet_xcmp_queue` storage migration to v7 (outbound channel status now stores the queued byte size, avoiding per-page checks) ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#12176](https://github.com/paritytech/polkadot-sdk/pull/12176)).
 
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. It is now closer to Asset Hub Polkadot config.
+- People Polkadot: accept reserve transfers from Asset Hub of any asset native to Asset Hub; `IsReserve` previously only accepted HOLLAR from Hydration. which is still accepted. Incoming assets are still only credited if root has registered them locally, since `pallet-assets` on People has `CreateOrigin = EnsureNever` ([#1260](https://github.com/polkadot-fellows/runtimes/pull/1260)).
 
 ### Fixed
 

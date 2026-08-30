@@ -414,3 +414,50 @@ fn bulletin_destination_is_governable_but_must_remain_a_sibling_parachain() {
 		);
 	});
 }
+
+/// Only assets Asset Hub itself issues may be reserve transferred here from Asset Hub.
+///
+/// Accepting an asset from a chain that is not its real reserve gives it two reserves, and
+/// `ReserveAssetDeposited` mints locally — so the impostor reserve can credit this chain with
+/// holdings nobody is backing. The cases below are the ones that would actually hurt.
+#[test]
+fn only_asset_hub_native_assets_are_reserve_accepted_from_asset_hub() {
+	use crate::{
+		assets::hollar::{HollarLocation, HydrationLocation},
+		xcm_config::TrustedReserves,
+	};
+	use frame_support::traits::ContainsPair;
+
+	let asset_hub = AssetHubLocation::get();
+	let hydration = HydrationLocation::get();
+	let accepted = |asset: Location, from: &Location| {
+		TrustedReserves::contains(&Asset { id: AssetId(asset), fun: Fungible(1) }, from)
+	};
+	// A trust backed asset (`pallet-assets` instance 50) and a pool token (instance 54) on AH.
+	let ah_asset = Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(4242)]);
+	let ah_pool_token = Location::new(1, [Parachain(1000), PalletInstance(54), GeneralIndex(7)]);
+
+	// Asset Hub is the reserve for the assets it issues.
+	assert!(accepted(ah_asset.clone(), &asset_hub));
+	assert!(accepted(ah_pool_token, &asset_hub));
+
+	// DOT must never arrive as a reserve asset: `FungibleTransactor` has no checking account, so
+	// depositing it mints into `Balances`. DOT only ever arrives by teleport.
+	assert!(!accepted(Location::parent(), &asset_hub));
+
+	// HOLLAR has a reserve already — Hydration — and must not gain a second one.
+	assert!(accepted(HollarLocation::get(), &hydration), "Hydration backs HOLLAR");
+	assert!(!accepted(HollarLocation::get(), &asset_hub));
+
+	// Neither may Asset Hub vouch for assets it merely custodies.
+	assert!(!accepted(
+		Location::new(2, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })]),
+		&asset_hub,
+	));
+	assert!(!accepted(Location::new(2, [GlobalConsensus(NetworkId::Kusama)]), &asset_hub));
+	assert!(!accepted(Location::new(1, [Parachain(2000), GeneralIndex(1)]), &asset_hub));
+
+	// And an Asset Hub asset is only accepted *from* Asset Hub.
+	assert!(!accepted(ah_asset.clone(), &hydration));
+	assert!(!accepted(ah_asset, &Location::parent()));
+}
