@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bulletin Polkadot: add the storage pallets and business logic ([#1119](https://github.com/polkadot-fellows/runtimes/issues/1119), [#1170](https://github.com/polkadot-fellows/runtimes/pull/1170)).
 - Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
+- People Polkadot: pay XCM execution fees in any asset governance registered a rate for in `pallet-asset-rate`, not only HOLLAR and DOT. `XcmPaymentApi::query_acceptable_payment_assets` lists every rated asset ([#1257](https://github.com/polkadot-fellows/runtimes/pull/1257)).
 
 ### Changed
 
@@ -24,11 +25,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update all runtimes to `polkadot-sdk` `stable2606-1` ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223)).
 - All system parachains: run the `cumulus_pallet_xcmp_queue` storage migration to v7 (outbound channel status now stores the queued byte size, avoiding per-page checks) ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#12176](https://github.com/paritytech/polkadot-sdk/pull/12176)).
 - People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. It is now closer to Asset Hub Polkadot config.
+- People Polkadot: accept reserve transfers from Asset Hub of any asset native to Asset Hub; `IsReserve` previously only accepted HOLLAR from Hydration. which is still accepted. Incoming assets are still only credited if root has registered them locally, since `pallet-assets` on People has `CreateOrigin = EnsureNever` ([#1260](https://github.com/polkadot-fellows/runtimes/pull/1260)).
 
 ### Fixed
 
 - Asset Hub Polkadot & Kusama: fix `pallet-remote-proxy` dropping the newest relay storage root when multiple parachain blocks share one relay parent. `on_validation_data` now skips storing duplicate relay blocks, which used to fill the bounded `BlockToRoot` vector with copies too young to prune and silently drop the newest root, so remote-proxy proofs anchored at recent relay blocks no longer fail with `UnknownProofAnchorBlock` ([#1230](https://github.com/polkadot-fellows/runtimes/issues/1230)).
 - Polkadot & Kusama system parachains that pass aliasers to their XCM barrier: stop passing the storage-reading `pallet_xcm::AuthorizedAliasers` filter to `AllowExplicitUnpaidExecutionFrom`. `TrustedAliasers` is now split into a computation-only `CheapTrustedAliasers` (used by the barrier) and `(CheapTrustedAliasers, AuthorizedAliasers<Runtime>)` (still `xcm_executor::Config::Aliasers`); aliases that only `AuthorizedAliasers` permits must now buy execution via the paid barrier instead of using `UnpaidExecution` ([#1237](https://github.com/polkadot-fellows/runtimes/pull/1237)).
+- Coretime Polkadot & Kusama: remove the truncation of the coretime assignments vector when sending them from the Coretime Chain to the Relay Chain. Now users can make all 80 assignments per core. ([#1231](https://github.com/polkadot-fellows/runtimes/pull/1231))
 - Relay chains and most system parachains: fix `pallet-xcm-benchmarks` worst-case setups (`Transact` batching, `alias_origin`, multi-asset deposits) that were underpricing XCM weights.
 
 ### Removed
@@ -69,6 +72,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
 - PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+
+### Removed
+
+- Polkadot, Asset Hub Polkadot & Asset Hub Kusama: remove the now-complete `pallet-state-trie-migration` and purge its leftover on-chain storage via a `RemovePallet` migration ([#905](https://github.com/polkadot-fellows/runtimes/issues/905)).
 
 ### Changed
 

@@ -14,17 +14,19 @@
 // limitations under the License.
 
 use super::{
-	assets::hollar::{HollarFromHydration, HollarLocation},
-	AccountId, AllPalletsWithSystem, AssetRate, Assets as AssetsPallet, Balance, Balances,
-	CollatorSelection, DotWeightToFee as WeightToFee, ParachainInfo, ParachainSystem, PolkadotXcm,
-	Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
+	assets::hollar::HollarFromHydration, AccountId, AllPalletsWithSystem, AssetRate,
+	Assets as AssetsPallet, Balance, Balances, CollatorSelection, DotWeightToFee as WeightToFee,
+	ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
+use assets_common::matching::RemoteAssetFromLocation;
+use cumulus_primitives_utility::TakeFirstAssetTrader;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::{HoldConsideration, ItemOf},
-		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
+		fungible::HoldConsideration,
+		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		ConstU32, Contains, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
@@ -40,7 +42,7 @@ use parachains_common::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-use sp_runtime::traits::{AccountIdConversion, ConvertInto};
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -50,8 +52,8 @@ use xcm_builder::{
 	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
 	LocationAsSuperuser, NoChecking, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	SignedToAccountId32, SovereignSignedViaLocation, StartsWith, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
@@ -132,12 +134,16 @@ pub type FungibleTransactor = FungibleAdapter<
 	(),
 >;
 
+/// Matches every asset that comes from outside, i.e. everything held in the `Assets` pallet.
+pub type ForeignAssetsMatcher =
+	assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>;
+
 /// Means for transacting other fungible tokens on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
 	// Use this implementation of `fungibles::*`.
 	AssetsPallet,
 	// Match everything that comes from outside.
-	assets_common::ForeignAssetsConvertedConcreteId<(), Balance, Location>,
+	ForeignAssetsMatcher,
 	// Convert an XCM `Location` into a local account ID.
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -260,33 +266,34 @@ pub type TrustedAliasers = (CheapTrustedAliasers, AuthorizedAliasers<Runtime>);
 /// The asset transactors responsible for handling assets in XCM.
 pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor);
 
-// This calls into the Assets pallet's default `BalanceToAssetBalance` implementation, which
-// uses the ratio of minimum balances and requires asset sufficiency.
-pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentialDepositMultiplier<
-	Runtime,
-	WeightToFee<Runtime>,
-	pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto, ()>,
-	(),
+pub type WeightToNativeFee = WeightToFee<Runtime>;
+
+/// Prices weight in any asset that governance registered a rate for in `pallet-asset-rate`.
+///
+/// The weight is first priced in DOT, then converted to the asset at the registered rate. Assets
+/// without a rate are rejected, which makes the trader fall through to the next component.
+pub type WeightToAssetRateFee =
+	AssetFeeAsExistentialDepositMultiplier<Runtime, WeightToNativeFee, AssetRate, ()>;
+
+/// Buys XCM execution weight with any asset governance registered a rate for, taking it in kind
+/// at that rate.
+///
+/// The fee is deposited *in that asset* into [`StakingPot`], and a deposit that fails is burned
+/// rather than refunded. `pallet-assets` refuses to open an account for an asset that is not
+/// `is_sufficient` in an account with no provider reference, and refuses any deposit below the
+/// asset's `min_balance`. So a rated asset must be registered `is_sufficient = true` with a
+/// `min_balance` no larger than the smallest fee, or [`StakingPot`] must be given the asset — or
+/// the existential deposit in DOT — before the rate is registered.
+pub type AssetRateTrader = TakeFirstAssetTrader<
+	AccountId,
+	WeightToAssetRateFee,
+	ForeignAssetsMatcher,
+	AssetsPallet,
+	ResolveAssetTo<StakingPot, AssetsPallet>,
 >;
 
-pub type WeightToNativeFee = WeightToFee<Runtime>;
-pub struct WeightToStableFee;
-impl frame_support::weights::WeightToFee for WeightToStableFee {
-	type Balance = Balance;
-
-	fn weight_to_fee(weight: &Weight) -> Self::Balance {
-		let native_fee = WeightToNativeFee::weight_to_fee(weight);
-
-		AssetRate::to_asset_balance(native_fee, HollarLocation::get())
-			// Using max value will make the payment fail and go to the next trader component.
-			.unwrap_or(Balance::MAX)
-	}
-}
-
-/// A fungible adapter for the stable asset
-pub type FungibleHollar = ItemOf<AssetsPallet, HollarLocation, AccountId>;
-
-/// All ways of paying for execution fees via XCM.
+/// All ways of paying for execution fees via XCM: DOT, or any asset with a rate registered in
+/// `pallet-asset-rate` (HOLLAR being the first such asset).
 pub type Traders = (
 	UsingComponents<
 		WeightToNativeFee,
@@ -295,14 +302,20 @@ pub type Traders = (
 		Balances,
 		ResolveTo<StakingPot, Balances>,
 	>,
-	UsingComponents<
-		WeightToStableFee,
-		HollarLocation,
-		AccountId,
-		FungibleHollar,
-		ResolveTo<StakingPot, FungibleHollar>,
-	>,
+	AssetRateTrader,
 );
+
+/// Reserve transfers this chain accepts:
+///
+/// - HOLLAR from Hydration, which issues it; and
+/// - assets *native to Asset Hub* — the ones its trust backed `Assets` and pool instances issue —
+///   sent from Asset Hub.
+///
+/// Broad-ish reserve trust is still paired with a narrow registry: `pallet-assets` here has
+/// `CreateOrigin = EnsureNever`, so an incoming asset is only ever credited if root already
+/// registered it locally.
+pub type TrustedReserves =
+	(HollarFromHydration, RemoteAssetFromLocation<StartsWith<AssetHubLocation>, AssetHubLocation>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -310,8 +323,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	/// We only accept HOLLAR from Hydration.
-	type IsReserve = HollarFromHydration;
+	type IsReserve = TrustedReserves;
 	/// Only allow teleportation of DOT.
 	type IsTeleporter = ConcreteAssetFromSystem<RelayLocation>;
 	type UniversalLocation = UniversalLocation;

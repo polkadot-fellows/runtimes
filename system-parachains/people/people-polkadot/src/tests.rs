@@ -140,6 +140,62 @@ fn xcm_payment_api_works() {
 	>();
 }
 
+/// XCM execution fees can be paid in any asset governance registered a rate for, at that rate.
+/// HOLLAR is the first such asset, but nothing here is specific to it.
+#[test]
+fn xcm_execution_fees_can_be_paid_in_any_asset_with_a_registered_rate() {
+	use crate::{
+		xcm_config::{RelayLocation, XcmConfig},
+		AssetRate, Assets as AssetsPallet, PolkadotXcm,
+	};
+	use frame_support::weights::WeightToFee as WeightToFeeT;
+	use parachains_runtimes_test_utils::ExtBuilder;
+	use sp_runtime::FixedU128;
+	use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApi;
+
+	// An asset worth 4 DOT apiece, and one governance never registered a rate for.
+	let rated = Location::new(1, [Parachain(2034), GeneralIndex(222)]);
+	let unrated = Location::new(1, [Parachain(2034), GeneralIndex(333)]);
+	let rate = FixedU128::from_u32(4);
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		assert_ok!(AssetsPallet::force_create(
+			RuntimeOrigin::root(),
+			rated.clone(),
+			AccountId::from(ALICE).into(),
+			true,
+			1,
+		));
+		assert_ok!(AssetRate::create(RuntimeOrigin::root(), Box::new(rated.clone()), rate));
+
+		// Execution fees are priced in DOT, then converted at the registered rate.
+		let weight = Weight::from_parts(1_000_000_000, 10_000);
+		let native_fee = WeightToFee::<Runtime>::weight_to_fee(&weight);
+		type Trader = <XcmConfig as xcm_executor::Config>::Trader;
+		assert_eq!(
+			PolkadotXcm::query_weight_to_asset_fee::<Trader>(weight, AssetId(rated.clone()).into())
+				.unwrap(),
+			native_fee / 4,
+		);
+		// An asset without a rate buys no execution.
+		assert!(PolkadotXcm::query_weight_to_asset_fee::<Trader>(
+			weight,
+			AssetId(unrated.clone()).into()
+		)
+		.is_err());
+
+		// And the runtime API advertises DOT and every rated asset, nothing else.
+		let acceptable = Runtime::query_acceptable_payment_assets(XCM_VERSION).unwrap();
+		assert_eq!(
+			acceptable,
+			vec![
+				VersionedAssetId::from(AssetId(RelayLocation::get())),
+				VersionedAssetId::from(AssetId(rated)),
+			],
+		);
+	});
+}
+
 #[test]
 fn governance_authorize_upgrade_works() {
 	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;
@@ -192,4 +248,51 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+/// Only assets Asset Hub itself issues may be reserve transferred here from Asset Hub.
+///
+/// Accepting an asset from a chain that is not its real reserve gives it two reserves, and
+/// `ReserveAssetDeposited` mints locally — so the impostor reserve can credit this chain with
+/// holdings nobody is backing. The cases below are the ones that would actually hurt.
+#[test]
+fn only_asset_hub_native_assets_are_reserve_accepted_from_asset_hub() {
+	use crate::{
+		assets::hollar::{HollarLocation, HydrationLocation},
+		xcm_config::TrustedReserves,
+	};
+	use frame_support::traits::ContainsPair;
+
+	let asset_hub = AssetHubLocation::get();
+	let hydration = HydrationLocation::get();
+	let accepted = |asset: Location, from: &Location| {
+		TrustedReserves::contains(&Asset { id: AssetId(asset), fun: Fungible(1) }, from)
+	};
+	// A trust backed asset (`pallet-assets` instance 50) and a pool token (instance 54) on AH.
+	let ah_asset = Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(4242)]);
+	let ah_pool_token = Location::new(1, [Parachain(1000), PalletInstance(54), GeneralIndex(7)]);
+
+	// Asset Hub is the reserve for the assets it issues.
+	assert!(accepted(ah_asset.clone(), &asset_hub));
+	assert!(accepted(ah_pool_token, &asset_hub));
+
+	// DOT must never arrive as a reserve asset: `FungibleTransactor` has no checking account, so
+	// depositing it mints into `Balances`. DOT only ever arrives by teleport.
+	assert!(!accepted(Location::parent(), &asset_hub));
+
+	// HOLLAR has a reserve already — Hydration — and must not gain a second one.
+	assert!(accepted(HollarLocation::get(), &hydration), "Hydration backs HOLLAR");
+	assert!(!accepted(HollarLocation::get(), &asset_hub));
+
+	// Neither may Asset Hub vouch for assets it merely custodies.
+	assert!(!accepted(
+		Location::new(2, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })]),
+		&asset_hub,
+	));
+	assert!(!accepted(Location::new(2, [GlobalConsensus(NetworkId::Kusama)]), &asset_hub));
+	assert!(!accepted(Location::new(1, [Parachain(2000), GeneralIndex(1)]), &asset_hub));
+
+	// And an Asset Hub asset is only accepted *from* Asset Hub.
+	assert!(!accepted(ah_asset.clone(), &hydration));
+	assert!(!accepted(ah_asset, &Location::parent()));
 }
