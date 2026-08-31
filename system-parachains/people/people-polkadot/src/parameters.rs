@@ -94,7 +94,7 @@ pub mod dynamic_params {
 		#[codec(index = 0)]
 		pub static PeopleIdentityAndAliasAllowanceMax: Balance = UNITS;
 		#[codec(index = 1)]
-		pub static PeopleIdentityAndAliasAllowanceRecovery: Balance = 3 * CENTS;
+		pub static PeopleIdentityAndAliasAllowanceRecovery: Balance = CENTS;
 		#[codec(index = 2)]
 		pub static LitePeopleAllowanceMax: Balance = UNITS;
 		#[codec(index = 3)]
