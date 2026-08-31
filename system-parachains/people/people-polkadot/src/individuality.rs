@@ -325,6 +325,12 @@ impl indiv_pallet_coinage::Config for Runtime {
 	>;
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
+	// The `as_unload_token_from_output_tx_ext` benchmark pays the unload fee from an output of
+	// exactly this denomination, so it must be large enough to cover the fee at the benchmark
+	// pool's exchange rate.
+	#[cfg(feature = "runtime-benchmarks")]
 	type MinimumExponentForOutputUnloadFee = ConstI8<4>;
 	type MaximumAge = ConstU16<16>;
 	type MaxSplitOutputs = ConstU32<32>;
