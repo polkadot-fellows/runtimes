@@ -141,6 +141,62 @@ fn xcm_payment_api_works() {
 	>();
 }
 
+/// XCM execution fees can be paid in any asset governance registered a rate for, at that rate.
+/// HOLLAR is the first such asset, but nothing here is specific to it.
+#[test]
+fn xcm_execution_fees_can_be_paid_in_any_asset_with_a_registered_rate() {
+	use crate::{
+		xcm_config::{RelayLocation, XcmConfig},
+		AssetRate, Assets as AssetsPallet, PolkadotXcm,
+	};
+	use frame_support::weights::WeightToFee as WeightToFeeT;
+	use parachains_runtimes_test_utils::ExtBuilder;
+	use sp_runtime::FixedU128;
+	use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApi;
+
+	// An asset worth 4 DOT apiece, and one governance never registered a rate for.
+	let rated = Location::new(1, [Parachain(2034), GeneralIndex(222)]);
+	let unrated = Location::new(1, [Parachain(2034), GeneralIndex(333)]);
+	let rate = FixedU128::from_u32(4);
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		assert_ok!(AssetsPallet::force_create(
+			RuntimeOrigin::root(),
+			rated.clone(),
+			AccountId::from(ALICE).into(),
+			true,
+			1,
+		));
+		assert_ok!(AssetRate::create(RuntimeOrigin::root(), Box::new(rated.clone()), rate));
+
+		// Execution fees are priced in DOT, then converted at the registered rate.
+		let weight = Weight::from_parts(1_000_000_000, 10_000);
+		let native_fee = WeightToFee::<Runtime>::weight_to_fee(&weight);
+		type Trader = <XcmConfig as xcm_executor::Config>::Trader;
+		assert_eq!(
+			PolkadotXcm::query_weight_to_asset_fee::<Trader>(weight, AssetId(rated.clone()).into())
+				.unwrap(),
+			native_fee / 4,
+		);
+		// An asset without a rate buys no execution.
+		assert!(PolkadotXcm::query_weight_to_asset_fee::<Trader>(
+			weight,
+			AssetId(unrated.clone()).into()
+		)
+		.is_err());
+
+		// And the runtime API advertises DOT and every rated asset, nothing else.
+		let acceptable = Runtime::query_acceptable_payment_assets(XCM_VERSION).unwrap();
+		assert_eq!(
+			acceptable,
+			vec![
+				VersionedAssetId::from(AssetId(RelayLocation::get())),
+				VersionedAssetId::from(AssetId(rated)),
+			],
+		);
+	});
+}
+
 #[test]
 fn governance_authorize_upgrade_works() {
 	use polkadot_runtime_constants::system_parachain::COLLECTIVES_ID;
