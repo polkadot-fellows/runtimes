@@ -20,8 +20,8 @@ use super::{
 	RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
-use cumulus_primitives_utility::TakeFirstAssetTrader;
 use assets_common::matching::RemoteAssetFromLocation;
+use cumulus_primitives_utility::TakeFirstAssetTrader;
 use frame_support::{
 	parameter_types,
 	traits::{
