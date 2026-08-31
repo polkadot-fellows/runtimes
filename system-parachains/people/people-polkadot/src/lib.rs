@@ -107,8 +107,6 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-pub type RootOrFellows = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
-
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
 
@@ -418,6 +416,10 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 /// Root access for Individuality administration.
 // TODO: Accept Asset Hub's technical maintenance XCM voice after #1236 is merged.
 pub type IndividualityManagerOrigin = EnsureRoot<AccountId>;
+
+/// Privileged origin that represents Root or Fellows pluralistic body.
+pub type RootOrFellows =
+	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
