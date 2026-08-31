@@ -24,6 +24,8 @@ pub mod assets;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod individuality;
+#[cfg(test)]
+mod integration_tests;
 pub mod parameters;
 pub mod people;
 #[cfg(test)]

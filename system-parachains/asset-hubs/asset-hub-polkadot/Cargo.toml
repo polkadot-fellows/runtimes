@@ -171,7 +171,9 @@ asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 polkadot-runtime = { workspace = true }
+sp-keyring = { workspace = true }
 sp-tracing = { workspace = true, default-features = true }
+verifiable = { workspace = true, features = ["builder-params", "std"] }
 remote-externalities = { workspace = true }
 frame-try-runtime = { workspace = true }
 tokio = { features = ["macros"], workspace = true }

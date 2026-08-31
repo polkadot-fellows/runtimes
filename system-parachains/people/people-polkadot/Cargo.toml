@@ -107,6 +107,8 @@ system-parachains-constants = { workspace = true }
 asset-hub-polkadot-runtime = { workspace = true }
 indiv-support = { workspace = true, features = ["genesis", "std"] }
 parachains-runtimes-test-utils = { workspace = true }
+parking_lot = { workspace = true }
+sp-keyring = { workspace = true }
 verifiable = { workspace = true, features = ["builder-params", "std"] }
 
 [build-dependencies]
