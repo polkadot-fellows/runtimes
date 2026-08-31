@@ -361,12 +361,13 @@ jobs:
         shell: bash
         env:
           PR_BRANCH: ${{ needs.get-pr-branch.outputs.pr-branch }}
+          BASE_REPO: ${{ github.repository }}
         run: |
           # The PR branch is checked out from its own repo, so `origin` points at the
           # PR's (possibly forked) repository. Comparing against `origin/main` would use
           # the fork's `main` as the weight baseline, which may be outdated and produce
           # false diffs (see #714). Always use this repository's `main` as the baseline.
-          git fetch "https://github.com/${{ github.repository }}.git" main:refs/remotes/fellowship-base/main
+          git fetch --depth=1 "https://github.com/${BASE_REPO}.git" main:refs/remotes/fellowship-base/main
           result=$(subweight compare commits \
             --path-pattern "./**/weights/**/*.rs" \
             --method asymptotic \
