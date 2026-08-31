@@ -80,6 +80,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO},
+	kusama::fellowship::IsFellowshipVoice,
 	polkadot::{
 		consensus::{
 			elastic_scaling::{
@@ -105,6 +106,8 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
+
+pub type RootOrFellows = EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice>>;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;

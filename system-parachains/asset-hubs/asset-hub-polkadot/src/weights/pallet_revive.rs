@@ -256,7 +256,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 	/// The range of component `c` is `[0, 102400]`.
 	/// The range of component `i` is `[0, 131072]`.
 	/// The range of component `d` is `[0, 1]`.
-	fn eth_instantiate_with_code(c: u32, i: u32, _d: u32, ) -> Weight {
+	fn eth_instantiate_with_code(c: u32, i: u32, d: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `8203`
 		//  Estimated: `16618`
@@ -354,7 +354,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 	/// Storage: `Revive::EthBlockBuilderFirstValues` (r:0 w:1)
 	/// Proof: `Revive::EthBlockBuilderFirstValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `d` is `[0, 1]`.
-	fn eth_call(_d: u32, ) -> Weight {
+	fn eth_call(d: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `6967`
 		//  Estimated: `12907`
@@ -933,7 +933,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 	/// Proof: `Skipped::Metadata` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[0, 416]`.
 	/// The range of component `o` is `[0, 416]`.
-	fn seal_set_storage(_n: u32, o: u32, ) -> Weight {
+	fn seal_set_storage(n: u32, o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `253 + o * (1 ±0)`
 		//  Estimated: `252 + o * (1 ±0)`
@@ -1050,7 +1050,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 	}
 	/// The range of component `n` is `[0, 416]`.
 	/// The range of component `o` is `[0, 416]`.
-	fn seal_set_transient_storage(n: u32, _o: u32, ) -> Weight {
+	fn seal_set_transient_storage(n: u32, o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
