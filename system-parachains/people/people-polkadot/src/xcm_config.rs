@@ -21,6 +21,7 @@ use super::{
 };
 use crate::{TransactionByteFee, CENTS};
 use cumulus_primitives_utility::TakeFirstAssetTrader;
+use assets_common::matching::RemoteAssetFromLocation;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -51,8 +52,8 @@ use xcm_builder::{
 	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
 	LocationAsSuperuser, NoChecking, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	SignedToAccountId32, SovereignSignedViaLocation, StartsWith, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
@@ -304,14 +305,25 @@ pub type Traders = (
 	AssetRateTrader,
 );
 
+/// Reserve transfers this chain accepts:
+///
+/// - HOLLAR from Hydration, which issues it; and
+/// - assets *native to Asset Hub* — the ones its trust backed `Assets` and pool instances issue —
+///   sent from Asset Hub.
+///
+/// Broad-ish reserve trust is still paired with a narrow registry: `pallet-assets` here has
+/// `CreateOrigin = EnsureNever`, so an incoming asset is only ever credited if root already
+/// registered it locally.
+pub type TrustedReserves =
+	(HollarFromHydration, RemoteAssetFromLocation<StartsWith<AssetHubLocation>, AssetHubLocation>);
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	/// We only accept HOLLAR from Hydration.
-	type IsReserve = HollarFromHydration;
+	type IsReserve = TrustedReserves;
 	/// Only allow teleportation of DOT.
 	type IsTeleporter = ConcreteAssetFromSystem<RelayLocation>;
 	type UniversalLocation = UniversalLocation;
