@@ -18,7 +18,7 @@
 
 use crate::*;
 use sp_genesis_builder::PresetId;
-use system_parachains_constants::genesis_presets::*;
+use system_parachains_constants::{genesis_presets::*, polkadot::INDIVIDUALITY_NETWORK_SUFFIX};
 
 const PEOPLE_POLKADOT_ED: Balance = ExistentialDeposit::get();
 
@@ -60,6 +60,10 @@ fn people_polkadot_genesis(
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
+		},
+		"networkSuffix": NetworkSuffixConfig {
+			network_suffix: INDIVIDUALITY_NETWORK_SUFFIX.to_vec().try_into().expect("network suffix fits"),
+			..Default::default()
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`

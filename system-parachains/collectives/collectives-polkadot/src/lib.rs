@@ -97,7 +97,7 @@ use frame_system::{
 use parachains_common::{
 	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use sp_runtime::Debug;
+use sp_runtime::{Debug, FixedU128};
 use system_parachains_constants::{
 	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
@@ -133,7 +133,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 2_003_000,
+	spec_version: 2_004_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -160,6 +160,7 @@ parameter_types! {
 			.modify_max_length_for_class(DispatchClass::Normal, |m| {
 				*m = NORMAL_DISPATCH_RATIO * *m
 			})
+			.max_header_size(100 * 1024)
 			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
@@ -449,6 +450,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
@@ -615,6 +617,24 @@ parameter_types! {
 pub const ALLIANCE_MAX_PROPOSALS: u32 = 100;
 pub const ALLIANCE_MAX_MEMBERS: u32 = 100;
 
+parameter_types! {
+	// This configuration causes the deposit amount to increase with the number of active proposals.
+	// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780
+	pub const AllianceProposalDepositGrowthFactor: FixedU128 = FixedU128::from_rational(11, 10);
+	pub const AllianceBaseProposalDeposit: Balance = UNITS;
+	pub const AllianceProposalRoundPrecision: u32 = 10;
+	pub const AllianceProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::AllianceMotion(pallet_collective::HoldReason::ProposalSubmission);
+}
+
+type AllianceDeposit = pallet_collective::deposit::Round<
+	AllianceProposalRoundPrecision,
+	pallet_collective::deposit::Geometric<
+		AllianceProposalDepositGrowthFactor,
+		AllianceBaseProposalDeposit,
+	>,
+>;
+
 type AllianceCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
@@ -629,7 +649,8 @@ impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type MaxProposalWeight = MaxProposalWeight;
 	type DisapproveOrigin = EnsureRoot<AccountId>;
 	type KillOrigin = EnsureRoot<AccountId>;
-	type Consideration = ();
+	type Consideration =
+		HoldConsideration<AccountId, Balances, AllianceProposalHoldReason, AllianceDeposit, u32>;
 }
 
 pub const MAX_FELLOWS: u32 = ALLIANCE_MAX_MEMBERS;
@@ -865,14 +886,12 @@ pub mod migrations {
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	);
 
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
+	pub type SingleBlockMigrations = Unreleased;
 
 	/// MBM migrations to apply on runtime upgrade.
 	pub type MbmMigrations = ();
@@ -899,6 +918,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
+		[pallet_parameters, Parameters]
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_utility, Utility]
@@ -909,7 +929,6 @@ mod benches {
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_alliance, Alliance]
 		[pallet_collective, AllianceMotion]
-		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_scheduler, Scheduler]
 		[pallet_referenda, FellowshipReferenda]
@@ -1002,6 +1021,11 @@ mod benches {
 
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
 		}
 	}
 
@@ -1102,10 +1126,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1000)]),
-				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
@@ -1142,6 +1166,9 @@ impl_runtime_apis! {
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
 			0
+		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
 		}
 	}
 
@@ -1493,4 +1520,30 @@ fn scheduler_weight_is_sane() {
 
 	let large_lookup = lookup_weight(1024 * 1024);
 	assert!(large_lookup.all_lte(limit), "Must be possible to submit a large lookup");
+}
+
+/// Verifies the deposit curve documented on `AllianceProposalDepositGrowthFactor`:
+/// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780.
+#[test]
+fn alliance_deposit_matches_documented_curve() {
+	use sp_runtime::traits::Convert;
+
+	let cases: &[(u32, Balance)] = &[
+		(1, UNITS),
+		(5, UNITS),
+		(10, 2 * UNITS),
+		(25, 10 * UNITS),
+		(50, 117 * UNITS),
+		(75, 1271 * UNITS),
+		(ALLIANCE_MAX_PROPOSALS, 13780 * UNITS),
+	];
+
+	for (proposals, expected) in cases {
+		let actual = <AllianceDeposit as Convert<u32, Balance>>::convert(*proposals);
+		assert_eq!(
+			actual, *expected,
+			"AllianceDeposit at {} proposals: expected {} plancks, got {}",
+			proposals, expected, actual
+		);
+	}
 }

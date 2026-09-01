@@ -27,7 +27,11 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
-    }
+    },
+    "benchmarks_exclude_pallets": [
+      "pallet_staking",
+      "polkadot_runtime_common::paras_registrar"
+    ]
   },
   {
     "name": "kusama",
@@ -55,7 +59,11 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
-    }
+    },
+    "benchmarks_exclude_pallets": [
+      "pallet_staking",
+      "polkadot_runtime_common::paras_registrar"
+    ]
   },
   {
     "name": "glutton-kusama",
@@ -306,8 +314,12 @@
     "package": "bulletin-polkadot-runtime",
     "path": "system-parachains/bulletin/bulletin-polkadot",
     "max_code_size": 3145728,
+    "uris": [
+      "wss://bulletin-rpc.polkadot.io",
+      "wss://rpc-bulletin.luckyfriday.io"
+    ],
     "is_relay": false,
-    "blocktime": 6000,
+    "blocktime": 24000,
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"

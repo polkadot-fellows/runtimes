@@ -79,7 +79,6 @@ pallet-staking = { workspace = true }
 pallet-staking-reward-fn = { workspace = true }
 pallet-staking-reward-curve = { workspace = true }
 pallet-staking-runtime-api = { workspace = true }
-pallet-state-trie-migration = { workspace = true }
 frame-system = { workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
@@ -104,7 +103,6 @@ hex-literal = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
-relay-common = { workspace = true }
 
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
@@ -193,7 +191,6 @@ std = [
 	"pallet-staking-reward-fn/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
-	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -207,7 +204,6 @@ std = [
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
-	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -276,7 +272,6 @@ runtime-benchmarks = [
 	"pallet-staking-async-ah-client/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
-	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
@@ -289,7 +284,6 @@ runtime-benchmarks = [
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
-	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -338,7 +332,6 @@ try-runtime = [
 	"pallet-staking-async-ah-client/try-runtime",
 	"pallet-staking-async-rc-client/try-runtime",
 	"pallet-staking/try-runtime",
-	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",

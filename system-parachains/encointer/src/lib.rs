@@ -66,6 +66,7 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
+		fungible::HoldConsideration,
 		fungibles::{Balanced, Credit},
 		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
 		ConstBool, ConstU128, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
@@ -104,7 +105,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Debug, Perbill,
+	ApplyExtrinsicResult, Debug, FixedU128, Perbill,
 };
 
 #[cfg(feature = "std")]
@@ -146,7 +147,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 2_003_000,
+	spec_version: 2_004_000,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -264,6 +265,7 @@ parameter_types! {
 			.modify_max_length_for_class(DispatchClass::Normal, |m| {
 				*m = NORMAL_DISPATCH_RATIO * *m
 			})
+			.max_header_size(100 * 1024)
 			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
@@ -416,6 +418,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
@@ -688,6 +691,24 @@ type MoreThanHalfCouncil = EitherOfDiverse<
 	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
 >;
 
+parameter_types! {
+	// This configuration causes the deposit amount to increase with the number of active proposals.
+	// 1 proposal = 1 KSM, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780
+	pub const CouncilProposalDepositGrowthFactor: FixedU128 = FixedU128::from_rational(11, 10);
+	pub const CouncilBaseProposalDeposit: Balance = UNITS;
+	pub const CouncilProposalRoundPrecision: u32 = 12;
+	pub const CouncilProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Collective(pallet_collective::HoldReason::ProposalSubmission);
+}
+
+type CouncilDeposit = pallet_collective::deposit::Round<
+	CouncilProposalRoundPrecision,
+	pallet_collective::deposit::Geometric<
+		CouncilProposalDepositGrowthFactor,
+		CouncilBaseProposalDeposit,
+	>,
+>;
+
 pub type CouncilCollective = pallet_collective::Instance1;
 
 impl pallet_collective::Config<CouncilCollective> for Runtime {
@@ -703,7 +724,8 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type MaxProposalWeight = MaxProposalWeight;
 	type DisapproveOrigin = MoreThanHalfCouncil;
 	type KillOrigin = MoreThanHalfCouncil;
-	type Consideration = ();
+	type Consideration =
+		HoldConsideration<AccountId, Balances, CouncilProposalHoldReason, CouncilDeposit, u32>;
 }
 
 // support for collective pallet
@@ -958,14 +980,12 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+	pub type SingleBlockMigrations = Unreleased;
 }
 
 /// Executive: handles dispatch to the various modules.
@@ -1074,6 +1094,11 @@ mod benches {
 
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
 		}
 	}
 
@@ -1184,10 +1209,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1000)]),
-				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
@@ -1220,6 +1245,9 @@ impl_runtime_apis! {
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
 			0
+		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
 		}
 	}
 
@@ -1577,4 +1605,30 @@ fn test_transasction_byte_fee_is_one_tenth_of_relay() {
 	let relay_tbf = ::kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 	let parachain_tbf = TransactionByteFee::get();
 	assert_eq!(relay_tbf / 10, parachain_tbf);
+}
+
+/// Verifies the deposit curve documented on `CouncilProposalDepositGrowthFactor`:
+/// 1 proposal = 1 KSM, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780.
+#[test]
+fn council_deposit_matches_documented_curve() {
+	use sp_runtime::traits::Convert;
+
+	let cases: &[(u32, Balance)] = &[
+		(1, UNITS),
+		(5, UNITS),
+		(10, 2 * UNITS),
+		(25, 10 * UNITS),
+		(50, 117 * UNITS),
+		(75, 1271 * UNITS),
+		(CouncilMaxProposals::get(), 13780 * UNITS),
+	];
+
+	for (proposals, expected) in cases {
+		let actual = <CouncilDeposit as Convert<u32, Balance>>::convert(*proposals);
+		assert_eq!(
+			actual, *expected,
+			"CouncilDeposit at {} proposals: expected {} plancks, got {}",
+			proposals, expected, actual
+		);
+	}
 }

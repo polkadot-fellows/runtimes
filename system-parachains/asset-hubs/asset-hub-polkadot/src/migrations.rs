@@ -14,7 +14,9 @@
 // limitations under the License.
 
 //! The runtime migrations per release.
-use crate::Runtime;
+use crate::{Runtime, TrustBackedAssetsInstance};
+#[cfg(feature = "try-runtime")]
+use alloc::vec::Vec;
 use frame_support::parameter_types;
 
 /// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
@@ -66,6 +68,7 @@ parameter_types! {
 
 parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+	pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
@@ -73,6 +76,13 @@ pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	<Runtime as frame_system::Config>::DbWeight,
 >;
 
+/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Asset Hub
+/// Polkadot is complete and the pallet has been removed from the runtime, see
+/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+	StateTrieMigrationName,
+	<Runtime as frame_system::Config>::DbWeight,
+>;
 /// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
 /// from the previous account derivation to the new one introduced by
 /// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
@@ -146,6 +156,32 @@ impl frame_support::traits::OnRuntimeUpgrade for MigrateBountyAccountAssets {
 	}
 }
 
+/// Creates PGAS while the `pallet-assets` auto-increment guard is suspended.
+pub struct CreatePgasAssetWithSuspendedAssetIds;
+impl frame_support::traits::OnRuntimeUpgrade for CreatePgasAssetWithSuspendedAssetIds {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		let next_asset_id =
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::take();
+		let weight = indiv_pallet_pgas::migration::CreatePgasAsset::<Runtime>::on_runtime_upgrade();
+		if let Some(next_asset_id) = next_asset_id {
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::put(next_asset_id);
+		}
+
+		weight.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 2))
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		frame_support::ensure!(
+			pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				crate::individuality::PGAS_ASSET_ID
+			),
+			"PGAS asset must exist after migration"
+		);
+		Ok(())
+	}
+}
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
@@ -154,9 +190,11 @@ pub type Unreleased = (
 		TrappedBalanceMember,
 	>,
 	RemoveAhMigratorPallet,
+	RemoveStateTrieMigrationPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	// DAP V1->V2: seed `BudgetAllocation` and `LastIssuanceTimestamp`, credit a one-shot
 	// catch-up drip. Required when moving staking to non-minting mode (see SDK PR #11616).
@@ -167,13 +205,11 @@ pub type Unreleased = (
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
 	MigrateBountyAccountAssets,
+	CreatePgasAssetWithSuspendedAssetIds,
 );
 
-/// Migrations/checks that do not need to be versioned and can run on every update.
-pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = (Unreleased, Permanent);
+pub type SingleBlockMigrations = Unreleased;
 
 #[cfg(not(feature = "runtime-benchmarks"))]
 pub use multiblock_migrations::MbmMigrations;
@@ -210,6 +246,9 @@ mod multiblock_migrations {
 		>,
 		// Not added: we do it with a manual TX
 		//pallet_revive::migrations::v3::Migration<Runtime>,
+		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
+		// `PGasDeposit`.
+		pallet_revive::migrations::v4::Migration<Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
@@ -310,5 +349,56 @@ mod multiblock_migrations {
 				}
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{individuality::PGAS_ASSET_ID, RuntimeGenesisConfig};
+	use frame_support::traits::OnRuntimeUpgrade;
+	use sp_runtime::BuildStorage;
+
+	#[test]
+	fn pgas_asset_exists_after_create_pgas_asset_migration() {
+		let mut ext = sp_io::TestExternalities::new(
+			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+		);
+		ext.execute_with(|| {
+			let next_asset_id = 50_000_000u32;
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::put(next_asset_id);
+			let _ = CreatePgasAssetWithSuspendedAssetIds::on_runtime_upgrade();
+			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				PGAS_ASSET_ID
+			));
+			assert_eq!(
+				pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::get(),
+				Some(next_asset_id)
+			);
+
+			let _ = CreatePgasAssetWithSuspendedAssetIds::on_runtime_upgrade();
+			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				PGAS_ASSET_ID
+			));
+			assert_eq!(
+				pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::get(),
+				Some(next_asset_id)
+			);
+		});
+	}
+
+	#[test]
+	fn pgas_asset_migration_preserves_absent_next_asset_id() {
+		let mut ext = sp_io::TestExternalities::new(
+			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+		);
+		ext.execute_with(|| {
+			pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::kill();
+			let _ = CreatePgasAssetWithSuspendedAssetIds::on_runtime_upgrade();
+			assert!(pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(
+				PGAS_ASSET_ID
+			));
+			assert!(!pallet_assets::NextAssetId::<Runtime, TrustBackedAssetsInstance>::exists());
+		});
 	}
 }

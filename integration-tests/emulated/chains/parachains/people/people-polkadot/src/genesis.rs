@@ -18,7 +18,10 @@ use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
 use parachains_common::Balance;
-use people_polkadot_runtime::xcm_config::{RelayTreasuryPalletAccount, StakingPot};
+use people_polkadot_runtime::{
+	individuality::asset_hub_subscription_whitelist,
+	xcm_config::{RelayTreasuryPalletAccount, StakingPot},
+};
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use sp_core::storage::Storage;
 
@@ -61,6 +64,10 @@ pub fn genesis() -> Storage {
 		},
 		polkadot_xcm: people_polkadot_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+		members_notifier: people_polkadot_runtime::MembersNotifierConfig {
+			subscription_whitelist: asset_hub_subscription_whitelist(),
 			..Default::default()
 		},
 		..Default::default()
