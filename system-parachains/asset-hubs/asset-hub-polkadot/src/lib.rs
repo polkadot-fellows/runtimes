@@ -539,6 +539,30 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct VerifySignatureBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_verify_signature::BenchmarkHelper<Signature, AccountId>
+	for VerifySignatureBenchmarkHelper
+{
+	fn create_signature(_entropy: &[u8], msg: &[u8]) -> (Signature, AccountId) {
+		use sp_io::crypto::{sr25519_generate, sr25519_sign};
+		use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+		let public = sr25519_generate(0.into(), None);
+		let who_account: AccountId = MultiSigner::Sr25519(public).into_account();
+		let signature = Signature::Sr25519(sr25519_sign(0.into(), &public, msg).unwrap());
+		(signature, who_account)
+	}
+}
+
+impl pallet_verify_signature::Config for Runtime {
+	type Signature = Signature;
+	type AccountIdentifier = sp_runtime::MultiSigner;
+	type WeightInfo = weights::pallet_verify_signature::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = VerifySignatureBenchmarkHelper;
+}
+
 parameter_types! {
 	/// Deposit for an index in the indices pallet.
 	///
@@ -1724,6 +1748,7 @@ construct_runtime!(
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
 		Indices: pallet_indices = 43,
+		VerifySignature: pallet_verify_signature = 44,
 
 		Assets: pallet_assets::<Instance1> = 50,
 		Uniques: pallet_uniques = 51,
@@ -1812,6 +1837,7 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		// Origin modifiers.
 		(
 			(),
+			pallet_verify_signature::VerifySignature<Runtime>,
 			frame_system::AuthorizeCall<Runtime>,
 			indiv_pallet_pgas::AsPgas<Runtime>,
 			indiv_pallet_dotns_gateway::AsDotnsGateway<Runtime>,
@@ -2016,6 +2042,7 @@ mod benches {
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
+		[pallet_verify_signature, VerifySignature]
 		[pallet_vesting, Vesting]
 		[pallet_vesting_precompiles, VestingPrecompiles]
 		[pallet_timestamp, Timestamp]
@@ -3098,11 +3125,17 @@ mod tests {
 			v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
 		assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
 
-		let indiv = ["UnitTransactionExtension", "AsPgas", "AsDotnsGateway", "RestrictOrigins"];
-		let v1_without_indiv: Vec<&str> =
-			v1.iter().copied().filter(|id| !indiv.contains(id)).collect();
-		assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
-		for id in indiv {
+		let v1_additions = [
+			"UnitTransactionExtension",
+			"VerifyMultiSignature",
+			"AsPgas",
+			"AsDotnsGateway",
+			"RestrictOrigins",
+		];
+		let v1_without_additions: Vec<&str> =
+			v1.iter().copied().filter(|id| !v1_additions.contains(id)).collect();
+		assert_eq!(v1_without_additions, v0, "version 1 must extend version 0, not reshuffle it");
+		for id in v1_additions {
 			assert!(v1.contains(&id), "version 1 must carry `{id}`");
 		}
 	}

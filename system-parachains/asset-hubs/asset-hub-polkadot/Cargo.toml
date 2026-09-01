@@ -98,6 +98,7 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-uniques = { workspace = true }
 pallet-utility = { workspace = true }
+pallet-verify-signature = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-vesting-precompiles = { workspace = true }
 pallet-whitelist = { workspace = true }
@@ -171,6 +172,7 @@ asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 polkadot-runtime = { workspace = true }
+sp-keyring = { workspace = true }
 sp-tracing = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
 frame-try-runtime = { workspace = true }
@@ -257,6 +259,7 @@ runtime-benchmarks = [
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
+	"pallet-verify-signature/runtime-benchmarks",
 	"pallet-vesting-precompiles/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-whitelist/runtime-benchmarks",
@@ -349,6 +352,7 @@ try-runtime = [
 	"pallet-treasury/try-runtime",
 	"pallet-uniques/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-verify-signature/try-runtime",
 	"pallet-vesting-precompiles/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
@@ -457,6 +461,7 @@ std = [
 	"pallet-treasury/std",
 	"pallet-uniques/std",
 	"pallet-utility/std",
+	"pallet-verify-signature/std",
 	"pallet-vesting-precompiles/std",
 	"pallet-vesting/std",
 	"pallet-whitelist/std",

@@ -69,6 +69,7 @@ pub mod pallet_transaction_payment;
 pub mod pallet_treasury;
 pub mod pallet_uniques;
 pub mod pallet_utility;
+pub mod pallet_verify_signature;
 pub mod pallet_vesting;
 pub mod pallet_vesting_precompiles;
 pub mod pallet_whitelist;
