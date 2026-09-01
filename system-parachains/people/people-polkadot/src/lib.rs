@@ -23,6 +23,8 @@ extern crate alloc;
 pub mod assets;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod individuality;
+pub mod parameters;
 pub mod people;
 #[cfg(test)]
 mod tests;
@@ -30,16 +32,21 @@ mod weights;
 pub mod xcm_config;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
+use assets_common::local_and_foreign_assets::TargetFromLeft;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, RelaychainDataProvider};
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+#[cfg(not(feature = "runtime-benchmarks"))]
+use frame_support::traits::NeverEnsureOrigin;
 use frame_support::{
 	construct_runtime, derive_impl,
 	dispatch::DispatchClass,
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf,
+		fungible,
+		tokens::imbalance::{ResolveAssetTo, ResolveTo},
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, EitherOf,
 		EitherOfDiverse, Everything, InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
@@ -64,7 +71,7 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{BlakeTwo256, Block as BlockT},
+	traits::{BlakeTwo256, Block as BlockT, PipelineAtVers},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Debug,
 };
@@ -87,7 +94,7 @@ use system_parachains_constants::{
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId, BodyId},
+	latest::prelude::{AssetId, BodyId, Location},
 	Version as XcmVersion, VersionedAsset, VersionedAssetId, VersionedAssets, VersionedLocation,
 	VersionedXcm,
 };
@@ -112,8 +119,8 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 
-/// The TransactionExtension to the basic transaction logic.
-pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+/// The TransactionExtension pipeline version 0. **Frozen.**
+pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
 		frame_system::AuthorizeCall<Runtime>,
@@ -129,20 +136,72 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
+/// The TransactionExtension pipeline version. Latest.
+pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		// Origin modifiers.
+		(
+			(),
+			pallet_verify_signature::VerifySignature<Runtime>,
+			indiv_pallet_people::extension::AsPerson<Runtime>,
+			indiv_pallet_people_lite::extension::PeopleLiteAuth<Runtime>,
+			indiv_pallet_members::extension::AsMember<Runtime>,
+			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
+			indiv_pallet_resources::extension::AsResources<Runtime>,
+			frame_system::AuthorizeCall<Runtime>,
+		),
+		// General checks and operations.
+		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
+
+/// The transaction extension pipelines with versions other than 0.
+pub type TxExtensionOtherVersions = PipelineAtVers<1, TxExtensionV1>;
+
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
+pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<
+	Address,
+	RuntimeCall,
+	Signature,
+	TxExtensionV0,
+	TxExtensionOtherVersions,
+>;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+
+	pub mod chunk_page_hashes;
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+		// Must precede the collection migrations
+		chunk_page_hashes::InitializeChunkPageHashes,
+		indiv_pallet_people::migration::CreatePeopleCollection<Runtime>,
+		indiv_pallet_people_lite::migration::CreateLitePeopleCollection<Runtime>,
+		// Single-use: whitelist the Asset Hub as a subscriber. Remove once live.
+		// It overwrites unconditionally.
+		SeedAssetHubSubscriptionWhitelist,
 	);
+
+	pub type SeedAssetHubSubscriptionWhitelist =
+		indiv_pallet_members_notifier::migration::SeedSubscriptionWhitelist<
+			Runtime,
+			individuality::AssetHubSubscriptionWhitelist,
+		>;
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
@@ -302,7 +361,7 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Runtime {
 	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
-	type OnSystemEvent = ();
+	type OnSystemEvent = RelayRandomness;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type OutboundXcmpMessageSource = XcmpQueue;
 	type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
@@ -353,6 +412,10 @@ impl pallet_message_queue::Config for Runtime {
 impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
+
+/// Root access for Individuality administration.
+// TODO: Accept Asset Hub's technical maintenance XCM voice after #1236 is merged.
+pub type IndividualityManagerOrigin = EnsureRoot<AccountId>;
 
 /// Privileged origin that represents Root or Fellows pluralistic body.
 pub type RootOrFellows =
@@ -627,6 +690,126 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct VerifySignatureBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_verify_signature::BenchmarkHelper<Signature, AccountId>
+	for VerifySignatureBenchmarkHelper
+{
+	fn create_signature(_entropy: &[u8], msg: &[u8]) -> (Signature, AccountId) {
+		use sp_io::crypto::{sr25519_generate, sr25519_sign};
+		use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+		let public = sr25519_generate(0.into(), None);
+		let who_account: AccountId = MultiSigner::Sr25519(public).into_account();
+		let signature = Signature::Sr25519(sr25519_sign(0.into(), &public, msg).unwrap());
+		(signature, who_account)
+	}
+}
+
+impl pallet_verify_signature::Config for Runtime {
+	type Signature = Signature;
+	type AccountIdentifier = sp_runtime::MultiSigner;
+	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = VerifySignatureBenchmarkHelper;
+}
+
+pub type PoolAssetsInstance = pallet_assets::Instance1;
+impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type RemoveItemsLimit = ConstU32<1000>;
+	type AssetId = u32;
+	type AssetIdParameter = u32;
+	type ReserveData = ();
+	type Currency = Balances;
+	#[cfg(feature = "runtime-benchmarks")]
+	type CreateOrigin =
+		AsEnsureOriginWithArg<frame_system::EnsureSignedBy<AssetConversionOrigin, AccountId>>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AssetDeposit = ConstU128<0>;
+	type AssetAccountDeposit = assets::AssetAccountDeposit;
+	type MetadataDepositBase = ConstU128<0>;
+	type MetadataDepositPerByte = ConstU128<0>;
+	type ApprovalDeposit = ExistentialDeposit;
+	type StringLimit = assets::AssetsStringLimit;
+	type Freezer = ();
+	type Holder = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
+pub type NativeAndAssets = fungible::UnionOf<
+	Balances,
+	individuality::AssetsWithHolder,
+	TargetFromLeft<xcm_config::RelayLocation, Location>,
+	Location,
+	AccountId,
+>;
+
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+	pub StakingPotAccount: AccountId =
+		<pallet_collator_selection::StakingPotAccountId<Runtime> as frame_support::traits::TypedGet>::get();
+	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
+	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + assets::AssetDeposit::get();
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub AssetsPalletIndex: u32 = <Assets as frame_support::traits::PalletInfoAccess>::index() as u32;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+frame_support::ord_parameter_types! {
+	pub const AssetConversionOrigin: AccountId =
+		sp_runtime::traits::AccountIdConversion::<AccountId>::into_account_truncating(
+			&AssetConversionPalletId::get(),
+		);
+}
+
+pub type PoolIdToAccountId =
+	pallet_asset_conversion::AccountIdConverter<AssetConversionPalletId, (Location, Location)>;
+
+impl pallet_asset_conversion::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type HigherPrecisionBalance = sp_core::U256;
+	type AssetKind = Location;
+	type Assets = NativeAndAssets;
+	type PoolId = (Self::AssetKind, Self::AssetKind);
+	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
+		xcm_config::RelayLocation,
+		AccountId,
+		Self::AssetKind,
+		PoolIdToAccountId,
+	>;
+	type PoolAssetId = u32;
+	type PoolAssets = PoolAssets;
+	type PoolSetupFee = PoolSetupFee;
+	type PoolSetupFeeAsset = xcm_config::RelayLocation;
+	type PoolSetupFeeTarget = ResolveAssetTo<StakingPotAccount, Self::Assets>;
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type LPFee = LpFee;
+	type PalletId = AssetConversionPalletId;
+	type MaxSwapPathLength = ConstU32<3>;
+	type MintMinLiquidity = ConstU128<100>;
+	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
+		xcm_config::RelayLocation,
+		parachain_info::Pallet<Runtime>,
+		AssetsPalletIndex,
+		Self::AssetKind,
+	>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -638,6 +821,7 @@ construct_runtime!(
 		ParachainInfo: parachain_info = 3,
 		MultiBlockMigrations: pallet_migrations = 4,
 		WeightReclaim: cumulus_pallet_weight_reclaim = 5,
+		RelayRandomness: indiv_pallet_relay_randomness = 6,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -646,6 +830,9 @@ construct_runtime!(
 		AssetRate: pallet_asset_rate = 13,
 		AssetTxPayment: pallet_asset_tx_payment = 14,
 		AssetsHolder: pallet_assets_holder = 15,
+		OriginRestriction: indiv_pallet_origin_restriction = 16,
+		AssetConversion: pallet_asset_conversion = 17,
+		PoolAssets: pallet_assets::<Instance1> = 18,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -664,9 +851,31 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
+		VerifySignature: pallet_verify_signature = 43,
 
 		// The main stage.
 		Identity: pallet_identity = 50,
+
+		// Individuality: personhood and everything built on it.
+		People: indiv_pallet_people = 51,
+		// 52: never used.
+		// 53: never used.
+		// 54: never used.
+		// 55: never used.
+		// 56: never used.
+		// 57: never used.
+		DummyDim: indiv_pallet_dummy_dim = 59,
+		PeopleLite: indiv_pallet_people_lite = 62,
+		Resources: indiv_pallet_resources = 63,
+		ChunksManager: indiv_pallet_chunks_manager = 64,
+		Members: indiv_pallet_members = 67,
+		Coinage: indiv_pallet_coinage = 68,
+		MembersNotifier: indiv_pallet_members_notifier = 69,
+		// 70: never used.
+		// 71: never used.
+		Parameters: pallet_parameters = 73,
+		// 74: never used.
+		NetworkSuffix: indiv_pallet_network_suffix = 75,
 	}
 );
 
@@ -675,8 +884,8 @@ mod benches {
 	use super::{
 		assets::hollar::{Hollar, HydrationLocation},
 		parameter_types, vec, xcm_config, AccountId, Balances, ExistentialDeposit, ParachainSystem,
-		PriceForSiblingParachainDelivery, Runtime, RuntimeCall, RuntimeOrigin, System, XcmConfig,
-		UNITS,
+		PoolAssetsInstance, PriceForSiblingParachainDelivery, Runtime, RuntimeCall, RuntimeOrigin,
+		System, XcmConfig, UNITS,
 	};
 	use alloc::{boxed::Box, vec::Vec};
 	use codec::Encode;
@@ -691,6 +900,8 @@ mod benches {
 		[pallet_asset_tx_payment, AssetTxPayment]
 		[pallet_asset_rate, AssetRate]
 		[pallet_assets, Assets]
+		[pallet_assets, Pool]
+		[pallet_asset_conversion, AssetConversion]
 		[pallet_balances, Balances]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]
@@ -698,9 +909,12 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
+		[pallet_parameters, Parameters]
+		[indiv_pallet_network_suffix, NetworkSuffix]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
+		[pallet_verify_signature, VerifySignature]
 		// Cumulus
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_weight_reclaim, WeightReclaim]
@@ -710,6 +924,17 @@ mod benches {
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
+		// Individuality
+		[indiv_pallet_chunks_manager, ChunksManager]
+		[indiv_pallet_coinage, Coinage]
+		[indiv_pallet_dummy_dim, DummyDim]
+		[indiv_pallet_members, Members]
+		[indiv_pallet_members_notifier, MembersNotifier]
+		[indiv_pallet_origin_restriction, OriginRestriction]
+		[indiv_pallet_people, People]
+		[indiv_pallet_people_lite, PeopleLite]
+		[indiv_pallet_relay_randomness, RelayRandomness]
+		[indiv_pallet_resources, Resources]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -927,12 +1152,81 @@ mod benches {
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
+	pub type Pool = pallet_assets::Pallet<Runtime, PoolAssetsInstance>;
 	pub use frame_support::traits::WhitelistedStorageKeys;
 	pub use sp_storage::TrackedStorageKey;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
+
+/// Mortality window, in blocks, for the authorized transactions this runtime constructs and
+/// submits. They are re-submitted every block by their offchain workers while the action stays due,
+/// so a short window lets stale submissions expire from the pool promptly.
+///
+/// At the 2s block time this is ~4.3 minutes.
+///
+/// NOTE: must be a power of two for `Era::mortal`, and cannot exceed `BlockHashCount`.
+pub const TRANSACTION_MORTALITY_PERIOD: BlockNumber = 128;
+
+// A mortal era whose period exceeds the number of retained block hashes can never be validated
+// (its birth hash is pruned before the window closes), so guard the invariant at compile time.
+const _: () = assert!(TRANSACTION_MORTALITY_PERIOD <= BlockHashCount::get());
+
+impl<LocalCall> frame_system::offchain::CreateTransactionBase<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type RuntimeCall = RuntimeCall;
+}
+
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_bare(call: Self::RuntimeCall) -> Self::Extrinsic {
+		UncheckedExtrinsic::new_bare(call)
+	}
+}
+
+impl<LocalCall> frame_system::offchain::CreateTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	type Extension = TxExtensionV0;
+
+	fn create_transaction(call: Self::RuntimeCall, extension: Self::Extension) -> Self::Extrinsic {
+		UncheckedExtrinsic::new_transaction(call, extension)
+	}
+}
+
+impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_extension() -> Self::Extension {
+		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			// Anchor the mortal era at `block_number() - 1`: offchain workers build this extension
+			// while executing on the current block, whose own hash is not yet in storage, so the
+			// birth block must be the parent.
+			frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(
+				u64::from(TRANSACTION_MORTALITY_PERIOD),
+				u64::from(System::block_number()).saturating_sub(1),
+			)),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+		)
+			.into()
+	}
+}
 
 impl_runtime_apis! {
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {

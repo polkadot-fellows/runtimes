@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
 - People Polkadot: pay XCM execution fees in any asset governance registered a rate for in `pallet-asset-rate`, not only HOLLAR and DOT. `XcmPaymentApi::query_acceptable_payment_assets` lists every rated asset ([#1257](https://github.com/polkadot-fellows/runtimes/pull/1257)).
 
+- People Polkadot: add the Individuality pallets: `pallet-chunks-manager`, `pallet-coinage`, `pallet-dummy-dim`, `pallet-members`, `pallet-members-notifier`, `pallet-network-suffix`, `pallet-origin-restriction`, `pallet-parameters`, `pallet-people`, `pallet-people-lite`, `pallet-relay-randomness`, `pallet-resources`, and `pallet-verify-signature` ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+- Asset Hub Polkadot: add the Individuality pallets: `pallet-alias-accounts`, `pallet-assets-freezer`, `pallet-assets-holder`, `pallet-dotns-gateway`, `pallet-members-subscriber`, `pallet-network-suffix`, `pallet-origin-restriction`, `pallet-pgas`, and `pallet-pgas-allowance` ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+
 ### Changed
 
 - Update all runtimes to `polkadot-sdk` `stable2606-2` ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252)).
