@@ -14,13 +14,22 @@ codec = { workspace = true, default-features = true }
 sp-runtime = { workspace = true, default-features = true }
 sp-io = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
 pallet-assets = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
+indiv-pallet-coinage = { workspace = true, default-features = true }
+indiv-pallet-members = { workspace = true, default-features = true }
+indiv-pallet-members-notifier = { workspace = true, default-features = true }
+indiv-pallet-members-subscriber = { workspace = true, default-features = true }
+indiv-pallet-people = { workspace = true, default-features = true }
+indiv-support = { workspace = true, default-features = true }
+verifiable = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
+polkadot-primitives = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
 xcm-executor = { workspace = true }
@@ -45,6 +54,13 @@ runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"indiv-pallet-coinage/runtime-benchmarks",
+	"indiv-pallet-members-notifier/runtime-benchmarks",
+	"indiv-pallet-members-subscriber/runtime-benchmarks",
+	"indiv-pallet-members/runtime-benchmarks",
+	"indiv-pallet-people/runtime-benchmarks",
+	"indiv-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -53,6 +69,7 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"people-polkadot-runtime/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"polkadot-runtime/runtime-benchmarks",

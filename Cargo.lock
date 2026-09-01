@@ -506,6 +506,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-bls12-377"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfedac3173d12820a5e0d6cd4de31b49719a74f4a41dc09b6652d0276a3b2cd4"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-bls12-377-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07208c7ea9e7abfe8fb01e190eba611f6e7c3cdbdef4a5473c9297d396495d1b"
+dependencies = [
+ "ark-bls12-377 0.5.0",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
+ "ark-std 0.5.0",
+]
+
+[[package]]
 name = "ark-bls12-381"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -530,6 +554,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-bls12-381"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be2ede2c0c96fa37d5d3484e8a59fec566c4a52b8c84bf993eaa6c67d7225a4c"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+]
+
+[[package]]
+name = "ark-bls12-381-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a83d59f25570c846b9cfc430539a150e9634c9db6949f87b12f3cbc53149b17"
+dependencies = [
+ "ark-bls12-381 0.5.0",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-bls12-381-ext"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54d637e6e5fdaf847b7e7ba5064d3986e2d2a2aab6d2b9ea38d6ffd8c901f375"
+dependencies = [
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-models-ext 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+]
+
+[[package]]
 name = "ark-bn254"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -549,6 +613,31 @@ dependencies = [
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
  "ark-r1cs-std 0.5.0",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-bw6-761"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cc9cae367e0c3c0b52e3ef13371122752654f45d0212ec7306fb0c1c012cd98"
+dependencies = [
+ "ark-bls12-377 0.5.0",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-bw6-761-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60f7fc87dfb5699c1c5a12e8d4f13564c174a5224b5702002587ca67205a9ca7"
+dependencies = [
+ "ark-bw6-761",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
  "ark-std 0.5.0",
 ]
 
@@ -607,7 +696,55 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "rayon",
  "zeroize",
+]
+
+[[package]]
+name = "ark-ec"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8352a2b2aedf6ba2cc38f7520fc51191d518dde96175c729af19f2d059f191c4"
+dependencies = [
+ "ahash",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "educe",
+ "fnv",
+ "hashbrown 0.17.1",
+ "itertools 0.14.0",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "rayon",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ed-on-bls12-377"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebbf817b2db27d2787009b2ff76304a5b90b4b01bb16aa8351701fd40f5f37b2"
+dependencies = [
+ "ark-bls12-377 0.5.0",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-ed-on-bls12-377-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93170025f4679342661d00f27c9a1586ccf053d29ad78b072d5be11649cae02c"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ed-on-bls12-377",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
+ "ark-std 0.5.0",
 ]
 
 [[package]]
@@ -620,6 +757,44 @@ dependencies = [
  "ark-ec 0.5.0",
  "ark-ff 0.5.0",
  "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-ed-on-bls12-381-bandersnatch"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "997428e73129c7b7a7431b4f67855db94947421f008b97b4c256101cea1686cc"
+dependencies = [
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-std 0.6.0",
+]
+
+[[package]]
+name = "ark-ed-on-bls12-381-bandersnatch-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee7e1fb880811e22d4fc8ffe83eaa260e39a4deb0f345dcc8ffb663d3e034e7a"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ed-on-bls12-381-bandersnatch 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-ed-on-bls12-381-bandersnatch-ext"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98a2b67897cc7b0a1a480619ac5cbed851486541eed57b20706a54cf9c5ff759"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-models-ext 0.6.0",
+ "ark-std 0.6.0",
 ]
 
 [[package]]
@@ -681,6 +856,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ff"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7a806ac6c8307b929df4645776290a50ee2aac754ad09d8bdf73391309e43af"
+dependencies = [
+ "ark-ff-asm 0.6.0",
+ "ark-ff-macros 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
+ "educe",
+ "num-bigint",
+ "num-traits",
+ "rayon",
+ "zeroize",
+]
+
+[[package]]
 name = "ark-ff-asm"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -705,6 +898,16 @@ name = "ark-ff-asm"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62945a2f7e6de02a31fe400aa489f0e0f5b2502e69f95f853adb82a96c7a6b60"
+dependencies = [
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "ark-ff-asm"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1479009684adc073dff49a1025d3a7065b317a9ead25aaaca38cdc70058ba8a2"
 dependencies = [
  "quote",
  "syn 2.0.114",
@@ -749,6 +952,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ff-macros"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a0691ed21ef00ef89c1e9bda832eba493dda3ec2f8d892fb25b705f73f06bb8"
+dependencies = [
+ "num-bigint",
+ "num-traits",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
 name = "ark-groth16"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -761,6 +977,57 @@ dependencies = [
  "ark-relations 0.4.0",
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
+]
+
+[[package]]
+name = "ark-models-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6294fd6ddc4996910adf2a9d3b56e3aa6a1f605ea315952169d2ddebc304dc4c"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "derivative",
+]
+
+[[package]]
+name = "ark-models-ext"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4aabf979cc6d6605f515f10411958d534fe33e0ae20741490e3e869805a87351"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "derivative",
+]
+
+[[package]]
+name = "ark-pallas"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c676d42c65f0b2d334fc0ae72a422de2e62ed75beb3022050c0e8a81f6ccc0f"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-pallas-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6906648fb42b7c83fc40ea43b12fbf75b704532057d71a467a25ec4afc239b6"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
+ "ark-pallas",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
 ]
 
 [[package]]
@@ -789,6 +1056,22 @@ dependencies = [
  "educe",
  "fnv",
  "hashbrown 0.15.5",
+]
+
+[[package]]
+name = "ark-poly"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75f55af10b672002b8d953e230282c51206842e20e5791a94432219b4201de5c"
+dependencies = [
+ "ahash",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "educe",
+ "fnv",
+ "hashbrown 0.17.1",
+ "rayon",
 ]
 
 [[package]]
@@ -850,6 +1133,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-scale"
+version = "0.0.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "985c81a9c7b23a72f62b7b20686d5326d2a9956806f37de9ee35cb1238faf0c0"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "ark-scale"
+version = "0.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7080e0b73651b75236e0b9af7c6a68cd38e87d02553e39c0cbf525b704c780a9"
+dependencies = [
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "ark-serialize"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -882,6 +1193,21 @@ dependencies = [
  "arrayvec 0.7.6",
  "digest 0.10.7",
  "num-bigint",
+ "rayon",
+]
+
+[[package]]
+name = "ark-serialize"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a74dd304fd536fb95d0a328e72be759209cc496a9da094c5bc56e5fea4f9e86b"
+dependencies = [
+ "ark-serialize-derive 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
+ "num-bigint",
+ "rayon",
+ "serde_with",
 ]
 
 [[package]]
@@ -900,6 +1226,17 @@ name = "ark-serialize-derive"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213888f660fddcca0d257e88e54ac05bca01885f258ccdf695bafd77031bb69d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "ark-serialize-derive"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f153690697a2b91e5e1251ff98411ee5371500a111a0fd317a70e588eb300f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -946,6 +1283,18 @@ checksum = "246a225cc6131e9ee4f24619af0f19d67761fff15d7ccc22e42b80846e69449a"
 dependencies = [
  "num-traits",
  "rand 0.8.5",
+ "rayon",
+]
+
+[[package]]
+name = "ark-std"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "367c9c827ed431bff6868b7aa926e05b16eb46603cc8b6e768e4a5553fa1d155"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
+ "rayon",
 ]
 
 [[package]]
@@ -963,6 +1312,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-transcript"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a9a23188a6bb8d8d2394a2a904e6944999e2cfceb446b086ff3a581ee05cebd"
+dependencies = [
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
+ "sha3",
+]
+
+[[package]]
+name = "ark-vesta"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3a6d658e5e7380af710828550b2dc2c7b033c9f3103d2690711cb07d5a62df6"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-pallas",
+ "ark-std 0.5.0",
+]
+
+[[package]]
+name = "ark-vesta-ext"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27dfabb2b731180273184366ebf57b1793600889e9c7b548916433dd19fb8932"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-models-ext 0.5.2",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "ark-vesta",
+]
+
+[[package]]
 name = "ark-vrf"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -970,7 +1358,7 @@ checksum = "0d63e9780640021b74d02b32895d8cec1b4abe8e5547b560a6bda6b14b78c6da"
 dependencies = [
  "ark-bls12-381 0.5.0",
  "ark-ec 0.5.0",
- "ark-ed-on-bls12-381-bandersnatch",
+ "ark-ed-on-bls12-381-bandersnatch 0.5.0",
  "ark-ff 0.5.0",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
@@ -983,20 +1371,21 @@ dependencies = [
 
 [[package]]
 name = "ark-vrf"
-version = "0.5.0"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f69f34cb5a7d5d4627792c7a6343508becc19deab59a87ef73367cc112dfd02c"
+checksum = "6e1eab4d92e7a80fea37a6a5424de677f8c46809b88ed4c5e94dd4eed5cc39e8"
 dependencies = [
- "ark-bls12-381 0.5.0",
- "ark-ec 0.5.0",
- "ark-ed-on-bls12-381-bandersnatch",
- "ark-ff 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
  "digest 0.10.7",
  "generic-array 0.14.7",
+ "rayon",
  "sha2 0.10.9",
- "w3f-ring-proof 0.0.8",
+ "w3f-ring-proof 0.0.10",
  "zeroize",
 ]
 
@@ -1394,6 +1783,14 @@ dependencies = [
  "frame-try-runtime",
  "hex",
  "hex-literal",
+ "indiv-pallet-alias-accounts",
+ "indiv-pallet-dotns-gateway",
+ "indiv-pallet-members-subscriber",
+ "indiv-pallet-network-suffix",
+ "indiv-pallet-origin-restriction",
+ "indiv-pallet-pgas",
+ "indiv-precompile-personhood",
+ "indiv-support",
  "kusama-runtime-constants",
  "log",
  "pallet-ah-ops",
@@ -1402,6 +1799,8 @@ dependencies = [
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
  "pallet-assets",
+ "pallet-assets-freezer",
+ "pallet-assets-holder",
  "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
@@ -1425,6 +1824,7 @@ dependencies = [
  "pallet-nomination-pools-benchmarking",
  "pallet-nomination-pools-runtime-api",
  "pallet-parameters",
+ "pallet-pgas-allowance",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-psm",
@@ -1443,6 +1843,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-uniques",
  "pallet-utility",
+ "pallet-verify-signature",
  "pallet-vesting",
  "pallet-vesting-precompiles",
  "pallet-whitelist",
@@ -1479,6 +1880,7 @@ dependencies = [
  "sp-genesis-builder 0.24.0",
  "sp-inherents 43.0.0",
  "sp-io 48.0.0",
+ "sp-keyring",
  "sp-npos-elections",
  "sp-offchain",
  "sp-runtime 48.0.0",
@@ -1497,6 +1899,7 @@ dependencies = [
  "system-parachains-common",
  "system-parachains-constants",
  "tokio",
+ "verifiable",
  "xcm-runtime-apis",
 ]
 
@@ -2850,9 +3253,14 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "frame-system",
+ "indiv-pallet-resources",
+ "indiv-support",
  "integration-tests-helpers",
  "pallet-bulletin-transaction-storage",
+ "pallet-message-queue",
+ "pallet-xcm",
  "parachains-common",
+ "people-polkadot-runtime",
  "polkadot-system-emulated-network",
  "staging-xcm",
  "staging-xcm-executor",
@@ -6629,6 +7037,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+]
+
+[[package]]
 name = "hashlink"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7045,7 +7462,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "system-configuration 0.7.0",
  "tokio",
  "tower-service",
@@ -7348,6 +7765,328 @@ dependencies = [
  "portable-atomic",
  "unicode-width",
  "web-time",
+]
+
+[[package]]
+name = "indiv-pallet-alias-accounts"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-chunks-manager"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-coinage"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "indiv-support",
+ "log",
+ "pallet-asset-conversion",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-runtime 48.0.0",
+ "sp-trie 46.0.0",
+ "staging-xcm",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-dotns-gateway"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "alloy-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-members-subscriber",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-dummy-dim"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+]
+
+[[package]]
+name = "indiv-pallet-members"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-chunks-manager",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-members-notifier"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-people",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-members-subscriber"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "staging-xcm",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-network-suffix"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "indiv-pallet-origin-restriction"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+]
+
+[[package]]
+name = "indiv-pallet-people"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-people-lite"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "ed25519-zebra",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-pgas"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-pallet-relay-randomness"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 48.0.0",
+ "sp-trie 46.0.0",
+]
+
+[[package]]
+name = "indiv-pallet-resources"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "indiv-pallet-people",
+ "indiv-pallet-people-lite",
+ "indiv-support",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "sp-statement-store",
+ "verifiable",
+]
+
+[[package]]
+name = "indiv-precompile-personhood"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "indiv-support",
+ "log",
+ "pallet-revive",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "indiv-support"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?tag=v0.3.0#5bbb75db14387d72af93a39b15b5c092bd12d4e9"
+dependencies = [
+ "ark-bls12-381-ext 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch-ext 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-scale 0.0.14",
+ "frame-support",
+ "frame-system",
+ "getrandom 0.2.17",
+ "pallet-asset-conversion-tx-payment",
+ "pallet-asset-tx-payment",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 43.0.0",
+ "sp-crypto-ec-utils",
+ "sp-crypto-hashing",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "sp-statement-store",
+ "spin 0.9.8",
+ "verifiable",
 ]
 
 [[package]]
@@ -9749,6 +10488,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-assets-freezer"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2c57696a4b4a0b2e4ebca86db4bab09d36330bec78939f4818b0cbf20a35837"
+dependencies = [
+ "log",
+ "pallet-assets",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
 name = "pallet-assets-holder"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11018,6 +11770,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-pgas-allowance"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de312d35f6604c9b268b829e2d48345449db102b742461ea1e2b8475d55c5d93"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 48.0.0",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "49.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11659,6 +12427,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-verify-signature"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8877b4c770cec2f13de59c4ff5b48a2cfa9bcdd7b7996dd9532f8c9297dfc629"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "sp-weights 36.0.0",
+]
+
+[[package]]
 name = "pallet-vesting"
 version = "49.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12283,6 +13067,13 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "frame-system",
+ "indiv-pallet-coinage",
+ "indiv-pallet-members",
+ "indiv-pallet-members-notifier",
+ "indiv-pallet-members-subscriber",
+ "indiv-pallet-people",
+ "indiv-support",
  "integration-tests-helpers",
  "pallet-assets",
  "pallet-balances",
@@ -12292,6 +13083,7 @@ dependencies = [
  "parachains-common",
  "parity-scale-codec",
  "people-polkadot-runtime",
+ "polkadot-primitives",
  "polkadot-runtime",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
@@ -12300,6 +13092,7 @@ dependencies = [
  "sp-runtime 48.0.0",
  "staging-xcm",
  "staging-xcm-executor",
+ "verifiable",
  "xcm-runtime-apis",
 ]
 
@@ -12307,6 +13100,7 @@ dependencies = [
 name = "people-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
  "assets-common",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -12317,6 +13111,7 @@ dependencies = [
  "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
+ "ed25519-zebra",
  "enumflags2",
  "frame-benchmarking",
  "frame-executive",
@@ -12327,7 +13122,20 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
+ "indiv-pallet-chunks-manager",
+ "indiv-pallet-coinage",
+ "indiv-pallet-dummy-dim",
+ "indiv-pallet-members",
+ "indiv-pallet-members-notifier",
+ "indiv-pallet-network-suffix",
+ "indiv-pallet-origin-restriction",
+ "indiv-pallet-people",
+ "indiv-pallet-people-lite",
+ "indiv-pallet-relay-randomness",
+ "indiv-pallet-resources",
+ "indiv-support",
  "log",
+ "pallet-asset-conversion",
  "pallet-asset-rate",
  "pallet-asset-tx-payment",
  "pallet-assets",
@@ -12340,12 +13148,14 @@ dependencies = [
  "pallet-message-queue",
  "pallet-migrations",
  "pallet-multisig",
+ "pallet-parameters",
  "pallet-proxy",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
+ "pallet-verify-signature",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -12361,11 +13171,14 @@ dependencies = [
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core 43.0.0",
+ "sp-crypto-hashing",
  "sp-genesis-builder 0.24.0",
  "sp-inherents 43.0.0",
+ "sp-io 48.0.0",
  "sp-offchain",
  "sp-runtime 48.0.0",
  "sp-session",
+ "sp-statement-store",
  "sp-storage 25.0.0",
  "sp-transaction-pool",
  "sp-version 46.0.0",
@@ -12376,6 +13189,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "verifiable",
  "xcm-runtime-apis",
 ]
 
@@ -13518,7 +14332,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -13544,7 +14358,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -17249,7 +18063,7 @@ version = "43.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41314ae10e80f9f0c5f68bb23f26f2d21f105bb6d867810b719c29c684aa0458"
 dependencies = [
- "ark-vrf 0.5.0",
+ "ark-vrf 0.5.3",
  "array-bytes 6.2.3",
  "bip39",
  "bitflags 1.3.2",
@@ -17289,6 +18103,32 @@ dependencies = [
  "tracing",
  "w3f-bls",
  "zeroize",
+]
+
+[[package]]
+name = "sp-crypto-ec-utils"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "966b89aa3aaaf8c66555f30607959ad102a6ed59d67442935eb771f29e85fce5"
+dependencies = [
+ "ark-bls12-377 0.5.0",
+ "ark-bls12-377-ext",
+ "ark-bls12-381 0.5.0",
+ "ark-bls12-381-ext 0.5.2",
+ "ark-bw6-761",
+ "ark-bw6-761-ext",
+ "ark-ec 0.5.0",
+ "ark-ed-on-bls12-377",
+ "ark-ed-on-bls12-377-ext",
+ "ark-ed-on-bls12-381-bandersnatch 0.5.0",
+ "ark-ed-on-bls12-381-bandersnatch-ext 0.5.2",
+ "ark-ff 0.5.0",
+ "ark-pallas",
+ "ark-pallas-ext",
+ "ark-scale 0.0.13",
+ "ark-vesta",
+ "ark-vesta-ext",
+ "sp-runtime-interface 37.0.0",
 ]
 
 [[package]]
@@ -19122,7 +19962,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -19930,6 +20770,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
+name = "verifiable"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61bcf1e43762a8701eb3c2e836633c9ff3b65814ff573772b3250c1ed6ff218d"
+dependencies = [
+ "ark-scale 0.0.14",
+ "ark-serialize 0.6.0",
+ "ark-vrf 0.5.3",
+ "bounded-collections",
+ "getrandom 0.2.17",
+ "getrandom_or_panic",
+ "parity-scale-codec",
+ "scale-info",
+ "sha2 0.10.9",
+ "smallvec",
+ "spin 0.9.8",
+]
+
+[[package]]
 name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -19947,7 +20806,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6bfb937b3d12077654a9e43e32a4e9c20177dd9fea0f3aba673e7840bb54f32"
 dependencies = [
- "ark-bls12-377",
+ "ark-bls12-377 0.4.0",
  "ark-bls12-381 0.4.0",
  "ark-ec 0.4.2",
  "ark-ff 0.4.2",
@@ -19979,16 +20838,17 @@ dependencies = [
 
 [[package]]
 name = "w3f-pcs"
-version = "0.0.5"
+version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ea1046a1deb6d26c34ba2d1f1bab4222d695d126502ee765f80b021753cb674"
+checksum = "1304615e0b129091634dcebd1acf9edee4d6aabd03e7d679a0c49a1a1a45fe98"
 dependencies = [
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-poly 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
  "merlin",
+ "rayon",
 ]
 
 [[package]]
@@ -20009,18 +20869,20 @@ dependencies = [
 
 [[package]]
 name = "w3f-plonk-common"
-version = "0.0.7"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30408cda37b81bd7257319942584c794c5784d00d749757bc664656749a1472a"
+checksum = "e24647403dfe8eeb4ef57358e41c29c1ae253c4a123ef9e04d3029fabca38bc2"
 dependencies = [
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-poly 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
  "getrandom_or_panic",
  "rand_core 0.6.4",
- "w3f-pcs 0.0.5",
+ "rayon",
+ "subtle 2.6.1",
+ "w3f-pcs 0.0.7",
 ]
 
 [[package]]
@@ -20034,25 +20896,26 @@ dependencies = [
  "ark-poly 0.5.0",
  "ark-serialize 0.5.0",
  "ark-std 0.5.0",
- "ark-transcript",
+ "ark-transcript 0.0.3",
  "w3f-pcs 0.0.2",
  "w3f-plonk-common 0.0.2",
 ]
 
 [[package]]
 name = "w3f-ring-proof"
-version = "0.0.8"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cbfc4cb881a934e6f33c25927bf955d0cb18e52b94528bbc5fa28dddedb4cd1"
+checksum = "b86bf57d9f25c1020c372f1a64069fef9f158db85cd6ef087cee560337bed56d"
 dependencies = [
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-poly 0.5.0",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
- "ark-transcript",
- "w3f-pcs 0.0.5",
- "w3f-plonk-common 0.0.7",
+ "ark-ec 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-poly 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "ark-transcript 0.0.6",
+ "rayon",
+ "w3f-pcs 0.0.7",
+ "w3f-plonk-common 0.0.10",
 ]
 
 [[package]]
@@ -20873,7 +21736,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

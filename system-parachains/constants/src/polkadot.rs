@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Network suffix used to derive Individuality product contexts on Polkadot system chains.
+pub const INDIVIDUALITY_NETWORK_SUFFIX: &[u8] = b"polkadot";
+
 /// Universally recognized accounts.
 pub mod account {
 	use frame_support::PalletId;
@@ -60,6 +63,8 @@ pub mod consensus {
 
 	/// Parameters enabling elastic scaling functionality.
 	pub mod elastic_scaling {
+		use parachains_common::BlockNumber;
+
 		/// Build with an offset of 1 behind the relay chain.
 		pub const RELAY_PARENT_OFFSET: u32 = 1;
 
@@ -73,6 +78,17 @@ pub mod consensus {
 		/// into the relay chain.
 		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 =
 			(3 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY;
+
+		/// The average expected block time, in milliseconds, of a chain running at
+		/// [`BLOCK_PROCESSING_VELOCITY`].
+		pub const MILLISECS_PER_BLOCK: u64 =
+			(super::RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY) as u64;
+
+		// Time is measured by number of blocks. Use these, not the six-second-basis
+		// `async_backing` ones, for anything the runtime measures against its own block number.
+		pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+		pub const HOURS: BlockNumber = MINUTES * 60;
+		pub const DAYS: BlockNumber = HOURS * 24;
 	}
 }
 
