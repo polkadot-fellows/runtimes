@@ -166,7 +166,9 @@ jobs:
             <<< "$cache_json" |
           while IFS=$'\t' read -r cache_id cache_key cache_size; do
             echo "Deleting superseded cache: $cache_key ($cache_size bytes)"
-            gh cache delete "$cache_id"
+            if ! gh cache delete "$cache_id"; then
+              echo "::warning::Failed to delete superseded cache: $cache_key"
+            fi
           done
 
   check-migrations:
