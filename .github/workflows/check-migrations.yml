@@ -114,7 +114,10 @@ jobs:
           key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ needs.runtime-matrix.outputs.snapshot-date }}
 
       - name: Upload snapshot as artifact
-        if: steps.cache-restore.outputs.cache-matched-key == ''
+        if: >-
+          steps.cache-restore.outputs.cache-matched-key == '' &&
+          github.event_name != 'schedule' &&
+          github.event_name != 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: try-runtime-snapshot-${{ matrix.runtime.name }}
