@@ -28,9 +28,12 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
+      snapshot-date: ${{ steps.snapshot-date.outputs.today }}
     name: Extract tasks from matrix
     steps:
       - uses: actions/checkout@v4
+      - id: snapshot-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> "$GITHUB_OUTPUT"
       - id: runtime
         run: |
           # Filter out runtimes that don't have URIs
@@ -47,6 +50,9 @@ jobs:
   prepare-snapshots:
     needs: [runtime-matrix]
     runs-on: self-hosted
+    permissions:
+      actions: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -100,18 +106,36 @@ jobs:
             sleep 10
           done
 
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "today=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-        shell: bash
-
       - name: Save snapshot to cache
         if: steps.cache-restore.outputs.cache-matched-key == '' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.get-date.outputs.today }}
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ needs.runtime-matrix.outputs.snapshot-date }}
+
+      - name: Delete previous snapshot for ${{ matrix.runtime.name }}
+        if: steps.cache-restore.outputs.cache-matched-key == '' && github.ref == 'refs/heads/main'
+        env:
+          CURRENT_CACHE_KEY: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ needs.runtime-matrix.outputs.snapshot-date }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+        shell: bash
+        run: |
+          cache_json=$(gh cache list --limit 10000 --ref refs/heads/main --json id,key,sizeInBytes)
+
+          if ! jq -e --arg key "$CURRENT_CACHE_KEY" 'any(.[]; .key == $key)' <<< "$cache_json" > /dev/null; then
+            echo "::error::Current snapshot cache is missing; keeping previous snapshots: $CURRENT_CACHE_KEY"
+            exit 1
+          fi
+
+          jq -r --arg prefix "try-runtime-snapshot-${RUNTIME_NAME}-" --arg current "$CURRENT_CACHE_KEY" \
+            '.[] | select(.key | startswith($prefix)) | select(.key != $current) | [.id, .key, .sizeInBytes] | @tsv' \
+            <<< "$cache_json" |
+          while IFS=$'\t' read -r cache_id cache_key cache_size; do
+            echo "Deleting superseded cache: $cache_key ($cache_size bytes)"
+            gh cache delete "$cache_id"
+          done
 
       - name: Upload snapshot as artifact
         if: steps.cache-restore.outputs.cache-matched-key == ''
@@ -120,7 +144,6 @@ jobs:
           name: try-runtime-snapshot-${{ matrix.runtime.name }}
           path: snapshot.raw
           retention-days: 1
-
 
   check-migrations:
     needs: [runtime-matrix, prepare-snapshots]
