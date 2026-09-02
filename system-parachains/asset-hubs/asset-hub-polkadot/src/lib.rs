@@ -1382,13 +1382,34 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 		origin: RuntimeOrigin,
 		key: &RuntimeParametersKey,
 	) -> Result<Self::Success, RuntimeOrigin> {
-		use crate::RuntimeParametersKey::*;
+		use crate::{
+			dynamic_params::individuality::ParametersKey as IndividualityKey,
+			RuntimeParametersKey::*,
+		};
 
 		match key {
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
-			Individuality(_) =>
-				individuality::RootOrWhitelist::ensure_origin(origin.clone()).map(|_| ()),
+			Individuality(
+				IndividualityKey::MaxPgasClaimRecordCleanupPerCall(_) |
+				IndividualityKey::AliasProofValidityWindow(_) |
+				IndividualityKey::DotnsMaxContractCallWeight(_) |
+				IndividualityKey::DotnsMaxValiditySeconds(_) |
+				IndividualityKey::DotnsMaxFutureSkewSeconds(_) |
+				IndividualityKey::DotnsPersonRegistrationAllowanceMax(_) |
+				IndividualityKey::DotnsPersonRegistrationAllowanceRecovery(_) |
+				IndividualityKey::AliasFee(_) |
+				IndividualityKey::StaleAliasSweepInterval(_) |
+				IndividualityKey::MaxStaleAliasBatch(_),
+			) => EitherOfDiverse::<individuality::RootOrWhitelist, TechnicalMaintenance>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
+			Individuality(
+				IndividualityKey::PgasClaimAmount(_) |
+				IndividualityKey::MaxClaimsPerPeriodPerPerson(_) |
+				IndividualityKey::MaxClaimsPerPeriodPerLitePerson(_),
+			) => individuality::RootOrWhitelist::ensure_origin(origin.clone()).map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -3529,5 +3550,44 @@ mod tests {
 			);
 			assert_eq!(total_unbonding_pools(), 32);
 		});
+	}
+
+	#[test]
+	fn technical_maintenance_sets_only_operational_individuality_parameters() {
+		use frame_support::traits::EnsureOriginWithArg;
+
+		let technical_maintenance =
+			RuntimeOrigin::from(pallet_custom_origins::Origin::TechnicalMaintenance);
+		let whitelisted_caller =
+			RuntimeOrigin::from(pallet_custom_origins::Origin::WhitelistedCaller);
+		use dynamic_params::individuality::*;
+		let operational = [
+			RuntimeParametersKey::Individuality(MaxPgasClaimRecordCleanupPerCall.into()),
+			RuntimeParametersKey::Individuality(AliasProofValidityWindow.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxContractCallWeight.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxValiditySeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxFutureSkewSeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceMax.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceRecovery.into()),
+			RuntimeParametersKey::Individuality(AliasFee.into()),
+			RuntimeParametersKey::Individuality(StaleAliasSweepInterval.into()),
+			RuntimeParametersKey::Individuality(MaxStaleAliasBatch.into()),
+		];
+		let subsidy = [
+			RuntimeParametersKey::Individuality(PgasClaimAmount.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerPerson.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerLitePerson.into()),
+		];
+
+		for key in &operational {
+			assert!(DynamicParameterOrigin::try_origin(technical_maintenance.clone(), key).is_ok());
+		}
+		for key in &subsidy {
+			assert!(DynamicParameterOrigin::try_origin(technical_maintenance.clone(), key).is_err());
+		}
+		for key in operational.iter().chain(&subsidy) {
+			assert!(DynamicParameterOrigin::try_origin(RuntimeOrigin::root(), key).is_ok());
+			assert!(DynamicParameterOrigin::try_origin(whitelisted_caller.clone(), key).is_ok());
+		}
 	}
 }

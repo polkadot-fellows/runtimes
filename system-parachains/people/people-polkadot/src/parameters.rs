@@ -203,18 +203,66 @@ pub type CoinageLoadDepositPrice =
 	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
 pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
 
-/// Root may update these parameters.
+/// Routes each parameter key to the origin allowed to set it. Every key is listed so that a new
+/// one fails to compile until routed.
 pub struct DynamicParameterOrigin;
 impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
 	type Success = ();
 
 	fn try_origin(
 		origin: RuntimeOrigin,
-		_key: &RuntimeParametersKey,
+		key: &RuntimeParametersKey,
 	) -> Result<Self::Success, RuntimeOrigin> {
-		<IndividualityManagerOrigin as EnsureOrigin<RuntimeOrigin>>::ensure_origin(origin.clone())
-			.map(|_| ())
-			.map_err(|_| origin)
+		use dynamic_params::{
+			bulletin_storage::ParametersKey as BulletinStorageKey,
+			coinage::ParametersKey as CoinageKey,
+			lite_personhood::ParametersKey as LitePersonhoodKey,
+			origin_restriction::ParametersKey as OriginRestrictionKey,
+			statement_storage::ParametersKey as StatementStorageKey,
+		};
+
+		match key {
+			// Quotas, allowances and housekeeping.
+			RuntimeParametersKey::StatementStorage(
+				StatementStorageKey::StmtStoreSlotsPerPeriod(_) |
+				StatementStorageKey::LiteStmtStoreSlotsPerPeriod(_) |
+				StatementStorageKey::StmtStoreCleanupLimit(_) |
+				StatementStorageKey::StmtStoreReplacementCooldown(_) |
+				StatementStorageKey::StmtStoreGraceWindow(_) |
+				StatementStorageKey::NotificationSlotsPerPeriod(_) |
+				StatementStorageKey::LiteNotificationSlotsPerPeriod(_) |
+				StatementStorageKey::LitePersonStatementLimit(_) |
+				StatementStorageKey::PersonStatementLimit(_),
+			) |
+			RuntimeParametersKey::BulletinStorage(
+				BulletinStorageKey::LongTermStorageClaimsPerPeriod(_) |
+				BulletinStorageKey::LongTermStorageCleanupLimit(_) |
+				BulletinStorageKey::LongTermStorageAllowanceForPeople(_) |
+				BulletinStorageKey::LongTermStorageAllowanceForLitePeople(_),
+			) |
+			RuntimeParametersKey::OriginRestriction(
+				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceMax(_) |
+				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceRecovery(_) |
+				OriginRestrictionKey::LitePeopleAllowanceMax(_) |
+				OriginRestrictionKey::LitePeopleAllowanceRecovery(_),
+			) => <RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
+			// Where the chain sends data, and what registration and coinage cost.
+			RuntimeParametersKey::BulletinStorage(
+				BulletinStorageKey::BulletinChainLocation(_) |
+				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
+			) |
+			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) |
+			RuntimeParametersKey::Coinage(
+				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
+			) => <IndividualityManagerOrigin as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
+		}
+		.map_err(|_| origin)
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]

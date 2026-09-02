@@ -173,7 +173,7 @@ impl indiv_pallet_members::Config for Runtime {
 	type OldRootRetentionDuration = ConstU64<600>;
 	type OnRingRootChange = MembersNotifier;
 	type OffchainWorkerInterval = ConstU32<1>;
-	type ManagerOrigin = IndividualityManagerOrigin;
+	type ManagerOrigin = RootOrTechnicalMaintenance;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::MembersBenchHelper;
 }
@@ -275,7 +275,7 @@ impl indiv_pallet_resources::Config for Runtime {
 	type LitePersonStatementLimit = crate::parameters::LitePersonStatementLimit;
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
-	type ManagerOrigin = IndividualityManagerOrigin;
+	type ManagerOrigin = RootOrTechnicalMaintenance;
 	type LongTermStoragePeriodDuration = ConstU32<{ 14 * 24 * 60 * 60 }>; // 2 weeks
 																	   // Long-term storage grace window, kept smaller than the storage period.
 	type LongTermStorageGraceWindow = ConstU32<{ 60 * 60 }>; // 1 hour

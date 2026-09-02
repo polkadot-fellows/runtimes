@@ -228,3 +228,99 @@ fn asset_hub_subscribes_from_the_genesis_whitelist() {
 		);
 	});
 }
+
+#[test]
+fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
+	use frame_support::traits::Get;
+	use indiv_pallet_members::OnboardingSize;
+	use people_polkadot_runtime::parameters::{
+		dynamic_params::{bulletin_storage, statement_storage},
+		RuntimeParameters,
+	};
+	use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
+
+	type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
+	type PeopleRuntimeCall = <PeoplePolkadot as Chain>::RuntimeCall;
+	type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
+	let collection = *indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER;
+	let bulletin = Location::new(1, [Parachain(BULLETIN_ID)]);
+	let stmt_store_slots = || <statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get();
+	let bulletin_location = || <bulletin_storage::BulletinChainLocation as Get<Location>>::get();
+
+	// GIVEN a people collection and default values.
+	PeoplePolkadot::execute_with(|| {
+		assert_ok!(indiv_pallet_people::Pallet::<PeopleRuntime>::do_create_people_collection());
+		assert_eq!(
+			OnboardingSize::<PeopleRuntime>::get(collection),
+			indiv_pallet_people::PEOPLE_ONBOARDING_SIZE
+		);
+		assert_eq!(stmt_store_slots(), 20);
+		assert_eq!(bulletin_location(), bulletin);
+	});
+
+	let set_stmt_store_slots =
+		PeopleRuntimeCall::Parameters(pallet_parameters::Call::<PeopleRuntime>::set_parameter {
+			key_value: RuntimeParameters::StatementStorage(
+				statement_storage::Parameters::StmtStoreSlotsPerPeriod(
+					statement_storage::StmtStoreSlotsPerPeriod,
+					Some(40),
+				),
+			),
+		});
+	let set_onboarding_size = PeopleRuntimeCall::Members(indiv_pallet_members::Call::<
+		PeopleRuntime,
+	>::set_onboarding_size {
+		identifier: collection,
+		onboarding_size: 5,
+	});
+	let redirect_bulletin =
+		PeopleRuntimeCall::Parameters(pallet_parameters::Call::<PeopleRuntime>::set_parameter {
+			key_value: RuntimeParameters::BulletinStorage(
+				bulletin_storage::Parameters::BulletinChainLocation(
+					bulletin_storage::BulletinChainLocation,
+					Some(Location::parent()),
+				),
+			),
+		});
+
+	// WHEN the voice raises the statement-store quota
+	assert_ok!(send_asset_hub_transact_to_people(
+		Origin::TechnicalMaintenance.into(),
+		OriginKind::Xcm,
+		&set_stmt_store_slots,
+	));
+	// THEN it changes.
+	PeoplePolkadot::execute_with(|| {
+		PeoplePolkadot::assert_xcmp_queue_success(None);
+		assert_expected_events!(
+			PeoplePolkadot,
+			vec![PeopleRuntimeEvent::Parameters(pallet_parameters::Event::Updated { .. }) => {},]
+		);
+		assert_eq!(stmt_store_slots(), 40);
+	});
+
+	// WHEN it sets the onboarding size
+	assert_ok!(send_asset_hub_transact_to_people(
+		Origin::TechnicalMaintenance.into(),
+		OriginKind::Xcm,
+		&set_onboarding_size,
+	));
+	// THEN members accepts it as `ManagerOrigin`.
+	PeoplePolkadot::execute_with(|| {
+		PeoplePolkadot::assert_xcmp_queue_success(None);
+		assert_eq!(OnboardingSize::<PeopleRuntime>::get(collection), 5);
+	});
+
+	// WHEN it redirects Bulletin traffic
+	assert_ok!(send_asset_hub_transact_to_people(
+		Origin::TechnicalMaintenance.into(),
+		OriginKind::Xcm,
+		&redirect_bulletin,
+	));
+	// THEN the call is refused: XCM processed, value unchanged.
+	PeoplePolkadot::execute_with(|| {
+		PeoplePolkadot::assert_xcmp_queue_success(None);
+		assert_eq!(bulletin_location(), bulletin);
+	});
+}

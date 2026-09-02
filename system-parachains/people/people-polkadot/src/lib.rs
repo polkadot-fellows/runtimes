@@ -63,7 +63,9 @@ use parachains_common::{
 };
 
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
+use polkadot_runtime_constants::{
+	fellowship::IsFellowshipVoice, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+};
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -414,8 +416,18 @@ impl parachain_info::Config for Runtime {}
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 /// Root access for Individuality administration.
-// TODO: Accept Asset Hub's technical maintenance XCM voice after #1236 is merged.
 pub type IndividualityManagerOrigin = EnsureRoot<AccountId>;
+
+parameter_types! {
+	// TechnicalMaintenance pluralistic body.
+	pub const TechnicalMaintenanceBodyId: BodyId = BodyId::Index(TECHNICAL_MAINTENANCE_INDEX);
+}
+
+/// Privileged origin that represents Root or Asset Hub's `TechnicalMaintenance` pluralistic body.
+pub type RootOrTechnicalMaintenance = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureXcm<IsVoiceOfBody<AssetHubLocation, TechnicalMaintenanceBodyId>>,
+>;
 
 /// Privileged origin that represents Root or Fellows pluralistic body.
 pub type RootOrFellows =
