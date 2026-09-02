@@ -1,47 +1,45 @@
 # Minimal Relay migration test harness.
 #
 # `just test` is the only command you need: it fetches any missing snapshot and runs the suite.
+# `NETWORK=kusama just test` runs the same suite against Kusama.
 
-snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots")
+network := env_var_or_default("NETWORK", "polkadot")
+snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots") / network
 repo := "polkadot-fellows/runtimes"
 workflow := "check-migrations.yml"
 
+features := if network == "kusama" { "--features kusama" } else { "" }
+snap_env := "SNAP_RC=" + snap_dir / "snap_rc.snap" + " SNAP_AH=" + snap_dir / "snap_ah.snap" + " SNAP_CT=" + snap_dir / "snap_ct.snap"
+
 # "<file key> <runtime name in CI matrix> <RPC endpoint>" per line.
-# Endpoints must stay in sync with `Chain::rpc()` in src/mock.rs.
-chains := "
+# Endpoints must stay in sync with `network::*_RPC` in src/mock.rs.
+chains := if network == "kusama" { "
+rc kusama wss://kusama-try-runtime-node.parity-chains.parity.io:443
+ah asset-hub-kusama wss://kusama-asset-hub-rpc.polkadot.io:443
+ct coretime-kusama wss://kusama-coretime-rpc.polkadot.io:443
+" } else { "
 rc polkadot wss://try-runtime.polkadot.io:443
 ah asset-hub-polkadot wss://polkadot-asset-hub-rpc.polkadot.io:443
 ct coretime-polkadot wss://polkadot-coretime-rpc.polkadot.io:443
-"
+" }
 
 default: test
 
-# Run the suite against Kusama. Same tests, `--features kusama` swaps which runtimes they bind to.
-test-kusama *args:
-	SNAP_RC="{{ snap_dir }}/snap_rc_ksm.snap" \
-	SNAP_AH="{{ snap_dir }}/snap_ah_ksm.snap" \
-	SNAP_CT="{{ snap_dir }}/snap_ct_ksm.snap" \
-		cargo test -p polkadot-integration-tests-minimal-relay --features kusama {{ args }}
-
-# The fast lane: everything that does not need the multi-GB Asset Hub snapshot (~2s once built).
-# Mirrors what CI runs on every PR; the full suite runs nightly.
-test-fast:
-	SNAP_RC="{{ snap_dir }}/snap_rc.snap" \
-	SNAP_AH="{{ snap_dir }}/snap_ah.snap" \
-	SNAP_CT="{{ snap_dir }}/snap_ct.snap" \
-		cargo test -p polkadot-integration-tests-minimal-relay -- --skip asset_hub
-
-# Run the integration tests, fetching missing snapshots first. Extra args go to `cargo test`.
+# Run the suite, fetching missing snapshots first. Extra args go to `cargo test`.
 test *args: _ensure-snapshots
-	SNAP_RC="{{ snap_dir }}/snap_rc.snap" \
-	SNAP_AH="{{ snap_dir }}/snap_ah.snap" \
-	SNAP_CT="{{ snap_dir }}/snap_ct.snap" \
-		cargo test -p polkadot-integration-tests-minimal-relay {{ args }}
+	{{ snap_env }} cargo test -p polkadot-integration-tests-minimal-relay {{ features }} {{ args }}
+
+# Mirrors what CI runs on every PR; the full suite runs nightly.
+
+# Everything that does not need the multi-GB Asset Hub snapshot (~2s once built).
+test-fast *args: (_ensure-snapshots "rc ct")
+	{{ snap_env }} cargo test -p polkadot-integration-tests-minimal-relay {{ features }} {{ args }} -- --skip asset_hub
 
 # TODO: Host the snapshots somewhere easy to download and fetch from there instead.
 
-# Download fresh snapshots from the daily `Check Migrations` CI artifacts (needs `gh` auth).
 # With no arguments all chains are re-downloaded; pass keys (e.g. `just snapshots ct`) to limit it.
+
+# Download fresh snapshots from the daily `Check Migrations` CI artifacts (needs `gh` auth).
 snapshots *keys="rc ah ct":
 	#!/usr/bin/env bash
 	set -euo pipefail
@@ -67,12 +65,13 @@ snapshots *keys="rc ah ct":
 # Needs the try-runtime CLI: https://github.com/paritytech/try-runtime-cli
 
 # Create snapshots by scraping public RPC nodes; no auth needed but slow for Asset Hub (~4 GB).
-snapshots-from-rpc:
+snapshots-from-rpc *keys="rc ah ct":
 	#!/usr/bin/env bash
 	set -euo pipefail
 	mkdir -p "{{ snap_dir }}"
 	while read -r key _name uri; do
 		[ -z "$key" ] && continue
+		case " {{ keys }} " in *" $key "*) ;; *) continue ;; esac
 		# `--uri=` (with equals sign) is required; with a space, the greedy multi-value flag
 		# swallows the snapshot path argument.
 		try-runtime create-snapshot "--uri=$uri" "{{ snap_dir }}/snap_$key.snap"
@@ -81,15 +80,14 @@ snapshots-from-rpc:
 
 # Download only the snapshots that are missing, so one deleted file does not force a
 # re-download of the others (the AH artifact is multi-GB).
-_ensure-snapshots:
+_ensure-snapshots keys="rc ah ct":
 	#!/usr/bin/env bash
 	set -euo pipefail
 	missing=""
-	while read -r key _rest; do
-		[ -z "$key" ] && continue
+	for key in {{ keys }}; do
 		[ -f "{{ snap_dir }}/snap_$key.snap" ] || missing="$missing $key"
-	done <<< "{{ chains }}"
+	done
 	if [ -n "$missing" ]; then
-		echo "Missing snapshots in {{ snap_dir }}:$missing -- fetching from CI..."
-		just --justfile "{{ justfile() }}" snapshots $missing
+		echo "Missing {{ network }} snapshots in {{ snap_dir }}:$missing -- fetching from CI..."
+		NETWORK={{ network }} just --justfile "{{ justfile() }}" snapshots $missing
 	fi

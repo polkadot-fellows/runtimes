@@ -15,7 +15,6 @@ frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 log = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
-polkadot-primitives = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
 runtime-parachains = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
@@ -26,17 +25,24 @@ sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
 xcm = { workspace = true, default-features = true }
 
-asset-hub-kusama-runtime = { workspace = true, default-features = true }
 asset-hub-polkadot-runtime = { workspace = true, default-features = true }
-coretime-kusama-runtime = { workspace = true, default-features = true }
 coretime-polkadot-runtime = { workspace = true, default-features = true }
-kusama-runtime = { workspace = true, default-features = true }
-kusama-runtime-constants = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
+
+# Only compiled with the `kusama` feature, so the default build pulls in one set of runtimes.
+asset-hub-kusama-runtime = { workspace = true, default-features = true, optional = true }
+coretime-kusama-runtime = { workspace = true, default-features = true, optional = true }
+kusama-runtime = { workspace = true, default-features = true, optional = true }
+kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
 
 [features]
 default = []
 # Run the whole suite against Kusama instead of Polkadot. The tests are network-agnostic; this
-# only swaps which runtimes `mock::network` resolves to, and which snapshots the justfile passes.
-kusama = []
+# only swaps which runtimes `mock::network` resolves to.
+kusama = [
+	"dep:asset-hub-kusama-runtime",
+	"dep:coretime-kusama-runtime",
+	"dep:kusama-runtime",
+	"dep:kusama-runtime-constants",
+]

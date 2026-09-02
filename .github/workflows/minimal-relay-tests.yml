@@ -2,14 +2,12 @@ name: "Minimal Relay tests"
 
 # The three-chain snapshot harness for the AHM v2 (Minimal Relay) migration: loads live-state
 # snapshots of the RC, Asset Hub and Coretime chain, produces blocks by hand and shuttles XCM
-# between them. Kusama runs on every PR (its snapshots are ~1.5 GB in total); Polkadot's Asset
-# Hub snapshot is ~4 GB, so that suite runs nightly and on dispatch.
-
-# Deliberately NOT triggered by pull_request yet: while the migration is being built, the thing
-# changing fastest is the migration itself, and taxing every unrelated PR with snapshot downloads
-# for a project that is not theirs yet buys nothing. The trigger flips to pull_request when the
-# migration becomes state other PRs must not break (planned: October, with the rehearsals) — the
-# PR lane below (skip Asset Hub, ~180 MB) already exists for that day.
+# between them. See integration-tests/minimal-relay/README.md.
+#
+# Not triggered by pull_request while the migration is still being built: no other PR can break
+# it yet, and the snapshot downloads are not free. Add `pull_request` to the triggers once the
+# migration must be protected; the PR lane below (Kusama only, skipping Asset Hub, ~180 MB of
+# snapshots) is already wired for it.
 on:
   schedule:
     - cron: "30 3 * * *"
@@ -102,16 +100,18 @@ jobs:
             tmp=$(mktemp -d)
             gh run download "$run_id" --repo ${{ github.repository }} \
               --name "try-runtime-snapshot-$name" --dir "$tmp"
-            mv "$tmp"/* "integration-tests/minimal-relay/snapshots/$out.snap"
+            mv "$tmp/snapshot.raw" "integration-tests/minimal-relay/snapshots/$out.snap"
             rm -rf "$tmp"
           done
           ls -lh integration-tests/minimal-relay/snapshots/
 
+      # Absolute paths: `cargo test` runs with the crate directory as cwd, not the repo root.
       - name: Run the suite
         if: env.SKIP != 'true'
         run: |
-          SNAP_RC=integration-tests/minimal-relay/snapshots/snap_rc.snap \
-          SNAP_AH=integration-tests/minimal-relay/snapshots/snap_ah.snap \
-          SNAP_CT=integration-tests/minimal-relay/snapshots/snap_ct.snap \
+          snapshots="$GITHUB_WORKSPACE/integration-tests/minimal-relay/snapshots"
+          SNAP_RC="$snapshots/snap_rc.snap" \
+          SNAP_AH="$snapshots/snap_ah.snap" \
+          SNAP_CT="$snapshots/snap_ct.snap" \
           SKIP_WASM_BUILD=1 cargo test -p polkadot-integration-tests-minimal-relay \
             ${{ matrix.network.cargo-args }} $TEST_FILTER

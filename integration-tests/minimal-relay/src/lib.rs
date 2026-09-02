@@ -20,10 +20,6 @@
 //! the chains manually. There are no nodes and no networking involved, so the whole suite runs in
 //! seconds, and the same tests run against Polkadot (default) or Kusama (`--features kusama`).
 //!
-//! This crate lands ahead of the migration pallets on purpose: the tests here exercise snapshot
-//! loading, block production and XCM transport against the runtimes as they are today. Each
-//! migration PR then extends `tests.rs` with the scenarios it introduces.
-//!
 //! See this crate's `README.md` for how to obtain the snapshots.
 
 #![cfg(test)]

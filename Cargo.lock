@@ -13651,7 +13651,6 @@ dependencies = [
  "log",
  "pallet-message-queue",
  "parity-scale-codec",
- "polkadot-primitives",
  "polkadot-runtime",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains",

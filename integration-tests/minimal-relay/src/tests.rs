@@ -14,6 +14,13 @@
 // limitations under the License.
 
 //! Tests for the Minimal Relay migration.
+//!
+//! Every test that needs the Asset Hub snapshot (by far the largest, ~4 GB on Polkadot) carries
+//! `asset_hub` in its name, so `--skip asset_hub` removes that dependency entirely.
+//!
+//! Tests use the multi-thread tokio runtime because [`load`] spawns snapshot hydration onto a
+//! worker; on the default single-thread runtime, `tokio::join!`-ed loads would run one after the
+//! other.
 
 use crate::mock::*;
 use codec::Encode;
@@ -33,14 +40,10 @@ fn unpaid_transact<Call: Encode>(call: Call) -> Xcm<()> {
 	])
 }
 
-// One block-production test per chain, so a lane that skips a chain skips exactly its tests —
-// Asset Hub's snapshot is by far the largest (~4 GB on Polkadot), and every test that needs it
-// has `asset_hub` in its name so `--skip asset_hub` removes the whole dependency.
-//
+// One block-production test per chain, so a lane that skips a chain skips exactly its tests.
 // 10 blocks is enough for the message queues to drain whatever the live snapshot carries;
 // `next_block_*` asserts on every block that nothing fails processing and that the weight stays
-// under 80% of the block limit. Multi-thread runtimes so snapshot hydration runs in parallel
-// with other tests; the default `#[tokio::test]` runtime would serialize the CPU-bound loads.
+// under 80% of the block limit.
 #[tokio::test(flavor = "multi_thread")]
 async fn relay_chain_produces_blocks() {
 	load(Chain::Relay).await.execute_with(|| {
@@ -79,7 +82,7 @@ async fn rc_and_coretime_exchange_messages() {
 }
 
 /// Assert that a `System::Remarked` event was emitted on runtime `T`.
-fn assert_remarked<T: frame_system::Config>(chain: &str)
+fn assert_remarked<T: frame_system::Config>(chain: Chain)
 where
 	T::RuntimeEvent: TryInto<frame_system::Event<T>>,
 {
@@ -88,7 +91,8 @@ where
 			record.event.try_into(),
 			Ok(frame_system::Event::<T>::Remarked { .. })
 		)),
-		"remark did not execute on {chain}"
+		"remark did not execute on {}",
+		chain.name()
 	);
 }
 
@@ -113,28 +117,28 @@ where
 	rc.commit_all().unwrap();
 	// The live snapshot may have queued unrelated messages for this para, so only assert that
 	// ours is among them.
-	assert!(!dmp.is_empty(), "RC queued no DMP message for {}", P::NAME);
+	assert!(!dmp.is_empty(), "RC queued no DMP message for {}", P::CHAIN.name());
 
 	para.execute_with(|| {
 		enqueue_dmp::<P>(dmp);
 		next_block_para::<P>();
-		assert_remarked::<P::Runtime>(P::NAME);
+		assert_remarked::<P::Runtime>(P::CHAIN);
 	});
 	para.commit_all().unwrap();
 
 	// para -> RC.
 	let ump = para.execute_with(|| {
-		let call: crate::mock::network::relay::RuntimeCall =
+		let call: network::relay::RuntimeCall =
 			frame_system::Call::remark_with_event { remark: b"minimal-relay ump".to_vec() }.into();
 		send_ump::<P>(unpaid_transact(call));
 		take_ump::<P>()
 	});
 	para.commit_all().unwrap();
-	assert!(!ump.is_empty(), "{} queued no UMP message for the RC", P::NAME);
+	assert!(!ump.is_empty(), "{} queued no UMP message for the RC", P::CHAIN.name());
 
 	rc.execute_with(|| {
 		enqueue_ump(P::PARA_ID.into(), ump);
 		next_block_rc();
-		assert_remarked::<crate::mock::network::relay::Runtime>("the RC");
+		assert_remarked::<network::relay::Runtime>(Chain::Relay);
 	});
 }
