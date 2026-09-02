@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_emergency` track for guarding the dotUSD monetary mechanisms ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
+
 ### Changed
 
 - Asset Hub Polkadot & Kusama: update `pallet-revive` to `0.19.1`, adding the `originIsRoot` System precompile method ([#1262](https://github.com/polkadot-fellows/runtimes/pull/1262), integrates [paritytech/polkadot-sdk#12281](https://github.com/paritytech/polkadot-sdk/pull/12281)).
