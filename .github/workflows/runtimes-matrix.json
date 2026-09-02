@@ -287,7 +287,10 @@
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
-    }
+    },
+    "benchmarks_exclude_pallets": [
+      "indiv_pallet_coinage"
+    ]
   },
   {
     "name": "encointer-kusama",
