@@ -73,6 +73,26 @@ impl<T: frame_system::Config> indiv_pallet_pgas::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
+	/// Storage: `Pgas::ClaimedGasAliases` (r:8 w:8)
+	/// Proof: `Pgas::ClaimedGasAliases` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `Assets::Asset` (r:1 w:1)
+	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
+	/// Storage: `Assets::Account` (r:1 w:1)
+	/// Proof: `Assets::Account` (`max_values`: None, `max_size`: Some(134), added: 2609, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:1 w:1)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `Revive::OriginalAccount` (r:1 w:1)
+	/// Proof: `Revive::OriginalAccount` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	fn batch_claim_pgas() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `3756`
+		//  Estimated: `21364`
+		// Minimum execution time: 580_000_000 picoseconds.
+		Weight::from_parts(590_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 21364))
+			.saturating_add(T::DbWeight::get().reads(12))
+			.saturating_add(T::DbWeight::get().writes(12))
+	}
 	/// Storage: `Assets::Asset` (r:1 w:1)
 	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
 	/// Storage: `Assets::NextAssetId` (r:1 w:0)
@@ -154,5 +174,26 @@ impl<T: frame_system::Config> indiv_pallet_pgas::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(25_287_785_000, 0)
 			.saturating_add(Weight::from_parts(0, 4470))
 			.saturating_add(T::DbWeight::get().reads(8))
+	}
+	/// Storage: `Assets::Asset` (r:1 w:0)
+	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
+	/// Storage: `Timestamp::Now` (r:1 w:0)
+	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `MembersSubscriber::RingCollectionExponents` (r:1 w:0)
+	/// Proof: `MembersSubscriber::RingCollectionExponents` (`max_values`: None, `max_size`: Some(49), added: 2524, mode: `MaxEncodedLen`)
+	/// Storage: `MembersSubscriber::RingRoots` (r:1 w:0)
+	/// Proof: `MembersSubscriber::RingRoots` (`max_values`: None, `max_size`: Some(2433), added: 4908, mode: `MaxEncodedLen`)
+	/// Storage: `Pgas::ClaimedGasAliases` (r:8 w:0)
+	/// Proof: `Pgas::ClaimedGasAliases` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
+	fn as_pgas_batch_claim_tx_ext() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1305`
+		//  Estimated: `24099`
+		// Minimum execution time: 233_809_616_000 picoseconds.
+		Weight::from_parts(234_208_984_000, 0)
+			.saturating_add(Weight::from_parts(0, 24099))
+			.saturating_add(T::DbWeight::get().reads(13))
 	}
 }
