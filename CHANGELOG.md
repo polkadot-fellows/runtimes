@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Asset Hub Polkadot & Kusama: update `pallet-revive` to `0.19.1`, adding the `originIsRoot` System precompile method ([#1262](https://github.com/polkadot-fellows/runtimes/pull/1262), integrates [paritytech/polkadot-sdk#12281](https://github.com/paritytech/polkadot-sdk/pull/12281)).
 - People Polkadot: add the Individuality pallets: `pallet-chunks-manager`, `pallet-coinage`, `pallet-dummy-dim`, `pallet-members`, `pallet-members-notifier`, `pallet-network-suffix`, `pallet-origin-restriction`, `pallet-parameters`, `pallet-people`, `pallet-people-lite`, `pallet-relay-randomness`, `pallet-resources`, and `pallet-verify-signature` ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+- People Polkadot: make some coinage settings governance-mutable through `pallet-parameters` ([#1272](https://github.com/polkadot-fellows/runtimes/pull/1272)).
 - Asset Hub Polkadot: add the Individuality pallets: `pallet-alias-accounts`, `pallet-assets-freezer`, `pallet-assets-holder`, `pallet-dotns-gateway`, `pallet-members-subscriber`, `pallet-network-suffix`, `pallet-origin-restriction`, `pallet-pgas`, and `pallet-pgas-allowance` ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
 
 ## [2.4.0] 25.08.2026

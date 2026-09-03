@@ -109,7 +109,7 @@ pub mod dynamic_params {
 		pub static RegistrationFee: Balance = 75 * UNITS;
 	}
 
-	/// Coinage deposits, both in DOT.
+	/// Coinage deposits (in DOT), coin lifetime and free unload token allowances.
 	#[dynamic_pallet_params]
 	#[codec(index = 4)]
 	pub mod coinage {
@@ -117,6 +117,14 @@ pub mod dynamic_params {
 		pub static LoadDepositPrice: Balance = UNITS / 10;
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
+		#[codec(index = 2)]
+		pub static MaximumAge: u16 = 16;
+		#[codec(index = 3)]
+		pub static UnloadTokenAllowancePerTimePeriodForPeople: Balance = 20 * UNITS;
+		#[codec(index = 4)]
+		pub static UnloadTokenAllowancePerTimePeriodForLitePeople: Balance = 10 * UNITS;
+		#[codec(index = 5)]
+		pub static MaxFreeUnloadTokensPerTimePeriod: u32 = 1000;
 	}
 }
 
@@ -202,6 +210,18 @@ pub type LitePersonRegistrationFee =
 pub type CoinageLoadDepositPrice =
 	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
 pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
+
+/// Coinage maximum coin age, kept non-zero so a freshly loaded coin can always be used at least
+/// once before it has to be recycled.
+pub type CoinageMaximumAge =
+	AtLeast<dynamic_params::coinage::MaximumAge, frame_support::traits::ConstU16<1>>;
+/// Free unload token allowances and cap. Zero is valid and disables free unload tokens.
+pub type CoinageUnloadTokenAllowancePerTimePeriodForPeople =
+	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForPeople;
+pub type CoinageUnloadTokenAllowancePerTimePeriodForLitePeople =
+	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForLitePeople;
+pub type CoinageMaxFreeUnloadTokensPerTimePeriod =
+	dynamic_params::coinage::MaxFreeUnloadTokensPerTimePeriod;
 
 /// Root may update these parameters.
 pub struct DynamicParameterOrigin;
