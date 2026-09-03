@@ -215,7 +215,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type PotId = LitePeoplePotId;
 	type RegistrationFee = crate::parameters::LitePersonRegistrationFee;
 	type Suffix = NetworkSuffix;
-	type AttestationAllowanceManager = IndividualityManagerOrigin;
+	type AttestationAllowanceManager = EnsureRoot<AccountId>;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
 	type LiteRingExponent = LitePeopleRingExponent;
@@ -313,7 +313,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 	type NativeFungible = Balances;
 	type Fungibles = NativeAndAssets;
-	type AdminOrigin = IndividualityManagerOrigin;
+	type AdminOrigin = EnsureRoot<AccountId>;
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
 	type EnablePermissionless = ConstBool<true>;
 	type LoadDeposit = CoinageLoadDeposit;

@@ -415,9 +415,6 @@ impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
-/// Root access for Individuality administration.
-pub type IndividualityManagerOrigin = EnsureRoot<AccountId>;
-
 parameter_types! {
 	// TechnicalMaintenance pluralistic body.
 	pub const TechnicalMaintenanceBodyId: BodyId = BodyId::Index(TECHNICAL_MAINTENANCE_INDEX);

@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- People Polkadot & Asset Hub Polkadot: wire the `technical_maintenance` track into the operational Individuality settings: quotas, allowances and housekeeping on People, alias fee and dotNS limits on Asset Hub ([#1269](https://github.com/polkadot-fellows/runtimes/pull/1269)).
+- People Polkadot & Asset Hub Polkadot: wire the `technical_maintenance` track into the operational Individuality settings: quotas, allowances and housekeeping on People, the Individuality parameters on Asset Hub ([#1269](https://github.com/polkadot-fellows/runtimes/pull/1269)).
 - Asset Hub Polkadot & Kusama: update `pallet-revive` to `0.19.1`, adding the `originIsRoot` System precompile method ([#1262](https://github.com/polkadot-fellows/runtimes/pull/1262), integrates [paritytech/polkadot-sdk#12281](https://github.com/paritytech/polkadot-sdk/pull/12281)).
 
 ## [2.4.0] 25.08.2026

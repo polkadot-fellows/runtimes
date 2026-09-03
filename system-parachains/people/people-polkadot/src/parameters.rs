@@ -257,10 +257,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) |
 			RuntimeParametersKey::Coinage(
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
-			) => <IndividualityManagerOrigin as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-				origin.clone(),
-			)
-			.map(|_| ()),
+			) => frame_system::ensure_root(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
