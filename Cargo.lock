@@ -6009,7 +6009,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6435,9 +6435,9 @@ dependencies = [
 
 [[package]]
 name = "frame-remote-externalities"
-version = "0.60.0"
+version = "0.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48679356602e6dad6506543ac2505eb5bfbcc03797996ec04dfedc9d68447a0a"
+checksum = "452d68a9b7dd6044ae6d2ea9c0993f026f894e352e230231de464f9cc6838376"
 dependencies = [
  "futures",
  "indicatif",
@@ -7590,7 +7590,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "system-configuration 0.7.0",
  "tokio",
  "tower-service",
@@ -7760,7 +7760,7 @@ dependencies = [
  "rtnetlink",
  "system-configuration 0.6.1",
  "tokio",
- "windows 0.53.0",
+ "windows",
 ]
 
 [[package]]
@@ -9527,57 +9527,6 @@ dependencies = [
 
 [[package]]
 name = "litep2p"
-version = "0.14.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67508e7500fe69a99a038d2fba84fb30f23cac9d98bfeb7f5a1389ddd137b579"
-dependencies = [
- "async-trait",
- "bs58",
- "bytes",
- "cid 0.11.3",
- "ed25519-dalek",
- "enum-display",
- "futures",
- "futures-timer",
- "hickory-resolver 0.25.2",
- "indexmap 2.13.0",
- "ip_network",
- "libc",
- "mockall",
- "multiaddr 0.18.2",
- "multihash 0.19.5",
- "multihash-codetable",
- "network-interface",
- "parking_lot 0.12.5",
- "pin-project",
- "prost 0.13.5",
- "prost-build 0.14.3",
- "rand 0.8.5",
- "ring 0.17.14",
- "serde",
- "sha2 0.11.0",
- "simple-dns 0.11.2",
- "smallvec",
- "snow",
- "socket2 0.5.10",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "tokio-tungstenite 0.27.0",
- "tokio-util",
- "tracing",
- "uint 0.10.0",
- "unsigned-varint 0.8.0",
- "url",
- "x25519-dalek",
- "x509-parser 0.17.0",
- "yamux 0.13.10",
- "yasna",
- "zeroize",
-]
-
-[[package]]
-name = "litep2p"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e588ab8f917ed65ebcf00ab52da6001e5724fbabac9ff6f06623ea7fa004cda"
@@ -10417,7 +10366,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -11954,9 +11903,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools-benchmarking"
-version = "47.0.0"
+version = "48.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3da60b8b56d93dd69510e109ca17c9bb1062f0068aabfa4da7f329f476a60e6"
+checksum = "447aedfae9ea1079e71a9564574f062411660f527e2581da6c1863c7f0766c02"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -12467,9 +12416,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-async"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bcad125ef451745a2907e9fc4f2dd6af78da055c8a381186b85c552136f48a7"
+checksum = "56acc1c494eec3715c95119d1845fd5f98e28ade0472e5205e26d05b15339fda"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -12569,9 +12518,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-state-trie-migration"
-version = "55.0.0"
+version = "56.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae995c6d8e8d87763f0157e37fe15525777dccd51f93daedeb9b4dc154fc10f2"
+checksum = "e38d40f440bfa994108d7e4506a3d785eaf0fbc57b3d2308c5a5b258d7328f0a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -14578,7 +14527,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck 0.5.0",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -14598,7 +14547,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
  "heck 0.5.0",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -14630,7 +14579,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -14643,7 +14592,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -14755,7 +14704,7 @@ dependencies = [
  "quinn-udp 0.5.14",
  "rustc-hash 2.1.1",
  "rustls 0.23.36",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -14792,9 +14741,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -14805,9 +14754,9 @@ checksum = "76150b617afc75e6e21ac5f39bc196e80b65415ae48d62dbef8e2519d040ce42"
 dependencies = [
  "cfg_aliases",
  "libc",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -15559,7 +15508,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -15650,7 +15599,7 @@ dependencies = [
  "security-framework 3.5.1",
  "security-framework-sys",
  "webpki-root-certs 0.26.11",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -15821,33 +15770,6 @@ dependencies = [
  "sp-io 43.0.0",
  "sp-runtime 44.0.0",
  "sp-state-machine 0.48.0",
- "sp-tracing",
-]
-
-[[package]]
-name = "sc-chain-spec"
-version = "51.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81a246319d0ec7d0290441b3f24195e72b3c3df8b7c195a52977a8d9fb41d638"
-dependencies = [
- "array-bytes 6.2.3",
- "docify",
- "memmap2 0.9.9",
- "parity-scale-codec",
- "sc-chain-spec-derive",
- "sc-client-api 47.0.1",
- "sc-executor 0.50.0",
- "sc-network 0.58.0",
- "sc-telemetry 33.0.0",
- "serde",
- "serde_json",
- "sp-blockchain 46.0.1",
- "sp-core 43.0.0",
- "sp-crypto-hashing",
- "sp-genesis-builder 0.24.0",
- "sp-io 48.0.0",
- "sp-runtime 48.0.0",
- "sp-state-machine 0.53.0",
  "sp-tracing",
 ]
 
@@ -16179,9 +16101,9 @@ dependencies = [
 
 [[package]]
 name = "sc-mixnet"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2831793b92d1ba07edb69f3e1cfed404ee8f1a84f3f897ee47853a7be7be4d9"
+checksum = "a6dec39bcbc9b983e78113c091df9033f9d13e58a0aa22f86b7c1c753b593282"
 dependencies = [
  "array-bytes 6.2.3",
  "arrayvec 0.7.6",
@@ -16194,8 +16116,8 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.5",
  "sc-client-api 47.0.1",
- "sc-network 0.58.0",
- "sc-network-types 0.22.0",
+ "sc-network 0.59.0",
+ "sc-network-types 0.23.0",
  "sc-transaction-pool-api 46.0.0",
  "sp-api 43.0.0",
  "sp-consensus 0.49.0",
@@ -16247,58 +16169,6 @@ dependencies = [
  "sp-blockchain 42.0.0",
  "sp-core 38.1.0",
  "sp-runtime 44.0.0",
- "substrate-prometheus-endpoint",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "unsigned-varint 0.7.2",
- "void",
- "wasm-timer",
- "zeroize",
-]
-
-[[package]]
-name = "sc-network"
-version = "0.58.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bff47fd4bc5d61c2d7c173e24e3d59dab4523790075ca64f58fbc1808b5f2491"
-dependencies = [
- "array-bytes 6.2.3",
- "async-channel 1.9.0",
- "async-trait",
- "asynchronous-codec 0.6.2",
- "bytes",
- "cid 0.11.3",
- "either",
- "fnv",
- "futures",
- "futures-timer",
- "ip_network",
- "libp2p",
- "linked_hash_set",
- "litep2p 0.14.3",
- "log",
- "mockall",
- "parity-scale-codec",
- "parking_lot 0.12.5",
- "partial_sort",
- "pin-project",
- "prost 0.12.6",
- "prost-build 0.13.5",
- "rand 0.8.5",
- "sc-client-api 47.0.1",
- "sc-network-common 0.55.0",
- "sc-network-types 0.22.0",
- "sc-utils 23.0.0",
- "schnellru",
- "serde",
- "serde_json",
- "smallvec",
- "sp-arithmetic",
- "sp-blockchain 46.0.1",
- "sp-core 43.0.0",
- "sp-crypto-hashing",
- "sp-runtime 48.0.0",
  "substrate-prometheus-endpoint",
  "thiserror 1.0.69",
  "tokio",
@@ -16466,28 +16336,6 @@ dependencies = [
 
 [[package]]
 name = "sc-network-types"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe1512c3ba581b8e219fb3f9c4cb5ff607c2899a6898ba50f552661e3f74778"
-dependencies = [
- "bs58",
- "bytes",
- "ed25519-dalek",
- "libp2p-identity",
- "libp2p-kad",
- "litep2p 0.14.3",
- "log",
- "multiaddr 0.18.2",
- "multihash 0.19.5",
- "rand 0.8.5",
- "serde",
- "serde_with",
- "thiserror 1.0.69",
- "zeroize",
-]
-
-[[package]]
-name = "sc-network-types"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3512ad5829a6567cfce05690a1ef5b68daf7e947818c92a3a7c8dfd14362ea3"
@@ -16510,13 +16358,13 @@ dependencies = [
 
 [[package]]
 name = "sc-rpc-api"
-version = "0.58.0"
+version = "0.59.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61055d19abe495142874ace184c7971cd2c14bc9d2f46481a4b494ceccf93c89"
+checksum = "a6d4a401f851d5607bb846947d7a689c2c059b23d3895c17a9617434e3a30d8f"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
- "sc-chain-spec 51.0.0",
+ "sc-chain-spec 52.0.0",
  "sc-mixnet",
  "sc-transaction-pool-api 46.0.0",
  "scale-info",
@@ -19857,9 +19705,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-rpc-client"
-version = "0.58.0"
+version = "0.59.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "192e685a6de01e551726fecb2706176be5bf0b2ab213909e0446714f1230943e"
+checksum = "6c0713adacabf1583780b98f7cf3b46d453b6766c9939ef9214b8473f06c6234"
 dependencies = [
  "async-trait",
  "jsonrpsee",
@@ -20366,7 +20214,7 @@ dependencies = [
  "ntapi",
  "once_cell",
  "rayon",
- "windows 0.52.0",
+ "windows",
 ]
 
 [[package]]
@@ -20478,7 +20326,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -22273,7 +22121,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -22333,31 +22181,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows"
-version = "0.53.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efc5cf48f83140dcaab716eeaea345f9e93d0018fb81162753a3f76c3397b538"
-dependencies = [
- "windows-core 0.53.0",
- "windows-targets 0.52.6",
-]
-
-[[package]]
 name = "windows-core"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
 dependencies = [
- "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "windows-core"
-version = "0.53.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dcc5b895a6377f1ab9fa55acedab1fd5ac0db66ad1e6c7f47e28a22e446a5dd"
-dependencies = [
- "windows-result 0.1.2",
  "windows-targets 0.52.6",
 ]
 
@@ -22370,7 +22198,7 @@ dependencies = [
  "windows-implement",
  "windows-interface",
  "windows-link",
- "windows-result 0.4.1",
+ "windows-result",
  "windows-strings",
 ]
 
@@ -22409,17 +22237,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02752bf7fbdcce7f2a27a742f798510f3e5ad88dbe84871e5168e2120c3d5720"
 dependencies = [
  "windows-link",
- "windows-result 0.4.1",
+ "windows-result",
  "windows-strings",
-]
-
-[[package]]
-name = "windows-result"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e383302e8ec8515204254685643de10811af0ed97ea37210dc26fb0032647f8"
-dependencies = [
- "windows-targets 0.52.6",
 ]
 
 [[package]]
