@@ -3536,15 +3536,36 @@ mod tests {
 
 	#[test]
 	fn technical_maintenance_sets_individuality_parameters() {
+		use dynamic_params::individuality::*;
 		use frame_support::traits::EnsureOriginWithArg;
+		use pallet_custom_origins::Origin::{
+			StakingAdmin, TechnicalMaintenance, WhitelistedCaller,
+		};
 
-		let technical_maintenance =
-			RuntimeOrigin::from(pallet_custom_origins::Origin::TechnicalMaintenance);
-		let staking_admin = RuntimeOrigin::from(pallet_custom_origins::Origin::StakingAdmin);
-		let alias_fee =
-			RuntimeParametersKey::Individuality(dynamic_params::individuality::AliasFee.into());
+		let keys = [
+			RuntimeParametersKey::Individuality(PgasClaimAmount.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerPerson.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerLitePerson.into()),
+			RuntimeParametersKey::Individuality(MaxPgasClaimRecordCleanupPerCall.into()),
+			RuntimeParametersKey::Individuality(AliasProofValidityWindow.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxContractCallWeight.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxValiditySeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxFutureSkewSeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceMax.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceRecovery.into()),
+			RuntimeParametersKey::Individuality(AliasFee.into()),
+			RuntimeParametersKey::Individuality(StaleAliasSweepInterval.into()),
+			RuntimeParametersKey::Individuality(MaxStaleAliasBatch.into()),
+		];
 
-		assert!(DynamicParameterOrigin::try_origin(technical_maintenance, &alias_fee).is_ok());
-		assert!(DynamicParameterOrigin::try_origin(staking_admin, &alias_fee).is_err());
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), WhitelistedCaller.into(), TechnicalMaintenance.into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			// A governance origin the router accepts for another module.
+			assert!(DynamicParameterOrigin::try_origin(StakingAdmin.into(), key).is_err());
+		}
 	}
 }
