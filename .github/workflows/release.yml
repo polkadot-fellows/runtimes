@@ -51,15 +51,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Cache target dir
-        uses: actions/cache@v4
-        with:
-          path: "${{ github.workspace }}/${{ matrix.runtime.path }}/target"
-          key: srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-${{ github.sha }}
-          restore-keys: |
-            srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-
-            srtool-target-${{ matrix.runtime.path }}-
-
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
         uses: paritytech/srtool-actions@v0.9.4
