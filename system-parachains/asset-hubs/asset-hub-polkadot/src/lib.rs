@@ -90,7 +90,8 @@ use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, Relaych
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::traits::EnsureOrigin;
 use governance::{
-	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer, TreasurySpender,
+	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, ProsperityEmergency, StakingAdmin,
+	TechnicalMaintenance, Treasurer, TreasurySpender,
 };
 use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{
