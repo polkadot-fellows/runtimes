@@ -23,6 +23,7 @@ pub type Unreleased = (
 	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<crate::Runtime>,
 	MigrateBountyAccountAssets,
 	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
+	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<crate::Runtime>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
