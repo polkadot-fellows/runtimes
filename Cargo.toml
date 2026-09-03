@@ -90,23 +90,23 @@ glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.43.1", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "30.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
-indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-dotns-gateway = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-dummy-dim = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-members = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-members-notifier = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-members-subscriber = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-network-suffix = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-origin-restriction = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-people = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-people-lite = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-pgas = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-relay-randomness = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-precompile-personhood = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
-indiv-support = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.1", default-features = false, version = "*" }
+indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-dotns-gateway = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-dummy-dim = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-members = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-members-notifier = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-members-subscriber = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-network-suffix = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-origin-restriction = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-people = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-people-lite = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-pgas = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-relay-randomness = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-precompile-personhood = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
+indiv-support = { git = "https://github.com/paritytech/individuality-community", tag = "v0.3.2", default-features = false, version = "*" }
 verifiable = { version = "0.3.0", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
