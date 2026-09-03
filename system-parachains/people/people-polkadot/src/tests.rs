@@ -602,9 +602,9 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceRecovery.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
+		LitePersonhood(lite_personhood::RegistrationFee.into()),
 	];
 	let root_only = [
-		LitePersonhood(lite_personhood::RegistrationFee.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
 	];
@@ -635,12 +635,12 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 		));
 		assert_eq!(<statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get(), 40);
-		// The registration fee is Root only, so the voice is refused.
+		// The coinage deposits are Root only, so the voice is refused.
 		assert_noop!(
 			Parameters::set_parameter(
 				technical_maintenance,
-				RuntimeParameters::LitePersonhood(lite_personhood::Parameters::RegistrationFee(
-					lite_personhood::RegistrationFee,
+				RuntimeParameters::Coinage(coinage::Parameters::InstanceCreationDeposit(
+					coinage::InstanceCreationDeposit,
 					Some(0),
 				)),
 			),

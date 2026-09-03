@@ -247,12 +247,13 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceRecovery(_) |
 				OriginRestrictionKey::LitePeopleAllowanceMax(_) |
 				OriginRestrictionKey::LitePeopleAllowanceRecovery(_),
-			) => <RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-				origin.clone(),
-			)
-			.map(|_| ()),
-			// What registration and coinage cost.
-			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) |
+			) |
+			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) =>
+				<RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+					origin.clone(),
+				)
+				.map(|_| ()),
+			// What coinage costs.
 			RuntimeParametersKey::Coinage(
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
 			) => frame_system::ensure_root(origin.clone()),

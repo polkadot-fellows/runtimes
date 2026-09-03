@@ -234,7 +234,7 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 	use frame_support::traits::Get;
 	use indiv_pallet_members::OnboardingSize;
 	use people_polkadot_runtime::parameters::{
-		dynamic_params::{lite_personhood, statement_storage},
+		dynamic_params::{coinage, statement_storage},
 		RuntimeParameters,
 	};
 
@@ -244,7 +244,7 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 
 	let collection = *indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER;
 	let stmt_store_slots = || <statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get();
-	let registration_fee = || <lite_personhood::RegistrationFee as Get<u128>>::get();
+	let instance_deposit = || <coinage::InstanceCreationDeposit as Get<u128>>::get();
 
 	// GIVEN a people collection and default values.
 	PeoplePolkadot::execute_with(|| {
@@ -254,7 +254,7 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 			indiv_pallet_people::PEOPLE_ONBOARDING_SIZE
 		);
 		assert_eq!(stmt_store_slots(), 20);
-		assert_ne!(registration_fee(), 0);
+		assert_ne!(instance_deposit(), 0);
 	});
 
 	let set_stmt_store_slots =
@@ -272,14 +272,13 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 		identifier: collection,
 		onboarding_size: 5,
 	});
-	let waive_registration_fee = PeopleRuntimeCall::Parameters(pallet_parameters::Call::<
-		PeopleRuntime,
-	>::set_parameter {
-		key_value: RuntimeParameters::LitePersonhood(lite_personhood::Parameters::RegistrationFee(
-			lite_personhood::RegistrationFee,
-			Some(0),
-		)),
-	});
+	let waive_instance_deposit =
+		PeopleRuntimeCall::Parameters(pallet_parameters::Call::<PeopleRuntime>::set_parameter {
+			key_value: RuntimeParameters::Coinage(coinage::Parameters::InstanceCreationDeposit(
+				coinage::InstanceCreationDeposit,
+				Some(0),
+			)),
+		});
 
 	// WHEN the voice raises the statement-store quota
 	assert_ok!(send_asset_hub_transact_to_people(
@@ -309,15 +308,15 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 		assert_eq!(OnboardingSize::<PeopleRuntime>::get(collection), 5);
 	});
 
-	// WHEN it waives the registration fee
+	// WHEN it waives the coinage instance deposit
 	assert_ok!(send_asset_hub_transact_to_people(
 		Origin::TechnicalMaintenance.into(),
 		OriginKind::Xcm,
-		&waive_registration_fee,
+		&waive_instance_deposit,
 	));
 	// THEN the call is refused: XCM processed, value unchanged.
 	PeoplePolkadot::execute_with(|| {
 		PeoplePolkadot::assert_xcmp_queue_success(None);
-		assert_ne!(registration_fee(), 0);
+		assert_ne!(instance_deposit(), 0);
 	});
 }
