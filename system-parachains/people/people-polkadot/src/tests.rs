@@ -592,6 +592,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LitePersonStatementLimit.into()),
 		StatementStorage(statement_storage::PersonStatementLimit.into()),
+		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
+		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		BulletinStorage(bulletin_storage::LongTermStorageClaimsPerPeriod.into()),
 		BulletinStorage(bulletin_storage::LongTermStorageCleanupLimit.into()),
 		BulletinStorage(bulletin_storage::LongTermStorageAllowanceForPeople.into()),
@@ -602,8 +604,6 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
 	];
 	let root_only = [
-		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
-		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
@@ -635,16 +635,14 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 		));
 		assert_eq!(<statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get(), 40);
-		// The Bulletin destination is Root only, so the voice is refused.
+		// The registration fee is Root only, so the voice is refused.
 		assert_noop!(
 			Parameters::set_parameter(
 				technical_maintenance,
-				RuntimeParameters::BulletinStorage(
-					bulletin_storage::Parameters::BulletinChainLocation(
-						bulletin_storage::BulletinChainLocation,
-						Some(Location::parent()),
-					),
-				),
+				RuntimeParameters::LitePersonhood(lite_personhood::Parameters::RegistrationFee(
+					lite_personhood::RegistrationFee,
+					Some(0),
+				)),
 			),
 			DispatchError::BadOrigin,
 		);

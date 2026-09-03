@@ -234,19 +234,17 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 	use frame_support::traits::Get;
 	use indiv_pallet_members::OnboardingSize;
 	use people_polkadot_runtime::parameters::{
-		dynamic_params::{bulletin_storage, statement_storage},
+		dynamic_params::{lite_personhood, statement_storage},
 		RuntimeParameters,
 	};
-	use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 
 	type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 	type PeopleRuntimeCall = <PeoplePolkadot as Chain>::RuntimeCall;
 	type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
 
 	let collection = *indiv_pallet_people::PEOPLE_MEMBER_IDENTIFIER;
-	let bulletin = Location::new(1, [Parachain(BULLETIN_ID)]);
 	let stmt_store_slots = || <statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get();
-	let bulletin_location = || <bulletin_storage::BulletinChainLocation as Get<Location>>::get();
+	let registration_fee = || <lite_personhood::RegistrationFee as Get<u128>>::get();
 
 	// GIVEN a people collection and default values.
 	PeoplePolkadot::execute_with(|| {
@@ -256,7 +254,7 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 			indiv_pallet_people::PEOPLE_ONBOARDING_SIZE
 		);
 		assert_eq!(stmt_store_slots(), 20);
-		assert_eq!(bulletin_location(), bulletin);
+		assert_ne!(registration_fee(), 0);
 	});
 
 	let set_stmt_store_slots =
@@ -274,15 +272,14 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 		identifier: collection,
 		onboarding_size: 5,
 	});
-	let redirect_bulletin =
-		PeopleRuntimeCall::Parameters(pallet_parameters::Call::<PeopleRuntime>::set_parameter {
-			key_value: RuntimeParameters::BulletinStorage(
-				bulletin_storage::Parameters::BulletinChainLocation(
-					bulletin_storage::BulletinChainLocation,
-					Some(Location::parent()),
-				),
-			),
-		});
+	let waive_registration_fee = PeopleRuntimeCall::Parameters(pallet_parameters::Call::<
+		PeopleRuntime,
+	>::set_parameter {
+		key_value: RuntimeParameters::LitePersonhood(lite_personhood::Parameters::RegistrationFee(
+			lite_personhood::RegistrationFee,
+			Some(0),
+		)),
+	});
 
 	// WHEN the voice raises the statement-store quota
 	assert_ok!(send_asset_hub_transact_to_people(
@@ -312,15 +309,15 @@ fn asset_hub_technical_maintenance_tunes_individuality_operational_settings() {
 		assert_eq!(OnboardingSize::<PeopleRuntime>::get(collection), 5);
 	});
 
-	// WHEN it redirects Bulletin traffic
+	// WHEN it waives the registration fee
 	assert_ok!(send_asset_hub_transact_to_people(
 		Origin::TechnicalMaintenance.into(),
 		OriginKind::Xcm,
-		&redirect_bulletin,
+		&waive_registration_fee,
 	));
 	// THEN the call is refused: XCM processed, value unchanged.
 	PeoplePolkadot::execute_with(|| {
 		PeoplePolkadot::assert_xcmp_queue_success(None);
-		assert_eq!(bulletin_location(), bulletin);
+		assert_ne!(registration_fee(), 0);
 	});
 }
