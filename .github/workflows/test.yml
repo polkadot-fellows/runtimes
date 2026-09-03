@@ -124,12 +124,6 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-runtime-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Download frame-omni-bencher
         run: |
           curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
@@ -229,12 +223,6 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p "$PACKAGE" --release --locked -q
         env:
@@ -272,12 +260,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-chain-spec-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
@@ -317,12 +299,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
         run: |
@@ -370,12 +346,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-build-runtimes-test"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build runtime ${{ matrix.runtime.name }}
         env:

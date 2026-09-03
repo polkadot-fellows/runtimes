@@ -28,9 +28,12 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
+      snapshot-date: ${{ steps.snapshot-date.outputs.today }}
     name: Extract tasks from matrix
     steps:
       - uses: actions/checkout@v4
+      - id: snapshot-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> "$GITHUB_OUTPUT"
       - id: runtime
         run: |
           # Filter out runtimes that don't have URIs
@@ -47,6 +50,9 @@ jobs:
   prepare-snapshots:
     needs: [runtime-matrix]
     runs-on: self-hosted
+    permissions:
+      actions: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -100,27 +106,70 @@ jobs:
             sleep 10
           done
 
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "today=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-        shell: bash
-
       - name: Save snapshot to cache
         if: steps.cache-restore.outputs.cache-matched-key == '' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: snapshot.raw
-          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ steps.get-date.outputs.today }}
+          key: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ needs.runtime-matrix.outputs.snapshot-date }}
 
       - name: Upload snapshot as artifact
-        if: steps.cache-restore.outputs.cache-matched-key == ''
+        if: >-
+          steps.cache-restore.outputs.cache-matched-key == '' &&
+          github.event_name != 'schedule' &&
+          github.event_name != 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: try-runtime-snapshot-${{ matrix.runtime.name }}
           path: snapshot.raw
           retention-days: 1
 
+      - name: Delete previous snapshot for ${{ matrix.runtime.name }}
+        if: steps.cache-restore.outputs.cache-matched-key == '' && github.ref == 'refs/heads/main'
+        env:
+          CACHE_KEY_PREFIX: try-runtime-snapshot-${{ matrix.runtime.name }}-
+          CURRENT_CACHE_KEY: try-runtime-snapshot-${{ matrix.runtime.name }}-${{ needs.runtime-matrix.outputs.snapshot-date }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          cache_visible=false
+          max_attempts=5
+
+          for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+            if cache_json=$(gh cache list --key "$CURRENT_CACHE_KEY" --limit 100 --ref refs/heads/main --json key); then
+              if jq -e --arg key "$CURRENT_CACHE_KEY" 'any(.[]; .key == $key)' <<< "$cache_json" > /dev/null; then
+                cache_visible=true
+                break
+              fi
+              echo "Cache is not visible yet: $CURRENT_CACHE_KEY"
+            else
+              echo "::warning::Failed to query the cache service (attempt $attempt/$max_attempts)"
+            fi
+
+            if ((attempt < max_attempts)); then
+              retry_delay=$((2 ** attempt))
+              echo "Retrying in ${retry_delay}s (attempt $((attempt + 1))/$max_attempts)..."
+              sleep "$retry_delay"
+            fi
+          done
+
+          if [[ "$cache_visible" != true ]]; then
+            echo "::error::Current snapshot cache is still missing after $max_attempts attempts; keeping previous snapshots: $CURRENT_CACHE_KEY"
+            exit 1
+          fi
+
+          cache_json=$(gh cache list --key "$CACHE_KEY_PREFIX" --limit 10000 --ref refs/heads/main --json id,key,sizeInBytes)
+
+          jq -r --arg prefix "$CACHE_KEY_PREFIX" --arg current "$CURRENT_CACHE_KEY" \
+            '.[] | select(.key | startswith($prefix)) | select(.key | ltrimstr($prefix) | test("^[0-9]{8}$")) | select(.key != $current) | [.id, .key, .sizeInBytes] | @tsv' \
+            <<< "$cache_json" |
+          while IFS=$'\t' read -r cache_id cache_key cache_size; do
+            echo "Deleting superseded cache: $cache_key ($cache_size bytes)"
+            if ! gh cache delete "$cache_id"; then
+              echo "::warning::Failed to delete superseded cache: $cache_key"
+            fi
+          done
 
   check-migrations:
     needs: [runtime-matrix, prepare-snapshots]
