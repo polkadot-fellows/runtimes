@@ -53,9 +53,12 @@ pub type RootOrWhitelist = EitherOfDiverse<EnsureRoot<AccountId>, WhitelistedCal
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
-/// The id sits far above the `AutoIncAssetId` range so that it can never collide with a
-/// user-registered trust-backed asset.
-pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 2_000_000_000;
+/// The id sits just below `50_000_000`, where the `AutoIncAssetId` sequence started
+/// (<https://github.com/polkadot-fellows/runtimes/pull/414>). Ids below `NextAssetId` can no longer
+/// be claimed by a permissionless `create`, only assigned by `ForceOrigin`, so the asset can never
+/// collide with a user-registered trust-backed asset, and creating it leaves the sequence untouched
+/// (see `migrations::ForceCreatePgasAsset`).
+pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 49_999_999;
 
 parameter_types! {
 	/// XCM location and pallet index of the `pallet-members-notifier` instance publishing ring
