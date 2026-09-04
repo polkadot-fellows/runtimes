@@ -13302,6 +13302,7 @@ dependencies = [
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-parameters",
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",

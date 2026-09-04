@@ -517,3 +517,134 @@ fn only_asset_hub_native_assets_are_reserve_accepted_from_asset_hub() {
 	assert!(!accepted(ah_asset.clone(), &hydration));
 	assert!(!accepted(ah_asset, &Location::parent()));
 }
+
+#[test]
+fn asset_hub_technical_maintenance_voice_is_recognized() {
+	use crate::RootOrTechnicalMaintenance;
+	use frame_support::traits::EnsureOrigin;
+	use polkadot_runtime_constants::{
+		system_parachain::ASSET_HUB_ID, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+	};
+
+	let voice = |parachain: u32, body_index: u32| {
+		RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+			1,
+			[
+				Parachain(parachain),
+				Plurality { id: BodyId::Index(body_index), part: BodyPart::Voice },
+			],
+		)))
+	};
+
+	assert!(RootOrTechnicalMaintenance::ensure_origin(RuntimeOrigin::root()).is_ok());
+	assert!(RootOrTechnicalMaintenance::ensure_origin(voice(
+		ASSET_HUB_ID,
+		TECHNICAL_MAINTENANCE_INDEX
+	))
+	.is_ok());
+
+	assert!(RootOrTechnicalMaintenance::ensure_origin(voice(
+		ASSET_HUB_ID + 1,
+		TECHNICAL_MAINTENANCE_INDEX
+	))
+	.is_err());
+	assert!(RootOrTechnicalMaintenance::ensure_origin(voice(
+		ASSET_HUB_ID,
+		TECHNICAL_MAINTENANCE_INDEX + 1
+	))
+	.is_err());
+	assert!(RootOrTechnicalMaintenance::ensure_origin(RuntimeOrigin::signed(ALICE.into())).is_err());
+}
+
+#[test]
+fn dynamic_parameter_origin_routes_keys_by_scope() {
+	use crate::{
+		parameters::{
+			dynamic_params::{
+				bulletin_storage, coinage, lite_personhood, origin_restriction, statement_storage,
+			},
+			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
+		},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::traits::{EnsureOriginWithArg, Get};
+	use polkadot_runtime_constants::{
+		system_parachain::ASSET_HUB_ID, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+	};
+	use sp_runtime::{BuildStorage, DispatchError};
+
+	// GIVEN the voice and a key of each scope.
+	let technical_maintenance = RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+		1,
+		[
+			Parachain(ASSET_HUB_ID),
+			Plurality { id: BodyId::Index(TECHNICAL_MAINTENANCE_INDEX), part: BodyPart::Voice },
+		],
+	)));
+	use RuntimeParametersKey::*;
+	let operational = [
+		StatementStorage(statement_storage::StmtStoreSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::LiteStmtStoreSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::StmtStoreCleanupLimit.into()),
+		StatementStorage(statement_storage::StmtStoreReplacementCooldown.into()),
+		StatementStorage(statement_storage::StmtStoreGraceWindow.into()),
+		StatementStorage(statement_storage::NotificationSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::LitePersonStatementLimit.into()),
+		StatementStorage(statement_storage::PersonStatementLimit.into()),
+		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
+		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageClaimsPerPeriod.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageCleanupLimit.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageAllowanceForPeople.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageAllowanceForLitePeople.into()),
+		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceMax.into()),
+		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceRecovery.into()),
+		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
+		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
+		LitePersonhood(lite_personhood::RegistrationFee.into()),
+	];
+	let root_only = [
+		Coinage(coinage::LoadDepositPrice.into()),
+		Coinage(coinage::InstanceCreationDeposit.into()),
+	];
+
+	// THEN Root passes all, the voice only the operational keys.
+	for key in operational.iter().chain(&root_only) {
+		assert!(DynamicParameterOrigin::try_origin(RuntimeOrigin::root(), key).is_ok());
+	}
+	for key in &operational {
+		assert!(DynamicParameterOrigin::try_origin(technical_maintenance.clone(), key).is_ok());
+	}
+	for key in &root_only {
+		assert!(DynamicParameterOrigin::try_origin(technical_maintenance.clone(), key).is_err());
+	}
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// a quota is on the track, so the voice may set it.
+		assert_ok!(Parameters::set_parameter(
+			technical_maintenance.clone(),
+			RuntimeParameters::StatementStorage(
+				statement_storage::Parameters::StmtStoreSlotsPerPeriod(
+					statement_storage::StmtStoreSlotsPerPeriod,
+					Some(40),
+				),
+			),
+		));
+		assert_eq!(<statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get(), 40);
+		// The coinage deposits are Root only, so the voice is refused.
+		assert_noop!(
+			Parameters::set_parameter(
+				technical_maintenance,
+				RuntimeParameters::Coinage(coinage::Parameters::InstanceCreationDeposit(
+					coinage::InstanceCreationDeposit,
+					Some(0),
+				)),
+			),
+			DispatchError::BadOrigin,
+		);
+	});
+}
