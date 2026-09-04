@@ -328,7 +328,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	// exactly this denomination, so it must be large enough to cover the fee at the benchmark
 	// pool's exchange rate.
 	#[cfg(feature = "runtime-benchmarks")]
-	type MinimumExponentForOutputUnloadFee = ConstI8<4>;
+	type MinimumExponentForOutputUnloadFee = ConstI8<7>;
 	type MaximumAge = parameters::CoinageMaximumAge;
 	type MaxSplitOutputs = ConstU32<32>;
 	type MaxConsolidation = ConstU32<64>;
