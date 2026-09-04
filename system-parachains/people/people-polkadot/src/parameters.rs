@@ -235,8 +235,6 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				StatementStorageKey::PersonStatementLimit(_),
 			) |
 			RuntimeParametersKey::BulletinStorage(
-				BulletinStorageKey::BulletinChainLocation(_) |
-				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_) |
 				BulletinStorageKey::LongTermStorageClaimsPerPeriod(_) |
 				BulletinStorageKey::LongTermStorageCleanupLimit(_) |
 				BulletinStorageKey::LongTermStorageAllowanceForPeople(_) |
@@ -253,7 +251,11 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 					origin.clone(),
 				)
 				.map(|_| ()),
-			// What coinage costs.
+			// Where the chain sends data, and what coinage costs.
+			RuntimeParametersKey::BulletinStorage(
+				BulletinStorageKey::BulletinChainLocation(_) |
+				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
+			) |
 			RuntimeParametersKey::Coinage(
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
 			) => frame_system::ensure_root(origin.clone()),

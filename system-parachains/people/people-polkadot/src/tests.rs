@@ -592,8 +592,6 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LitePersonStatementLimit.into()),
 		StatementStorage(statement_storage::PersonStatementLimit.into()),
-		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
-		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		BulletinStorage(bulletin_storage::LongTermStorageClaimsPerPeriod.into()),
 		BulletinStorage(bulletin_storage::LongTermStorageCleanupLimit.into()),
 		BulletinStorage(bulletin_storage::LongTermStorageAllowanceForPeople.into()),
@@ -605,6 +603,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
 	];
 	let root_only = [
+		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
+		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
 	];
