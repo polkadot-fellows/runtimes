@@ -206,6 +206,7 @@ pub type Unreleased = (
 	>,
 	MigrateBountyAccountAssets,
 	CreatePgasAssetWithSuspendedAssetIds,
+	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<Runtime>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
