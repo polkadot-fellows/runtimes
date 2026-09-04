@@ -683,7 +683,7 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(1_741_786, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			// Standard Error: 1
-			.saturating_add(Weight::from_parts(351, 0).saturating_mul(n.into()))
+			.saturating_add(Weight::from_parts(1100, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn seal_value_transferred() -> Weight {
