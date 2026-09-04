@@ -294,7 +294,7 @@ jobs:
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
-          export RUST_LOG=remote-ext=debug,runtime=debug
+          export RUST_LOG=try-runtime::cli=info,remote-ext=debug,runtime=debug
 
           echo "Extra args: $EXTRA_FLAGS"
           
