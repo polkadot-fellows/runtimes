@@ -919,7 +919,7 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 	/// Proof: `Staking::NextElectionPage` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::ElectableStashes` (r:0 w:1)
 	/// Proof: `Staking::ElectableStashes` (`max_values`: Some(1), `max_size`: Some(32002), added: 32497, mode: `MaxEncodedLen`)
-	fn rc_on_session_report() -> Weight {
+	fn rc_on_session_report(_: u32) -> Weight { // TODO
 		// Proof Size summary in bytes:
 		//  Measured:  `8460`
 		//  Estimated: `39483`
