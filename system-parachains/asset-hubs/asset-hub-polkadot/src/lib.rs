@@ -1387,8 +1387,11 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 		match key {
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
-			Individuality(_) =>
-				individuality::RootOrWhitelist::ensure_origin(origin.clone()).map(|_| ()),
+			Individuality(_) => EitherOfDiverse::<
+				individuality::RootOrWhitelist,
+				TechnicalMaintenance,
+			>::ensure_origin(origin.clone())
+			.map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -3532,5 +3535,40 @@ mod tests {
 			);
 			assert_eq!(total_unbonding_pools(), 32);
 		});
+	}
+
+	#[test]
+	fn technical_maintenance_sets_individuality_parameters() {
+		use dynamic_params::individuality::*;
+		use frame_support::traits::EnsureOriginWithArg;
+		use pallet_custom_origins::Origin::{
+			StakingAdmin, TechnicalMaintenance, WhitelistedCaller,
+		};
+
+		let keys = [
+			RuntimeParametersKey::Individuality(PgasClaimAmount.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerPerson.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerLitePerson.into()),
+			RuntimeParametersKey::Individuality(MaxPgasClaimRecordCleanupPerCall.into()),
+			RuntimeParametersKey::Individuality(AliasProofValidityWindow.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxContractCallWeight.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxValiditySeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxFutureSkewSeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceMax.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceRecovery.into()),
+			RuntimeParametersKey::Individuality(AliasFee.into()),
+			RuntimeParametersKey::Individuality(StaleAliasSweepInterval.into()),
+			RuntimeParametersKey::Individuality(MaxStaleAliasBatch.into()),
+		];
+
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), WhitelistedCaller.into(), TechnicalMaintenance.into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			// A governance origin the router accepts for another module.
+			assert!(DynamicParameterOrigin::try_origin(StakingAdmin.into(), key).is_err());
+		}
 	}
 }

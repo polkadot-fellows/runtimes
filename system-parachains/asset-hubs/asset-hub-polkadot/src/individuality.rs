@@ -49,7 +49,6 @@ use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::polkadot::INDIVIDUALITY_NETWORK_SUFFIX;
 
 /// Root or the whitelisted caller origin.
-// TODO: Add the technical maintenance origin after #1236 is merged.
 pub type RootOrWhitelist = EitherOfDiverse<EnsureRoot<AccountId>, WhitelistedCaller>;
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
