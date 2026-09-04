@@ -180,7 +180,7 @@ impl frame_support::traits::OnRuntimeUpgrade for ForceCreatePgasAsset {
 		let db_weight = <Runtime as frame_system::Config>::DbWeight::get();
 		let asset_id = <Runtime as indiv_pallet_pgas::Config>::PgasAssetId::get();
 
-		if Assets::contains_key(asset_id) {
+		if pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(asset_id) {
 			log::info!(target: LOG_TARGET, "PGAS asset already exists; skipping.");
 			return db_weight.reads(1);
 		}
