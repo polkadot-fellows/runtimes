@@ -53,9 +53,12 @@ pub type RootOrWhitelist = EitherOfDiverse<EnsureRoot<AccountId>, WhitelistedCal
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
-/// The id sits far above the `AutoIncAssetId` range so that it can never collide with a
-/// user-registered trust-backed asset.
-pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 2_000_000_000;
+/// The id sits just below `50_000_000`, where the `AutoIncAssetId` sequence started
+/// (<https://github.com/polkadot-fellows/runtimes/pull/414>). Ids below `NextAssetId` can no longer
+/// be claimed by a permissionless `create`, only assigned by `ForceOrigin`, so the asset can never
+/// collide with a user-registered trust-backed asset, and creating it leaves the sequence untouched
+/// (see `migrations::ForceCreatePgasAsset`).
+pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 49_999_999;
 
 parameter_types! {
 	/// XCM location and pallet index of the `pallet-members-notifier` instance publishing ring
@@ -179,6 +182,7 @@ impl indiv_pallet_pgas::Config for Runtime {
 	type Fungibles = Assets;
 	type PgasAssetId = PgasAssetId;
 	type PgasClaimAmount = dynamic_params::individuality::PgasClaimAmount;
+	type MaxPgasClaimsPerBatch = dynamic_params::individuality::MaxPgasClaimsPerBatch;
 	type MaxClaimsPerPeriodPerPerson = dynamic_params::individuality::MaxClaimsPerPeriodPerPerson;
 	type MaxClaimsPerPeriodPerLitePerson =
 		dynamic_params::individuality::MaxClaimsPerPeriodPerLitePerson;
@@ -567,7 +571,7 @@ pub mod benchmark_utils {
 		fn seed_and_create_proof(
 			identifier: &Identifier,
 			ring_index: RingIndex,
-			context: &Context,
+			contexts: &[Context],
 			message: &[u8],
 		) -> indiv_pallet_pgas::ProofOf<Runtime> {
 			let ring_exponent = ring_exponent_for(identifier);
@@ -591,8 +595,10 @@ pub mod benchmark_utils {
 
 			let commitment = Crypto::open(domain, &member, core::iter::once(member))
 				.expect("benchmark: open for a single-member ring");
-			let (proof, _alias) = Crypto::create(commitment, &secret, &context[..], message)
-				.expect("benchmark: create proof");
+			let context_slices = contexts.iter().map(|c| &c[..]).collect::<alloc::vec::Vec<_>>();
+			let (proof, _aliases) =
+				Crypto::create_multi_context(commitment, &secret, &context_slices, message)
+					.expect("create proof");
 			proof
 		}
 	}

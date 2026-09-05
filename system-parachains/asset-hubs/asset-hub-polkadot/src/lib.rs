@@ -206,7 +206,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_004_000,
+	spec_version: 2_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -1496,44 +1496,47 @@ pub mod dynamic_params {
 		/// PGAS minted to a proven person for each successful claim.
 		#[codec(index = 0)]
 		pub static PgasClaimAmount: Balance = 60 * crate::individuality::PgasMinBalance::get();
-		/// Maximum PGAS claims per period for a full person.
+		/// PGAS claims that can be batched against 1 proof at a time.
 		#[codec(index = 1)]
+		pub static MaxPgasClaimsPerBatch: u32 = 5;
+		/// Maximum PGAS claims per period for a full person.
+		#[codec(index = 2)]
 		pub static MaxClaimsPerPeriodPerPerson: u32 = 100;
 		/// Maximum PGAS claims per period for a lite person.
-		#[codec(index = 2)]
+		#[codec(index = 3)]
 		pub static MaxClaimsPerPeriodPerLitePerson: u32 = 50;
 		/// Maximum PGAS claim records removed by one cleanup call.
-		#[codec(index = 3)]
+		#[codec(index = 4)]
 		pub static MaxPgasClaimRecordCleanupPerCall: u32 = 20;
 		/// Seconds for which an alias proof remains valid.
-		#[codec(index = 4)]
+		#[codec(index = 5)]
 		pub static AliasProofValidityWindow: u64 = 300;
 		/// Maximum weight available to one dotNS registry-contract call.
-		#[codec(index = 6)]
+		#[codec(index = 7)]
 		pub static DotnsMaxContractCallWeight: Weight =
 			Weight::from_parts(100_000_000_000, 2 * 1024 * 1024);
 		/// Maximum age of a dotNS attestation signature.
-		#[codec(index = 7)]
+		#[codec(index = 8)]
 		pub static DotnsMaxValiditySeconds: u64 = 60 * 60;
 		/// Permitted future clock skew for a dotNS attestation signature.
-		#[codec(index = 8)]
+		#[codec(index = 9)]
 		pub static DotnsMaxFutureSkewSeconds: u64 = 30;
 		/// Maximum allowance for anonymous full-person dotNS registration attempts.
-		#[codec(index = 9)]
+		#[codec(index = 10)]
 		pub static DotnsPersonRegistrationAllowanceMax: Balance = MILLICENTS;
 		/// Per-block recovery for anonymous full-person dotNS registration attempts.
 		///
 		/// `pallet-origin-restriction` measures recovery against the relay chain block number, so
 		/// the formula counts the relay chain's six-second blocks: the allowance recovers once
 		/// every thirty minutes.
-		#[codec(index = 10)]
+		#[codec(index = 11)]
 		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
 			50 * CENTS / ((30 * RC_MINUTES) as Balance);
 		/// Fee charged for creating an alias mapping.
-		#[codec(index = 11)]
+		#[codec(index = 12)]
 		pub static AliasFee: Balance = UNITS / 4;
 		/// Block interval for the alias-account stale-mapping sweep.
-		#[codec(index = 12)]
+		#[codec(index = 13)]
 		pub static StaleAliasSweepInterval: BlockNumber = PARA_HOURS;
 		/// Maximum aliases processed by one stale-alias sweep call.
 		#[codec(index = 14)]

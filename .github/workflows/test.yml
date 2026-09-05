@@ -423,20 +423,64 @@ jobs:
           WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
           echo "WASM: $WASM"
 
-          # Try each RPC with a timeout to handle unreachable endpoints
-          # (check-runtime hangs indefinitely on unreachable RPCs).
+          # Probe each endpoint before starting check-runtime. The checker boots a Chopsticks
+          # fork and executes an upgrade block, so its timeout must also accommodate migrations.
           readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
           for URI in "${URIS[@]}"; do
             echo "Trying $URI..."
+
+            if ! RPC_URI="$URI" timeout 15 node <<'NODE'
+          const socket = new WebSocket(process.env.RPC_URI);
+          let settled = false;
+          const finish = (code, message) => {
+            if (settled) return;
+            settled = true;
+            if (message) console.error(message);
+            try { socket.close(); } catch {}
+            process.exit(code);
+          };
+          const timer = setTimeout(
+            () => finish(1, "Timed out waiting for an RPC response"),
+            10_000,
+          );
+
+          socket.addEventListener("open", () => {
+            socket.send(JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "chain_getFinalizedHead",
+              params: [],
+            }));
+          });
+          socket.addEventListener("message", ({ data }) => {
+            const response = JSON.parse(data.toString());
+            if (response.id !== 1) return;
+            clearTimeout(timer);
+            if (response.result) finish(0);
+            else finish(1, `RPC returned an error: ${JSON.stringify(response.error)}`);
+          });
+          socket.addEventListener("error", () =>
+            finish(1, "WebSocket connection failed"),
+          );
+          socket.addEventListener("close", () =>
+            finish(1, "WebSocket closed before returning an RPC response"),
+          );
+          NODE
+            then
+              echo "RPC probe failed for $URI, trying next..."
+              continue
+            fi
+            echo "RPC probe succeeded for $URI"
+
             set +e
-            timeout 360 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            timeout 900 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
             EXIT_CODE=$?
             set -e
             if [ $EXIT_CODE -eq 0 ]; then
               exit 0
             # When the time limit is reached, timeout returns exit code 124
             elif [ $EXIT_CODE -eq 124 ]; then
-              echo "Timed out on $URI, trying next..."
+              echo "Runtime check timed out on $URI, trying next..."
               continue
             else
               # Otherwise, it returns the exit status of the managed command
