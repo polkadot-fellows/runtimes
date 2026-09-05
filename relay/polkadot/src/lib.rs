@@ -1270,6 +1270,8 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			// `Auction` admits `Registrar::swap`; `NonTransfer` omits it on purpose.
+			(ProxyType::NonTransfer, ProxyType::Auction) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
