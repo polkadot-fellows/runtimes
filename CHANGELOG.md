@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Coretime and AssetHub Polkadot: coretime revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue and dust hourly, once at least 10 DOT have accumulated, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants that forward free execution. Kusama burns revenue locally. A migration retires the `py/ctbrn` holding account on both Coretime chains. ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+- Coretime and AssetHub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants that forward free execution. Kusama burns revenue locally. A migration retires the `py/ctbrn` holding account on both Coretime chains. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
 
 ## [2.5.0] 01.09.2026
 

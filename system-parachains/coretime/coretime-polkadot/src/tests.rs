@@ -118,7 +118,6 @@ fn bulk_revenue_is_accumulated() {
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
 			// Nothing is burnt.
 			assert_eq!(Balances::total_issuance(), issuance_before);
-			// The forward to the DAP on Asset Hub is asserted in the emulated tests.
 		});
 }
 
