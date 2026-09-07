@@ -89,7 +89,8 @@ fn bulk_revenue_is_accumulated() {
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
 
-			// GIVEN: the accumulation account holds its ED, as the release checklist requires.
+			// Check and set initial balances. The accumulation account holds its ED, as the release
+			// checklist requires.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let accumulation_account = AccumulateForward::accumulation_account();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
@@ -100,18 +101,22 @@ fn bulk_revenue_is_accumulated() {
 			let broker_balance_before = Balances::balance(&broker_account);
 			let issuance_before = Balances::total_issuance();
 
-			// WHEN: Alice purchases a core.
+			// Purchase coretime.
 			assert_ok!(Broker::purchase(
 				RuntimeOrigin::signed(AccountId::from(ALICE)),
 				100 * UNITS
 			));
 
-			// THEN: the price lands in the accumulation account, nothing is burnt or diverted.
+			// Alice decreases.
 			let price = alice_balance_before - Balances::balance(&AccountId::from(ALICE));
 			assert!(price > 0);
+			// The accumulation account gets the funds.
 			assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + price);
+			// Treasury balance does not increase.
 			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
+			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
+			// Nothing is burnt.
 			assert_eq!(Balances::total_issuance(), issuance_before);
 			// The forward to the DAP on Asset Hub is asserted in the emulated tests.
 		});
@@ -120,7 +125,7 @@ fn bulk_revenue_is_accumulated() {
 #[test]
 fn retire_coretime_burn_account_reaps_when_empty() {
 	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN: the legacy burn account between two sweeps, no balance and only the provider the
+		// GIVEN the legacy burn account between two sweeps, no balance and only the provider the
 		// burn handler added.
 		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
 		let accumulation_account = AccumulateForward::accumulation_account();
@@ -128,10 +133,10 @@ fn retire_coretime_burn_account_reaps_when_empty() {
 		assert!(System::account_exists(&burn_account));
 		let issuance_before = Balances::total_issuance();
 
-		// WHEN: the migration runs.
+		// WHEN the migration runs.
 		RetireCoretimeBurnAccount::on_runtime_upgrade();
 
-		// THEN: the burn account is gone and nothing moved or burnt.
+		// THEN the burn account is gone and nothing moved or burnt.
 		assert!(!System::account_exists(&burn_account));
 		assert_eq!(Balances::total_balance(&accumulation_account), 0);
 		assert_eq!(Balances::total_issuance(), issuance_before);
@@ -141,7 +146,7 @@ fn retire_coretime_burn_account_reaps_when_empty() {
 #[test]
 fn retire_coretime_burn_account_sweeps_residual_and_reaps() {
 	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN: the burn account as the retired handler left it, with a manual provider and a
+		// GIVEN the burn account as the retired handler left it, with a manual provider and a
 		// residual balance, and a funded accumulation account.
 		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
 		let accumulation_account = AccumulateForward::accumulation_account();
@@ -150,10 +155,10 @@ fn retire_coretime_burn_account_sweeps_residual_and_reaps() {
 		assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
 		let issuance_before = Balances::total_issuance();
 
-		// WHEN: the migration runs.
+		// WHEN the migration runs.
 		RetireCoretimeBurnAccount::on_runtime_upgrade();
 
-		// THEN: the residual is in the accumulation account, the burn account is gone, nothing
+		// THEN the residual is in the accumulation account, the burn account is gone, nothing
 		// burnt.
 		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
 		assert!(!System::account_exists(&burn_account));

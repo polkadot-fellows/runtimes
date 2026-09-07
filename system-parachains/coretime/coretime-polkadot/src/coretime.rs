@@ -268,6 +268,10 @@ impl OnRuntimeUpgrade for RetireCoretimeBurnAccount {
 	fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 		let (residual, accumulated_before): (Balance, Balance) =
 			Decode::decode(&mut &state[..]).map_err(|_| "invalid pre_upgrade state")?;
+		frame_support::ensure!(
+			System::account_exists(&AccumulateForward::accumulation_account()),
+			"accumulation account not funded"
+		);
 		let burn_account = Self::burn_account();
 		frame_support::ensure!(
 			Balances::total_balance(&burn_account) == 0,

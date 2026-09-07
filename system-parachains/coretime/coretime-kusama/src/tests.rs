@@ -89,7 +89,7 @@ fn bulk_revenue_is_burnt() {
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
 
-			// GIVEN
+			// Check and set initial balances.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
@@ -98,20 +98,23 @@ fn bulk_revenue_is_burnt() {
 			let broker_balance_before = Balances::balance(&broker_account);
 			let issuance_before = Balances::total_issuance();
 
-			// WHEN: Alice purchases a core.
+			// Purchase coretime.
 			assert_ok!(Broker::purchase(
 				RuntimeOrigin::signed(AccountId::from(ALICE)),
 				100 * UNITS
 			));
 
-			// THEN: the price is burnt on this chain and nothing is diverted.
+			// Alice decreases.
 			let price = alice_balance_before - Balances::balance(&AccountId::from(ALICE));
 			assert!(price > 0);
+			// The price is burnt on this chain.
 			assert_eq!(Balances::total_issuance(), issuance_before - price);
 			System::assert_has_event(
 				pallet_balances::Event::<Runtime>::BurnedDebt { amount: price }.into(),
 			);
+			// Treasury balance does not increase.
 			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
+			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
 		});
 }
@@ -119,17 +122,17 @@ fn bulk_revenue_is_burnt() {
 #[test]
 fn retire_coretime_burn_account_reaps_when_empty() {
 	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN: the legacy burn account between two sweeps, no balance and only the provider the
+		// GIVEN the legacy burn account between two sweeps, no balance and only the provider the
 		// burn handler added.
 		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
 		System::inc_providers(&burn_account);
 		assert!(System::account_exists(&burn_account));
 		let issuance_before = Balances::total_issuance();
 
-		// WHEN: the migration runs.
+		// WHEN the migration runs.
 		RetireCoretimeBurnAccount::on_runtime_upgrade();
 
-		// THEN: the burn account is gone and nothing was burnt.
+		// THEN the burn account is gone and nothing was burnt.
 		assert!(!System::account_exists(&burn_account));
 		assert_eq!(Balances::total_issuance(), issuance_before);
 	});
@@ -138,17 +141,17 @@ fn retire_coretime_burn_account_reaps_when_empty() {
 #[test]
 fn retire_coretime_burn_account_burns_residual_and_reaps() {
 	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN: the burn account as the retired handler left it, with a manual provider and a
+		// GIVEN the burn account as the retired handler left it, with a manual provider and a
 		// residual balance.
 		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
 		System::inc_providers(&burn_account);
 		assert_ok!(Balances::mint_into(&burn_account, 5 * UNITS));
 		let issuance_before = Balances::total_issuance();
 
-		// WHEN: the migration runs.
+		// WHEN the migration runs.
 		RetireCoretimeBurnAccount::on_runtime_upgrade();
 
-		// THEN: the residual is burnt and the burn account is gone.
+		// THEN the residual is burnt and the burn account is gone.
 		assert_eq!(Balances::total_issuance(), issuance_before - 5 * UNITS);
 		assert!(!System::account_exists(&burn_account));
 
