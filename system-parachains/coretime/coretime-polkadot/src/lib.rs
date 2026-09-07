@@ -331,8 +331,6 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local block number. This chain authors every 12s, so relay parents advance by two and a
-	// relay-based period would only match on one parity.
 	type BlockNumberProvider = System;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
