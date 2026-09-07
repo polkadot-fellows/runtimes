@@ -115,6 +115,7 @@ kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }
 kusama-runtime-constants = { path = "relay/kusama/constants", default-features = false }
 kusama-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-system" }
 log = { version = "0.4.22", default-features = false }
+pallet-accumulate-and-forward = { version = "0.4.0", default-features = false }
 pallet-alliance = { version = "48.0.0", default-features = false }
 pallet-asset-conversion = { version = "31.0.0", default-features = false }
 pallet-asset-conversion-tx-payment = { version = "31.0.0", default-features = false }

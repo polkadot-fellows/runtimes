@@ -15,22 +15,20 @@
 // limitations under the License.
 
 use crate::{
-	coretime::{BrokerPalletId, CoretimeBurnAccount},
+	coretime::{BrokerPalletId, RetireCoretimeBurnAccount},
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
-use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		Get, OnInitialize,
+		OnInitialize, OnRuntimeUpgrade,
 	},
 };
-use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
-use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
+use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::AccountIdConversion, Either};
@@ -91,48 +89,74 @@ fn bulk_revenue_is_burnt() {
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
 
-			// Check and set initial balances.
+			// GIVEN
 			let broker_account = BrokerPalletId::get().into_account_truncating();
-			let coretime_burn_account = CoretimeBurnAccount::get();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
-			let burn_balance_before = Balances::balance(&coretime_burn_account);
+			let issuance_before = Balances::total_issuance();
 
-			// Purchase coretime.
+			// WHEN: Alice purchases a core.
 			assert_ok!(Broker::purchase(
 				RuntimeOrigin::signed(AccountId::from(ALICE)),
 				100 * UNITS
 			));
 
-			// Alice decreases.
-			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
-			// Treasury balance does not increase.
+			// THEN: the price is burnt on this chain and nothing is diverted.
+			let price = alice_balance_before - Balances::balance(&AccountId::from(ALICE));
+			assert!(price > 0);
+			assert_eq!(Balances::total_issuance(), issuance_before - price);
+			System::assert_has_event(
+				pallet_balances::Event::<Runtime>::BurnedDebt { amount: price }.into(),
+			);
 			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
-			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
-			// Coretime burn pot gets the funds.
-			assert!(Balances::balance(&coretime_burn_account) > burn_balance_before);
-
-			// They're burnt when a day has passed on chain.
-			// This needs to be asserted in an emulated test.
 		});
 }
 
 #[test]
-fn timeslice_period_is_sane() {
-	// Config TimeslicePeriod is set to this constant - assumption in burning logic.
-	let timeslice_period_config: RCBlockNumberOf<CoretimeAllocator> =
-		<Runtime as pallet_broker::Config>::TimeslicePeriod::get();
-	assert_eq!(timeslice_period_config, TIMESLICE_PERIOD);
+fn retire_coretime_burn_account_reaps_when_empty() {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN: the legacy burn account between two sweeps, no balance and only the provider the
+		// burn handler added.
+		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+		System::inc_providers(&burn_account);
+		assert!(System::account_exists(&burn_account));
+		let issuance_before = Balances::total_issuance();
 
-	// Timeslice period constant non-zero - assumption in burning logic.
-	#[cfg(feature = "fast-runtime")]
-	assert_eq!(TIMESLICE_PERIOD, 20);
-	#[cfg(not(feature = "fast-runtime"))]
-	assert_eq!(TIMESLICE_PERIOD, 80);
+		// WHEN: the migration runs.
+		RetireCoretimeBurnAccount::on_runtime_upgrade();
+
+		// THEN: the burn account is gone and nothing was burnt.
+		assert!(!System::account_exists(&burn_account));
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn retire_coretime_burn_account_burns_residual_and_reaps() {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN: the burn account as the retired handler left it, with a manual provider and a
+		// residual balance.
+		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+		System::inc_providers(&burn_account);
+		assert_ok!(Balances::mint_into(&burn_account, 5 * UNITS));
+		let issuance_before = Balances::total_issuance();
+
+		// WHEN: the migration runs.
+		RetireCoretimeBurnAccount::on_runtime_upgrade();
+
+		// THEN: the residual is burnt and the burn account is gone.
+		assert_eq!(Balances::total_issuance(), issuance_before - 5 * UNITS);
+		assert!(!System::account_exists(&burn_account));
+
+		// AND a rerun changes nothing.
+		RetireCoretimeBurnAccount::on_runtime_upgrade();
+		assert_eq!(Balances::total_issuance(), issuance_before - 5 * UNITS);
+		assert!(!System::account_exists(&burn_account));
+	});
 }
 
 #[test]

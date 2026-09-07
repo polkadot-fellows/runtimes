@@ -53,7 +53,7 @@ use polkadot_runtime_constants::{
 	xcm::body::{FELLOWSHIP_ADMIN_INDEX, PROSPERITY_EMERGENCY_INDEX, TECHNICAL_MAINTENANCE_INDEX},
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
-use sp_runtime::traits::TryConvertInto;
+use sp_runtime::traits::{AccountIdConversion, TryConvertInto};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -72,6 +72,7 @@ use xcm_builder::{
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 use crate::staking::DapStagingAccount;
+use system_parachains_constants::polkadot::account::ACCUMULATE_FORWARD_PALLET_ID;
 pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
 
 parameter_types! {
@@ -370,6 +371,19 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
+/// The `pallet-accumulate-and-forward` account on the Coretime chain.
+pub struct CoretimeAccumulationAccount;
+impl Contains<Location> for CoretimeAccumulationAccount {
+	fn contains(location: &Location) -> bool {
+		let accumulation_account: [u8; 32] = ACCUMULATE_FORWARD_PALLET_ID.into_account_truncating();
+		matches!(
+			location.unpack(),
+			(1, [Parachain(system_parachain::BROKER_ID), AccountId32 { id, .. }])
+				if *id == accumulation_account
+		)
+	}
+}
+
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -394,6 +408,9 @@ pub type Barrier = TrailingSetTopicAsId<
 							Equals<bridging::SiblingBridgeHub>,
 							AmbassadorEntities,
 							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
+							// Forwards coretime revenue to the DAP staging account without paying
+							// fees.
+							CoretimeAccumulationAccount,
 						),
 						// Barriers run before any fee is taken: this must stay computation-only.
 						// Do not pass `TrustedAliasers` here.
@@ -885,4 +902,19 @@ fn foreign_pallet_has_correct_local_account() {
 	let polkadot = Ss58AddressFormat::try_from("polkadot").unwrap();
 	let address = Ss58Codec::to_ss58check_with_version(&account, polkadot);
 	assert_eq!(address, "13w7NdvSR1Af8xsQTArDtZmVvjE8XhWNdL4yed3iFHrUNCnS");
+}
+
+#[test]
+fn coretime_accumulation_account_matches_only_the_forwarder_origin() {
+	let account: [u8; 32] = ACCUMULATE_FORWARD_PALLET_ID.into_account_truncating();
+	let origin =
+		|para_id, id| Location::new(1, [Parachain(para_id), AccountId32 { network: None, id }]);
+
+	assert!(CoretimeAccumulationAccount::contains(&origin(system_parachain::BROKER_ID, account)));
+	// Another account on Coretime, and the same account on another parachain.
+	assert!(!CoretimeAccumulationAccount::contains(&origin(
+		system_parachain::BROKER_ID,
+		[0u8; 32]
+	)));
+	assert!(!CoretimeAccumulationAccount::contains(&origin(system_parachain::PEOPLE_ID, account)));
 }
