@@ -301,18 +301,6 @@ impl MaybeConvert<TaskId, AccountId> for SovereignAccountOf {
 	}
 }
 
-/// Locks a parachain's registration the first time it takes coretime.
-///
-/// The relay chain locks a registration at the para's first block, which is the only "in use"
-/// signal it has. This chain sells the coretime, so it can see the same thing earlier and more
-/// precisely, and [`pallet_registrar_para`] keeps the one-shot rule: only a registration that has
-/// never been locked or unlocked is touched.
-pub struct LockRegistrationOnAssignment;
-impl pallet_broker::OnTaskAssigned for LockRegistrationOnAssignment {
-	fn on_task_assigned(task: pallet_broker::TaskId) {
-		pallet_registrar_para::Pallet::<Runtime>::note_assignment(task);
-	}
-}
 
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -327,7 +315,7 @@ impl pallet_broker::Config for Runtime {
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
-	type OnTaskAssigned = LockRegistrationOnAssignment;
+	type OnTaskAssigned = ();
 	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
 	type MinimumCreditPurchase = MinimumCreditPurchase;

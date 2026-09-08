@@ -296,8 +296,6 @@ impl pallet_hrmp_para::Config for Runtime {
 	type SendToRelay = HrmpRequestToRelay;
 	type RelayOrigin = EnsureRoot<AccountId>;
 	type ParachainOrigin = EnsureSiblingPara;
-	// Who manages a para, so its manager can act for it as a signed account.
-	type ParaManager = crate::RegistrarPara;
 	// Deposits are held on the para's sovereign account here, not on whoever calls — which is
 	// where the migration lands them.
 	type SovereignAccountOf = SovereignAccountOf;
