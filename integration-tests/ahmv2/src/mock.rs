@@ -13,10 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Three-chain test harness: snapshot loading, manual block production and manual DMP/UMP
-//! message shuttling between the Relay Chain and its two migration counterparts (Coretime chain
-//! and Asset Hub). Chain-specific wiring lives behind the [`Para`] trait, so adding a chain
-//! means adding one impl, not another copy of the plumbing.
+//! Test harness: snapshot loading, manual block production and manual DMP/UMP message shuttling
+//! between the Relay Chain and the Coretime chain. Chain-specific wiring lives behind the [`Para`]
+//! trait, so adding a chain means adding one impl, not another copy of the plumbing.
 
 use codec::{Decode, Encode};
 use cumulus_primitives_core::{
@@ -48,34 +47,26 @@ use xcm::{
 	VersionedXcm,
 };
 
-/// The three runtimes under test, chosen by the `kusama` feature.
+/// The runtimes under test, chosen by the `kusama` feature.
 ///
 /// Everything else in this crate goes through these aliases, so the suite is written once and runs
 /// against either network. Nothing outside this module may name a network directly.
 #[cfg(not(feature = "kusama"))]
 pub mod network {
-	pub use asset_hub_polkadot_runtime as ah;
 	pub use coretime_polkadot_runtime as ct;
 	pub use polkadot_runtime as relay;
 	pub use polkadot_runtime_constants as constants;
 
 	pub const NAME: &str = "Polkadot";
-	pub const RELAY_RPC: &str = "wss://try-runtime.polkadot.io:443";
-	pub const AH_RPC: &str = "wss://polkadot-asset-hub-rpc.polkadot.io:443";
-	pub const CT_RPC: &str = "wss://polkadot-coretime-rpc.polkadot.io:443";
 }
 
 #[cfg(feature = "kusama")]
 pub mod network {
-	pub use asset_hub_kusama_runtime as ah;
 	pub use coretime_kusama_runtime as ct;
 	pub use kusama_runtime as relay;
 	pub use kusama_runtime_constants as constants;
 
 	pub const NAME: &str = "Kusama";
-	pub const RELAY_RPC: &str = "wss://kusama-try-runtime-node.parity-chains.parity.io:443";
-	pub const AH_RPC: &str = "wss://kusama-asset-hub-rpc.polkadot.io:443";
-	pub const CT_RPC: &str = "wss://kusama-coretime-rpc.polkadot.io:443";
 }
 
 pub type RuntimeCallFor<P> = <<P as Para>::Runtime as frame_system::Config>::RuntimeCall;
@@ -98,13 +89,6 @@ pub trait Para {
 	const CHAIN: Chain;
 }
 
-pub struct AssetHubPara;
-impl Para for AssetHubPara {
-	type Runtime = network::ah::Runtime;
-	const PARA_ID: u32 = system_parachain::ASSET_HUB_ID;
-	const CHAIN: Chain = Chain::AssetHub;
-}
-
 pub struct CoretimePara;
 impl Para for CoretimePara {
 	type Runtime = network::ct::Runtime;
@@ -123,13 +107,11 @@ impl Para for CoretimePara {
 pub type RawSnapshot = (Vec<(Vec<u8>, (Vec<u8>, i32))>, H256);
 
 static RC_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
-static AH_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
 static CT_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Chain {
 	Relay,
-	AssetHub,
 	Coretime,
 }
 
@@ -138,16 +120,14 @@ impl Chain {
 	pub const fn name(self) -> &'static str {
 		match self {
 			Chain::Relay => network::NAME,
-			Chain::AssetHub => "Asset Hub",
 			Chain::Coretime => "Coretime",
 		}
 	}
 
-	/// Log target, so `RUST_LOG=runtime=debug` shows all three chains.
+	/// Log target, so `RUST_LOG=runtime=debug` shows both chains.
 	pub const fn log_target(self) -> &'static str {
 		match self {
 			Chain::Relay => "runtime::relay",
-			Chain::AssetHub => "runtime::asset-hub",
 			Chain::Coretime => "runtime::coretime",
 		}
 	}
@@ -155,40 +135,25 @@ impl Chain {
 	pub const fn snap_env(self) -> &'static str {
 		match self {
 			Chain::Relay => "SNAP_RC",
-			Chain::AssetHub => "SNAP_AH",
 			Chain::Coretime => "SNAP_CT",
-		}
-	}
-
-	/// Public RPC endpoint, used in error messages to tell the developer how to create a missing
-	/// snapshot. Must stay in sync with the `chains` table in the justfile.
-	pub const fn rpc(self) -> &'static str {
-		match self {
-			Chain::Relay => network::RELAY_RPC,
-			Chain::AssetHub => network::AH_RPC,
-			Chain::Coretime => network::CT_RPC,
 		}
 	}
 
 	fn cache(self) -> &'static OnceCell<RawSnapshot> {
 		match self {
 			Chain::Relay => &RC_CACHE,
-			Chain::AssetHub => &AH_CACHE,
 			Chain::Coretime => &CT_CACHE,
 		}
 	}
 
+	/// The `just` recipe owns the RPC endpoints, so point the developer at it rather than
+	/// repeating them here.
 	fn missing_snapshot_help(self) -> String {
 		format!(
-			"\n\nSnapshot for the {} chain is missing or unreadable.\n\
-			Run `just snapshots` in integration-tests/minimal-relay to download all three chains\n\
-			from the fellowship CI (or `just test`, which fetches them automatically).\n\
-			Alternatively create this one from an RPC node and point the {} env var at it:\n\n    \
-			try-runtime create-snapshot --uri={} {}.snap\n",
+			"\n\nSnapshot for the {} chain is missing or unreadable ({} is unset or wrong).\n\
+			Run `just test` in integration-tests/ahmv2; it creates any missing snapshot first.\n",
 			self.name(),
 			self.snap_env(),
-			self.rpc(),
-			self.snap_env().to_lowercase(),
 		)
 	}
 }
@@ -223,7 +188,7 @@ async fn load_snapshot_uncached(chain: Chain) -> RawSnapshot {
 
 	log::info!("Loading {} snapshot from {}", chain.name(), abs.display());
 	// The `Block` type is only used for header decoding in online mode; `RelayBlock` works for
-	// all three chains when loading offline snapshots.
+	// every chain when loading offline snapshots.
 	let ext = Builder::<RelayBlock>::default()
 		.mode(Mode::Offline(OfflineConfig { state_snapshot: abs.display().to_string().into() }))
 		.build()

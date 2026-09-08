@@ -1,0 +1,96 @@
+name: "AHM v2 tests"
+
+# Snapshot harness for the AHM v2 migration: loads live-state snapshots of the Relay Chain and the
+# Coretime chain, produces blocks by hand and shuttles XCM between them. See
+# integration-tests/ahmv2/README.md.
+#
+# Runs after `Check Migrations`, whose scheduled run refreshes the snapshot cache daily on main, so
+# this picks up the same day's state.
+#
+# Deliberately not triggered by `pull_request`: the suite only asserts things about today's
+# runtimes, so no PR can break it yet. Add the trigger once the migration itself is under test.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+# cancel previous runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ahmv2-tests:
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: polkadot
+            rc-runtime: polkadot
+            ct-runtime: coretime-polkadot
+            cargo-args: ""
+          - name: kusama
+            rc-runtime: kusama
+            ct-runtime: coretime-kusama
+            cargo-args: "--features kusama"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-ahmv2"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Remove any stale snapshot from self-hosted runner
+        run: rm -rf snapshot.raw snapshots
+
+      # `Check Migrations` caches one `snapshot.raw` per runtime under this key prefix. Restoring
+      # is read-only, so nothing here can disturb that workflow. A miss means its daily scheduled
+      # run has not populated the cache for this runtime yet.
+      - name: Restore the Relay Chain snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.network.rc-runtime }}-
+          fail-on-cache-miss: true
+
+      - name: Set aside the Relay Chain snapshot
+        run: |
+          mkdir -p snapshots
+          mv snapshot.raw snapshots/snap_rc.snap
+
+      - name: Restore the Coretime snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.network.ct-runtime }}-
+          fail-on-cache-miss: true
+
+      - name: Set aside the Coretime snapshot
+        run: mv snapshot.raw snapshots/snap_ct.snap
+
+      # Absolute paths: `cargo test` runs with the crate directory as cwd, not the repo root.
+      - name: Run the suite
+        run: |
+          SNAP_RC="$GITHUB_WORKSPACE/snapshots/snap_rc.snap" \
+          SNAP_CT="$GITHUB_WORKSPACE/snapshots/snap_ct.snap" \
+          SKIP_WASM_BUILD=1 cargo test --locked -p polkadot-integration-tests-ahmv2 \
+            ${{ matrix.network.cargo-args }}

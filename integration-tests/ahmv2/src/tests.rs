@@ -13,10 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Tests for the Minimal Relay migration.
-//!
-//! Every test that needs the Asset Hub snapshot (by far the largest, ~4 GB on Polkadot) carries
-//! `asset_hub` in its name, so `--skip asset_hub` removes that dependency entirely.
+//! Tests for the AHM v2 migration.
 //!
 //! Tests use the multi-thread tokio runtime because [`load`] spawns snapshot hydration onto a
 //! worker; on the default single-thread runtime, `tokio::join!`-ed loads would run one after the
@@ -40,7 +37,7 @@ fn unpaid_transact<Call: Encode>(call: Call) -> Xcm<()> {
 	])
 }
 
-// One block-production test per chain, so a lane that skips a chain skips exactly its tests.
+// One block-production test per chain, so a failure names the chain that broke.
 // 10 blocks is enough for the message queues to drain whatever the live snapshot carries;
 // `next_block_*` asserts on every block that nothing fails processing and that the weight stays
 // under 80% of the block limit.
@@ -60,20 +57,6 @@ async fn coretime_produces_blocks() {
 			next_block_para::<CoretimePara>();
 		}
 	});
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn asset_hub_produces_blocks() {
-	load(Chain::AssetHub).await.execute_with(|| {
-		for _ in 0..10 {
-			next_block_para::<AssetHubPara>();
-		}
-	});
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn rc_and_asset_hub_exchange_messages() {
-	message_round_trip::<AssetHubPara>().await;
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -106,10 +89,9 @@ where
 
 	// RC -> para.
 	let dmp = rc.execute_with(|| {
-		let call: RuntimeCallFor<P> = frame_system::Call::<P::Runtime>::remark_with_event {
-			remark: b"minimal-relay dmp".to_vec(),
-		}
-		.into();
+		let call: RuntimeCallFor<P> =
+			frame_system::Call::<P::Runtime>::remark_with_event { remark: b"ahmv2 dmp".to_vec() }
+				.into();
 		send_dmp(P::PARA_ID.into(), unpaid_transact(call));
 		next_block_rc();
 		take_dmp(P::PARA_ID.into())
@@ -129,7 +111,7 @@ where
 	// para -> RC.
 	let ump = para.execute_with(|| {
 		let call: network::relay::RuntimeCall =
-			frame_system::Call::remark_with_event { remark: b"minimal-relay ump".to_vec() }.into();
+			frame_system::Call::remark_with_event { remark: b"ahmv2 ump".to_vec() }.into();
 		send_ump::<P>(unpaid_transact(call));
 		take_ump::<P>()
 	});

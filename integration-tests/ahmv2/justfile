@@ -1,0 +1,45 @@
+# AHM v2 migration test harness.
+#
+# `just test` is the only command you need: it creates any missing snapshot and runs the suite.
+# `NETWORK=kusama just test` runs the same suite against Kusama.
+
+network := env_var_or_default("NETWORK", "polkadot")
+snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots") / network
+
+features := if network == "kusama" { "--features kusama" } else { "" }
+snap_env := "SNAP_RC=" + snap_dir / "snap_rc.snap" + " SNAP_CT=" + snap_dir / "snap_ct.snap"
+
+# "<file key> <RPC endpoint>" per line. The keys match the `SNAP_*` env vars the suite reads.
+chains := if network == "kusama" { "
+rc wss://kusama-try-runtime-node.parity-chains.parity.io:443
+ct wss://kusama-coretime-rpc.polkadot.io:443
+" } else { "
+rc wss://try-runtime.polkadot.io:443
+ct wss://polkadot-coretime-rpc.polkadot.io:443
+" }
+
+default: test
+
+# Run the suite. Extra args go to `cargo test`, e.g. `just test rc_and_coretime`.
+test *args: snapshots
+	{{ snap_env }} cargo test -p polkadot-integration-tests-ahmv2 {{ features }} {{ args }}
+
+# Needs the try-runtime CLI: https://github.com/paritytech/try-runtime-cli.
+#
+# Snapshot freshness rarely matters during development, so an existing file is left alone --
+# delete it to force that snapshot to be recreated.
+
+# Create any snapshot that is missing.
+snapshots:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	mkdir -p "{{ snap_dir }}"
+	while read -r key uri; do
+		[ -z "$key" ] && continue
+		out="{{ snap_dir }}/snap_$key.snap"
+		[ -f "$out" ] && continue
+		# `--uri=` (with equals sign) is required; with a space, the greedy multi-value flag
+		# swallows the snapshot path argument.
+		try-runtime create-snapshot "--uri=$uri" "$out"
+	done <<< "{{ chains }}"
+	ls -lh "{{ snap_dir }}"/snap_*.snap

@@ -1,10 +1,10 @@
 [package]
-name = "polkadot-integration-tests-minimal-relay"
+name = "polkadot-integration-tests-ahmv2"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
-description = "Polkadot integration tests for the Minimal Relay migration"
+description = "Polkadot integration tests for the AHM v2 migration"
 publish = false
 
 [dependencies]
@@ -25,13 +25,11 @@ sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
 xcm = { workspace = true, default-features = true }
 
-asset-hub-polkadot-runtime = { workspace = true, default-features = true }
 coretime-polkadot-runtime = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 
 # Only compiled with the `kusama` feature, so the default build pulls in one set of runtimes.
-asset-hub-kusama-runtime = { workspace = true, default-features = true, optional = true }
 coretime-kusama-runtime = { workspace = true, default-features = true, optional = true }
 kusama-runtime = { workspace = true, default-features = true, optional = true }
 kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
@@ -41,7 +39,6 @@ default = []
 # Run the whole suite against Kusama instead of Polkadot. The tests are network-agnostic; this
 # only swaps which runtimes `mock::network` resolves to.
 kusama = [
-	"dep:asset-hub-kusama-runtime",
 	"dep:coretime-kusama-runtime",
 	"dep:kusama-runtime",
 	"dep:kusama-runtime-constants",
