@@ -1602,7 +1602,7 @@ impl parachains_paras::Config for Runtime {
 	type UnsignedPriority = ParasUnsignedPriority;
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
-	type OnNewHead = Registrar;
+	type OnNewHead = (Registrar, crate::para_control::NoteFirstHeadToCoretime);
 	type AssignCoretime = ParaScheduler;
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 1000.

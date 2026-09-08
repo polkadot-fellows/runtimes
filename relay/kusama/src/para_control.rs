@@ -189,6 +189,24 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureAnyParaSelf {
 /// para's sovereign account there and buys its execution with it, surplus refunded. Nothing is paid
 /// on this chain — a para's relay-chain sovereign is empty by design — which is why each para's
 /// forwards are rationed by [`pallet_registrar_relay::Pallet::note_forwarded`].
+/// Tells the control plane that a para has produced its first block.
+///
+/// The relay chain's whole part in the manager lock, and the one fact Coretime cannot observe for
+/// itself. A para's first block is what decides that its manager may no longer change its code,
+/// rewrite its head or deregister it — not its first coretime assignment, which would lock a para
+/// whose genesis blob is wrong out of the very calls that would fix it, permanently, since only
+/// the para or root can lift a lock and a para that never booted cannot ask.
+///
+/// Reports each para once and only for paras onboarded through `pallet-registrar-relay`: migrated
+/// paras arrived on Coretime already live and already locked, so there is nothing left to tell it.
+pub struct NoteFirstHeadToCoretime;
+
+impl runtime_parachains::paras::OnNewHead for NoteFirstHeadToCoretime {
+	fn on_new_head(id: polkadot_primitives::Id, _head: &polkadot_primitives::HeadData) -> Weight {
+		pallet_registrar_relay::Pallet::<Runtime>::note_first_head(id.into())
+	}
+}
+
 pub struct ForwardToCoretime;
 
 impl ForwardToCoretime {
