@@ -21,21 +21,21 @@ use cumulus_primitives_core::relay_chain;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::{Inspect, Mutate},
-		tokens::{Fortitude, Precision, Preservation},
-		Defensive, OnRuntimeUpgrade,
+		fungible::{Balanced, Credit, Inspect},
+		tokens::{Fortitude, Preservation},
+		DefensiveResult, OnUnbalanced,
 	},
-	weights::Weight,
 };
-use kusama_runtime_constants::system_parachain::coretime;
+use frame_system::Pallet as System;
+use kusama_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
 use pallet_broker::{
 	CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf, TaskId,
 };
 use parachains_common::{AccountId, Balance};
 use sp_runtime::traits::{AccountIdConversion, MaybeConvert};
 use xcm::latest::prelude::*;
-use xcm_config::LocationToAccountId;
-use xcm_executor::traits::ConvertLocation;
+use xcm_config::{AssetHubLocation, LocationToAccountId, UniversalLocation};
+use xcm_executor::traits::{ConvertLocation, TransactAsset};
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
 /// construct any remote calls. The codec index must correspond to the index of `Coretime` in the
@@ -62,6 +62,62 @@ enum CoretimeProviderCalls {
 		Vec<(CoreAssignment, PartsOf57600)>,
 		Option<relay_chain::BlockNumber>,
 	),
+}
+
+parameter_types! {
+	/// The holding account into which burnt funds will be moved at the point of sale. This will be
+	/// burnt periodically.
+	pub CoretimeBurnAccount: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+}
+
+/// Burn revenue from coretime sales. See
+/// [RFC-010](https://polkadot-fellows.github.io/RFCs/approved/0010-burn-coretime-revenue.html).
+pub struct BurnCoretimeRevenue;
+impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
+	fn on_nonzero_unbalanced(amount: Credit<AccountId, Balances>) {
+		let acc = CoretimeBurnAccount::get();
+		if !System::<Runtime>::account_exists(&acc) {
+			// The account doesn't require ED to survive.
+			System::<Runtime>::inc_providers(&acc);
+		}
+		Balances::resolve(&acc, amount).defensive_ok();
+	}
+}
+
+type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
+
+/// Teleports `value` from `stash` to Asset Hub and burns it there. KSM issuance is tracked on Asset
+/// Hub, so a burn anywhere else would not show in the supply.
+fn burn_at_asset_hub(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
+	let dest = AssetHubLocation::get();
+	let stash_location =
+		Junction::AccountId32 { network: None, id: stash.clone().into() }.into_location();
+	let asset = Asset { id: AssetId(Location::parent()), fun: Fungible(value) };
+	let dummy_xcm_context = XcmContext { origin: None, message_id: [0; 32], topic: None };
+
+	let withdrawn = AssetTransactor::withdraw_asset(&asset, &stash_location, None)?;
+
+	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
+	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
+
+	let assets = withdrawn.reanchored_assets(&dest, &UniversalLocation::get());
+
+	PolkadotXcm::send_xcm(
+		Here,
+		dest.clone(),
+		Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			ReceiveTeleportedAsset(assets.clone()),
+			BurnAsset(assets),
+		]),
+	)?;
+
+	AssetTransactor::check_out(&dest, &asset, &dummy_xcm_context);
+
+	Ok(())
 }
 
 parameter_types! {
@@ -192,6 +248,33 @@ impl CoretimeInterface for CoretimeAllocator {
 			}
 		}
 	}
+
+	fn on_new_timeslice(t: pallet_broker::Timeslice) {
+		// Burn roughly once per day. TIMESLICE_PERIOD tested to be != 0.
+		const BURN_PERIOD: pallet_broker::Timeslice =
+			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
+		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
+		// have bigger issues with the chain, but we still want to burn.
+		if t.checked_rem(BURN_PERIOD).is_some_and(|r| r != 0) {
+			return;
+		}
+
+		let stash = CoretimeBurnAccount::get();
+		let value =
+			Balances::reducible_balance(&stash, Preservation::Expendable, Fortitude::Polite);
+
+		if value > 0 {
+			log::debug!(target: "runtime::coretime", "Going to burn {value} stashed tokens on Asset Hub");
+			match burn_at_asset_hub(&stash, value) {
+				Ok(()) => {
+					log::debug!(target: "runtime::coretime", "Succesfully burnt {value} tokens");
+				},
+				Err(err) => {
+					log::error!(target: "runtime::coretime", "burn_at_asset_hub failed: {err:?}");
+				},
+			}
+		}
+	}
 }
 
 parameter_types! {
@@ -213,8 +296,7 @@ impl MaybeConvert<TaskId, AccountId> for SovereignAccountOf {
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	// Dropping the credit burns it locally.
-	type OnRevenue = ();
+	type OnRevenue = BurnCoretimeRevenue;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<50>;
 	type MaxReservedCores = ConstU32<50>;
@@ -227,65 +309,4 @@ impl pallet_broker::Config for Runtime {
 	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
 	type MinimumCreditPurchase = MinimumCreditPurchase;
-}
-
-/// Retires the `py/ctbrn` holding account of the former relay-chain burn: burns any residual
-/// balance locally and drops the provider reference the burn handler added, so the account is
-/// reaped. Idempotent: once the account is gone, a rerun only reads.
-pub struct RetireCoretimeBurnAccount;
-
-impl RetireCoretimeBurnAccount {
-	fn burn_account() -> AccountId {
-		PalletId(*b"py/ctbrn").into_account_truncating()
-	}
-}
-
-impl OnRuntimeUpgrade for RetireCoretimeBurnAccount {
-	fn on_runtime_upgrade() -> Weight {
-		let burn_account = Self::burn_account();
-		let residual =
-			Balances::reducible_balance(&burn_account, Preservation::Expendable, Fortitude::Polite);
-		if residual > 0 {
-			// Shouldn't fail: `residual` is the reducible balance under the same preservation and
-			// fortitude.
-			let _ = Balances::burn_from(
-				&burn_account,
-				residual,
-				Preservation::Expendable,
-				Precision::Exact,
-				Fortitude::Polite,
-			)
-			.defensive();
-		}
-		if Balances::total_balance(&burn_account) == 0 && System::providers(&burn_account) > 0 {
-			let _ = System::dec_providers(&burn_account).defensive();
-		}
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(6, 3)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		let residual = Balances::total_balance(&Self::burn_account());
-		Ok((residual, Balances::total_issuance()).encode())
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		let (residual, issuance_before): (Balance, Balance) =
-			Decode::decode(&mut &state[..]).map_err(|_| "invalid pre_upgrade state")?;
-		let burn_account = Self::burn_account();
-		frame_support::ensure!(
-			Balances::total_balance(&burn_account) == 0,
-			"coretime burn account not swept"
-		);
-		frame_support::ensure!(
-			System::providers(&burn_account) == 0,
-			"coretime burn account not reaped"
-		);
-		frame_support::ensure!(
-			Balances::total_issuance() == issuance_before - residual,
-			"residual not burned"
-		);
-		Ok(())
-	}
 }
