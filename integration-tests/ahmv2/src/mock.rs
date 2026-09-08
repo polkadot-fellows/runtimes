@@ -206,13 +206,23 @@ async fn load_snapshot_uncached(chain: Chain) -> RawSnapshot {
 
 /// Execute the next Relay Chain block.
 ///
-/// Only runs the hooks the tests rely on: `MessageQueue`, so inbound messages are processed.
+/// Only runs the hooks the tests rely on: `MessageQueue`, so inbound messages are processed, and
+/// the migrator, which drives the migration. Their order mirrors `construct_runtime!`, where the
+/// migrator sits below `MessageQueue` so that its `on_initialize` sees the block's inbound
+/// messages.
 pub fn next_block_rc() {
 	next_block::<RelayRuntime>(Chain::Relay, |now| {
 		let weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
+		let weight = weight
+			.saturating_add(<network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now));
 		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
 		weight
 	});
+}
+
+/// Set the Relay Chain's block number, to skip a wait the test is not trying to measure.
+pub fn set_block_number_rc(now: BlockNumberFor<RelayRuntime>) {
+	frame_system::Pallet::<RelayRuntime>::set_block_number(now);
 }
 
 /// Execute the next block on parachain `P`. Same hooks and assertions as [`next_block_rc`].

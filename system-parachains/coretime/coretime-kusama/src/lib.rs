@@ -24,6 +24,9 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
+// AHM v2 migration wiring; see the module docs for why it is feature-gated.
+#[cfg(feature = "ahm-v2")]
+mod ahm_v2;
 mod coretime;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
@@ -690,6 +693,10 @@ construct_runtime!(
 
 		// The main stage.
 		Broker: pallet_broker = 50,
+
+		// AHM v2 migrator.
+		#[cfg(feature = "ahm-v2")]
+		CtMigrator: pallet_ct_migrator = 100,
 	}
 );
 

@@ -11,6 +11,11 @@ license.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
+# AHM v2 migration wiring, opt-in via the `ahm-v2` feature: the migrator's storage layout is
+# still changing, so it is deliberately absent from released runtimes. Not `optional`,
+# because `construct_runtime!` needs the crate path to resolve even where the feature gates
+# the pallet out; with the feature off nothing instantiates it, so it adds no code.
+pallet-rc2-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -135,8 +140,13 @@ no_std = []
 polkadot-ahm = [
 	"pallet-rc-migrator/polkadot-ahm",
 ]
+
+# AHM v2 migration wiring. Opt-in: the migrator's storage layout is still changing, so it is
+# deliberately absent from released runtimes. Enabled by the ahmv2 integration tests.
+ahm-v2 = []
 std = [
 	"pallet-rc-migrator/std",
+	"pallet-rc2-migrator/std",
 
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -234,6 +244,7 @@ std = [
 ]
 runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
@@ -294,6 +305,7 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 
 	"frame-election-provider-support/try-runtime",
 	"frame-executive/try-runtime",

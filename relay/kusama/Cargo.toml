@@ -12,6 +12,11 @@ version.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
+# AHM v2 migration wiring, opt-in via the `ahm-v2` feature: the migrator's storage layout is
+# still changing, so it is deliberately absent from released runtimes. Not `optional`,
+# because `construct_runtime!` needs the crate path to resolve even where the feature gates
+# the pallet out; with the feature off nothing instantiates it, so it adds no code.
+pallet-rc2-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -130,6 +135,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 default = ["std"]
 no_std = []
 kusama-ahm = ["pallet-rc-migrator/kusama-ahm"]
+ahm-v2 = []
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -179,6 +185,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
 	"pallet-rc-migrator/std",
+	"pallet-rc2-migrator/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
@@ -262,6 +269,7 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 	"pallet-recovery/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
@@ -323,6 +331,7 @@ try-runtime = [
 	"pallet-proxy/try-runtime",
 	"pallet-ranked-collective/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 	"pallet-recovery/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",

@@ -34,6 +34,11 @@ pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-broker = { workspace = true }
+# AHM v2 migration wiring, opt-in via the `ahm-v2` feature: the migrator's storage layout is
+# still changing, so it is deliberately absent from released runtimes. Not `optional`,
+# because `construct_runtime!` needs the crate path to resolve even where the feature gates
+# the pallet out; with the feature off nothing instantiates it, so it adds no code.
+pallet-ct-migrator = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
@@ -86,7 +91,10 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
+ahm-v2 = []
 std = [
+	"pallet-ct-migrator/std",
+
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-parachain-system/std",
@@ -153,6 +161,8 @@ std = [
 ]
 
 runtime-benchmarks = [
+	"pallet-ct-migrator/runtime-benchmarks",
+
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-weight-reclaim/runtime-benchmarks",
@@ -189,6 +199,8 @@ runtime-benchmarks = [
 ]
 
 try-runtime = [
+	"pallet-ct-migrator/try-runtime",
+
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-weight-reclaim/try-runtime",

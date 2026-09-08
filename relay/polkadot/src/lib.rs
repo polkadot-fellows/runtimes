@@ -135,6 +135,10 @@ use polkadot_runtime_constants::{
 	currency::*, fee::*, proxy::ProxyType, system_parachain, time::*, TREASURY_PALLET_ID,
 };
 
+// AHM v2 migration wiring; see the module docs for why it is feature-gated.
+#[cfg(feature = "ahm-v2")]
+mod ahm_v2;
+
 // Weights used in the runtime.
 mod weights;
 
@@ -1948,6 +1952,10 @@ construct_runtime! {
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		#[cfg(feature = "ahm-v2")]
+		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
 

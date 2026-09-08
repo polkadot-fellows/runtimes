@@ -1,6 +1,6 @@
 [package]
 name = "pallet-ct-migrator"
-description = "Migrates registrar and HRMP state with their deposits from the relay chain to the Coretime chain. Coretime-chain side."
+description = "Migrates the relay chain's remaining state to the Coretime chain and Asset Hub. Coretime-chain side."
 license = "Apache-2.0"
 version = "0.1.0"
 edition.workspace = true
@@ -9,9 +9,16 @@ repository.workspace = true
 
 [dependencies]
 codec = { workspace = true, features = ["max-encoded-len"] }
+log = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+sp-runtime = { workspace = true }
+xcm = { workspace = true }
+
+[dev-dependencies]
+sp-core = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
@@ -19,13 +26,19 @@ std = [
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
+	"log/std",
 	"scale-info/std",
+	"sp-runtime/std",
+	"xcm/std",
 ]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]
