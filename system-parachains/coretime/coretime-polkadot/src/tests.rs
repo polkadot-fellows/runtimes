@@ -89,8 +89,8 @@ fn bulk_revenue_is_accumulated() {
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
 
-			// Check and set initial balances. The accumulation account holds its ED, as the release
-			// checklist requires.
+			// Check and set initial balances. The accumulation account must hold its ED before the
+			// upgrade, or inflows below ED are burnt.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let accumulation_account = AccumulateForward::accumulation_account();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();

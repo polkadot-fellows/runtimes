@@ -259,7 +259,11 @@ impl OnRuntimeUpgrade for RetireCoretimeBurnAccount {
 
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		let residual = Balances::total_balance(&Self::burn_account());
+		let residual = Balances::reducible_balance(
+			&Self::burn_account(),
+			Preservation::Expendable,
+			Fortitude::Polite,
+		);
 		let accumulated = Balances::total_balance(&AccumulateForward::accumulation_account());
 		Ok((residual, accumulated).encode())
 	}
