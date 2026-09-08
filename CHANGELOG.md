@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Polkadot & Kusama: `is_superset` no longer declares `NonTransfer` a superset of `Auction`; the `Auction` filter admits `Registrar::swap`, which `NonTransfer` omits on purpose.
+
 - Asset Hub Polkadot & Kusama: enable `pallet-assets::force_create` by moving asset ID allocation to the new `AssetIdAllocator` config item ([#1275](https://github.com/polkadot-fellows/runtimes/pull/1275)).
 - People Polkadot & Asset Hub Polkadot: wire the `technical_maintenance` track into the operational Individuality settings: quotas, allowances and housekeeping on People, the Individuality parameters on Asset Hub ([#1269](https://github.com/polkadot-fellows/runtimes/pull/1269)).
 - Asset Hub Polkadot & Kusama: update `pallet-revive` to `0.19.1`, adding the `originIsRoot` System precompile method ([#1262](https://github.com/polkadot-fellows/runtimes/pull/1262), integrates [paritytech/polkadot-sdk#12281](https://github.com/paritytech/polkadot-sdk/pull/12281)).

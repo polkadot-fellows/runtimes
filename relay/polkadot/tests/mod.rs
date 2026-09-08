@@ -17,3 +17,4 @@
 mod asset_rate;
 mod beefy_tests;
 mod location_conversion;
+mod proxy;
