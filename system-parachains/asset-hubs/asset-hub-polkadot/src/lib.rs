@@ -90,7 +90,8 @@ use cumulus_pallet_parachain_system::{RelayNumberMonotonicallyIncreases, Relaych
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::traits::EnsureOrigin;
 use governance::{
-	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer, TreasurySpender,
+	pallet_custom_origins, FellowshipAdmin, GeneralAdmin, ProsperityEmergency, StakingAdmin,
+	TechnicalMaintenance, Treasurer, TreasurySpender,
 };
 use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{
@@ -205,7 +206,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_004_000,
+	spec_version: 2_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -437,7 +438,8 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type Holder = AssetsHolder;
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
-	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
+	type CallbackHandle = ();
+	type AssetIdAllocator = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	type ReserveData = ();
@@ -506,6 +508,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
 	type CallbackHandle = (ForeignAssetId<Runtime, ForeignAssetsInstance>,);
+	type AssetIdAllocator = ();
 	type AssetAccountDeposit = ForeignAssetsAssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
 	type ReserveData = ForeignAssetReserveData;
@@ -1162,6 +1165,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type CallbackHandle = ();
+	type AssetIdAllocator = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
@@ -1386,8 +1390,11 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 		match key {
 			StakingElection(_) =>
 				EitherOf::<EnsureRoot<AccountId>, StakingAdmin>::ensure_origin(origin.clone()),
-			Individuality(_) =>
-				individuality::RootOrWhitelist::ensure_origin(origin.clone()).map(|_| ()),
+			Individuality(_) => EitherOfDiverse::<
+				individuality::RootOrWhitelist,
+				TechnicalMaintenance,
+			>::ensure_origin(origin.clone())
+			.map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -1489,44 +1496,47 @@ pub mod dynamic_params {
 		/// PGAS minted to a proven person for each successful claim.
 		#[codec(index = 0)]
 		pub static PgasClaimAmount: Balance = 60 * crate::individuality::PgasMinBalance::get();
-		/// Maximum PGAS claims per period for a full person.
+		/// PGAS claims that can be batched against 1 proof at a time.
 		#[codec(index = 1)]
+		pub static MaxPgasClaimsPerBatch: u32 = 5;
+		/// Maximum PGAS claims per period for a full person.
+		#[codec(index = 2)]
 		pub static MaxClaimsPerPeriodPerPerson: u32 = 100;
 		/// Maximum PGAS claims per period for a lite person.
-		#[codec(index = 2)]
+		#[codec(index = 3)]
 		pub static MaxClaimsPerPeriodPerLitePerson: u32 = 50;
 		/// Maximum PGAS claim records removed by one cleanup call.
-		#[codec(index = 3)]
+		#[codec(index = 4)]
 		pub static MaxPgasClaimRecordCleanupPerCall: u32 = 20;
 		/// Seconds for which an alias proof remains valid.
-		#[codec(index = 4)]
+		#[codec(index = 5)]
 		pub static AliasProofValidityWindow: u64 = 300;
 		/// Maximum weight available to one dotNS registry-contract call.
-		#[codec(index = 6)]
+		#[codec(index = 7)]
 		pub static DotnsMaxContractCallWeight: Weight =
 			Weight::from_parts(100_000_000_000, 2 * 1024 * 1024);
 		/// Maximum age of a dotNS attestation signature.
-		#[codec(index = 7)]
+		#[codec(index = 8)]
 		pub static DotnsMaxValiditySeconds: u64 = 60 * 60;
 		/// Permitted future clock skew for a dotNS attestation signature.
-		#[codec(index = 8)]
+		#[codec(index = 9)]
 		pub static DotnsMaxFutureSkewSeconds: u64 = 30;
 		/// Maximum allowance for anonymous full-person dotNS registration attempts.
-		#[codec(index = 9)]
+		#[codec(index = 10)]
 		pub static DotnsPersonRegistrationAllowanceMax: Balance = MILLICENTS;
 		/// Per-block recovery for anonymous full-person dotNS registration attempts.
 		///
 		/// `pallet-origin-restriction` measures recovery against the relay chain block number, so
 		/// the formula counts the relay chain's six-second blocks: the allowance recovers once
 		/// every thirty minutes.
-		#[codec(index = 10)]
+		#[codec(index = 11)]
 		pub static DotnsPersonRegistrationAllowanceRecovery: Balance =
 			50 * CENTS / ((30 * RC_MINUTES) as Balance);
 		/// Fee charged for creating an alias mapping.
-		#[codec(index = 11)]
+		#[codec(index = 12)]
 		pub static AliasFee: Balance = UNITS / 4;
 		/// Block interval for the alias-account stale-mapping sweep.
-		#[codec(index = 12)]
+		#[codec(index = 13)]
 		pub static StaleAliasSweepInterval: BlockNumber = PARA_HOURS;
 		/// Maximum aliases processed by one stale-alias sweep call.
 		#[codec(index = 14)]
@@ -3528,5 +3538,40 @@ mod tests {
 			);
 			assert_eq!(total_unbonding_pools(), 32);
 		});
+	}
+
+	#[test]
+	fn technical_maintenance_sets_individuality_parameters() {
+		use dynamic_params::individuality::*;
+		use frame_support::traits::EnsureOriginWithArg;
+		use pallet_custom_origins::Origin::{
+			StakingAdmin, TechnicalMaintenance, WhitelistedCaller,
+		};
+
+		let keys = [
+			RuntimeParametersKey::Individuality(PgasClaimAmount.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerPerson.into()),
+			RuntimeParametersKey::Individuality(MaxClaimsPerPeriodPerLitePerson.into()),
+			RuntimeParametersKey::Individuality(MaxPgasClaimRecordCleanupPerCall.into()),
+			RuntimeParametersKey::Individuality(AliasProofValidityWindow.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxContractCallWeight.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxValiditySeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsMaxFutureSkewSeconds.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceMax.into()),
+			RuntimeParametersKey::Individuality(DotnsPersonRegistrationAllowanceRecovery.into()),
+			RuntimeParametersKey::Individuality(AliasFee.into()),
+			RuntimeParametersKey::Individuality(StaleAliasSweepInterval.into()),
+			RuntimeParametersKey::Individuality(MaxStaleAliasBatch.into()),
+		];
+
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), WhitelistedCaller.into(), TechnicalMaintenance.into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			// A governance origin the router accepts for another module.
+			assert!(DynamicParameterOrigin::try_origin(StakingAdmin.into(), key).is_err());
+		}
 	}
 }
