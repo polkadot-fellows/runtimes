@@ -3,7 +3,7 @@ name = "polkadot-integration-tests-ahmv2"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
-license = "Apache-2.0"
+license.workspace = true
 description = "Polkadot integration tests for the AHM v2 migration"
 publish = false
 
