@@ -17,13 +17,8 @@
 //! Integration-test harness for the AHM v2 migration.
 //!
 //! The Relay Chain and the Coretime chain are loaded from snapshots of live network state and
-//! driven by hand: blocks are produced by calling the relevant hooks directly and DMP/UMP messages
-//! are shuttled between the chains manually. There are no nodes and no networking involved, so the
-//! whole suite runs in seconds, and the same tests run against Polkadot (default) or Kusama
-//! (`--features kusama`).
-//!
-//! See this crate's `README.md` for how to obtain the snapshots.
-
+//! driven by hand: blocks are produced by calling the relevant hooks and DMP/UMP messages are
+//! shuttled between the chains manually. There are no nodes and no networking involved.
 #![cfg(test)]
 
 pub mod mock;

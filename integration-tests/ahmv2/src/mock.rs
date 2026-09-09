@@ -15,8 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Test harness: snapshot loading, manual block production and manual DMP/UMP message shuttling
-//! between the Relay Chain and the Coretime chain. Chain-specific wiring lives behind the [`Para`]
-//! trait, so adding a chain means adding one impl, not another copy of the plumbing.
+//! between the Relay Chain and the Coretime chain.
 
 use codec::{Decode, Encode};
 use cumulus_primitives_core::{

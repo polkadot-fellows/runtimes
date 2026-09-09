@@ -16,12 +16,9 @@
 //! Relay-chain side of the AHM v2 migration.
 //!
 //! Drives the migration stage machine: drains the relay chain's remaining state and sends it to
-//! the counterpart `pallet-ct-migrator` on the Coretime chain and to Asset Hub. Temporary pallet;
-//! removed once the migration is complete.
+//! the counterpart `pallet-ct-migrator` on the Coretime chain and to Asset Hub.
 //!
-//! The machine is inert until governance schedules it: the default stage is
-//! [`MigrationStage::Pending`], where `on_initialize` does nothing at all, and only root can move
-//! it out of there.
+//! The machine is inert until governance schedules it.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -53,15 +50,14 @@ pub enum MigrationStage<BlockNumber> {
 	/// Nothing has been scheduled; `on_initialize` does no work.
 	#[default]
 	Pending,
-	/// Scheduled to begin at `start`. Nothing changes for users before then.
+	/// Scheduled to begin at `start`.
 	Scheduled {
 		start: BlockNumber,
 	},
 	/// Halts the machine without ending the migration. Entered and left only via
 	/// [`Pallet::force_set_stage`].
 	Paused,
-	/// Start signal sent, confirmation from the Coretime chain not yet received. No timeout:
-	/// nothing has been drained, so a missing confirmation is for `force_set_stage` to resolve.
+	/// Start signal sent, confirmation from the Coretime chain not yet received.
 	WaitingForCt,
 	RegistrarInit,
 	RegistrarOngoing {
