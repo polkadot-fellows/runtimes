@@ -216,8 +216,25 @@ pub fn next_block_rc() {
 		let weight = weight
 			.saturating_add(<network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now));
 		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
+		// The timestamp inherent is an extrinsic, so it lands after `on_initialize`: a block's
+		// hooks see the previous block's clock.
+		advance_timestamp_rc();
 		weight
 	});
+}
+
+/// Relay-chain block time, so the harness clock advances the way the real one does.
+pub const RC_BLOCK_TIME_MS: u64 = 6_000;
+
+/// Move the Relay Chain clock on by one block.
+fn advance_timestamp_rc() {
+	let now = pallet_timestamp::Pallet::<RelayRuntime>::get();
+	pallet_timestamp::Pallet::<RelayRuntime>::set_timestamp(now + RC_BLOCK_TIME_MS);
+}
+
+/// The Relay Chain's current timestamp, in milliseconds.
+pub fn now_ms_rc() -> u64 {
+	pallet_timestamp::Pallet::<RelayRuntime>::get()
 }
 
 /// Set the Relay Chain's block number, to skip a wait the test is not trying to measure.

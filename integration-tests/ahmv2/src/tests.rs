@@ -151,14 +151,17 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::Pending, "an unscheduled migration must not start");
 
-		let start = frame_system::Pallet::<network::relay::Runtime>::block_number() + 2;
+		// Two blocks' worth of time ahead: the block whose hooks first see a clock at or past
+		// `start` is the third from here, since hooks run before the timestamp inherent.
+		let start = now_ms_rc() + 2 * RC_BLOCK_TIME_MS;
 		assert_ok!(pallet_rc2_migrator::Pallet::<network::relay::Runtime>::schedule_migration(
 			network::relay::RuntimeOrigin::root(),
 			start,
 		));
 
 		next_block_rc();
-		assert_eq!(rc_stage(), RcStage::Scheduled { start }, "must not start before its block");
+		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::Scheduled { start }, "must not start before its time");
 
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::WaitingForCt);

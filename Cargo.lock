@@ -13665,6 +13665,7 @@ dependencies = [
  "pallet-ct-migrator",
  "pallet-message-queue",
  "pallet-rc2-migrator",
+ "pallet-timestamp",
  "parity-scale-codec",
  "polkadot-runtime",
  "polkadot-runtime-constants",

@@ -32,43 +32,78 @@ mod tests;
 pub use pallet::*;
 
 use alloc::vec;
-use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
+use frame_support::{
+	pallet_prelude::*,
+	traits::{EnsureOrigin, Time},
+};
 use frame_system::pallet_prelude::*;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
 
-pub type MigrationStageOf<T> = MigrationStage<BlockNumberFor<T>>;
+/// Wall-clock type the schedule is expressed in.
+pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
+pub type MigrationStageOf<T> =
+	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, MomentOf<T>>;
 
 /// Progress of the migration. Advanced by `on_initialize`, except where noted.
 ///
-/// Nothing may be drained before the Coretime chain has confirmed it can receive, and nothing may
-/// be finished before the verification window has passed.
+/// The order is the invariant: nothing may be drained before the Coretime chain has confirmed it
+/// can receive, and nothing may be finished before the verification window has passed. Each data
+/// stage is `Init` (one-shot setup) → `Ongoing` (cursored, resumes across blocks) → `Done` (a
+/// checkpoint, so a single stage can be rewound).
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
-pub enum MigrationStage<BlockNumber> {
+pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Nothing has been scheduled; `on_initialize` does no work.
 	#[default]
 	Pending,
-	/// Scheduled to begin at `start`.
+	/// Scheduled to begin at the first block whose predecessor's timestamp is at or past `start`.
+	/// Nothing changes for users before then.
 	Scheduled {
-		start: BlockNumber,
+		start: Moment,
 	},
 	/// Halts the machine without ending the migration. Entered and left only via
 	/// [`Pallet::force_set_stage`].
 	Paused,
-	/// Start signal sent, confirmation from the Coretime chain not yet received.
+	/// Start signal sent, confirmation from the Coretime chain not yet received. No timeout:
+	/// nothing has been drained, so a missing confirmation is for `force_set_stage` to resolve.
 	WaitingForCt,
+	/// Account balances, their reserves, and the holds those reserves become.
+	AccountsInit,
+	AccountsOngoing {
+		last_key: Option<AccountId>,
+	},
+	AccountsDone,
+	/// Proxy definitions whose permissions have meaning on the Coretime chain.
+	///
+	/// Runs before the registrar so classification can still read the un-drained `Paras` map.
+	ProxyInit,
+	ProxyOngoing {
+		last_key: Option<AccountId>,
+	},
+	ProxyDone,
+	/// `paras_registrar` records and their deposits.
 	RegistrarInit,
 	RegistrarOngoing {
 		last_key: Option<ParaId>,
 	},
 	RegistrarDone,
+	/// HRMP channels, pending open requests, and their deposits.
 	HrmpInit,
 	HrmpOngoing {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
+	/// Empty the configured leftover pots.
+	Sweep,
+	/// Reap the accounts left below the existential deposit. Cursored because the accounts stage
+	/// deliberately leaves every below-ED record behind, so this walks most of the account map.
+	SweepDust {
+		last_key: Option<AccountId>,
+	},
+	/// Burn the audited issuance that no account holds.
+	TiCorrection,
 	/// All data sent; waiting for manual verification before finishing.
 	CoolOff {
 		end_at: BlockNumber,
@@ -76,7 +111,7 @@ pub enum MigrationStage<BlockNumber> {
 	MigrationDone,
 }
 
-impl<BlockNumber> MigrationStage<BlockNumber> {
+impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Moment> {
 	pub fn is_finished(&self) -> bool {
 		matches!(self, Self::MigrationDone)
 	}
@@ -127,6 +162,10 @@ pub mod pallet {
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
 
+		/// Wall clock the schedule is compared against. Governance picks a date, not a block
+		/// height, so that a schedule set weeks ahead does not drift with block times.
+		type TimeProvider: Time;
+
 		/// The origin the Coretime chain's messages dispatch with here. Only it may confirm
 		/// readiness.
 		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -175,16 +214,13 @@ pub mod pallet {
 		/// The only way out of [`MigrationStage::Pending`] other than `force_set_stage`.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
-		pub fn schedule_migration(
-			origin: OriginFor<T>,
-			start: BlockNumberFor<T>,
-		) -> DispatchResult {
+		pub fn schedule_migration(origin: OriginFor<T>, start: MomentOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(
 				RcMigrationStage::<T>::get() == MigrationStage::Pending,
 				Error::<T>::AlreadyScheduled
 			);
-			ensure!(start > frame_system::Pallet::<T>::block_number(), Error::<T>::StartInPast);
+			ensure!(start > T::TimeProvider::now(), Error::<T>::StartInPast);
 
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
@@ -225,11 +261,15 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// One block of the stage machine.
 		///
+		/// The scheduled start is compared against the clock, which at `on_initialize` still holds
+		/// the previous block's timestamp — so the migration begins on the first block *after* the
+		/// one whose timestamp passed `start`.
+		///
 		/// A stage whose XCM send fails is left in place and retried next block. Anything that does
 		/// not cover is for `force_set_stage`.
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			match RcMigrationStage::<T>::get() {
-				MigrationStage::Scheduled { start } if now >= start => {
+				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);
 					}

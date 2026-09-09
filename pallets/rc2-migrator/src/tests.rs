@@ -23,7 +23,7 @@ use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::prelude::*;
 
-type Stage = MigrationStage<u64>;
+type Stage = MigrationStage<AccountId, u64, u64>;
 
 fn stage() -> Stage {
 	RcMigrationStage::<Test>::get()
@@ -72,9 +72,9 @@ fn only_root_can_schedule_and_only_into_the_future() {
 			BadOrigin
 		);
 
-		// WHEN root schedules the current block or earlier. THEN it is refused: a start in the
-		// past would begin the migration inside the same block that scheduled it.
-		let now = System::block_number();
+		// WHEN root schedules the present moment or earlier. THEN it is refused: a start already
+		// past would begin the migration on the very next block.
+		let now = now_ms();
 		assert_noop!(
 			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now),
 			Error::<Test>::StartInPast
@@ -84,34 +84,35 @@ fn only_root_can_schedule_and_only_into_the_future() {
 			Error::<Test>::StartInPast
 		);
 
-		// WHEN root schedules a future block. THEN the machine is armed.
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now + 5));
-		assert_stage(Stage::Scheduled { start: now + 5 });
+		// WHEN root schedules a future moment. THEN the machine is armed.
+		let start = now + 5 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_stage(Stage::Scheduled { start });
 
 		// WHEN root schedules again. THEN it is refused, so a second governance call cannot
 		// silently move a start date that is already committed.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now + 9),
+			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start + BLOCK_TIME_MS),
 			Error::<Test>::AlreadyScheduled
 		);
 	});
 }
 
 #[test]
-fn a_scheduled_migration_starts_on_its_block_and_not_before() {
-	// GIVEN a migration scheduled for block 5.
+fn a_scheduled_migration_starts_once_the_clock_passes_it_and_not_before() {
+	// GIVEN a migration scheduled two blocks' worth of time ahead.
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), 5));
+		let start = now_ms() + 2 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
 
 		// WHEN the blocks before it pass. THEN nothing is sent and the stage holds: the relay
-		// chain serves its users normally right up to the start block.
-		run_blocks(3);
-		assert_eq!(System::block_number(), 4);
-		assert_stage(Stage::Scheduled { start: 5 });
+		// chain serves its users normally right up to the start.
+		run_blocks(2);
+		assert_stage(Stage::Scheduled { start });
 		assert_eq!(sent().len(), 0);
 
-		// WHEN the start block arrives. THEN exactly one start signal goes to the Coretime
-		// chain and the machine waits for the answer.
+		// WHEN a block sees a clock at or past `start`. THEN exactly one start signal goes to
+		// the Coretime chain and the machine waits for the answer.
 		run_blocks(1);
 		assert_stage(Stage::WaitingForCt);
 		assert_eq!(sent().len(), 1);
@@ -206,13 +207,14 @@ fn cool_off_holds_for_its_period_and_then_finishes() {
 fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 	// GIVEN a scheduled migration and a router that refuses everything.
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), 3));
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
 		SendFails::set(true);
 
-		// WHEN the start block passes. THEN the machine has not advanced and nothing was sent:
-		// a lost start signal must not leave the relay chain believing the handshake is open.
+		// WHEN the start passes. THEN the machine has not advanced and nothing was sent: a lost
+		// start signal must not leave the relay chain believing the handshake is open.
 		run_blocks(5);
-		assert_stage(Stage::Scheduled { start: 3 });
+		assert_stage(Stage::Scheduled { start });
 		assert_eq!(sent().len(), 0);
 
 		// WHEN the router recovers. THEN the same step runs and the machine advances.
@@ -242,7 +244,7 @@ fn force_set_stage_is_root_only_and_unconstrained() {
 			Stage::WaitingForCt,
 			Stage::Paused,
 			Stage::MigrationDone,
-			Stage::Scheduled { start: 99 },
+			Stage::Scheduled { start: 99 * BLOCK_TIME_MS },
 			Stage::Pending,
 		] {
 			assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), target.clone()));
@@ -272,10 +274,11 @@ fn a_paused_machine_does_not_advance_but_stays_engaged() {
 fn the_machine_runs_from_pending_to_done() {
 	// GIVEN a scheduled migration and a Coretime chain that answers.
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), 2));
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
 
-		// WHEN the start block passes.
-		run_blocks(1);
+		// WHEN the start passes.
+		run_blocks(2);
 		assert_stage(Stage::WaitingForCt);
 
 		// WHEN the Coretime chain confirms.
@@ -299,8 +302,8 @@ fn the_machine_runs_from_pending_to_done() {
 		assert_eq!(
 			transitions(),
 			vec![
-				(Stage::Pending, Stage::Scheduled { start: 2 }),
-				(Stage::Scheduled { start: 2 }, Stage::WaitingForCt),
+				(Stage::Pending, Stage::Scheduled { start }),
+				(Stage::Scheduled { start }, Stage::WaitingForCt),
 				(Stage::WaitingForCt, Stage::CoolOff { end_at }),
 				(Stage::CoolOff { end_at }, Stage::MigrationDone),
 			]
@@ -312,18 +315,27 @@ fn the_machine_runs_from_pending_to_done() {
 fn the_stage_predicates_say_what_their_consumers_need() {
 	// Exhaustive over the stage enum, so a new stage has to classify itself here rather than
 	// inherit whatever the predicates happen to return.
-	let cases: [(Stage, bool, bool); 12] = [
-		//                          ongoing, finished
+	let cases: [(Stage, bool, bool); 21] = [
+		//                                            ongoing, finished
 		(Stage::Pending, false, false),
 		(Stage::Scheduled { start: 10 }, false, false),
-		(Stage::WaitingForCt, true, false),
 		(Stage::Paused, true, false),
+		(Stage::WaitingForCt, true, false),
+		(Stage::AccountsInit, true, false),
+		(Stage::AccountsOngoing { last_key: None }, true, false),
+		(Stage::AccountsDone, true, false),
+		(Stage::ProxyInit, true, false),
+		(Stage::ProxyOngoing { last_key: None }, true, false),
+		(Stage::ProxyDone, true, false),
 		(Stage::RegistrarInit, true, false),
 		(Stage::RegistrarOngoing { last_key: None }, true, false),
 		(Stage::RegistrarDone, true, false),
 		(Stage::HrmpInit, true, false),
 		(Stage::HrmpOngoing { last_key: None }, true, false),
 		(Stage::HrmpDone, true, false),
+		(Stage::Sweep, true, false),
+		(Stage::SweepDust { last_key: None }, true, false),
+		(Stage::TiCorrection, true, false),
 		(Stage::CoolOff { end_at: 10 }, true, false),
 		(Stage::MigrationDone, false, true),
 	];

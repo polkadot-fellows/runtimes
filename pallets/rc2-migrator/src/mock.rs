@@ -17,7 +17,10 @@
 //! Test runtime for `pallet-rc2-migrator`.
 
 use crate as pallet_rc2_migrator;
-use frame_support::{derive_impl, ord_parameter_types, parameter_types};
+use frame_support::{
+	derive_impl, ord_parameter_types, parameter_types,
+	traits::{OnInitialize, Time},
+};
 use frame_system::EnsureSignedBy;
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
@@ -44,6 +47,8 @@ pub const ALICE: AccountId = 1;
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const COOL_OFF: u64 = 10;
+/// Relay-chain block time, so the mock clock advances the way a real one does.
+pub const BLOCK_TIME_MS: u64 = 6_000;
 
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
@@ -53,6 +58,20 @@ parameter_types! {
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = vec![];
 	/// Makes the router reject everything, to exercise the retry-next-block path.
 	pub static SendFails: bool = false;
+
+	/// The mock wall clock, in milliseconds. Advanced by [`run_blocks`].
+	pub static MockNow: u64 = BLOCK_TIME_MS;
+}
+
+/// Stands in for `pallet_timestamp`, which the pallet only needs through [`Time`].
+pub struct MockTime;
+
+impl Time for MockTime {
+	type Moment = u64;
+
+	fn now() -> Self::Moment {
+		MockNow::get()
+	}
 }
 
 /// Records what the pallet sends instead of delivering it.
@@ -89,6 +108,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = RecordingRouter;
 	type CtParaId = CtParaId;
+	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type CoolOffPeriod = CoolOffPeriod;
 }
@@ -96,6 +116,7 @@ impl pallet_rc2_migrator::Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	SentXcm::set(vec![]);
 	SendFails::set(false);
+	MockNow::set(BLOCK_TIME_MS);
 
 	let storage = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let mut ext = sp_io::TestExternalities::new(storage);
@@ -104,9 +125,22 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext
 }
 
-/// Run the next `n` blocks.
+/// Run the next `n` blocks, advancing the clock like a real chain does.
+///
+/// The clock moves *after* the block's hooks, mirroring the timestamp inherent, which is an
+/// extrinsic and so runs after `on_initialize`.
 pub fn run_blocks(n: u64) {
-	System::run_to_block::<AllPalletsWithSystem>(System::block_number() + n);
+	for _ in 0..n {
+		let now = System::block_number() + 1;
+		System::set_block_number(now);
+		<Rc2Migrator as OnInitialize<u64>>::on_initialize(now);
+		MockNow::set(now.saturating_mul(BLOCK_TIME_MS));
+	}
+}
+
+/// The mock clock's current value.
+pub fn now_ms() -> u64 {
+	MockTime::now()
 }
 
 /// The messages sent so far, destination and all.

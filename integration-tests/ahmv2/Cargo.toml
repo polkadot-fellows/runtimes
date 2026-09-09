@@ -18,6 +18,7 @@ pallet-balances = { workspace = true, default-features = true }
 pallet-ct-migrator = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-rc2-migrator = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
 runtime-parachains = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }

@@ -40,6 +40,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;
 	type CtParaId = BrokerId;
+	type TimeProvider = crate::Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
 	type CoolOffPeriod = MigrationCoolOffPeriod;
 }
