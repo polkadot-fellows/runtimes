@@ -235,6 +235,9 @@ impl RetireCoretimeBurnAccount {
 impl OnRuntimeUpgrade for RetireCoretimeBurnAccount {
 	fn on_runtime_upgrade() -> Weight {
 		let burn_account = Self::burn_account();
+		if !System::account_exists(&burn_account) {
+			return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+		}
 		let residual =
 			Balances::reducible_balance(&burn_account, Preservation::Expendable, Fortitude::Polite);
 		if residual > 0 {
