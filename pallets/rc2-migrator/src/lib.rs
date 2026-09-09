@@ -16,7 +16,7 @@
 //! Relay-chain side of the AHM v2 migration.
 //!
 //! Drives the migration stage machine: drains the relay chain's remaining state and sends it to
-//! the counterpart `pallet-ct-migrator` on the Coretime chain and to Asset Hub.
+//! the counterpart `pallet-ct-migrator` on the Coretime chain and (teleports) to Asset Hub.
 //!
 //! The machine is inert until governance schedules it.
 
@@ -49,25 +49,20 @@ pub type MigrationStageOf<T> =
 
 /// Progress of the migration. Advanced by `on_initialize`, except where noted.
 ///
-/// The order is the invariant: nothing may be drained before the Coretime chain has confirmed it
-/// can receive, and nothing may be finished before the verification window has passed. Each data
-/// stage is `Init` (one-shot setup) → `Ongoing` (cursored, resumes across blocks) → `Done` (a
-/// checkpoint, so a single stage can be rewound).
+/// The invariant order is how the migration will progress.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
 pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Nothing has been scheduled; `on_initialize` does no work.
 	#[default]
 	Pending,
 	/// Scheduled to begin at the first block whose predecessor's timestamp is at or past `start`.
-	/// Nothing changes for users before then.
 	Scheduled {
 		start: Moment,
 	},
 	/// Halts the machine without ending the migration. Entered and left only via
 	/// [`Pallet::force_set_stage`].
 	Paused,
-	/// Start signal sent, confirmation from the Coretime chain not yet received. No timeout:
-	/// nothing has been drained, so a missing confirmation is for `force_set_stage` to resolve.
+	/// Start signal sent, confirmation from the Coretime chain not yet received.
 	WaitingForCt,
 	/// Account balances, their reserves, and the holds those reserves become.
 	AccountsInit,
@@ -97,8 +92,19 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	HrmpDone,
 	/// Empty the configured leftover pots.
 	Sweep,
-	/// Reap the accounts left below the existential deposit. Cursored because the accounts stage
-	/// deliberately leaves every below-ED record behind, so this walks most of the account map.
+	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
+	///
+	/// Separate from, and downstream of, the accounts stage on purpose:
+	/// - most of what it reaps does not exist until the earlier stages have run. Draining an
+	///   account that a consumer reference forbids reaping leaves a zero-balance shell, and
+	///   [`Self::Sweep`] turns every emptied pot into another one.
+	/// - [`Self::TiCorrection`] burns the issuance no account holds, which is only a safe
+	///   assumption once this has run. It reads this stage's output.
+	/// - reaping is idempotent, so this stage can be re-run with `force_set_stage`. The accounts
+	///   stage burns balances and sends XCM, so it cannot.
+	///
+	/// Cursored because the accounts stage skips every below-ED record, so this walks most of the
+	/// account map. Both stages exclude sovereign and module accounts by the same prefix list.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},

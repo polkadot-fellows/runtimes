@@ -227,14 +227,18 @@ pub fn next_block_rc() {
 pub const RC_BLOCK_TIME_MS: u64 = 6_000;
 
 /// Move the Relay Chain clock on by one block.
+///
+/// Writes `Now` rather than calling `set_timestamp`, which would fire `OnTimestampSet` — Babe on a
+/// relay chain — and that asserts the timestamp's slot equals `CurrentSlot`. This harness does not
+/// run Babe, so its slot never moves.
 fn advance_timestamp_rc() {
-	let now = pallet_timestamp::Pallet::<RelayRuntime>::get();
-	pallet_timestamp::Pallet::<RelayRuntime>::set_timestamp(now + RC_BLOCK_TIME_MS);
+	let now = pallet_timestamp::Now::<RelayRuntime>::get();
+	pallet_timestamp::Now::<RelayRuntime>::put(now + RC_BLOCK_TIME_MS);
 }
 
 /// The Relay Chain's current timestamp, in milliseconds.
 pub fn now_ms_rc() -> u64 {
-	pallet_timestamp::Pallet::<RelayRuntime>::get()
+	pallet_timestamp::Now::<RelayRuntime>::get()
 }
 
 /// Set the Relay Chain's block number, to skip a wait the test is not trying to measure.
