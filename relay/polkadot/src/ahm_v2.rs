@@ -16,51 +16,44 @@
 //! AHM v2 migration wiring: the relay-chain side of moving this chain's remaining state to the
 //! Coretime chain and Asset Hub.
 //!
-//! Behind the `ahm-v2` feature until the migration's storage layout stops changing — the stage
-//! machine grows a variant per data stage, and an enum that still moves has no business in a
-//! shipped runtime. The feature is what lets the integration tests drive the real runtime
-//! meanwhile.
+//! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
+//! integration tests turn it on to drive the real runtime.
 
-use crate::{parachains_origin, xcm_config::XcmRouter, BlockNumber, Runtime, RuntimeOrigin};
-use frame_support::{parameter_types, traits::EnsureOrigin};
-use polkadot_runtime_constants::{system_parachain::BROKER_ID, time::MINUTES};
+use crate::{
+	xcm_config::{CoretimeLocation, XcmRouter},
+	BlockNumber, BrokerId, Runtime, RuntimeEvent,
+};
+use frame_support::{parameter_types, traits::Equals};
+use pallet_xcm::EnsureXcm;
+use polkadot_runtime_constants::time::MINUTES;
+
+#[cfg(feature = "on-chain-release-build")]
+compile_error!("the `ahm-v2` feature must not be enabled in a release build");
 
 parameter_types! {
-	pub const CoretimeParaId: u32 = BROKER_ID;
-	/// Manual verification window between the last data stage and finishing, during which the
-	/// migration's call filters are still engaged and the end state can be inspected on chain.
+	/// Manual verification window between the last data stage and finishing.
 	pub const MigrationCoolOffPeriod: BlockNumber = 30 * MINUTES;
 }
 
-/// Accepts only the Coretime chain's own parachain origin.
-///
-/// Same shape as [`crate::EnsureAssetHub`]: match the parachain origin the XCM converter produced
-/// and check the id. Root is deliberately not accepted — governance's way into the stage machine
-/// is `force_set_stage`, not an acknowledgement it could forge on the Coretime chain's behalf.
-pub struct EnsureCoretime;
-
-impl EnsureOrigin<RuntimeOrigin> for EnsureCoretime {
-	type Success = ();
-
-	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
-		match <RuntimeOrigin as Into<Result<parachains_origin::Origin, RuntimeOrigin>>>::into(
-			o.clone(),
-		) {
-			Ok(parachains_origin::Origin::Parachain(id)) if id == BROKER_ID.into() => Ok(()),
-			_ => Err(o),
-		}
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
-		Ok(RuntimeOrigin::root())
-	}
+impl pallet_rc2_migrator::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type SendXcm = XcmRouter;
+	type CtParaId = BrokerId;
+	type CtOrigin = EnsureXcm<Equals<CoretimeLocation>>;
+	type CoolOffPeriod = MigrationCoolOffPeriod;
 }
 
-impl pallet_rc2_migrator::Config for Runtime {
-	type RuntimeEvent = crate::RuntimeEvent;
-	type SendXcm = XcmRouter;
-	type CtParaId = CoretimeParaId;
-	type CtOrigin = EnsureCoretime;
-	type CoolOffPeriod = MigrationCoolOffPeriod;
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use frame_support::traits::PalletInfoAccess;
+
+	/// `pallet-ct-migrator` hand-encodes this pallet's index; the compiler checks none of it.
+	#[test]
+	fn migrator_pallet_index_matches_what_the_coretime_chain_encodes() {
+		assert_eq!(
+			crate::Rc2Migrator::index(),
+			pallet_ct_migrator::RC2_MIGRATOR_PALLET_INDEX as usize
+		);
+	}
 }

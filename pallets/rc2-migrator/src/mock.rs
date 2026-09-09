@@ -16,7 +16,8 @@
 //! Test runtime for `pallet-rc2-migrator`.
 
 use crate as pallet_rc2_migrator;
-use frame_support::{derive_impl, parameter_types, traits::EnsureOrigin};
+use frame_support::{derive_impl, ord_parameter_types, parameter_types};
+use frame_system::EnsureSignedBy;
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
 
@@ -53,8 +54,7 @@ parameter_types! {
 	pub static SendFails: bool = false;
 }
 
-/// Records what the pallet sends instead of delivering it. `deliver` is where the recording
-/// happens, so a message that fails validation is never observed as sent.
+/// Records what the pallet sends instead of delivering it.
 pub struct RecordingRouter;
 
 impl SendXcm for RecordingRouter {
@@ -80,31 +80,15 @@ impl SendXcm for RecordingRouter {
 	}
 }
 
-/// Accepts only the account standing in for the Coretime chain. Root is deliberately not
-/// accepted: governance's way into the machine is `force_set_stage`, not a forged handshake.
-pub struct EnsureCoretime;
-
-impl EnsureOrigin<RuntimeOrigin> for EnsureCoretime {
-	type Success = ();
-
-	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
-		match o.clone().into() {
-			Ok(frame_system::RawOrigin::Signed(CORETIME)) => Ok(()),
-			_ => Err(o),
-		}
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
-		Ok(RuntimeOrigin::signed(CORETIME))
-	}
+ord_parameter_types! {
+	pub const CoretimeAccount: AccountId = CORETIME;
 }
 
 impl pallet_rc2_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = RecordingRouter;
 	type CtParaId = CtParaId;
-	type CtOrigin = EnsureCoretime;
+	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type CoolOffPeriod = CoolOffPeriod;
 }
 
@@ -119,13 +103,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext
 }
 
-/// Run `Rc2Migrator::on_initialize` for the next `n` blocks.
+/// Run the next `n` blocks.
 pub fn run_blocks(n: u64) {
-	for _ in 0..n {
-		let now = System::block_number() + 1;
-		System::set_block_number(now);
-		<Rc2Migrator as frame_support::traits::OnInitialize<u64>>::on_initialize(now);
-	}
+	System::run_to_block::<AllPalletsWithSystem>(System::block_number() + n);
 }
 
 /// The messages sent so far, destination and all.

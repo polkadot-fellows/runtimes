@@ -16,14 +16,29 @@
 //! AHM v2 migration wiring: the Coretime-chain side of receiving the relay chain's remaining
 //! state.
 //!
-//! Behind the `ahm-v2` feature until the migration's storage layout stops changing — the relay
-//! chain's stage machine grows a variant per data stage, and the receiving calls grow with it, so
-//! neither has any business in a shipped runtime yet. The feature is what lets the integration
-//! tests drive the real runtime meanwhile.
+//! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
+//! integration tests turn it on to drive the real runtime.
 
-use crate::{xcm_config::XcmRouter, Runtime};
+use crate::{xcm_config::XcmRouter, Runtime, RuntimeEvent};
+
+#[cfg(feature = "on-chain-release-build")]
+compile_error!("the `ahm-v2` feature must not be enabled in a release build");
 
 impl pallet_ct_migrator::Config for Runtime {
-	type RuntimeEvent = crate::RuntimeEvent;
+	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;
+}
+
+#[cfg(test)]
+mod tests {
+	use frame_support::traits::PalletInfoAccess;
+
+	/// `pallet-rc2-migrator` hand-encodes this pallet's index; the compiler checks none of it.
+	#[test]
+	fn migrator_pallet_index_matches_what_the_relay_chain_encodes() {
+		assert_eq!(
+			crate::CtMigrator::index(),
+			pallet_rc2_migrator::CT_MIGRATOR_PALLET_INDEX as usize
+		);
+	}
 }

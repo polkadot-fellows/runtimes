@@ -15,6 +15,7 @@
 
 use crate::{
 	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, MigrationStage, RcMigrationStage,
+	CT_MIGRATOR_PALLET_INDEX,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -141,8 +142,7 @@ fn only_the_coretime_chain_can_confirm_readiness() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::WaitingForCt));
 
-		// WHEN anyone else confirms. THEN it is refused — including root, whose way into the
-		// machine is `force_set_stage`, not a forged handshake.
+		// WHEN anyone else confirms, root included. THEN it is refused.
 		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::root()), BadOrigin);
 		assert_stage(Stage::WaitingForCt);
@@ -236,7 +236,7 @@ fn force_set_stage_is_root_only_and_unconstrained() {
 		);
 
 		// WHEN root forces stages. THEN it may move anywhere, including backwards and into the
-		// halt stage. A machine that second-guesses root here is one that cannot be rescued.
+		// halt stage.
 		for target in [
 			Stage::WaitingForCt,
 			Stage::Paused,
@@ -261,10 +261,8 @@ fn a_paused_machine_does_not_advance_but_stays_engaged() {
 		assert_stage(Stage::Paused);
 		assert_eq!(sent().len(), 0);
 
-		// THEN the migration still counts as ongoing, so call filters and barriers keyed on the
-		// stage stay engaged while a human works out what went wrong.
+		// THEN the migration still counts as ongoing.
 		assert!(stage().is_ongoing());
-		assert!(stage().has_started());
 		assert!(!stage().is_finished());
 	});
 }
@@ -311,31 +309,40 @@ fn the_machine_runs_from_pending_to_done() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	// Three predicates with three different consumers: `has_started` gates calls that must stay
-	// closed once the migration begins, `is_ongoing` gates what reopens afterwards, and
-	// `is_finished` gates the control plane that only exists after the handover.
-	let cases: [(Stage, bool, bool, bool); 6] = [
-		//                          ongoing, started, finished
-		(Stage::Pending, false, false, false),
-		(Stage::Scheduled { start: 10 }, false, false, false),
-		(Stage::WaitingForCt, true, true, false),
-		(Stage::Paused, true, true, false),
-		(Stage::CoolOff { end_at: 10 }, true, true, false),
-		(Stage::MigrationDone, false, true, true),
+	// Exhaustive over the stage enum, so a new stage has to classify itself here rather than
+	// inherit whatever the predicates happen to return.
+	let cases: [(Stage, bool, bool); 12] = [
+		//                          ongoing, finished
+		(Stage::Pending, false, false),
+		(Stage::Scheduled { start: 10 }, false, false),
+		(Stage::WaitingForCt, true, false),
+		(Stage::Paused, true, false),
+		(Stage::RegistrarInit, true, false),
+		(Stage::RegistrarOngoing { last_key: None }, true, false),
+		(Stage::RegistrarDone, true, false),
+		(Stage::HrmpInit, true, false),
+		(Stage::HrmpOngoing { last_key: None }, true, false),
+		(Stage::HrmpDone, true, false),
+		(Stage::CoolOff { end_at: 10 }, true, false),
+		(Stage::MigrationDone, false, true),
 	];
 
-	for (stage, ongoing, started, finished) in cases {
+	for (stage, ongoing, finished) in cases {
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
-		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
 }
 
 #[test]
 fn the_coretime_call_encoding_is_pinned() {
-	// The Coretime calls are hand-encoded, so nothing in the compiler checks these indices. The
-	// integration tests decode them with the real Coretime runtime; this pins the bytes so an
-	// accidental renumbering fails here first, with a readable diff.
-	assert_eq!(CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration).encode(), vec![100, 0]);
-	assert_eq!(CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration).encode(), vec![100, 1]);
+	// Pins the hand-encoded bytes so an accidental renumbering fails here first, with a readable
+	// diff. The Coretime runtimes assert the pallet index against the real `construct_runtime!`.
+	assert_eq!(
+		CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration).encode(),
+		vec![CT_MIGRATOR_PALLET_INDEX, 0]
+	);
+	assert_eq!(
+		CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration).encode(),
+		vec![CT_MIGRATOR_PALLET_INDEX, 1]
+	);
 }

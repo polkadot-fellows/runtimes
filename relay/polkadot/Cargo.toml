@@ -11,10 +11,8 @@ license.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
-# AHM v2 migration wiring, opt-in via the `ahm-v2` feature: the migrator's storage layout is
-# still changing, so it is deliberately absent from released runtimes. Not `optional`,
-# because `construct_runtime!` needs the crate path to resolve even where the feature gates
-# the pallet out; with the feature off nothing instantiates it, so it adds no code.
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`. Not `optional`: `construct_runtime!` needs
+# the crate path to resolve even when the feature gates the pallet out.
 pallet-rc2-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
@@ -120,6 +118,7 @@ sp-debug-derive = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 approx = { workspace = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
@@ -141,8 +140,6 @@ polkadot-ahm = [
 	"pallet-rc-migrator/polkadot-ahm",
 ]
 
-# AHM v2 migration wiring. Opt-in: the migrator's storage layout is still changing, so it is
-# deliberately absent from released runtimes. Enabled by the ahmv2 integration tests.
 ahm-v2 = []
 std = [
 	"pallet-rc-migrator/std",
@@ -302,6 +299,7 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-ct-migrator/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",
@@ -354,6 +352,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-ct-migrator/try-runtime"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

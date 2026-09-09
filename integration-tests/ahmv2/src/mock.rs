@@ -225,7 +225,8 @@ pub fn set_block_number_rc(now: BlockNumberFor<RelayRuntime>) {
 	frame_system::Pallet::<RelayRuntime>::set_block_number(now);
 }
 
-/// Execute the next block on parachain `P`. Same hooks and assertions as [`next_block_rc`].
+/// Execute the next block on parachain `P`. Runs only `MessageQueue`; same per-block assertions
+/// as [`next_block_rc`].
 pub fn next_block_para<P: Para>() {
 	next_block::<P::Runtime>(P::CHAIN, |now| {
 		let weight = <MqPallet<P> as OnInitialize<_>>::on_initialize(now);

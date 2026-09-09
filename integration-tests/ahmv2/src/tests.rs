@@ -97,7 +97,6 @@ where
 		next_block_rc();
 		take_dmp(P::PARA_ID.into())
 	});
-	rc.commit_all().unwrap();
 	// The live snapshot may have queued unrelated messages for this para, so only assert that
 	// ours is among them.
 	assert!(!dmp.is_empty(), "RC queued no DMP message for {}", P::CHAIN.name());
@@ -107,7 +106,6 @@ where
 		next_block_para::<P>();
 		assert_remarked::<P::Runtime>(P::CHAIN);
 	});
-	para.commit_all().unwrap();
 
 	// para -> RC.
 	let ump = para.execute_with(|| {
@@ -116,7 +114,6 @@ where
 		send_ump::<P>(unpaid_transact(call));
 		take_ump::<P>()
 	});
-	para.commit_all().unwrap();
 	assert!(!ump.is_empty(), "{} queued no UMP message for the RC", P::CHAIN.name());
 
 	rc.execute_with(|| {
@@ -133,20 +130,18 @@ where
 /// chain's barrier actually carry the handshake, and that each side's origin converter grants the
 /// authority the receiving call checks for — `Superuser` downwards, the parachain origin upwards.
 ///
-/// It also asserts that nothing moves. Every stage between the handshake and the cool-off is
-/// added by a later migration PR; until then a full run must leave both chains' issuance and
-/// balances exactly as the snapshot had them.
+/// It also asserts that nothing moves: the machine has no data stages, so a full run must leave
+/// both chains' issuance exactly as the snapshot had it.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_migration_runs_to_completion_and_moves_nothing() {
 	use pallet_rc2_migrator::MigrationStage as RcStage;
 
-	type RcRuntime = network::relay::Runtime;
-	type CtRuntime = network::ct::Runtime;
-
 	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
 
-	let rc_issuance_before = rc.execute_with(pallet_balances::Pallet::<RcRuntime>::total_issuance);
-	let ct_issuance_before = ct.execute_with(pallet_balances::Pallet::<CtRuntime>::total_issuance);
+	let rc_issuance_before =
+		rc.execute_with(pallet_balances::Pallet::<network::relay::Runtime>::total_issuance);
+	let ct_issuance_before =
+		ct.execute_with(pallet_balances::Pallet::<network::ct::Runtime>::total_issuance);
 
 	// The relay chain is inert until governance schedules the migration, and stays inert until
 	// the start block.
@@ -155,8 +150,8 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::Pending, "an unscheduled migration must not start");
 
-		let start = frame_system::Pallet::<RcRuntime>::block_number() + 2;
-		assert_ok!(pallet_rc2_migrator::Pallet::<RcRuntime>::schedule_migration(
+		let start = frame_system::Pallet::<network::relay::Runtime>::block_number() + 2;
+		assert_ok!(pallet_rc2_migrator::Pallet::<network::relay::Runtime>::schedule_migration(
 			network::relay::RuntimeOrigin::root(),
 			start,
 		));
@@ -168,7 +163,6 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		assert_eq!(rc_stage(), RcStage::WaitingForCt);
 		take_dmp(CoretimePara::PARA_ID.into())
 	});
-	rc.commit_all().unwrap();
 	assert!(!dmp.is_empty(), "the relay chain queued no start signal for the Coretime chain");
 
 	// The Coretime chain opens the migration and answers upwards. `enqueue_dmp` decodes the
@@ -181,7 +175,6 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		assert_eq!(ct_stage(), pallet_ct_migrator::MigrationStage::DataMigrationOngoing);
 		take_ump::<CoretimePara>()
 	});
-	ct.commit_all().unwrap();
 	assert!(!ump.is_empty(), "the Coretime chain queued no answer for the relay chain");
 
 	// The answer admits the machine to the verification window and, with no data stages
@@ -193,7 +186,7 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		let RcStage::CoolOff { end_at } = rc_stage() else {
 			panic!("readiness did not admit the machine to the cool-off: {:?}", rc_stage())
 		};
-		let now = frame_system::Pallet::<RcRuntime>::block_number();
+		let now = frame_system::Pallet::<network::relay::Runtime>::block_number();
 		assert!(end_at > now, "the verification window must not be already over");
 
 		// The window's length is a runtime constant, not what this test is measuring.
@@ -202,7 +195,6 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		assert_eq!(rc_stage(), RcStage::MigrationDone);
 		take_dmp(CoretimePara::PARA_ID.into())
 	});
-	rc.commit_all().unwrap();
 	assert!(!dmp.is_empty(), "the relay chain queued no finish signal");
 
 	ct.execute_with(|| {
@@ -212,7 +204,7 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 
 		// Nothing was migrated, so nothing was minted here.
 		assert_eq!(
-			pallet_balances::Pallet::<CtRuntime>::total_issuance(),
+			pallet_balances::Pallet::<network::ct::Runtime>::total_issuance(),
 			ct_issuance_before,
 			"a migration with no data stages must not change Coretime issuance"
 		);
@@ -220,7 +212,7 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 
 	rc.execute_with(|| {
 		assert_eq!(
-			pallet_balances::Pallet::<RcRuntime>::total_issuance(),
+			pallet_balances::Pallet::<network::relay::Runtime>::total_issuance(),
 			rc_issuance_before,
 			"a migration with no data stages must not change relay-chain issuance"
 		);

@@ -15,6 +15,7 @@
 
 use crate::{
 	mock::*, CtMigrationStage, Error, Event, MigrationStage, Rc2MigratorCall, Rc2RuntimeCall,
+	RC2_MIGRATOR_PALLET_INDEX,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -197,8 +198,6 @@ fn force_set_stage_moves_anywhere() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	// `is_finished` is what the control-plane call filter on this chain keys off: the pallets
-	// that take over from the relay chain stay closed until the handover is complete.
 	let cases: [(MigrationStage, bool, bool); 3] = [
 		//                                   ongoing, finished
 		(MigrationStage::Pending, false, false),
@@ -214,8 +213,10 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 
 #[test]
 fn the_relay_call_encoding_is_pinned() {
-	// The relay-chain call is hand-encoded, so nothing in the compiler checks these indices. The
-	// integration tests decode them with the real relay runtime; this pins the bytes so an
-	// accidental renumbering fails here first, with a readable diff.
-	assert_eq!(Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(), vec![254, 2]);
+	// Pins the hand-encoded bytes so an accidental renumbering fails here first, with a readable
+	// diff. The relay runtimes assert the pallet index against the real `construct_runtime!`.
+	assert_eq!(
+		Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
+		vec![RC2_MIGRATOR_PALLET_INDEX, 2]
+	);
 }

@@ -21,8 +21,7 @@
 //!
 //! The machine is inert until governance schedules it: the default stage is
 //! [`MigrationStage::Pending`], where `on_initialize` does nothing at all, and only root can move
-//! it out of there. Data stages are added as they are implemented, between the readiness handshake
-//! and the cool-off.
+//! it out of there.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -38,6 +37,7 @@ pub use pallet::*;
 use alloc::vec;
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
+use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -46,28 +46,33 @@ pub type MigrationStageOf<T> = MigrationStage<BlockNumberFor<T>>;
 
 /// Progress of the migration. Advanced by `on_initialize`, except where noted.
 ///
-/// Data stages slot in between [`Self::WaitingForCt`] and [`Self::CoolOff`]: nothing may be
-/// drained before the Coretime chain has confirmed it can receive, and nothing may be finished
-/// before the verification window has passed.
+/// Nothing may be drained before the Coretime chain has confirmed it can receive, and nothing may
+/// be finished before the verification window has passed.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
 pub enum MigrationStage<BlockNumber> {
-	/// Nothing has been scheduled. `on_initialize` does no work and no call is closed.
+	/// Nothing has been scheduled; `on_initialize` does no work.
 	#[default]
 	Pending,
-	/// Scheduled to begin at `start`. The relay chain still serves its users normally until then,
-	/// which is what stops the runtime upgrade itself from being an outage.
+	/// Scheduled to begin at `start`. Nothing changes for users before then.
 	Scheduled {
 		start: BlockNumber,
 	},
-	/// Halts the machine while keeping the migration "ongoing", so call filters stay engaged.
-	/// Entered and left only via [`Pallet::force_set_stage`].
+	/// Halts the machine without ending the migration. Entered and left only via
+	/// [`Pallet::force_set_stage`].
 	Paused,
-	/// The start signal has been sent and the Coretime chain has yet to confirm that it can
-	/// receive data.
-	///
-	/// Deliberately has no timeout: if the confirmation never arrives, no state has been drained
-	/// and the correct response is a human deciding what to do, via `force_set_stage`.
+	/// Start signal sent, confirmation from the Coretime chain not yet received. No timeout:
+	/// nothing has been drained, so a missing confirmation is for `force_set_stage` to resolve.
 	WaitingForCt,
+	RegistrarInit,
+	RegistrarOngoing {
+		last_key: Option<ParaId>,
+	},
+	RegistrarDone,
+	HrmpInit,
+	HrmpOngoing {
+		last_key: Option<HrmpChannelId>,
+	},
+	HrmpDone,
 	/// All data sent; waiting for manual verification before finishing.
 	CoolOff {
 		end_at: BlockNumber,
@@ -80,33 +85,27 @@ impl<BlockNumber> MigrationStage<BlockNumber> {
 		matches!(self, Self::MigrationDone)
 	}
 
-	/// Whether the machine is between its start and its end, and so whether the migration's own
-	/// call filters and barriers are engaged.
+	/// Whether the machine is between its start and its end.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, Self::Pending | Self::Scheduled { .. } | Self::MigrationDone)
-	}
-
-	/// Whether the migration has begun, and so whether the calls it moves away are closed.
-	///
-	/// A scheduled migration has not begun; a finished one has. This is the predicate for
-	/// anything that must stay closed after the migration ends, where [`Self::is_ongoing`] is the
-	/// one for anything that reopens.
-	pub fn has_started(&self) -> bool {
-		self.is_ongoing() || self.is_finished()
 	}
 }
 
 /// Calls on the Coretime chain, as this chain must encode them.
 ///
-/// Audit: the outer index is `CtMigrator`'s pallet index in the Coretime `construct_runtime!` and
-/// the inner ones are `#[pallet::call_index]` in `pallet-ct-migrator`. Nothing here is checked by
-/// the compiler, so the integration tests decode what this chain would send using the real
-/// Coretime `RuntimeCall` — which is why these types are public.
+/// The indices are `CtMigrator`'s pallet index in the Coretime `construct_runtime!` and the
+/// `#[pallet::call_index]`es in `pallet-ct-migrator`. The compiler checks none of this; the
+/// integration tests decode these against the real Coretime `RuntimeCall`, which is why they are
+/// public.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum CtRuntimeCall {
 	#[codec(index = 100)]
 	CtMigrator(CtMigratorCall),
 }
+
+/// `CtMigrator`'s pallet index in the Coretime `construct_runtime!`, as encoded above. Each
+/// Coretime runtime asserts its real index against this in its own tests.
+pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
 
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum CtMigratorCall {
@@ -132,13 +131,12 @@ pub mod pallet {
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
 
-		/// The origin the Coretime chain's own messages dispatch with here. Only it may confirm
-		/// readiness — an acknowledgement from anywhere else says nothing about whether the
-		/// destination can receive.
+		/// The origin the Coretime chain's messages dispatch with here. Only it may confirm
+		/// readiness.
 		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing, so the end
-		/// state can be verified while the migration's filters are still engaged.
+		/// state can be verified first.
 		type CoolOffPeriod: Get<BlockNumberFor<Self>>;
 	}
 
@@ -178,10 +176,9 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Schedule the migration to begin at `start`.
 		///
-		/// The only way out of [`MigrationStage::Pending`] other than `force_set_stage`, and the
-		/// governance call that commits to a migration.
+		/// The only way out of [`MigrationStage::Pending`] other than `force_set_stage`.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start: BlockNumberFor<T>,
@@ -199,9 +196,8 @@ pub mod pallet {
 
 		/// Set the migration stage directly.
 		///
-		/// The escape hatch for everything the machine cannot recover from itself: a lost message,
-		/// a stage that needs re-running, or a halt. Deliberately unconstrained — a machine that
-		/// second-guesses root here is one that cannot be rescued.
+		/// Root-only escape hatch for a lost message or a stage that needs re-running; deliberately
+		/// unconstrained.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
@@ -213,9 +209,8 @@ pub mod pallet {
 
 		/// The Coretime chain confirms that it can receive migrated state.
 		///
-		/// Sent by `pallet-ct-migrator` in response to [`CtMigratorCall::StartMigration`]. Until
-		/// it arrives nothing is drained, so a Coretime chain that never upgraded cannot be
-		/// migrated into.
+		/// Sent by `pallet-ct-migrator` in response to [`CtMigratorCall::StartMigration`]. Nothing
+		/// is drained before it arrives.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResult {
@@ -225,8 +220,6 @@ pub mod pallet {
 				Error::<T>::NotWaitingForCt
 			);
 
-			// Readiness admits the machine to the first data stage. With none implemented, that
-			// is the cool-off.
 			let end_at = frame_system::Pallet::<T>::block_number() + T::CoolOffPeriod::get();
 			Self::transition(MigrationStage::CoolOff { end_at });
 			Ok(())
@@ -236,30 +229,28 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// One block of the stage machine.
 		///
-		/// A stage whose XCM send fails is left in place, so the same step is retried next block.
-		/// That is the whole retry story on purpose: XCM delivery is assumed reliable, and the
-		/// cases it does not cover are `force_set_stage`'s.
+		/// A stage whose XCM send fails is left in place and retried next block. Anything that does
+		/// not cover is for `force_set_stage`.
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			match RcMigrationStage::<T>::get() {
 				MigrationStage::Scheduled { start } if now >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);
 					}
-					T::DbWeight::get().reads_writes(1, 1)
+					T::DbWeight::get().reads_writes(3, 3)
 				},
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
 					if Self::send_to_ct(CtMigratorCall::FinishMigration).is_ok() {
 						Self::transition(MigrationStage::MigrationDone);
 					}
-					T::DbWeight::get().reads_writes(1, 1)
+					T::DbWeight::get().reads_writes(3, 3)
 				},
 				_ => T::DbWeight::get().reads(1),
 			}
 		}
 
 		pub(crate) fn transition(new: MigrationStageOf<T>) {
-			let old = RcMigrationStage::<T>::get();
-			RcMigrationStage::<T>::put(new.clone());
+			let old = RcMigrationStage::<T>::mutate(|stage| core::mem::replace(stage, new.clone()));
 			log::info!(target: LOG_TARGET, "Stage transition: {old:?} -> {new:?}");
 			Self::deposit_event(Event::StageTransition { old, new });
 		}

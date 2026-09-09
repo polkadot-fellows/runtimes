@@ -34,10 +34,8 @@ pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-broker = { workspace = true }
-# AHM v2 migration wiring, opt-in via the `ahm-v2` feature: the migrator's storage layout is
-# still changing, so it is deliberately absent from released runtimes. Not `optional`,
-# because `construct_runtime!` needs the crate path to resolve even where the feature gates
-# the pallet out; with the feature off nothing instantiates it, so it adds no code.
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`. Not `optional`: `construct_runtime!` needs
+# the crate path to resolve even when the feature gates the pallet out.
 pallet-ct-migrator = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-proxy = { workspace = true }
@@ -84,6 +82,7 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 
 [dev-dependencies]
+pallet-rc2-migrator = { workspace = true, default-features = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]
@@ -196,6 +195,7 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks"
 ]
 
 try-runtime = [
@@ -229,6 +229,7 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
 	"system-parachains-constants/try-runtime",
+	"pallet-rc2-migrator/try-runtime"
 ]
 
 fast-runtime = ["polkadot-runtime-constants/fast-runtime"]
