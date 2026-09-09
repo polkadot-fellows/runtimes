@@ -90,21 +90,14 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Empty the configured leftover pots.
+	/// Empty the configured leftover pots (eg: treasury, on-demand, acf)
 	Sweep,
 	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
 	///
 	/// Separate from, and downstream of, the accounts stage on purpose:
-	/// - most of what it reaps does not exist until the earlier stages have run. Draining an
-	///   account that a consumer reference forbids reaping leaves a zero-balance shell, and
-	///   [`Self::Sweep`] turns every emptied pot into another one.
+	/// - most of what it reaps does not exist until the earlier stages have run.
 	/// - [`Self::TiCorrection`] burns the issuance no account holds, which is only a safe
 	///   assumption once this has run. It reads this stage's output.
-	/// - reaping is idempotent, so this stage can be re-run with `force_set_stage`. The accounts
-	///   stage burns balances and sends XCM, so it cannot.
-	///
-	/// Cursored because the accounts stage skips every below-ED record, so this walks most of the
-	/// account map. Both stages exclude sovereign and module accounts by the same prefix list.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},
@@ -130,18 +123,15 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 
 /// Calls on the Coretime chain, as this chain must encode them.
 ///
-/// The indices are `CtMigrator`'s pallet index in the Coretime `construct_runtime!` and the
-/// `#[pallet::call_index]`es in `pallet-ct-migrator`. The compiler checks none of this; the
-/// integration tests decode these against the real Coretime `RuntimeCall`, which is why they are
-/// public.
+/// The indices are `CtMigrator`'s pallet index in the Coretime Chain and the
+/// `#[pallet::call_index]`es in `pallet-ct-migrator`.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum CtRuntimeCall {
 	#[codec(index = 100)]
 	CtMigrator(CtMigratorCall),
 }
 
-/// `CtMigrator`'s pallet index in the Coretime `construct_runtime!`, as encoded above. Each
-/// Coretime runtime asserts its real index against this in its own tests.
+/// `CtMigrator`'s pallet index in the Coretime chain, as encoded above.
 pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
 
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
@@ -168,8 +158,8 @@ pub mod pallet {
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
 
-		/// Wall clock the schedule is compared against. Governance picks a date, not a block
-		/// height, so that a schedule set weeks ahead does not drift with block times.
+		/// Wall clock the schedule is compared against. This avoids a schedule set weeks ahead to
+		/// drift with block times.
 		type TimeProvider: Time;
 
 		/// The origin the Coretime chain's messages dispatch with here. Only it may confirm
