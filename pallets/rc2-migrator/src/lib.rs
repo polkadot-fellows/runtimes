@@ -15,10 +15,9 @@
 
 //! Relay-chain side of the AHM v2 migration.
 //!
-//! Drives the migration stage machine: drains the relay chain's remaining state and sends it to
-//! the counterpart `pallet-ct-migrator` on the Coretime chain and (teleports) to Asset Hub.
-//!
-//! The machine is inert until governance schedules it.
+//! Drives the migration stage machine: drains legacy `paras_registrar` and `hrmp` state together
+//! with their deposits and sends everything to the counterpart `pallet-ct-migrator` over XCM.
+//! Temporary pallet; removed once the migration is complete.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -62,7 +61,7 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Halts the machine without ending the migration. Entered and left only via
 	/// [`Pallet::force_set_stage`].
 	Paused,
-	/// Start signal sent, confirmation from the Coretime chain not yet received.
+	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
 	WaitingForCt,
 	/// Account balances, their reserves, and the holds those reserves become.
 	AccountsInit,
@@ -97,7 +96,7 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Separate from, and downstream of, the accounts stage on purpose:
 	/// - most of what it reaps does not exist until the earlier stages have run.
 	/// - [`Self::TiCorrection`] burns the issuance no account holds, which is only a safe
-	///   assumption once this has run. It reads this stage's output.
+	///   assumption once this has run. It will read this stage's output.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},
@@ -162,12 +161,10 @@ pub mod pallet {
 		/// drift with block times.
 		type TimeProvider: Time;
 
-		/// The origin the Coretime chain's messages dispatch with here. Only it may confirm
-		/// readiness.
+		/// The origin the Coretime chain's messages dispatch with here.
 		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing, so the end
-		/// state can be verified first.
+		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing.
 		type CoolOffPeriod: Get<BlockNumberFor<Self>>;
 	}
 
@@ -224,8 +221,7 @@ pub mod pallet {
 
 		/// Set the migration stage directly.
 		///
-		/// Root-only escape hatch for a lost message or a stage that needs re-running; deliberately
-		/// unconstrained.
+		/// Root-only escape hatch for a lost message or a stage that needs re-running.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
@@ -256,15 +252,12 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		/// One block of the stage machine.
-		///
-		/// The scheduled start is compared against the clock, which at `on_initialize` still holds
-		/// the previous block's timestamp — so the migration begins on the first block *after* the
-		/// one whose timestamp passed `start`.
-		///
-		/// A stage whose XCM send fails is left in place and retried next block. Anything that does
-		/// not cover is for `force_set_stage`.
+		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			match RcMigrationStage::<T>::get() {
+			    // The scheduled start is compared against the clock, which at `on_initialize` still holds
+				// the previous block's timestamp -- so the migration begins on the first block after the
+				// one whose timestamp passed `start`.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);
