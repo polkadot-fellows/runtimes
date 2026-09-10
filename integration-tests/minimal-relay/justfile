@@ -1,98 +1,133 @@
 # Minimal Relay migration test harness.
 #
-# `just test` is the only command you need: it fetches any missing snapshot and runs the suite.
+# `just test` is the only command you need: it makes sure the snapshots exist and runs the suite.
+#
+# On snapshots: the fellowship CI keeps a fresh snapshot of every chain, but as an Actions *cache*,
+# which nothing outside a workflow run can download. `check-migrations.yml` uploads it as an
+# artifact only on a non-schedule run that missed that cache, and keeps it for a day -- so in
+# practice there is no artifact to fetch and `just snapshots` will tell you to scrape RPC instead.
+# TODO: host the snapshots somewhere easy to download, or add a workflow that re-uploads the
+# cached ones as long-retention artifacts, and make that the default path.
 
 snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots")
 repo := "polkadot-fellows/runtimes"
 workflow := "check-migrations.yml"
 
-# "<file key> <runtime name in CI matrix> <RPC endpoint>" per line.
-# Endpoints must stay in sync with `Chain::rpc()` in src/mock.rs.
+# "<file key> <runtime name in the CI matrix> <RPC endpoint>" per line. The file key is also the
+# snapshot file name (`snap_<key>.snap`). Endpoints must stay in sync with `network::*_RPC` in
+# src/mock.rs.
 chains := "
 rc polkadot wss://try-runtime.polkadot.io:443
 ah asset-hub-polkadot wss://polkadot-asset-hub-rpc.polkadot.io:443
 ct coretime-polkadot wss://polkadot-coretime-rpc.polkadot.io:443
 "
 
+chains_kusama := "
+rc_ksm kusama wss://kusama-try-runtime-node.parity-chains.parity.io:443
+ah_ksm asset-hub-kusama wss://kusama-asset-hub-rpc.polkadot.io:443
+ct_ksm coretime-kusama wss://kusama-coretime-rpc.polkadot.io:443
+"
+
 default: test
 
-# Run the suite against Kusama. Same tests, `--features kusama` swaps which runtimes they bind to.
-test-kusama *args:
-	SNAP_RC="{{ snap_dir }}/snap_rc_ksm.snap" \
-	SNAP_AH="{{ snap_dir }}/snap_ah_ksm.snap" \
-	SNAP_CT="{{ snap_dir }}/snap_ct_ksm.snap" \
-		cargo test -p polkadot-integration-tests-minimal-relay --features kusama {{ args }}
-
-# Run the integration tests, fetching missing snapshots first. Extra args go to `cargo test`.
-test *args: _ensure-snapshots
+# Run the integration tests, checking the snapshots exist first. Extra args go to `cargo test`.
+test *args: (_ensure chains "rc ah ct")
 	SNAP_RC="{{ snap_dir }}/snap_rc.snap" \
 	SNAP_AH="{{ snap_dir }}/snap_ah.snap" \
 	SNAP_CT="{{ snap_dir }}/snap_ct.snap" \
 		cargo test -p polkadot-integration-tests-minimal-relay {{ args }}
 
+# Run the suite against Kusama. Same tests, `--features kusama` swaps which runtimes they bind to.
+test-kusama *args: (_ensure chains_kusama "rc_ksm ah_ksm ct_ksm")
+	SNAP_RC="{{ snap_dir }}/snap_rc_ksm.snap" \
+	SNAP_AH="{{ snap_dir }}/snap_ah_ksm.snap" \
+	SNAP_CT="{{ snap_dir }}/snap_ct_ksm.snap" \
+		cargo test -p polkadot-integration-tests-minimal-relay --features kusama {{ args }}
+
 # Only `full_migration_rc_to_ct` emits a complete stream (pre-facts + before/after census);
 # running the whole suite with AHM_EVENTS set would interleave parallel tests into the file.
 
 # Regenerate the migration-monitor event stream (runs only the full-migration test).
-events out="events.jsonl": _ensure-snapshots
+events out="events.jsonl": (_ensure chains "rc ah ct")
 	SNAP_RC="{{ snap_dir }}/snap_rc.snap" \
 	SNAP_AH="{{ snap_dir }}/snap_ah.snap" \
 	SNAP_CT="{{ snap_dir }}/snap_ct.snap" \
 	AHM_EVENTS="{{ absolute_path(out) }}" \
 		cargo test -p polkadot-integration-tests-minimal-relay full_migration_rc_to_ct
 
-# TODO: Host the snapshots somewhere easy to download and fetch from there instead.
-
-# Download fresh snapshots from the daily `Check Migrations` CI artifacts (needs `gh` auth).
-# With no arguments all chains are re-downloaded; pass keys (e.g. `just snapshots ct`) to limit it.
-snapshots *keys="rc ah ct":
-	#!/usr/bin/env bash
-	set -euo pipefail
-	mkdir -p "{{ snap_dir }}"
-	# Artifacts are only guaranteed on scheduled runs (PR runs reuse a cache and skip the upload).
-	run_id=$(gh run list --repo {{ repo }} --workflow {{ workflow }} --status success --limit 20 \
-		--json databaseId,event --jq '[.[] | select(.event == "schedule")][0].databaseId')
-	if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
-		echo "No successful scheduled '{{ workflow }}' run found on {{ repo }}; try 'just snapshots-from-rpc'." >&2
-		exit 1
-	fi
-	while read -r key name _uri; do
-		[ -z "$key" ] && continue
-		case " {{ keys }} " in *" $key "*) ;; *) continue ;; esac
-		tmp=$(mktemp -d)
-		echo "Downloading try-runtime-snapshot-$name from CI run $run_id..."
-		gh run download "$run_id" --repo {{ repo }} --name "try-runtime-snapshot-$name" --dir "$tmp"
-		mv "$tmp/snapshot.raw" "{{ snap_dir }}/snap_$key.snap"
-		rmdir "$tmp"
-	done <<< "{{ chains }}"
-	ls -lh "{{ snap_dir }}"/snap_*.snap
+# Try to download snapshots from `Check Migrations` CI artifacts (needs `gh` auth). Usually there
+# are none to download -- see the note at the top of this file -- and then this says so and exits.
+# With no arguments all chains are attempted; pass keys (e.g. `just snapshots ct`) to limit it.
+snapshots *keys="rc ah ct": (_download chains keys)
+snapshots-kusama *keys="rc_ksm ah_ksm ct_ksm": (_download chains_kusama keys)
 
 # Needs the try-runtime CLI: https://github.com/paritytech/try-runtime-cli
 
-# Create snapshots by scraping public RPC nodes; no auth needed but slow for Asset Hub (~4 GB).
-snapshots-from-rpc:
+# Create snapshots by scraping public RPC nodes; no auth needed but slow for Asset Hub (~3 GB).
+# This is the path that always works.
+snapshots-from-rpc *keys="rc ah ct": (_scrape chains keys)
+snapshots-from-rpc-kusama *keys="rc_ksm ah_ksm ct_ksm": (_scrape chains_kusama keys)
+
+_download table keys:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	mkdir -p "{{ snap_dir }}"
+	runs=$(gh run list --repo {{ repo }} --workflow {{ workflow }} --status success --limit 20 \
+		--json databaseId --jq '.[].databaseId')
+	while read -r key name _uri; do
+		[ -z "$key" ] && continue
+		case " {{ keys }} " in *" $key "*) ;; *) continue ;; esac
+		artifact="try-runtime-snapshot-$name"
+		# Artifacts live for a day and only appear on some runs, so search back through them.
+		found=""
+		for run in $runs; do
+			if gh api "repos/{{ repo }}/actions/runs/$run/artifacts" --jq '.artifacts[].name' \
+				| grep -qx "$artifact"; then found=$run; break; fi
+		done
+		if [ -z "$found" ]; then
+			echo "No '$artifact' artifact in the last 20 successful '{{ workflow }}' runs." >&2
+			echo "That is the normal case: CI keeps snapshots as an Actions cache, which is not" >&2
+			echo "downloadable, and uploads an artifact only on a cache-miss PR run (1 day)." >&2
+			echo "Scrape it from RPC instead:  just snapshots-from-rpc $key" >&2
+			exit 1
+		fi
+		tmp=$(mktemp -d)
+		echo "Downloading $artifact from CI run $found..."
+		gh run download "$found" --repo {{ repo }} --name "$artifact" --dir "$tmp"
+		mv "$tmp/snapshot.raw" "{{ snap_dir }}/snap_$key.snap"
+		rmdir "$tmp"
+	done <<< "{{ table }}"
+	ls -lh "{{ snap_dir }}"/snap_*.snap
+
+_scrape table keys:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	mkdir -p "{{ snap_dir }}"
 	while read -r key _name uri; do
 		[ -z "$key" ] && continue
+		case " {{ keys }} " in *" $key "*) ;; *) continue ;; esac
 		# `--uri=` (with equals sign) is required; with a space, the greedy multi-value flag
 		# swallows the snapshot path argument.
 		try-runtime create-snapshot "--uri=$uri" "{{ snap_dir }}/snap_$key.snap"
-	done <<< "{{ chains }}"
+	done <<< "{{ table }}"
 	ls -lh "{{ snap_dir }}"/snap_*.snap
 
-# Download only the snapshots that are missing, so one deleted file does not force a
-# re-download of the others (the AH artifact is multi-GB).
-_ensure-snapshots:
+# Report which snapshots are missing rather than downloading multi-GB files behind the developer's
+# back: the only reliable source is an RPC scrape that takes hours for Asset Hub.
+_ensure table keys:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	missing=""
 	while read -r key _rest; do
 		[ -z "$key" ] && continue
+		case " {{ keys }} " in *" $key "*) ;; *) continue ;; esac
 		[ -f "{{ snap_dir }}/snap_$key.snap" ] || missing="$missing $key"
-	done <<< "{{ chains }}"
+	done <<< "{{ table }}"
 	if [ -n "$missing" ]; then
-		echo "Missing snapshots in {{ snap_dir }}:$missing -- fetching from CI..."
-		just --justfile "{{ justfile() }}" snapshots $missing
+		echo "Missing snapshots in {{ snap_dir }}:$missing" >&2
+		echo "Get them with one of:" >&2
+		echo "  just snapshots$missing            # from CI artifacts, if any exist today" >&2
+		echo "  just snapshots-from-rpc$missing   # from public RPC, slow but always works" >&2
+		echo "Already have them elsewhere? Point SNAP_DIR at that directory." >&2
+		exit 1
 	fi

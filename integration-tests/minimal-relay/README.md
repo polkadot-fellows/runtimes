@@ -14,18 +14,30 @@ This is the successor of the AHM v1 harness (`integration-tests/ahm` on the
 
 ```bash
 cd integration-tests/minimal-relay
-just test
+just test                  # Polkadot; extra args go to cargo test, e.g. `just test rc_and_coretime`
+just test-kusama           # same tests bound to the Kusama runtimes
 ```
 
-That is all: it downloads any missing snapshot and runs the test suite. Extra arguments are
-passed through to `cargo test` (e.g. `just test rc_and_coretime`). See `just --list` for all
-recipes.
+Both need the three snapshots present first. `just --list` shows all recipes.
 
-Snapshots land in `integration-tests/minimal-relay/snapshots/` (gitignored; override with
-`SNAP_DIR`) and are kept until you delete them or re-run `just snapshots` -- freshness rarely
-matters during development, so don't re-download per run. They come from the daily 
-`Check Migrations` CI artifacts of this repo (needs an authenticated `gh` CLI); 
-`just snapshots-from-rpc` scrapes public RPC nodes instead, which is slow for Asset Hub (~4 GB).
+### Getting the snapshots
+
+```bash
+just snapshots-from-rpc            # scrapes public RPC nodes: slow (AH is ~3 GB) but always works
+just snapshots-from-rpc-kusama
+just snapshots                     # tries the CI artifacts; see below, usually there are none
+```
+
+Snapshots land in `integration-tests/minimal-relay/snapshots/` (gitignored) as `snap_{rc,ah,ct}.snap`
+and `snap_{rc,ah,ct}_ksm.snap`. Set `SNAP_DIR` to keep them elsewhere -- worth doing, so several
+checkouts share one copy. Freshness rarely matters during development, so don't re-download per run.
+
+The fellowship CI does snapshot every chain daily, but it stores them as an Actions *cache*, which
+nothing outside a workflow run can download. `check-migrations.yml` uploads a snapshot as an
+artifact only on a run that missed that cache and is neither a schedule nor a dispatch, with one
+day of retention -- so on any given day there is usually nothing to fetch and `just snapshots`
+will say so and point you at the RPC scrape. Hosting the snapshots somewhere fetchable, or adding
+a workflow that re-uploads the cached ones as long-retention artifacts, is the fix.
 
 To run against specific snapshot files, bypass the justfile:
 

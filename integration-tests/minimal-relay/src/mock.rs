@@ -178,10 +178,10 @@ impl Chain {
 	fn missing_snapshot_help(self) -> String {
 		format!(
 			"\n\nSnapshot for the {} chain is missing or unreadable.\n\
-			Run `just snapshots` in integration-tests/minimal-relay to download all three chains\n\
-			from the fellowship CI (or `just test`, which fetches them automatically).\n\
-			Alternatively create this one from an RPC node and point the {} env var at it:\n\n    \
-			try-runtime create-snapshot --uri={} {}.snap\n",
+			Create it from an RPC node and point the {} env var at it:\n\n    \
+			try-runtime create-snapshot --uri={} {}.snap\n\n\
+			`just snapshots-from-rpc` in integration-tests/minimal-relay does this for all three\n\
+			chains. See the README for why the CI artifacts are usually not an option.\n",
 			self.name(),
 			self.snap_env(),
 			self.rpc(),
