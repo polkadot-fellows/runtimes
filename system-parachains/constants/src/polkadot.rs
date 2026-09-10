@@ -38,6 +38,9 @@ pub mod account {
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
+	/// Accumulate-and-forward pallet ID. Derives the account on the Coretime chain that gathers
+	/// coretime revenue before it is forwarded to the DAP on Asset Hub.
+	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/dott");
 }
 
 /// Consensus-related.
@@ -142,7 +145,8 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::{parameter_types, traits::Contains};
-	use xcm::latest::prelude::{Junction::*, Location, NetworkId};
+	use sp_runtime::traits::AccountIdConversion;
+	use xcm::latest::prelude::{InteriorLocation, Junction::*, Location, NetworkId};
 
 	parameter_types! {
 		pub RelayChainLocation: Location = Location::parent();
@@ -154,6 +158,14 @@ pub mod locations {
 		pub GovernanceLocation: Location = Location::parent();
 
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+
+		/// The DAP staging account on Asset Hub. `pallet-dap` drains it into the DAP buffer and
+		/// deactivates the funds, so inflows meant for the DAP must target this account.
+		pub DapStagingLocation: InteriorLocation = AccountId32 {
+			network: None,
+			id: sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
+		}
+		.into();
 	}
 
 	/// `Contains` implementation for the asset hub location pluralities.
