@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Coretime Polkadot & Kusama, Asset Hub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue, and now also dust from reaped accounts, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants system-chain accumulation accounts free execution. Asset Hub Polkadot must be upgraded before Coretime Polkadot, otherwise the forwards are rejected and the teleported DOT is lost. Kusama teleports it to Asset Hub and burns it there, since KSM issuance is tracked on Asset Hub. A migration retires the `py/ctbrn` holding account on Coretime Polkadot. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
+
 ## [2.5.0] 01.09.2026
 
 ### Added
