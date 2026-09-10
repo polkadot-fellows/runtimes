@@ -37,9 +37,8 @@ through to `cargo test` (e.g. `just test rc_and_coretime`). Snapshot creation ne
 
 Snapshots land in `snapshots/<network>/` (gitignored; override with `SNAP_DIR`) and are kept until
 you delete them, so development does not re-create them per run — point `SNAP_DIR` at snapshots
-you already have rather than scraping again. Endpoints are overridable with `RC_URI` / `CT_URI`;
-the Kusama relay default is reachable only from inside Parity's network, so supply your own or
-bring an existing snapshot.
+you already have rather than scraping again. The default endpoints are public; override them with
+`RC_URI` / `CT_URI` to scrape from your own nodes.
 
 There is deliberately no CI workflow for this suite: it needs multi-hundred-MB snapshots of live
 chains, and while the migration is under construction no pull request can break it. It runs
