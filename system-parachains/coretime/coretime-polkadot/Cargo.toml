@@ -181,6 +181,7 @@ runtime-benchmarks = [
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
@@ -198,7 +199,6 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-rc2-migrator/runtime-benchmarks"
 ]
 
 try-runtime = [
@@ -222,6 +222,7 @@ try-runtime = [
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
@@ -233,7 +234,6 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
 	"system-parachains-constants/try-runtime",
-	"pallet-rc2-migrator/try-runtime"
 ]
 
 fast-runtime = ["polkadot-runtime-constants/fast-runtime"]

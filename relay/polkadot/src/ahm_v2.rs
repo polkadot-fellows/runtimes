@@ -47,7 +47,6 @@ impl pallet_rc2_migrator::Config for Runtime {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use frame_support::traits::PalletInfoAccess;
 
 	/// `pallet-ct-migrator` hand-encodes this pallet's index; the compiler checks none of it.

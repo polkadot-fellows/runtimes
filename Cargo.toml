@@ -330,6 +330,7 @@ resolver = "2"
 
 members = [
 	"chain-spec-generator",
+	"integration-tests/ahmv2",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
@@ -361,7 +362,6 @@ members = [
 	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
-	"integration-tests/ahmv2",
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
 	"pallets/ct-migrator",

@@ -29,13 +29,13 @@ sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
 xcm = { workspace = true, default-features = true }
 
-coretime-polkadot-runtime = { workspace = true, default-features = true, features = ["ahm-v2"] }
-polkadot-runtime = { workspace = true, default-features = true, features = ["ahm-v2"] }
+coretime-polkadot-runtime = { workspace = true, features = ["ahm-v2"] }
+polkadot-runtime = { workspace = true, features = ["ahm-v2"] }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 
 # Only compiled with the `kusama` feature, so the default build pulls in one set of runtimes.
-coretime-kusama-runtime = { workspace = true, default-features = true, optional = true, features = ["ahm-v2"] }
-kusama-runtime = { workspace = true, default-features = true, optional = true, features = ["ahm-v2"] }
+coretime-kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
+kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
 kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
 
 [features]

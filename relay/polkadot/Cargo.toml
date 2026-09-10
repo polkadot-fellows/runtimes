@@ -257,6 +257,7 @@ runtime-benchmarks = [
 	"pallet-broker/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
@@ -299,7 +300,6 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-ct-migrator/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",
@@ -323,6 +323,7 @@ try-runtime = [
 	"pallet-broker/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-ct-migrator/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",
@@ -352,7 +353,6 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-ct-migrator/try-runtime"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
