@@ -255,9 +255,9 @@ pub mod pallet {
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			match RcMigrationStage::<T>::get() {
-			    // The scheduled start is compared against the clock, which at `on_initialize` still holds
-				// the previous block's timestamp -- so the migration begins on the first block after the
-				// one whose timestamp passed `start`.
+				// The scheduled start is compared against the clock, which at `on_initialize` still
+				// holds the previous block's timestamp -- so the migration begins on the first
+				// block after the one whose timestamp passed `start`.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);
