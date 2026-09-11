@@ -124,12 +124,6 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-runtime-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Download frame-omni-bencher
         run: |
           curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
@@ -229,12 +223,6 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p "$PACKAGE" --release --locked -q
         env:
@@ -272,12 +260,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-chain-spec-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
@@ -317,12 +299,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
         run: |
@@ -370,12 +346,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-build-runtimes-test"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build runtime ${{ matrix.runtime.name }}
         env:
@@ -453,20 +423,64 @@ jobs:
           WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
           echo "WASM: $WASM"
 
-          # Try each RPC with a timeout to handle unreachable endpoints
-          # (check-runtime hangs indefinitely on unreachable RPCs).
+          # Probe each endpoint before starting check-runtime. The checker boots a Chopsticks
+          # fork and executes an upgrade block, so its timeout must also accommodate migrations.
           readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
           for URI in "${URIS[@]}"; do
             echo "Trying $URI..."
+
+            if ! RPC_URI="$URI" timeout 15 node <<'NODE'
+          const socket = new WebSocket(process.env.RPC_URI);
+          let settled = false;
+          const finish = (code, message) => {
+            if (settled) return;
+            settled = true;
+            if (message) console.error(message);
+            try { socket.close(); } catch {}
+            process.exit(code);
+          };
+          const timer = setTimeout(
+            () => finish(1, "Timed out waiting for an RPC response"),
+            10_000,
+          );
+
+          socket.addEventListener("open", () => {
+            socket.send(JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "chain_getFinalizedHead",
+              params: [],
+            }));
+          });
+          socket.addEventListener("message", ({ data }) => {
+            const response = JSON.parse(data.toString());
+            if (response.id !== 1) return;
+            clearTimeout(timer);
+            if (response.result) finish(0);
+            else finish(1, `RPC returned an error: ${JSON.stringify(response.error)}`);
+          });
+          socket.addEventListener("error", () =>
+            finish(1, "WebSocket connection failed"),
+          );
+          socket.addEventListener("close", () =>
+            finish(1, "WebSocket closed before returning an RPC response"),
+          );
+          NODE
+            then
+              echo "RPC probe failed for $URI, trying next..."
+              continue
+            fi
+            echo "RPC probe succeeded for $URI"
+
             set +e
-            timeout 360 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            timeout 900 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
             EXIT_CODE=$?
             set -e
             if [ $EXIT_CODE -eq 0 ]; then
               exit 0
             # When the time limit is reached, timeout returns exit code 124
             elif [ $EXIT_CODE -eq 124 ]; then
-              echo "Timed out on $URI, trying next..."
+              echo "Runtime check timed out on $URI, trying next..."
               continue
             else
               # Otherwise, it returns the exit status of the managed command
@@ -545,6 +559,7 @@ jobs:
               - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
               - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
               - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "bulletin-polkadot",    pet_key: "bulletinPolkadot",     port: 9006, endpoint_var: "BULLETINPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:

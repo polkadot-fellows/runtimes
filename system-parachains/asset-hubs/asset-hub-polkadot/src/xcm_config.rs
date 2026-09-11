@@ -20,8 +20,9 @@ use super::{
 	treasury, AccountId, AllExceptReapStash, AllPalletsWithSystem, AssetConversion, Assets,
 	Balance, Balances, DotWeightToFee as WeightToFee, FellowshipAdmin, ForeignAssets, GeneralAdmin,
 	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	StakingAdmin, ToKusamaXcmRouter, Treasurer, XcmpQueue,
+	PriceForParentDelivery, ProsperityEmergency, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, StakingAdmin, TechnicalMaintenance, ToKusamaXcmRouter,
+	Treasurer, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -45,14 +46,14 @@ use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
 	RelayOrOtherSystemParachains,
 };
-use polkadot_parachain_primitives::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::{IsSystem, Sibling};
 use polkadot_runtime_constants::{
 	fellowship::{IsFellowshipVoice, ARCHITECTS_RANK},
 	system_parachain,
-	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	xcm::body::{FELLOWSHIP_ADMIN_INDEX, PROSPERITY_EMERGENCY_INDEX, TECHNICAL_MAINTENANCE_INDEX},
 };
 use snowbridge_outbound_queue_primitives::v2::exporter::PausableExporter;
-use sp_runtime::traits::TryConvertInto;
+use sp_runtime::traits::{AccountIdConversion, TryConvertInto};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -71,6 +72,7 @@ use xcm_builder::{
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 use crate::staking::DapStagingAccount;
+use system_parachains_constants::polkadot::account::ACCUMULATE_FORWARD_PALLET_ID;
 pub use system_parachains_constants::polkadot::locations::{AssetHubLocation, RelayChainLocation};
 
 parameter_types! {
@@ -369,6 +371,28 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
+/// The `pallet-accumulate-and-forward` account on the relay chain or on a sibling system parachain.
+pub struct SystemChainAccumulationAccounts;
+impl Contains<Location> for SystemChainAccumulationAccounts {
+	fn contains(location: &Location) -> bool {
+		let accumulation_account: [u8; 32] = ACCUMULATE_FORWARD_PALLET_ID.into_account_truncating();
+		match location.unpack() {
+			(1, [AccountId32 { id, .. }]) => *id == accumulation_account,
+			(1, [Parachain(id), AccountId32 { id: account_id, .. }]) =>
+				ParaId::from(*id).is_system() &&
+					matches!(
+						*id,
+						system_parachain::COLLECTIVES_ID |
+							system_parachain::BRIDGE_HUB_ID |
+							system_parachain::PEOPLE_ID |
+							system_parachain::BROKER_ID |
+							system_parachain::BULLETIN_ID
+					) && *account_id == accumulation_account,
+			_ => false,
+		}
+	}
+}
+
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -393,6 +417,9 @@ pub type Barrier = TrailingSetTopicAsId<
 							Equals<bridging::SiblingBridgeHub>,
 							AmbassadorEntities,
 							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
+							// System chains forward their burns to the DAP staging account without
+							// paying fees.
+							SystemChainAccumulationAccounts,
 						),
 						// Barriers run before any fee is taken: this must stay computation-only.
 						// Do not pass `TrustedAliasers` here.
@@ -540,6 +567,10 @@ parameter_types! {
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 	// `Treasurer` pluralistic body.
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
+	// `TechnicalMaintenance` pluralistic body.
+	pub const TechnicalMaintenanceBodyId: BodyId = BodyId::Index(TECHNICAL_MAINTENANCE_INDEX);
+	// `ProsperityEmergency` pluralistic body.
+	pub const ProsperityEmergencyBodyId: BodyId = BodyId::Index(PROSPERITY_EMERGENCY_INDEX);
 }
 
 /// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
@@ -557,6 +588,14 @@ pub type FellowshipAdminToPlurality =
 /// Type to convert the `Treasurer` origin to a Plurality `Location` value.
 pub type TreasurerToPlurality = OriginToPluralityVoice<RuntimeOrigin, Treasurer, TreasurerBodyId>;
 
+/// Type to convert the `TechnicalMaintenance` origin to a Plurality `Location` value.
+pub type TechnicalMaintenanceToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, TechnicalMaintenance, TechnicalMaintenanceBodyId>;
+
+/// Type to convert the `ProsperityEmergency` origin to a Plurality `Location` value.
+pub type ProsperityEmergencyToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, ProsperityEmergency, ProsperityEmergencyBodyId>;
+
 /// Converts a local signed origin into an XCM `Location`.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
@@ -572,6 +611,12 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	FellowshipAdminToPlurality,
 	// `Treasurer` origin to be used in XCM as a corresponding Plurality `Location` value.
 	TreasurerToPlurality,
+	// `TechnicalMaintenance` origin to be used in XCM as a corresponding Plurality `Location`
+	// value.
+	TechnicalMaintenanceToPlurality,
+	// `ProsperityEmergency` origin to be used in XCM as a corresponding Plurality `Location`
+	// value.
+	ProsperityEmergencyToPlurality,
 	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>,
 );
@@ -866,4 +911,35 @@ fn foreign_pallet_has_correct_local_account() {
 	let polkadot = Ss58AddressFormat::try_from("polkadot").unwrap();
 	let address = Ss58Codec::to_ss58check_with_version(&account, polkadot);
 	assert_eq!(address, "13w7NdvSR1Af8xsQTArDtZmVvjE8XhWNdL4yed3iFHrUNCnS");
+}
+
+#[test]
+fn system_chain_accumulation_accounts_match_only_forwarder_origins() {
+	use polkadot_parachain_primitives::primitives::LOWEST_PUBLIC_ID;
+	use system_parachain::{BRIDGE_HUB_ID, BROKER_ID, BULLETIN_ID, COLLECTIVES_ID, PEOPLE_ID};
+
+	let account: [u8; 32] = ACCUMULATE_FORWARD_PALLET_ID.into_account_truncating();
+	let on_parachain =
+		|para_id, id| Location::new(1, [Parachain(para_id), AccountId32 { network: None, id }]);
+
+	// The relay chain and every system parachain that forwards its burns.
+	assert!(SystemChainAccumulationAccounts::contains(&Location::new(
+		1,
+		[AccountId32 { network: None, id: account }]
+	)));
+	for para_id in [COLLECTIVES_ID, BRIDGE_HUB_ID, PEOPLE_ID, BROKER_ID, BULLETIN_ID] {
+		assert!(SystemChainAccumulationAccounts::contains(&on_parachain(para_id, account)));
+	}
+	// Another account on a system chain.
+	assert!(!SystemChainAccumulationAccounts::contains(&on_parachain(BROKER_ID, [0u8; 32])));
+	// The accumulation account on a non-system parachain.
+	assert!(!SystemChainAccumulationAccounts::contains(&on_parachain(
+		LOWEST_PUBLIC_ID.into(),
+		account
+	)));
+	// The accumulation account as a local origin.
+	assert!(!SystemChainAccumulationAccounts::contains(&Location::new(
+		0,
+		[AccountId32 { network: None, id: account }]
+	)));
 }

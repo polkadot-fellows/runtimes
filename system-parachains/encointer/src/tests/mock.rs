@@ -127,6 +127,7 @@ impl pallet_assets::Config for Test {
 	type RemoveItemsLimit = RemoveItemsLimit;
 	type AssetIdParameter = AssetIdForAssets;
 	type CallbackHandle = ();
+	type AssetIdAllocator = ();
 	type Holder = ();
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]

@@ -19,12 +19,23 @@ use super::*;
 
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
+	// xcmp-queue storage v6 -> v7 (SDK stable2606-1).
 	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 );
 
+/// Migrations/checks that do not need to be versioned and can run on every update.
+pub type Permanent = (
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
+	// Idempotent: initializes `RetentionPeriod` when zero, a no-op once set.
+	pallet_bulletin_transaction_storage::migrations::SetRetentionPeriodIfZero<
+		Runtime,
+		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,
+	>,
+);
+
 /// All single block migrations that will run on the next runtime upgrade.
-pub type SingleBlockMigrations = Unreleased;
+pub type SingleBlockMigrations = (Unreleased, Permanent);
 
 /// MBM migrations to apply on runtime upgrade.
 pub type MbmMigrations = ();

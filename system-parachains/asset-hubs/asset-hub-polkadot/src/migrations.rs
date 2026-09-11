@@ -14,7 +14,9 @@
 // limitations under the License.
 
 //! The runtime migrations per release.
-use crate::Runtime;
+use crate::{Runtime, TrustBackedAssetsInstance};
+#[cfg(feature = "try-runtime")]
+use alloc::vec::Vec;
 use frame_support::parameter_types;
 
 /// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
@@ -66,6 +68,7 @@ parameter_types! {
 
 parameter_types! {
 	pub const AhMigratorPalletName: &'static str = "AhMigrator";
+	pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 }
 
 pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
@@ -73,6 +76,13 @@ pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 	<Runtime as frame_system::Config>::DbWeight,
 >;
 
+/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Asset Hub
+/// Polkadot is complete and the pallet has been removed from the runtime, see
+/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+	StateTrieMigrationName,
+	<Runtime as frame_system::Config>::DbWeight,
+>;
 /// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
 /// from the previous account derivation to the new one introduced by
 /// <https://github.com/paritytech/polkadot-sdk/pull/11052>.
@@ -146,6 +156,75 @@ impl frame_support::traits::OnRuntimeUpgrade for MigrateBountyAccountAssets {
 	}
 }
 
+/// Creates the PGAS asset with [`pallet_assets::Pallet::force_create`] from the root origin.
+///
+/// [`indiv_pallet_pgas::migration::CreatePgasAsset`] is not usable here: it creates the asset
+/// through `fungibles::Create`, an unprivileged path that must follow `AssetIdAllocator`, so with
+/// `AutoIncAssetId` the only id it may use is `NextAssetId`, never
+/// [`crate::individuality::PGAS_ASSET_ID`]. `force_create` from `ForceOrigin` may pick any unused
+/// id instead (<https://github.com/paritytech/polkadot-sdk/pull/12378>).
+///
+/// `PGAS_ASSET_ID` lies below the sequence (`NextAssetId` started at `50_000_000` and is
+/// `50_000_548` at the time of writing), so `AutoIncAssetId::advance_from` leaves `NextAssetId`
+/// untouched and permissionless asset creation is not affected.
+///
+/// Idempotent: a no-op if the asset already exists.
+pub struct ForceCreatePgasAsset;
+impl frame_support::traits::OnRuntimeUpgrade for ForceCreatePgasAsset {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		const LOG_TARGET: &str = "runtime::asset-hub-polkadot::migrations";
+		type Assets = pallet_assets::Pallet<Runtime, TrustBackedAssetsInstance>;
+		type AssetsWeightInfo =
+			<Runtime as pallet_assets::Config<TrustBackedAssetsInstance>>::WeightInfo;
+
+		let db_weight = <Runtime as frame_system::Config>::DbWeight::get();
+		let asset_id = <Runtime as indiv_pallet_pgas::Config>::PgasAssetId::get();
+
+		if pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::contains_key(asset_id) {
+			log::info!(target: LOG_TARGET, "PGAS asset already exists; skipping.");
+			return db_weight.reads(1);
+		}
+
+		// Same asset as `indiv_pallet_pgas::Pallet::do_create_pgas_asset` would create: owned and
+		// administered by `PgasAdmin`, sufficient, with `PgasMinBalance` as the minimum balance.
+		match Assets::force_create(
+			crate::RuntimeOrigin::root(),
+			asset_id.into(),
+			<Runtime as indiv_pallet_pgas::Config>::PgasAdmin::get().into(),
+			true,
+			<Runtime as indiv_pallet_pgas::Config>::PgasMinBalance::get(),
+		) {
+			Ok(()) => log::info!(target: LOG_TARGET, "PGAS asset created."),
+			Err(e) => log::error!(target: LOG_TARGET, "failed to create PGAS asset: {e:?}"),
+		}
+
+		// `force_create` is benchmarked with a single `Asset` write; `AutoIncAssetId::advance_from`
+		// adds a `NextAssetId` read and, as `PGAS_ASSET_ID` is below the sequence, no write.
+		db_weight
+			.reads(1)
+			.saturating_add(<AssetsWeightInfo as pallet_assets::WeightInfo>::force_create())
+			.saturating_add(db_weight.reads(1))
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		let details = pallet_assets::Asset::<Runtime, TrustBackedAssetsInstance>::get(
+			<Runtime as indiv_pallet_pgas::Config>::PgasAssetId::get(),
+		)
+		.ok_or("PGAS asset must exist after migration")?;
+		frame_support::ensure!(
+			details.owner == <Runtime as indiv_pallet_pgas::Config>::PgasAdmin::get(),
+			"PGAS asset must be owned by `PgasAdmin`"
+		);
+		frame_support::ensure!(details.is_sufficient, "PGAS asset must be sufficient");
+		frame_support::ensure!(
+			details.min_balance == <Runtime as indiv_pallet_pgas::Config>::PgasMinBalance::get(),
+			"PGAS asset must use `PgasMinBalance`"
+		);
+		Ok(())
+	}
+}
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
@@ -154,6 +233,7 @@ pub type Unreleased = (
 		TrappedBalanceMember,
 	>,
 	RemoveAhMigratorPallet,
+	RemoveStateTrieMigrationPallet,
 	// Remove an old staking value.
 	crate::staking::RemoveMarchTIValue,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
@@ -168,6 +248,8 @@ pub type Unreleased = (
 		crate::dynamic_params::staking_election::MaxEraDuration,
 	>,
 	MigrateBountyAccountAssets,
+	ForceCreatePgasAsset,
+	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<Runtime>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
@@ -208,6 +290,9 @@ mod multiblock_migrations {
 		>,
 		// Not added: we do it with a manual TX
 		//pallet_revive::migrations::v3::Migration<Runtime>,
+		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
+		// `PGasDeposit`.
+		pallet_revive::migrations::v4::Migration<Runtime>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
@@ -308,5 +393,98 @@ mod multiblock_migrations {
 				}
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{
+		individuality::{PgasAdmin, PgasMinBalance, PGAS_ASSET_ID},
+		AccountId, AssetDeposit, Balances, ExistentialDeposit, RuntimeGenesisConfig, RuntimeOrigin,
+	};
+	use frame_support::{assert_noop, assert_ok, traits::OnRuntimeUpgrade};
+	use sp_runtime::BuildStorage;
+
+	type Assets = pallet_assets::Pallet<Runtime, TrustBackedAssetsInstance>;
+	type Asset = pallet_assets::Asset<Runtime, TrustBackedAssetsInstance>;
+	type NextAssetId = pallet_assets::NextAssetId<Runtime, TrustBackedAssetsInstance>;
+
+	/// `NextAssetId` on Asset Hub Polkadot at the time of writing, just as an example.
+	const EXAMPLE_LIVE_NEXT_ASSET_ID: u32 = 50_000_548;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		sp_io::TestExternalities::new(
+			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+		)
+	}
+
+	fn assert_pgas_asset_matches_pallet_config() {
+		let details = Asset::get(PGAS_ASSET_ID).expect("PGAS asset exists");
+		assert_eq!(details.owner, PgasAdmin::get());
+		assert_eq!(details.admin, PgasAdmin::get());
+		assert!(details.is_sufficient);
+		assert_eq!(details.min_balance, PgasMinBalance::get());
+	}
+
+	#[test]
+	fn force_create_pgas_asset_leaves_next_asset_id_untouched() {
+		new_test_ext().execute_with(|| {
+			NextAssetId::put(EXAMPLE_LIVE_NEXT_ASSET_ID);
+
+			let _ = ForceCreatePgasAsset::on_runtime_upgrade();
+			assert_pgas_asset_matches_pallet_config();
+			assert_eq!(NextAssetId::get(), Some(EXAMPLE_LIVE_NEXT_ASSET_ID));
+
+			// Idempotent.
+			let _ = ForceCreatePgasAsset::on_runtime_upgrade();
+			assert_pgas_asset_matches_pallet_config();
+			assert_eq!(NextAssetId::get(), Some(EXAMPLE_LIVE_NEXT_ASSET_ID));
+		});
+	}
+
+	#[test]
+	fn permissionless_create_is_unaffected_by_pgas_asset() {
+		new_test_ext().execute_with(|| {
+			NextAssetId::put(EXAMPLE_LIVE_NEXT_ASSET_ID);
+			let _ = ForceCreatePgasAsset::on_runtime_upgrade();
+
+			let creator = AccountId::from([1u8; 32]);
+			assert_ok!(Balances::force_set_balance(
+				RuntimeOrigin::root(),
+				creator.clone().into(),
+				AssetDeposit::get() + ExistentialDeposit::get(),
+			));
+
+			// Ids below the sequence, PGAS's neighbourhood included, stay out of reach.
+			assert_noop!(
+				Assets::create(
+					RuntimeOrigin::signed(creator.clone()),
+					(PGAS_ASSET_ID - 1).into(),
+					creator.clone().into(),
+					1,
+				),
+				pallet_assets::Error::<Runtime, TrustBackedAssetsInstance>::BadAssetId
+			);
+			// The next permissionless asset gets the same id it would have gotten before.
+			assert_ok!(Assets::create(
+				RuntimeOrigin::signed(creator.clone()),
+				EXAMPLE_LIVE_NEXT_ASSET_ID.into(),
+				creator.into(),
+				1,
+			));
+			assert_eq!(NextAssetId::get(), Some(EXAMPLE_LIVE_NEXT_ASSET_ID + 1));
+		});
+	}
+
+	#[test]
+	fn force_create_pgas_asset_preserves_absent_next_asset_id() {
+		new_test_ext().execute_with(|| {
+			NextAssetId::kill();
+
+			let _ = ForceCreatePgasAsset::on_runtime_upgrade();
+			assert_pgas_asset_matches_pallet_config();
+			assert!(!NextAssetId::exists());
+		});
 	}
 }

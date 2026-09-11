@@ -75,6 +75,8 @@ impl pallet_assets::Config for Runtime {
 	type Currency = Balances;
 	type CreateOrigin = EnsureSigned<Self::AccountId>;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type CallbackHandle = ();
+	type AssetIdAllocator = ();
 	type Holder = ();
 	type Freezer = ();
 }
