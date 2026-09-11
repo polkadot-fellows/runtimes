@@ -12,6 +12,9 @@ version.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`. Not `optional`: `construct_runtime!` needs
+# the crate path to resolve even when the feature gates the pallet out.
+pallet-rc2-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -114,6 +117,7 @@ xcm-runtime-apis = { workspace = true }
 sp-debug-derive = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 separator = { workspace = true }
@@ -130,6 +134,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 default = ["std"]
 no_std = []
 kusama-ahm = ["pallet-rc-migrator/kusama-ahm"]
+ahm-v2 = []
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -179,6 +184,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
 	"pallet-rc-migrator/std",
+	"pallet-rc2-migrator/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
@@ -243,6 +249,7 @@ runtime-benchmarks = [
 	"pallet-bounties/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
@@ -262,6 +269,7 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 	"pallet-recovery/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
@@ -307,6 +315,7 @@ try-runtime = [
 	"pallet-bounties/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-ct-migrator/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",
@@ -323,6 +332,7 @@ try-runtime = [
 	"pallet-proxy/try-runtime",
 	"pallet-ranked-collective/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 	"pallet-recovery/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",

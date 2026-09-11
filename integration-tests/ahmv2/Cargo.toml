@@ -1,0 +1,49 @@
+[package]
+name = "polkadot-integration-tests-ahmv2"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Polkadot integration tests for the AHM v2 migration"
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+log = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-ct-migrator = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+pallet-rc2-migrator = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
+runtime-parachains = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-storage = { workspace = true, default-features = true }
+sp-tracing = { workspace = true, default-features = true }
+tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
+xcm = { workspace = true, default-features = true }
+
+coretime-polkadot-runtime = { workspace = true, features = ["ahm-v2"] }
+polkadot-runtime = { workspace = true, features = ["ahm-v2"] }
+polkadot-runtime-constants = { workspace = true, default-features = true }
+
+# Only compiled with the `kusama` feature, so the default build pulls in one set of runtimes.
+coretime-kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
+kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
+kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
+
+[features]
+default = []
+# Run the whole suite against Kusama instead of Polkadot. The tests are network-agnostic; this
+# only swaps which runtimes `mock::network` resolves to.
+kusama = [
+	"dep:coretime-kusama-runtime",
+	"dep:kusama-runtime",
+	"dep:kusama-runtime-constants",
+]

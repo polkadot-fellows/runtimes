@@ -11,6 +11,9 @@ license.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`. Not `optional`: `construct_runtime!` needs
+# the crate path to resolve even when the feature gates the pallet out.
+pallet-rc2-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -115,6 +118,7 @@ sp-debug-derive = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 approx = { workspace = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
@@ -135,8 +139,11 @@ no_std = []
 polkadot-ahm = [
 	"pallet-rc-migrator/polkadot-ahm",
 ]
+
+ahm-v2 = []
 std = [
 	"pallet-rc-migrator/std",
+	"pallet-rc2-migrator/std",
 
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -234,6 +241,7 @@ std = [
 ]
 runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
@@ -249,6 +257,7 @@ runtime-benchmarks = [
 	"pallet-broker/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
@@ -294,6 +303,7 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 
 	"frame-election-provider-support/try-runtime",
 	"frame-executive/try-runtime",
@@ -313,6 +323,7 @@ try-runtime = [
 	"pallet-broker/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-ct-migrator/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",

@@ -1,0 +1,371 @@
+// Copyright (C) Polkadot Fellows.
+// This file is part of Polkadot.
+
+// Polkadot is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Polkadot is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
+
+//! Test harness: snapshot loading, manual block production and manual DMP/UMP message shuttling
+//! between the Relay Chain and the Coretime chain.
+
+use codec::{Decode, Encode};
+use cumulus_primitives_core::{
+	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
+	UpwardMessage, UpwardMessageSender,
+};
+use frame_support::{
+	dispatch::GetDispatchInfo,
+	traits::{EnqueueMessage, Get, OnFinalize, OnInitialize, ProcessMessage},
+	weights::Weight,
+};
+use frame_system::pallet_prelude::BlockNumberFor;
+use network::{
+	constants::system_parachain,
+	relay::{Block as RelayBlock, Runtime as RelayRuntime},
+};
+use remote_externalities::{Builder, Mode, OfflineConfig};
+use runtime_parachains::{
+	configuration::ActiveConfig,
+	dmp::{self, DownwardMessageQueues},
+	inclusion::{AggregateMessageOrigin as RcMessageOrigin, UmpQueueId},
+};
+use sp_core::H256;
+use sp_io::TestExternalities;
+use sp_runtime::{traits::One, BoundedVec};
+use tokio::sync::OnceCell;
+use xcm::{
+	latest::prelude::{Instruction, Xcm},
+	VersionedXcm,
+};
+
+/// The runtimes under test, chosen by the `kusama` feature.
+///
+/// Everything else in this crate goes through these aliases, so the suite is written once and runs
+/// against either network. Nothing outside this module may name a network directly.
+#[cfg(not(feature = "kusama"))]
+pub mod network {
+	pub use coretime_polkadot_runtime as ct;
+	pub use polkadot_runtime as relay;
+	pub use polkadot_runtime_constants as constants;
+
+	pub const NAME: &str = "Polkadot";
+}
+
+#[cfg(feature = "kusama")]
+pub mod network {
+	pub use coretime_kusama_runtime as ct;
+	pub use kusama_runtime as relay;
+	pub use kusama_runtime_constants as constants;
+
+	pub const NAME: &str = "Kusama";
+}
+
+pub type RuntimeCallFor<P> = <<P as Para>::Runtime as frame_system::Config>::RuntimeCall;
+type MqPallet<P> = pallet_message_queue::Pallet<<P as Para>::Runtime>;
+
+/// A parachain that takes part in the migration.
+///
+/// Block production and message shuttling are generic over this, so each chain is one impl. The
+/// event bounds are satisfied by the `TryInto<pallet::Event>` impls that `construct_runtime`
+/// generates for every runtime.
+pub trait Para {
+	type Runtime: frame_system::Config<
+			RuntimeEvent: TryInto<pallet_message_queue::Event<Self::Runtime>>
+			                  + TryInto<frame_system::Event<Self::Runtime>>,
+			RuntimeCall: GetDispatchInfo,
+		> + pallet_message_queue::Config<
+			MessageProcessor: ProcessMessage<Origin = ParachainMessageOrigin>,
+		> + cumulus_pallet_parachain_system::Config;
+	const PARA_ID: u32;
+	const CHAIN: Chain;
+}
+
+pub struct CoretimePara;
+impl Para for CoretimePara {
+	type Runtime = network::ct::Runtime;
+	const PARA_ID: u32 = system_parachain::BROKER_ID;
+	const CHAIN: Chain = Chain::Coretime;
+}
+
+// ---------------------------------------------------------------------------
+// Snapshot loading
+// ---------------------------------------------------------------------------
+
+/// Raw key-value snapshot plus state root, as produced by `try-runtime create-snapshot`.
+///
+/// Cached in this form because `TestExternalities` is not `Clone`; each test re-hydrates its own
+/// externalities from the cached raw snapshot.
+pub type RawSnapshot = (Vec<(Vec<u8>, (Vec<u8>, i32))>, H256);
+
+static RC_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
+static CT_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Chain {
+	Relay,
+	Coretime,
+}
+
+impl Chain {
+	/// Human-readable name for assertion and error messages.
+	pub const fn name(self) -> &'static str {
+		match self {
+			Chain::Relay => network::NAME,
+			Chain::Coretime => "Coretime",
+		}
+	}
+
+	/// Log target, so `RUST_LOG=runtime=debug` shows both chains.
+	pub const fn log_target(self) -> &'static str {
+		match self {
+			Chain::Relay => "runtime::relay",
+			Chain::Coretime => "runtime::coretime",
+		}
+	}
+
+	pub const fn snap_env(self) -> &'static str {
+		match self {
+			Chain::Relay => "SNAP_RC",
+			Chain::Coretime => "SNAP_CT",
+		}
+	}
+
+	fn cache(self) -> &'static OnceCell<RawSnapshot> {
+		match self {
+			Chain::Relay => &RC_CACHE,
+			Chain::Coretime => &CT_CACHE,
+		}
+	}
+
+	/// The `just` recipe owns the RPC endpoints, so point the developer at it rather than
+	/// repeating them here.
+	fn missing_snapshot_help(self) -> String {
+		format!(
+			"\n\nSnapshot for the {} chain is missing or unreadable ({} is unset or wrong).\n\
+			Run `just test` in integration-tests/ahmv2; it creates any missing snapshot first.\n",
+			self.name(),
+			self.snap_env(),
+		)
+	}
+}
+
+/// Load the externalities of one chain from its snapshot.
+///
+/// Runs on a worker thread so that `tokio::join!`-ed loads actually run in parallel (snapshot
+/// hydration is CPU-bound). Panics with instructions if the snapshot is not available: a missing
+/// snapshot must fail the test loudly, never skip it.
+pub async fn load(chain: Chain) -> TestExternalities {
+	tokio::spawn(async move {
+		sp_tracing::try_init_simple();
+		let snapshot = chain
+			.cache()
+			.get_or_init(|| async move { load_snapshot_uncached(chain).await })
+			.await;
+		TestExternalities::from_raw_snapshot(
+			snapshot.0.clone(),
+			snapshot.1,
+			sp_storage::StateVersion::V1,
+		)
+	})
+	.await
+	.unwrap_or_else(|e| panic!("failed to load the {} snapshot: {e}", chain.name()))
+}
+
+async fn load_snapshot_uncached(chain: Chain) -> RawSnapshot {
+	let path = std::env::var(chain.snap_env())
+		.unwrap_or_else(|_| panic!("{}", chain.missing_snapshot_help()));
+	let abs = std::path::absolute(&path).expect("Could not get absolute path");
+	assert!(abs.exists(), "No file at {}.{}", abs.display(), chain.missing_snapshot_help());
+
+	log::info!("Loading {} snapshot from {}", chain.name(), abs.display());
+	// The `Block` type is only used for header decoding in online mode; `RelayBlock` works for
+	// every chain when loading offline snapshots.
+	let ext = Builder::<RelayBlock>::default()
+		.mode(Mode::Offline(OfflineConfig { state_snapshot: abs.display().to_string().into() }))
+		.build()
+		.await
+		.unwrap_or_else(|e| {
+			panic!("Corrupt snapshot at {}: {e:?}{}", abs.display(), chain.missing_snapshot_help())
+		});
+
+	ext.inner_ext.into_raw_snapshot()
+}
+
+// ---------------------------------------------------------------------------
+// Block production
+// ---------------------------------------------------------------------------
+
+/// Execute the next Relay Chain block.
+///
+/// Only runs the hooks the tests rely on: `MessageQueue`, so inbound messages are processed, and
+/// the migrator, which drives the migration. Their order mirrors `construct_runtime!`, where the
+/// migrator sits below `MessageQueue` so that its `on_initialize` sees the block's inbound
+/// messages.
+pub fn next_block_rc() {
+	next_block::<RelayRuntime>(Chain::Relay, |now| {
+		let weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
+		let weight = weight
+			.saturating_add(<network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now));
+		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
+		// The timestamp inherent is an extrinsic, so it lands after `on_initialize`: a block's
+		// hooks see the previous block's clock.
+		advance_timestamp_rc();
+		weight
+	});
+}
+
+/// Relay-chain block time, so the harness clock advances the way the real one does.
+pub const RC_BLOCK_TIME_MS: u64 = 6_000;
+
+/// Move the Relay Chain clock on by one block.
+///
+/// Writes `Now` rather than calling `set_timestamp`, which would fire `OnTimestampSet` — Babe on a
+/// relay chain — and that asserts the timestamp's slot equals `CurrentSlot`. This harness does not
+/// run Babe, so its slot never moves.
+fn advance_timestamp_rc() {
+	let now = pallet_timestamp::Now::<RelayRuntime>::get();
+	pallet_timestamp::Now::<RelayRuntime>::put(now + RC_BLOCK_TIME_MS);
+}
+
+/// The Relay Chain's current timestamp, in milliseconds.
+pub fn now_ms_rc() -> u64 {
+	pallet_timestamp::Now::<RelayRuntime>::get()
+}
+
+/// Set the Relay Chain's block number, to skip a wait the test is not trying to measure.
+pub fn set_block_number_rc(now: BlockNumberFor<RelayRuntime>) {
+	frame_system::Pallet::<RelayRuntime>::set_block_number(now);
+}
+
+/// Execute the next block on parachain `P`. Runs only `MessageQueue`; same per-block assertions
+/// as [`next_block_rc`].
+pub fn next_block_para<P: Para>() {
+	next_block::<P::Runtime>(P::CHAIN, |now| {
+		let weight = <MqPallet<P> as OnInitialize<_>>::on_initialize(now);
+		<MqPallet<P> as OnFinalize<_>>::on_finalize(now);
+		weight
+	});
+}
+
+/// Shared block-execution skeleton: bump the block number, reset events, run the chain's hooks,
+/// then assert that no message failed processing and that the consumed weight stays below 80% of
+/// the block limit. The per-block assertions live here, in one place, so they cannot drift apart
+/// between the chains.
+fn next_block<T>(chain: Chain, hooks: impl FnOnce(BlockNumberFor<T>) -> Weight)
+where
+	T: frame_system::Config + pallet_message_queue::Config,
+	<T as frame_system::Config>::RuntimeEvent: TryInto<pallet_message_queue::Event<T>>,
+{
+	let name = chain.name();
+	let now = frame_system::Pallet::<T>::block_number() + One::one();
+	log::debug!(target: chain.log_target(), "Executing block: {now:?}");
+	frame_system::Pallet::<T>::set_block_number(now);
+	frame_system::Pallet::<T>::reset_events();
+	let weight = hooks(now);
+
+	for record in frame_system::Pallet::<T>::events() {
+		if let Ok(failed @ pallet_message_queue::Event::Processed { success: false, .. }) =
+			record.event.try_into()
+		{
+			panic!("{name}: message processing failure: {failed:?}");
+		}
+	}
+
+	let limit = <T as frame_system::Config>::BlockWeights::get().max_block;
+	assert!(
+		weight.all_lte(limit / 5 * 4),
+		"{name}: weight exceeded 80% of limit: {weight:?}, limit: {limit:?}"
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Message shuttling
+// ---------------------------------------------------------------------------
+
+/// Queue a DMP message on the Relay Chain destined for `para`.
+///
+/// This is the same code path that the RC-side XCM router uses, so anything queued here is
+/// indistinguishable from a message sent by a pallet on the RC.
+pub fn send_dmp(para: ParaId, xcm: Xcm<()>) {
+	let config = ActiveConfig::<RelayRuntime>::get();
+	dmp::Pallet::<RelayRuntime>::queue_downward_message(
+		&config,
+		para,
+		VersionedXcm::from(xcm).encode(),
+	)
+	.expect("can queue DMP message");
+}
+
+/// Send an UMP message from parachain `P` to the Relay Chain.
+pub fn send_ump<P: Para>(xcm: Xcm<()>) {
+	<cumulus_pallet_parachain_system::Pallet<P::Runtime> as UpwardMessageSender>::send_upward_message(
+		VersionedXcm::from(xcm).encode(),
+	)
+	.expect("can send UMP message");
+}
+
+/// Take all DMP messages that the Relay Chain has queued for `para`.
+pub fn take_dmp(para: ParaId) -> Vec<InboundDownwardMessage> {
+	DownwardMessageQueues::<RelayRuntime>::take(para)
+}
+
+/// Take all UMP messages that parachain `P` has queued for the Relay Chain.
+pub fn take_ump<P: Para>() -> Vec<UpwardMessage> {
+	cumulus_pallet_parachain_system::PendingUpwardMessages::<P::Runtime>::take()
+}
+
+/// Enqueue DMP messages on the message queue of parachain `P`.
+///
+/// Goes straight to the message queue instead of through `set_validation_data`, which would need
+/// a relay-chain state proof the harness has no way to produce.
+pub fn enqueue_dmp<P: Para>(msgs: Vec<InboundDownwardMessage>) {
+	log::info!(target: P::CHAIN.log_target(), "Received {} DMP messages from RC", msgs.len());
+	for msg in msgs {
+		sanity_check_xcm::<RuntimeCallFor<P>>(&msg.msg);
+
+		let bounded: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
+		MqPallet::<P>::enqueue_message(bounded.as_bounded_slice(), ParachainMessageOrigin::Parent);
+	}
+}
+
+/// Enqueue UMP messages from `para` on the Relay Chain message queue.
+pub fn enqueue_ump(para: ParaId, msgs: Vec<UpwardMessage>) {
+	log::info!(
+		target: Chain::Relay.log_target(),
+		"Received {} UMP messages from para {}",
+		msgs.len(),
+		u32::from(para)
+	);
+	for msg in msgs {
+		sanity_check_xcm::<network::relay::RuntimeCall>(&msg);
+
+		let bounded: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
+		network::relay::MessageQueue::enqueue_message(
+			bounded.as_bounded_slice(),
+			RcMessageOrigin::Ump(UmpQueueId::Para(para)),
+		);
+	}
+}
+
+/// Decode a forwarded XCM and, for every `Transact` in it, check that the receiving runtime can
+/// decode the inner call. This is what catches encode/decode drift between the chains.
+fn sanity_check_xcm<Call: Decode + GetDispatchInfo>(msg: &[u8]) {
+	let versioned = VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode forwarded XCM");
+	let xcm: Xcm<Call> =
+		versioned.try_into().expect("Must convert forwarded XCM to latest version");
+	for instruction in xcm.0 {
+		if let Instruction::Transact { call, .. } = instruction {
+			let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+				.expect("Receiving runtime must decode the Transact call");
+		}
+	}
+}
