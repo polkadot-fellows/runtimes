@@ -33,6 +33,10 @@ fn people_kusama_genesis(
 				.iter()
 				.cloned()
 				.map(|k| (k, PEOPLE_KUSAMA_ED * 4096 * 4096))
+				.chain(core::iter::once((
+					AccumulateForward::accumulation_account(),
+					PEOPLE_KUSAMA_ED,
+				)))
 				.collect(),
 			dev_accounts: None,
 		},
