@@ -55,7 +55,12 @@ fn asset_hub_polkadot_genesis(
 		.cloned()
 		.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
 		.collect();
-	balances.push((Dap::buffer_account(), ASSET_HUB_POLKADOT_ED));
+	// The DAP buffer receives slashes and is the reward pot for the election signed phase. Reward
+	// payouts transfer with `Preservation::Preserve`, so it needs spendable balance above ED,
+	// sized in rounds of `RewardBase`.
+	balances
+		.push((Dap::buffer_account(), ASSET_HUB_POLKADOT_ED + staking::RewardBase::get() * 1_000));
+	// The staging account only receives, so ED is enough for it to exist.
 	balances.push((Dap::staging_account(), ASSET_HUB_POLKADOT_ED));
 
 	serde_json::json!({
