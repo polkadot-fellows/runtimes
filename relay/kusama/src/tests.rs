@@ -176,3 +176,60 @@ fn check_treasury_pallet_id() {
 		kusama_runtime_constants::TREASURY_PALLET_ID
 	);
 }
+
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+/// would not show in the network total.
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use frame_support::{
+		assert_ok,
+		traits::{
+			fungible::{Inspect, Mutate},
+			tokens::Preservation,
+			OnRuntimeUpgrade,
+		},
+	};
+	use sp_runtime::BuildStorage;
+
+	const ALICE: [u8; 32] = [1u8; 32];
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let accumulation_account = AccumulateForward::accumulation_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		// Funded out of band; without the ED, dust is rejected and burned.
+		balances: vec![
+			(AccountId::from(ALICE), ed),
+			(AccountId::from(BOB), ed),
+			(accumulation_account.clone(), ed),
+		],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		accumulate_and_forward::EnsureAccumulationAccountFunded::<Runtime>::on_runtime_upgrade();
+
+		let issuance_before = Balances::total_issuance();
+		let accumulated_before = <Balances as Inspect<_>>::balance(&accumulation_account);
+
+		// Reap Alice, leaving dust behind.
+		let dust = ed / 2;
+		assert_ok!(<Balances as Mutate<_>>::transfer(
+			&AccountId::from(ALICE),
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		));
+
+		assert_eq!(<Balances as Inspect<_>>::balance(&AccountId::from(ALICE)), 0);
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&accumulation_account),
+			accumulated_before + dust
+		);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
